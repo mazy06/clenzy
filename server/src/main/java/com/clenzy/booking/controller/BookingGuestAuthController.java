@@ -2,6 +2,7 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.service.BookingGuestAuthService;
+import com.clenzy.util.PiiMasker;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +37,8 @@ public class BookingGuestAuthController {
     public ResponseEntity<?> register(@Valid @RequestBody GuestRegisterRequest request) {
         try {
             GuestAuthResponse response = authService.register(request);
-            log.info("Guest inscrit: email={}, org={}", request.email(), request.organizationId());
+            // PII : email masque dans les logs (Z4A-SEC-05, minimisation RGPD).
+            log.info("Guest inscrit: email={}, org={}", PiiMasker.maskEmail(request.email()), request.organizationId());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -52,7 +54,7 @@ public class BookingGuestAuthController {
     public ResponseEntity<?> login(@Valid @RequestBody GuestLoginRequest request) {
         try {
             GuestAuthResponse response = authService.login(request);
-            log.info("Guest connecté: email={}, org={}", request.email(), request.organizationId());
+            log.info("Guest connecté: email={}, org={}", PiiMasker.maskEmail(request.email()), request.organizationId());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -100,7 +102,7 @@ public class BookingGuestAuthController {
             }
 
             authService.sendPasswordResetEmail(email, orgId);
-            log.info("Reset password demandé pour email={}, org={}", email, orgId);
+            log.info("Reset password demandé pour email={}, org={}", PiiMasker.maskEmail(email), orgId);
             return ResponseEntity.ok(Map.of("message", "Si un compte existe avec cet email, un lien de réinitialisation a été envoyé."));
         } catch (Exception e) {
             log.error("Erreur forgot-password: {}", e.getMessage(), e);

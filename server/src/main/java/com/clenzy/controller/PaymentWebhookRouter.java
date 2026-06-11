@@ -7,9 +7,9 @@ import com.clenzy.payment.provider.CmiHashService;
 import com.clenzy.payment.provider.PayPalPaymentProvider;
 import com.clenzy.payment.provider.PayTabsPaymentProvider;
 import com.clenzy.payment.provider.PayzonePaymentProvider;
-import com.clenzy.repository.PaymentTransactionRepository;
 import com.clenzy.service.PaymentMethodConfigService;
 import com.clenzy.service.PaymentOrchestrationService;
+import com.clenzy.service.PaymentTransactionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.exception.SignatureVerificationException;
@@ -44,7 +44,7 @@ public class PaymentWebhookRouter {
     private final PayzonePaymentProvider payzoneProvider;
     private final PayPalPaymentProvider payPalProvider;
     private final CmiHashService cmiHashService;
-    private final PaymentTransactionRepository transactionRepository;
+    private final PaymentTransactionService paymentTransactionService;
     private final ObjectMapper objectMapper;
 
     @Value("${stripe.webhook-secret:}")
@@ -56,7 +56,7 @@ public class PaymentWebhookRouter {
                                  PayzonePaymentProvider payzoneProvider,
                                  PayPalPaymentProvider payPalProvider,
                                  CmiHashService cmiHashService,
-                                 PaymentTransactionRepository transactionRepository,
+                                 PaymentTransactionService paymentTransactionService,
                                  ObjectMapper objectMapper) {
         this.orchestrationService = orchestrationService;
         this.configService = configService;
@@ -64,7 +64,7 @@ public class PaymentWebhookRouter {
         this.payzoneProvider = payzoneProvider;
         this.payPalProvider = payPalProvider;
         this.cmiHashService = cmiHashService;
-        this.transactionRepository = transactionRepository;
+        this.paymentTransactionService = paymentTransactionService;
         this.objectMapper = objectMapper;
     }
 
@@ -161,7 +161,7 @@ public class PaymentWebhookRouter {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing cart_id");
         }
 
-        PaymentTransaction tx = transactionRepository.findByTransactionRef(cartId).orElse(null);
+        PaymentTransaction tx = paymentTransactionService.findByTransactionRef(cartId).orElse(null);
         if (tx == null) {
             log.warn("PayTabs webhook : transaction inconnue cart_id={}", cartId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Unknown transaction");
@@ -235,7 +235,7 @@ public class PaymentWebhookRouter {
         }
 
         // 1. Resoudre la transaction → orgId pour charger le store_key adequat
-        PaymentTransaction tx = transactionRepository.findByTransactionRef(oid).orElse(null);
+        PaymentTransaction tx = paymentTransactionService.findByTransactionRef(oid).orElse(null);
         if (tx == null) {
             log.warn("CMI webhook : transaction inconnue oid={}", oid);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Unknown transaction");
@@ -310,7 +310,7 @@ public class PaymentWebhookRouter {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing merchant_reference");
         }
 
-        PaymentTransaction tx = transactionRepository.findByTransactionRef(merchantRef).orElse(null);
+        PaymentTransaction tx = paymentTransactionService.findByTransactionRef(merchantRef).orElse(null);
         if (tx == null) {
             log.warn("Payzone webhook : transaction inconnue ref={}", merchantRef);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Unknown transaction");
@@ -359,8 +359,10 @@ public class PaymentWebhookRouter {
      * {@code POST /v1/notifications/verify-webhook-signature} avec les
      * headers PayPal-Transmission-* et le payload + le webhook_id de l'org.</p>
      *
-     * <p>Pour MVP : verification "soft" via {@link PayPalPaymentProvider#verifyWebhook}.
-     * À durcir dans une PR ultérieure en appelant l'API verify-webhook-signature.</p>
+     * <p>Vérification stricte via {@link PayPalPaymentProvider#verifyWebhookStrict}
+     * (appel API verify-webhook-signature). L'ancien mode « soft »
+     * ({@code verifyWebhook}) est désormais fail-closed et ne doit plus être
+     * utilisé (Z3-SEC-03).</p>
      *
      * <h2>Évènement attendu</h2>
      * <p>{@code PAYMENT.CAPTURE.COMPLETED} : capture validée. Le
@@ -409,7 +411,7 @@ public class PaymentWebhookRouter {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing reference_id");
         }
 
-        PaymentTransaction tx = transactionRepository.findByTransactionRef(transactionRef).orElse(null);
+        PaymentTransaction tx = paymentTransactionService.findByTransactionRef(transactionRef).orElse(null);
         if (tx == null) {
             log.warn("PayPal webhook : transaction inconnue ref={}", transactionRef);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Unknown transaction");

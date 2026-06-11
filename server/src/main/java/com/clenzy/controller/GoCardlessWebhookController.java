@@ -1,11 +1,7 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.NotificationKey;
 import com.clenzy.model.OwnerPayout;
-import com.clenzy.model.OwnerPayout.PayoutStatus;
-import com.clenzy.payment.payout.PayoutNotifier;
-import com.clenzy.repository.OwnerPayoutRepository;
-import com.clenzy.service.NotificationService;
+import com.clenzy.payment.payout.PayoutWebhookService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -18,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.HexFormat;
 
 /**
@@ -34,6 +29,9 @@ import java.util.HexFormat;
  *   <li>{@code payments.payment_failed} : refus banque ou solde insuffisant → FAILED</li>
  *   <li>{@code payments.payment_cancelled} : annulation côté admin → FAILED</li>
  * </ul>
+ *
+ * <p>Les transitions d'état (idempotentes, compare-and-set) sont déléguées à
+ * {@link PayoutWebhookService}.</p>
  */
 @RestController
 @RequestMapping("/api/webhooks/payouts/gocardless")
@@ -44,18 +42,12 @@ public class GoCardlessWebhookController {
     @Value("${gocardless.webhook-secret:}")
     private String webhookSecret;
 
-    private final OwnerPayoutRepository payoutRepository;
-    private final PayoutNotifier notifier;
-    private final NotificationService notificationService;
+    private final PayoutWebhookService payoutWebhookService;
     private final ObjectMapper objectMapper;
 
-    public GoCardlessWebhookController(OwnerPayoutRepository payoutRepository,
-                                        PayoutNotifier notifier,
-                                        NotificationService notificationService,
+    public GoCardlessWebhookController(PayoutWebhookService payoutWebhookService,
                                         ObjectMapper objectMapper) {
-        this.payoutRepository = payoutRepository;
-        this.notifier = notifier;
-        this.notificationService = notificationService;
+        this.payoutWebhookService = payoutWebhookService;
         this.objectMapper = objectMapper;
     }
 
@@ -111,8 +103,8 @@ public class GoCardlessWebhookController {
         String paymentId = textOrNull(links, "payment");
         if (paymentId == null) return;
 
-        OwnerPayout payout = payoutRepository
-            .findFirstByPaymentReference("GOCARDLESS:" + paymentId)
+        OwnerPayout payout = payoutWebhookService
+            .findByPaymentReference("GOCARDLESS:" + paymentId)
             .orElse(null);
         if (payout == null) {
             log.warn("GoCardless webhook : payout inconnu pour paymentId={}", paymentId);
@@ -120,37 +112,16 @@ public class GoCardlessWebhookController {
         }
 
         switch (action) {
-            case "paid", "confirmed" -> markPaid(payout, paymentId);
-            case "failed", "cancelled", "customer_approval_denied" ->
-                markFailed(payout, "GoCardless action: " + action);
+            case "paid", "confirmed" ->
+                payoutWebhookService.markPaid(payout, "GoCardless", paymentId);
+            case "failed", "cancelled", "customer_approval_denied" -> {
+                String reason = "GoCardless action: " + action;
+                payoutWebhookService.markFailed(payout, reason,
+                    "Reversement Open Banking reverse",
+                    "Le reversement #" + payout.getId() + " a ete reverse : " + reason);
+            }
             default -> log.debug("GoCardless webhook : action {} (no state change)", action);
         }
-    }
-
-    private void markPaid(OwnerPayout payout, String paymentId) {
-        if (payout.getStatus() == PayoutStatus.PAID) return;
-        payout.setStatus(PayoutStatus.PAID);
-        payout.setPaidAt(Instant.now());
-        OwnerPayout saved = payoutRepository.save(payout);
-        notifier.notifySuccess(saved);
-        log.info("GoCardless webhook : payout {} marque PAID (paymentId={})", payout.getId(), paymentId);
-    }
-
-    private void markFailed(OwnerPayout payout, String reason) {
-        if (payout.getStatus() == PayoutStatus.PAID) {
-            notificationService.notifyAdminsAndManagersByOrgId(
-                payout.getOrganizationId(),
-                NotificationKey.PAYOUT_FAILED,
-                "Reversement Open Banking reverse",
-                "Le reversement #" + payout.getId() + " a ete reverse : " + reason,
-                "/billing");
-            return;
-        }
-        payout.setStatus(PayoutStatus.FAILED);
-        payout.setFailureReason(reason);
-        OwnerPayout saved = payoutRepository.save(payout);
-        notifier.notifyFailure(saved, reason);
-        log.warn("GoCardless webhook : payout {} marque FAILED ({})", payout.getId(), reason);
     }
 
     private static boolean verifyHmacSha256(String payload, String signature, String secret) {

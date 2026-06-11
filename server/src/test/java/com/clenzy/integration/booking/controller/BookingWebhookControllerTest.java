@@ -36,7 +36,10 @@ class BookingWebhookControllerTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        controller = new BookingWebhookController(webhookService, connectionRepository, objectMapper);
+        // Service reel sur repository mocke (refactor T-ARCH-01)
+        controller = new BookingWebhookController(webhookService,
+                new com.clenzy.integration.booking.service.BookingConnectionQueryService(connectionRepository),
+                objectMapper);
     }
 
     private String buildValidPayload() throws Exception {

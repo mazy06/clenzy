@@ -136,12 +136,27 @@ public class AirbnbChannelAdapter implements ChannelConnector {
     }
 
     /**
-     * Push calendrier vers Airbnb (OUTBOUND).
-     * Utilise l'API Airbnb Calendar pour pousser les prix et disponibilites.
+     * Push calendrier vers Airbnb (OUTBOUND) avec resolution des prix de base.
+     * Delegue a la variante avec prix resolus (null = resolution via PriceEngine).
      */
     @Override
     public SyncResult pushCalendarUpdate(Long propertyId, LocalDate from,
                                           LocalDate to, Long orgId) {
+        return pushCalendarUpdate(propertyId, from, to, orgId, null);
+    }
+
+    /**
+     * Push calendrier vers Airbnb (OUTBOUND).
+     * Utilise l'API Airbnb Calendar pour pousser les prix et disponibilites.
+     *
+     * <p>Audit Z5-BUGS-03 : si {@code resolvedPrices} est fourni (prix channel-specific
+     * calcules par AdvancedRateManager), la map est consommee telle quelle au lieu
+     * de re-resoudre les prix de base via PriceEngine.</p>
+     */
+    @Override
+    public SyncResult pushCalendarUpdate(Long propertyId, LocalDate from,
+                                          LocalDate to, Long orgId,
+                                          Map<LocalDate, BigDecimal> resolvedPrices) {
         long startTime = System.currentTimeMillis();
 
         Optional<ChannelMapping> mappingOpt = resolveMapping(propertyId, orgId);
@@ -157,7 +172,9 @@ public class AirbnbChannelAdapter implements ChannelConnector {
         }
 
         try {
-            Map<LocalDate, BigDecimal> prices = priceEngine.resolvePriceRange(propertyId, from, to, orgId);
+            Map<LocalDate, BigDecimal> prices = resolvedPrices != null
+                    ? resolvedPrices
+                    : priceEngine.resolvePriceRange(propertyId, from, to, orgId);
             List<BookingRestriction> restrictions = bookingRestrictionRepository
                     .findApplicable(propertyId, from, to, orgId);
 

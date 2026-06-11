@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.model.WhatsAppConfig;
 import com.clenzy.model.WhatsAppProviderType;
 import com.clenzy.repository.WhatsAppConfigRepository;
+import com.clenzy.service.messaging.whatsapp.OpenWaSessionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,9 +43,12 @@ class OpenWaSessionControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new OpenWaSessionController(configRepository, objectMapper,
+        // Service REEL au-dessus du repository mocke (pattern Vague A) :
+        // couverture bout-en-bout controller -> service -> OpenWA mocke.
+        OpenWaSessionService sessionService = new OpenWaSessionService(configRepository, objectMapper,
             "http://openwa:2785", "http://host.docker.internal:8084/api/webhooks/whatsapp/openwa");
-        ReflectionTestUtils.setField(controller, "restTemplate", restTemplate);
+        ReflectionTestUtils.setField(sessionService, "restTemplate", restTemplate);
+        controller = new OpenWaSessionController(sessionService);
     }
 
     private WhatsAppConfig globalConfig() {

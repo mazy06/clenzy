@@ -11,11 +11,10 @@ import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.keycloak.admin.client.CreatedResponseUtil;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -34,11 +33,20 @@ public class KeycloakService {
 
     private static final Logger logger = LoggerFactory.getLogger(KeycloakService.class);
 
-    @Autowired(required = false)
-    private Keycloak keycloak;
+    /**
+     * Client admin Keycloak, optionnel (peut etre absent dans certains
+     * contextes de test). Injection par constructeur via ObjectProvider
+     * (T-ARCH-10) : equivalent de l'ancien @Autowired(required = false)
+     * sur champ, mais final et visible dans la signature.
+     */
+    private final Keycloak keycloak;
+    private final String realm;
 
-    @Value("${keycloak.realm:clenzy}")
-    private String realm;
+    public KeycloakService(ObjectProvider<Keycloak> keycloakProvider,
+                           @Value("${keycloak.realm:clenzy}") String realm) {
+        this.keycloak = keycloakProvider.getIfAvailable();
+        this.realm = realm;
+    }
 
     /**
      * Exécuter une opération Keycloak avec retry automatique en cas de 401 (token expiré).

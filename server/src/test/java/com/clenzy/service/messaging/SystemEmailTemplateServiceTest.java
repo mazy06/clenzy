@@ -226,6 +226,61 @@ class SystemEmailTemplateServiceTest {
             .hasMessageContaining("100000");
     }
 
+    // ----- sanitisation stored XSS (Z7-SEC-01) -----
+
+    @Test
+    void whenBodyContainsScript_thenStoredBodyIsSanitized() {
+        // Arrange
+        SystemEmailTemplate existing = orgOverride();
+        when(repository.findByOrganizationIdAndTemplateKeyAndLanguage(ORG_ID, "noise_alert_owner", "fr"))
+            .thenReturn(Optional.of(existing));
+        when(repository.save(any(SystemEmailTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        SystemEmailTemplate result = service.upsertOverride(ORG_ID, "noise_alert_owner", "fr",
+            "Sujet", "Bonjour\n\n<script>alert('xss')</script>Texte legitime");
+
+        // Assert — le script est supprime, le contenu legitime est conserve
+        assertThat(result.getBody()).doesNotContain("<script");
+        assertThat(result.getBody()).contains("Texte legitime");
+    }
+
+    @Test
+    void whenBodyContainsImgOnerror_thenHandlerStrippedBeforeStorage() {
+        SystemEmailTemplate existing = orgOverride();
+        when(repository.findByOrganizationIdAndTemplateKeyAndLanguage(ORG_ID, "noise_alert_owner", "fr"))
+            .thenReturn(Optional.of(existing));
+        when(repository.save(any(SystemEmailTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SystemEmailTemplate result = service.upsertOverride(ORG_ID, "noise_alert_owner", "fr",
+            "Sujet", "Voir <img src=\"https://x.com/a.png\" onerror=\"alert(1)\">");
+
+        assertThat(result.getBody()).doesNotContain("onerror");
+        assertThat(result.getBody()).contains("src=\"https://x.com/a.png\"");
+    }
+
+    @Test
+    void whenBodyIsOnlyScript_thenThrows() {
+        assertThatThrownBy(() -> service.upsertOverride(ORG_ID, "k", "fr", "s",
+                "<script>alert(1)</script>"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("HTML dangereux");
+    }
+
+    @Test
+    void whenBodyIsLegitPlainText_thenStoredUnchanged() {
+        SystemEmailTemplate existing = orgOverride();
+        when(repository.findByOrganizationIdAndTemplateKeyAndLanguage(ORG_ID, "noise_alert_owner", "fr"))
+            .thenReturn(Optional.of(existing));
+        when(repository.save(any(SystemEmailTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        String body = "Bonjour {guestName},\n\n*Alerte* : bruit detecte.\n- niveau eleve\n- duree > 10 min";
+        SystemEmailTemplate result = service.upsertOverride(ORG_ID, "noise_alert_owner", "fr",
+            "Sujet", body);
+
+        assertThat(result.getBody()).isEqualTo(body);
+    }
+
     // ----- removeOverride -----
 
     @Test

@@ -91,8 +91,17 @@ if (import.meta.env.VITE_POSTHOG_KEY) {
     autocapture: true,
     capture_pageview: true,
     capture_pageleave: true,
+    // Z1-SEC-FRONTAUX-03 : le PMS affiche des PII guests (noms, emails,
+    // telephones) et des codes d'acces physiques (PIN serrures, boites a
+    // cle) en texte rendu. Par defaut PostHog masque les inputs mais PAS
+    // le texte rendu → on masque TOUT le texte des enregistrements de
+    // session et des events autocapture avant envoi a eu.i.posthog.com.
+    mask_all_text: true,
+    mask_all_element_attributes: true,
     session_recording: {
       recordCrossOriginIframes: false,
+      maskAllInputs: true,
+      maskTextSelector: '*',
     },
     persistence: 'localStorage+cookie',
     // Disable /flags + remote config — suppresses 401/404 errors on new

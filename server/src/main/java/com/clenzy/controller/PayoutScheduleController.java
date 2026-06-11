@@ -1,8 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.PayoutScheduleConfigDto;
-import com.clenzy.model.PayoutScheduleConfig;
-import com.clenzy.repository.PayoutScheduleConfigRepository;
+import com.clenzy.service.PayoutScheduleService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -14,47 +13,24 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class PayoutScheduleController {
 
-    private final PayoutScheduleConfigRepository repository;
+    private final PayoutScheduleService payoutScheduleService;
 
-    public PayoutScheduleController(PayoutScheduleConfigRepository repository) {
-        this.repository = repository;
+    public PayoutScheduleController(PayoutScheduleService payoutScheduleService) {
+        this.payoutScheduleService = payoutScheduleService;
     }
 
     @GetMapping
     public ResponseEntity<PayoutScheduleConfigDto> getScheduleConfig() {
-        return repository.findAll().stream()
-                .findFirst()
-                .map(config -> ResponseEntity.ok(PayoutScheduleConfigDto.from(config)))
+        return payoutScheduleService.getScheduleConfig()
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public PayoutScheduleConfigDto updateScheduleConfig(@RequestBody UpdatePayoutScheduleRequest request) {
-        PayoutScheduleConfig config = repository.findAll().stream()
-                .findFirst()
-                .orElseGet(PayoutScheduleConfig::new);
-
-        if (request.payoutDaysOfMonth() != null) {
-            // Valider que les jours sont entre 1 et 28
-            List<Integer> validDays = request.payoutDaysOfMonth().stream()
-                    .filter(d -> d >= 1 && d <= 28)
-                    .distinct()
-                    .sorted()
-                    .toList();
-            config.setPayoutDaysOfMonth(validDays);
-        }
-
-        if (request.gracePeriodDays() != null) {
-            config.setGracePeriodDays(Math.max(0, Math.min(request.gracePeriodDays(), 30)));
-        }
-
-        if (request.autoGenerateEnabled() != null) {
-            config.setAutoGenerateEnabled(request.autoGenerateEnabled());
-        }
-
-        config = repository.save(config);
-        return PayoutScheduleConfigDto.from(config);
+        return payoutScheduleService.updateScheduleConfig(
+                request.payoutDaysOfMonth(), request.gracePeriodDays(), request.autoGenerateEnabled());
     }
 
     public record UpdatePayoutScheduleRequest(

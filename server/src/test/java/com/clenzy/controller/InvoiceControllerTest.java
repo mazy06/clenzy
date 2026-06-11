@@ -16,6 +16,7 @@ import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.service.InvoiceGeneratorService;
 import com.clenzy.service.InvoicePaymentService;
 import com.clenzy.service.InvoicePdfService;
+import com.clenzy.service.InvoiceQueryService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,8 +50,11 @@ class InvoiceControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new InvoiceController(invoiceGeneratorService, invoicePdfService, invoicePaymentService,
-                invoiceRepository, documentTemplateRepository, tenantContext);
+        // Pattern Vague A : service REEL construit au-dessus des mocks repository/tenant
+        // pour garder la couverture bout-en-bout (isolation org du telechargement PDF).
+        controller = new InvoiceController(invoiceGeneratorService, invoicePaymentService,
+                new InvoiceQueryService(invoiceRepository, documentTemplateRepository,
+                        invoicePdfService, tenantContext));
     }
 
     private InvoiceDto dto(Long id) {
@@ -119,7 +123,7 @@ class InvoiceControllerTest {
         invoice.setId(5L);
         invoice.setOrganizationId(1L);
         invoice.setInvoiceNumber("INV/2026/001");
-        when(invoiceRepository.findById(5L)).thenReturn(Optional.of(invoice));
+        when(invoiceRepository.findWithLinesById(5L)).thenReturn(Optional.of(invoice));
         when(invoicePdfService.generatePdf(invoice)).thenReturn(new byte[]{1, 2, 3});
 
         ResponseEntity<byte[]> response = controller.downloadPdf(5L);
@@ -131,7 +135,7 @@ class InvoiceControllerTest {
     @Test
     void downloadPdf_notFound_throws() {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-        when(invoiceRepository.findById(99L)).thenReturn(Optional.empty());
+        when(invoiceRepository.findWithLinesById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> controller.downloadPdf(99L))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -144,7 +148,7 @@ class InvoiceControllerTest {
         Invoice invoice = new Invoice();
         invoice.setId(5L);
         invoice.setOrganizationId(999L);
-        when(invoiceRepository.findById(5L)).thenReturn(Optional.of(invoice));
+        when(invoiceRepository.findWithLinesById(5L)).thenReturn(Optional.of(invoice));
 
         assertThatThrownBy(() -> controller.downloadPdf(5L))
                 .isInstanceOf(IllegalArgumentException.class);

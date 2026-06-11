@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
 import com.clenzy.model.OrgVisionAlert;
-import com.clenzy.repository.OrgVisionAlertRepository;
 import com.clenzy.service.agent.vision.VisionTokenUsageService;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,14 +30,11 @@ import java.util.Map;
 public class VisionUsageAdminController {
 
     private final VisionTokenUsageService usageService;
-    private final OrgVisionAlertRepository alertRepository;
     private final TenantContext tenantContext;
 
     public VisionUsageAdminController(VisionTokenUsageService usageService,
-                                        OrgVisionAlertRepository alertRepository,
                                         TenantContext tenantContext) {
         this.usageService = usageService;
-        this.alertRepository = alertRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -54,7 +50,7 @@ public class VisionUsageAdminController {
         body.put("windowDays", snap.windowDays());
         body.put("computedAt", snap.computedAt());
 
-        alertRepository.findByOrganizationId(orgId).ifPresent(cfg -> {
+        usageService.getAlertConfig(orgId).ifPresent(cfg -> {
             Map<String, Object> alertCfg = new LinkedHashMap<>();
             alertCfg.put("thresholdTokens", cfg.getThresholdTokens());
             alertCfg.put("lastAlertedAt", cfg.getLastAlertedAt());
@@ -77,10 +73,7 @@ public class VisionUsageAdminController {
         }
         long threshold = n.longValue();
 
-        OrgVisionAlert cfg = alertRepository.findByOrganizationId(orgId)
-                .orElseGet(() -> new OrgVisionAlert(orgId, threshold));
-        cfg.setThresholdTokens(threshold);
-        OrgVisionAlert saved = alertRepository.save(cfg);
+        OrgVisionAlert saved = usageService.upsertThreshold(orgId, threshold);
 
         return ResponseEntity.ok(Map.of(
                 "organizationId", saved.getOrganizationId(),

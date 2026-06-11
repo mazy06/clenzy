@@ -3,6 +3,8 @@ package com.clenzy.service;
 import com.clenzy.dto.CheckInInstructionsDto;
 import com.clenzy.dto.PropertyDto;
 import com.clenzy.exception.NotFoundException;
+import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
+import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyType;
 import com.clenzy.model.User;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -44,6 +47,7 @@ public class PropertyService {
     private final PortfolioClientRepository portfolioClientRepository;
     private final PortfolioRepository portfolioRepository;
     private final CheckInInstructionsRepository checkInInstructionsRepository;
+    private final AirbnbListingMappingRepository listingMappingRepository;
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -53,6 +57,7 @@ public class PropertyService {
                           PortfolioClientRepository portfolioClientRepository,
                           PortfolioRepository portfolioRepository,
                           CheckInInstructionsRepository checkInInstructionsRepository,
+                          AirbnbListingMappingRepository listingMappingRepository,
                           NotificationService notificationService,
                           TenantContext tenantContext) {
         this.propertyRepository = propertyRepository;
@@ -61,6 +66,7 @@ public class PropertyService {
         this.portfolioClientRepository = portfolioClientRepository;
         this.portfolioRepository = portfolioRepository;
         this.checkInInstructionsRepository = checkInInstructionsRepository;
+        this.listingMappingRepository = listingMappingRepository;
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
     }
@@ -153,6 +159,38 @@ public class PropertyService {
     private Property findByIdRespectingTenant(Long id) {
         return propertyRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
+    }
+
+    /**
+     * Mapping Airbnb d'une propriete (statut de liaison channel).
+     * Charge la propriete (NotFoundException si absente) puis valide l'organisation :
+     * findById ne passe PAS par le filtre Hibernate organizationFilter
+     * (audit 2026-06, regle 3 — controle absent avant ce refactor, ajoute ici).
+     */
+    @Transactional(readOnly = true)
+    public Optional<AirbnbListingMapping> getAirbnbListingMapping(Long propertyId) {
+        Property property = findByIdRespectingTenant(propertyId);
+        requireSameOrganization(property);
+        return listingMappingRepository.findByPropertyId(propertyId);
+    }
+
+    /**
+     * Refuse l'acces si la propriete appartient a une autre organisation.
+     * Bypass pour le staff plateforme (SUPER_ADMIN/SUPER_MANAGER) et les orgs
+     * SYSTEM, memes exemptions que le filtre Hibernate organizationFilter
+     * (pattern SmartLockService.requireSameOrganization).
+     */
+    private void requireSameOrganization(Property property) {
+        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
+            return;
+        }
+        Long orgId = tenantContext.getOrganizationId();
+        if (orgId != null && property.getOrganizationId() != null
+                && !orgId.equals(property.getOrganizationId())) {
+            log.warn("Acces cross-organisation refuse pour la propriete {}", property.getId());
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Vous n'avez pas accès à cette propriété");
+        }
     }
 
     @Transactional(readOnly = true)

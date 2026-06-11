@@ -4,11 +4,11 @@ import com.clenzy.dto.ShopCheckoutRequest;
 import com.clenzy.model.HardwareCatalog;
 import com.clenzy.model.HardwareOrder;
 import com.clenzy.model.OrderStatus;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.HardwareOrderRepository;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -32,9 +32,7 @@ public class ShopService {
     private final HardwareOrderRepository hardwareOrderRepository;
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
-
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
+    private final StripeGateway stripeGateway;
 
     @Value("${stripe.success-url}")
     private String successUrl;
@@ -44,10 +42,12 @@ public class ShopService {
 
     public ShopService(HardwareOrderRepository hardwareOrderRepository,
                        TenantContext tenantContext,
-                       ObjectMapper objectMapper) {
+                       ObjectMapper objectMapper,
+                       StripeGateway stripeGateway) {
         this.hardwareOrderRepository = hardwareOrderRepository;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
+        this.stripeGateway = stripeGateway;
     }
 
     /**
@@ -115,8 +115,6 @@ public class ShopService {
         hardwareOrderRepository.save(order);
 
         // Create Stripe Checkout Session
-        Stripe.apiKey = stripeSecretKey;
-
         final SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
             .setMode(SessionCreateParams.Mode.PAYMENT)
             .setSuccessUrl(successUrl)
@@ -140,7 +138,7 @@ public class ShopService {
             paramsBuilder.addLineItem(lineItem);
         }
 
-        final Session session = Session.create(paramsBuilder.build());
+        final Session session = stripeGateway.createSession(paramsBuilder.build());
 
         // Update order with Stripe session ID
         order.setStripeSessionId(session.getId());
@@ -176,8 +174,7 @@ public class ShopService {
 
         // Recuperer le payment intent ID depuis Stripe si possible
         try {
-            Stripe.apiKey = stripeSecretKey;
-            final Session session = Session.retrieve(stripeSessionId);
+            final Session session = stripeGateway.retrieveSession(stripeSessionId);
             if (session.getPaymentIntent() != null) {
                 order.setStripePaymentIntentId(session.getPaymentIntent());
             }

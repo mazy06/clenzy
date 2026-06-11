@@ -5,7 +5,6 @@ import com.clenzy.dto.RetestResultDto;
 import com.clenzy.model.Incident;
 import com.clenzy.model.Incident.IncidentSeverity;
 import com.clenzy.model.Incident.IncidentStatus;
-import com.clenzy.repository.IncidentRepository;
 import com.clenzy.service.IncidentService;
 import com.clenzy.service.ServiceHealthChecker;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +14,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -34,14 +32,11 @@ import java.util.Map;
 public class IncidentController {
 
     private final IncidentService incidentService;
-    private final IncidentRepository incidentRepository;
     private final ServiceHealthChecker serviceHealthChecker;
 
     public IncidentController(IncidentService incidentService,
-                              IncidentRepository incidentRepository,
                               ServiceHealthChecker serviceHealthChecker) {
         this.incidentService = incidentService;
-        this.incidentRepository = incidentRepository;
         this.serviceHealthChecker = serviceHealthChecker;
     }
 
@@ -63,40 +58,9 @@ public class IncidentController {
 
             LocalDateTime since = LocalDateTime.now().minusDays(limitedDays);
 
-            List<Incident> incidents;
-            if (status == IncidentStatus.OPEN) {
-                // Un incident OPEN doit etre visible peu importe son age — sinon les
-                // incidents stuck (config retiree, scheduler en panne) disparaissent du
-                // tableau de bord alors qu'ils continuent a polluer les KPI.
-                incidents = incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN);
-            } else if (status != null) {
-                incidents = incidentRepository
-                        .findByStatusAndOpenedAtAfterOrderByOpenedAtDesc(status, since);
-            } else {
-                // Mix : tous les OPEN (sans limite d'age) + les incidents actifs dans
-                // la fenetre. 'Actif' = ouvert OU resolu dans la periode — necessaire
-                // pour visualiser les RESOLVED qui contribuent encore a la moyenne
-                // KPI P1 alors qu'ils ont ete ouverts il y a longtemps.
-                List<Incident> openAll = incidentRepository
-                        .findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN);
-                List<Incident> activeNonOpen = incidentRepository
-                        .findActiveSince(since)
-                        .stream()
-                        .filter(i -> i.getStatus() != IncidentStatus.OPEN)
-                        .toList();
-                incidents = new ArrayList<>(openAll.size() + activeNonOpen.size());
-                incidents.addAll(openAll);
-                incidents.addAll(activeNonOpen);
-            }
-
-            if (severity != null) {
-                // Defensif : si severity en DB est null (cas legacy avant introduction du
-                // champ), on l'inclut quand meme — sinon un vieil incident polluant le KPI
-                // P1 reste invisible parce qu'il n'a pas de severity explicite.
-                incidents = incidents.stream()
-                        .filter(i -> i.getSeverity() == null || i.getSeverity() == severity)
-                        .toList();
-            }
+            // Regles de visibilite (OPEN toujours visibles, mix actifs, severity
+            // legacy null incluse) : voir IncidentService#searchIncidents.
+            List<Incident> incidents = incidentService.searchIncidents(status, severity, since);
 
             final int totalElements = incidents.size();
             final int totalPages = (int) Math.ceil((double) totalElements / limitedSize);
@@ -129,12 +93,10 @@ public class IncidentController {
             @RequestParam(required = false) IncidentSeverity severity,
             @RequestParam(required = false, defaultValue = "false") boolean severityBreakdown) {
         try {
-            long count = severity != null
-                    ? incidentRepository.countByStatusAndSeverity(IncidentStatus.OPEN, severity)
-                    : incidentRepository.countByStatus(IncidentStatus.OPEN);
+            long count = incidentService.countOpenIncidents(severity);
 
             if (severityBreakdown) {
-                long totalAllSeverities = incidentRepository.countByStatus(IncidentStatus.OPEN);
+                long totalAllSeverities = incidentService.countOpenIncidents(null);
                 return ResponseEntity.ok(Map.of(
                         "count", count,
                         "totalAllSeverities", totalAllSeverities
@@ -151,7 +113,7 @@ public class IncidentController {
     @Operation(summary = "Detail d'un incident")
     public ResponseEntity<?> getIncident(@PathVariable Long id) {
         try {
-            return incidentRepository.findById(id)
+            return incidentService.findIncident(id)
                     .map(incident -> ResponseEntity.ok((Object) IncidentDto.from(incident)))
                     .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (Exception e) {
@@ -182,7 +144,7 @@ public class IncidentController {
     @Operation(summary = "Retester le service associe a un incident et auto-resoudre si UP")
     public ResponseEntity<?> retestIncident(@PathVariable Long id) {
         try {
-            var optIncident = incidentRepository.findById(id);
+            var optIncident = incidentService.findIncident(id);
             if (optIncident.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }

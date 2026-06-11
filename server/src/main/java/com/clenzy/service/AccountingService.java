@@ -247,8 +247,25 @@ public class AccountingService {
         return commissionRepository.findByChannelAndOrgId(channel, orgId);
     }
 
+    /**
+     * Upsert de la commission d'un canal pour une organisation.
+     *
+     * <p>La ligne existante est resolue par {@code (channel, orgId)} — jamais
+     * par l'id fourni par le client (durcissement : empeche l'ecrasement d'une
+     * commission d'une autre organisation via un id arbitraire, et les doublons
+     * par canal).</p>
+     */
     @Transactional
-    public ChannelCommission saveChannelCommission(ChannelCommission commission) {
+    public ChannelCommission saveChannelCommission(ChannelName channel, Long orgId,
+                                                   com.clenzy.dto.ChannelCommissionDto dto) {
+        ChannelCommission commission = commissionRepository.findByChannelAndOrgId(channel, orgId)
+            .orElseGet(ChannelCommission::new);
+        commission.setOrganizationId(orgId);
+        commission.setChannelName(channel);
+        commission.setCommissionRate(dto.commissionRate());
+        commission.setVatRate(dto.vatRate());
+        commission.setIsGuestFacing(dto.isGuestFacing() != null ? dto.isGuestFacing() : Boolean.FALSE);
+        commission.setNotes(dto.notes());
         return commissionRepository.save(commission);
     }
 

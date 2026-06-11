@@ -2,12 +2,11 @@ package com.clenzy.controller;
 
 import com.clenzy.model.AssistantConversation;
 import com.clenzy.model.AssistantMessage;
-import com.clenzy.repository.AssistantConversationRepository;
-import com.clenzy.repository.AssistantMessageRepository;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.AgentOrchestrator;
 import com.clenzy.service.agent.AttachmentRef;
+import com.clenzy.service.assistant.AssistantConversationService;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,8 +37,7 @@ import static org.mockito.Mockito.*;
 class AssistantControllerTest {
 
     private AgentOrchestrator orchestrator;
-    private AssistantConversationRepository convRepo;
-    private AssistantMessageRepository msgRepo;
+    private AssistantConversationService conversationService;
     private TenantContext tenantContext;
     private PhotoStorageService photoStorageService;
     private AssistantController controller;
@@ -48,13 +46,12 @@ class AssistantControllerTest {
     @BeforeEach
     void setUp() {
         orchestrator = mock(AgentOrchestrator.class);
-        convRepo = mock(AssistantConversationRepository.class);
-        msgRepo = mock(AssistantMessageRepository.class);
+        conversationService = mock(AssistantConversationService.class);
         tenantContext = mock(TenantContext.class);
         photoStorageService = mock(PhotoStorageService.class);
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
 
-        controller = new AssistantController(orchestrator, convRepo, msgRepo,
+        controller = new AssistantController(orchestrator, conversationService,
                 tenantContext, new ObjectMapper(), photoStorageService,
                 mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class),
                 mock(com.clenzy.service.agent.briefing.BriefingComposer.class),
@@ -87,7 +84,7 @@ class AssistantControllerTest {
         c.setId(1L);
         c.setTitle("Test");
         Page<AssistantConversation> page = new PageImpl<>(List.of(c), Pageable.ofSize(20), 1);
-        when(convRepo.findActiveByUser(eq("user-123"), any())).thenReturn(page);
+        when(conversationService.listActiveConversations(eq("user-123"), any())).thenReturn(page);
 
         ResponseEntity<Page<Map<String, Object>>> response = controller.listConversations(jwt, 0, 20);
 
@@ -99,26 +96,22 @@ class AssistantControllerTest {
 
     @Test
     void listConversations_sizeClampedTo50() {
-        when(convRepo.findActiveByUser(anyString(), any()))
+        when(conversationService.listActiveConversations(anyString(), any()))
                 .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(50), 0));
 
         controller.listConversations(jwt, 0, 9999);
 
-        verify(convRepo).findActiveByUser(eq("user-123"),
+        verify(conversationService).listActiveConversations(eq("user-123"),
                 argThat(p -> ((PageRequest) p).getPageSize() == 50));
     }
 
     @Test
     void getMessages_ownerMatch_returnsList() {
-        AssistantConversation c = new AssistantConversation(1L, "user-123");
-        c.setId(42L);
-        when(convRepo.findByIdAndUser(42L, "user-123")).thenReturn(Optional.of(c));
-
         AssistantMessage m1 = AssistantMessage.user(42L, 1L, "hi");
         m1.setId(1L);
         AssistantMessage m2 = AssistantMessage.assistant(42L, 1L, "hello", null);
         m2.setId(2L);
-        when(msgRepo.findByConversation(42L)).thenReturn(List.of(m1, m2));
+        when(conversationService.getMessagesForOwner(42L, "user-123")).thenReturn(List.of(m1, m2));
 
         ResponseEntity<List<Map<String, Object>>> response = controller.getMessages(42L, jwt);
 
@@ -131,34 +124,34 @@ class AssistantControllerTest {
 
     @Test
     void getMessages_otherOwnersConversation_throws() {
-        when(convRepo.findByIdAndUser(99L, "user-123")).thenReturn(Optional.empty());
+        // L'ownership (et le 'jamais de lecture cross-user') est applique par
+        // AssistantConversationService — teste dans AssistantConversationServiceTest.
+        when(conversationService.getMessagesForOwner(99L, "user-123"))
+                .thenThrow(new IllegalArgumentException(
+                        "Conversation 99 introuvable ou non autorisee"));
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> controller.getMessages(99L, jwt));
         assertTrue(ex.getMessage().contains("99"));
-        verify(msgRepo, never()).findByConversation(anyLong());
     }
 
     @Test
     void archive_otherOwnersConversation_throws() {
-        when(convRepo.findByIdAndUser(99L, "user-123")).thenReturn(Optional.empty());
+        doThrow(new IllegalArgumentException("Conversation 99 introuvable ou non autorisee"))
+                .when(conversationService).archiveConversation(99L, "user-123");
 
         assertThrows(IllegalArgumentException.class,
                 () -> controller.archive(99L, jwt));
-        verify(convRepo, never()).save(any());
     }
 
     @Test
     void archive_ownerMatch_setsArchivedAtAndSaves() {
-        AssistantConversation c = new AssistantConversation(1L, "user-123");
-        c.setId(42L);
-        when(convRepo.findByIdAndUser(42L, "user-123")).thenReturn(Optional.of(c));
-
+        // Le marquage archivedAt + save est porte par AssistantConversationService
+        // (teste dans AssistantConversationServiceTest) — ici on verifie la delegation.
         ResponseEntity<Void> response = controller.archive(42L, jwt);
 
         assertEquals(204, response.getStatusCode().value());
-        assertNotNull(c.getArchivedAt());
-        verify(convRepo).save(c);
+        verify(conversationService).archiveConversation(42L, "user-123");
     }
 
     // ─── Upload endpoint (vision) ──────────────────────────────────────────
@@ -253,7 +246,7 @@ class AssistantControllerTest {
     @Test
     void serveAttachment_returnsBytes_whenOwnedAndStorageOk() {
         // Ownership : la cle 'good' appartient bien a une conv du user JWT
-        when(msgRepo.findAttachmentsJsonByStorageKeyForUser("good", "user-123"))
+        when(conversationService.findAttachmentsJsonForUser("good", "user-123"))
                 .thenReturn("[{\"storageKey\":\"good\",\"mediaType\":\"image/png\",\"name\":\"a.png\"}]");
         when(photoStorageService.retrieve("good")).thenReturn("hello".getBytes());
 
@@ -268,7 +261,7 @@ class AssistantControllerTest {
     @Test
     void serveAttachment_returns404_whenStorageKeyNotOwnedByUser() {
         // La cle existe peut-etre, mais elle n'est pas reliee a une conv du user JWT
-        when(msgRepo.findAttachmentsJsonByStorageKeyForUser("stranger", "user-123"))
+        when(conversationService.findAttachmentsJsonForUser("stranger", "user-123"))
                 .thenReturn(null);
 
         ResponseEntity<byte[]> ko = controller.serveAttachment("stranger", jwt);
@@ -280,7 +273,7 @@ class AssistantControllerTest {
 
     @Test
     void serveAttachment_returns404_whenStorageMissing() {
-        when(msgRepo.findAttachmentsJsonByStorageKeyForUser("good", "user-123"))
+        when(conversationService.findAttachmentsJsonForUser("good", "user-123"))
                 .thenReturn("[{\"storageKey\":\"good\",\"mediaType\":\"image/jpeg\"}]");
         when(photoStorageService.retrieve("good")).thenThrow(new RuntimeException("missing"));
 
@@ -291,7 +284,7 @@ class AssistantControllerTest {
 
     @Test
     void serveAttachment_fallsBackToJpeg_whenMediaTypeMissingInJson() {
-        when(msgRepo.findAttachmentsJsonByStorageKeyForUser("nomedia", "user-123"))
+        when(conversationService.findAttachmentsJsonForUser("nomedia", "user-123"))
                 .thenReturn("[{\"storageKey\":\"nomedia\"}]");
         when(photoStorageService.retrieve("nomedia")).thenReturn("x".getBytes());
 
@@ -314,7 +307,7 @@ class AssistantControllerTest {
                 mock(com.clenzy.service.agent.briefing.BriefingComposer.class);
             com.clenzy.service.agent.briefing.BriefingDelivery delivery =
                 mock(com.clenzy.service.agent.briefing.BriefingDelivery.class);
-            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+            controller = new AssistantController(orchestrator, conversationService, tenantContext,
                 new ObjectMapper(), photoStorageService, prefService, composer, delivery);
 
             com.clenzy.model.AssistantBriefingPref pref = new com.clenzy.model.AssistantBriefingPref(1L, "user-123");
@@ -337,7 +330,7 @@ class AssistantControllerTest {
         void getBriefingPrefs_noPref_returnsDefault() {
             com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
                 mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
-            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+            controller = new AssistantController(orchestrator, conversationService, tenantContext,
                 new ObjectMapper(), photoStorageService, prefService,
                 mock(com.clenzy.service.agent.briefing.BriefingComposer.class),
                 mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
@@ -362,7 +355,7 @@ class AssistantControllerTest {
         void updateBriefingPrefs_withValidBody_upsertsAndReturnsDto() {
             com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
                 mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
-            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+            controller = new AssistantController(orchestrator, conversationService, tenantContext,
                 new ObjectMapper(), photoStorageService, prefService,
                 mock(com.clenzy.service.agent.briefing.BriefingComposer.class),
                 mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
@@ -387,7 +380,7 @@ class AssistantControllerTest {
         void updateBriefingPrefs_invalidTimeLocal_throws() {
             com.clenzy.service.agent.briefing.AssistantBriefingPrefService prefService =
                 mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
-            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+            controller = new AssistantController(orchestrator, conversationService, tenantContext,
                 new ObjectMapper(), photoStorageService, prefService,
                 mock(com.clenzy.service.agent.briefing.BriefingComposer.class),
                 mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
@@ -404,7 +397,7 @@ class AssistantControllerTest {
                 mock(com.clenzy.service.agent.briefing.AssistantBriefingPrefService.class);
             com.clenzy.service.agent.briefing.BriefingComposer composer =
                 mock(com.clenzy.service.agent.briefing.BriefingComposer.class);
-            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+            controller = new AssistantController(orchestrator, conversationService, tenantContext,
                 new ObjectMapper(), photoStorageService, prefService, composer,
                 mock(com.clenzy.service.agent.briefing.BriefingDelivery.class));
 
@@ -424,7 +417,7 @@ class AssistantControllerTest {
                 mock(com.clenzy.service.agent.briefing.BriefingComposer.class);
             com.clenzy.service.agent.briefing.BriefingDelivery delivery =
                 mock(com.clenzy.service.agent.briefing.BriefingDelivery.class);
-            controller = new AssistantController(orchestrator, convRepo, msgRepo, tenantContext,
+            controller = new AssistantController(orchestrator, conversationService, tenantContext,
                 new ObjectMapper(), photoStorageService, prefService, composer, delivery);
 
             com.clenzy.model.AssistantBriefingPref pref = new com.clenzy.model.AssistantBriefingPref(1L, "user-123");
@@ -488,11 +481,11 @@ class AssistantControllerTest {
 
     @Test
     void listConversations_smallSize_passesThroughIfPositive() {
-        when(convRepo.findActiveByUser(anyString(), any()))
+        when(conversationService.listActiveConversations(anyString(), any()))
             .thenReturn(new PageImpl<>(List.of(), Pageable.ofSize(5), 0));
 
         controller.listConversations(jwt, 0, 5);
-        verify(convRepo).findActiveByUser(eq("user-123"), any());
+        verify(conversationService).listActiveConversations(eq("user-123"), any());
     }
 
     @Test

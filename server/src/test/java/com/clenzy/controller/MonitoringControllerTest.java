@@ -1,11 +1,10 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.SecurityAuditLogDto;
 import com.clenzy.model.SecurityAuditEventType;
 import com.clenzy.model.SecurityAuditLog;
-import com.clenzy.model.UserStatus;
-import com.clenzy.repository.SecurityAuditLogRepository;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.JwtTokenService;
+import com.clenzy.service.MonitoringQueryService;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +14,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -27,9 +25,9 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -38,8 +36,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class MonitoringControllerTest {
 
-    @Mock private SecurityAuditLogRepository auditLogRepository;
-    @Mock private UserRepository userRepository;
+    @Mock private MonitoringQueryService monitoringQueryService;
     @Mock private JwtTokenService jwtTokenService;
     @Mock private DataSource dataSource;
     @Mock private RedisConnectionFactory redisConnectionFactory;
@@ -54,9 +51,28 @@ class MonitoringControllerTest {
         ObjectProvider<JavaMailSender> mailProvider = mock(ObjectProvider.class);
 
         controller = new MonitoringController(
-            auditLogRepository, userRepository, jwtTokenService,
+            monitoringQueryService, jwtTokenService,
             dataSource, redisConnectionFactory, meterRegistry,
             kafkaProvider, mailProvider);
+    }
+
+    private static Map<String, Object> userMetricsMap(long total, long active, long newThisWeek) {
+        Map<String, Object> users = new LinkedHashMap<>();
+        users.put("total", total);
+        users.put("active", active);
+        users.put("inactive", total - active);
+        users.put("newThisWeek", newThisWeek);
+        return users;
+    }
+
+    private static Map<String, Object> securityMetricsMap(long failedLogins, long permissionDenied,
+                                                          long suspiciousActivity, String lastIncident) {
+        Map<String, Object> sec = new LinkedHashMap<>();
+        sec.put("failedLogins", failedLogins);
+        sec.put("permissionDenied", permissionDenied);
+        sec.put("suspiciousActivity", suspiciousActivity);
+        sec.put("lastIncident", lastIncident);
+        return sec;
     }
 
     // ── Health endpoint ─────────────────────────────────────────────
@@ -206,9 +222,8 @@ class MonitoringControllerTest {
         @SuppressWarnings("unchecked")
         void whenCalled_thenReturnsAllSections() {
             // Arrange
-            when(userRepository.count()).thenReturn(42L);
-            when(userRepository.countByStatus(UserStatus.ACTIVE)).thenReturn(38L);
-            when(userRepository.countByCreatedAtAfter(any())).thenReturn(3L);
+            when(monitoringQueryService.userMetrics())
+                .thenReturn(userMetricsMap(42L, 38L, 3L));
 
             var tokenMetrics = new JwtTokenService.TokenMetrics(
                 120, 10, 5, 3, 500, 2, 140, 85.7);
@@ -217,14 +232,8 @@ class MonitoringControllerTest {
             when(meterRegistry.find(anyString()))
                     .thenReturn(mock(io.micrometer.core.instrument.search.Search.class));
 
-            when(auditLogRepository.countByEventTypeAndCreatedAtAfter(
-                eq(SecurityAuditEventType.LOGIN_FAILURE), any())).thenReturn(5L);
-            when(auditLogRepository.countByEventTypeAndCreatedAtAfter(
-                eq(SecurityAuditEventType.PERMISSION_DENIED), any())).thenReturn(2L);
-            when(auditLogRepository.countByEventTypeAndCreatedAtAfter(
-                eq(SecurityAuditEventType.SUSPICIOUS_ACTIVITY), any())).thenReturn(0L);
-            when(auditLogRepository.findTopByEventTypeInOrderByCreatedAtDesc(anyList()))
-                .thenReturn(Optional.empty());
+            when(monitoringQueryService.securityMetrics())
+                .thenReturn(securityMetricsMap(5L, 2L, 0L, null));
 
             // Act
             var response = controller.getKeycloakMetrics();
@@ -261,23 +270,17 @@ class MonitoringControllerTest {
         @SuppressWarnings("unchecked")
         void whenLastIncidentExists_thenReturnsTimestamp() {
             // Arrange
-            when(userRepository.count()).thenReturn(10L);
-            when(userRepository.countByStatus(UserStatus.ACTIVE)).thenReturn(10L);
-            when(userRepository.countByCreatedAtAfter(any())).thenReturn(0L);
+            when(monitoringQueryService.userMetrics())
+                .thenReturn(userMetricsMap(10L, 10L, 0L));
 
             var tokenMetrics = new JwtTokenService.TokenMetrics(0, 0, 0, 0, 0, 0, 0, 0);
             when(jwtTokenService.getMetrics()).thenReturn(tokenMetrics);
             when(meterRegistry.find(anyString()))
                     .thenReturn(mock(io.micrometer.core.instrument.search.Search.class));
 
-            when(auditLogRepository.countByEventTypeAndCreatedAtAfter(any(), any())).thenReturn(0L);
-
-            SecurityAuditLog incident = new SecurityAuditLog(
-                SecurityAuditEventType.LOGIN_FAILURE, "POST /api/auth", "DENIED");
             Instant incidentTime = Instant.parse("2026-02-20T14:30:00Z");
-            incident.setCreatedAt(incidentTime);
-            when(auditLogRepository.findTopByEventTypeInOrderByCreatedAtDesc(anyList()))
-                .thenReturn(Optional.of(incident));
+            when(monitoringQueryService.securityMetrics())
+                .thenReturn(securityMetricsMap(0L, 0L, 0L, incidentTime.toString()));
 
             // Act
             var response = controller.getKeycloakMetrics();
@@ -309,8 +312,9 @@ class MonitoringControllerTest {
             log2.setId(2L);
             log2.setActorEmail("hacker@example.com");
 
-            Page<SecurityAuditLog> mockPage = new PageImpl<>(List.of(log1, log2));
-            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            Page<SecurityAuditLogDto> mockPage = new PageImpl<>(
+                List.of(SecurityAuditLogDto.from(log1), SecurityAuditLogDto.from(log2)));
+            when(monitoringQueryService.searchAuditLogs(any(), any(), any(), any(Pageable.class)))
                 .thenReturn(mockPage);
 
             // Act
@@ -328,8 +332,8 @@ class MonitoringControllerTest {
         @DisplayName("when event type filter then applies filter")
         void whenEventTypeFilter_thenAppliesFilter() {
             // Arrange
-            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
-            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            Page<SecurityAuditLogDto> emptyPage = new PageImpl<>(List.of());
+            when(monitoringQueryService.searchAuditLogs(any(), any(), any(), any(Pageable.class)))
                 .thenReturn(emptyPage);
 
             // Act
@@ -339,15 +343,15 @@ class MonitoringControllerTest {
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody().getContent()).isEmpty();
-            verify(auditLogRepository).findAll(any(Specification.class), any(Pageable.class));
+            verify(monitoringQueryService).searchAuditLogs(any(), any(), any(), any(Pageable.class));
         }
 
         @Test
         @DisplayName("when actorId filter then applies filter")
         void whenActorIdFilter_thenAppliesFilter() {
             // Arrange
-            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
-            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            Page<SecurityAuditLogDto> emptyPage = new PageImpl<>(List.of());
+            when(monitoringQueryService.searchAuditLogs(any(), any(), any(), any(Pageable.class)))
                 .thenReturn(emptyPage);
 
             // Act
@@ -355,15 +359,15 @@ class MonitoringControllerTest {
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            verify(auditLogRepository).findAll(any(Specification.class), any(Pageable.class));
+            verify(monitoringQueryService).searchAuditLogs(any(), any(), any(), any(Pageable.class));
         }
 
         @Test
         @DisplayName("when result filter then applies filter")
         void whenResultFilter_thenAppliesFilter() {
             // Arrange
-            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
-            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            Page<SecurityAuditLogDto> emptyPage = new PageImpl<>(List.of());
+            when(monitoringQueryService.searchAuditLogs(any(), any(), any(), any(Pageable.class)))
                 .thenReturn(emptyPage);
 
             // Act
@@ -377,8 +381,8 @@ class MonitoringControllerTest {
         @DisplayName("when all filters applied then combines them")
         void whenAllFilters_thenCombinesThem() {
             // Arrange
-            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
-            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            Page<SecurityAuditLogDto> emptyPage = new PageImpl<>(List.of());
+            when(monitoringQueryService.searchAuditLogs(any(), any(), any(), any(Pageable.class)))
                 .thenReturn(emptyPage);
 
             // Act
@@ -394,8 +398,8 @@ class MonitoringControllerTest {
         @DisplayName("when empty results then returns empty page")
         void whenEmptyResults_thenReturnsEmptyPage() {
             // Arrange
-            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
-            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            Page<SecurityAuditLogDto> emptyPage = new PageImpl<>(List.of());
+            when(monitoringQueryService.searchAuditLogs(any(), any(), any(), any(Pageable.class)))
                 .thenReturn(emptyPage);
 
             // Act
@@ -452,7 +456,7 @@ class MonitoringControllerTest {
             ObjectProvider<JavaMailSender> mp = mock(ObjectProvider.class);
             when(mp.getIfAvailable()).thenReturn(null);
 
-            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+            controller = new MonitoringController(monitoringQueryService, jwtTokenService,
                     dataSource, redisConnectionFactory, meterRegistry, kp, mp);
 
             var response = controller.getHealth();
@@ -556,13 +560,10 @@ class MonitoringControllerTest {
         @Test
         @SuppressWarnings("unchecked")
         void whenNoMicrometerData_thenDefaults() {
-            when(userRepository.count()).thenReturn(0L);
-            when(userRepository.countByStatus(UserStatus.ACTIVE)).thenReturn(0L);
-            when(userRepository.countByCreatedAtAfter(any())).thenReturn(0L);
+            when(monitoringQueryService.userMetrics()).thenReturn(userMetricsMap(0L, 0L, 0L));
             when(jwtTokenService.getMetrics()).thenReturn(new JwtTokenService.TokenMetrics(0,0,0,0,0,0,0,0));
             when(meterRegistry.find(anyString())).thenReturn(mock(io.micrometer.core.instrument.search.Search.class));
-            when(auditLogRepository.countByEventTypeAndCreatedAtAfter(any(), any())).thenReturn(0L);
-            when(auditLogRepository.findTopByEventTypeInOrderByCreatedAtDesc(anyList())).thenReturn(Optional.empty());
+            when(monitoringQueryService.securityMetrics()).thenReturn(securityMetricsMap(0L, 0L, 0L, null));
 
             var response = controller.getKeycloakMetrics();
             Map<String, Object> performance = (Map<String, Object>) response.getBody().get("performance");
@@ -575,9 +576,7 @@ class MonitoringControllerTest {
         @Test
         @SuppressWarnings("unchecked")
         void whenMicrometerHasTimerAndCounter_thenIncludedInPerformance() {
-            when(userRepository.count()).thenReturn(0L);
-            when(userRepository.countByStatus(UserStatus.ACTIVE)).thenReturn(0L);
-            when(userRepository.countByCreatedAtAfter(any())).thenReturn(0L);
+            when(monitoringQueryService.userMetrics()).thenReturn(userMetricsMap(0L, 0L, 0L));
             when(jwtTokenService.getMetrics()).thenReturn(new JwtTokenService.TokenMetrics(0,0,0,0,0,0,0,0));
 
             // Configure search to return a real timer + counter
@@ -601,8 +600,7 @@ class MonitoringControllerTest {
             when(meterRegistry.find("clenzy.api.request.total")).thenReturn(counterSearch);
             when(meterRegistry.find("clenzy.api.error.server")).thenReturn(errSearch);
 
-            when(auditLogRepository.countByEventTypeAndCreatedAtAfter(any(), any())).thenReturn(0L);
-            when(auditLogRepository.findTopByEventTypeInOrderByCreatedAtDesc(anyList())).thenReturn(Optional.empty());
+            when(monitoringQueryService.securityMetrics()).thenReturn(securityMetricsMap(0L, 0L, 0L, null));
 
             var response = controller.getKeycloakMetrics();
             Map<String, Object> performance = (Map<String, Object>) response.getBody().get("performance");
@@ -757,7 +755,7 @@ class MonitoringControllerTest {
             ObjectProvider<JavaMailSender> mp = mock(ObjectProvider.class);
             when(mp.getIfAvailable()).thenReturn(null);
 
-            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+            controller = new MonitoringController(monitoringQueryService, jwtTokenService,
                     dataSource, redisConnectionFactory, meterRegistry, kp, mp);
 
             var response = controller.getHealth();
@@ -783,7 +781,7 @@ class MonitoringControllerTest {
             when(kp.getIfAvailable()).thenReturn(kt);
 
             ObjectProvider<JavaMailSender> mp = mock(ObjectProvider.class);
-            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+            controller = new MonitoringController(monitoringQueryService, jwtTokenService,
                     dataSource, redisConnectionFactory, meterRegistry, kp, mp);
 
             var response = controller.getHealth();
@@ -813,7 +811,7 @@ class MonitoringControllerTest {
             when(impl.getPort()).thenReturn(587);
             when(mp.getIfAvailable()).thenReturn(impl);
 
-            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+            controller = new MonitoringController(monitoringQueryService, jwtTokenService,
                     dataSource, redisConnectionFactory, meterRegistry, kp, mp);
 
             var response = controller.getHealth();
@@ -841,7 +839,7 @@ class MonitoringControllerTest {
                     .when(impl).testConnection();
             when(mp.getIfAvailable()).thenReturn(impl);
 
-            controller = new MonitoringController(auditLogRepository, userRepository, jwtTokenService,
+            controller = new MonitoringController(monitoringQueryService, jwtTokenService,
                     dataSource, redisConnectionFactory, meterRegistry, kp, mp);
 
             var response = controller.getHealth();
@@ -858,8 +856,8 @@ class MonitoringControllerTest {
 
         @Test
         void whenActorIdBlank_thenIgnored() {
-            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
-            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            Page<SecurityAuditLogDto> emptyPage = new PageImpl<>(List.of());
+            when(monitoringQueryService.searchAuditLogs(any(), any(), any(), any(Pageable.class)))
                     .thenReturn(emptyPage);
 
             var response = controller.getAuditLogs(null, "   ", null, PageRequest.of(0, 20));
@@ -868,8 +866,8 @@ class MonitoringControllerTest {
 
         @Test
         void whenResultBlank_thenIgnored() {
-            Page<SecurityAuditLog> emptyPage = new PageImpl<>(List.of());
-            when(auditLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+            Page<SecurityAuditLogDto> emptyPage = new PageImpl<>(List.of());
+            when(monitoringQueryService.searchAuditLogs(any(), any(), any(), any(Pageable.class)))
                     .thenReturn(emptyPage);
 
             var response = controller.getAuditLogs(null, null, "  ", PageRequest.of(0, 20));

@@ -30,13 +30,14 @@ class GuestServiceTest {
 
     @Mock private GuestRepository guestRepository;
     @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
+    @Mock private OrganizationService organizationService;
 
     private GuestService guestService;
     private static final Long ORG_ID = 1L;
 
     @BeforeEach
     void setUp() {
-        guestService = new GuestService(guestRepository, reservationRepository);
+        guestService = new GuestService(guestRepository, reservationRepository, organizationService);
     }
 
     private Guest buildGuest(Long id, String firstName, String lastName) {

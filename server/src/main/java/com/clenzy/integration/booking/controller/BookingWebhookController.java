@@ -1,8 +1,7 @@
 package com.clenzy.integration.booking.controller;
 
 import com.clenzy.integration.booking.dto.BookingWebhookPayload;
-import com.clenzy.integration.booking.model.BookingConnection;
-import com.clenzy.integration.booking.repository.BookingConnectionRepository;
+import com.clenzy.integration.booking.service.BookingConnectionQueryService;
 import com.clenzy.integration.booking.service.BookingWebhookService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,14 +33,14 @@ public class BookingWebhookController {
     private static final Logger log = LoggerFactory.getLogger(BookingWebhookController.class);
 
     private final BookingWebhookService webhookService;
-    private final BookingConnectionRepository connectionRepository;
+    private final BookingConnectionQueryService connectionQueryService;
     private final ObjectMapper objectMapper;
 
     public BookingWebhookController(BookingWebhookService webhookService,
-                                    BookingConnectionRepository connectionRepository,
+                                    BookingConnectionQueryService connectionQueryService,
                                     ObjectMapper objectMapper) {
         this.webhookService = webhookService;
-        this.connectionRepository = connectionRepository;
+        this.connectionQueryService = connectionQueryService;
         this.objectMapper = objectMapper;
     }
 
@@ -73,8 +72,8 @@ public class BookingWebhookController {
             // 2. Parser le payload
             BookingWebhookPayload webhookPayload = objectMapper.readValue(payload, BookingWebhookPayload.class);
 
-            // 3. Resoudre l'orgId depuis le hotelId
-            Long orgId = resolveOrgId(webhookPayload.hotelId());
+            // 3. Resoudre l'orgId depuis le hotelId (lookup sans org : flux signe HMAC)
+            Long orgId = connectionQueryService.resolveOrgId(webhookPayload.hotelId());
 
             // 4. Deleguer au service (publication Kafka asynchrone)
             webhookService.processWebhook(webhookPayload, orgId);
@@ -91,15 +90,5 @@ public class BookingWebhookController {
                     "message", "Invalid webhook payload"
             ));
         }
-    }
-
-    /**
-     * Resout l'organizationId depuis un hotelId Booking.com.
-     */
-    private Long resolveOrgId(String hotelId) {
-        if (hotelId == null) return null;
-        return connectionRepository.findByHotelId(hotelId)
-                .map(BookingConnection::getOrganizationId)
-                .orElse(null);
     }
 }

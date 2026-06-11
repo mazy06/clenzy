@@ -22,7 +22,7 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.beans.factory.ObjectProvider;
 
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.core.Response;
@@ -57,10 +57,12 @@ class KeycloakServiceTest {
     private KeycloakService service;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp() {
-        service = new KeycloakService();
-        ReflectionTestUtils.setField(service, "keycloak", keycloak);
-        ReflectionTestUtils.setField(service, "realm", "clenzy");
+        // Injection constructeur (T-ARCH-10) : plus de ReflectionTestUtils
+        ObjectProvider<Keycloak> keycloakProvider = mock(ObjectProvider.class);
+        when(keycloakProvider.getIfAvailable()).thenReturn(keycloak);
+        service = new KeycloakService(keycloakProvider, "clenzy");
 
         lenient().when(keycloak.realm("clenzy")).thenReturn(realmResource);
         lenient().when(realmResource.users()).thenReturn(usersResource);

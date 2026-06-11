@@ -184,10 +184,6 @@ clenzy:
     api-url: ${NUKI_API_URL:https://api.nuki.io}
     client-id: ${NUKI_CLIENT_ID:}
     client-secret: ${NUKI_CLIENT_SECRET:}
-  # HubSpot — CRM & Ticketing
-  hubspot:
-    api-key: ${HUBSPOT_API_KEY:}
-    portal-id: ${HUBSPOT_PORTAL_ID:}
   # Signature electronique. Defaut : workflow interne SES (lien public /sign/{token}).
   # Bascule vers un QTSP (yousign, docusign, ...) via SIGNATURE_PROVIDER une fois cable.
   signature:
@@ -255,11 +251,6 @@ clenzy:
     businesses-url: ${SAGE_BUSINESSES_URL:https://api.accounting.sage.com/v3.1/businesses}
     api-base-url: ${SAGE_API_BASE_URL:https://api.accounting.sage.com/v3.1}
     scopes: ${SAGE_SCOPES:full_access}
-  # Webhooks — Zapier & automation
-  webhooks:
-    enabled: ${WEBHOOKS_ENABLED:true}
-    max-subscriptions-per-org: 20
-    retry-attempts: 3
   mapbox:
     access-token: ${MAPBOX_ACCESS_TOKEN:}
   mail:

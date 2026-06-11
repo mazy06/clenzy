@@ -105,8 +105,6 @@ resilience4j:
         waitDurationInOpenState: 60s
       nuki-api:
         baseConfig: external-api
-      hubspot-api:
-        baseConfig: external-api
       pennylane-api:
         baseConfig: external-api
       ai-design:

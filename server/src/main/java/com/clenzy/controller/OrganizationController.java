@@ -2,13 +2,10 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.BillingSummaryDto;
 import com.clenzy.dto.OrganizationDto;
-import com.clenzy.model.BillingPeriod;
 import com.clenzy.model.Organization;
 import com.clenzy.model.OrganizationType;
-import com.clenzy.repository.OrganizationMemberRepository;
-import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.service.OrganizationBillingService;
 import com.clenzy.service.OrganizationService;
-import com.clenzy.service.PricingConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -37,19 +34,13 @@ import java.util.stream.Collectors;
 @Tag(name = "Organizations", description = "Gestion des organisations")
 public class OrganizationController {
 
-    private final OrganizationRepository organizationRepository;
-    private final OrganizationMemberRepository memberRepository;
     private final OrganizationService organizationService;
-    private final PricingConfigService pricingConfigService;
+    private final OrganizationBillingService organizationBillingService;
 
-    public OrganizationController(OrganizationRepository organizationRepository,
-                                  OrganizationMemberRepository memberRepository,
-                                  OrganizationService organizationService,
-                                  PricingConfigService pricingConfigService) {
-        this.organizationRepository = organizationRepository;
-        this.memberRepository = memberRepository;
+    public OrganizationController(OrganizationService organizationService,
+                                  OrganizationBillingService organizationBillingService) {
         this.organizationService = organizationService;
-        this.pricingConfigService = pricingConfigService;
+        this.organizationBillingService = organizationBillingService;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -59,7 +50,7 @@ public class OrganizationController {
     @GetMapping
     @Operation(summary = "Lister toutes les organisations")
     public ResponseEntity<List<OrganizationDto>> listAll() {
-        List<Organization> organizations = organizationRepository.findAll();
+        List<Organization> organizations = organizationService.findAll();
         List<OrganizationDto> dtos = organizations.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
@@ -73,7 +64,7 @@ public class OrganizationController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir le detail d'une organisation")
     public ResponseEntity<OrganizationDto> getById(@PathVariable Long id) {
-        Organization org = organizationRepository.findById(id)
+        Organization org = organizationService.findById(id)
                 .orElseThrow(() -> new RuntimeException("Organisation non trouvee: " + id));
         return ResponseEntity.ok(toDto(org));
     }
@@ -148,36 +139,7 @@ public class OrganizationController {
     @GetMapping("/{id}/billing-summary")
     @Operation(summary = "Obtenir le resume de facturation per-seat d'une organisation")
     public ResponseEntity<BillingSummaryDto> getBillingSummary(@PathVariable Long id) {
-        Organization org = organizationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Organisation non trouvee: " + id));
-
-        int memberCount = (int) memberRepository.countByOrganizationId(id);
-        int basePriceCents = pricingConfigService.getPmsMonthlyPriceCents();
-        int perSeatPriceCents = pricingConfigService.getPmsPerSeatPriceCents();
-        int freeSeats = pricingConfigService.getPmsFreeSeats();
-        int billableSeats = Math.max(0, memberCount - freeSeats);
-        int seatsTotalCents = billableSeats * perSeatPriceCents;
-        int totalMonthlyCents = basePriceCents + seatsTotalCents;
-
-        // Appliquer la remise de la periode de facturation
-        BillingPeriod period = BillingPeriod.MONTHLY;
-        if (org.getBillingPeriod() != null) {
-            try {
-                period = BillingPeriod.valueOf(org.getBillingPeriod());
-            } catch (IllegalArgumentException ignored) {
-                // fallback to MONTHLY
-            }
-        }
-        double discount = period.getDiscount();
-        int effectiveMonthlyCents = (int) Math.round(totalMonthlyCents * discount);
-
-        BillingSummaryDto summary = new BillingSummaryDto(
-                memberCount, freeSeats, billableSeats,
-                basePriceCents, perSeatPriceCents, seatsTotalCents,
-                totalMonthlyCents, period.name(), discount, effectiveMonthlyCents
-        );
-
-        return ResponseEntity.ok(summary);
+        return ResponseEntity.ok(organizationBillingService.getBillingSummary(id));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -185,7 +147,7 @@ public class OrganizationController {
     // ═══════════════════════════════════════════════════════════════════════════
 
     private OrganizationDto toDto(Organization org) {
-        long count = memberRepository.countByOrganizationId(org.getId());
+        long count = organizationService.countMembers(org.getId());
         return new OrganizationDto(
                 org.getId(),
                 org.getName(),

@@ -119,23 +119,42 @@ public class DefaultDocumentTemplateSeeder implements ApplicationRunner {
         if (content == null) {
             return;
         }
-        // Un template actif existe deja : on tente une mise a jour par checksum
-        // (re-seed du nouveau rendu embarque), sans jamais ecraser un template
-        // personnalise par un admin via l'UI.
-        if (templateRepository.existsByDocumentTypeAndActiveTrue(seed.type())) {
-            templateRepository.findByDocumentTypeAndActiveTrue(seed.type())
-                    .ifPresent(active -> maybeUpdateSeededTemplate(seed, active, content));
-            return;
-        }
         Organization org = organizationRepository.findByName(orgName).orElse(null);
         if (org == null) {
             log.warn("Organisation '{}' introuvable : seed du template {} ignore.", orgName, seed.type());
+            return;
+        }
+        // Z1-BUGS-07 : le seeder tourne au boot SANS filtre Hibernate (pas de
+        // TenantContext) — les requetes "actif par type" globales voyaient les
+        // templates des AUTRES organisations : seed Clenzy saute si une autre org
+        // avait un actif du meme type, et IncorrectResultSizeDataAccessException
+        // des que deux actifs du meme type coexistaient. On scope donc
+        // explicitement la recherche sur l'organisation Clenzy.
+        DocumentTemplate activeForOrg = findActiveTemplateForOrg(seed.type(), org.getId());
+        if (activeForOrg != null) {
+            // Un template actif existe deja pour l'org Clenzy : on tente une mise a
+            // jour par checksum (re-seed du nouveau rendu embarque), sans jamais
+            // ecraser un template personnalise par un admin via l'UI.
+            maybeUpdateSeededTemplate(seed, activeForOrg, content);
             return;
         }
         DocumentTemplate template = persistTemplate(seed, org.getId(), content);
         persistTags(template, content);
         log.info("Template {} seede pour l'organisation '{}' (orgId={}, templateId={}, {} tags).",
                 seed.type(), orgName, org.getId(), template.getId(), template.getTags().size());
+    }
+
+    /**
+     * Template actif du type donne appartenant a l'organisation donnee, ou null.
+     * Filtre en memoire sur la liste par type (volumetrie boot negligeable) car
+     * le repository n'expose pas de finder org-scope et est hors perimetre.
+     */
+    private DocumentTemplate findActiveTemplateForOrg(DocumentType type, Long organizationId) {
+        return templateRepository.findByDocumentTypeOrderByVersionDesc(type).stream()
+                .filter(DocumentTemplate::isActive)
+                .filter(t -> organizationId.equals(t.getOrganizationId()))
+                .findFirst()
+                .orElse(null);
     }
 
     /**

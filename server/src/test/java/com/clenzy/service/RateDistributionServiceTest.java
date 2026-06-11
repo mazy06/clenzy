@@ -96,9 +96,9 @@ class RateDistributionServiceTest {
             when(connectorRegistry.getConnector(ChannelName.AIRBNB)).thenReturn(Optional.of(airbnbConnector));
             when(connectorRegistry.getConnector(ChannelName.BOOKING)).thenReturn(Optional.of(bookingConnector));
 
-            when(airbnbConnector.pushCalendarUpdate(PROPERTY_ID, FROM, TO, ORG_ID))
+            when(airbnbConnector.pushCalendarUpdate(eq(PROPERTY_ID), eq(FROM), eq(TO), eq(ORG_ID), anyMap()))
                     .thenReturn(SyncResult.success(7, 150));
-            when(bookingConnector.pushCalendarUpdate(PROPERTY_ID, FROM, TO, ORG_ID))
+            when(bookingConnector.pushCalendarUpdate(eq(PROPERTY_ID), eq(FROM), eq(TO), eq(ORG_ID), anyMap()))
                     .thenReturn(SyncResult.success(7, 200));
 
             when(advancedRateManager.resolveChannelPriceRange(eq(PROPERTY_ID), eq(FROM), eq(TO), any(), eq(ORG_ID)))
@@ -112,6 +112,33 @@ class RateDistributionServiceTest {
             assertThat(results.get(ChannelName.AIRBNB).isSuccess()).isTrue();
             assertThat(results.get(ChannelName.BOOKING).isSuccess()).isTrue();
             verify(rateAuditLogRepository, times(2)).save(any());
+        }
+
+        @Test
+        @DisplayName("resolved channel prices (with modifiers) are passed to the connector (Z5-BUGS-03)")
+        void whenChannelPricesAreResolved_thenTheyArePushedToConnector() {
+            // Arrange : prix channel-specific (markup applique) resolus par AdvancedRateManager
+            ChannelMapping airbnbMapping = createMapping(ChannelName.AIRBNB);
+            when(channelMappingRepository.findActiveByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(airbnbMapping));
+
+            ChannelConnector airbnbConnector = mockConnector(ChannelName.AIRBNB, true);
+            when(connectorRegistry.getConnector(ChannelName.AIRBNB)).thenReturn(Optional.of(airbnbConnector));
+
+            Map<LocalDate, BigDecimal> channelPrices = new LinkedHashMap<>();
+            channelPrices.put(FROM, new BigDecimal("110.00"));            // 100 +10% markup channel
+            channelPrices.put(FROM.plusDays(1), new BigDecimal("132.00")); // 120 +10%
+            when(advancedRateManager.resolveChannelPriceRange(PROPERTY_ID, FROM, TO, ChannelName.AIRBNB, ORG_ID))
+                    .thenReturn(channelPrices);
+            when(airbnbConnector.pushCalendarUpdate(eq(PROPERTY_ID), eq(FROM), eq(TO), eq(ORG_ID), anyMap()))
+                    .thenReturn(SyncResult.success(2, 100));
+
+            // Act
+            service.distributeRates(PROPERTY_ID, FROM, TO, ORG_ID);
+
+            // Assert : la map calculee est REELLEMENT transmise au connecteur
+            // (avant le fix, elle etait jetee et le connecteur re-resolvait les prix de base)
+            verify(airbnbConnector).pushCalendarUpdate(PROPERTY_ID, FROM, TO, ORG_ID, channelPrices);
         }
 
         @Test
@@ -170,7 +197,7 @@ class RateDistributionServiceTest {
 
             when(advancedRateManager.resolveChannelPriceRange(eq(PROPERTY_ID), eq(FROM), eq(TO), eq(ChannelName.AIRBNB), eq(ORG_ID)))
                     .thenReturn(Map.of());
-            when(airbnbConnector.pushCalendarUpdate(PROPERTY_ID, FROM, TO, ORG_ID))
+            when(airbnbConnector.pushCalendarUpdate(eq(PROPERTY_ID), eq(FROM), eq(TO), eq(ORG_ID), anyMap()))
                     .thenThrow(new RuntimeException("API timeout"));
 
             // Act

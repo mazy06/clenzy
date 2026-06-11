@@ -147,21 +147,50 @@ class AccountingServiceTest {
 
     @Test
     void saveChannelCommission_savesAndReturns() {
-        ChannelCommission commission = new ChannelCommission();
-        commission.setOrganizationId(ORG_ID);
-        commission.setChannelName(ChannelName.BOOKING);
-        commission.setCommissionRate(new BigDecimal("0.1500"));
+        com.clenzy.dto.ChannelCommissionDto dto = new com.clenzy.dto.ChannelCommissionDto(
+            null, null, null, new BigDecimal("0.1500"), null, null, null, null, null);
 
+        when(commissionRepository.findByChannelAndOrgId(ChannelName.BOOKING, ORG_ID))
+            .thenReturn(Optional.empty());
         when(commissionRepository.save(any(ChannelCommission.class))).thenAnswer(inv -> {
             ChannelCommission c = inv.getArgument(0);
             c.setId(1L);
             return c;
         });
 
-        ChannelCommission result = service.saveChannelCommission(commission);
+        ChannelCommission result = service.saveChannelCommission(ChannelName.BOOKING, ORG_ID, dto);
 
         assertNotNull(result.getId());
         assertEquals(ChannelName.BOOKING, result.getChannelName());
+        assertEquals(ORG_ID, result.getOrganizationId());
+        assertEquals(new BigDecimal("0.1500"), result.getCommissionRate());
+    }
+
+    @Test
+    void saveChannelCommission_existingRow_isUpdatedNotDuplicated() {
+        ChannelCommission existing = new ChannelCommission();
+        existing.setId(7L);
+        existing.setOrganizationId(ORG_ID);
+        existing.setChannelName(ChannelName.BOOKING);
+        existing.setCommissionRate(new BigDecimal("0.1000"));
+
+        // Durcissement : la ligne est resolue par (channel, org) — l'id fourni
+        // par le client (ici 999, potentiellement une ligne d'une autre org)
+        // est ignore.
+        com.clenzy.dto.ChannelCommissionDto dto = new com.clenzy.dto.ChannelCommissionDto(
+            999L, 555L, null, new BigDecimal("0.1800"), null, true, "notes", null, null);
+
+        when(commissionRepository.findByChannelAndOrgId(ChannelName.BOOKING, ORG_ID))
+            .thenReturn(Optional.of(existing));
+        when(commissionRepository.save(any(ChannelCommission.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ChannelCommission result = service.saveChannelCommission(ChannelName.BOOKING, ORG_ID, dto);
+
+        assertEquals(7L, result.getId());
+        assertEquals(ORG_ID, result.getOrganizationId());
+        assertEquals(new BigDecimal("0.1800"), result.getCommissionRate());
+        assertEquals(true, result.getIsGuestFacing());
+        assertEquals("notes", result.getNotes());
     }
 
     // ===== EXTENDED COVERAGE =====

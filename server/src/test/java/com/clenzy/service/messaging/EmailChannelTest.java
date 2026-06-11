@@ -120,4 +120,99 @@ class EmailChannelTest {
         assertFalse(result.success());
         assertTrue(result.errorMessage().contains("SMTP error"));
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Z7-SEC-03 — branche "document HTML complet" sanitisee
+    // ═══════════════════════════════════════════════════════════════
+
+    @Test
+    void whenFullHtmlBodyContainsScript_thenScriptStrippedBeforeSend() throws Exception {
+        // Arrange — body HTML complet (commence par <html) avec payload dangereux
+        MimeMessage realMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        var request = new MessageDeliveryRequest(
+            "guest@example.com", null, "Jean", "Sujet",
+            "<html><body><p>Bonjour</p><script>alert(1)</script>"
+                + "<img src=\"x\" onerror=\"steal()\"/></body></html>",
+            "Bonjour", "fr"
+        );
+
+        // Act
+        var result = emailChannel.send(request);
+
+        // Assert — envoi OK, constructs dangereux supprimes, contenu legitime conserve
+        assertTrue(result.success());
+        String html = extractHtmlPart(realMessage);
+        assertNotNull(html);
+        assertFalse(html.contains("<script"));
+        assertFalse(html.contains("alert(1)"));
+        assertFalse(html.contains("onerror"));
+        assertTrue(html.contains("<p>Bonjour</p>"));
+    }
+
+    @Test
+    void whenFullHtmlBodyIsClean_thenSentVerbatimWithoutWrapper() throws Exception {
+        // Arrange — document HTML complet legitime (ex. briefing deja rendu)
+        MimeMessage realMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        String cleanHtml = "<!DOCTYPE html><html><body><h1>Briefing</h1>"
+            + "<p>Contenu &amp; lien <a href=\"https://app.clenzy.fr\">ici</a></p></body></html>";
+        var request = new MessageDeliveryRequest(
+            "guest@example.com", null, "Jean", "Briefing", cleanHtml, "Briefing", "fr"
+        );
+
+        // Act
+        var result = emailChannel.send(request);
+
+        // Assert — restitue byte-identique (pas de double-wrap, pas de re-encodage)
+        assertTrue(result.success());
+        assertEquals(cleanHtml, extractHtmlPart(realMessage));
+    }
+
+    @Test
+    void whenPlainBodyDoesNotStartWithHtmlTag_thenWrappedByGuestTemplate() throws Exception {
+        // Arrange — corps interpole simple : doit passer par le wrapper guest
+        MimeMessage realMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(realMessage);
+        var request = new MessageDeliveryRequest(
+            "guest@example.com", null, "Jean", "Bienvenue", "Bonjour Jean", "Bonjour Jean", "fr"
+        );
+
+        // Act
+        var result = emailChannel.send(request);
+
+        // Assert — le contenu est habille (different du body brut)
+        assertTrue(result.success());
+        String html = extractHtmlPart(realMessage);
+        assertNotNull(html);
+        assertTrue(html.contains("Bonjour Jean"));
+        assertNotEquals("Bonjour Jean", html);
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private MimeMessage createRealMimeMessage() {
+        return new MimeMessage(jakarta.mail.Session.getInstance(new java.util.Properties()));
+    }
+
+    /** Extrait la partie text/html d'un message construit par MimeMessageHelper. */
+    private String extractHtmlPart(MimeMessage message) throws Exception {
+        message.saveChanges();
+        return findHtml(message.getContent());
+    }
+
+    private String findHtml(Object content) throws Exception {
+        if (content instanceof String s) {
+            return s;
+        }
+        if (content instanceof jakarta.mail.Multipart multipart) {
+            for (int i = 0; i < multipart.getCount(); i++) {
+                String found = findHtml(multipart.getBodyPart(i).getContent());
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
 }

@@ -2,9 +2,12 @@ package com.clenzy.service;
 
 import com.clenzy.dto.CreateUserDto;
 import com.clenzy.model.*;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.PendingInscriptionRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.util.StringUtils;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,6 +47,7 @@ class InscriptionServiceTest {
     @Mock private RestTemplate restTemplate;
     @Mock private PlatformPromoCodeService promoCodeService;
     @Mock private BrevoContactService brevoContactService;
+    @Mock private StripeGateway stripeGateway;
 
     private InscriptionService inscriptionService;
 
@@ -51,9 +56,9 @@ class InscriptionServiceTest {
         inscriptionService = new InscriptionService(
                 pendingInscriptionRepository, userRepository,
                 keycloakService, organizationService, pricingConfigService,
-                emailService, restTemplate, promoCodeService, brevoContactService);
+                emailService, restTemplate, promoCodeService, brevoContactService,
+                stripeGateway);
 
-        setField(inscriptionService, "stripeSecretKey", "sk_test_dummy");
         setField(inscriptionService, "currency", "EUR");
         setField(inscriptionService, "inscriptionReturnUrl", "http://localhost:3000/inscription/success");
         setField(inscriptionService, "frontendUrl", "http://localhost:3000");
@@ -149,7 +154,7 @@ class InscriptionServiceTest {
             when(pendingInscriptionRepository.findByEmailAndStatus("jean@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
                     .thenReturn(Optional.of(existing));
 
-            // Note: Stripe.apiKey is set but Session.create will fail in unit test context
+            // Note: le gateway mocke retourne null -> NPE apres la creation de session
             assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
                     .isInstanceOf(Exception.class);
 
@@ -725,7 +730,7 @@ class InscriptionServiceTest {
             when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
                     .thenReturn(Optional.empty());
 
-            // ANNUAL path will fail at Stripe.Session.create
+            // ANNUAL path : le gateway mocke retourne null -> echec apres createSession
             assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
                     .isInstanceOf(Exception.class);
         }
@@ -867,6 +872,45 @@ class InscriptionServiceTest {
                     .isInstanceOf(Exception.class);
 
             verify(promoCodeService).tryConsume(1L);
+        }
+
+        @Test
+        @DisplayName("happy path : la session Checkout est creee via StripeGateway (T-SOLID-3)")
+        void whenValidInscription_thenCreatesSessionViaGateway() throws Exception {
+            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
+            dto.setFullName("Jean Dupont");
+            dto.setEmail("gateway@test.com");
+            dto.setForfait("essentiel");
+            dto.setBillingPeriod("MONTHLY");
+            dto.setAcceptedTerms(true);
+
+            when(userRepository.existsByEmailHash(anyString())).thenReturn(false);
+            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
+            when(pendingInscriptionRepository.findByEmailAndStatus(any(), any()))
+                    .thenReturn(Optional.empty());
+
+            Session session = mock(Session.class);
+            when(session.getId()).thenReturn("cs_insc_1");
+            when(session.getClientSecret()).thenReturn("cs_insc_1_secret");
+            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
+
+            Map<String, Object> result = inscriptionService.initiateInscription(dto);
+
+            assertThat(result.get("clientSecret")).isEqualTo("cs_insc_1_secret");
+            assertThat(result.get("sessionId")).isEqualTo("cs_insc_1");
+
+            // Les params Stripe passent par le gateway (plus de Stripe.apiKey statique)
+            ArgumentCaptor<SessionCreateParams> paramsCaptor =
+                    ArgumentCaptor.forClass(SessionCreateParams.class);
+            verify(stripeGateway).createSession(paramsCaptor.capture());
+            assertThat(paramsCaptor.getValue().getMetadata())
+                    .containsEntry("type", "inscription")
+                    .containsEntry("email", "gateway@test.com");
+
+            ArgumentCaptor<PendingInscription> pendingCaptor =
+                    ArgumentCaptor.forClass(PendingInscription.class);
+            verify(pendingInscriptionRepository).save(pendingCaptor.capture());
+            assertThat(pendingCaptor.getValue().getStripeSessionId()).isEqualTo("cs_insc_1");
         }
     }
 

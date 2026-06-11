@@ -1,7 +1,8 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.PlatformPromoCodeDto;
 import com.clenzy.model.PlatformPromoCode;
-import com.clenzy.repository.PlatformPromoCodeRepository;
+import com.clenzy.service.PlatformPromoCodeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,17 +25,25 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Tests unitaires de AdminPlatformPromoCodeController.
+ *
+ * NOTE : depuis le refactor T-ARCH-01/T-ARCH-07, le controller n'injecte plus
+ * le repository (acces donnees dans PlatformPromoCodeService, teste dans
+ * PlatformPromoCodeServiceTest) et expose des PlatformPromoCodeDto au lieu
+ * de l'entite JPA (shape JSON identique champ a champ).
+ */
 @ExtendWith(MockitoExtension.class)
 class AdminPlatformPromoCodeControllerTest {
 
-    @Mock private PlatformPromoCodeRepository repository;
+    @Mock private PlatformPromoCodeService promoCodeService;
 
     private AdminPlatformPromoCodeController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new AdminPlatformPromoCodeController(repository);
+        controller = new AdminPlatformPromoCodeController(promoCodeService);
         jwt = Jwt.withTokenValue("t")
                 .header("alg", "RS256")
                 .claim("sub", "admin-1")
@@ -44,15 +53,16 @@ class AdminPlatformPromoCodeControllerTest {
     }
 
     @Test
-    void list_returnsRepositoryFindAll() {
+    void list_returnsServiceFindAll() {
         PlatformPromoCode p = new PlatformPromoCode();
         p.setCode("WELCOME10");
-        when(repository.findAll()).thenReturn(List.of(p));
+        when(promoCodeService.findAll()).thenReturn(List.of(p));
 
-        ResponseEntity<List<PlatformPromoCode>> resp = controller.list();
+        ResponseEntity<List<PlatformPromoCodeDto>> resp = controller.list();
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).hasSize(1);
+        assertThat(resp.getBody().get(0).code()).isEqualTo("WELCOME10");
     }
 
     @Test
@@ -65,16 +75,16 @@ class AdminPlatformPromoCodeControllerTest {
         body.put("validFrom", LocalDateTime.now().toString());
         body.put("validUntil", LocalDateTime.now().plusDays(30).toString());
         body.put("description", "Été 2026");
-        when(repository.save(any(PlatformPromoCode.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(promoCodeService.create(any(PlatformPromoCode.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ResponseEntity<?> resp = controller.create(body, jwt);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        PlatformPromoCode saved = (PlatformPromoCode) resp.getBody();
-        assertThat(saved.getCode()).isEqualTo("SUMMER20");
-        assertThat(saved.getDiscountValue()).isEqualTo(20);
-        assertThat(saved.getMaxUses()).isEqualTo(100);
-        assertThat(saved.getDescription()).isEqualTo("Été 2026");
+        PlatformPromoCodeDto saved = (PlatformPromoCodeDto) resp.getBody();
+        assertThat(saved.code()).isEqualTo("SUMMER20");
+        assertThat(saved.discountValue()).isEqualTo(20);
+        assertThat(saved.maxUses()).isEqualTo(100);
+        assertThat(saved.description()).isEqualTo("Été 2026");
     }
 
     @Test
@@ -82,13 +92,13 @@ class AdminPlatformPromoCodeControllerTest {
         Map<String, Object> body = new HashMap<>();
         body.put("code", "X");
         body.put("discountValue", 10);
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(promoCodeService.create(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ResponseEntity<?> resp = controller.create(body, jwt);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        PlatformPromoCode saved = (PlatformPromoCode) resp.getBody();
-        assertThat(saved.getDiscountType()).isEqualTo(PlatformPromoCode.DiscountType.PERCENTAGE);
+        PlatformPromoCodeDto saved = (PlatformPromoCodeDto) resp.getBody();
+        assertThat(saved.discountType()).isEqualTo(PlatformPromoCode.DiscountType.PERCENTAGE);
     }
 
     @Test
@@ -96,7 +106,7 @@ class AdminPlatformPromoCodeControllerTest {
         ResponseEntity<?> resp = controller.create(Map.of("discountValue", 10), jwt);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        verify(repository, never()).save(any());
+        verify(promoCodeService, never()).create(any());
     }
 
     @Test
@@ -136,45 +146,44 @@ class AdminPlatformPromoCodeControllerTest {
         body.put("discountValue", 5);
         body.put("validFrom", "");
         body.put("validUntil", "  ");
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(promoCodeService.create(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ResponseEntity<?> resp = controller.create(body, jwt);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        PlatformPromoCode saved = (PlatformPromoCode) resp.getBody();
-        assertThat(saved.getValidFrom()).isNull();
-        assertThat(saved.getValidUntil()).isNull();
+        PlatformPromoCodeDto saved = (PlatformPromoCodeDto) resp.getBody();
+        assertThat(saved.validFrom()).isNull();
+        assertThat(saved.validUntil()).isNull();
     }
 
     @Test
     void create_setsCreatedByFromJwt() {
         Map<String, Object> body = Map.of("code", "X", "discountValue", 1);
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(promoCodeService.create(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ResponseEntity<?> resp = controller.create(body, jwt);
 
-        PlatformPromoCode saved = (PlatformPromoCode) resp.getBody();
-        assertThat(saved.getCreatedBy()).isEqualTo("admin-1");
+        PlatformPromoCodeDto saved = (PlatformPromoCodeDto) resp.getBody();
+        assertThat(saved.createdBy()).isEqualTo("admin-1");
     }
 
     @Test
-    void activate_existing_setsActiveTrueAndSaves() {
+    void activate_existing_returns200WithActiveTrue() {
         PlatformPromoCode existing = new PlatformPromoCode();
         existing.setCode("X");
-        existing.setActive(false);
-        when(repository.findById(5L)).thenReturn(Optional.of(existing));
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        existing.setActive(true);
+        when(promoCodeService.setActive(5L, true)).thenReturn(Optional.of(existing));
 
         ResponseEntity<?> resp = controller.activate(5L);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(existing.isActive()).isTrue();
-        verify(repository).save(existing);
+        PlatformPromoCodeDto dto = (PlatformPromoCodeDto) resp.getBody();
+        assertThat(dto.active()).isTrue();
     }
 
     @Test
     void activate_notFound_returns404() {
-        when(repository.findById(99L)).thenReturn(Optional.empty());
+        when(promoCodeService.setActive(99L, true)).thenReturn(Optional.empty());
 
         ResponseEntity<?> resp = controller.activate(99L);
 
@@ -182,21 +191,21 @@ class AdminPlatformPromoCodeControllerTest {
     }
 
     @Test
-    void deactivate_existing_setsActiveFalse() {
+    void deactivate_existing_returns200WithActiveFalse() {
         PlatformPromoCode existing = new PlatformPromoCode();
-        existing.setActive(true);
-        when(repository.findById(10L)).thenReturn(Optional.of(existing));
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        existing.setActive(false);
+        when(promoCodeService.setActive(10L, false)).thenReturn(Optional.of(existing));
 
         ResponseEntity<?> resp = controller.deactivate(10L);
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(existing.isActive()).isFalse();
+        PlatformPromoCodeDto dto = (PlatformPromoCodeDto) resp.getBody();
+        assertThat(dto.active()).isFalse();
     }
 
     @Test
     void deactivate_notFound_returns404() {
-        when(repository.findById(99L)).thenReturn(Optional.empty());
+        when(promoCodeService.setActive(99L, false)).thenReturn(Optional.empty());
 
         ResponseEntity<?> resp = controller.deactivate(99L);
 

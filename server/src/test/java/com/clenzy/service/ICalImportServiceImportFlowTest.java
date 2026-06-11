@@ -19,6 +19,8 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.model.NotificationKey;
+import com.clenzy.service.ical.ICalFeedDownloader;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,21 +30,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,30 +49,29 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Tests d'integration unitaire pour le flux complet
- * {@link ICalImportService#importICalFeed} en injectant un {@link HttpClient} fake
- * via {@link ReflectionTestUtils}. Permet de tester :
+ * {@link ICalImportService#importICalFeed} en mockant le {@link ICalFeedDownloader}
+ * (le telechargement reel — validation SSRF + connexion epinglee — est teste dans
+ * {@code ICalFeedDownloaderTest}). Permet de tester :
  * <ul>
  *   <li>Le parsing complet d'un .ics minimal valide</li>
  *   <li>La creation de Reservation + Guest + ServiceRequest</li>
  *   <li>La detection des sources (airbnb, booking, ...)</li>
  *   <li>La disambiguation des guest names generiques</li>
- *   <li>La detection des orphelins (reservations futures absentes du feed)</li>
+ *   <li>La detection des orphelins (reservations futures absentes du feed)
+ *       et ses garde-fous (feed vide/tronque, seuil 20%)</li>
+ *   <li>Le masquage de l'URL (token) dans les logs d'erreur</li>
  *   <li>Le previewICalFeed (parsing sans persistance)</li>
  * </ul>
- *
- * <p>Note SSRF : on utilise {@code https://example.com/cal.ics} (host real qui
- * resoud DNS). Le client HTTP mock court-circuite avant le GET reel.</p>
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("ICalImportService — full import flow with mocked HttpClient")
+@DisplayName("ICalImportService — full import flow with mocked ICalFeedDownloader")
 class ICalImportServiceImportFlowTest {
 
     @Mock private ICalFeedRepository icalFeedRepository;
@@ -91,6 +89,7 @@ class ICalImportServiceImportFlowTest {
     @Mock private GuestService guestService;
     @Mock private ServiceRequestService serviceRequestService;
     @Mock private OtaReservationInvoicingService otaInvoicingService;
+    @Mock private ICalFeedDownloader feedDownloader;
 
     private TenantContext tenantContext;
     private ICalImportService service;
@@ -109,7 +108,8 @@ class ICalImportServiceImportFlowTest {
             propertyRepository, userRepository,
             auditLogService, notificationService, pricingConfigService,
             priceEngine, calendarEngine, guestService, tenantContext,
-            serviceRequestService, otaInvoicingService);
+            serviceRequestService, otaInvoicingService, feedDownloader,
+            org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class));
 
         // Pricing config defaults (used by createCleaningServiceRequest)
         when(pricingConfigService.getBasePrices()).thenReturn(Map.of(
@@ -147,20 +147,22 @@ class ICalImportServiceImportFlowTest {
         return p;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    /**
+     * Stub le downloader : 200 → flux .ics, autre statut → IOException identique
+     * a celle levee par {@link ICalFeedDownloader} (statut non-200).
+     */
     private void injectHttpClientReturning(String icalBody, int statusCode) {
-        HttpClient mockClient = mock(HttpClient.class);
-        HttpResponse mockResponse = mock(HttpResponse.class);
-        when(mockResponse.statusCode()).thenReturn(statusCode);
-        when(mockResponse.body()).thenReturn(
-            new ByteArrayInputStream(icalBody.getBytes(StandardCharsets.UTF_8)));
         try {
-            when((HttpResponse) mockClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockResponse);
-        } catch (Exception e) {
+            if (statusCode == 200) {
+                when(feedDownloader.download(anyString())).thenAnswer(inv ->
+                    new ByteArrayInputStream(icalBody.getBytes(StandardCharsets.UTF_8)));
+            } else {
+                when(feedDownloader.download(anyString())).thenThrow(
+                    new IOException("Erreur HTTP " + statusCode + " lors du telechargement du calendrier"));
+            }
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        ReflectionTestUtils.setField(service, "httpClient", mockClient);
     }
 
     private static int anyInt() {
@@ -239,6 +241,129 @@ class ICalImportServiceImportFlowTest {
         verify(auditLogService).logSync(eq("ICalImport"), eq("50"), anyString());
     }
 
+    // ─── Z6-SECBUGS-04 : propagation de la timezone de la propriete ──────────
+
+    @Test
+    @DisplayName("DTSTART UTC converti dans la timezone de la propriete (pas celle de la JVM)")
+    void whenFeedHasUtcDateTime_thenDatesResolvedInPropertyTimezone() {
+        // Arrange — Kiritimati (UTC+14) : 12:00Z = 02:00 le LENDEMAIN la-bas,
+        // alors que la zone JVM (Europe/Paris) et UTC donneraient le jour meme.
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        prop.setTimezone("Pacific/Kiritimati");
+        stubFeedPersistence(owner, prop);
+        Map<LocalDate, BigDecimal> priceMap = new HashMap<>();
+        priceMap.put(LocalDate.of(2026, 7, 2), BigDecimal.valueOf(100));
+        priceMap.put(LocalDate.of(2026, 7, 3), BigDecimal.valueOf(100));
+        when(priceEngine.resolvePriceRange(eq(20L), any(), any(), eq(ORG_ID))).thenReturn(priceMap);
+
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            BEGIN:VEVENT
+            UID:res-tz-utc@example.com
+            DTSTART:20260701T120000Z
+            DTEND:20260703T120000Z
+            SUMMARY:Jean Dupont (HM12345AB)
+            STATUS:CONFIRMED
+            END:VEVENT
+            END:VCALENDAR
+            """;
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+        req.setAutoCreateInterventions(false);
+
+        // Act
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        // Assert — dates resolues en zone propriete : 2026-07-02 / 2026-07-04
+        assertThat(response.getImported()).isEqualTo(1);
+        org.mockito.ArgumentCaptor<Reservation> captor =
+                org.mockito.ArgumentCaptor.forClass(Reservation.class);
+        verify(reservationRepository2, atLeastOnce()).save(captor.capture());
+        Reservation saved = captor.getAllValues().get(0);
+        assertThat(saved.getCheckIn()).isEqualTo(LocalDate.of(2026, 7, 2));
+        assertThat(saved.getCheckOut()).isEqualTo(LocalDate.of(2026, 7, 4));
+    }
+
+    @Test
+    @DisplayName("timezone de propriete invalide → repli Europe/Paris sans echec d'import")
+    void whenPropertyTimezoneInvalid_thenImportSucceedsWithParisFallback() {
+        // Arrange — zone invalide : resolvePropertyZone doit replier sur Europe/Paris
+        // (22:00Z en juillet = 00:00 le lendemain a Paris, UTC+2).
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        prop.setTimezone("Mars/Olympus");
+        stubFeedPersistence(owner, prop);
+        when(priceEngine.resolvePriceRange(eq(20L), any(), any(), eq(ORG_ID)))
+            .thenReturn(new HashMap<>());
+
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            BEGIN:VEVENT
+            UID:res-tz-invalid@example.com
+            DTSTART:20260701T220000Z
+            DTEND:20260703T220000Z
+            SUMMARY:Jean Dupont (HM12345AB)
+            STATUS:CONFIRMED
+            END:VEVENT
+            END:VCALENDAR
+            """;
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+        req.setAutoCreateInterventions(false);
+
+        // Act
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        // Assert — pas d'exception, dates Europe/Paris : 2026-07-02 / 2026-07-04
+        assertThat(response.getImported()).isEqualTo(1);
+        org.mockito.ArgumentCaptor<Reservation> captor =
+                org.mockito.ArgumentCaptor.forClass(Reservation.class);
+        verify(reservationRepository2, atLeastOnce()).save(captor.capture());
+        Reservation saved = captor.getAllValues().get(0);
+        assertThat(saved.getCheckIn()).isEqualTo(LocalDate.of(2026, 7, 2));
+        assertThat(saved.getCheckOut()).isEqualTo(LocalDate.of(2026, 7, 4));
+    }
+
+    /** Stubs communs feed/reservation pour les tests de timezone. */
+    private void stubFeedPersistence(User owner, Property prop) {
+        when(userRepository.findByKeycloakId("kc")).thenReturn(Optional.of(owner));
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(prop));
+        when(icalFeedRepository.findByUrlAndDifferentProperty(eq(FEED_URL), eq(20L), eq(ORG_ID)))
+            .thenReturn(List.of());
+        when(icalFeedRepository.findByPropertyIdAndUrl(eq(20L), eq(FEED_URL), eq(ORG_ID)))
+            .thenReturn(null);
+        when(icalFeedRepository.save(any(ICalFeed.class))).thenAnswer(inv -> {
+            ICalFeed f = inv.getArgument(0);
+            if (f.getId() == null) f.setId(50L);
+            return f;
+        });
+        when(reservationRepository2.findByExternalUidAndPropertyId(anyString(), eq(20L)))
+            .thenReturn(Optional.empty());
+        when(reservationRepository2.save(any(Reservation.class))).thenAnswer(inv -> {
+            Reservation r = inv.getArgument(0);
+            if (r.getId() == null) r.setId(1000L);
+            return r;
+        });
+        when(reservationRepository2.findCancelledOverlapping(eq(20L), any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of());
+        when(reservationRepository2.findActiveByICalFeedId(50L, ORG_ID)).thenReturn(List.of());
+        when(guestService.findOrCreateFromName(anyString(), anyString(), eq(ORG_ID)))
+            .thenReturn(new Guest());
+    }
+
     // ─── Auto-create cleaning ServiceRequest ─────────────────────────────────
 
     @Test
@@ -313,13 +438,16 @@ class ICalImportServiceImportFlowTest {
             if (f.getId() == null) f.setId(52L);
             return f;
         });
-        // Existing reservation for UID "dup-1" → skipped
+        // Existing reservation for UID "dup-1" rattachee au MEME feed → skipped
+        // (la dedup est scopee par feed : preloadKnownFeedReservations)
+        ICalFeed sameFeed = new ICalFeed();
+        sameFeed.setId(52L);
         Reservation existing = new Reservation();
         existing.setId(700L);
         existing.setExternalUid("dup-1");
         existing.setStatus("confirmed");
-        when(reservationRepository2.findByExternalUidAndPropertyId("dup-1", 20L))
-            .thenReturn(Optional.of(existing));
+        existing.setIcalFeed(sameFeed);
+        when(reservationRepository2.findByPropertyId(20L, ORG_ID)).thenReturn(List.of(existing));
         when(reservationRepository2.findById(700L)).thenReturn(Optional.of(existing));
         when(reservationRepository2.findActiveByICalFeedId(52L, ORG_ID)).thenReturn(List.of());
 
@@ -374,8 +502,7 @@ class ICalImportServiceImportFlowTest {
         existing.setStatus("confirmed");
         existing.setPaymentStatus(com.clenzy.model.PaymentStatus.PENDING);
         existing.setProperty(prop);
-        when(reservationRepository2.findByExternalUidAndPropertyId("cancel-1", 20L))
-            .thenReturn(Optional.of(existing));
+        when(reservationRepository2.findByPropertyId(20L, ORG_ID)).thenReturn(List.of(existing));
         when(reservationRepository2.findById(800L)).thenReturn(Optional.of(existing));
         when(reservationRepository2.findActiveByICalFeedId(53L, ORG_ID)).thenReturn(List.of());
         when(interventionRepository.findByReservationId(800L, ORG_ID)).thenReturn(List.of());
@@ -600,9 +727,9 @@ class ICalImportServiceImportFlowTest {
         priceMap.put(LocalDate.of(2026, 7, 1), BigDecimal.valueOf(80));
         when(priceEngine.resolvePriceRange(eq(20L), any(), any(), eq(ORG_ID))).thenReturn(priceMap);
 
-        // Future active reservations in DB: the one we just imported (still in feed) +
-        // the orphan (not in feed). With 2 active + 1 orphan, orphan.size()*2 = 2 = futureActive
-        // → safety guard NOT triggered (2 > 2 is false).
+        // Future active reservations in DB: 5 au total (1 presente dans le feed,
+        // 3 sans UID externe — jamais candidates orphelines — et 1 orpheline).
+        // 1 orpheline / 5 futures = 20% <= seuil MAX_ORPHAN_RATIO → annulation ciblee permise.
         Reservation kept = new Reservation();
         kept.setId(800L);
         kept.setExternalUid("new-event-1"); // matches the feed event
@@ -616,24 +743,36 @@ class ICalImportServiceImportFlowTest {
         orphan.setStatus("confirmed");
         orphan.setProperty(prop);
         orphan.setCheckOut(LocalDate.now().plusMonths(3));
-        when(reservationRepository2.findActiveByICalFeedId(56L, ORG_ID))
-            .thenReturn(List.of(kept, orphan));
+
+        List<Reservation> futureActive = new java.util.ArrayList<>(List.of(kept));
+        for (long id = 801; id <= 803; id++) {
+            Reservation noUid = new Reservation();
+            noUid.setId(id);
+            noUid.setStatus("confirmed");
+            noUid.setProperty(prop);
+            noUid.setCheckOut(LocalDate.now().plusMonths(3));
+            futureActive.add(noUid);
+        }
+        futureActive.add(orphan);
+        when(reservationRepository2.findActiveByICalFeedId(56L, ORG_ID)).thenReturn(futureActive);
         when(interventionRepository.findByReservationId(999L, ORG_ID)).thenReturn(List.of());
         when(serviceRequestRepository.findByReservationId(999L, ORG_ID)).thenReturn(List.of());
-        when(invoiceRepository.findByReservationIdAndInvoiceType(999L, InvoiceType.GUEST)).thenReturn(Optional.empty());
+        when(invoiceRepository.findAllByReservationId(999L)).thenReturn(List.of());
 
+        String start = LocalDate.now().plusDays(20).format(DateTimeFormatter.BASIC_ISO_DATE);
+        String end = LocalDate.now().plusDays(22).format(DateTimeFormatter.BASIC_ISO_DATE);
         String ics = """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//TestProvider//iCalImport//EN
             BEGIN:VEVENT
             UID:new-event-1
-            DTSTART;VALUE=DATE:20260701
-            DTEND;VALUE=DATE:20260703
+            DTSTART;VALUE=DATE:%s
+            DTEND;VALUE=DATE:%s
             SUMMARY:New Guest
             END:VEVENT
             END:VCALENDAR
-            """;
+            """.formatted(start, end);
         injectHttpClientReturning(ics, 200);
 
         ImportRequest req = new ImportRequest();
@@ -709,6 +848,220 @@ class ICalImportServiceImportFlowTest {
         assertThat(response.getCancelled()).isZero(); // safety guard
         assertThat(response.getErrors())
             .anyMatch(e -> e.contains("Detection orphelins ignoree"));
+    }
+
+    // ─── Orphan ratio between 20% and 50% → abort (Z6-SECBUGS-02) ───────────
+
+    @Test
+    @DisplayName("1 orpheline sur 4 futures (25% > seuil 20%) → aucune annulation")
+    void whenOrphanRatioExceedsTwentyPercent_thenNoCancellation() {
+        // Avant le durcissement (seuil 50%), 1 orpheline sur 4 etait annulee en cascade :
+        // ce test echouait avec l'ancien seuil.
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        when(userRepository.findByKeycloakId("kc")).thenReturn(Optional.of(owner));
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(prop));
+        when(icalFeedRepository.findByUrlAndDifferentProperty(anyString(), eq(20L), eq(ORG_ID))).thenReturn(List.of());
+        when(icalFeedRepository.findByPropertyIdAndUrl(eq(20L), anyString(), eq(ORG_ID))).thenReturn(null);
+        when(icalFeedRepository.save(any(ICalFeed.class))).thenAnswer(inv -> {
+            ICalFeed f = inv.getArgument(0);
+            if (f.getId() == null) f.setId(58L);
+            return f;
+        });
+        when(reservationRepository2.findByExternalUidAndPropertyId(anyString(), eq(20L))).thenReturn(Optional.empty());
+        when(reservationRepository2.save(any(Reservation.class))).thenAnswer(inv -> {
+            Reservation r = inv.getArgument(0);
+            if (r.getId() == null) r.setId(902L);
+            return r;
+        });
+        when(reservationRepository2.findCancelledOverlapping(eq(20L), any(), any(), eq(ORG_ID))).thenReturn(List.of());
+        when(priceEngine.resolvePriceRange(eq(20L), any(), any(), eq(ORG_ID))).thenReturn(Map.of());
+
+        // 4 futures actives : 3 presentes dans le feed + 1 orpheline (25%)
+        List<Reservation> futureActive = new java.util.ArrayList<>();
+        for (int i = 1; i <= 3; i++) {
+            Reservation present = new Reservation();
+            present.setId((long) (700 + i));
+            present.setExternalUid("present-" + i);
+            present.setStatus("confirmed");
+            present.setProperty(prop);
+            present.setCheckOut(LocalDate.now().plusMonths(3));
+            futureActive.add(present);
+        }
+        Reservation orphan = new Reservation();
+        orphan.setId(998L);
+        orphan.setExternalUid("orphan-25pct");
+        orphan.setStatus("confirmed");
+        orphan.setProperty(prop);
+        orphan.setCheckOut(LocalDate.now().plusMonths(3));
+        futureActive.add(orphan);
+        when(reservationRepository2.findActiveByICalFeedId(58L, ORG_ID)).thenReturn(futureActive);
+
+        String start = LocalDate.now().plusDays(15).format(DateTimeFormatter.BASIC_ISO_DATE);
+        String end = LocalDate.now().plusDays(17).format(DateTimeFormatter.BASIC_ISO_DATE);
+        StringBuilder ics = new StringBuilder("BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//TestProvider//iCalImport//EN\n");
+        for (int i = 1; i <= 3; i++) {
+            ics.append("BEGIN:VEVENT\nUID:present-").append(i)
+               .append("\nDTSTART;VALUE=DATE:").append(start)
+               .append("\nDTEND;VALUE=DATE:").append(end)
+               .append("\nSUMMARY:Guest ").append(i).append("\nEND:VEVENT\n");
+        }
+        ics.append("END:VCALENDAR\n");
+        injectHttpClientReturning(ics.toString(), 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        assertThat(response.getCancelled()).isZero();
+        assertThat(orphan.getStatus()).isEqualTo("confirmed");
+        verify(calendarEngine, never()).cancel(anyLong(), anyLong(), anyString());
+        assertThat(response.getErrors())
+            .anyMatch(e -> e.contains("Detection orphelins ignoree"));
+    }
+
+    // ─── Empty feed with future reservations → no deletion + alert (Z6-SECBUGS-02) ──
+
+    @Test
+    @DisplayName("feed vide alors que des reservations futures existent → aucune annulation + alerte")
+    void whenFeedIsEmptyButFutureReservationsExist_thenNoCancellationAndAlert() {
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        when(userRepository.findByKeycloakId("kc")).thenReturn(Optional.of(owner));
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(prop));
+        when(icalFeedRepository.findByUrlAndDifferentProperty(anyString(), eq(20L), eq(ORG_ID))).thenReturn(List.of());
+        when(icalFeedRepository.findByPropertyIdAndUrl(eq(20L), anyString(), eq(ORG_ID))).thenReturn(null);
+        when(icalFeedRepository.save(any(ICalFeed.class))).thenAnswer(inv -> {
+            ICalFeed f = inv.getArgument(0);
+            if (f.getId() == null) f.setId(60L);
+            return f;
+        });
+
+        Reservation future = new Reservation();
+        future.setId(950L);
+        future.setExternalUid("active-uid");
+        future.setStatus("confirmed");
+        future.setProperty(prop);
+        future.setCheckOut(LocalDate.now().plusMonths(2));
+        when(reservationRepository2.findActiveByICalFeedId(60L, ORG_ID)).thenReturn(List.of(future));
+
+        // Feed valide mais vide (0 VEVENT) — ex. reponse tronquee cote OTA
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            END:VCALENDAR
+            """;
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        assertThat(response.getCancelled()).isZero();
+        assertThat(future.getStatus()).isEqualTo("confirmed");
+        verify(calendarEngine, never()).cancel(anyLong(), anyLong(), anyString());
+        assertThat(response.getErrors()).anyMatch(e -> e.contains("tronque"));
+        // Alerte utilisateur : import partiel notifie
+        verify(notificationService).notify(eq("kc"), eq(NotificationKey.ICAL_IMPORT_FAILED),
+                anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("feed sans evenement futur (que du passe) → aucune annulation + alerte")
+    void whenFeedHasOnlyPastEvents_thenNoCancellationAndAlert() {
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        when(userRepository.findByKeycloakId("kc")).thenReturn(Optional.of(owner));
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(prop));
+        when(icalFeedRepository.findByUrlAndDifferentProperty(anyString(), eq(20L), eq(ORG_ID))).thenReturn(List.of());
+        when(icalFeedRepository.findByPropertyIdAndUrl(eq(20L), anyString(), eq(ORG_ID))).thenReturn(null);
+        when(icalFeedRepository.save(any(ICalFeed.class))).thenAnswer(inv -> {
+            ICalFeed f = inv.getArgument(0);
+            if (f.getId() == null) f.setId(61L);
+            return f;
+        });
+
+        // L'evenement passe est deja connu en base → skip (pas de creation)
+        Reservation pastExisting = new Reservation();
+        pastExisting.setId(700L);
+        pastExisting.setExternalUid("past-1");
+        pastExisting.setStatus("confirmed");
+        pastExisting.setProperty(prop);
+        when(reservationRepository2.findByPropertyId(20L, ORG_ID)).thenReturn(List.of(pastExisting));
+        when(reservationRepository2.findById(700L)).thenReturn(Optional.of(pastExisting));
+
+        Reservation future = new Reservation();
+        future.setId(951L);
+        future.setExternalUid("future-uid");
+        future.setStatus("confirmed");
+        future.setProperty(prop);
+        future.setCheckOut(LocalDate.now().plusMonths(2));
+        when(reservationRepository2.findActiveByICalFeedId(61L, ORG_ID)).thenReturn(List.of(future));
+
+        String past = LocalDate.now().minusDays(40).format(DateTimeFormatter.BASIC_ISO_DATE);
+        String pastEnd = LocalDate.now().minusDays(38).format(DateTimeFormatter.BASIC_ISO_DATE);
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            BEGIN:VEVENT
+            UID:past-1
+            DTSTART;VALUE=DATE:%s
+            DTEND;VALUE=DATE:%s
+            SUMMARY:Past Guest
+            END:VEVENT
+            END:VCALENDAR
+            """.formatted(past, pastEnd);
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        assertThat(response.getCancelled()).isZero();
+        assertThat(future.getStatus()).isEqualTo("confirmed");
+        verify(calendarEngine, never()).cancel(anyLong(), anyLong(), anyString());
+        assertThat(response.getErrors()).anyMatch(e -> e.contains("tronque"));
+    }
+
+    // ─── URL token never logged (T-BP-02) ────────────────────────────────────
+
+    @Test
+    @DisplayName("echec de telechargement : l'URL loggee est masquee (token absent des logs)")
+    void whenDownloadFails_thenLoggedUrlIsMasked() throws Exception {
+        String secretUrl = "https://airbnb.example/calendar/123.ics?s=SECRET_TOKEN_123";
+        when(feedDownloader.download(secretUrl)).thenThrow(
+            new IOException("Erreur HTTP 500 lors du telechargement du calendrier"));
+
+        ch.qos.logback.classic.Logger serviceLogger =
+            (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(ICalImportService.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+            new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        serviceLogger.addAppender(appender);
+        try {
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                    () -> service.fetchAndParseICalFeed(secretUrl))
+                .isInstanceOf(RuntimeException.class);
+
+            assertThat(appender.list).isNotEmpty();
+            assertThat(appender.list).allSatisfy(evt ->
+                assertThat(evt.getFormattedMessage()).doesNotContain("SECRET_TOKEN_123"));
+            assertThat(appender.list).anySatisfy(evt ->
+                assertThat(evt.getFormattedMessage()).contains("airbnb.example"));
+        } finally {
+            serviceLogger.detachAppender(appender);
+        }
     }
 
     // ─── Source detection edge cases ────────────────────────────────────────
@@ -799,6 +1152,212 @@ class ICalImportServiceImportFlowTest {
                 // ignored
             }
         }
+    }
+
+    // ─── Z6-SECBUGS-06 : collision d'UID inter-feeds ─────────────────────────
+
+    @Test
+    @DisplayName("meme UID porte par un AUTRE feed de la meme propriete → importe (pas skippe)")
+    void whenSameUidBelongsToAnotherFeed_thenImportedNotSkipped() {
+        // Arrange
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        setupCommonMocks(prop, owner, "kc", 62L);
+
+        // Reservation existante sur la MEME propriete avec le MEME UID,
+        // mais rattachee a un autre feed (#999) — ex : channel manager qui
+        // reutilise les UID entre canaux. Ce n'est PAS un doublon de ce feed.
+        ICalFeed otherFeed = new ICalFeed();
+        otherFeed.setId(999L);
+        Reservation otherChannel = new Reservation();
+        otherChannel.setId(750L);
+        otherChannel.setExternalUid("shared-uid");
+        otherChannel.setStatus("confirmed");
+        otherChannel.setIcalFeed(otherFeed);
+        when(reservationRepository2.findByPropertyId(20L, ORG_ID)).thenReturn(List.of(otherChannel));
+
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            BEGIN:VEVENT
+            UID:shared-uid
+            DTSTART;VALUE=DATE:20260701
+            DTEND;VALUE=DATE:20260703
+            SUMMARY:Second Channel Guest
+            END:VEVENT
+            END:VCALENDAR
+            """;
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Booking.com");
+        req.setAutoCreateInterventions(false);
+
+        // Act
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        // Assert : la reservation du second canal n'est pas silencieusement ignoree
+        assertThat(response.getImported()).isEqualTo(1);
+        assertThat(response.getSkipped()).isZero();
+        verify(reservationRepository2, atLeastOnce()).save(any(Reservation.class));
+    }
+
+    // ─── Z6-SECBUGS-05 : evenement non parsable → compte + UID protege ──────
+
+    @Test
+    @DisplayName("evenement sans DTSTART → compte en erreur et son UID protege de l'annulation orpheline")
+    void whenEventUnparsable_thenCountedAndUidProtectedFromOrphanCancellation() {
+        // Arrange
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        setupCommonMocks(prop, owner, "kc", 63L);
+
+        // 5 reservations futures actives : 4 presentes (parsables) dans le feed
+        // + 1 dont l'evenement du feed est non parsable (DTSTART manquant).
+        // Sans la protection, l'orpheline representerait 1/5 = 20% (<= seuil)
+        // et serait annulee en cascade.
+        List<Reservation> futureActive = new java.util.ArrayList<>();
+        for (int i = 1; i <= 4; i++) {
+            Reservation present = new Reservation();
+            present.setId((long) (760 + i));
+            present.setExternalUid("present-" + i);
+            present.setStatus("confirmed");
+            present.setProperty(prop);
+            present.setCheckOut(LocalDate.now().plusMonths(3));
+            futureActive.add(present);
+        }
+        Reservation broken = new Reservation();
+        broken.setId(770L);
+        broken.setExternalUid("broken-1");
+        broken.setStatus("confirmed");
+        broken.setProperty(prop);
+        broken.setCheckOut(LocalDate.now().plusMonths(3));
+        futureActive.add(broken);
+        when(reservationRepository2.findActiveByICalFeedId(63L, ORG_ID)).thenReturn(futureActive);
+        when(reservationRepository2.findByPropertyId(20L, ORG_ID)).thenReturn(futureActive);
+
+        String start = LocalDate.now().plusDays(10).format(DateTimeFormatter.BASIC_ISO_DATE);
+        String end = LocalDate.now().plusDays(12).format(DateTimeFormatter.BASIC_ISO_DATE);
+        StringBuilder ics = new StringBuilder("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TestProvider//iCalImport//EN\r\n");
+        for (int i = 1; i <= 4; i++) {
+            ics.append("BEGIN:VEVENT\r\nUID:present-").append(i)
+               .append("\r\nDTSTART;VALUE=DATE:").append(start)
+               .append("\r\nDTEND;VALUE=DATE:").append(end)
+               .append("\r\nSUMMARY:Guest ").append(i).append("\r\nEND:VEVENT\r\n");
+        }
+        // Evenement non parsable : DTSTART absent
+        ics.append("BEGIN:VEVENT\r\nUID:broken-1\r\nSUMMARY:Broken Guest\r\nEND:VEVENT\r\n");
+        ics.append("END:VCALENDAR\r\n");
+        injectHttpClientReturning(ics.toString(), 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+
+        // Act
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        // Assert : aucune annulation, l'evenement ecarte est remonte dans le resultat
+        assertThat(response.getCancelled()).isZero();
+        assertThat(broken.getStatus()).isEqualTo("confirmed");
+        verify(calendarEngine, never()).cancel(anyLong(), anyLong(), anyString());
+        assertThat(response.getSkipped()).isEqualTo(4);
+        assertThat(response.getErrors())
+            .anyMatch(e -> e.contains("ignore") && e.contains("DTSTART"));
+    }
+
+    // ─── Z6-SECBUGS-07 : RRULE detectee, comptee, non expansee ──────────────
+
+    @Test
+    @DisplayName("evenement RRULE → importe une seule fois et signale comme recurrent non expanse")
+    void whenRruleEvent_thenImportedOnceAndReportedAsRecurring() {
+        // Arrange
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        setupCommonMocks(prop, owner, "kc", 64L);
+
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            BEGIN:VEVENT
+            UID:rec-1
+            DTSTART;VALUE=DATE:20260701
+            DTEND;VALUE=DATE:20260703
+            RRULE:FREQ=WEEKLY;COUNT=4
+            SUMMARY:Recurring Guest
+            END:VEVENT
+            END:VCALENDAR
+            """;
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+
+        // Act
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        // Assert : occurrence maitre importee, recurrence signalee (pas de perte silencieuse)
+        assertThat(response.getImported()).isEqualTo(1);
+        assertThat(response.getErrors())
+            .anyMatch(e -> e.contains("recurrent") && e.contains("non expanse"));
+    }
+
+    // ─── T-BP-09 : guestCheckinTime respecte defaultCheckInTime ─────────────
+
+    @Test
+    @DisplayName("SR menage : guestCheckinTime utilise defaultCheckInTime de la propriete (14:00), pas 15:00 en dur")
+    void whenPropertyHasCustomCheckInTime_thenCleaningSrUsesIt() {
+        // Arrange
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        prop.setDefaultCheckInTime("14:00");
+        setupCommonMocks(prop, owner, "kc", 65L);
+        when(serviceRequestRepository.findByPropertyId(eq(20L), eq(ORG_ID))).thenReturn(List.of());
+        when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> {
+            ServiceRequest sr = inv.getArgument(0);
+            if (sr.getId() == null) sr.setId(2100L);
+            return sr;
+        });
+
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            BEGIN:VEVENT
+            UID:checkin-time-1
+            DTSTART;VALUE=DATE:20260801
+            DTEND;VALUE=DATE:20260805
+            SUMMARY:Custom Checkin Guest
+            END:VEVENT
+            END:VCALENDAR
+            """;
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+        req.setAutoCreateInterventions(true);
+
+        // Act
+        service.importICalFeed(req, "kc");
+
+        // Assert : la fenetre de menage se termine au check-in reel (14:00)
+        org.mockito.ArgumentCaptor<ServiceRequest> captor =
+            org.mockito.ArgumentCaptor.forClass(ServiceRequest.class);
+        verify(serviceRequestRepository, atLeastOnce()).save(captor.capture());
+        ServiceRequest sr = captor.getAllValues().stream()
+            .filter(s -> s.getGuestCheckinTime() != null)
+            .findFirst().orElseThrow();
+        assertThat(sr.getGuestCheckinTime().toLocalTime())
+            .isEqualTo(java.time.LocalTime.of(14, 0));
     }
 
     private void setupCommonMocks(Property prop, User owner, String kc, Long feedId) {

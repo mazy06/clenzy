@@ -358,6 +358,11 @@ export function useInterventionProgress({
   // Save before unload — completed steps + validated rooms
   useEffect(() => {
     const handleBeforeUnload = () => {
+      // Header conditionnel : sans token JS (session restauree via le cookie
+      // HttpOnly), un "Bearer null" court-circuiterait le repli cookie.
+      const token = getAccessToken();
+      const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
       if (completedSteps.size > 0 && id && intervention) {
         const json = JSON.stringify(Array.from(completedSteps));
         const formData = new URLSearchParams();
@@ -365,7 +370,7 @@ export function useInterventionProgress({
         fetch(buildApiUrl(`/interventions/${id}/completed-steps`), {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${getAccessToken()}`,
+            ...authHeader,
             'Content-Type': 'application/x-www-form-urlencoded'
           },
           body: formData.toString(),
@@ -382,7 +387,7 @@ export function useInterventionProgress({
         fetch(buildApiUrl(`/interventions/${id}/validated-rooms`), {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${getAccessToken()}`,
+            ...authHeader,
             'Content-Type': 'application/x-www-form-urlencoded'
           },
           body: formData.toString(),

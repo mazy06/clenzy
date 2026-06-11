@@ -6,7 +6,6 @@ import com.clenzy.model.Incident;
 import com.clenzy.model.Incident.IncidentSeverity;
 import com.clenzy.model.Incident.IncidentStatus;
 import com.clenzy.model.Incident.IncidentType;
-import com.clenzy.repository.IncidentRepository;
 import com.clenzy.service.IncidentService;
 import com.clenzy.service.ServiceHealthChecker;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,14 +40,13 @@ import static org.mockito.Mockito.when;
 class IncidentControllerTest {
 
     @Mock private IncidentService incidentService;
-    @Mock private IncidentRepository incidentRepository;
     @Mock private ServiceHealthChecker serviceHealthChecker;
 
     private IncidentController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new IncidentController(incidentService, incidentRepository, serviceHealthChecker);
+        controller = new IncidentController(incidentService, serviceHealthChecker);
     }
 
     private Incident newIncident(Long id, IncidentType type, IncidentSeverity sev,
@@ -69,11 +67,12 @@ class IncidentControllerTest {
     class ListIncidents {
 
         @Test
-        @DisplayName("status=OPEN -> findByStatusOrderByOpenedAtDesc")
+        @DisplayName("status=OPEN -> recherche deleguee a IncidentService")
         void whenStatusOpen_thenUsesOpenQuery() {
             Incident inc = newIncident(1L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.OPEN, "smtp");
-            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
+            when(incidentService.searchIncidents(
+                org.mockito.ArgumentMatchers.eq(IncidentStatus.OPEN), any(), any()))
                 .thenReturn(List.of(inc));
 
             ResponseEntity<?> response = controller.listIncidents(
@@ -87,12 +86,12 @@ class IncidentControllerTest {
         }
 
         @Test
-        @DisplayName("status=RESOLVED -> findByStatusAndOpenedAtAfter")
+        @DisplayName("status=RESOLVED -> recherche scoped deleguee a IncidentService")
         void whenStatusResolved_thenUsesScopedQuery() {
             Incident inc = newIncident(1L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.RESOLVED, "kafka");
-            when(incidentRepository.findByStatusAndOpenedAtAfterOrderByOpenedAtDesc(
-                org.mockito.ArgumentMatchers.eq(IncidentStatus.RESOLVED), any()))
+            when(incidentService.searchIncidents(
+                org.mockito.ArgumentMatchers.eq(IncidentStatus.RESOLVED), any(), any()))
                 .thenReturn(List.of(inc));
 
             ResponseEntity<?> response = controller.listIncidents(
@@ -111,9 +110,10 @@ class IncidentControllerTest {
                 IncidentStatus.OPEN, "smtp");
             Incident resolved = newIncident(2L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.RESOLVED, "kafka");
-            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
-                .thenReturn(List.of(open));
-            when(incidentRepository.findActiveSince(any())).thenReturn(List.of(open, resolved));
+            // Le mix OPEN + actifs est calcule par IncidentService.searchIncidents
+            // (teste dans IncidentServiceTest) — le controller recoit la liste fusionnee.
+            when(incidentService.searchIncidents(any(), any(), any()))
+                .thenReturn(List.of(open, resolved));
 
             ResponseEntity<?> response = controller.listIncidents(null, null, 30, 0, 20);
 
@@ -129,12 +129,14 @@ class IncidentControllerTest {
         void whenSeverityFilter_thenIncludesNullSeverity() {
             Incident p1 = newIncident(1L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.OPEN, "smtp");
-            Incident p2 = newIncident(2L, IncidentType.SERVICE_DOWN, IncidentSeverity.P2,
-                IncidentStatus.OPEN, "kafka");
             Incident legacy = newIncident(3L, IncidentType.SERVICE_DOWN, null,
                 IncidentStatus.OPEN, "redis");
-            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
-                .thenReturn(List.of(p1, p2, legacy));
+            // Le filtre severity (incluant les legacy null) est applique par
+            // IncidentService.searchIncidents (teste dans IncidentServiceTest).
+            when(incidentService.searchIncidents(
+                org.mockito.ArgumentMatchers.eq(IncidentStatus.OPEN),
+                org.mockito.ArgumentMatchers.eq(IncidentSeverity.P1), any()))
+                .thenReturn(List.of(p1, legacy));
 
             ResponseEntity<?> response = controller.listIncidents(
                 IncidentSeverity.P1, IncidentStatus.OPEN, 30, 0, 20);
@@ -153,7 +155,8 @@ class IncidentControllerTest {
                 IncidentStatus.OPEN, "b");
             Incident i3 = newIncident(3L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.OPEN, "c");
-            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
+            when(incidentService.searchIncidents(
+                org.mockito.ArgumentMatchers.eq(IncidentStatus.OPEN), any(), any()))
                 .thenReturn(List.of(i1, i2, i3));
 
             ResponseEntity<?> response = controller.listIncidents(
@@ -177,7 +180,8 @@ class IncidentControllerTest {
                 IncidentStatus.OPEN, "b");
             Incident i3 = newIncident(3L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.OPEN, "c");
-            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
+            when(incidentService.searchIncidents(
+                org.mockito.ArgumentMatchers.eq(IncidentStatus.OPEN), any(), any()))
                 .thenReturn(List.of(i1, i2, i3));
 
             ResponseEntity<?> response = controller.listIncidents(
@@ -193,7 +197,8 @@ class IncidentControllerTest {
         @Test
         @DisplayName("size capped at 100, days capped at 365")
         void whenLimitsExceeded_thenCaps() {
-            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
+            when(incidentService.searchIncidents(
+                org.mockito.ArgumentMatchers.eq(IncidentStatus.OPEN), any(), any()))
                 .thenReturn(List.of());
 
             ResponseEntity<?> response = controller.listIncidents(
@@ -208,7 +213,7 @@ class IncidentControllerTest {
         @Test
         @DisplayName("repository throws -> 500")
         void whenRepositoryFails_thenReturns500() {
-            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
+            when(incidentService.searchIncidents(any(), any(), any()))
                 .thenThrow(new RuntimeException("DB down"));
 
             ResponseEntity<?> response = controller.listIncidents(
@@ -225,7 +230,7 @@ class IncidentControllerTest {
         @Test
         @DisplayName("no severity -> count all")
         void whenNoSeverity_thenCountsAllOpen() {
-            when(incidentRepository.countByStatus(IncidentStatus.OPEN)).thenReturn(5L);
+            when(incidentService.countOpenIncidents(null)).thenReturn(5L);
 
             ResponseEntity<?> response = controller.getOpenCount(null, false);
 
@@ -238,8 +243,7 @@ class IncidentControllerTest {
         @Test
         @DisplayName("severity P1 -> count by severity")
         void whenSeverityP1_thenCountsP1() {
-            when(incidentRepository.countByStatusAndSeverity(IncidentStatus.OPEN, IncidentSeverity.P1))
-                .thenReturn(3L);
+            when(incidentService.countOpenIncidents(IncidentSeverity.P1)).thenReturn(3L);
 
             ResponseEntity<?> response = controller.getOpenCount(IncidentSeverity.P1, false);
 
@@ -251,9 +255,8 @@ class IncidentControllerTest {
         @Test
         @DisplayName("severityBreakdown=true -> includes totalAllSeverities")
         void whenBreakdown_thenIncludesTotal() {
-            when(incidentRepository.countByStatusAndSeverity(IncidentStatus.OPEN, IncidentSeverity.P1))
-                .thenReturn(2L);
-            when(incidentRepository.countByStatus(IncidentStatus.OPEN)).thenReturn(5L);
+            when(incidentService.countOpenIncidents(IncidentSeverity.P1)).thenReturn(2L);
+            when(incidentService.countOpenIncidents(null)).thenReturn(5L);
 
             ResponseEntity<?> response = controller.getOpenCount(IncidentSeverity.P1, true);
 
@@ -266,7 +269,7 @@ class IncidentControllerTest {
         @Test
         @DisplayName("repo throws -> 500")
         void whenRepoFails_thenReturns500() {
-            when(incidentRepository.countByStatus(any())).thenThrow(new RuntimeException("boom"));
+            when(incidentService.countOpenIncidents(any())).thenThrow(new RuntimeException("boom"));
             ResponseEntity<?> response = controller.getOpenCount(null, false);
             assertThat(response.getStatusCode().value()).isEqualTo(500);
         }
@@ -281,7 +284,7 @@ class IncidentControllerTest {
         void whenFound_thenReturnsDto() {
             Incident inc = newIncident(1L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.OPEN, "smtp");
-            when(incidentRepository.findById(1L)).thenReturn(Optional.of(inc));
+            when(incidentService.findIncident(1L)).thenReturn(Optional.of(inc));
 
             ResponseEntity<?> response = controller.getIncident(1L);
 
@@ -292,7 +295,7 @@ class IncidentControllerTest {
         @Test
         @DisplayName("not found -> 404")
         void whenNotFound_thenReturns404() {
-            when(incidentRepository.findById(99L)).thenReturn(Optional.empty());
+            when(incidentService.findIncident(99L)).thenReturn(Optional.empty());
             ResponseEntity<?> response = controller.getIncident(99L);
             assertThat(response.getStatusCode().value()).isEqualTo(404);
         }
@@ -300,7 +303,7 @@ class IncidentControllerTest {
         @Test
         @DisplayName("repo throws -> 500")
         void whenRepoFails_thenReturns500() {
-            when(incidentRepository.findById(anyLong())).thenThrow(new RuntimeException("DB"));
+            when(incidentService.findIncident(anyLong())).thenThrow(new RuntimeException("DB"));
             ResponseEntity<?> response = controller.getIncident(1L);
             assertThat(response.getStatusCode().value()).isEqualTo(500);
         }
@@ -348,7 +351,7 @@ class IncidentControllerTest {
         @Test
         @DisplayName("not found -> 404")
         void whenNotFound_thenReturns404() {
-            when(incidentRepository.findById(99L)).thenReturn(Optional.empty());
+            when(incidentService.findIncident(99L)).thenReturn(Optional.empty());
             ResponseEntity<?> response = controller.retestIncident(99L);
             assertThat(response.getStatusCode().value()).isEqualTo(404);
         }
@@ -358,7 +361,7 @@ class IncidentControllerTest {
         void whenNotOpen_thenReturns400() {
             Incident resolved = newIncident(1L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.RESOLVED, "smtp");
-            when(incidentRepository.findById(1L)).thenReturn(Optional.of(resolved));
+            when(incidentService.findIncident(1L)).thenReturn(Optional.of(resolved));
 
             ResponseEntity<?> response = controller.retestIncident(1L);
 
@@ -370,7 +373,7 @@ class IncidentControllerTest {
         void whenServiceUp_thenResolves() {
             Incident open = newIncident(1L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.OPEN, "smtp");
-            when(incidentRepository.findById(1L)).thenReturn(Optional.of(open));
+            when(incidentService.findIncident(1L)).thenReturn(Optional.of(open));
             ServiceHealthChecker.HealthResult up = new ServiceHealthChecker.HealthResult(
                 "smtp", "UP", "OK");
             when(serviceHealthChecker.check("smtp")).thenReturn(up);
@@ -389,7 +392,7 @@ class IncidentControllerTest {
         void whenServiceDown_thenStaysOpen() {
             Incident open = newIncident(1L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.OPEN, "smtp");
-            when(incidentRepository.findById(1L)).thenReturn(Optional.of(open));
+            when(incidentService.findIncident(1L)).thenReturn(Optional.of(open));
             ServiceHealthChecker.HealthResult down = new ServiceHealthChecker.HealthResult(
                 "smtp", "DOWN", "Still failing");
             when(serviceHealthChecker.check("smtp")).thenReturn(down);
@@ -407,7 +410,7 @@ class IncidentControllerTest {
         void whenCheckerThrows_thenReturns500() {
             Incident open = newIncident(1L, IncidentType.SERVICE_DOWN, IncidentSeverity.P1,
                 IncidentStatus.OPEN, "smtp");
-            when(incidentRepository.findById(1L)).thenReturn(Optional.of(open));
+            when(incidentService.findIncident(1L)).thenReturn(Optional.of(open));
             when(serviceHealthChecker.check("smtp")).thenThrow(new RuntimeException("boom"));
 
             ResponseEntity<?> response = controller.retestIncident(1L);

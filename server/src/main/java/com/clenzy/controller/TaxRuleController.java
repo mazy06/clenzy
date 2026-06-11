@@ -1,9 +1,10 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.TaxRuleDto;
 import com.clenzy.dto.TaxRuleRequest;
 import com.clenzy.fiscal.FiscalEngine;
 import com.clenzy.model.TaxRule;
-import com.clenzy.repository.TaxRuleRepository;
+import com.clenzy.service.TaxRuleService;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -33,14 +34,14 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
 public class TaxRuleController {
 
-    private final TaxRuleRepository taxRuleRepository;
+    private final TaxRuleService taxRuleService;
     private final FiscalEngine fiscalEngine;
     private final TenantContext tenantContext;
 
-    public TaxRuleController(TaxRuleRepository taxRuleRepository,
+    public TaxRuleController(TaxRuleService taxRuleService,
                               FiscalEngine fiscalEngine,
                               TenantContext tenantContext) {
-        this.taxRuleRepository = taxRuleRepository;
+        this.taxRuleService = taxRuleService;
         this.fiscalEngine = fiscalEngine;
         this.tenantContext = tenantContext;
     }
@@ -51,7 +52,7 @@ public class TaxRuleController {
      * Retourne les regles fiscales applicables pour le pays de l'organisation courante.
      */
     @GetMapping
-    public ResponseEntity<List<TaxRule>> getCurrentRules(
+    public ResponseEntity<List<TaxRuleDto>> getCurrentRules(
             @RequestParam(required = false) String category) {
         String countryCode = tenantContext.getCountryCode();
         return getRulesForCountry(countryCode, category);
@@ -61,15 +62,15 @@ public class TaxRuleController {
      * Retourne toutes les regles fiscales (administration).
      */
     @GetMapping("/all")
-    public ResponseEntity<List<TaxRule>> getAllRules() {
-        return ResponseEntity.ok(taxRuleRepository.findAll());
+    public ResponseEntity<List<TaxRuleDto>> getAllRules() {
+        return ResponseEntity.ok(toDtos(taxRuleService.findAll()));
     }
 
     /**
      * Retourne les regles fiscales applicables pour un pays specifique.
      */
     @GetMapping("/{countryCode}")
-    public ResponseEntity<List<TaxRule>> getRulesForCountry(
+    public ResponseEntity<List<TaxRuleDto>> getRulesForCountry(
             @PathVariable String countryCode,
             @RequestParam(required = false) String category) {
 
@@ -78,12 +79,12 @@ public class TaxRuleController {
         if (category != null && !category.isBlank()) {
             List<TaxRule> rules = fiscalEngine.getApplicableRules(
                 countryCode.toUpperCase(), category.toUpperCase(), today);
-            return ResponseEntity.ok(rules);
+            return ResponseEntity.ok(toDtos(rules));
         }
 
         // Toutes les regles du pays
-        List<TaxRule> rules = taxRuleRepository.findByCountryCode(countryCode.toUpperCase());
-        return ResponseEntity.ok(rules);
+        List<TaxRule> rules = taxRuleService.findByCountryCode(countryCode);
+        return ResponseEntity.ok(toDtos(rules));
     }
 
     /**
@@ -101,18 +102,9 @@ public class TaxRuleController {
      */
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<TaxRule> createRule(@Valid @RequestBody TaxRuleRequest request) {
-        TaxRule rule = new TaxRule(
-            request.countryCode().toUpperCase(),
-            request.taxCategory().toUpperCase(),
-            request.taxRate(),
-            request.taxName(),
-            request.effectiveFrom()
-        );
-        rule.setEffectiveTo(request.effectiveTo());
-        rule.setDescription(request.description());
-        TaxRule saved = taxRuleRepository.save(rule);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<TaxRuleDto> createRule(@Valid @RequestBody TaxRuleRequest request) {
+        TaxRule saved = taxRuleService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(TaxRuleDto.from(saved));
     }
 
     /**
@@ -120,19 +112,10 @@ public class TaxRuleController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<TaxRule> updateRule(
+    public ResponseEntity<TaxRuleDto> updateRule(
             @PathVariable Long id,
             @Valid @RequestBody TaxRuleRequest request) {
-        TaxRule rule = taxRuleRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Regle fiscale introuvable: " + id));
-        rule.setCountryCode(request.countryCode().toUpperCase());
-        rule.setTaxCategory(request.taxCategory().toUpperCase());
-        rule.setTaxRate(request.taxRate());
-        rule.setTaxName(request.taxName());
-        rule.setEffectiveFrom(request.effectiveFrom());
-        rule.setEffectiveTo(request.effectiveTo());
-        rule.setDescription(request.description());
-        return ResponseEntity.ok(taxRuleRepository.save(rule));
+        return ResponseEntity.ok(TaxRuleDto.from(taxRuleService.update(id, request)));
     }
 
     /**
@@ -141,10 +124,11 @@ public class TaxRuleController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> deleteRule(@PathVariable Long id) {
-        if (!taxRuleRepository.existsById(id)) {
-            throw new IllegalArgumentException("Regle fiscale introuvable: " + id);
-        }
-        taxRuleRepository.deleteById(id);
+        taxRuleService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private List<TaxRuleDto> toDtos(List<TaxRule> rules) {
+        return rules.stream().map(TaxRuleDto::from).toList();
     }
 }

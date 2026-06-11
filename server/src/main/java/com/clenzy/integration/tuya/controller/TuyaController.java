@@ -10,8 +10,8 @@ import com.clenzy.integration.tuya.model.TuyaAppAccount;
 import com.clenzy.integration.tuya.model.TuyaConnection;
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.integration.tuya.service.TuyaAppAccountService;
+import com.clenzy.integration.tuya.service.TuyaDeviceQueryService;
 import com.clenzy.integration.tuya.service.TuyaPlatformConfigService;
-import com.clenzy.repository.NoiseDeviceRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -45,18 +45,18 @@ public class TuyaController {
     private static final Logger log = LoggerFactory.getLogger(TuyaController.class);
 
     private final TuyaApiService apiService;
-    private final NoiseDeviceRepository noiseDeviceRepository;
+    private final TuyaDeviceQueryService deviceQueryService;
     private final TuyaConfig tuyaConfig;
     private final TuyaPlatformConfigService platformConfigService;
     private final TuyaAppAccountService appAccountService;
 
     public TuyaController(TuyaApiService apiService,
-                          NoiseDeviceRepository noiseDeviceRepository,
+                          TuyaDeviceQueryService deviceQueryService,
                           TuyaConfig tuyaConfig,
                           TuyaPlatformConfigService platformConfigService,
                           TuyaAppAccountService appAccountService) {
         this.apiService = apiService;
-        this.noiseDeviceRepository = noiseDeviceRepository;
+        this.deviceQueryService = deviceQueryService;
         this.tuyaConfig = tuyaConfig;
         this.platformConfigService = platformConfigService;
         this.appAccountService = appAccountService;
@@ -223,7 +223,7 @@ public class TuyaController {
             statusDto.setLastSyncAt(connection.getLastSyncAt());
             statusDto.setErrorMessage(connection.getErrorMessage());
 
-            long deviceCount = noiseDeviceRepository.countByUserId(userId);
+            long deviceCount = deviceQueryService.countDevicesForUser(userId);
             statusDto.setDeviceCount(deviceCount);
         } else {
             statusDto.setConnected(false);
@@ -253,8 +253,7 @@ public class TuyaController {
         String userId = jwt.getSubject();
         try {
             // Ownership: verifier que le device appartient a l'utilisateur
-            if (!noiseDeviceRepository.findByUserId(userId).stream()
-                    .anyMatch(d -> deviceId.equals(d.getExternalDeviceId()))) {
+            if (!deviceQueryService.userOwnsDevice(userId, deviceId)) {
                 return ResponseEntity.status(403).body(Map.of(
                         "error", "access_denied",
                         "message", "Vous n'avez pas acces a ce device"
@@ -279,8 +278,7 @@ public class TuyaController {
         String userId = jwt.getSubject();
         try {
             // Ownership: verifier que le device appartient a l'utilisateur
-            if (!noiseDeviceRepository.findByUserId(userId).stream()
-                    .anyMatch(d -> deviceId.equals(d.getExternalDeviceId()))) {
+            if (!deviceQueryService.userOwnsDevice(userId, deviceId)) {
                 return ResponseEntity.status(403).body(Map.of(
                         "error", "access_denied",
                         "message", "Vous n'avez pas acces a ce device"
@@ -306,8 +304,7 @@ public class TuyaController {
         String userId = jwt.getSubject();
         try {
             // Ownership: verifier que le device appartient a l'utilisateur
-            if (!noiseDeviceRepository.findByUserId(userId).stream()
-                    .anyMatch(d -> deviceId.equals(d.getExternalDeviceId()))) {
+            if (!deviceQueryService.userOwnsDevice(userId, deviceId)) {
                 return ResponseEntity.status(403).body(Map.of(
                         "error", "access_denied",
                         "message", "Vous n'avez pas acces a ce device"

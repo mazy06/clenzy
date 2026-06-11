@@ -1,38 +1,30 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.ReservationDto;
+import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.NotFoundException;
-import com.clenzy.model.Intervention;
-import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
-import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.InterventionRepository;
-import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
-import com.clenzy.repository.UserRepository;
-import com.clenzy.service.EmailService;
 import com.clenzy.service.InterventionMapper;
 import com.clenzy.service.ReservationMapper;
+import com.clenzy.service.ReservationPaymentService;
 import com.clenzy.service.ReservationService;
-import com.clenzy.service.StripeService;
-import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,44 +32,36 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests unitaires pour ReservationController.update() avec cascade intervention.
- * Couvre :
- * - Mise a jour des dates de reservation (directe et OTA)
- * - Decalage automatique de l'intervention liee au checkout
- * - Mise a jour de scheduledDate, guestCheckoutTime, startTime, endTime
- * - Cas sans intervention liee
- * - Cas reservation non trouvee
+ * Tests unitaires pour ReservationController.update().
+ *
+ * Depuis le refactor T-ARCH-02, le controller ne fait plus que :
+ * validation d'acces (ownership) + delegation a ReservationService.update()
+ * + mapping DTO. L'orchestration (calendrier, intervention, codes serrure,
+ * notification) est testee dans ReservationServiceUpdateTest.
+ *
+ * Depuis le refactor T-ARCH-01, le controller n'injecte plus aucun repository :
+ * chargement (getByIdFetchAll), validation d'acces (validatePropertyAccess) et
+ * rechargement (reloadWithRelations) passent par ReservationService — la
+ * logique correspondante est testee dans ReservationServiceTest.
  */
 @ExtendWith(MockitoExtension.class)
 class ReservationControllerUpdateTest {
 
     @Mock private ReservationService reservationService;
     @Mock private ReservationMapper reservationMapper;
+    @Mock private ReservationPaymentService reservationPaymentService;
+    @Mock private InterventionMapper interventionMapper;
+    // Conserves uniquement pour les assertions "le controller n'ecrit plus en direct"
     @Mock private ReservationRepository reservationRepository;
     @Mock private InterventionRepository interventionRepository;
-    @Mock private PropertyRepository propertyRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private GuestRepository guestRepository;
-    @Mock private com.clenzy.service.GuestService guestService;
-    @Mock private StripeService stripeService;
-    @Mock private EmailService emailService;
-    @Mock private com.clenzy.service.messaging.GuestMessagingService guestMessagingService;
-    @Mock private com.clenzy.repository.MessageTemplateRepository messageTemplateRepository;
-    @Mock private InterventionMapper interventionMapper;
-    @Mock private TenantContext tenantContext;
-    @Mock private com.clenzy.repository.SmartLockDeviceRepository smartLockDeviceRepository;
-    @Mock private com.clenzy.service.smartlock.SmartLockAccessCodeService accessCodeService;
 
     private ReservationController controller;
 
     @BeforeEach
     void setUp() {
         controller = new ReservationController(
-                reservationService, reservationMapper, reservationRepository,
-                interventionRepository, propertyRepository, userRepository,
-                guestRepository, guestService, stripeService, emailService,
-                guestMessagingService, messageTemplateRepository, interventionMapper, tenantContext,
-                smartLockDeviceRepository, accessCodeService);
+                reservationService, reservationMapper,
+                reservationPaymentService, interventionMapper);
     }
 
     private Jwt createJwt(String sub) {
@@ -100,41 +84,17 @@ class ReservationControllerUpdateTest {
         return property;
     }
 
-    private Reservation createReservation(Property property, String source,
-                                          LocalDate checkIn, LocalDate checkOut) {
+    private Reservation createReservation(Property property) {
         Reservation r = new Reservation();
         r.setId(1L);
         r.setProperty(property);
-        r.setSource(source);
-        r.setCheckIn(checkIn);
-        r.setCheckOut(checkOut);
+        r.setSource("direct");
+        r.setCheckIn(LocalDate.of(2026, 3, 1));
+        r.setCheckOut(LocalDate.of(2026, 3, 5));
         r.setStatus("confirmed");
         r.setGuestName("Test Guest");
         r.setOrganizationId(1L);
         return r;
-    }
-
-    private Intervention createIntervention(LocalDateTime scheduledDate, int durationHours) {
-        Intervention intervention = new Intervention();
-        intervention.setId(10L);
-        intervention.setScheduledDate(scheduledDate);
-        intervention.setGuestCheckoutTime(scheduledDate);
-        intervention.setStartTime(scheduledDate);
-        intervention.setEndTime(scheduledDate.plusHours(durationHours));
-        intervention.setEstimatedDurationHours(durationHours);
-        intervention.setTitle("Menage");
-        intervention.setType("CLEANING");
-        intervention.setStatus(InterventionStatus.PENDING);
-        intervention.setPriority("HIGH");
-        intervention.setOrganizationId(1L);
-        return intervention;
-    }
-
-    private void setupPropertyAccess(Property property, String keycloakId) {
-        when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-        when(propertyRepository.findById(property.getId())).thenReturn(Optional.of(property));
-        when(tenantContext.isSuperAdmin()).thenReturn(false);
-        when(userRepository.findByKeycloakId(keycloakId)).thenReturn(Optional.of(property.getOwner()));
     }
 
     private ReservationDto makeUpdateDto(String checkIn, String checkOut) {
@@ -144,22 +104,21 @@ class ReservationControllerUpdateTest {
     }
 
     @Nested
-    @DisplayName("update - basic")
-    class UpdateBasic {
+    @DisplayName("update - delegation")
+    class UpdateDelegation {
 
         @Test
-        @DisplayName("mise a jour des dates sans intervention liee")
-        void whenNoIntervention_thenUpdatesReservationOnly() {
+        @DisplayName("delegue l'orchestration au service avec l'acteur JWT")
+        void whenValid_thenDelegatesToService() {
             Jwt jwt = createJwt("user-1");
             Property property = createProperty("user-1");
-            Reservation reservation = createReservation(property, "direct",
-                    LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5));
+            Reservation reservation = createReservation(property);
 
-            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(reservation));
-            setupPropertyAccess(property, "user-1");
+            when(reservationService.getByIdFetchAll(1L)).thenReturn(reservation);
 
             ReservationDto dto = makeUpdateDto(null, "2026-03-08");
-            when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
+            when(reservationService.update(1L, dto, "user-1")).thenReturn(reservation);
+            when(reservationService.reloadWithRelations(reservation)).thenReturn(reservation);
             when(reservationMapper.toDto(any(Reservation.class)))
                     .thenReturn(new ReservationDto(1L, 1L, "Apt", "Guest", null, null, null, 2,
                             "2026-03-01", "2026-03-08", null, null, "confirmed", "direct",
@@ -168,211 +127,56 @@ class ReservationControllerUpdateTest {
             ResponseEntity<ReservationDto> response = controller.update(1L, dto, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(interventionRepository, never()).save(any(Intervention.class));
+            verify(reservationService).update(1L, dto, "user-1");
+            // Le controller ne fait plus d'ecritures directes
+            verify(reservationRepository, never()).save(any(Reservation.class));
+            verify(interventionRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("reservation non trouvee → NotFoundException")
+        @DisplayName("reservation non trouvee → NotFoundException, pas de delegation")
         void whenNotFound_thenThrows() {
             Jwt jwt = createJwt("user-1");
-            when(reservationRepository.findByIdFetchAll(99L)).thenReturn(Optional.empty());
+            when(reservationService.getByIdFetchAll(99L))
+                    .thenThrow(new NotFoundException("Reservation non trouvee: 99"));
 
             assertThatThrownBy(() -> controller.update(99L, makeUpdateDto(null, "2026-03-08"), jwt))
                     .isInstanceOf(NotFoundException.class);
+            verify(reservationService, never()).update(anyLong(), any(), anyString());
         }
 
         @Test
-        @DisplayName("mise a jour des dates pour reservation OTA")
-        void whenOtaReservation_thenUpdatesDatesToo() {
-            Jwt jwt = createJwt("user-1");
-            Property property = createProperty("user-1");
-            Reservation reservation = createReservation(property, "airbnb",
-                    LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5));
+        @DisplayName("non proprietaire → AccessDenied, pas de delegation")
+        void whenNotOwner_thenAccessDenied() {
+            Jwt jwt = createJwt("intruder");
+            Property property = createProperty("real-owner");
+            Reservation reservation = createReservation(property);
 
-            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(reservation));
-            setupPropertyAccess(property, "user-1");
+            when(reservationService.getByIdFetchAll(1L)).thenReturn(reservation);
+            doThrow(new AccessDeniedException("Acces refuse : vous n'etes pas proprietaire de cette propriete"))
+                    .when(reservationService).validatePropertyAccess(1L, "intruder");
 
-            ReservationDto dto = makeUpdateDto(null, "2026-03-08");
-            when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
-            when(reservationMapper.toDto(any(Reservation.class)))
-                    .thenReturn(new ReservationDto(1L, 1L, "Apt", "Guest", null, null, null, 2,
-                            "2026-03-01", "2026-03-08", null, null, "confirmed", "airbnb",
-                            null, null, null, null, null, null, null, null, null, false, null, null, null));
-
-            ResponseEntity<ReservationDto> response = controller.update(1L, dto, jwt);
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            // reservationMapper.apply is called (not restricted for OTA anymore)
-            verify(reservationMapper).apply(eq(dto), eq(reservation));
-        }
-    }
-
-    @Nested
-    @DisplayName("update - intervention cascade")
-    class UpdateInterventionCascade {
-
-        @Test
-        @DisplayName("checkout change decale l'intervention liee")
-        void whenCheckoutChanges_thenShiftsIntervention() {
-            Jwt jwt = createJwt("user-1");
-            Property property = createProperty("user-1");
-            Reservation reservation = createReservation(property, "direct",
-                    LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5));
-
-            // Intervention liee au checkout (5 mars, 11:00 → 14:00, 3h)
-            Intervention intervention = createIntervention(
-                    LocalDateTime.of(2026, 3, 5, 11, 0), 3);
-            reservation.setIntervention(intervention);
-
-            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(reservation));
-            setupPropertyAccess(property, "user-1");
-
-            // Simulate mapper setting new checkout
-            doAnswer(inv -> {
-                ReservationDto d = inv.getArgument(0);
-                Reservation r = inv.getArgument(1);
-                if (d.checkOut() != null) r.setCheckOut(LocalDate.parse(d.checkOut()));
-                return null;
-            }).when(reservationMapper).apply(any(ReservationDto.class), any(Reservation.class));
-
-            ReservationDto dto = makeUpdateDto(null, "2026-03-08");
-            when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
-            when(reservationMapper.toDto(any(Reservation.class)))
-                    .thenReturn(new ReservationDto(1L, 1L, "Apt", "Guest", null, null, null, 2,
-                            "2026-03-01", "2026-03-08", null, null, "confirmed", "direct",
-                            null, null, null, null, null, null, null, null, null, false, null, null, null));
-
-            controller.update(1L, dto, jwt);
-
-            // Verifier que l'intervention a ete sauvegardee
-            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
-
-            Intervention saved = captor.getValue();
-            // scheduledDate = nouveau checkout (8 mars) a 11:00
-            assertThat(saved.getScheduledDate()).isEqualTo(LocalDateTime.of(2026, 3, 8, 11, 0));
-            assertThat(saved.getGuestCheckoutTime()).isEqualTo(LocalDateTime.of(2026, 3, 8, 11, 0));
-            assertThat(saved.getStartTime()).isEqualTo(LocalDateTime.of(2026, 3, 8, 11, 0));
-            // endTime = 11:00 + 3h = 14:00
-            assertThat(saved.getEndTime()).isEqualTo(LocalDateTime.of(2026, 3, 8, 14, 0));
+            assertThatThrownBy(() -> controller.update(1L, makeUpdateDto(null, "2026-03-08"), jwt))
+                    .isInstanceOf(AccessDeniedException.class);
+            verify(reservationService, never()).update(anyLong(), any(), anyString());
         }
 
         @Test
-        @DisplayName("checkout inchange ne decale pas l'intervention")
-        void whenCheckoutUnchanged_thenNoInterventionUpdate() {
+        @DisplayName("conflit calendrier dans le service → propage (mappe en 409)")
+        void whenServiceThrowsConflict_thenPropagates() {
             Jwt jwt = createJwt("user-1");
             Property property = createProperty("user-1");
-            Reservation reservation = createReservation(property, "direct",
-                    LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5));
+            Reservation reservation = createReservation(property);
 
-            Intervention intervention = createIntervention(
-                    LocalDateTime.of(2026, 3, 5, 11, 0), 3);
-            reservation.setIntervention(intervention);
+            when(reservationService.getByIdFetchAll(1L)).thenReturn(reservation);
 
-            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(reservation));
-            setupPropertyAccess(property, "user-1");
+            ReservationDto dto = makeUpdateDto("2026-04-01", "2026-04-05");
+            when(reservationService.update(1L, dto, "user-1"))
+                    .thenThrow(new CalendarConflictException(1L,
+                            LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 5), 2));
 
-            // Simulate mapper NOT changing checkout (only notes)
-            doAnswer(inv -> {
-                Reservation r = inv.getArgument(1);
-                r.setNotes("updated notes");
-                return null;
-            }).when(reservationMapper).apply(any(ReservationDto.class), any(Reservation.class));
-
-            ReservationDto dto = new ReservationDto(null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, null, null, null, null, "new notes",
-                    null, null, null, null, null, false, null, null, null);
-            when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
-            when(reservationMapper.toDto(any(Reservation.class)))
-                    .thenReturn(new ReservationDto(1L, 1L, "Apt", "Guest", null, null, null, 2,
-                            "2026-03-01", "2026-03-05", null, null, "confirmed", "direct",
-                            null, null, null, "new notes", null, null, null, null, null, false, null, null, null));
-
-            controller.update(1L, dto, jwt);
-
-            // Intervention ne doit PAS etre sauvegardee
-            verify(interventionRepository, never()).save(any(Intervention.class));
-        }
-
-        @Test
-        @DisplayName("intervention conserve la meme heure lors du decalage")
-        void whenCheckoutChanges_thenKeepsSameTime() {
-            Jwt jwt = createJwt("user-1");
-            Property property = createProperty("user-1");
-            Reservation reservation = createReservation(property, "direct",
-                    LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5));
-
-            // Intervention a 10:30
-            Intervention intervention = createIntervention(
-                    LocalDateTime.of(2026, 3, 5, 10, 30), 2);
-            reservation.setIntervention(intervention);
-
-            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(reservation));
-            setupPropertyAccess(property, "user-1");
-
-            doAnswer(inv -> {
-                ReservationDto d = inv.getArgument(0);
-                Reservation r = inv.getArgument(1);
-                if (d.checkOut() != null) r.setCheckOut(LocalDate.parse(d.checkOut()));
-                return null;
-            }).when(reservationMapper).apply(any(ReservationDto.class), any(Reservation.class));
-
-            ReservationDto dto = makeUpdateDto(null, "2026-03-10");
-            when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
-            when(reservationMapper.toDto(any(Reservation.class)))
-                    .thenReturn(new ReservationDto(1L, 1L, "Apt", "Guest", null, null, null, 2,
-                            "2026-03-01", "2026-03-10", null, null, "confirmed", "direct",
-                            null, null, null, null, null, null, null, null, null, false, null, null, null));
-
-            controller.update(1L, dto, jwt);
-
-            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
-
-            Intervention saved = captor.getValue();
-            // Meme heure 10:30 mais nouvelle date 10 mars
-            assertThat(saved.getScheduledDate().toLocalTime().getHour()).isEqualTo(10);
-            assertThat(saved.getScheduledDate().toLocalTime().getMinute()).isEqualTo(30);
-            assertThat(saved.getScheduledDate().toLocalDate()).isEqualTo(LocalDate.of(2026, 3, 10));
-        }
-
-        @Test
-        @DisplayName("intervention sans estimatedDurationHours ne met pas a jour endTime")
-        void whenNoDuration_thenEndTimeNotSet() {
-            Jwt jwt = createJwt("user-1");
-            Property property = createProperty("user-1");
-            Reservation reservation = createReservation(property, "direct",
-                    LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5));
-
-            Intervention intervention = createIntervention(
-                    LocalDateTime.of(2026, 3, 5, 11, 0), 3);
-            intervention.setEstimatedDurationHours(null);
-            reservation.setIntervention(intervention);
-
-            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(reservation));
-            setupPropertyAccess(property, "user-1");
-
-            doAnswer(inv -> {
-                ReservationDto d = inv.getArgument(0);
-                Reservation r = inv.getArgument(1);
-                if (d.checkOut() != null) r.setCheckOut(LocalDate.parse(d.checkOut()));
-                return null;
-            }).when(reservationMapper).apply(any(ReservationDto.class), any(Reservation.class));
-
-            ReservationDto dto = makeUpdateDto(null, "2026-03-08");
-            when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
-            when(reservationMapper.toDto(any(Reservation.class)))
-                    .thenReturn(new ReservationDto(1L, 1L, "Apt", "Guest", null, null, null, 2,
-                            "2026-03-01", "2026-03-08", null, null, "confirmed", "direct",
-                            null, null, null, null, null, null, null, null, null, false, null, null, null));
-
-            controller.update(1L, dto, jwt);
-
-            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
-
-            Intervention saved = captor.getValue();
-            // scheduledDate updated but endTime stays as was (no duration to compute)
-            assertThat(saved.getScheduledDate().toLocalDate()).isEqualTo(LocalDate.of(2026, 3, 8));
+            assertThatThrownBy(() -> controller.update(1L, dto, jwt))
+                    .isInstanceOf(CalendarConflictException.class);
         }
     }
 }

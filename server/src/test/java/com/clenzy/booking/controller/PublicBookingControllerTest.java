@@ -49,6 +49,7 @@ class PublicBookingControllerTest {
     @Mock private PublicBookingService bookingService;
     @Mock private BookingServiceOptionsService serviceOptionsService;
     @Mock private PropertyPhotoService photoService;
+    @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
     @Mock private HttpServletRequest request;
 
     private PublicBookingController controller;
@@ -56,7 +57,9 @@ class PublicBookingControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PublicBookingController(bookingService, serviceOptionsService, photoService);
+        controller = new PublicBookingController(bookingService, serviceOptionsService, photoService, rateLimiter);
+        lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
+        lenient().when(rateLimiter.tryAcquireBatch(any())).thenReturn(true);
 
         Organization org = mock(Organization.class);
         lenient().when(org.getId()).thenReturn(1L);
@@ -142,8 +145,21 @@ class PublicBookingControllerTest {
                 BigDecimal.valueOf(100), "EUR", null, true);
         when(bookingService.reserve(ctx, req)).thenReturn(resp);
 
-        ResponseEntity<BookingReserveResponseDto> response = controller.reserve("slug", req, request);
+        ResponseEntity<?> response = controller.reserve("slug", req, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void reserve_rateLimited_returns429() {
+        BookingReserveRequestDto.GuestInfo gi = new BookingReserveRequestDto.GuestInfo("John", "j@t.com", "0600");
+        BookingReserveRequestDto req = new BookingReserveRequestDto(10L, LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(3), 2, gi, null, null);
+        when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(false);
+
+        ResponseEntity<?> response = controller.reserve("slug", req, request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(429);
+        org.mockito.Mockito.verifyNoInteractions(bookingService);
     }
 
     @Test
@@ -159,8 +175,22 @@ class PublicBookingControllerTest {
                 "batch", List.of(), BigDecimal.TEN, "EUR", null, true);
         when(bookingService.reserveBatch(ctx, req)).thenReturn(resp);
 
-        ResponseEntity<BookingReserveBatchResponseDto> response = controller.reserveBatch("slug", req, request);
+        ResponseEntity<?> response = controller.reserveBatch("slug", req, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void reserveBatch_rateLimited_returns429() {
+        BookingReserveRequestDto.GuestInfo gi = new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null);
+        BookingReserveBatchRequestDto.Item item = new BookingReserveBatchRequestDto.Item(
+                10L, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), 2, null);
+        BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(List.of(item), gi);
+        when(rateLimiter.tryAcquireBatch(any())).thenReturn(false);
+
+        ResponseEntity<?> response = controller.reserveBatch("slug", req, request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(429);
+        org.mockito.Mockito.verifyNoInteractions(bookingService);
     }
 
     @Test

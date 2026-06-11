@@ -8,6 +8,7 @@ import com.clenzy.model.WhatsAppProviderType;
 import com.clenzy.model.WhatsAppTemplate;
 import com.clenzy.repository.WhatsAppConfigRepository;
 import com.clenzy.repository.WhatsAppTemplateRepository;
+import com.clenzy.service.WhatsAppConfigService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,9 @@ class WhatsAppConfigControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new WhatsAppConfigController(configRepository, templateRepository, tenantContext);
+        // Service REEL au-dessus des repositories mockes (pattern Vague A).
+        controller = new WhatsAppConfigController(
+            new WhatsAppConfigService(configRepository, templateRepository), tenantContext);
         // Utilise uniquement par getTemplates (les templates restent par-org).
         lenient().when(tenantContext.getOrganizationId()).thenReturn(11L);
     }

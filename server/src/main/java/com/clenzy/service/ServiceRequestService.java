@@ -33,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -418,6 +420,99 @@ public class ServiceRequestService {
             log.warn("Error checking team membership: {}", e.getMessage());
         }
         return false;
+    }
+
+    /**
+     * SR en AWAITING_PAYMENT pour le planning (Gantt), avec resolution des noms
+     * d'assignes (equipe/utilisateur) sans N+1.
+     * Logique deplacee de ServiceRequestController (T-ARCH-01).
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getPlanningServiceRequests(List<Long> propertyIds,
+                                                                LocalDateTime from,
+                                                                LocalDateTime to) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        List<ServiceRequest> srList;
+        if (propertyIds != null && !propertyIds.isEmpty()) {
+            srList = serviceRequestRepository.findByStatusAndPropertyIdsAndDesiredDateBetween(
+                    RequestStatus.AWAITING_PAYMENT, propertyIds, from, to, orgId);
+        } else {
+            srList = serviceRequestRepository.findByStatusAndDesiredDateBetween(
+                    RequestStatus.AWAITING_PAYMENT, from, to, orgId);
+        }
+
+        // Pre-load team names to avoid N+1
+        List<Long> teamIds = srList.stream()
+                .filter(sr -> "team".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null)
+                .map(ServiceRequest::getAssignedToId)
+                .distinct()
+                .collect(Collectors.toList());
+        final Map<Long, String> teamNameMap = !teamIds.isEmpty()
+                ? teamRepository.findAllById(teamIds).stream()
+                    .collect(Collectors.toMap(Team::getId, Team::getName, (a, b) -> a))
+                : Map.of();
+
+        // Pre-load user names
+        List<Long> userIds = srList.stream()
+                .filter(sr -> "user".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null)
+                .map(ServiceRequest::getAssignedToId)
+                .distinct()
+                .collect(Collectors.toList());
+        final Map<Long, String> userNameMap = !userIds.isEmpty()
+                ? userRepository.findAllById(userIds).stream()
+                    .collect(Collectors.toMap(User::getId,
+                        u -> (u.getFirstName() + " " + u.getLastName()).trim(), (a, b) -> a))
+                : Map.of();
+
+        return srList.stream()
+                .map(sr -> toPlanningMap(sr, userNameMap, teamNameMap))
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, Object> toPlanningMap(ServiceRequest sr,
+                                              Map<Long, String> userNameMap,
+                                              Map<Long, String> teamNameMap) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", sr.getId());
+        map.put("propertyId", sr.getProperty() != null ? sr.getProperty().getId() : null);
+        map.put("propertyName", sr.getProperty() != null ? sr.getProperty().getName() : "");
+        map.put("serviceType", sr.getServiceType() != null ? sr.getServiceType().name() : null);
+        map.put("title", sr.getTitle());
+        map.put("status", "AWAITING_PAYMENT");
+        map.put("estimatedDurationHours", sr.getEstimatedDurationHours());
+        map.put("estimatedCost", sr.getEstimatedCost());
+
+        // Resolve assignee name
+        String assigneeName = null;
+        if ("user".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null) {
+            assigneeName = userNameMap.getOrDefault(sr.getAssignedToId(), "Utilisateur #" + sr.getAssignedToId());
+        } else if ("team".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null) {
+            assigneeName = teamNameMap.getOrDefault(sr.getAssignedToId(), "Équipe #" + sr.getAssignedToId());
+        }
+        map.put("assignedToName", assigneeName);
+
+        // Date/time from desiredDate
+        if (sr.getDesiredDate() != null) {
+            map.put("startDate", sr.getDesiredDate().toLocalDate().toString());
+            map.put("startTime", sr.getDesiredDate().toLocalTime().toString());
+            if (sr.getEstimatedDurationHours() != null) {
+                LocalTime endTime = sr.getDesiredDate().toLocalTime()
+                        .plusHours(sr.getEstimatedDurationHours());
+                map.put("endTime", endTime.toString());
+            } else {
+                map.put("endTime", null);
+            }
+        } else {
+            map.put("startDate", null);
+            map.put("startTime", null);
+            map.put("endTime", null);
+        }
+
+        // Linked reservation
+        map.put("reservationId", sr.getReservationId());
+
+        return map;
     }
 
     public void delete(Long id) {

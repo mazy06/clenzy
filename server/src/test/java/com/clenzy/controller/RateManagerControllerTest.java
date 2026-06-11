@@ -9,6 +9,8 @@ import com.clenzy.repository.*;
 import com.clenzy.service.AdvancedRateManager;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.RateDistributionService;
+import com.clenzy.service.RateManagerService;
+import com.clenzy.service.ReservationService;
 import com.clenzy.service.YieldManagementScheduler;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +42,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Tests unitaires de RateManagerController.
+ *
+ * NOTE : depuis le refactor T-ARCH-01, le controller n'injecte plus aucun
+ * repository — il delegue tout a RateManagerService. Pour preserver les
+ * assertions historiques, le controller est construit sur des services REELS
+ * (RateManagerService + ReservationService pour la regle d'acces propriete)
+ * eux-memes poses sur les repositories mockes.
+ */
 @ExtendWith(MockitoExtension.class)
 class RateManagerControllerTest {
 
@@ -66,17 +77,31 @@ class RateManagerControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new RateManagerController(
-                advancedRateManager, rateDistributionService, yieldManagementScheduler,
-                priceEngine, channelRateModifierRepository, lengthOfStayDiscountRepository,
-                occupancyPricingRepository, yieldRuleRepository, rateAuditLogRepository,
-                rateOverrideRepository, propertyRepository, userRepository, tenantContext);
+        controller = buildController(yieldManagementScheduler);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", KEYCLOAK_ID)
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
+    }
+
+    /**
+     * Controller construit sur des services reels poses sur les mocks
+     * (seuls reservationRepository/userRepository/tenantContext/propertyRepository
+     * sont touches par validatePropertyAccess — le reste de ReservationService
+     * est inutilise ici).
+     */
+    private RateManagerController buildController(YieldManagementScheduler scheduler) {
+        ReservationService reservationService = new ReservationService(
+                null, userRepository, tenantContext, null, null, null, null, null,
+                null, null, null, null, null, null, propertyRepository, null, null);
+        RateManagerService rateManagerService = new RateManagerService(
+                advancedRateManager, rateDistributionService, scheduler, priceEngine,
+                channelRateModifierRepository, lengthOfStayDiscountRepository,
+                occupancyPricingRepository, yieldRuleRepository, rateAuditLogRepository,
+                rateOverrideRepository, propertyRepository, reservationService, tenantContext);
+        return new RateManagerController(rateManagerService);
     }
 
     private Property buildProperty(Long id, Long orgId) {
@@ -681,11 +706,7 @@ class RateManagerControllerTest {
         @Test
         void evaluateYieldRules_schedulerNull_returnsBadRequest() {
             setupSuperAdminAccess(PROPERTY_ID, ORG_ID);
-            RateManagerController noSchedulerController = new RateManagerController(
-                    advancedRateManager, rateDistributionService, null,
-                    priceEngine, channelRateModifierRepository, lengthOfStayDiscountRepository,
-                    occupancyPricingRepository, yieldRuleRepository, rateAuditLogRepository,
-                    rateOverrideRepository, propertyRepository, userRepository, tenantContext);
+            RateManagerController noSchedulerController = buildController(null);
 
             ResponseEntity<Void> response = noSchedulerController.evaluateYieldRules(PROPERTY_ID, jwt);
 
@@ -832,7 +853,7 @@ class RateManagerControllerTest {
                     PROPERTY_ID, from, to, ORG_ID))
                     .thenReturn(List.of(log));
 
-            ResponseEntity<List<RateAuditLog>> response = controller.getAuditLog(
+            ResponseEntity<List<RateAuditLogDto>> response = controller.getAuditLog(
                     PROPERTY_ID, from, to, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);

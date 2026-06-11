@@ -13,7 +13,7 @@ import com.clenzy.model.voucher.VoucherCreatorOrgType;
 import com.clenzy.model.voucher.VoucherDiscountType;
 import com.clenzy.model.voucher.VoucherStatus;
 import com.clenzy.model.voucher.VoucherType;
-import com.clenzy.repository.UserRepository;
+import com.clenzy.service.UserService;
 import com.clenzy.service.voucher.BookingVoucherService;
 import com.clenzy.service.voucher.VoucherAnalyticsService;
 import com.clenzy.service.voucher.VoucherCreatePayload;
@@ -32,7 +32,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,7 +49,7 @@ class BookingVoucherControllerTest {
 
     @Mock private BookingVoucherService voucherService;
     @Mock private VoucherAnalyticsService analyticsService;
-    @Mock private UserRepository userRepository;
+    @Mock private UserService userService;
     @Mock private TenantContext tenantContext;
 
     private BookingVoucherController controller;
@@ -63,7 +62,7 @@ class BookingVoucherControllerTest {
     @BeforeEach
     void setUp() {
         controller = new BookingVoucherController(
-            voucherService, analyticsService, userRepository, tenantContext);
+            voucherService, analyticsService, userService, tenantContext);
         jwt = Jwt.withTokenValue("token")
             .header("alg", "RS256")
             .claim("sub", KEYCLOAK_ID)
@@ -162,7 +161,7 @@ class BookingVoucherControllerTest {
         @Test
         void returnsCreatedVoucher() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(userRepository.findByKeycloakId(KEYCLOAK_ID)).thenReturn(Optional.of(buildUser()));
+            when(userService.findByKeycloakId(KEYCLOAK_ID)).thenReturn(buildUser());
 
             BookingVoucherCreateRequestDto req = new BookingVoucherCreateRequestDto(
                 "My voucher", "desc", "CODE1", VoucherType.MANUAL_CODE,
@@ -186,7 +185,7 @@ class BookingVoucherControllerTest {
         @Test
         void userNotFound_throws() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(userRepository.findByKeycloakId(KEYCLOAK_ID)).thenReturn(Optional.empty());
+            when(userService.findByKeycloakId(KEYCLOAK_ID)).thenReturn(null);
 
             BookingVoucherCreateRequestDto req = new BookingVoucherCreateRequestDto(
                 "V", null, null, VoucherType.MANUAL_CODE,
@@ -205,7 +204,7 @@ class BookingVoucherControllerTest {
         @Test
         void updateWithScope_usesDetectFromScope() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(userRepository.findByKeycloakId(KEYCLOAK_ID)).thenReturn(Optional.of(buildUser()));
+            when(userService.findByKeycloakId(KEYCLOAK_ID)).thenReturn(buildUser());
 
             BookingVoucherUpdateRequestDto req = new BookingVoucherUpdateRequestDto(
                 "New name", null, null, null, null, null, null,
@@ -228,7 +227,7 @@ class BookingVoucherControllerTest {
         @Test
         void updateWithoutScope_usesDetectFromExistingScope() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(userRepository.findByKeycloakId(KEYCLOAK_ID)).thenReturn(Optional.of(buildUser()));
+            when(userService.findByKeycloakId(KEYCLOAK_ID)).thenReturn(buildUser());
 
             BookingVoucherUpdateRequestDto req = new BookingVoucherUpdateRequestDto(
                 "New name", null, null, null, null, null, null,

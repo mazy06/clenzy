@@ -1,10 +1,8 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.ReceivedForm;
-import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.ReceivedFormService;
 import com.clenzy.model.NotificationKey;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +30,7 @@ public class SupportController {
 
     private static final Logger log = LoggerFactory.getLogger(SupportController.class);
 
-    private final ReceivedFormRepository receivedFormRepository;
-    private final ObjectMapper objectMapper;
+    private final ReceivedFormService receivedFormService;
     private final NotificationService notificationService;
 
     // Rate limiter simple en memoire : IP -> liste de timestamps
@@ -49,10 +46,9 @@ public class SupportController {
             "other", "Autre"
     );
 
-    public SupportController(ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
+    public SupportController(ReceivedFormService receivedFormService,
                              NotificationService notificationService) {
-        this.receivedFormRepository = receivedFormRepository;
-        this.objectMapper = objectMapper;
+        this.receivedFormService = receivedFormService;
         this.notificationService = notificationService;
     }
 
@@ -91,15 +87,7 @@ public class SupportController {
         try {
             String subjectLabel = SUBJECT_LABELS.getOrDefault(subject, subject);
 
-            ReceivedForm form = new ReceivedForm();
-            form.setFormType("SUPPORT");
-            form.setFullName(name);
-            form.setEmail(email);
-            form.setPhone(phone.isEmpty() ? null : phone);
-            form.setSubject("Support — " + subjectLabel + " — " + name);
-            form.setPayload(objectMapper.writeValueAsString(body));
-            form.setIpAddress(clientIp);
-            receivedFormRepository.save(form);
+            receivedFormService.recordSupportForm(name, email, phone, subjectLabel, body, clientIp);
 
             log.info("Demande de support sauvegardee : {} ({}) — Sujet : {}", name, email, subjectLabel);
 

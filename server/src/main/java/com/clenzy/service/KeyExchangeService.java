@@ -310,6 +310,21 @@ public class KeyExchangeService {
 
     /**
      * Confirme un mouvement de cle via la page publique.
+     *
+     * <p>Machine d'etats stricte (Z4B-SECBUGS-04) — chaque action verifie l'etat
+     * du code avant d'enregistrer l'evenement, pour empecher de polluer la piste
+     * d'audit avec des mouvements sur des codes annules/expires :</p>
+     * <ul>
+     *   <li>{@code collected} : ACTIVE + non expire → USED + collectedAt ;</li>
+     *   <li>{@code returned}  : ACTIVE (retour direct depuis la page publique —
+     *       flux principal des codes DROP_OFF, ou cle rendue sans collecte
+     *       prealable enregistree) ou USED (collecte au prealable), pas deja
+     *       rendu → returnedAt + passage a USED (le code est consomme).
+     *       CANCELLED/EXPIRED refuses. Pas de garde sur validUntil : rendre la
+     *       cle apres la fin de validite (checkout tardif) est un flux
+     *       legitime ;</li>
+     *   <li>{@code deposited} : ACTIVE + non expire → evenement seul.</li>
+     * </ul>
      */
     @Transactional
     public void confirmKeyMovement(String verificationToken, String code, String action) {
@@ -334,18 +349,34 @@ public class KeyExchangeService {
             case "collected" -> {
                 // Collecter une cle exige un code actif et non expire : un code
                 // annule (resa annulee) ou expire ne doit jamais ouvrir l'acces.
-                if (exchangeCode.getStatus() != CodeStatus.ACTIVE || isExpired) {
-                    throw new IllegalStateException("Code inactif ou expire : collecte refusee");
-                }
+                requireActiveNotExpired(exchangeCode, isExpired, "collecte refusee");
                 eventType = EventType.KEY_COLLECTED;
                 exchangeCode.setCollectedAt(LocalDateTime.now());
                 exchangeCode.setStatus(CodeStatus.USED);
             }
             case "returned" -> {
+                // Retour accepte sur un code ACTIVE (retour direct depuis la page
+                // publique : la page n'affiche le bouton que si le code est valide,
+                // donc ACTIVE — flux principal des codes DROP_OFF) ou USED
+                // (collecte au prealable). Un code annule ou marque expire est
+                // refuse. Pas de garde sur validUntil : rendre la cle apres la fin
+                // de validite (checkout tardif) est un flux legitime.
+                if (exchangeCode.getStatus() != CodeStatus.ACTIVE
+                        && exchangeCode.getStatus() != CodeStatus.USED) {
+                    throw new IllegalStateException(
+                            "Code annule ou expire (statut: " + exchangeCode.getStatus() + ") : retour refuse");
+                }
+                if (exchangeCode.getReturnedAt() != null) {
+                    throw new IllegalStateException("Cle deja rendue : retour refuse");
+                }
                 eventType = EventType.KEY_RETURNED;
                 exchangeCode.setReturnedAt(LocalDateTime.now());
+                // Le retour consomme le code : un code ACTIVE rendu directement
+                // passe a USED pour empecher toute reutilisation (collecte/depot).
+                exchangeCode.setStatus(CodeStatus.USED);
             }
             case "deposited" -> {
+                requireActiveNotExpired(exchangeCode, isExpired, "depot refuse");
                 eventType = EventType.KEY_DEPOSITED;
             }
             default -> throw new IllegalArgumentException("Action invalide: " + action);
@@ -385,6 +416,19 @@ public class KeyExchangeService {
     // ═══════════════════════════════════════════════════════════════
     // Private helpers
     // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Garde commune de la machine d'etats publique : refuse toute action sur un
+     * code non ACTIF (annule, deja utilise) ou expire, avec une erreur explicite.
+     * Le message conserve le prefixe "Code inactif ou expire" attendu par la page
+     * publique.
+     */
+    private static void requireActiveNotExpired(KeyExchangeCode exchangeCode, boolean isExpired, String refusalLabel) {
+        if (exchangeCode.getStatus() != CodeStatus.ACTIVE || isExpired) {
+            throw new IllegalStateException("Code inactif ou expire (statut: " + exchangeCode.getStatus()
+                    + ") : " + refusalLabel);
+        }
+    }
 
     private String generateUniqueCode() {
         // Code 6 chiffres, unique

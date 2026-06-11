@@ -15,10 +15,7 @@ import com.clenzy.dto.syncadmin.SyncAdminDtos.ReconciliationRunDto;
 import com.clenzy.dto.syncadmin.SyncAdminDtos.ReconciliationStatsDto;
 import com.clenzy.dto.syncadmin.SyncAdminDtos.SyncEventStatsDto;
 import com.clenzy.dto.syncadmin.SyncAdminDtos.SyncLogDto;
-import com.clenzy.integration.channel.ChannelConnector;
-import com.clenzy.integration.channel.ChannelConnectorRegistry;
 import com.clenzy.integration.channel.ChannelName;
-import com.clenzy.integration.channel.HealthStatus;
 import com.clenzy.integration.channel.model.ChannelConnection;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.model.ChannelSyncLog;
@@ -64,7 +61,7 @@ public class SyncAdminService {
     private final OutboxEventRepository outboxEventRepository;
     private final CalendarCommandRepository calendarCommandRepository;
     private final CalendarDayRepository calendarDayRepository;
-    private final ChannelConnectorRegistry connectorRegistry;
+    private final ChannelHealthPort channelHealth;
     private final SyncMetrics syncMetrics;
     private final ReconciliationRunRepository reconciliationRunRepository;
     private final ReconciliationService reconciliationService;
@@ -75,7 +72,7 @@ public class SyncAdminService {
                             OutboxEventRepository outboxEventRepository,
                             CalendarCommandRepository calendarCommandRepository,
                             CalendarDayRepository calendarDayRepository,
-                            ChannelConnectorRegistry connectorRegistry,
+                            ChannelHealthPort channelHealth,
                             SyncMetrics syncMetrics,
                             ReconciliationRunRepository reconciliationRunRepository,
                             ReconciliationService reconciliationService) {
@@ -85,7 +82,7 @@ public class SyncAdminService {
         this.outboxEventRepository = outboxEventRepository;
         this.calendarCommandRepository = calendarCommandRepository;
         this.calendarDayRepository = calendarDayRepository;
-        this.connectorRegistry = connectorRegistry;
+        this.channelHealth = channelHealth;
         this.syncMetrics = syncMetrics;
         this.reconciliationRunRepository = reconciliationRunRepository;
         this.reconciliationService = reconciliationService;
@@ -135,13 +132,9 @@ public class SyncAdminService {
     public String forceHealthCheck(Long connectionId) {
         ChannelConnection connection = connectionRepository.findById(connectionId)
                 .orElseThrow(() -> new IllegalArgumentException("Connection not found: " + connectionId));
-        Optional<ChannelConnector> connector = connectorRegistry.getConnector(connection.getChannel());
-        if (connector.isPresent()) {
-            HealthStatus status = connector.get().checkHealth(connectionId);
-            log.info("Health check for connection {}: {}", connectionId, status);
-            return status.name();
-        }
-        return HealthStatus.UNKNOWN.name();
+        String status = channelHealth.checkHealth(connection.getChannel().name(), connectionId);
+        log.info("Health check for connection {}: {}", connectionId, status);
+        return status;
     }
 
     // ── 2. Sync Events ───────────────────────────────────────────────────────
@@ -271,7 +264,7 @@ public class SyncAdminService {
         int healthyCount = 0;
         for (ChannelConnection cc : activeConnections) {
             String health = getHealthStatusForConnection(cc);
-            if (HealthStatus.HEALTHY.name().equals(health)) {
+            if (ChannelHealthPort.HEALTHY.equals(health)) {
                 healthyCount++;
             }
         }
@@ -400,14 +393,11 @@ public class SyncAdminService {
 
     private String getHealthStatusForConnection(ChannelConnection cc) {
         try {
-            Optional<ChannelConnector> connector = connectorRegistry.getConnector(cc.getChannel());
-            if (connector.isPresent()) {
-                return connector.get().checkHealth(cc.getId()).name();
-            }
+            return channelHealth.checkHealth(cc.getChannel().name(), cc.getId());
         } catch (Exception e) {
             log.warn("Health check failed for connection {}: {}", cc.getId(), e.getMessage());
         }
-        return HealthStatus.UNKNOWN.name();
+        return ChannelHealthPort.UNKNOWN;
     }
 
     private SyncLogDto toSyncLogDto(ChannelSyncLog sl) {

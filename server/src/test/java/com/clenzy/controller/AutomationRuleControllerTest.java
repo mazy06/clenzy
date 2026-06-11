@@ -14,6 +14,7 @@ import com.clenzy.model.Reservation;
 import com.clenzy.repository.AutomationExecutionRepository;
 import com.clenzy.repository.AutomationRuleRepository;
 import com.clenzy.repository.MessageTemplateRepository;
+import com.clenzy.service.AutomationRuleService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,8 +54,9 @@ class AutomationRuleControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new AutomationRuleController(
-            ruleRepository, executionRepository, templateRepository, tenantContext);
+        // Service REEL construit au-dessus des repositories mockes (pattern Vague A)
+        controller = new AutomationRuleController(new AutomationRuleService(
+            ruleRepository, executionRepository, templateRepository, tenantContext));
     }
 
     private AutomationRule buildRule(Long id, String name, boolean enabled) {

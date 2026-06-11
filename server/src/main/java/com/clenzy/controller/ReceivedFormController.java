@@ -1,20 +1,16 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.ReceivedForm;
-import com.clenzy.repository.ReceivedFormRepository;
-import jakarta.persistence.EntityManager;
-import org.hibernate.Session;
+import com.clenzy.dto.ReceivedFormDto;
+import com.clenzy.service.ReceivedFormService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,30 +26,10 @@ public class ReceivedFormController {
 
     private static final Logger log = LoggerFactory.getLogger(ReceivedFormController.class);
 
-    private final ReceivedFormRepository receivedFormRepository;
-    private final EntityManager entityManager;
+    private final ReceivedFormService receivedFormService;
 
-    public ReceivedFormController(ReceivedFormRepository receivedFormRepository,
-                                  EntityManager entityManager) {
-        this.receivedFormRepository = receivedFormRepository;
-        this.entityManager = entityManager;
-    }
-
-    /**
-     * Desactive le filter Hibernate "organizationFilter" pour cette requete.
-     *
-     * Les formulaires recus sont par nature inter-tenant :
-     * - DEVIS : soumis depuis la landing publique → organization_id = NULL
-     * - MAINTENANCE / SUPPORT : peuvent etre soumis depuis differentes orgs
-     *
-     * Le filter applique automatiquement par TenantFilter (pour les non-staff)
-     * masque les formulaires NULL et ceux des autres orgs. Or, le controle d'acces
-     * a deja ete fait via @PreAuthorize + hasAnyRole(SUPER_ADMIN, SUPER_MANAGER)
-     * → on assume que le caller (staff plateforme) a le droit de voir tous les
-     * formulaires recus, peu importe l'org d'origine.
-     */
-    private void disableTenantFilter() {
-        entityManager.unwrap(Session.class).disableFilter("organizationFilter");
+    public ReceivedFormController(ReceivedFormService receivedFormService) {
+        this.receivedFormService = receivedFormService;
     }
 
     /**
@@ -71,26 +47,8 @@ public class ReceivedFormController {
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        disableTenantFilter();
 
-        PageRequest pageable = PageRequest.of(page, size);
-        Page<ReceivedForm> result;
-
-        // Vue "Archivés" si status=ARCHIVED ; sinon liste active (exclut les archivés).
-        final String ARCHIVED = "ARCHIVED";
-        boolean archivedView = ARCHIVED.equalsIgnoreCase(status);
-        boolean hasType = type != null && !type.isBlank();
-        String typeUpper = hasType ? type.toUpperCase() : null;
-
-        if (archivedView) {
-            result = hasType
-                    ? receivedFormRepository.findByFormTypeAndStatusOrderByCreatedAtDesc(typeUpper, ARCHIVED, pageable)
-                    : receivedFormRepository.findByStatusOrderByCreatedAtDesc(ARCHIVED, pageable);
-        } else {
-            result = hasType
-                    ? receivedFormRepository.findByFormTypeAndStatusNotOrderByCreatedAtDesc(typeUpper, ARCHIVED, pageable)
-                    : receivedFormRepository.findByStatusNotOrderByCreatedAtDesc(ARCHIVED, pageable);
-        }
+        Page<ReceivedFormDto> result = receivedFormService.listForms(page, size, type, status);
 
         return ResponseEntity.ok(Map.of(
                 "content", result.getContent(),
@@ -110,10 +68,9 @@ public class ReceivedFormController {
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        disableTenantFilter();
 
-        return receivedFormRepository.findById(id)
-                .map(ResponseEntity::ok)
+        return receivedFormService.getForm(id)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -130,25 +87,15 @@ public class ReceivedFormController {
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        disableTenantFilter();
 
         String normalizedStatus = status.toUpperCase();
         if (!List.of("NEW", "READ", "PROCESSED", "ARCHIVED").contains(normalizedStatus)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Statut invalide: " + status));
         }
 
-        return receivedFormRepository.findById(id).map(form -> {
-            form.setStatus(normalizedStatus);
-            if ("READ".equals(normalizedStatus) && form.getReadAt() == null) {
-                form.setReadAt(LocalDateTime.now());
-            }
-            if ("PROCESSED".equals(normalizedStatus) && form.getProcessedAt() == null) {
-                form.setProcessedAt(LocalDateTime.now());
-            }
-            receivedFormRepository.save(form);
-            log.info("Formulaire #{} mis a jour : status={}", id, normalizedStatus);
-            return ResponseEntity.ok(form);
-        }).orElse(ResponseEntity.notFound().build());
+        return receivedFormService.updateStatus(id, normalizedStatus)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -160,16 +107,17 @@ public class ReceivedFormController {
         if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        disableTenantFilter();
+
+        ReceivedFormService.ReceivedFormStats stats = receivedFormService.getStats();
 
         return ResponseEntity.ok(Map.of(
-                "totalNew", receivedFormRepository.countByStatus("NEW"),
-                "totalRead", receivedFormRepository.countByStatus("READ"),
-                "totalProcessed", receivedFormRepository.countByStatus("PROCESSED"),
-                "totalArchived", receivedFormRepository.countByStatus("ARCHIVED"),
-                "devisCount", receivedFormRepository.countByFormType("DEVIS"),
-                "maintenanceCount", receivedFormRepository.countByFormType("MAINTENANCE"),
-                "supportCount", receivedFormRepository.countByFormType("SUPPORT")
+                "totalNew", stats.totalNew(),
+                "totalRead", stats.totalRead(),
+                "totalProcessed", stats.totalProcessed(),
+                "totalArchived", stats.totalArchived(),
+                "devisCount", stats.devisCount(),
+                "maintenanceCount", stats.maintenanceCount(),
+                "supportCount", stats.supportCount()
         ));
     }
 

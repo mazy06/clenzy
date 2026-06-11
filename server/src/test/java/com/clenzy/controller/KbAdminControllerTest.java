@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
 import com.clenzy.model.KbDocument;
-import com.clenzy.repository.KbDocumentRepository;
 import com.clenzy.service.agent.kb.IngestionService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +34,6 @@ import static org.mockito.Mockito.*;
 class KbAdminControllerTest {
 
     @Mock private IngestionService ingestionService;
-    @Mock private KbDocumentRepository documentRepository;
 
     private TenantContext tenantContext;
     private KbAdminController controller;
@@ -46,7 +44,7 @@ class KbAdminControllerTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        controller = new KbAdminController(ingestionService, documentRepository, tenantContext);
+        controller = new KbAdminController(ingestionService, tenantContext);
     }
 
     private Jwt jwt(Map<String, Object> claims) {
@@ -224,7 +222,7 @@ class KbAdminControllerTest {
         void returnsDocsWithScope() {
             KbDocument global = doc(1L, "/g.md", null);
             KbDocument orgDoc = doc(2L, "/o.md", ORG_ID);
-            when(documentRepository.findVisibleByOrg(ORG_ID)).thenReturn(List.of(global, orgDoc));
+            when(ingestionService.listVisibleDocuments(ORG_ID)).thenReturn(List.of(global, orgDoc));
 
             ResponseEntity<List<Map<String, Object>>> response = controller.listDocuments();
 
@@ -237,7 +235,7 @@ class KbAdminControllerTest {
         @Test
         @DisplayName("empty repo returns empty list")
         void empty_returnsEmpty() {
-            when(documentRepository.findVisibleByOrg(ORG_ID)).thenReturn(List.of());
+            when(ingestionService.listVisibleDocuments(ORG_ID)).thenReturn(List.of());
 
             assertThat(controller.listDocuments().getBody()).isEmpty();
         }

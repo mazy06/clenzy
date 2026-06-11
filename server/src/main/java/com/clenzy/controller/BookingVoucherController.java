@@ -9,7 +9,7 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.User;
 import com.clenzy.model.voucher.VoucherStatus;
-import com.clenzy.repository.UserRepository;
+import com.clenzy.service.UserService;
 import com.clenzy.service.voucher.BookingVoucherService;
 import com.clenzy.service.voucher.VoucherAnalyticsService;
 import com.clenzy.tenant.TenantContext;
@@ -51,18 +51,18 @@ public class BookingVoucherController {
 
     private final BookingVoucherService voucherService;
     private final VoucherAnalyticsService analyticsService;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final TenantContext tenantContext;
 
     public BookingVoucherController(
         BookingVoucherService voucherService,
         VoucherAnalyticsService analyticsService,
-        UserRepository userRepository,
+        UserService userService,
         TenantContext tenantContext
     ) {
         this.voucherService = voucherService;
         this.analyticsService = analyticsService;
-        this.userRepository = userRepository;
+        this.userService = userService;
         this.tenantContext = tenantContext;
     }
 
@@ -176,8 +176,10 @@ public class BookingVoucherController {
 
     private Long resolveUserId(Jwt jwt) {
         String keycloakId = jwt.getSubject();
-        User user = userRepository.findByKeycloakId(keycloakId)
-            .orElseThrow(() -> new NotFoundException("User " + keycloakId + " introuvable"));
+        User user = userService.findByKeycloakId(keycloakId);
+        if (user == null) {
+            throw new NotFoundException("User " + keycloakId + " introuvable");
+        }
         return user.getId();
     }
 }

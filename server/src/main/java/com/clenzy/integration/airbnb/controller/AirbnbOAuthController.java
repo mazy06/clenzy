@@ -2,8 +2,7 @@ package com.clenzy.integration.airbnb.controller;
 
 import com.clenzy.integration.airbnb.dto.AirbnbConnectionStatusDto;
 import com.clenzy.integration.airbnb.model.AirbnbConnection;
-import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
-import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
+import com.clenzy.integration.airbnb.service.AirbnbListingMappingQueryService;
 import com.clenzy.integration.airbnb.service.AirbnbOAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +14,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -36,12 +34,12 @@ public class AirbnbOAuthController {
     private static final Logger log = LoggerFactory.getLogger(AirbnbOAuthController.class);
 
     private final AirbnbOAuthService oAuthService;
-    private final AirbnbListingMappingRepository listingMappingRepository;
+    private final AirbnbListingMappingQueryService listingMappingQueryService;
 
     public AirbnbOAuthController(AirbnbOAuthService oAuthService,
-                                  AirbnbListingMappingRepository listingMappingRepository) {
+                                  AirbnbListingMappingQueryService listingMappingQueryService) {
         this.oAuthService = oAuthService;
-        this.listingMappingRepository = listingMappingRepository;
+        this.listingMappingQueryService = listingMappingQueryService;
     }
 
     @GetMapping("/connect")
@@ -142,8 +140,7 @@ public class AirbnbOAuthController {
             statusDto.setErrorMessage(connection.getErrorMessage());
 
             // Compter les listings lies
-            List<AirbnbListingMapping> mappings = listingMappingRepository.findBySyncEnabled(true);
-            statusDto.setLinkedListingsCount(mappings.size());
+            statusDto.setLinkedListingsCount(listingMappingQueryService.countSyncEnabledMappings());
         } else {
             statusDto.setConnected(false);
             statusDto.setStatus("NOT_CONNECTED");

@@ -1,9 +1,12 @@
 package com.clenzy.controller;
 
+import com.clenzy.exception.NotFoundException;
+import com.clenzy.integration.channel.AirbnbChannelAdapter;
+import com.clenzy.integration.channel.SyncResult;
 import com.clenzy.model.*;
-import com.clenzy.repository.*;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.PriceEngine;
+import com.clenzy.service.ReservationService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,22 +30,18 @@ import static org.mockito.Mockito.*;
 class CalendarControllerTest {
 
     @Mock private CalendarEngine calendarEngine;
-    @Mock private CalendarDayRepository calendarDayRepository;
-    @Mock private PropertyRepository propertyRepository;
-    @Mock private UserRepository userRepository;
+    @Mock private ReservationService reservationService;
     @Mock private TenantContext tenantContext;
     @Mock private PriceEngine priceEngine;
-    @Mock private RatePlanRepository ratePlanRepository;
-    @Mock private RateOverrideRepository rateOverrideRepository;
+    @Mock private AirbnbChannelAdapter airbnbChannelAdapter;
 
     private CalendarController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new CalendarController(calendarEngine, calendarDayRepository,
-                propertyRepository, userRepository, tenantContext, priceEngine,
-                ratePlanRepository, rateOverrideRepository);
+        controller = new CalendarController(calendarEngine,
+                reservationService, tenantContext, priceEngine, airbnbChannelAdapter);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
@@ -51,12 +50,12 @@ class CalendarControllerTest {
                 .build();
     }
 
+    /**
+     * T-ARCH-08 : l'acces est valide par le mecanisme transverse
+     * ReservationService.validatePropertyAccess (mock silencieux = acces accorde).
+     */
     private void setupSuperAdminAccess(Long propertyId) {
-        Property property = mock(Property.class);
-        when(property.getOrganizationId()).thenReturn(1L);
-        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-        when(tenantContext.isSuperAdmin()).thenReturn(true);
     }
 
     @Nested
@@ -68,7 +67,7 @@ class CalendarControllerTest {
             CalendarDay day = mock(CalendarDay.class);
             when(day.getDate()).thenReturn(LocalDate.of(2026, 3, 1));
             when(day.getStatus()).thenReturn(CalendarDayStatus.AVAILABLE);
-            when(calendarDayRepository.findByPropertyAndDateRange(1L, LocalDate.of(2026, 3, 1),
+            when(calendarEngine.getDays(1L, LocalDate.of(2026, 3, 1),
                     LocalDate.of(2026, 3, 31), 1L)).thenReturn(List.of(day));
 
             ResponseEntity<List<Map<String, Object>>> response = controller.getAvailability(
@@ -81,7 +80,8 @@ class CalendarControllerTest {
         @Test
         void whenPropertyNotFound_thenThrows() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(propertyRepository.findById(99L)).thenReturn(Optional.empty());
+            doThrow(new NotFoundException("Propriete introuvable: 99"))
+                    .when(reservationService).validatePropertyAccess(99L, "user-123");
 
             assertThatThrownBy(() -> controller.getAvailability(
                     99L, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31), jwt))
@@ -134,7 +134,7 @@ class CalendarControllerTest {
     @DisplayName("updatePrice")
     class UpdatePrice {
         @Test
-        void whenAdmin_thenUpdatesPrice() {
+        void whenAdmin_thenUpdatesManualPrice() {
             setupSuperAdminAccess(1L);
 
             Map<String, Object> body = new LinkedHashMap<>();
@@ -146,7 +146,9 @@ class CalendarControllerTest {
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).containsEntry("status", "UPDATED");
-            verify(calendarEngine).updatePrice(eq(1L), eq(LocalDate.of(2026, 3, 1)),
+            // Z5-BUGS-04 : le prix saisi manuellement passe par updateManualPrice
+            // (calendar_days + RateOverride source MANUAL visible du PriceEngine)
+            verify(calendarEngine).updateManualPrice(eq(1L), eq(LocalDate.of(2026, 3, 1)),
                     eq(LocalDate.of(2026, 3, 5)), eq(new BigDecimal("150")), eq(1L), eq("user-123"));
         }
     }
@@ -160,13 +162,11 @@ class CalendarControllerTest {
             LocalDate from = LocalDate.of(2026, 3, 1);
             LocalDate to = LocalDate.of(2026, 3, 3);
 
-            when(calendarDayRepository.findByPropertyAndDateRange(1L, from, to, 1L)).thenReturn(List.of());
-            Map<LocalDate, BigDecimal> prices = new LinkedHashMap<>();
-            prices.put(from, BigDecimal.valueOf(100));
-            prices.put(from.plusDays(1), BigDecimal.valueOf(120));
-            when(priceEngine.resolvePriceRange(1L, from, to, 1L)).thenReturn(prices);
-            when(rateOverrideRepository.findByPropertyIdAndDateRange(1L, from, to, 1L)).thenReturn(List.of());
-            when(ratePlanRepository.findActiveByPropertyId(1L, 1L)).thenReturn(List.of());
+            when(calendarEngine.getDays(1L, from, to, 1L)).thenReturn(List.of());
+            Map<LocalDate, PriceEngine.ResolvedPrice> prices = new LinkedHashMap<>();
+            prices.put(from, new PriceEngine.ResolvedPrice(BigDecimal.valueOf(100), "BASE"));
+            prices.put(from.plusDays(1), new PriceEngine.ResolvedPrice(BigDecimal.valueOf(120), "BASE"));
+            when(priceEngine.resolvePriceRangeWithSource(1L, from, to, 1L)).thenReturn(prices);
 
             ResponseEntity<List<Map<String, Object>>> response = controller.getPricing(1L, from, to, jwt);
 
@@ -175,35 +175,78 @@ class CalendarControllerTest {
         }
     }
 
+    /**
+     * T-ARCH-09 : le push n'est plus factice — l'endpoint delegue reellement a
+     * AirbnbChannelAdapter.pushCalendarUpdate et reflete son resultat (PUSHED /
+     * SKIPPED 409 / FAILED 502) au lieu de toujours repondre "PUSHED".
+     */
     @Nested
     @DisplayName("pushPricing")
     class PushPricing {
         @Test
-        void whenAdmin_thenReturnsPushedStatus() {
+        void whenAdapterSucceeds_thenReturnsPushedWithDaysPushed() {
+            // Arrange
             setupSuperAdminAccess(1L);
-            Map<LocalDate, BigDecimal> prices = Map.of(
-                    LocalDate.now(), BigDecimal.valueOf(100)
-            );
-            when(priceEngine.resolvePriceRange(eq(1L), any(LocalDate.class), any(LocalDate.class), eq(1L)))
-                    .thenReturn(prices);
+            when(airbnbChannelAdapter.pushCalendarUpdate(eq(1L), any(LocalDate.class), any(LocalDate.class), eq(1L)))
+                    .thenReturn(SyncResult.success(90, 1200L));
 
+            // Act
             ResponseEntity<Map<String, Object>> response = controller.pushPricing(1L, jwt);
 
+            // Assert
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).containsEntry("status", "PUSHED");
-            assertThat(response.getBody()).containsEntry("daysResolved", 1);
+            assertThat(response.getBody()).containsEntry("daysResolved", 90);
+            LocalDate from = LocalDate.now();
+            verify(airbnbChannelAdapter).pushCalendarUpdate(1L, from,
+                    from.plusDays(CalendarController.PUSH_PRICING_HORIZON_DAYS), 1L);
+        }
+
+        @Test
+        void whenNoAirbnbMapping_thenReturns409Skipped() {
+            // Arrange
+            setupSuperAdminAccess(1L);
+            when(airbnbChannelAdapter.pushCalendarUpdate(eq(1L), any(LocalDate.class), any(LocalDate.class), eq(1L)))
+                    .thenReturn(SyncResult.skipped("Aucun mapping Airbnb pour propriete 1"));
+
+            // Act
+            ResponseEntity<Map<String, Object>> response = controller.pushPricing(1L, jwt);
+
+            // Assert : plus de fausse confirmation quand rien n'a ete pousse
+            assertThat(response.getStatusCode().value()).isEqualTo(409);
+            assertThat(response.getBody()).containsEntry("status", "SKIPPED");
+            assertThat(response.getBody()).containsEntry("daysResolved", 0);
+        }
+
+        @Test
+        void whenAirbnbApiFails_thenReturns502Failed() {
+            // Arrange
+            setupSuperAdminAccess(1L);
+            when(airbnbChannelAdapter.pushCalendarUpdate(eq(1L), any(LocalDate.class), any(LocalDate.class), eq(1L)))
+                    .thenReturn(SyncResult.failed("Pas de token OAuth Airbnb valide"));
+
+            // Act
+            ResponseEntity<Map<String, Object>> response = controller.pushPricing(1L, jwt);
+
+            // Assert
+            assertThat(response.getStatusCode().value()).isEqualTo(502);
+            assertThat(response.getBody()).containsEntry("status", "FAILED");
         }
     }
 
+    /**
+     * T-ARCH-08 : la regle d'acces elle-meme (org + super admin + platform staff
+     * + owner) est testee sur ReservationService.validatePropertyAccess
+     * (ReservationServiceTest) ; ici on verifie la delegation et la propagation.
+     */
     @Nested
     @DisplayName("validatePropertyAccess")
     class ValidateAccess {
         @Test
         void whenDifferentOrg_thenThrows() {
-            Property property = mock(Property.class);
-            when(property.getOrganizationId()).thenReturn(2L);
-            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            doThrow(new AccessDeniedException("Acces refuse : propriete hors de votre organisation"))
+                    .when(reservationService).validatePropertyAccess(1L, "user-123");
 
             assertThatThrownBy(() -> controller.getAvailability(
                     1L, LocalDate.now(), LocalDate.now().plusDays(1), jwt))
@@ -212,46 +255,23 @@ class CalendarControllerTest {
 
         @Test
         void whenUserIsOwner_thenAllows() {
-            Property property = mock(Property.class);
-            when(property.getOrganizationId()).thenReturn(1L);
-            User owner = mock(User.class);
-            when(owner.getId()).thenReturn(50L);
-            when(property.getOwner()).thenReturn(owner);
-
-            User requester = mock(User.class);
-            when(requester.getId()).thenReturn(50L); // same as owner
-            UserRole hostRole = UserRole.HOST;
-            when(requester.getRole()).thenReturn(hostRole);
-
-            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.isSuperAdmin()).thenReturn(false);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(requester));
+            // Mock silencieux = la regle transverse accorde l'acces (owner)
 
-            when(calendarDayRepository.findByPropertyAndDateRange(1L, LocalDate.of(2026, 3, 1),
+            when(calendarEngine.getDays(1L, LocalDate.of(2026, 3, 1),
                     LocalDate.of(2026, 3, 5), 1L)).thenReturn(List.of());
 
             ResponseEntity<List<Map<String, Object>>> response = controller.getAvailability(
                     1L, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5), jwt);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(reservationService).validatePropertyAccess(1L, "user-123");
         }
 
         @Test
         void whenUserIsHostNotOwner_thenAccessDenied() {
-            Property property = mock(Property.class);
-            when(property.getOrganizationId()).thenReturn(1L);
-            User owner = mock(User.class);
-            when(owner.getId()).thenReturn(50L);
-            when(property.getOwner()).thenReturn(owner);
-
-            User requester = mock(User.class);
-            when(requester.getId()).thenReturn(99L); // different from owner
-            when(requester.getRole()).thenReturn(UserRole.HOST);
-
-            when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            when(tenantContext.isSuperAdmin()).thenReturn(false);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(requester));
+            doThrow(new AccessDeniedException("Acces refuse : vous n'etes pas proprietaire de cette propriete"))
+                    .when(reservationService).validatePropertyAccess(1L, "user-123");
 
             assertThatThrownBy(() -> controller.getAvailability(
                     1L, LocalDate.now(), LocalDate.now().plusDays(1), jwt))
@@ -275,7 +295,7 @@ class CalendarControllerTest {
             when(day.getNotes()).thenReturn("test");
             when(day.getProperty()).thenReturn(prop);
 
-            when(calendarDayRepository.findBlockedOrMaintenanceForProperties(
+            when(calendarEngine.getBlockedOrMaintenanceDays(
                 anyList(), any(LocalDate.class), any(LocalDate.class), eq(1L)))
                 .thenReturn(List.of(day));
 
@@ -318,17 +338,11 @@ class CalendarControllerTest {
             LocalDate from = LocalDate.of(2026, 5, 1);
             LocalDate to = LocalDate.of(2026, 5, 3);
 
-            when(calendarDayRepository.findByPropertyAndDateRange(1L, from, to, 1L)).thenReturn(List.of());
-            Map<LocalDate, BigDecimal> prices = new LinkedHashMap<>();
-            prices.put(from, BigDecimal.valueOf(150));
-            prices.put(from.plusDays(1), BigDecimal.valueOf(150));
-            when(priceEngine.resolvePriceRange(1L, from, to, 1L)).thenReturn(prices);
-
-            RateOverride ovr = mock(RateOverride.class);
-            when(ovr.getDate()).thenReturn(from);
-            when(rateOverrideRepository.findByPropertyIdAndDateRange(1L, from, to, 1L))
-                .thenReturn(List.of(ovr));
-            when(ratePlanRepository.findActiveByPropertyId(1L, 1L)).thenReturn(List.of());
+            when(calendarEngine.getDays(1L, from, to, 1L)).thenReturn(List.of());
+            Map<LocalDate, PriceEngine.ResolvedPrice> prices = new LinkedHashMap<>();
+            prices.put(from, new PriceEngine.ResolvedPrice(BigDecimal.valueOf(150), "OVERRIDE"));
+            prices.put(from.plusDays(1), new PriceEngine.ResolvedPrice(BigDecimal.valueOf(150), "PROPERTY_DEFAULT"));
+            when(priceEngine.resolvePriceRangeWithSource(1L, from, to, 1L)).thenReturn(prices);
 
             ResponseEntity<List<Map<String, Object>>> response = controller.getPricing(1L, from, to, jwt);
 
@@ -336,6 +350,26 @@ class CalendarControllerTest {
             assertThat(response.getBody()).hasSize(2);
             assertThat(response.getBody().get(0)).containsEntry("priceSource", "OVERRIDE");
             assertThat(response.getBody().get(1)).containsEntry("priceSource", "PROPERTY_DEFAULT");
+        }
+
+        @Test
+        void whenEventPlanWins_thenSourceComesFromPriceEngine() {
+            // T-ARCH-04 : la source vient du PriceEngine (cascade unique), y compris
+            // pour les types EVENT/WEEKEND/EARLY_BIRD absents de l'ancienne copie locale
+            setupSuperAdminAccess(1L);
+            LocalDate from = LocalDate.of(2026, 5, 1);
+            LocalDate to = LocalDate.of(2026, 5, 2);
+
+            when(calendarEngine.getDays(1L, from, to, 1L)).thenReturn(List.of());
+            Map<LocalDate, PriceEngine.ResolvedPrice> prices = new LinkedHashMap<>();
+            prices.put(from, new PriceEngine.ResolvedPrice(BigDecimal.valueOf(250), "EVENT"));
+            when(priceEngine.resolvePriceRangeWithSource(1L, from, to, 1L)).thenReturn(prices);
+
+            ResponseEntity<List<Map<String, Object>>> response = controller.getPricing(1L, from, to, jwt);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody().get(0)).containsEntry("priceSource", "EVENT");
+            assertThat(response.getBody().get(0)).containsEntry("nightlyPrice", 250.0);
         }
     }
 
@@ -345,7 +379,7 @@ class CalendarControllerTest {
         @Test
         void whenEmptyDays_thenReturnsEmptyList() {
             setupSuperAdminAccess(1L);
-            when(calendarDayRepository.findByPropertyAndDateRange(eq(1L), any(LocalDate.class),
+            when(calendarEngine.getDays(eq(1L), any(LocalDate.class),
                 any(LocalDate.class), eq(1L))).thenReturn(List.of());
 
             ResponseEntity<List<Map<String, Object>>> response = controller.getAvailability(

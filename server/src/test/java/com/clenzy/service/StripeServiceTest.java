@@ -11,9 +11,14 @@ import com.clenzy.model.ServiceRequest;
 import com.clenzy.model.User;
 import com.clenzy.model.Wallet;
 import com.clenzy.model.WalletType;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.tenant.TenantContext;
+import com.stripe.exception.ApiException;
+import com.stripe.model.checkout.Session;
+import com.stripe.net.RequestOptions;
+import com.stripe.param.RefundCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -48,6 +53,8 @@ class StripeServiceTest {
     @Mock private SplitPaymentService splitPaymentService;
     @Mock private AutoInvoiceService autoInvoiceService;
     @Mock private KafkaTemplate<String, Object> kafkaTemplate;
+    @Mock private StripeGateway stripeGateway;
+    @Mock private PaymentStatusTransitionService paymentStatusTransitionService;
 
     private TenantContext tenantContext;
     private StripeService stripeService;
@@ -57,11 +64,15 @@ class StripeServiceTest {
     void setUp() throws Exception {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        stripeService = new StripeService(interventionRepository, reservationRepository, serviceRequestRepository, notificationService, serviceRequestService, walletService, ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate, tenantContext);
-        setField("stripeSecretKey", "sk_test_xxx");
+        stripeService = new StripeService(interventionRepository, reservationRepository, serviceRequestRepository, notificationService, serviceRequestService, walletService, ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate, tenantContext, stripeGateway, paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class));
         setField("currency", "EUR");
         setField("successUrl", "https://ok.test");
         setField("cancelUrl", "https://ko.test");
+        setField("stripeSecretKey", "sk_test_xxx");
+        // Par defaut la transition gardee reussit (les tests d'idempotence la surchargent)
+        lenient().when(paymentStatusTransitionService.markInterventionPaid(any())).thenReturn(true);
+        lenient().when(paymentStatusTransitionService.markReservationPaid(any())).thenReturn(true);
+        lenient().when(paymentStatusTransitionService.markServiceRequestPaid(any())).thenReturn(true);
     }
 
     private void setField(String name, String value) throws Exception {
@@ -414,56 +425,95 @@ class StripeServiceTest {
     @DisplayName("refundPayment")
     class RefundPayment {
 
+        private PaymentStatusTransitionService.InterventionRefundContext refundContext() {
+            return new PaymentStatusTransitionService.InterventionRefundContext(
+                    1L, "cs_abc", "Test intervention", "kc-owner-1", "owner@test.com");
+        }
+
         @Test
-        @DisplayName("throws when payment status is not PAID")
-        void whenNotPaid_thenThrows() {
+        @DisplayName("propagates validation failure (not PAID) without touching Stripe")
+        void whenNotRefundable_thenThrowsWithoutStripeCall() {
             // Arrange
-            Intervention intervention = buildIntervention(1L, InterventionStatus.COMPLETED, PaymentStatus.PROCESSING);
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(paymentStatusTransitionService.loadRefundableIntervention(1L))
+                    .thenThrow(new IllegalStateException(
+                            "Seuls les paiements confirmes peuvent etre rembourses."));
 
             // Act & Assert
             assertThatThrownBy(() -> stripeService.refundPayment(1L))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("confirmes peuvent etre rembourses");
+            verifyNoInteractions(stripeGateway);
         }
 
         @Test
-        @DisplayName("throws when no Stripe session ID")
-        void whenNoStripeSession_thenThrows() {
+        @DisplayName("refunds with idempotency key derived from intervention id")
+        void whenRefundable_thenRefundsWithIdempotencyKey() throws Exception {
             // Arrange
-            Intervention intervention = buildIntervention(1L, InterventionStatus.COMPLETED, PaymentStatus.PAID);
-            intervention.setStripeSessionId(null);
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(paymentStatusTransitionService.loadRefundableIntervention(1L)).thenReturn(refundContext());
+            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
+            when(session.getPaymentIntent()).thenReturn("pi_123");
+            when(stripeGateway.retrieveSession("cs_abc")).thenReturn(session);
+
+            // Act
+            stripeService.refundPayment(1L);
+
+            // Assert
+            verify(stripeGateway).createRefund(any(com.stripe.param.RefundCreateParams.class),
+                    eq("refund-intervention-1"));
+            verify(paymentStatusTransitionService).markInterventionRefunded(1L);
+        }
+
+        @Test
+        @DisplayName("throws when session has no PaymentIntent and never refunds")
+        void whenNoPaymentIntent_thenThrowsWithoutRefund() throws Exception {
+            // Arrange
+            when(paymentStatusTransitionService.loadRefundableIntervention(1L)).thenReturn(refundContext());
+            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
+            when(session.getPaymentIntent()).thenReturn(null);
+            when(stripeGateway.retrieveSession("cs_abc")).thenReturn(session);
 
             // Act & Assert
             assertThatThrownBy(() -> stripeService.refundPayment(1L))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("Aucune session Stripe");
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Aucun PaymentIntent");
+            verify(stripeGateway, never()).createRefund(any(), any());
         }
 
         @Test
-        @DisplayName("throws when blank Stripe session ID")
-        void whenBlankStripeSession_thenThrows() {
+        @DisplayName("persistence failure after refund -> reconciliation error, single Stripe call")
+        void whenPersistFailsAfterRefund_thenReconciliationErrorWithoutSecondRefund() throws Exception {
             // Arrange
-            Intervention intervention = buildIntervention(1L, InterventionStatus.COMPLETED, PaymentStatus.PAID);
-            intervention.setStripeSessionId("  ");
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+            when(paymentStatusTransitionService.loadRefundableIntervention(1L)).thenReturn(refundContext());
+            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
+            when(session.getPaymentIntent()).thenReturn("pi_123");
+            when(stripeGateway.retrieveSession("cs_abc")).thenReturn(session);
+            doThrow(new RuntimeException("db down"))
+                    .when(paymentStatusTransitionService).markInterventionRefunded(1L);
 
             // Act & Assert
             assertThatThrownBy(() -> stripeService.refundPayment(1L))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("Aucune session Stripe");
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("relancer");
+            verify(stripeGateway, times(1)).createRefund(any(), anyString());
+            verify(notificationService, never()).notifyAdminsAndManagers(any(), any(), any(), any());
         }
 
         @Test
-        @DisplayName("throws when intervention not found")
-        void whenInterventionNotFound_thenThrows() {
+        @DisplayName("notifies owner/admins and publishes Kafka event after refund")
+        void whenRefundSucceeds_thenNotifiesAndPublishes() throws Exception {
             // Arrange
-            when(interventionRepository.findById(999L)).thenReturn(Optional.empty());
+            when(paymentStatusTransitionService.loadRefundableIntervention(1L)).thenReturn(refundContext());
+            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
+            when(session.getPaymentIntent()).thenReturn("pi_123");
+            when(stripeGateway.retrieveSession("cs_abc")).thenReturn(session);
 
-            // Act & Assert
-            assertThatThrownBy(() -> stripeService.refundPayment(999L))
-                    .isInstanceOf(RuntimeException.class);
+            // Act
+            stripeService.refundPayment(1L);
+
+            // Assert
+            verify(notificationService).notify(eq("kc-owner-1"),
+                    eq(com.clenzy.model.NotificationKey.PAYMENT_REFUND_COMPLETED), any(), any(), any());
+            verify(kafkaTemplate).send(anyString(), eq("justif-remboursement-int-1"), any());
         }
     }
 
@@ -554,6 +604,165 @@ class StripeServiceTest {
             stripeService.confirmReservationPayment("sess_r");
 
             assertThat(r.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-05: pending reservation becomes confirmed once paid")
+        void whenPendingReservationPaid_thenStatusConfirmed() {
+            Reservation r = buildReservation(1L, PaymentStatus.PENDING);
+            r.setStatus("pending");
+            when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
+
+            stripeService.confirmReservationPayment("sess_r");
+
+            assertThat(r.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+            assertThat(r.getStatus()).isEqualTo("confirmed");
+        }
+
+        @Test
+        @DisplayName("non-pending status (e.g. confirmed) is left untouched")
+        void whenAlreadyConfirmedReservationPaid_thenStatusUnchanged() {
+            Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setStatus("confirmed");
+            when(reservationRepository.findByStripeSessionId("sess_r")).thenReturn(Optional.of(r));
+
+            stripeService.confirmReservationPayment("sess_r");
+
+            assertThat(r.getStatus()).isEqualTo("confirmed");
+            assertThat(r.getPaymentStatus()).isEqualTo(PaymentStatus.PAID);
+        }
+    }
+
+    // ─── EXPIRE CHECKOUT SESSION (Z4A-BUGS-02) ──────────────────────────────
+
+    @Nested
+    @DisplayName("expireCheckoutSession")
+    class ExpireCheckoutSession {
+
+        @Test
+        @DisplayName("open session is expired on Stripe")
+        void whenSessionOpen_thenExpired() throws Exception {
+            Session session = mock(Session.class);
+            when(session.getStatus()).thenReturn("open");
+            when(session.getPaymentStatus()).thenReturn("unpaid");
+            when(stripeGateway.retrieveSession("cs_open")).thenReturn(session);
+
+            StripeService.CheckoutSessionExpiryResult result = stripeService.expireCheckoutSession("cs_open");
+
+            assertThat(result).isEqualTo(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+            verify(session).expire(any(RequestOptions.class));
+        }
+
+        @Test
+        @DisplayName("paid session is NOT expired and reported as PAID")
+        void whenSessionPaid_thenPaidWithoutExpiring() throws Exception {
+            Session session = mock(Session.class);
+            when(session.getStatus()).thenReturn("complete");
+            when(session.getPaymentStatus()).thenReturn("paid");
+            when(stripeGateway.retrieveSession("cs_paid")).thenReturn(session);
+
+            StripeService.CheckoutSessionExpiryResult result = stripeService.expireCheckoutSession("cs_paid");
+
+            assertThat(result).isEqualTo(StripeService.CheckoutSessionExpiryResult.PAID);
+            verify(session, never()).expire(any(RequestOptions.class));
+        }
+
+        @Test
+        @DisplayName("already expired session short-circuits to EXPIRED")
+        void whenSessionAlreadyExpired_thenExpired() throws Exception {
+            Session session = mock(Session.class);
+            when(session.getStatus()).thenReturn("expired");
+            when(stripeGateway.retrieveSession("cs_exp")).thenReturn(session);
+
+            StripeService.CheckoutSessionExpiryResult result = stripeService.expireCheckoutSession("cs_exp");
+
+            assertThat(result).isEqualTo(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+            verify(session, never()).expire(any(RequestOptions.class));
+        }
+
+        @Test
+        @DisplayName("complete-but-unpaid session reported as COMPLETED_UNPAID")
+        void whenSessionCompleteUnpaid_thenCompletedUnpaid() throws Exception {
+            Session session = mock(Session.class);
+            when(session.getStatus()).thenReturn("complete");
+            when(session.getPaymentStatus()).thenReturn("unpaid");
+            when(stripeGateway.retrieveSession("cs_async")).thenReturn(session);
+
+            StripeService.CheckoutSessionExpiryResult result = stripeService.expireCheckoutSession("cs_async");
+
+            assertThat(result).isEqualTo(StripeService.CheckoutSessionExpiryResult.COMPLETED_UNPAID);
+        }
+
+        @Test
+        @DisplayName("race: expire fails but session turns out paid on re-read → PAID")
+        void whenExpireFailsAndSessionPaidOnRecheck_thenPaid() throws Exception {
+            Session openSession = mock(Session.class);
+            when(openSession.getStatus()).thenReturn("open");
+            when(openSession.getPaymentStatus()).thenReturn("unpaid");
+            doThrow(new ApiException("already completed", null, "code", 400, null))
+                    .when(openSession).expire(any(RequestOptions.class));
+            Session paidSession = mock(Session.class);
+            when(paidSession.getPaymentStatus()).thenReturn("paid");
+            when(stripeGateway.retrieveSession("cs_race"))
+                    .thenReturn(openSession)
+                    .thenReturn(paidSession);
+
+            StripeService.CheckoutSessionExpiryResult result = stripeService.expireCheckoutSession("cs_race");
+
+            assertThat(result).isEqualTo(StripeService.CheckoutSessionExpiryResult.PAID);
+        }
+
+        @Test
+        @DisplayName("Stripe unreachable → FAILED (no calendar release allowed)")
+        void whenStripeUnreachable_thenFailed() throws Exception {
+            when(stripeGateway.retrieveSession("cs_down"))
+                    .thenThrow(new ApiException("down", null, "code", 500, null));
+
+            StripeService.CheckoutSessionExpiryResult result = stripeService.expireCheckoutSession("cs_down");
+
+            assertThat(result).isEqualTo(StripeService.CheckoutSessionExpiryResult.FAILED);
+        }
+
+        @Test
+        @DisplayName("blank session id treated as EXPIRED (nothing to expire)")
+        void whenBlankSessionId_thenExpired() {
+            assertThat(stripeService.expireCheckoutSession(null))
+                    .isEqualTo(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+            assertThat(stripeService.expireCheckoutSession("  "))
+                    .isEqualTo(StripeService.CheckoutSessionExpiryResult.EXPIRED);
+        }
+    }
+
+    // ─── REFUND CHECKOUT SESSION PAYMENT (Z4A-BUGS-03) ──────────────────────
+
+    @Nested
+    @DisplayName("refundCheckoutSessionPayment")
+    class RefundCheckoutSessionPayment {
+
+        @Test
+        @DisplayName("refunds the payment intent with a session-derived idempotency key")
+        void whenPaymentIntentPresent_thenRefundIssued() throws Exception {
+            Session session = mock(Session.class);
+            when(session.getPaymentIntent()).thenReturn("pi_123");
+            when(stripeGateway.retrieveSession("cs_refund")).thenReturn(session);
+
+            stripeService.refundCheckoutSessionPayment("cs_refund", "conflit calendrier");
+
+            verify(stripeGateway).createRefund(any(RefundCreateParams.class),
+                    eq("refund-checkout-session-cs_refund"));
+        }
+
+        @Test
+        @DisplayName("throws when the session has no payment intent")
+        void whenNoPaymentIntent_thenThrows() throws Exception {
+            Session session = mock(Session.class);
+            when(session.getPaymentIntent()).thenReturn(null);
+            when(stripeGateway.retrieveSession("cs_nopi")).thenReturn(session);
+
+            assertThatThrownBy(() -> stripeService.refundCheckoutSessionPayment("cs_nopi", "test"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("PaymentIntent");
+            verify(stripeGateway, never()).createRefund(any(), anyString());
         }
     }
 
@@ -802,23 +1011,30 @@ class StripeServiceTest {
         }
     }
 
-    // ─── refundPayment with successful flow via MockedStatic ────────────────
+    // ─── refundPayment resilience ────────────────────────────────────────────
 
     @Nested
-    @DisplayName("refundPayment auto-invoice fallback")
+    @DisplayName("refundPayment resilience")
     class RefundAutoInvoice {
 
         @Test
-        @DisplayName("when auto-invoice fails, refund still proceeds")
-        void whenAutoInvoiceFails_refundContinues() {
-            // We cannot mock Stripe.Session.retrieve here without MockedStatic of Stripe.
-            // Instead, validate validation path before reaching Stripe (e.g. status check).
-            // This test ensures the early validation path works.
-            Intervention intervention = buildIntervention(1L, InterventionStatus.COMPLETED, PaymentStatus.PROCESSING);
-            when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
+        @DisplayName("when Kafka publish fails, refund still completes")
+        void whenKafkaFails_refundStillCompletes() throws Exception {
+            // Arrange
+            when(paymentStatusTransitionService.loadRefundableIntervention(1L)).thenReturn(
+                    new PaymentStatusTransitionService.InterventionRefundContext(
+                            1L, "cs_abc", "Test", null, null));
+            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
+            when(session.getPaymentIntent()).thenReturn("pi_1");
+            when(stripeGateway.retrieveSession("cs_abc")).thenReturn(session);
+            doThrow(new RuntimeException("kafka down"))
+                    .when(kafkaTemplate).send(anyString(), anyString(), any());
 
-            assertThatThrownBy(() -> stripeService.refundPayment(1L))
-                    .isInstanceOf(RuntimeException.class);
+            // Act
+            stripeService.refundPayment(1L);
+
+            // Assert
+            verify(paymentStatusTransitionService).markInterventionRefunded(1L);
         }
     }
 
@@ -975,6 +1191,18 @@ class StripeServiceTest {
             assertThatThrownBy(() -> stripeService.createCheckoutSession(99L, BigDecimal.valueOf(100), "x@y.z"))
                 .isInstanceOf(RuntimeException.class);
         }
+
+        @Test
+        void whenInterventionFromOtherOrg_thenAccessDenied() {
+            // findById contourne le filtre Hibernate → l'ownership org doit etre verifie explicitement
+            Intervention intervention = buildIntervention(7L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PENDING);
+            intervention.setOrganizationId(ORG_ID + 1);
+            when(interventionRepository.findById(7L)).thenReturn(Optional.of(intervention));
+
+            assertThatThrownBy(() -> stripeService.createCheckoutSession(7L, BigDecimal.valueOf(100), "x@y.z"))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            verifyNoInteractions(stripeGateway);
+        }
     }
 
     @Nested
@@ -986,6 +1214,18 @@ class StripeServiceTest {
 
             assertThatThrownBy(() -> stripeService.createEmbeddedCheckoutSession(99L, BigDecimal.valueOf(100), "x@y.z"))
                 .isInstanceOf(RuntimeException.class);
+        }
+
+        @Test
+        void whenInterventionFromOtherOrg_thenAccessDenied() {
+            // findById contourne le filtre Hibernate → l'ownership org doit etre verifie explicitement
+            Intervention intervention = buildIntervention(8L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PENDING);
+            intervention.setOrganizationId(ORG_ID + 1);
+            when(interventionRepository.findById(8L)).thenReturn(Optional.of(intervention));
+
+            assertThatThrownBy(() -> stripeService.createEmbeddedCheckoutSession(8L, BigDecimal.valueOf(100), "x@y.z"))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            verifyNoInteractions(stripeGateway);
         }
     }
 
@@ -1084,6 +1324,238 @@ class StripeServiceTest {
 
             assertThatThrownBy(() -> stripeService.createServiceRequestEmbeddedCheckoutSession(99L, "u@h.com"))
                 .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    // ─── Idempotence des confirmations (Z3-BUGS-01 / Z3-SEC-02) ──────────────
+
+    @Nested
+    @DisplayName("confirm* idempotency guards")
+    class ConfirmIdempotency {
+
+        @Test
+        @DisplayName("confirmPayment: already PAID -> no ledger, no split, no save")
+        void whenInterventionAlreadyPaid_thenConfirmPaymentSkipsEverything() {
+            // Arrange
+            Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PAID);
+            intervention.setEstimatedCost(BigDecimal.valueOf(100));
+            when(interventionRepository.findByStripeSessionId("sess_dup")).thenReturn(Optional.of(intervention));
+
+            // Act
+            stripeService.confirmPayment("sess_dup");
+
+            // Assert
+            verify(interventionRepository, never()).save(any());
+            verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), any());
+            verify(splitPaymentService, never()).splitGenericPayment(any(), any(), any(), any(), any(), any());
+            verify(kafkaTemplate, never()).send(anyString(), anyString(), any());
+        }
+
+        @Test
+        @DisplayName("confirmPayment: lost guarded transition (concurrent webhook/fallback) -> aborts")
+        void whenGuardedTransitionLost_thenConfirmPaymentAborts() {
+            // Arrange
+            Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            when(interventionRepository.findByStripeSessionId("sess_race")).thenReturn(Optional.of(intervention));
+            when(paymentStatusTransitionService.markInterventionPaid(1L)).thenReturn(false);
+
+            // Act
+            stripeService.confirmPayment("sess_race");
+
+            // Assert
+            verify(interventionRepository, never()).save(any());
+            verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("confirmReservationPayment: already PAID -> no double ledger credit")
+        void whenReservationAlreadyPaid_thenSkips() {
+            // Arrange
+            Reservation r = buildReservation(1L, PaymentStatus.PAID);
+            when(reservationRepository.findByStripeSessionId("sess_dup_r")).thenReturn(Optional.of(r));
+
+            // Act
+            stripeService.confirmReservationPayment("sess_dup_r");
+
+            // Assert
+            verify(reservationRepository, never()).save(any());
+            verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), any());
+            verify(splitPaymentService, never()).splitPayment(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("confirmServiceRequestPayment: already PAID -> nothing re-executed")
+        void whenSrAlreadyPaid_thenSkips() {
+            // Arrange
+            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.IN_PROGRESS, PaymentStatus.PAID);
+            when(serviceRequestRepository.findByStripeSessionId("sess_dup_sr")).thenReturn(Optional.of(sr));
+
+            // Act
+            stripeService.confirmServiceRequestPayment("sess_dup_sr");
+
+            // Assert
+            verify(serviceRequestRepository, never()).save(any());
+            verify(serviceRequestService, never()).createInterventionFromPaidServiceRequest(any());
+            verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("confirmGroupedPayment: already PAID interventions are skipped")
+        void whenGroupedInterventionAlreadyPaid_thenSkipped() {
+            // Arrange
+            Intervention paid = buildInterventionWithOwner(1L, InterventionStatus.PENDING, PaymentStatus.PAID);
+            Intervention pending = buildInterventionWithOwner(2L, InterventionStatus.PENDING, PaymentStatus.PROCESSING);
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(paid));
+            when(interventionRepository.findById(2L)).thenReturn(Optional.of(pending));
+
+            // Act
+            stripeService.confirmGroupedPayment("sess_grp_dup", "1,2");
+
+            // Assert
+            verify(interventionRepository, times(1)).save(pending);
+            verify(interventionRepository, never()).save(paid);
+        }
+    }
+
+    // ─── Devise de la charge reelle propagee au ledger (Z3-BUGS-05) ──────────
+
+    @Nested
+    @DisplayName("currency propagation to wallets/ledger")
+    class CurrencyPropagation {
+
+        @Test
+        @DisplayName("reservation charged in MAD -> wallets and split in MAD (not config currency)")
+        void whenReservationCurrencyMad_thenLedgerUsesMad() {
+            // Arrange
+            Reservation r = buildReservation(1L, PaymentStatus.PROCESSING);
+            r.setCurrency("mad");
+            when(reservationRepository.findByStripeSessionId("sess_mad")).thenReturn(Optional.of(r));
+            Wallet plat = new Wallet();
+            Wallet escrow = new Wallet();
+            when(walletService.getOrCreatePlatformWallet(any(), any())).thenReturn(plat);
+            when(walletService.getOrCreateEscrowWallet(any(), any())).thenReturn(escrow);
+
+            // Act
+            stripeService.confirmReservationPayment("sess_mad");
+
+            // Assert
+            verify(walletService).getOrCreatePlatformWallet(any(), eq("MAD"));
+            verify(walletService).getOrCreateEscrowWallet(any(), eq("MAD"));
+            verify(splitPaymentService).splitPayment(eq(1L), eq(BigDecimal.valueOf(200)), eq("MAD"), eq(99L));
+        }
+
+        @Test
+        @DisplayName("intervention on USD property -> ledger wallets in USD")
+        void whenPropertyCurrencyUsd_thenLedgerUsesUsd() {
+            // Arrange
+            Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
+            intervention.setEstimatedCost(BigDecimal.valueOf(100));
+            intervention.getProperty().setDefaultCurrency("USD");
+            intervention.getProperty().getOwner().setId(99L);
+            when(interventionRepository.findByStripeSessionId("sess_usd")).thenReturn(Optional.of(intervention));
+            Wallet plat = new Wallet();
+            Wallet escrow = new Wallet();
+            when(walletService.getOrCreatePlatformWallet(any(), any())).thenReturn(plat);
+            when(walletService.getOrCreateEscrowWallet(any(), any())).thenReturn(escrow);
+
+            // Act
+            stripeService.confirmPayment("sess_usd");
+
+            // Assert
+            verify(walletService).getOrCreatePlatformWallet(any(), eq("USD"));
+            verify(walletService).getOrCreateEscrowWallet(any(), eq("USD"));
+        }
+    }
+
+    // ─── Montant serveur sur la creation de session (Z3-SEC-01 / Z3-BUGS-02) ─
+
+    @Nested
+    @DisplayName("createCheckoutSession - server-side amount")
+    class CreateSessionAmountChecks {
+
+        private Intervention interventionWithCost(Long id, BigDecimal cost) {
+            Intervention i = buildIntervention(id, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PENDING);
+            i.setEstimatedCost(cost);
+            return i;
+        }
+
+        @Test
+        @DisplayName("client amount different from estimatedCost -> rejected before Stripe")
+        void whenClientAmountDiffers_thenThrows() {
+            // Arrange
+            when(interventionRepository.findById(1L))
+                    .thenReturn(Optional.of(interventionWithCost(1L, new BigDecimal("500"))));
+
+            // Act & Assert
+            assertThatThrownBy(() -> stripeService.createCheckoutSession(1L, new BigDecimal("1"), "x@y.z"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("ne correspond pas");
+            verifyNoInteractions(stripeGateway);
+        }
+
+        @Test
+        @DisplayName("missing estimatedCost -> rejected before Stripe")
+        void whenEstimatedCostMissing_thenThrows() {
+            // Arrange
+            when(interventionRepository.findById(1L))
+                    .thenReturn(Optional.of(interventionWithCost(1L, null)));
+
+            // Act & Assert
+            assertThatThrownBy(() -> stripeService.createCheckoutSession(1L, new BigDecimal("1"), "x@y.z"))
+                    .isInstanceOf(IllegalStateException.class);
+            verifyNoInteractions(stripeGateway);
+        }
+
+        @Test
+        @DisplayName("matching amount -> charges server amount converted to cents")
+        void whenAmountMatches_thenChargesServerAmountInCents() throws Exception {
+            // Arrange
+            Intervention i = interventionWithCost(1L, new BigDecimal("500.00"));
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(i));
+            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
+            when(session.getId()).thenReturn("cs_new");
+            org.mockito.ArgumentCaptor<com.stripe.param.checkout.SessionCreateParams> captor =
+                    org.mockito.ArgumentCaptor.forClass(com.stripe.param.checkout.SessionCreateParams.class);
+            when(stripeGateway.createSession(captor.capture())).thenReturn(session);
+
+            // Act
+            stripeService.createCheckoutSession(1L, new BigDecimal("500.00"), "x@y.z");
+
+            // Assert
+            assertThat(captor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
+                    .isEqualTo(50000L);
+            assertThat(i.getStripeSessionId()).isEqualTo("cs_new");
+            assertThat(i.getPaymentStatus()).isEqualTo(PaymentStatus.PROCESSING);
+        }
+
+        @Test
+        @DisplayName("embedded: client amount different -> rejected before Stripe")
+        void whenEmbeddedClientAmountDiffers_thenThrows() {
+            // Arrange
+            when(interventionRepository.findById(1L))
+                    .thenReturn(Optional.of(interventionWithCost(1L, new BigDecimal("500"))));
+
+            // Act & Assert
+            assertThatThrownBy(() -> stripeService.createEmbeddedCheckoutSession(1L, new BigDecimal("0.01"), "x@y.z"))
+                    .isInstanceOf(IllegalArgumentException.class);
+            verifyNoInteractions(stripeGateway);
+        }
+
+        @Test
+        @DisplayName("null client amount -> server amount used")
+        void whenClientAmountNull_thenServerAmountUsed() throws Exception {
+            // Arrange
+            Intervention i = interventionWithCost(1L, new BigDecimal("75"));
+            when(interventionRepository.findById(1L)).thenReturn(Optional.of(i));
+            com.stripe.model.checkout.Session session = mock(com.stripe.model.checkout.Session.class);
+            when(session.getId()).thenReturn("cs_n");
+            when(stripeGateway.createSession(any())).thenReturn(session);
+
+            // Act
+            stripeService.createCheckoutSession(1L, null, "x@y.z");
+
+            // Assert
+            verify(stripeGateway).createSession(any());
         }
     }
 }

@@ -7,6 +7,7 @@ import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.model.ChannelSyncLog;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
 import com.clenzy.integration.channel.repository.ChannelSyncLogRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
@@ -64,131 +65,154 @@ public class ChannelSyncService {
      *
      * OutboxRelay parse le payload JSON en Object avant envoi, donc le
      * JsonDeserializer côté consumer renvoie directement un Map.
+     *
+     * Gestion d'erreur (Z6-SECBUGS-03) : pas de catch(Exception) global —
+     * un echec GLOBAL (payload illisible, acces DB) se propage au
+     * DefaultErrorHandler du container Kafka (retries puis publication sur
+     * {@code calendar.updates.DLT}) : le message n'est plus acquitte puis
+     * perdu en silence. Un echec INDIVIDUEL de push reste capture dans la
+     * boucle de fan-out : il est mesure (SyncMetrics), journalise
+     * (channel_sync_log) et n'empeche pas les autres connecteurs.
      */
-    @SuppressWarnings("unchecked")
     @Transactional
     @KafkaListener(topics = KafkaConfig.TOPIC_CALENDAR_UPDATES, groupId = "clenzy-channel-sync")
     public void onCalendarUpdate(Object payload) {
+        Map<String, Object> event = coerceToEventMap(payload);
+
+        Long propertyId = extractLong(event, "propertyId");
+        Long orgId = extractLong(event, "orgId");
+        String action = (String) event.get("action");
+        LocalDate from = parseDate(event, "from");
+        LocalDate to = parseDate(event, "to");
+
+        if (propertyId == null || orgId == null) {
+            // Event metier incomplet : un retry ne le reparera pas, on trace et on skip
+            log.warn("ChannelSyncService: event incomplet, propertyId={}, orgId={}", propertyId, orgId);
+            return;
+        }
+
+        log.debug("ChannelSyncService: event calendrier recu action={} propertyId={} [{}, {})",
+                action, propertyId, from, to);
+
+        // Resoudre tous les mappings actifs pour cette propriete
+        List<ChannelMapping> mappings = channelMappingRepository.findActiveByPropertyId(propertyId, orgId);
+
+        if (mappings.isEmpty()) {
+            log.debug("ChannelSyncService: aucun mapping actif pour propriete {}, skip", propertyId);
+            return;
+        }
+
+        // Determiner la capability cible selon l'action
+        boolean isRestrictionEvent = "RESTRICTION_UPDATED".equals(action)
+                || "RESTRICTION_CREATED".equals(action)
+                || "RESTRICTION_DELETED".equals(action);
+
+        // Fan-out vers chaque channel connecte
+        String syncId = UUID.randomUUID().toString();
+        MDC.put("syncId", syncId);
         try {
-            Map<String, Object> event;
-            if (payload instanceof Map) {
-                event = (Map<String, Object>) payload;
-            } else if (payload instanceof ConsumerRecord<?, ?> record) {
-                // Le listener recoit parfois le ConsumerRecord entier au lieu du value
-                Object value = record.value();
-                if (value instanceof Map) {
-                    event = (Map<String, Object>) value;
-                } else if (value instanceof String s) {
-                    event = objectMapper.readValue(s, Map.class);
-                } else {
-                    log.warn("ChannelSyncService: type de value inattendu dans ConsumerRecord: {}",
-                            value != null ? value.getClass().getName() : "null");
-                    return;
-                }
-            } else if (payload instanceof String s) {
-                event = objectMapper.readValue(s, Map.class);
-            } else {
-                log.warn("ChannelSyncService: type de payload inattendu: {}", payload.getClass().getName());
-                return;
-            }
+            for (ChannelMapping mapping : mappings) {
+                ChannelConnection connection = mapping.getConnection();
+                ChannelName channelName = connection.getChannel();
 
-            Long propertyId = extractLong(event, "propertyId");
-            Long orgId = extractLong(event, "orgId");
-            String action = (String) event.get("action");
-            LocalDate from = parseDate(event, "from");
-            LocalDate to = parseDate(event, "to");
+                connectorRegistry.getConnector(channelName).ifPresent(connector -> {
+                    if (from == null || to == null) return;
 
-            if (propertyId == null || orgId == null) {
-                log.warn("ChannelSyncService: event incomplet, propertyId={}, orgId={}", propertyId, orgId);
-                return;
-            }
-
-            log.debug("ChannelSyncService: event calendrier recu action={} propertyId={} [{}, {})",
-                    action, propertyId, from, to);
-
-            // Resoudre tous les mappings actifs pour cette propriete
-            List<ChannelMapping> mappings = channelMappingRepository.findActiveByPropertyId(propertyId, orgId);
-
-            if (mappings.isEmpty()) {
-                log.debug("ChannelSyncService: aucun mapping actif pour propriete {}, skip", propertyId);
-                return;
-            }
-
-            // Determiner la capability cible selon l'action
-            boolean isRestrictionEvent = "RESTRICTION_UPDATED".equals(action)
-                    || "RESTRICTION_CREATED".equals(action)
-                    || "RESTRICTION_DELETED".equals(action);
-
-            // Fan-out vers chaque channel connecte
-            String syncId = UUID.randomUUID().toString();
-            MDC.put("syncId", syncId);
-            try {
-                for (ChannelMapping mapping : mappings) {
-                    ChannelConnection connection = mapping.getConnection();
-                    ChannelName channelName = connection.getChannel();
-
-                    connectorRegistry.getConnector(channelName).ifPresent(connector -> {
-                        if (from == null || to == null) return;
-
-                        // Pour les events restriction, fan-out vers OUTBOUND_RESTRICTIONS
-                        if (isRestrictionEvent && connector.supports(ChannelCapability.OUTBOUND_RESTRICTIONS)) {
-                            MDC.put("channel", channelName.toString());
-                            long startMs = System.currentTimeMillis();
-                            SyncResult result;
-                            try {
-                                result = connector.pushRestrictions(propertyId, from, to, orgId);
-                                long elapsed = System.currentTimeMillis() - startMs;
-                                syncMetrics.recordSyncSuccess(channelName.toString(),
-                                        result.getDurationMs() > 0 ? result.getDurationMs() : elapsed);
-                            } catch (Exception e) {
-                                long elapsed = System.currentTimeMillis() - startMs;
-                                result = SyncResult.failed(e.getMessage(), elapsed);
-                                syncMetrics.recordSyncFailure(channelName.toString(),
-                                        e.getClass().getSimpleName(), elapsed);
-                                log.error("ChannelSyncService: erreur push restrictions {} pour propriete {}: {}",
-                                        channelName, propertyId, e.getMessage());
-                            } finally {
-                                MDC.remove("channel");
-                            }
-
-                            logSync(connection, mapping, SyncDirection.OUTBOUND, action, result);
-                            log.info("ChannelSyncService: push restrictions {} propriete {} → {} ({})",
-                                    channelName, propertyId, result.getStatus(), result.getMessage());
+                    // Pour les events restriction, fan-out vers OUTBOUND_RESTRICTIONS
+                    if (isRestrictionEvent && connector.supports(ChannelCapability.OUTBOUND_RESTRICTIONS)) {
+                        MDC.put("channel", channelName.toString());
+                        long startMs = System.currentTimeMillis();
+                        SyncResult result;
+                        try {
+                            result = connector.pushRestrictions(propertyId, from, to, orgId);
+                            long elapsed = System.currentTimeMillis() - startMs;
+                            syncMetrics.recordSyncSuccess(channelName.toString(),
+                                    result.getDurationMs() > 0 ? result.getDurationMs() : elapsed);
+                        } catch (Exception e) {
+                            long elapsed = System.currentTimeMillis() - startMs;
+                            result = SyncResult.failed(e.getMessage(), elapsed);
+                            syncMetrics.recordSyncFailure(channelName.toString(),
+                                    e.getClass().getSimpleName(), elapsed);
+                            log.error("ChannelSyncService: erreur push restrictions {} pour propriete {}: {}",
+                                    channelName, propertyId, e.getMessage());
+                        } finally {
+                            MDC.remove("channel");
                         }
 
-                        // Pour les events calendrier classiques, fan-out vers OUTBOUND_CALENDAR
-                        if (!isRestrictionEvent && connector.supports(ChannelCapability.OUTBOUND_CALENDAR)) {
-                            MDC.put("channel", channelName.toString());
-                            long startMs = System.currentTimeMillis();
-                            SyncResult result;
-                            try {
-                                result = connector.pushCalendarUpdate(propertyId, from, to, orgId);
-                                long elapsed = System.currentTimeMillis() - startMs;
-                                syncMetrics.recordSyncSuccess(channelName.toString(),
-                                        result.getDurationMs() > 0 ? result.getDurationMs() : elapsed);
-                            } catch (Exception e) {
-                                long elapsed = System.currentTimeMillis() - startMs;
-                                result = SyncResult.failed(e.getMessage(), elapsed);
-                                syncMetrics.recordSyncFailure(channelName.toString(),
-                                        e.getClass().getSimpleName(), elapsed);
-                                log.error("ChannelSyncService: erreur push {} pour propriete {}: {}",
-                                        channelName, propertyId, e.getMessage());
-                            } finally {
-                                MDC.remove("channel");
-                            }
+                        logSync(connection, mapping, SyncDirection.OUTBOUND, action, result);
+                        log.info("ChannelSyncService: push restrictions {} propriete {} → {} ({})",
+                                channelName, propertyId, result.getStatus(), result.getMessage());
+                    }
 
-                            logSync(connection, mapping, SyncDirection.OUTBOUND, action, result);
-                            log.info("ChannelSyncService: push {} propriete {} → {} ({})",
-                                    channelName, propertyId, result.getStatus(), result.getMessage());
+                    // Pour les events calendrier classiques, fan-out vers OUTBOUND_CALENDAR
+                    if (!isRestrictionEvent && connector.supports(ChannelCapability.OUTBOUND_CALENDAR)) {
+                        MDC.put("channel", channelName.toString());
+                        long startMs = System.currentTimeMillis();
+                        SyncResult result;
+                        try {
+                            result = connector.pushCalendarUpdate(propertyId, from, to, orgId);
+                            long elapsed = System.currentTimeMillis() - startMs;
+                            syncMetrics.recordSyncSuccess(channelName.toString(),
+                                    result.getDurationMs() > 0 ? result.getDurationMs() : elapsed);
+                        } catch (Exception e) {
+                            long elapsed = System.currentTimeMillis() - startMs;
+                            result = SyncResult.failed(e.getMessage(), elapsed);
+                            syncMetrics.recordSyncFailure(channelName.toString(),
+                                    e.getClass().getSimpleName(), elapsed);
+                            log.error("ChannelSyncService: erreur push {} pour propriete {}: {}",
+                                    channelName, propertyId, e.getMessage());
+                        } finally {
+                            MDC.remove("channel");
                         }
-                    });
-                }
-            } finally {
-                MDC.remove("syncId");
-            }
 
-        } catch (Exception e) {
-            log.error("ChannelSyncService: erreur traitement event calendrier: {}", e.getMessage(), e);
+                        logSync(connection, mapping, SyncDirection.OUTBOUND, action, result);
+                        log.info("ChannelSyncService: push {} propriete {} → {} ({})",
+                                channelName, propertyId, result.getStatus(), result.getMessage());
+                    }
+                });
+            }
+        } finally {
+            MDC.remove("syncId");
+        }
+    }
+
+    /**
+     * Coerce le payload du listener vers la Map d'event attendue.
+     * Un payload illisible (type inattendu, JSON invalide) est un echec de
+     * deserialisation GLOBAL : il leve une IllegalStateException qui remonte
+     * au DefaultErrorHandler (retry puis DLT) au lieu d'etre avale.
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> coerceToEventMap(Object payload) {
+        if (payload instanceof Map) {
+            return (Map<String, Object>) payload;
+        }
+        if (payload instanceof ConsumerRecord<?, ?> record) {
+            // Le listener recoit parfois le ConsumerRecord entier au lieu du value
+            Object value = record.value();
+            if (value instanceof Map) {
+                return (Map<String, Object>) value;
+            }
+            if (value instanceof String s) {
+                return readEventJson(s);
+            }
+            throw new IllegalStateException("ChannelSyncService: type de value inattendu dans ConsumerRecord: "
+                    + (value != null ? value.getClass().getName() : "null"));
+        }
+        if (payload instanceof String s) {
+            return readEventJson(s);
+        }
+        throw new IllegalStateException("ChannelSyncService: type de payload inattendu: "
+                + payload.getClass().getName());
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> readEventJson(String json) {
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(
+                    "ChannelSyncService: payload calendar.updates illisible: " + e.getOriginalMessage(), e);
         }
     }
 

@@ -19,6 +19,7 @@ import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.DocumentStorageService;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
+import com.clenzy.util.PiiMasker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -57,6 +58,10 @@ public class ContractSignatureService {
 
     private static final Logger log = LoggerFactory.getLogger(ContractSignatureService.class);
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    /** Bornes des colonnes de preuve (signer_ip VARCHAR(64), signer_user_agent VARCHAR(512)). */
+    private static final int SIGNER_IP_MAX_LENGTH = 64;
+    private static final int SIGNER_USER_AGENT_MAX_LENGTH = 512;
 
     /**
      * Texte de consentement (source de vérité). Affiché sur la page publique et
@@ -163,7 +168,9 @@ public class ContractSignatureService {
                 result.signingUrl(),
                 expiresAt);
 
-        log.info("Lien de signature envoyé à {} pour le contrat {}", ownerEmail, contract.getContractNumber());
+        // RGPD : jamais d'email en clair dans les logs (centralisés Loki/ELK).
+        log.info("Lien de signature envoyé à {} pour le contrat {}",
+                PiiMasker.maskEmail(ownerEmail), contract.getContractNumber());
         return Optional.of(result.signingUrl());
     }
 
@@ -322,13 +329,17 @@ public class ContractSignatureService {
         }
 
         // ── 1. Dossier de preuve (toujours enregistré, quoi qu'il arrive ensuite) ──
+        // Éléments calculés CÔTÉ SERVEUR : horodatage (jamais fourni par le client) et
+        // SHA-256 du PDF réellement présenté au signataire (résolu depuis le stockage).
+        // L'IP est résolue derrière trusted-proxy par le contrôleur (TrustedClientIpResolver) ;
+        // le user-agent reste déclaratif (en-tête client) et est borné à sa colonne.
         byte[] originalPdf = resolveDocumentBytes(request).orElse(null);
         LocalDateTime signedAt = LocalDateTime.now();
         request.setStatus(ContractSignatureRequest.Status.SIGNED);
         request.setSignedAt(signedAt);
         request.setSignedByName(signerName.trim());
-        request.setSignerIp(signerIp);
-        request.setSignerUserAgent(signerUserAgent);
+        request.setSignerIp(truncate(signerIp, SIGNER_IP_MAX_LENGTH));
+        request.setSignerUserAgent(truncate(signerUserAgent, SIGNER_USER_AGENT_MAX_LENGTH));
         request.setDocumentSha256(originalPdf != null ? sha256Hex(originalPdf) : null);
         request.setConsentText(CONSENT_TEXT);
         signatureRequestRepository.save(request);
@@ -350,10 +361,13 @@ public class ContractSignatureService {
         // ── 3. PDF tamponné (best-effort : la preuve en base fait foi) ──
         if (originalPdf != null) {
             try {
+                // Le certificat reprend les valeurs PERSISTÉES du dossier de preuve
+                // (mêmes bornes) : le PDF et la base racontent la même histoire.
                 byte[] stamped = certificateStamper.appendCertificate(originalPdf,
                         new SignatureCertificateStamper.CertificateData(
                                 contract.getContractNumber(), request.getSignedByName(),
-                                request.getSignerEmail(), signedAt, signerIp, signerUserAgent,
+                                request.getSignerEmail(), signedAt, request.getSignerIp(),
+                                request.getSignerUserAgent(),
                                 request.getDocumentSha256(), request.getToken().toString(), CONSENT_TEXT));
                 String path = documentStorageService.store("MANDAT_GESTION_SIGNE",
                         "Mandat_signe_" + contract.getContractNumber() + ".pdf", stamped);
@@ -380,7 +394,9 @@ public class ContractSignatureService {
             log.warn("Notification CONTRACT_SIGNED échouée : {}", e.getMessage());
         }
 
-        log.info("Contrat {} signé par {} (activé: {})", contract.getContractNumber(), signerName, activated);
+        // RGPD : initiales seulement — le nom complet est dans le dossier de preuve (demande {}).
+        log.info("Contrat {} signé (demande {}, signataire {}, activé: {})",
+                contract.getContractNumber(), request.getId(), PiiMasker.maskName(signerName), activated);
         return getPublicView(token);
     }
 
@@ -477,5 +493,17 @@ public class ContractSignatureService {
         } catch (Exception e) {
             return null; // SHA-256 toujours présent sur une JVM standard
         }
+    }
+
+    /**
+     * Borne une valeur d'en-tête client à la taille de sa colonne de preuve : un
+     * en-tête surdimensionné ne doit pas faire échouer la persistance du dossier
+     * de preuve (et rollback la transition SIGNED) après {@code markSigned}.
+     */
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 }

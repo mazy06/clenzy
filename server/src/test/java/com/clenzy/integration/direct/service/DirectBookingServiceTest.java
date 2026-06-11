@@ -46,6 +46,7 @@ class DirectBookingServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private CalendarEngine calendarEngine;
     @Mock private PriceEngine priceEngine;
+    @Mock private com.clenzy.payment.StripeGateway stripeGateway;
 
     private DirectBookingService service;
 
@@ -56,7 +57,7 @@ class DirectBookingServiceTest {
     @BeforeEach
     void setUp() {
         service = new DirectBookingService(config, configRepository, promoCodeRepository,
-                propertyRepository, reservationRepository, calendarEngine, priceEngine);
+                propertyRepository, reservationRepository, calendarEngine, priceEngine, stripeGateway);
     }
 
     // ----------------------------------------------------------------

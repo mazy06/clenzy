@@ -8,6 +8,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.CalendarCommandRepository;
 import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -40,6 +41,9 @@ public class CalendarEngine {
 
     private static final Logger log = LoggerFactory.getLogger(CalendarEngine.class);
 
+    /** Source des overrides crees par une mise a jour manuelle du prix. */
+    static final String MANUAL_OVERRIDE_SOURCE = "MANUAL";
+
     private final CalendarDayRepository calendarDayRepository;
     private final CalendarCommandRepository calendarCommandRepository;
     private final PropertyRepository propertyRepository;
@@ -47,6 +51,7 @@ public class CalendarEngine {
     private final OutboxPublisher outboxPublisher;
     private final RestrictionEngine restrictionEngine;
     private final PriceEngine priceEngine;
+    private final RateOverrideRepository rateOverrideRepository;
     private final SyncMetrics syncMetrics;
 
     public CalendarEngine(CalendarDayRepository calendarDayRepository,
@@ -56,6 +61,7 @@ public class CalendarEngine {
                           OutboxPublisher outboxPublisher,
                           RestrictionEngine restrictionEngine,
                           PriceEngine priceEngine,
+                          RateOverrideRepository rateOverrideRepository,
                           SyncMetrics syncMetrics) {
         this.calendarDayRepository = calendarDayRepository;
         this.calendarCommandRepository = calendarCommandRepository;
@@ -64,7 +70,31 @@ public class CalendarEngine {
         this.outboxPublisher = outboxPublisher;
         this.restrictionEngine = restrictionEngine;
         this.priceEngine = priceEngine;
+        this.rateOverrideRepository = rateOverrideRepository;
         this.syncMetrics = syncMetrics;
+    }
+
+    // ----------------------------------------------------------------
+    // READ : lectures calendrier (deplacees de CalendarController, T-ARCH-01)
+    // ----------------------------------------------------------------
+
+    /**
+     * Calendrier jour par jour d'une propriete sur la plage [from, to].
+     * L'absence de ligne = jour disponible (convention Clenzy).
+     */
+    @Transactional(readOnly = true)
+    public List<CalendarDay> getDays(Long propertyId, LocalDate from, LocalDate to, Long orgId) {
+        return calendarDayRepository.findByPropertyAndDateRange(propertyId, from, to, orgId);
+    }
+
+    /**
+     * Jours BLOCKED / MAINTENANCE de plusieurs proprietes (planning batch).
+     * La requete est bornee a l'organisation passee en parametre.
+     */
+    @Transactional(readOnly = true)
+    public List<CalendarDay> getBlockedOrMaintenanceDays(List<Long> propertyIds, LocalDate from,
+                                                         LocalDate to, Long orgId) {
+        return calendarDayRepository.findBlockedOrMaintenanceForProperties(propertyIds, from, to, orgId);
     }
 
     // ----------------------------------------------------------------
@@ -201,6 +231,80 @@ public class CalendarEngine {
     }
 
     // ----------------------------------------------------------------
+    // MOVE : deplacer une reservation (liberer puis re-reserver)
+    // ----------------------------------------------------------------
+
+    /**
+     * Parametres d'un deplacement de reservation (changement de dates
+     * et/ou de propriete sur une reservation qui bloque le calendrier).
+     */
+    public record ReservationMove(Long reservationId, Long orgId,
+                                  Long oldPropertyId, LocalDate oldCheckIn, LocalDate oldCheckOut,
+                                  Long newPropertyId, LocalDate newCheckIn, LocalDate newCheckOut,
+                                  String source, String actorId) {}
+
+    /**
+     * Deplace une reservation : libere les anciens jours puis re-reserve les
+     * nouveaux, le tout sous le(s) lock(s) advisory et dans la MEME transaction.
+     * Si la nouvelle plage n'est pas disponible, l'exception annule aussi la
+     * liberation (rollback complet — la reservation reste sur ses anciens jours).
+     *
+     * Publie deux events outbox : CALENDAR_CANCELLED (ancienne plage) puis
+     * CALENDAR_BOOKED (nouvelle plage) — memes types que cancel()/book(),
+     * donc aucun impact sur les consumers de sync channels.
+     *
+     * @throws CalendarConflictException si la nouvelle plage n'est pas disponible
+     * @throws CalendarLockException     si un lock ne peut pas etre acquis
+     */
+    public List<CalendarDay> move(ReservationMove move) {
+        Timer.Sample sample = syncMetrics.startTimer();
+        MDC.put("propertyId", String.valueOf(move.newPropertyId()));
+        try {
+            log.debug("CalendarEngine.move: reservationId={}, propriete {} [{}, {}) -> propriete {} [{}, {})",
+                    move.reservationId(), move.oldPropertyId(), move.oldCheckIn(), move.oldCheckOut(),
+                    move.newPropertyId(), move.newCheckIn(), move.newCheckOut());
+
+            acquireMoveLocks(move.oldPropertyId(), move.newPropertyId());
+
+            int released = calendarDayRepository.releaseByReservation(move.reservationId(), move.orgId());
+            logCommand(move.orgId(), move.oldPropertyId(), CalendarCommandType.CANCEL,
+                    move.oldCheckIn(), move.oldCheckOut(), "CANCEL", move.reservationId(), move.actorId(), null);
+            outboxPublisher.publishCalendarEvent("CALENDAR_CANCELLED", move.oldPropertyId(), move.orgId(),
+                    buildPayload("CANCELLED", move.oldPropertyId(), move.orgId(),
+                            move.oldCheckIn(), move.oldCheckOut(), "CANCEL", move.reservationId()));
+
+            // book() re-acquiert le meme lock advisory (re-entrant dans la meme
+            // transaction), valide restrictions + conflits, re-reserve les jours,
+            // log la commande BOOK et publie CALENDAR_BOOKED.
+            List<CalendarDay> days = book(move.newPropertyId(), move.newCheckIn(), move.newCheckOut(),
+                    move.reservationId(), move.orgId(), move.source(), move.actorId());
+
+            log.info("CalendarEngine.move: reservation {} deplacee — {} jour(s) libere(s), {} jour(s) re-reserve(s)",
+                    move.reservationId(), released, days.size());
+            return days;
+        } catch (CalendarLockException e) {
+            syncMetrics.incrementLockContention();
+            throw e;
+        } finally {
+            syncMetrics.recordCalendarOperation("move", sample);
+            MDC.remove("propertyId");
+        }
+    }
+
+    /**
+     * Acquiert les locks advisory des deux proprietes d'un move
+     * (ordre croissant d'id pour eviter un deadlock croise).
+     */
+    private void acquireMoveLocks(Long oldPropertyId, Long newPropertyId) {
+        if (oldPropertyId.equals(newPropertyId)) {
+            acquireLock(oldPropertyId);
+            return;
+        }
+        acquireLock(Math.min(oldPropertyId, newPropertyId));
+        acquireLock(Math.max(oldPropertyId, newPropertyId));
+    }
+
+    // ----------------------------------------------------------------
     // BLOCK : bloquer des dates [from, to)
     // ----------------------------------------------------------------
 
@@ -320,6 +424,11 @@ public class CalendarEngine {
      * Met a jour le prix par nuit sur les jours [from, to) d'une propriete.
      * Cree les CalendarDays s'ils n'existent pas encore.
      *
+     * <p>N'ecrit QUE calendar_days.nightly_price (affichage calendrier) — utilise
+     * notamment par les imports OTA inbound. Pour un prix fixe manuellement par
+     * l'utilisateur, utiliser {@link #updateManualPrice} qui cree en plus un
+     * {@link RateOverride} source MANUAL visible du PriceEngine (audit Z5-BUGS-04).</p>
+     *
      * @param propertyId propriete cible
      * @param from       premier jour (inclus)
      * @param to         dernier jour (exclus)
@@ -362,6 +471,58 @@ public class CalendarEngine {
             syncMetrics.recordCalendarOperation("updatePrice", sample);
             MDC.remove("propertyId");
         }
+    }
+
+    /**
+     * Met a jour MANUELLEMENT le prix par nuit sur les jours [from, to).
+     *
+     * <p>En plus de l'ecriture calendrier ({@link #updatePrice}), cree/met a jour
+     * un {@link RateOverride} source MANUAL par date (audit Z5-BUGS-04) : le prix
+     * manuel devient ainsi visible du {@link PriceEngine} (priorite au-dessus des
+     * plans) — il est facture au guest (devis booking engine), pousse aux OTA, et
+     * n'est plus ecrase par {@link #book} puisque la resolution PriceEngine le
+     * retourne desormais en priorite.</p>
+     *
+     * @param propertyId propriete cible
+     * @param from       premier jour (inclus)
+     * @param to         dernier jour (exclus)
+     * @param price      nouveau prix par nuit (requis)
+     * @param orgId      organization du tenant
+     * @param actorId    keycloakId de l'acteur ou "system"
+     */
+    public void updateManualPrice(Long propertyId, LocalDate from, LocalDate to,
+                                  BigDecimal price, Long orgId, String actorId) {
+        // Ecriture calendrier (lock advisory, command log, event outbox)
+        updatePrice(propertyId, from, to, price, orgId, actorId);
+
+        if (price == null) {
+            return;
+        }
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new RuntimeException("Propriete introuvable: " + propertyId));
+
+        // Batch : charger les overrides existants de la plage puis upsert par date
+        Map<LocalDate, RateOverride> existingByDate = rateOverrideRepository
+                .findByPropertyIdAndDateRange(propertyId, from, to, orgId).stream()
+                .collect(Collectors.toMap(RateOverride::getDate, o -> o));
+
+        List<RateOverride> toSave = new ArrayList<>();
+        for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
+            RateOverride override = existingByDate.get(date);
+            if (override == null) {
+                override = new RateOverride(property, date, price, MANUAL_OVERRIDE_SOURCE, orgId);
+                override.setCreatedBy(actorId);
+            } else {
+                override.setNightlyPrice(price);
+                override.setSource(MANUAL_OVERRIDE_SOURCE);
+            }
+            toSave.add(override);
+        }
+        rateOverrideRepository.saveAll(toSave);
+
+        log.info("CalendarEngine.updateManualPrice: {} override(s) MANUAL pour propriete {} [{}, {})",
+                toSave.size(), propertyId, from, to);
     }
 
     // ----------------------------------------------------------------

@@ -3,6 +3,7 @@ package com.clenzy.repository;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -68,4 +69,36 @@ public interface OwnerPayoutRepository extends JpaRepository<OwnerPayout, Long> 
      */
     @Query("SELECT p FROM OwnerPayout p WHERE p.paymentReference = :ref")
     Optional<OwnerPayout> findFirstByPaymentReference(@Param("ref") String paymentReference);
+
+    // ── Transitions d'etat gardees (webhooks at-least-once) ───────────────
+
+    /**
+     * Transition conditionnelle vers PAID (compare-and-set) : la ligne n'est
+     * modifiee que si le statut n'est pas deja PAID. Sous READ COMMITTED, deux
+     * livraisons concurrentes du meme webhook se serialisent sur le verrou de
+     * ligne : une seule obtient 1, l'autre 0 et doit abandonner (idempotence —
+     * pattern PaymentStatusTransitionService, regle audit n°8).
+     *
+     * @return le nombre de lignes modifiees (0 si deja PAID).
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE OwnerPayout p SET p.status = :paid, p.paidAt = :paidAt "
+         + "WHERE p.id = :id AND p.status <> :paid")
+    int markPaidIfNotAlreadyPaid(@Param("id") Long id,
+                                 @Param("paid") PayoutStatus paid,
+                                 @Param("paidAt") Instant paidAt);
+
+    /**
+     * Transition conditionnelle vers FAILED : refusee si le payout est deja
+     * PAID (un revert post-paiement est escalade aux admins, pas ecrase).
+     *
+     * @return le nombre de lignes modifiees (0 si deja PAID).
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE OwnerPayout p SET p.status = :failed, p.failureReason = :reason "
+         + "WHERE p.id = :id AND p.status <> :paid")
+    int markFailedIfNotPaid(@Param("id") Long id,
+                            @Param("failed") PayoutStatus failed,
+                            @Param("reason") String reason,
+                            @Param("paid") PayoutStatus paid);
 }

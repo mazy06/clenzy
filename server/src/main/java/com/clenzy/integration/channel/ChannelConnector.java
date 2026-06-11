@@ -3,6 +3,7 @@ package com.clenzy.integration.channel;
 import com.clenzy.integration.channel.model.ChannelCalendarDay;
 import com.clenzy.integration.channel.model.ChannelMapping;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,33 @@ public interface ChannelConnector {
     default SyncResult pushCalendarUpdate(Long propertyId, LocalDate from,
                                            LocalDate to, Long orgId) {
         return SyncResult.unsupported("Calendar push not supported by " + getChannelName());
+    }
+
+    /**
+     * Pousse une mise a jour calendrier avec des prix DEJA RESOLUS (OUTBOUND).
+     *
+     * <p>Audit Z5-BUGS-03 : permet a {@link com.clenzy.service.RateDistributionService}
+     * de transmettre les prix channel-specific (ChannelRateModifier appliques par
+     * AdvancedRateManager) au lieu de laisser le connecteur re-resoudre les prix
+     * de base via PriceEngine — ce qui jetait silencieusement les markups/markdowns
+     * par channel.</p>
+     *
+     * <p>Implementation par defaut retro-compatible : delegue a la variante sans
+     * prix. Les connecteurs qui poussent des tarifs (Airbnb, Booking) overrident
+     * cette methode pour consommer la map fournie.</p>
+     *
+     * @param propertyId     propriete PMS
+     * @param from           debut de la plage (inclus)
+     * @param to             fin de la plage (exclus)
+     * @param orgId          organisation
+     * @param resolvedPrices prix par date a pousser ; null = le connecteur
+     *                       resout lui-meme les prix de base
+     * @return resultat de la synchronisation
+     */
+    default SyncResult pushCalendarUpdate(Long propertyId, LocalDate from,
+                                           LocalDate to, Long orgId,
+                                           Map<LocalDate, BigDecimal> resolvedPrices) {
+        return pushCalendarUpdate(propertyId, from, to, orgId);
     }
 
     /**

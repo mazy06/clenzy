@@ -50,6 +50,8 @@ class PublicBookingServiceTest {
     @Mock private StripeService stripeService;
     @Mock private GuestReviewRepository guestReviewRepository;
     @Mock private VoucherEngine voucherEngine;
+    @Mock private NotificationService notificationService;
+    @Mock private BookingServiceOptionsService serviceOptionsService;
 
     private PublicBookingService service;
 
@@ -63,7 +65,8 @@ class PublicBookingServiceTest {
                 configRepository, organizationRepository, propertyRepository,
                 reservationRepository, calendarDayRepository, priceEngine,
                 restrictionEngine, calendarEngine, guestService, touristTaxService,
-                stripeService, guestReviewRepository, voucherEngine);
+                stripeService, guestReviewRepository, voucherEngine, notificationService,
+                serviceOptionsService);
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────
@@ -462,10 +465,29 @@ class PublicBookingServiceTest {
         }
 
         @Test
-        @DisplayName("creates CONFIRMED reservation when autoConfirm=true")
-        void whenAutoConfirm_thenConfirmed() {
+        @DisplayName("Z4A-BUGS-04: autoConfirm + collectPaymentOnBooking stays PENDING until payment")
+        void whenAutoConfirmAndPaymentCollected_thenStaysPendingWithExpiration() {
             BookingEngineConfig cfg = buildConfig(true);
             cfg.setAutoConfirm(true);
+            cfg.setCollectPaymentOnBooking(true);
+            PublicBookingService.OrgContext ctx = new PublicBookingService.OrgContext(buildOrg(), cfg);
+
+            BookingReserveResponseDto resp = service.reserve(ctx, req);
+
+            ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(captor.capture());
+            assertThat(captor.getValue().getStatus()).isEqualTo("pending");
+            assertThat(captor.getValue().getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+            assertThat(resp.status()).isEqualTo("PENDING");
+            assertThat(resp.expiresAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("creates CONFIRMED reservation when autoConfirm=true and no payment collected")
+        void whenAutoConfirmWithoutPaymentCollection_thenConfirmed() {
+            BookingEngineConfig cfg = buildConfig(true);
+            cfg.setAutoConfirm(true);
+            cfg.setCollectPaymentOnBooking(false);
             PublicBookingService.OrgContext ctx = new PublicBookingService.OrgContext(buildOrg(), cfg);
 
             BookingReserveResponseDto resp = service.reserve(ctx, req);
@@ -738,7 +760,9 @@ class PublicBookingServiceTest {
             Session session = mock(Session.class);
             when(session.getId()).thenReturn("cs_test");
             when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
-            when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any()))
+            // Reliquat A3 : le flux /reserve+/checkout pose une duree de vie (~35 min)
+            when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    eq(java.time.Duration.ofMinutes(35))))
                     .thenReturn(session);
 
             BookingCheckoutResponseDto resp = service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE"));
@@ -760,7 +784,7 @@ class PublicBookingServiceTest {
             r.setProperty(buildProperty());
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.of(r));
-            when(stripeService.createReservationCheckoutSession(any(), any(), any(), any(), any()))
+            when(stripeService.createReservationCheckoutSession(any(), any(), any(), any(), any(), any()))
                     .thenThrow(new RuntimeException("boom"));
 
             assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE")))
@@ -947,28 +971,31 @@ class PublicBookingServiceTest {
     @Nested
     class ConfirmBookingEngineCheckoutFullPath {
 
-        @Test
-        @DisplayName("creates new reservation when metadata complete + no existing session")
-        void whenCompleteMetadata_thenCreatesReservation() {
-            LocalDate in = LocalDate.now().plusDays(7);
-            LocalDate out = LocalDate.now().plusDays(10);
+        private LocalDate in;
+        private LocalDate out;
+
+        @BeforeEach
+        void setUp() {
+            in = LocalDate.now().plusDays(7);
+            out = LocalDate.now().plusDays(10);
+        }
+
+        private Session buildWebhookSession(String sessionId, Long amountTotalCents) {
             Session s = mock(Session.class);
-            when(s.getId()).thenReturn("cs_new");
-            Map<String, String> metadata = Map.of(
+            when(s.getId()).thenReturn(sessionId);
+            when(s.getMetadata()).thenReturn(Map.of(
                     "property_id", PROPERTY_ID.toString(),
                     "organization_id", ORG_ID.toString(),
                     "check_in", in.toString(),
                     "check_out", out.toString(),
-                    "guests", "2"
-            );
-            when(s.getMetadata()).thenReturn(metadata);
-            when(s.getCustomerEmail()).thenReturn("walkin@example.com");
-            com.stripe.model.checkout.Session.CustomerDetails details = mock(com.stripe.model.checkout.Session.CustomerDetails.class);
-            when(details.getName()).thenReturn("Walkin Customer");
-            when(s.getCustomerDetails()).thenReturn(details);
-            when(s.getAmountTotal()).thenReturn(33000L); // 330.00 EUR
-            when(reservationRepository.findByStripeSessionId("cs_new")).thenReturn(Optional.empty());
-            // property + availability dependencies
+                    "guests", "2"));
+            lenient().when(s.getCustomerEmail()).thenReturn("walkin@example.com");
+            lenient().when(s.getAmountTotal()).thenReturn(amountTotalCents);
+            when(reservationRepository.findByStripeSessionId(sessionId)).thenReturn(Optional.empty());
+            return s;
+        }
+
+        private void stubAvailabilityHappyPath() {
             Property p = buildProperty();
             when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
                     .thenReturn(Optional.of(p));
@@ -978,11 +1005,18 @@ class PublicBookingServiceTest {
             when(restrictionEngine.validate(any(), any(), any(), any()))
                     .thenReturn(RestrictionEngine.ValidationResult.valid());
             when(calendarDayRepository.countConflicts(any(), any(), any(), any())).thenReturn(0L);
-            Map<LocalDate, BigDecimal> priceMap = Map.of(
+            when(priceEngine.resolvePriceRange(any(), any(), any(), any())).thenReturn(Map.of(
                     in, new BigDecimal("100.00"),
                     in.plusDays(1), new BigDecimal("100.00"),
-                    in.plusDays(2), new BigDecimal("100.00"));
-            when(priceEngine.resolvePriceRange(any(), any(), any(), any())).thenReturn(priceMap);
+                    in.plusDays(2), new BigDecimal("100.00")));
+        }
+
+        @Test
+        @DisplayName("creates PENDING reservation then delegates guarded confirmation (legacy fallback)")
+        void whenCompleteMetadata_thenCreatesPendingAndDelegatesConfirmation() {
+            // 330.00 EUR = 300 subtotal + 30 cleaning (tax service not stubbed → 0)
+            Session s = buildWebhookSession("cs_new", 33000L);
+            stubAvailabilityHappyPath();
             Guest guest = new Guest();
             guest.setId(1L);
             when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
@@ -995,29 +1029,23 @@ class PublicBookingServiceTest {
 
             service.confirmBookingEngineCheckout(s);
 
-            verify(reservationRepository).save(any(Reservation.class));
+            ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository).save(captor.capture());
+            // Creation en PENDING : la transition PAID + confirmed est deleguee a
+            // la version idempotente de confirmReservationPayment (Z4A-BUGS-05)
+            assertThat(captor.getValue().getStatus()).isEqualTo("pending");
+            assertThat(captor.getValue().getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+            assertThat(captor.getValue().getStripeSessionId()).isEqualTo("cs_new");
+            assertThat(captor.getValue().getTotalPrice()).isEqualByComparingTo("330.00");
             verify(calendarEngine).book(eq(PROPERTY_ID), eq(in), eq(out),
                     eq(777L), eq(ORG_ID), eq("direct"), eq("booking-engine-webhook"));
             verify(stripeService).confirmReservationPayment("cs_new");
         }
 
         @Test
-        @DisplayName("logs warn when availability says false but still creates reservation")
-        void whenConflictAfterPayment_thenCreatesReservationAndLogs() {
-            LocalDate in = LocalDate.now().plusDays(5);
-            LocalDate out = LocalDate.now().plusDays(8);
-            Session s = mock(Session.class);
-            when(s.getId()).thenReturn("cs_conflict");
-            when(s.getMetadata()).thenReturn(Map.of(
-                    "property_id", PROPERTY_ID.toString(),
-                    "organization_id", ORG_ID.toString(),
-                    "check_in", in.toString(),
-                    "check_out", out.toString(),
-                    "guests", "2"));
-            when(s.getCustomerEmail()).thenReturn("c@e.com");
-            when(s.getAmountTotal()).thenReturn(33000L);
-            when(reservationRepository.findByStripeSessionId("cs_conflict")).thenReturn(Optional.empty());
-
+        @DisplayName("Z4A-BUGS-03: conflict after payment refunds automatically, no degraded reservation")
+        void whenConflictAfterPayment_thenRefundsAndSkipsCreation() throws Exception {
+            Session s = buildWebhookSession("cs_conflict", 33000L);
             Property p = buildProperty();
             when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
                     .thenReturn(Optional.of(p));
@@ -1026,23 +1054,83 @@ class PublicBookingServiceTest {
                     .thenReturn(List.of(buildConfig(true)));
             when(restrictionEngine.validate(any(), any(), any(), any()))
                     .thenReturn(RestrictionEngine.ValidationResult.valid());
-            // Simulate conflict
+            // Conflit : un autre voyageur a reserve entre temps
             when(calendarDayRepository.countConflicts(any(), any(), any(), any())).thenReturn(2L);
-
-            Guest g = new Guest();
-            g.setId(2L);
-            when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
-                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(g);
-            when(reservationRepository.save(any())).thenAnswer(inv -> {
-                Reservation r = inv.getArgument(0);
-                r.setId(888L);
-                return r;
-            });
 
             service.confirmBookingEngineCheckout(s);
 
-            // Should still save the reservation (in DEGRADED mode)
-            verify(reservationRepository).save(any());
+            verify(reservationRepository, never()).save(any(Reservation.class));
+            verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
+            verify(stripeService).refundCheckoutSessionPayment(eq("cs_conflict"), anyString());
+            verify(notificationService).notifyAdminsAndManagersByOrgId(
+                    eq(ORG_ID), eq(NotificationKey.PAYMENT_REFUND_INITIATED),
+                    anyString(), anyString(), anyString());
+            verify(stripeService, never()).confirmReservationPayment(any());
+        }
+
+        @Test
+        @DisplayName("Z4A-SEC-01: manipulated amount on legacy session refunds instead of confirming")
+        void whenStripeTotalDivergesFromServerQuote_thenRefundsAndSkipsCreation() throws Exception {
+            // 0.50 EUR paye pour un devis serveur de 330.00 EUR
+            Session s = buildWebhookSession("cs_fraud", 50L);
+            stubAvailabilityHappyPath();
+
+            service.confirmBookingEngineCheckout(s);
+
+            verify(reservationRepository, never()).save(any(Reservation.class));
+            verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
+            verify(stripeService).refundCheckoutSessionPayment(eq("cs_fraud"), anyString());
+            verify(stripeService, never()).confirmReservationPayment(any());
+        }
+
+        @Test
+        @DisplayName("race lost on calendar book: reservation cancelled + payment refunded")
+        void whenCalendarBookConflicts_thenCancelsAndRefunds() throws Exception {
+            Session s = buildWebhookSession("cs_race", 33000L);
+            stubAvailabilityHappyPath();
+            Guest guest = new Guest();
+            guest.setId(1L);
+            when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(guest);
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(999L);
+                return r;
+            });
+            doThrow(new com.clenzy.exception.CalendarConflictException(PROPERTY_ID, in, out, 2))
+                    .when(calendarEngine).book(eq(PROPERTY_ID), eq(in), eq(out),
+                            eq(999L), eq(ORG_ID), eq("direct"), eq("booking-engine-webhook"));
+
+            service.confirmBookingEngineCheckout(s);
+
+            ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+            verify(reservationRepository, times(2)).save(captor.capture());
+            assertThat(captor.getValue().getStatus()).isEqualTo("cancelled");
+            assertThat(captor.getValue().getPaymentStatus()).isEqualTo(PaymentStatus.CANCELLED);
+            verify(stripeService).refundCheckoutSessionPayment(eq("cs_race"), anyString());
+            verify(stripeService, never()).confirmReservationPayment(any());
+        }
+
+        @Test
+        @DisplayName("double webhook: second delivery is a no-op (single confirmation)")
+        void whenWebhookDeliveredTwice_thenSingleConfirmation() {
+            Session s = mock(Session.class);
+            when(s.getId()).thenReturn("cs_dup");
+            when(s.getMetadata()).thenReturn(Map.of());
+            Reservation paid = new Reservation();
+            paid.setConfirmationCode("RES-DUP");
+            paid.setStripeSessionId("cs_dup");
+            paid.setPaymentStatus(PaymentStatus.PENDING);
+            // 1er webhook : reservation pending → confirmation deleguee
+            when(reservationRepository.findByStripeSessionId("cs_dup"))
+                    .thenReturn(Optional.of(paid));
+            service.confirmBookingEngineCheckout(s);
+            verify(stripeService, times(1)).confirmReservationPayment("cs_dup");
+
+            // 2e webhook : reservation desormais PAID → aucun nouveau traitement
+            paid.setPaymentStatus(PaymentStatus.PAID);
+            service.confirmBookingEngineCheckout(s);
+            verify(stripeService, times(1)).confirmReservationPayment("cs_dup");
         }
 
         @Test
@@ -1062,6 +1150,104 @@ class PublicBookingServiceTest {
             assertThatThrownBy(() -> service.confirmBookingEngineCheckout(s))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("introuvable");
+        }
+
+        @Test
+        @DisplayName("unattached hold is recovered via metadata.reservation_id")
+        void whenHoldNotAttached_thenRecoveredFromMetadata() {
+            Session s = mock(Session.class);
+            when(s.getId()).thenReturn("cs_orphan");
+            when(s.getMetadata()).thenReturn(Map.of("reservation_id", "321"));
+            when(reservationRepository.findByStripeSessionId("cs_orphan")).thenReturn(Optional.empty());
+            Reservation hold = new Reservation();
+            hold.setId(321L);
+            hold.setStatus("pending");
+            hold.setConfirmationCode("RES-HOLD");
+            when(reservationRepository.findById(321L)).thenReturn(Optional.of(hold));
+
+            service.confirmBookingEngineCheckout(s);
+
+            assertThat(hold.getStripeSessionId()).isEqualTo("cs_orphan");
+            verify(reservationRepository).save(hold);
+            verify(stripeService).confirmReservationPayment("cs_orphan");
+        }
+    }
+
+    // ───────────────────── embedded checkout hold (Z4A-BUGS-03) ─────────────────
+
+    @Nested
+    class EmbeddedCheckoutHold {
+
+        private LocalDate in;
+        private LocalDate out;
+
+        @BeforeEach
+        void setUp() {
+            in = LocalDate.now().plusDays(7);
+            out = LocalDate.now().plusDays(10);
+        }
+
+        private AvailabilityResponseDto availability(String subtotal, String cleaning, String tax, String total) {
+            return new AvailabilityResponseDto(true, PROPERTY_ID, "Cosy Loft", in, out, 2, 3,
+                    List.of(), new BigDecimal(subtotal), new BigDecimal(cleaning),
+                    new BigDecimal(tax), new BigDecimal(total), "EUR", 1, 4, "15:00", "11:00", List.of());
+        }
+
+        @Test
+        @DisplayName("creates PENDING hold blocking the calendar with server-computed total")
+        void whenHoldCreated_thenPendingAndCalendarBlocked() {
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(buildProperty()));
+            Guest g = new Guest();
+            g.setId(5L);
+            when(guestService.findOrCreate(anyString(), anyString(), any(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(g);
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(456L);
+                return r;
+            });
+
+            Reservation hold = service.createEmbeddedCheckoutHold(
+                    buildCtx(), PROPERTY_ID, in, out, 2, "jane@example.com", "Jane Doe",
+                    availability("300.00", "30.00", "0.00", "330.00"), new BigDecimal("20.00"));
+
+            assertThat(hold.getStatus()).isEqualTo("pending");
+            assertThat(hold.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+            assertThat(hold.getTotalPrice()).isEqualByComparingTo("350.00");
+            assertThat(hold.getConfirmationCode()).isNotBlank();
+            verify(calendarEngine).book(eq(PROPERTY_ID), eq(in), eq(out),
+                    eq(456L), eq(ORG_ID), eq("direct"), eq("booking-engine-embedded"));
+        }
+
+        @Test
+        @DisplayName("attachStripeSessionToHold persists the session id")
+        void whenSessionAttached_thenSessionIdPersisted() {
+            Reservation hold = new Reservation();
+            hold.setId(456L);
+            when(reservationRepository.findById(456L)).thenReturn(Optional.of(hold));
+
+            service.attachStripeSessionToHold(456L, "cs_hold");
+
+            assertThat(hold.getStripeSessionId()).isEqualTo("cs_hold");
+            verify(reservationRepository).save(hold);
+        }
+
+        @Test
+        @DisplayName("releaseEmbeddedCheckoutHold cancels and frees the calendar")
+        void whenHoldReleased_thenCancelledAndCalendarFreed() {
+            Reservation hold = new Reservation();
+            hold.setId(456L);
+            hold.setOrganizationId(ORG_ID);
+            hold.setStatus("pending");
+            hold.setConfirmationCode("RES-HOLD");
+            when(reservationRepository.findById(456L)).thenReturn(Optional.of(hold));
+
+            service.releaseEmbeddedCheckoutHold(456L);
+
+            assertThat(hold.getStatus()).isEqualTo("cancelled");
+            assertThat(hold.getPaymentStatus()).isEqualTo(PaymentStatus.CANCELLED);
+            verify(calendarEngine).cancel(456L, ORG_ID, "booking-engine-embedded-rollback");
         }
     }
 
@@ -1104,6 +1290,285 @@ class PublicBookingServiceTest {
             assertThatThrownBy(() -> service.reserveBatch(buildCtx(), req))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("meme devise");
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-09: overlapping items on the same property are rejected upfront")
+        void whenItemsOverlapOnSameProperty_thenThrowsWithoutCreating() {
+            LocalDate in = LocalDate.now().plusDays(7);
+            LocalDate out = LocalDate.now().plusDays(10);
+
+            BookingReserveBatchRequestDto.Item it1 = new BookingReserveBatchRequestDto.Item(
+                    PROPERTY_ID, in, out, 2, null);
+            BookingReserveBatchRequestDto.Item it2 = new BookingReserveBatchRequestDto.Item(
+                    PROPERTY_ID, in.plusDays(1), out.plusDays(1), 2, null);
+            BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
+                    List.of(it1, it2),
+                    new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null));
+
+            assertThatThrownBy(() -> service.reserveBatch(buildCtx(), req))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("chevauchent");
+            verify(reservationRepository, never()).save(any(Reservation.class));
+            verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-09: back-to-back stays on the same property are allowed (no overlap)")
+        void whenItemsBackToBackOnSameProperty_thenNoOverlapRejection() {
+            LocalDate in = LocalDate.now().plusDays(7);
+            LocalDate out = LocalDate.now().plusDays(10);
+
+            Property p = buildProperty();
+            lenient().when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(p));
+            lenient().when(restrictionEngine.validate(any(), any(), any(), any()))
+                    .thenReturn(RestrictionEngine.ValidationResult.valid());
+            lenient().when(calendarDayRepository.countConflicts(any(), any(), any(), any()))
+                    .thenReturn(0L);
+            lenient().when(priceEngine.resolvePriceRange(any(), any(), any(), any()))
+                    .thenReturn(Map.of());
+            Guest g = new Guest();
+            g.setId(99L);
+            lenient().when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(g);
+            lenient().when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(321L);
+                return r;
+            });
+
+            // checkOut item1 == checkIn item2 : pas de chevauchement (nuit du checkout libre)
+            BookingReserveBatchRequestDto.Item it1 = new BookingReserveBatchRequestDto.Item(
+                    PROPERTY_ID, in, out, 2, null);
+            BookingReserveBatchRequestDto.Item it2 = new BookingReserveBatchRequestDto.Item(
+                    PROPERTY_ID, out, out.plusDays(2), 2, null);
+            BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
+                    List.of(it1, it2),
+                    new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null));
+
+            BookingReserveBatchResponseDto resp = service.reserveBatch(buildCtx(), req);
+
+            assertThat(resp.reservations()).hasSize(2);
+        }
+    }
+
+    // ───────────────────── Z4A-BUGS-06 / 08 — pricing & date guards ─────────────
+
+    @Nested
+    class AvailabilityGuards {
+
+        private final LocalDate in = LocalDate.now().plusDays(7);
+        private final LocalDate out = LocalDate.now().plusDays(10);
+
+        private void stubHappyPath(Property p) {
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(p));
+            lenient().when(restrictionEngine.validate(any(), any(), any(), any()))
+                    .thenReturn(RestrictionEngine.ValidationResult.valid());
+            lenient().when(calendarDayRepository.countConflicts(any(), any(), any(), any()))
+                    .thenReturn(0L);
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-06: a night with NULL resolved price makes the stay unavailable (not 0 EUR)")
+        void whenNightPriceIsNull_thenUnavailable() {
+            Property p = buildProperty();
+            p.setNightlyPrice(null); // pas de prix de base
+            stubHappyPath(p);
+            // PriceEngine insere la cle avec valeur null quand rien n'est configure
+            Map<LocalDate, BigDecimal> priceMap = new HashMap<>();
+            priceMap.put(in, null);
+            priceMap.put(in.plusDays(1), null);
+            priceMap.put(in.plusDays(2), null);
+            when(priceEngine.resolvePriceRange(PROPERTY_ID, in, out, ORG_ID)).thenReturn(priceMap);
+
+            AvailabilityResponseDto resp = service.checkAvailability(buildCtx(), request(in, out, 2));
+
+            assertThat(resp.available()).isFalse();
+            assertThat(resp.violations()).anyMatch(v -> v.contains("Tarif non configure"));
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-06: a night priced 0 makes the stay unavailable")
+        void whenNightPriceIsZero_thenUnavailable() {
+            Property p = buildProperty();
+            stubHappyPath(p);
+            Map<LocalDate, BigDecimal> priceMap = new HashMap<>();
+            priceMap.put(in, new BigDecimal("100.00"));
+            priceMap.put(in.plusDays(1), BigDecimal.ZERO);
+            priceMap.put(in.plusDays(2), new BigDecimal("100.00"));
+            when(priceEngine.resolvePriceRange(PROPERTY_ID, in, out, ORG_ID)).thenReturn(priceMap);
+
+            AvailabilityResponseDto resp = service.checkAvailability(buildCtx(), request(in, out, 2));
+
+            assertThat(resp.available()).isFalse();
+            assertThat(resp.violations()).anyMatch(v -> v.contains("Tarif non configure"));
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-08: a check-in in the past (property timezone) is rejected")
+        void whenCheckInInThePast_thenUnavailable() {
+            Property p = buildProperty();
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(p));
+            LocalDate yesterday = LocalDate.now(java.time.ZoneId.of("Europe/Paris")).minusDays(1);
+
+            AvailabilityResponseDto resp = service.checkAvailability(
+                    buildCtx(), request(yesterday, yesterday.plusDays(3), 2));
+
+            assertThat(resp.available()).isFalse();
+            assertThat(resp.violations()).anyMatch(v -> v.contains("passe"));
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-08: same-day check-in is allowed when minAdvanceDays=0")
+        void whenSameDayCheckIn_thenAvailable() {
+            Property p = buildProperty();
+            stubHappyPath(p);
+            LocalDate today = LocalDate.now(java.time.ZoneId.of("Europe/Paris"));
+            Map<LocalDate, BigDecimal> priceMap = new HashMap<>();
+            priceMap.put(today, new BigDecimal("100.00"));
+            priceMap.put(today.plusDays(1), new BigDecimal("100.00"));
+            when(priceEngine.resolvePriceRange(PROPERTY_ID, today, today.plusDays(2), ORG_ID))
+                    .thenReturn(priceMap);
+
+            BookingEngineConfig cfg = buildConfig(true);
+            cfg.setShowCleaningFee(false);
+            cfg.setShowTouristTax(false);
+            PublicBookingService.OrgContext ctx = new PublicBookingService.OrgContext(buildOrg(), cfg);
+
+            AvailabilityResponseDto resp = service.checkAvailability(
+                    ctx, request(today, today.plusDays(2), 2));
+
+            assertThat(resp.available()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-08: a check-in beyond the hard horizon (3 years) is rejected")
+        void whenCheckInTooFarInFuture_thenUnavailable() {
+            Property p = buildProperty();
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(p));
+            LocalDate farAway = LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusYears(4);
+
+            AvailabilityResponseDto resp = service.checkAvailability(
+                    buildCtx(), request(farAway, farAway.plusDays(3), 2));
+
+            assertThat(resp.available()).isFalse();
+            assertThat(resp.violations()).anyMatch(v -> v.contains("lointaine"));
+        }
+    }
+
+    // ───────────────────── Z4A-BUGS-10 — service options snapshot ───────────────
+
+    @Nested
+    class ServiceOptionsSnapshot {
+
+        private final LocalDate in = LocalDate.now().plusDays(7);
+        private final LocalDate out = LocalDate.now().plusDays(10);
+
+        private AvailabilityResponseDto availability() {
+            return new AvailabilityResponseDto(true, PROPERTY_ID, "Cosy Loft", in, out, 2, 3,
+                    List.of(), new BigDecimal("300.00"), new BigDecimal("30.00"),
+                    BigDecimal.ZERO, new BigDecimal("330.00"), "EUR", 1, 4, "15:00", "11:00", List.of());
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-10: the embedded hold snapshots selected service options")
+        void whenHoldCreatedWithSelections_thenServiceItemsSnapshotted() {
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(buildProperty()));
+            Guest g = new Guest();
+            g.setId(5L);
+            when(guestService.findOrCreate(anyString(), anyString(), any(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(g);
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(456L);
+                return r;
+            });
+            List<SelectedServiceOptionDto> selections = List.of(new SelectedServiceOptionDto(7L, 2));
+
+            Reservation hold = service.createEmbeddedCheckoutHold(
+                    buildCtx(), PROPERTY_ID, in, out, 2, "jane@example.com", "Jane Doe",
+                    availability(), new BigDecimal("20.00"), selections);
+
+            assertThat(hold.getTotalPrice()).isEqualByComparingTo("350.00");
+            verify(serviceOptionsService).createReservationServiceItems(
+                    eq(hold), eq(selections), eq(2), eq(3), eq(ORG_ID));
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-10: legacy overload creates the hold without snapshot")
+        void whenHoldCreatedWithoutSelections_thenNoSnapshot() {
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(buildProperty()));
+            Guest g = new Guest();
+            g.setId(5L);
+            when(guestService.findOrCreate(anyString(), anyString(), any(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(g);
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(457L);
+                return r;
+            });
+
+            service.createEmbeddedCheckoutHold(
+                    buildCtx(), PROPERTY_ID, in, out, 2, "jane@example.com", "Jane Doe",
+                    availability(), BigDecimal.ZERO);
+
+            verifyNoInteractions(serviceOptionsService);
+        }
+
+        @Test
+        @DisplayName("Z4A-BUGS-10: webhook fallback recreates service items from metadata selections")
+        void whenWebhookFallbackWithServiceOptions_thenItemsSnapshotted() {
+            Session s = mock(Session.class);
+            when(s.getId()).thenReturn("cs_opts");
+            when(s.getMetadata()).thenReturn(Map.of(
+                    "property_id", PROPERTY_ID.toString(),
+                    "organization_id", ORG_ID.toString(),
+                    "check_in", in.toString(),
+                    "check_out", out.toString(),
+                    "guests", "2",
+                    "service_options_total", "20.00",
+                    "service_options", "7:2,9:1"));
+            lenient().when(s.getCustomerEmail()).thenReturn("walkin@example.com");
+            // 330 sejour+menage + 20 options = 350.00
+            lenient().when(s.getAmountTotal()).thenReturn(35000L);
+            when(reservationRepository.findByStripeSessionId("cs_opts")).thenReturn(Optional.empty());
+
+            Property p = buildProperty();
+            when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
+                    .thenReturn(Optional.of(p));
+            when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(buildOrg()));
+            when(configRepository.findAllByOrganizationId(ORG_ID))
+                    .thenReturn(List.of(buildConfig(true)));
+            when(restrictionEngine.validate(any(), any(), any(), any()))
+                    .thenReturn(RestrictionEngine.ValidationResult.valid());
+            when(calendarDayRepository.countConflicts(any(), any(), any(), any())).thenReturn(0L);
+            when(priceEngine.resolvePriceRange(any(), any(), any(), any())).thenReturn(Map.of(
+                    in, new BigDecimal("100.00"),
+                    in.plusDays(1), new BigDecimal("100.00"),
+                    in.plusDays(2), new BigDecimal("100.00")));
+            Guest guest = new Guest();
+            guest.setId(1L);
+            when(guestService.findOrCreate(anyString(), anyString(), anyString(), any(),
+                    eq(GuestChannel.DIRECT), any(), eq(ORG_ID))).thenReturn(guest);
+            when(reservationRepository.save(any(Reservation.class))).thenAnswer(inv -> {
+                Reservation r = inv.getArgument(0);
+                r.setId(888L);
+                return r;
+            });
+
+            service.confirmBookingEngineCheckout(s);
+
+            verify(serviceOptionsService).createReservationServiceItems(
+                    any(Reservation.class),
+                    eq(List.of(new SelectedServiceOptionDto(7L, 2), new SelectedServiceOptionDto(9L, 1))),
+                    eq(2), eq(3), eq(ORG_ID));
+            verify(stripeService).confirmReservationPayment("cs_opts");
         }
     }
 }

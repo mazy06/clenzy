@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.booking.service.PublicBookingService;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
@@ -11,7 +12,6 @@ import com.clenzy.service.SubscriptionService;
 import com.clenzy.service.UpsellService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
@@ -47,12 +47,10 @@ public class StripeWebhookController {
     private final ShopService shopService;
     private final PublicBookingService publicBookingService;
     private final UpsellService upsellService;
+    private final StripeGateway stripeGateway;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
-
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
 
     public StripeWebhookController(StripeService stripeService,
                                    InscriptionService inscriptionService,
@@ -62,7 +60,8 @@ public class StripeWebhookController {
                                    StripeConnectService stripeConnectService,
                                    ShopService shopService,
                                    PublicBookingService publicBookingService,
-                                   UpsellService upsellService) {
+                                   UpsellService upsellService,
+                                   StripeGateway stripeGateway) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
@@ -72,6 +71,7 @@ public class StripeWebhookController {
         this.shopService = shopService;
         this.publicBookingService = publicBookingService;
         this.upsellService = upsellService;
+        this.stripeGateway = stripeGateway;
     }
 
     /**
@@ -87,9 +87,6 @@ public class StripeWebhookController {
     public ResponseEntity<String> handleStripeWebhook(
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String sigHeader) {
-
-        // Initialiser Stripe
-        Stripe.apiKey = stripeSecretKey;
 
         Event event;
 
@@ -109,39 +106,49 @@ public class StripeWebhookController {
 
         logger.info("Webhook Stripe recu: type={}", event.getType());
 
-        // Traiter l'evenement
-        switch (event.getType()) {
-            case "checkout.session.completed":
-                handleCheckoutCompleted(event);
-                break;
+        // Traiter l'evenement. Un echec de traitement retourne 500 pour que Stripe
+        // re-livre l'evenement (Z3-BUGS-10) : les handlers de confirmation sont
+        // idempotents (PaymentStatusTransitionService, gardes de statut), une
+        // re-livraison ne produit donc pas de double effet.
+        try {
+            switch (event.getType()) {
+                case "checkout.session.completed":
+                    handleCheckoutCompleted(event);
+                    break;
 
-            case "checkout.session.async_payment_succeeded":
-                handleAsyncPaymentSucceeded(event);
-                break;
+                case "checkout.session.async_payment_succeeded":
+                    handleAsyncPaymentSucceeded(event);
+                    break;
 
-            case "checkout.session.async_payment_failed":
-                handleAsyncPaymentFailed(event);
-                break;
+                case "checkout.session.async_payment_failed":
+                    handleAsyncPaymentFailed(event);
+                    break;
 
-            case "payment_intent.succeeded":
-                handlePaymentIntentSucceeded(event);
-                break;
+                case "payment_intent.succeeded":
+                    handlePaymentIntentSucceeded(event);
+                    break;
 
-            case "payment_intent.payment_failed":
-                handlePaymentIntentFailed(event);
-                break;
+                case "payment_intent.payment_failed":
+                    handlePaymentIntentFailed(event);
+                    break;
 
-            case "account.updated":
-                handleAccountUpdated(event);
-                break;
+                case "account.updated":
+                    handleAccountUpdated(event);
+                    break;
 
-            case "transfer.failed":
-                handleTransferFailed(event);
-                break;
+                case "transfer.failed":
+                    handleTransferFailed(event);
+                    break;
 
-            default:
-                logger.debug("Evenement Stripe non gere: {}", event.getType());
-                break;
+                default:
+                    logger.debug("Evenement Stripe non gere: {}", event.getType());
+                    break;
+            }
+        } catch (Exception e) {
+            logger.error("Echec du traitement du webhook Stripe eventId={}, type={} -> retour 500 pour re-livraison",
+                    event.getId(), event.getType(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Erreur lors du traitement de l'evenement");
         }
 
         return ResponseEntity.ok("Webhook traite avec succes");
@@ -186,17 +193,20 @@ public class StripeWebhookController {
                 JsonNode jsonNode = mapper.readTree(rawJson);
                 String sessionId = jsonNode.has("id") ? jsonNode.get("id").asText() : null;
 
-                if (sessionId != null) {
-                    logger.info("Session ID extrait du JSON brut: {}", sessionId);
-                    session = Session.retrieve(sessionId);
-                    logger.info("Session recuperee via API Stripe: {}", sessionId);
-                } else {
+                if (sessionId == null) {
+                    // Payload sans id : une re-livraison du meme payload echouera pareil,
+                    // on acquitte (200) pour ne pas boucler inutilement.
                     logger.error("Impossible d'extraire le session ID du JSON brut");
                     return;
                 }
+                logger.info("Session ID extrait du JSON brut: {}", sessionId);
+                session = stripeGateway.retrieveSession(sessionId);
+                logger.info("Session recuperee via API Stripe: {}", sessionId);
             } catch (Exception e) {
-                logger.error("Impossible de recuperer la session Stripe depuis le JSON brut: {}", e.getMessage());
-                return;
+                // Echec potentiellement transitoire (API Stripe) : propager pour
+                // retourner 500 et declencher la re-livraison Stripe.
+                throw new IllegalStateException(
+                        "Impossible de recuperer la session Stripe depuis le JSON brut", e);
             }
         }
 
@@ -223,14 +233,13 @@ public class StripeWebhookController {
 
         logger.info("Type determine pour session {}: type={}", sessionId, type);
 
+        // Z3-BUGS-10 : plus de try/catch avaleur par branche. Une exception de
+        // confirmation remonte au handler principal qui retourne 500 → Stripe
+        // re-livre l'evenement (les confirmations sont idempotentes).
         if ("hardware_purchase".equals(type)) {
             // Paiement d'achat de materiel IoT (shop)
             logger.info("Paiement hardware reussi pour session: {}", sessionId);
-            try {
-                shopService.completeOrder(sessionId);
-            } catch (Exception e) {
-                logger.error("Erreur lors de la completion de la commande hardware pour session: {}", sessionId, e);
-            }
+            shopService.completeOrder(sessionId);
             updatePaymentTransaction(session, true);
             return;
         } else if ("inscription".equals(type)) {
@@ -238,19 +247,11 @@ public class StripeWebhookController {
             String customerId = session.getCustomer();
             String subscriptionId = session.getSubscription();
             logger.info("Subscription d'inscription reussie pour session: {}, customer: {}, subscription: {}", sessionId, customerId, subscriptionId);
-            try {
-                inscriptionService.confirmPayment(sessionId, customerId, subscriptionId);
-            } catch (Exception e) {
-                logger.error("Erreur lors de la confirmation du paiement d'inscription pour session: {}", sessionId, e);
-            }
+            inscriptionService.confirmPayment(sessionId, customerId, subscriptionId);
         } else if ("upgrade".equals(type)) {
             // Upgrade de forfait (subscription) : mettre a jour le forfait utilisateur
             logger.info("Upgrade de forfait reussi pour session: {}", sessionId);
-            try {
-                subscriptionService.completeUpgrade(sessionId);
-            } catch (Exception e) {
-                logger.error("Erreur lors de la finalisation de l'upgrade pour session: {}", sessionId, e);
-            }
+            subscriptionService.completeUpgrade(sessionId);
         } else if ("grouped_deferred".equals(type)) {
             // Paiement groupe differe : confirmer toutes les interventions incluses
             String interventionIds = session.getMetadata().get("intervention_ids");
@@ -259,39 +260,23 @@ public class StripeWebhookController {
         } else if ("reservation".equals(type)) {
             // Paiement de reservation (envoye par email au guest)
             logger.info("Paiement de reservation reussi pour session: {}", sessionId);
-            try {
-                stripeService.confirmReservationPayment(sessionId);
-            } catch (Exception e) {
-                logger.error("Erreur lors de la confirmation du paiement de reservation pour session: {}", sessionId, e);
-            }
+            stripeService.confirmReservationPayment(sessionId);
         } else if ("booking_engine".equals(type)) {
             // Paiement d'une reservation creee via le Booking Engine public (widget SDK).
             // Le webhook gere deux scenarios :
             //  - reservation deja creee (flux SDK avec /reserve avant /checkout) → la passer en PAID
             //  - reservation absente (flux Embedded Checkout direct) → la creer ex-nihilo depuis metadata
             logger.info("Paiement Booking Engine reussi pour session: {}", sessionId);
-            try {
-                publicBookingService.confirmBookingEngineCheckout(session);
-            } catch (Exception e) {
-                logger.error("Erreur lors de la confirmation du paiement Booking Engine pour session: {}", sessionId, e);
-            }
+            publicBookingService.confirmBookingEngineCheckout(session);
         } else if ("service_request".equals(type)) {
             // Paiement de demande de service → confirmation + creation intervention automatique
             String srId = session.getMetadata().get("service_request_id");
             logger.info("Paiement SR reussi pour session: {}, srId: {}", sessionId, srId);
-            try {
-                stripeService.confirmServiceRequestPayment(sessionId);
-            } catch (Exception e) {
-                logger.error("Erreur lors de la confirmation du paiement SR pour session: {}", sessionId, e);
-            }
+            stripeService.confirmServiceRequestPayment(sessionId);
         } else if ("upsell".equals(type)) {
             // Paiement d'un upsell du livret (early check-in, ménage, transfert…)
             logger.info("Paiement upsell reussi pour session: {}", sessionId);
-            try {
-                upsellService.markPaidBySession(sessionId);
-            } catch (Exception e) {
-                logger.error("Erreur lors de la confirmation du paiement upsell pour session: {}", sessionId, e);
-            }
+            upsellService.markPaidBySession(sessionId);
         } else {
             // Paiement d'intervention — paiement unique (flux existant)
             logger.info("Paiement d'intervention reussi pour session: {}", sessionId);
@@ -310,18 +295,16 @@ public class StripeWebhookController {
     private void updatePaymentTransaction(Session session, boolean success) {
         if (session == null || session.getMetadata() == null) return;
         String transactionRef = session.getMetadata().get("transactionRef");
-        if (transactionRef != null && !transactionRef.isBlank()) {
-            try {
-                if (success) {
-                    orchestrationService.completeTransaction(transactionRef);
-                    logger.info("PaymentTransaction {} marked COMPLETED via Stripe webhook", transactionRef);
-                } else {
-                    orchestrationService.failTransaction(transactionRef, "Stripe async payment failed");
-                    logger.info("PaymentTransaction {} marked FAILED via Stripe webhook", transactionRef);
-                }
-            } catch (Exception e) {
-                logger.error("Failed to update PaymentTransaction {}: {}", transactionRef, e.getMessage());
-            }
+        if (transactionRef == null || transactionRef.isBlank()) return;
+
+        // Z3-BUGS-10 : un echec ici remonte au handler principal (500 → re-livraison).
+        // completeTransaction est idempotent (skip si deja COMPLETED).
+        if (success) {
+            orchestrationService.completeTransaction(transactionRef);
+            logger.info("PaymentTransaction {} marked COMPLETED via Stripe webhook", transactionRef);
+        } else {
+            orchestrationService.failTransaction(transactionRef, "Stripe async payment failed");
+            logger.info("PaymentTransaction {} marked FAILED via Stripe webhook", transactionRef);
         }
     }
 
@@ -344,11 +327,7 @@ public class StripeWebhookController {
         } else if ("inscription".equals(type)) {
             String customerId = session.getCustomer();
             String subscriptionId = session.getSubscription();
-            try {
-                inscriptionService.confirmPayment(sessionId, customerId, subscriptionId);
-            } catch (Exception e) {
-                logger.error("Erreur lors de la confirmation asynchrone du paiement d'inscription: {}", sessionId, e);
-            }
+            inscriptionService.confirmPayment(sessionId, customerId, subscriptionId);
         } else if ("grouped_deferred".equals(type)) {
             String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
             logger.info("Paiement groupe differe asynchrone reussi pour session: {}", sessionId);
@@ -358,11 +337,7 @@ public class StripeWebhookController {
             stripeService.confirmReservationPayment(sessionId);
         } else if ("booking_engine".equals(type)) {
             logger.info("Paiement Booking Engine asynchrone reussi pour session: {}", sessionId);
-            try {
-                publicBookingService.confirmBookingEngineCheckout(session);
-            } catch (Exception e) {
-                logger.error("Erreur confirmation async Booking Engine pour session: {}", sessionId, e);
-            }
+            publicBookingService.confirmBookingEngineCheckout(session);
         } else if ("service_request".equals(type)) {
             logger.info("Paiement SR asynchrone reussi pour session: {}", sessionId);
             stripeService.confirmServiceRequestPayment(sessionId);
@@ -429,20 +404,10 @@ public class StripeWebhookController {
 
         if ("mobile_upgrade".equals(type)) {
             // Upgrade de forfait via Payment Sheet mobile
-            try {
-                mobilePaymentService.completeSubscriptionUpgrade(paymentIntent);
-            } catch (Exception e) {
-                logger.error("Erreur lors de l'upgrade mobile pour PaymentIntent {}: {}",
-                        paymentIntent.getId(), e.getMessage(), e);
-            }
+            mobilePaymentService.completeSubscriptionUpgrade(paymentIntent);
         } else if ("mobile_intervention".equals(type)) {
             // Paiement d'intervention via Payment Sheet mobile
-            try {
-                mobilePaymentService.completeInterventionPayment(paymentIntent);
-            } catch (Exception e) {
-                logger.error("Erreur lors du paiement intervention mobile pour PaymentIntent {}: {}",
-                        paymentIntent.getId(), e.getMessage(), e);
-            }
+            mobilePaymentService.completeInterventionPayment(paymentIntent);
         } else {
             // PaymentIntent non gere par le mobile (peut etre un PI d'un Checkout Session web)
             logger.debug("payment_intent.succeeded ignore (type={})", type);
@@ -469,12 +434,16 @@ public class StripeWebhookController {
             String interventionIdStr = paymentIntent.getMetadata().get("interventionId");
             if (interventionIdStr != null) {
                 try {
-                    Long interventionId = Long.parseLong(interventionIdStr);
-                    // Reutiliser la logique existante via le session ID stocke
-                    stripeService.markPaymentAsFailed(paymentIntent.getId());
-                } catch (Exception e) {
-                    logger.error("Erreur gestion echec paiement mobile intervention: {}", e.getMessage());
+                    Long.parseLong(interventionIdStr);
+                } catch (NumberFormatException e) {
+                    // Metadata corrompue : deterministe, une re-livraison echouerait pareil — on acquitte.
+                    logger.error("interventionId invalide '{}' sur PaymentIntent {}",
+                            interventionIdStr, paymentIntent.getId());
+                    return;
                 }
+                // Reutiliser la logique existante via le session ID stocke.
+                // Un echec remonte au handler principal (500 → re-livraison).
+                stripeService.markPaymentAsFailed(paymentIntent.getId());
             }
         }
         // Pour mobile_upgrade, pas d'action speciale (la subscription reste incomplete)
@@ -500,12 +469,7 @@ public class StripeWebhookController {
         logger.info("account.updated: id={}, chargesEnabled={}, payoutsEnabled={}",
                 account.getId(), chargesEnabled, payoutsEnabled);
 
-        try {
-            stripeConnectService.handleAccountUpdated(account.getId(), chargesEnabled, payoutsEnabled);
-        } catch (Exception e) {
-            logger.error("Erreur lors du traitement account.updated pour {}: {}",
-                    account.getId(), e.getMessage(), e);
-        }
+        stripeConnectService.handleAccountUpdated(account.getId(), chargesEnabled, payoutsEnabled);
     }
 
     /**

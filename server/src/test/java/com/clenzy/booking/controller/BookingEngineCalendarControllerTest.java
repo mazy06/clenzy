@@ -6,6 +6,7 @@ import com.clenzy.booking.dto.CalendarAvailabilityResponseDto;
 import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.service.BookingEngineCalendarService;
+import com.clenzy.booking.service.BookingEngineConfigService;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.model.Organization;
 import com.clenzy.repository.OrganizationRepository;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -37,11 +37,16 @@ class BookingEngineCalendarControllerTest {
     @Mock private OrganizationRepository organizationRepository;
     @Mock private BookingEngineConfigRepository configRepository;
 
-    @InjectMocks
     private BookingEngineCalendarController controller;
 
     @BeforeEach
     void setUp() {
+        // Pattern Vague A : service de resolution REEL construit au-dessus des mocks
+        // (organizationRepository + configRepository) pour conserver la couverture e2e.
+        BookingEngineConfigService configService = new BookingEngineConfigService(
+            configRepository, organizationRepository, tenantContext);
+        controller = new BookingEngineCalendarController(
+            calendarService, tenantContext, publicBookingService, configService);
         lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
     }
 

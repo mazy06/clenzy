@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.ChannelCommissionDto;
 import com.clenzy.dto.OwnerPayoutDto;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.ChannelCommission;
@@ -10,6 +11,7 @@ import com.clenzy.model.User;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.AccountingQueryService;
 import com.clenzy.service.AccountingService;
 import com.clenzy.service.OwnerStatementService;
 import com.clenzy.service.PayoutExecutionService;
@@ -54,9 +56,13 @@ class AccountingControllerTest {
 
     @BeforeEach
     void setUp() {
+        // Service de lecture reel branche sur les mocks : les stubs existants
+        // sur les repositories restent valables a travers la couche service.
+        AccountingQueryService accountingQueryService = new AccountingQueryService(
+                payoutRepository, userRepository, organizationRepository);
         controller = new AccountingController(
-                accountingService, payoutExecutionService, payoutRepository,
-                userRepository, tenantContext, ownerStatementService, organizationRepository);
+                accountingService, payoutExecutionService, accountingQueryService,
+                tenantContext, ownerStatementService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "kc-user-1")
@@ -392,22 +398,31 @@ class AccountingControllerTest {
             cc.setChannelName(ChannelName.AIRBNB);
             when(accountingService.getChannelCommissions(1L)).thenReturn(List.of(cc));
 
-            List<ChannelCommission> result = controller.getCommissions();
+            List<ChannelCommissionDto> result = controller.getCommissions();
 
             assertThat(result).hasSize(1);
-            assertThat(result.get(0).getChannelName()).isEqualTo(ChannelName.AIRBNB);
+            assertThat(result.get(0).channelName()).isEqualTo(ChannelName.AIRBNB);
         }
 
         @Test
         void saveCommission_setsChannelAndOrgIdAndSaves() {
             when(tenantContext.getOrganizationId()).thenReturn(1L);
-            ChannelCommission cc = new ChannelCommission();
-            when(accountingService.saveChannelCommission(any())).thenAnswer(inv -> inv.getArgument(0));
+            ChannelCommissionDto request = new ChannelCommissionDto(
+                    null, null, null, new BigDecimal("0.1500"), null, null, null, null, null);
+            when(accountingService.saveChannelCommission(eq(ChannelName.BOOKING), eq(1L), any()))
+                    .thenAnswer(inv -> {
+                        ChannelCommission c = new ChannelCommission();
+                        c.setChannelName(inv.getArgument(0));
+                        c.setOrganizationId(inv.getArgument(1));
+                        ChannelCommissionDto dto = inv.getArgument(2);
+                        c.setCommissionRate(dto.commissionRate());
+                        return c;
+                    });
 
-            ChannelCommission result = controller.saveCommission(ChannelName.BOOKING, cc);
+            ChannelCommissionDto result = controller.saveCommission(ChannelName.BOOKING, request);
 
-            assertThat(result.getChannelName()).isEqualTo(ChannelName.BOOKING);
-            assertThat(result.getOrganizationId()).isEqualTo(1L);
+            assertThat(result.channelName()).isEqualTo(ChannelName.BOOKING);
+            assertThat(result.organizationId()).isEqualTo(1L);
         }
     }
 }

@@ -1,16 +1,29 @@
 package com.clenzy.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests unitaires pour {@link KafkaConfig}.
@@ -53,15 +66,81 @@ class KafkaConfigTest {
     }
 
     @Test
-    @DisplayName("kafkaListenerContainerFactory: ack-mode=RECORD + concurrency=3 + error handler")
+    @DisplayName("kafkaListenerContainerFactory: ack-mode=RECORD + concurrency=3 + error handler DLQ")
     void listenerContainerFactory_isCreated() {
+        DefaultErrorHandler errorHandler = config.kafkaErrorHandler(
+            config.kafkaDeadLetterPublishingRecoverer(config.kafkaTemplate()));
+
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
-            config.kafkaListenerContainerFactory();
+            config.kafkaListenerContainerFactory(errorHandler);
 
         assertThat(factory).isNotNull();
         assertThat(factory.getContainerProperties().getAckMode())
             .isEqualTo(org.springframework.kafka.listener.ContainerProperties.AckMode.RECORD);
         assertThat(factory.getContainerProperties()).isNotNull();
+        assertThat(ReflectionTestUtils.getField(factory, "commonErrorHandler"))
+            .as("le DefaultErrorHandler avec DLQ doit etre branche sur la factory")
+            .isSameAs(errorHandler);
+    }
+
+    // ─── DLQ (Z1-BUGS-01) ──────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("DLQ: un message epuisant ses retries est publie vers <topic>.DLT")
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void whenRecordExhaustsRetries_thenItIsPublishedToTopicDlt() {
+        // Arrange
+        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        ProducerFactory<String, Object> producerFactory = mock(ProducerFactory.class);
+        when(template.getProducerFactory()).thenReturn(producerFactory);
+        when(producerFactory.getConfigurationProperties()).thenReturn(Map.of());
+        when(template.send(any(ProducerRecord.class)))
+            .thenAnswer(invocation -> CompletableFuture.completedFuture(mock(SendResult.class)));
+
+        DeadLetterPublishingRecoverer recoverer = config.kafkaDeadLetterPublishingRecoverer(template);
+        ConsumerRecord<String, Object> failedRecord =
+            new ConsumerRecord<>(KafkaConfig.TOPIC_CALENDAR_UPDATES, 2, 42L, "property-1", "payload");
+
+        // Act : le DefaultErrorHandler invoque le recoverer une fois les retries epuises
+        recoverer.accept(failedRecord, new RuntimeException("echec de traitement"));
+
+        // Assert
+        ArgumentCaptor<ProducerRecord> captor = ArgumentCaptor.forClass(ProducerRecord.class);
+        verify(template).send(captor.capture());
+        ProducerRecord<String, Object> published = captor.getValue();
+        assertThat(published.topic()).isEqualTo(KafkaConfig.TOPIC_CALENDAR_UPDATES + ".DLT");
+        assertThat(published.partition())
+            .as("partition -1 -> laissee au choix de Kafka (le .DLT peut avoir moins de partitions)")
+            .isNull();
+        assertThat(published.value()).isEqualTo("payload");
+    }
+
+    @Test
+    @DisplayName("DLQ: les echecs de tous les topics consommes sont routes vers leur .DLT respectif")
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void whenAnyTopicFails_thenDltDestinationMatchesSourceTopic() {
+        // Arrange
+        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        ProducerFactory<String, Object> producerFactory = mock(ProducerFactory.class);
+        when(template.getProducerFactory()).thenReturn(producerFactory);
+        when(producerFactory.getConfigurationProperties()).thenReturn(Map.of());
+        when(template.send(any(ProducerRecord.class)))
+            .thenAnswer(invocation -> CompletableFuture.completedFuture(mock(SendResult.class)));
+        DeadLetterPublishingRecoverer recoverer = config.kafkaDeadLetterPublishingRecoverer(template);
+
+        // Act
+        recoverer.accept(new ConsumerRecord<>(KafkaConfig.TOPIC_NOTIFICATIONS, 0, 1L, "k", "v"),
+            new RuntimeException("boom"));
+        recoverer.accept(new ConsumerRecord<>(KafkaConfig.TOPIC_PAYMENT_EVENTS, 0, 1L, "k", "v"),
+            new RuntimeException("boom"));
+
+        // Assert
+        ArgumentCaptor<ProducerRecord> captor = ArgumentCaptor.forClass(ProducerRecord.class);
+        verify(template, org.mockito.Mockito.times(2)).send(captor.capture());
+        java.util.List<ProducerRecord> sentRecords = captor.getAllValues();
+        assertThat(sentRecords).hasSize(2);
+        assertThat(sentRecords.get(0).topic()).isEqualTo(KafkaConfig.TOPIC_NOTIFICATIONS + ".DLT");
+        assertThat(sentRecords.get(1).topic()).isEqualTo(KafkaConfig.TOPIC_PAYMENT_EVENTS + ".DLT");
     }
 
     // ─── NewTopic beans ────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 package com.clenzy.service.agent.vision;
 
+import com.clenzy.model.OrgVisionAlert;
 import com.clenzy.repository.AssistantMessageRepository;
+import com.clenzy.repository.OrgVisionAlertRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -9,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Optional;
 
 /**
  * Mesure l'usage de tokens vision (messages user avec attachments) par
@@ -28,15 +31,20 @@ public class VisionTokenUsageService {
     private static final int WINDOW_DAYS = 30;
 
     private final AssistantMessageRepository messageRepository;
+    private final OrgVisionAlertRepository alertRepository;
     private final Clock clock;
 
     @org.springframework.beans.factory.annotation.Autowired
-    public VisionTokenUsageService(AssistantMessageRepository messageRepository) {
-        this(messageRepository, Clock.systemUTC());
+    public VisionTokenUsageService(AssistantMessageRepository messageRepository,
+                                   OrgVisionAlertRepository alertRepository) {
+        this(messageRepository, alertRepository, Clock.systemUTC());
     }
 
-    VisionTokenUsageService(AssistantMessageRepository messageRepository, Clock clock) {
+    VisionTokenUsageService(AssistantMessageRepository messageRepository,
+                            OrgVisionAlertRepository alertRepository,
+                            Clock clock) {
         this.messageRepository = messageRepository;
+        this.alertRepository = alertRepository;
         this.clock = clock;
     }
 
@@ -64,6 +72,27 @@ public class VisionTokenUsageService {
         long usage = getMonthlyUsage(organizationId);
         return new UsageSnapshot(organizationId, usage, WINDOW_DAYS,
                 LocalDateTime.now(clock.withZone(ZoneId.of("UTC"))));
+    }
+
+    /**
+     * Config d'alerte vision de l'org, si definie. L'{@code organizationId}
+     * DOIT provenir du {@link com.clenzy.tenant.TenantContext} (jamais d'un
+     * input client) — c'est la validation d'org du domaine.
+     */
+    public Optional<OrgVisionAlert> getAlertConfig(Long organizationId) {
+        return alertRepository.findByOrganizationId(organizationId);
+    }
+
+    /**
+     * Upsert du seuil d'alerte (tokens 30 jours glissants) pour l'org.
+     * Cree la ligne {@code org_vision_alerts} si absente.
+     */
+    @Transactional
+    public OrgVisionAlert upsertThreshold(Long organizationId, long thresholdTokens) {
+        OrgVisionAlert cfg = alertRepository.findByOrganizationId(organizationId)
+                .orElseGet(() -> new OrgVisionAlert(organizationId, thresholdTokens));
+        cfg.setThresholdTokens(thresholdTokens);
+        return alertRepository.save(cfg);
     }
 
     public record UsageSnapshot(Long organizationId, long tokensLast30Days,

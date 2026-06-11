@@ -305,6 +305,13 @@ export const bookingEngineApi = {
 
   createCheckoutSession: (data: {
     propertyId: number;
+    /** Requis côté serveur (@NotNull) : cross-check anti cross-tenant. */
+    organizationId: number;
+    /**
+     * Montant attendu côté client — simple cross-check : le serveur recalcule
+     * TOUJOURS le devis (PriceEngine) et rejette en 400 toute divergence.
+     * Doit provenir du total de l'API availability, jamais d'un calcul local.
+     */
     amount: number;
     checkIn: string;
     checkOut: string;

@@ -74,8 +74,10 @@ public class ICalChannelAdapter implements ChannelConnector {
             Object propertyIdObj = data.get("propertyId");
 
             if (feedUrlObj == null || propertyIdObj == null) {
+                // URL masquee : la query string des feeds OTA contient un token secret (T-BP-02).
                 log.warn("ICalChannelAdapter: event ical.poll incomplet, feedUrl={}, propertyId={}",
-                        feedUrlObj, propertyIdObj);
+                        feedUrlObj == null ? null : com.clenzy.service.ical.FeedUrlMasker.mask(feedUrlObj.toString()),
+                        propertyIdObj);
                 return;
             }
 
@@ -92,12 +94,12 @@ public class ICalChannelAdapter implements ChannelConnector {
             ICalFeed feed = iCalFeedRepository.findByPropertyIdAndUrl(propertyId, feedUrl, orgId);
             if (feed == null) {
                 log.warn("ICalChannelAdapter: aucun feed iCal trouve pour propriete {} url {}",
-                        propertyId, feedUrl);
+                        propertyId, com.clenzy.service.ical.FeedUrlMasker.mask(feedUrl));
                 return;
             }
 
             log.info("ICalChannelAdapter: import on-demand pour propriete {} depuis {}",
-                    propertyId, feedUrl);
+                    propertyId, com.clenzy.service.ical.FeedUrlMasker.mask(feedUrl));
             iCalImportService.syncFeeds(List.of(feed));
         }
     }

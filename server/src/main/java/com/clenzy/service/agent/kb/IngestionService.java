@@ -189,6 +189,15 @@ public class IngestionService {
     }
 
     /**
+     * Liste les documents visibles par une organisation (globaux + propres),
+     * tries par date de mise a jour decroissante.
+     */
+    @Transactional(readOnly = true)
+    public List<KbDocument> listVisibleDocuments(Long organizationId) {
+        return documentRepository.findVisibleByOrg(organizationId);
+    }
+
+    /**
      * Supprime un document de la KB (et ses chunks via le ON DELETE CASCADE).
      * Verifie que le caller est autorise (org_id NULL = doc globale → admin
      * obligatoire, sinon org_id doit matcher).
