@@ -1,9 +1,12 @@
 package com.clenzy.service;
 
+import com.clenzy.repository.AssistantMessageRepository;
+import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -37,14 +40,20 @@ public class S3PhotoStorageService implements PhotoStorageService {
     private final S3Client s3Client;
     private final String bucket;
     private final String prefix;
+    private final AssistantMessageRepository assistantMessageRepository;
+    private final TenantContext tenantContext;
 
     public S3PhotoStorageService(
             S3Client s3Client,
             @Value("${clenzy.storage.s3.bucket}") String bucket,
-            @Value("${clenzy.storage.s3.prefix:photos}") String prefix) {
+            @Value("${clenzy.storage.s3.prefix:photos}") String prefix,
+            AssistantMessageRepository assistantMessageRepository,
+            TenantContext tenantContext) {
         this.s3Client = s3Client;
         this.bucket = bucket;
         this.prefix = prefix;
+        this.assistantMessageRepository = assistantMessageRepository;
+        this.tenantContext = tenantContext;
     }
 
     @Override
@@ -75,6 +84,33 @@ public class S3PhotoStorageService implements PhotoStorageService {
             return response.readAllBytes();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to retrieve photo from S3: " + storageKey, e);
+        }
+    }
+
+    /**
+     * Storage S3 : la cle est un UUID aleatoire ({@link #buildKey}) non lie a une
+     * ressource org-scopee. On autorise la resolution uniquement si la cle est
+     * deja referencee par un attachment d'un message de l'organisation du tenant
+     * courant — defense en profondeur contre une cle forgee pointant vers le
+     * bucket d'une autre org.
+     *
+     * <p>Note securite : contrairement au storage local (id sequentiel de
+     * {@code property_photos}, enumerable cross-org), une cle S3 est un UUID
+     * non-devinable — l'IDOR par enumeration n'est pas praticable. Cette garde
+     * reste posee pour fail-closed coherent avec le contrat de l'interface.</p>
+     *
+     * <p>Bypass platform staff / org SYSTEM (memes exemptions que le filtre
+     * Hibernate, que le storage ne traverse pas).</p>
+     */
+    @Override
+    public void assertReadableInCurrentOrg(String storageKey) {
+        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
+            return;
+        }
+        Long orgId = tenantContext.getOrganizationId();
+        if (orgId == null || storageKey == null
+                || !assistantMessageRepository.existsAttachmentKeyForOrg(storageKey, orgId)) {
+            throw new AccessDeniedException("Attachment non autorise");
         }
     }
 

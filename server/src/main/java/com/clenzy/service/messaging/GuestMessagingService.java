@@ -9,6 +9,7 @@ import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.service.access.AccessCodeResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -109,6 +110,15 @@ public class GuestMessagingService {
                                         MessageChannelType channelType) {
         Reservation reservation = reservationRepository.findById(reservationId)
             .orElseThrow(() -> new IllegalArgumentException("Reservation introuvable: " + reservationId));
+
+        // Ownership (regle audit 2026-06 #3) : findById contourne le filtre Hibernate.
+        // Le reservationId peut etre controle par l'appelant (ex: tool LLM send_guest_message) ;
+        // refuser si la reservation n'appartient pas a l'organisation du caller, sinon envoi
+        // de message guest declenche sur une reservation cross-org.
+        if (reservation.getOrganizationId() != null && !reservation.getOrganizationId().equals(orgId)) {
+            throw new AccessDeniedException(
+                "Reservation " + reservationId + " hors de l'organisation " + orgId);
+        }
 
         MessageTemplate template = templateRepository.findByIdAndOrganizationId(templateId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Template introuvable: " + templateId));

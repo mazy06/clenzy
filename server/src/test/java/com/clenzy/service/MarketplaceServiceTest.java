@@ -1,13 +1,14 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.IntegrationPartnerDto;
+import com.clenzy.integration.external.service.ApiKeyEncryptionService;
 import com.clenzy.model.IntegrationPartner;
 import com.clenzy.model.IntegrationPartner.IntegrationCategory;
 import com.clenzy.model.IntegrationPartner.IntegrationStatus;
 import com.clenzy.repository.IntegrationPartnerRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,9 +23,20 @@ import static org.mockito.Mockito.*;
 class MarketplaceServiceTest {
 
     @Mock private IntegrationPartnerRepository partnerRepository;
-    @InjectMocks private MarketplaceService service;
+
+    // Vrai service de chiffrement (Jasypt) avec une cle de test : permet d'asserter
+    // que la cle API est bien chiffree au repos (M1-MODEL-02), pas un mock opaque.
+    private final ApiKeyEncryptionService encryption =
+            new ApiKeyEncryptionService("test-marketplace-encryption-password");
+
+    private MarketplaceService service;
 
     private static final Long ORG_ID = 1L;
+
+    @BeforeEach
+    void setUp() {
+        service = new MarketplaceService(partnerRepository, encryption);
+    }
 
     private IntegrationPartner createPartner(IntegrationStatus status) {
         IntegrationPartner p = new IntegrationPartner();
@@ -48,6 +60,22 @@ class MarketplaceServiceTest {
 
         assertEquals(IntegrationStatus.CONNECTED, result.status());
         assertNotNull(result.connectedAt());
+    }
+
+    @Test
+    void connectIntegration_encryptsApiKeyAtRest() {
+        // M1-MODEL-02 : la cle API ne doit JAMAIS etre stockee en clair.
+        IntegrationPartner partner = createPartner(IntegrationStatus.AVAILABLE);
+        when(partnerRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(partner));
+        when(partnerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.connectIntegration(1L, ORG_ID, "api_key_123", null);
+
+        // La valeur persistee est du ciphertext (differente de la valeur en clair)...
+        assertNotNull(partner.getApiKeyEncrypted());
+        assertNotEquals("api_key_123", partner.getApiKeyEncrypted());
+        // ...et est dechiffrable cote applicatif a l'usage.
+        assertEquals("api_key_123", service.decryptApiKey(partner));
     }
 
     @Test

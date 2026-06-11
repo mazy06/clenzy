@@ -2,21 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
-  Typography,
-  TextField,
   Button,
-  Grid,
   Alert,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from '@mui/material';
-import { Person } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { usersApi } from '../../services/api';
 import type { Property } from '../../services/api';
 import { usePropertyForm } from '../../hooks/usePropertyForm';
 import type { FormUser } from '../../hooks/usePropertyForm';
@@ -40,21 +31,7 @@ const FORM_PAPER_SX = {
   p: 2.5,
 } as const;
 
-const DIALOG_TITLE_SX = {
-  fontSize: '0.8125rem',
-  fontWeight: 600,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.75,
-} as const;
-
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-interface TemporaryOwner {
-  firstName: string;
-  lastName: string;
-  email: string;
-}
 
 interface PropertyFormProps {
   onClose?: () => void;
@@ -97,15 +74,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
     onNavigate: (path) => navigate(path),
   });
 
-  // ─── Owner dialog (kept local) ───────────────────────────────────────
-  const [showOwnerDialog, setShowOwnerDialog] = useState(false);
-  const [temporaryOwner, setTemporaryOwner] = useState<TemporaryOwner>({
-    firstName: '',
-    lastName: '',
-    email: '',
-  });
-  const [ownerError, setOwnerError] = useState<string | null>(null);
-
   // ─── Permissions ──────────────────────────────────────────────────────
   const [hasPermission, setHasPermission] = useState(false);
 
@@ -130,25 +98,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
       if (currentUser) setValue('ownerId', currentUser.id);
     }
   }, [users, user, isHost, isAdmin, isManager, setValue, isEditMode]);
-
-  // ─── Temporary owner creation ─────────────────────────────────────────
-  const handleCreateTemporaryOwner = async () => {
-    try {
-      const newUser = await usersApi.create({
-        firstName: temporaryOwner.firstName,
-        lastName: temporaryOwner.lastName,
-        email: temporaryOwner.email,
-        password: 'TempPass123!',
-        role: 'HOST',
-      });
-      setValue('ownerId', newUser.id);
-      setShowOwnerDialog(false);
-      setTemporaryOwner({ firstName: '', lastName: '', email: '' });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur inconnue';
-      setOwnerError('Erreur lors de la création: ' + message);
-    }
-  };
 
   // ─── Option lists ─────────────────────────────────────────────────────
   // Source unique de verite : PROPERTY_TYPES dans utils/statusUtils.ts.
@@ -236,73 +185,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
           Soumettre
         </Button>
       </form>
-
-      {/* ─── Owner creation dialog ─────────────────────────────────────── */}
-      <Dialog open={showOwnerDialog} onClose={() => setShowOwnerDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ pb: 0.5 }}>
-          <Typography sx={DIALOG_TITLE_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Person size={16} strokeWidth={1.75} /></Box>
-            {t('properties.newOwnerDialog')}
-          </Typography>
-        </DialogTitle>
-
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label={`${t('properties.firstName')} *`}
-                value={temporaryOwner.firstName}
-                onChange={(e) => setTemporaryOwner(prev => ({ ...prev, firstName: e.target.value }))}
-                required
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label={`${t('properties.lastName')} *`}
-                value={temporaryOwner.lastName}
-                onChange={(e) => setTemporaryOwner(prev => ({ ...prev, lastName: e.target.value }))}
-                required
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label={`${t('properties.email')} *`}
-                type="email"
-                value={temporaryOwner.email}
-                onChange={(e) => setTemporaryOwner(prev => ({ ...prev, email: e.target.value }))}
-                required
-                size="small"
-                helperText={t('properties.passwordHelper')}
-              />
-            </Grid>
-            {ownerError && (
-              <Grid item xs={12}>
-                <Alert severity="error" sx={{ fontSize: '0.8125rem', py: 0.5 }}>{ownerError}</Alert>
-              </Grid>
-            )}
-          </Grid>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setShowOwnerDialog(false)} size="small" sx={{ fontSize: '0.75rem' }}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            onClick={handleCreateTemporaryOwner}
-            variant="contained"
-            disabled={!temporaryOwner.firstName || !temporaryOwner.lastName || !temporaryOwner.email}
-            size="small"
-            sx={{ fontSize: '0.75rem' }}
-          >
-            {t('common.create')}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

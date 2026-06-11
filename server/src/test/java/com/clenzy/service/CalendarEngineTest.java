@@ -257,6 +257,26 @@ class CalendarEngineTest {
     }
 
     @Test
+    void block_crossOrgProperty_isRejected() {
+        // IDOR : propertyId controle par l'appelant (tool LLM), mais la propriete
+        // appartient a une AUTRE organisation que celle du caller (orgId=1).
+        Property foreign = new Property();
+        foreign.setId(propertyId);
+        foreign.setOrganizationId(2L); // org tierce
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(calendarDayRepository.countBookedInRange(propertyId, checkIn, checkOut, orgId)).thenReturn(0L);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(foreign));
+
+        assertThrows(org.springframework.security.access.AccessDeniedException.class, () -> {
+            calendarEngine.block(propertyId, checkIn, checkOut, orgId, source, "Maintenance", actorId);
+        });
+
+        // Aucune ecriture calendrier ni outbox event sur l'org tierce.
+        verify(calendarDayRepository, never()).saveAll(anyList());
+        verify(outboxPublisher, never()).publishCalendarEvent(anyString(), anyLong(), anyLong(), anyString());
+    }
+
+    @Test
     void unblock_success() {
         CalendarDay day1 = new CalendarDay(property, checkIn, CalendarDayStatus.BLOCKED, orgId);
         CalendarDay day2 = new CalendarDay(property, checkIn.plusDays(1), CalendarDayStatus.BLOCKED, orgId);

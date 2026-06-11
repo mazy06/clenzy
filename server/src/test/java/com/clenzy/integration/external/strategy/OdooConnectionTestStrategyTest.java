@@ -77,12 +77,19 @@ class OdooConnectionTestStrategyTest {
         assertThat(strategy.testConnection("https://odoo.example.com", "", "apiKey")).isFalse();
     }
 
+    // NB (I1-OTA-02) : la strategie valide desormais le serverUrl via le validateur
+    // SSRF partage (resolution DNS incluse) AVANT tout appel. Les tests qui doivent
+    // atteindre le RestClient mocke utilisent donc un hote PUBLIC resolvable
+    // (example.com, domaine reserve IANA a A records publics). Les hotes prives /
+    // loopback / non-HTTPS sont refuses sans appel (voir les tests SSRF plus bas).
+    private static final String PUBLIC_URL = "https://example.com";
+
     @Test
     @DisplayName("testConnection returns true when response has positive uid (integer)")
     void testConnection_validUid_true() {
         installMockRestClient(strategy, Map.of("result", Map.of("uid", 12)));
 
-        assertThat(strategy.testConnection("https://odoo.example.com",
+        assertThat(strategy.testConnection(PUBLIC_URL,
                 "myDb|admin", "secret")).isTrue();
     }
 
@@ -91,7 +98,7 @@ class OdooConnectionTestStrategyTest {
     void testConnection_uidBooleanFalse_false() {
         installMockRestClient(strategy, Map.of("result", Map.of("uid", false)));
 
-        assertThat(strategy.testConnection("https://odoo.example.com",
+        assertThat(strategy.testConnection(PUBLIC_URL,
                 "myDb|admin", "secret")).isFalse();
     }
 
@@ -100,7 +107,7 @@ class OdooConnectionTestStrategyTest {
     void testConnection_responseNull_false() {
         installMockRestClient(strategy, null);
 
-        assertThat(strategy.testConnection("https://odoo.example.com",
+        assertThat(strategy.testConnection(PUBLIC_URL,
                 "myDb|admin", "secret")).isFalse();
     }
 
@@ -109,7 +116,7 @@ class OdooConnectionTestStrategyTest {
     void testConnection_missingResultField_false() {
         installMockRestClient(strategy, Map.of("noResult", "x"));
 
-        assertThat(strategy.testConnection("https://odoo.example.com",
+        assertThat(strategy.testConnection(PUBLIC_URL,
                 "myDb|admin", "secret")).isFalse();
     }
 
@@ -118,7 +125,7 @@ class OdooConnectionTestStrategyTest {
     void testConnection_resultNotAMap_false() {
         installMockRestClient(strategy, Map.of("result", "not-a-map"));
 
-        assertThat(strategy.testConnection("https://odoo.example.com",
+        assertThat(strategy.testConnection(PUBLIC_URL,
                 "myDb|admin", "secret")).isFalse();
     }
 
@@ -130,7 +137,7 @@ class OdooConnectionTestStrategyTest {
         result.put("uid", null);
         installMockRestClient(strategy, Map.of("result", result));
 
-        assertThat(strategy.testConnection("https://odoo.example.com",
+        assertThat(strategy.testConnection(PUBLIC_URL,
                 "myDb|admin", "secret")).isFalse();
     }
 
@@ -141,7 +148,7 @@ class OdooConnectionTestStrategyTest {
         when(mockClient.post()).thenThrow(new RuntimeException("network error"));
         ReflectionTestUtils.setField(strategy, "restClient", mockClient);
 
-        assertThat(strategy.testConnection("https://odoo.example.com",
+        assertThat(strategy.testConnection(PUBLIC_URL,
                 "myDb|admin", "secret")).isFalse();
     }
 
@@ -151,7 +158,7 @@ class OdooConnectionTestStrategyTest {
         installMockRestClient(strategy, Map.of("result", Map.of("uid", 7)));
 
         // Should not throw and not return false due to URL handling
-        assertThat(strategy.testConnection("https://odoo.example.com",
+        assertThat(strategy.testConnection(PUBLIC_URL,
                 "db|user", "key")).isTrue();
     }
 
@@ -160,8 +167,37 @@ class OdooConnectionTestStrategyTest {
     void testConnection_urlWithTrailingSlash_works() {
         installMockRestClient(strategy, Map.of("result", Map.of("uid", 7)));
 
-        assertThat(strategy.testConnection("https://odoo.example.com/",
+        assertThat(strategy.testConnection(PUBLIC_URL + "/",
                 "db|user", "key")).isTrue();
+    }
+
+    // ─── I1-OTA-02 : SSRF guard (refus AVANT tout appel) ─────────────────────
+
+    @Test
+    @DisplayName("I1-OTA-02 — loopback serverUrl refused (SSRF)")
+    void ssrf_loopbackRefused() {
+        assertThat(strategy.testConnection("https://127.0.0.1/odoo", "db|user", "key")).isFalse();
+        assertThat(strategy.testConnection("https://localhost/odoo", "db|user", "key")).isFalse();
+    }
+
+    @Test
+    @DisplayName("I1-OTA-02 — private RFC1918 serverUrl refused (SSRF)")
+    void ssrf_privateIpRefused() {
+        assertThat(strategy.testConnection("https://10.0.0.5/odoo", "db|user", "key")).isFalse();
+        assertThat(strategy.testConnection("https://192.168.1.10/odoo", "db|user", "key")).isFalse();
+        assertThat(strategy.testConnection("https://172.16.0.1/odoo", "db|user", "key")).isFalse();
+    }
+
+    @Test
+    @DisplayName("I1-OTA-02 — cloud metadata endpoint refused (SSRF)")
+    void ssrf_cloudMetadataRefused() {
+        assertThat(strategy.testConnection("https://169.254.169.254/odoo", "db|user", "key")).isFalse();
+    }
+
+    @Test
+    @DisplayName("I1-OTA-02 — non-HTTPS serverUrl refused")
+    void ssrf_nonHttpsRefused() {
+        assertThat(strategy.testConnection("http://example.com/odoo", "db|user", "key")).isFalse();
     }
 
     // ─── Helper to inject a mocked RestClient ────────────────────────────────

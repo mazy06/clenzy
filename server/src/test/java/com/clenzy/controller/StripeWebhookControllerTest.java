@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.booking.service.PublicBookingService;
+import com.clenzy.integration.direct.service.DirectBookingService;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
@@ -62,12 +63,13 @@ class StripeWebhookControllerTest {
     @Mock private PublicBookingService publicBookingService;
     @Mock private UpsellService upsellService;
     @Mock private StripeGateway stripeGateway;
+    @Mock private DirectBookingService directBookingService;
 
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService);
         setField("webhookSecret", "whsec_test_secret");
     }
 

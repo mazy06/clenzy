@@ -1,5 +1,6 @@
 package com.clenzy.model;
 
+import com.clenzy.config.EncryptedFieldConverter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -25,7 +26,14 @@ public class ExternalPricingConfig {
     @Column(nullable = false, length = 30)
     private PricingProvider provider;
 
-    @Column(name = "api_key")
+    /**
+     * Cle API du provider externe (PriceLabs / Beyond). CHIFFREE au repos
+     * (Jasypt AES-256 — M1-MODEL-03), comme {@code PricingConnection.apiKeyEncrypted}.
+     * Colonne {@code TEXT} (le ciphertext depasse l'ancien {@code varchar(255)}),
+     * voir changeset 0233. Aucune recherche par valeur n'est faite.
+     */
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "api_key", columnDefinition = "TEXT")
     private String apiKey;
 
     @Column(name = "api_url")
