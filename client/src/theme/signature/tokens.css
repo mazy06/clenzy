@@ -1,0 +1,157 @@
+/* ============================================================
+   Baitly PMS — Design tokens « Signature »
+   Source de vérité unique. Clair par défaut, sombre via [data-theme="dark"].
+   Indépendant de tout framework : utilisable en CSS pur, Tailwind (via
+   theme.extend), styled-components, ou mappé dans le thème MUI (voir
+   baitly-theme.ts). Issu de la page login (charcoal + slate-blue).
+   ============================================================ */
+
+:root {
+  /* ---- Surfaces & lignes ---- */
+  --bg:        #F5F8F9;   /* fond application */
+  --card:      #FFFFFF;   /* surface carte / panneau */
+  --surface-2: #FBFCFC;   /* surface sur-élevée discrète (entêtes) */
+  --line:      #E7ECEF;   /* séparateur fin */
+  --line-2:    #DDE3E7;   /* bordure de contrôle */
+  --hover:     #F1F5F6;   /* survol de ligne */
+
+  /* ---- Texte ---- */
+  --ink:   #15242D;   /* titres */
+  --body:  #3B4951;   /* corps */
+  --muted: #67757C;   /* secondaire */
+  --faint: #98A4AB;   /* tertiaire / labels */
+
+  /* ---- Accent de marque — groupe THÉMABLE.
+     Défaut = Émeraude. La teinte se choisit sur la racine :
+       <html data-accent="terracotta|ambre|indigo|violet|ocean|slate">
+     (voir le bloc « SÉLECTION DE TEINTE » en bas du fichier).
+     Tout élément d'accent NE DOIT lire QUE ces 3 variables —
+     ainsi un changement de teinte couvre toute l'UI. ---- */
+  --accent:      #2E8B6F;
+  --accent-deep: #23705A;            /* hover bouton primaire */
+  --accent-soft: rgba(46,139,111,.10); /* fond doux / actif */
+  --on-accent:   #FFFFFF;
+
+  /* ---- Champs — gris neutre (dé-bleui) ---- */
+  --field:      #EFF2F4;
+  --field-line: #E3E8EA;
+
+  /* ---- Chrome sombre (sidebar — identique en clair & sombre) ---- */
+  --chrome-1:     #1C2832;
+  --chrome-2:     #131C23;
+  --chrome-line:  #2C3942;
+  --chrome-text:  #AFBEC7;
+  --chrome-faint: #6E7E88;
+
+  /* ---- Sémantique (désaturée, harmonisée) ---- */
+  --ok:   #4A9B8E;  --ok-soft:   rgba(74,155,142,.13);
+  --warn: #C28A52;  --warn-soft: rgba(194,138,82,.14);
+  --err:  #C97A7A;  --err-soft:  rgba(201,122,122,.13);
+  --info: #7BA3C2;  --info-soft: rgba(123,163,194,.14);
+
+  /* ---- Canaux de distribution ---- */
+  --airbnb:  #E0735A;  --airbnb-soft:  rgba(224,115,90,.12);  --airbnb-ink:  #A24A33;
+  --booking: #4A6B9A;  --booking-soft: rgba(74,107,154,.12);  --booking-ink: #39527A;
+  /* « Direct » = canal de marque → suit l'accent automatiquement */
+  --direct:  var(--accent);  --direct-soft:  var(--accent-soft);  --direct-ink:  var(--accent-deep);
+
+  /* ---- Données ---- */
+  --bar: #D7E0E4;   /* barre de graphe inactive */
+
+  /* ---- Rayons (intentionnels, jamais « MUI soft ») ---- */
+  --radius-sm:   9px;    /* boutons compacts, segments */
+  --radius-md:   11px;   /* boutons, champs, icônes */
+  --radius-lg:   14px;   /* cartes, panneaux */
+  --radius-xl:   18px;   /* avatars XL, drawer hero */
+  --radius-pill: 9999px;
+
+  /* ---- Élévation (teintée vers l'encre de marque, parcimonieuse) ---- */
+  --shadow-card:   0 8px 24px -16px rgba(21,36,45,.40);
+  --shadow-pop:    0 22px 50px -16px rgba(21,36,45,.40);
+  --shadow-drawer: -20px 0 50px -20px rgba(10,18,24,.50);
+  --scroll: #CDD6DB;
+
+  /* ---- Typo ---- */
+  --font-sans:    'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;   /* titres, chiffres, KPIs */
+  --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700;
+
+  /* ---- Échelle de texte (app dense) ---- */
+  --text-2xs: 10.5px;  --text-xs: 11.5px;  --text-sm: 12.5px;
+  --text-md:  13px;    --text-lg: 15px;    --text-xl: 19px;   --text-2xl: 23px;
+
+  /* ---- Espacement (grille 4px) ---- */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;  --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+  /* ---- Mouvement (retenu) ---- */
+  --duration-fast: .14s;  --duration-base: .2s;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  /* Signature tactile : les boutons pressent à scale(.97) en 120ms. */
+}
+
+[data-theme="dark"] {
+  --bg:        #0E141A;
+  --card:      #161E26;
+  --surface-2: #121A21;
+  --line:      #252F39;
+  --line-2:    #313D48;
+  --hover:     rgba(255,255,255,.05);
+
+  --ink:   #EAF0F3;
+  --body:  #BCC6CD;
+  --muted: #869199;
+  --faint: #647079;
+
+  /* accent éclairci pour le contraste sur fond sombre (défaut Émeraude) */
+  --accent:      #4FB394;
+  --accent-deep: #3E9C80;
+  --accent-soft: rgba(79,179,148,.18);
+
+  --field:      #1B252E;
+  --field-line: #2B3742;
+
+  --ok-soft:   rgba(74,155,142,.20);
+  --warn-soft: rgba(194,138,82,.22);
+  --err-soft:  rgba(201,122,122,.22);
+  --info-soft: rgba(123,163,194,.22);
+
+  --airbnb-soft:  rgba(224,115,90,.20);  --airbnb-ink:  #EC9580;
+  --booking-soft: rgba(74,107,154,.26);  --booking-ink: #A6BCDB;
+  /* --direct-* héritent de --accent (redéfini ci-dessus) */
+
+  --bar: #2A3640;
+
+  --shadow-card:   0 8px 24px -16px rgba(0,0,0,.55);
+  --shadow-pop:    0 22px 50px -16px rgba(0,0,0,.55);
+  --shadow-drawer: -20px 0 50px -20px rgba(0,0,0,.6);
+  --scroll: #33414C;
+}
+
+/* ============================================================
+   SÉLECTION DE TEINTE  —  data-accent sur la racine
+   Pur CSS, aucun JS requis. Exemples :
+     <html data-accent="violet">                  (clair · violet)
+     <html data-theme="dark" data-accent="ocean">  (sombre · océan)
+   Chaque bloc ne redéfinit que les 3 variables d'accent ; comme tous
+   les composants ne lisent que --accent / --accent-deep / --accent-soft
+   (et --direct* qui en hérite), un seul attribut reteinte toute l'UI.
+   ============================================================ */
+
+/* ---- Clair ---- */
+[data-accent="emeraude"]   { --accent:#2E8B6F; --accent-deep:#23705A; --accent-soft:rgba(46,139,111,.10); }
+[data-accent="terracotta"] { --accent:#C0613B; --accent-deep:#A24E2C; --accent-soft:rgba(192,97,59,.10); }
+[data-accent="ambre"]      { --accent:#C58B36; --accent-deep:#A8732A; --accent-soft:rgba(197,139,54,.10); }
+[data-accent="indigo"]     { --accent:#5453D6; --accent-deep:#4341BE; --accent-soft:rgba(84,83,214,.10); }
+[data-accent="violet"]     { --accent:#8A4FD0; --accent-deep:#7340B8; --accent-soft:rgba(138,79,208,.10); }
+[data-accent="ocean"]      { --accent:#2C6BD8; --accent-deep:#2255B8; --accent-soft:rgba(44,107,216,.10); }
+[data-accent="slate"]      { --accent:#5F7E8C; --accent-deep:#4E6E7C; --accent-soft:rgba(95,126,140,.10); }
+
+/* ---- Sombre (accent éclairci pour le contraste) ---- */
+[data-theme="dark"][data-accent="emeraude"]   { --accent:#4FB394; --accent-deep:#3E9C80; --accent-soft:rgba(79,179,148,.18); }
+[data-theme="dark"][data-accent="terracotta"] { --accent:#DE855E; --accent-deep:#C96E48; --accent-soft:rgba(222,133,94,.18); }
+[data-theme="dark"][data-accent="ambre"]      { --accent:#D9A04A; --accent-deep:#C28A52; --accent-soft:rgba(217,160,74,.18); }
+[data-theme="dark"][data-accent="indigo"]     { --accent:#8584F0; --accent-deep:#6F6EE6; --accent-soft:rgba(133,132,240,.18); }
+[data-theme="dark"][data-accent="violet"]     { --accent:#A77FE8; --accent-deep:#9168DC; --accent-soft:rgba(167,127,232,.18); }
+[data-theme="dark"][data-accent="ocean"]      { --accent:#5C90EE; --accent-deep:#4A7DE6; --accent-soft:rgba(92,144,238,.18); }
+[data-theme="dark"][data-accent="slate"]      { --accent:#7FA3B1; --accent-deep:#6E91A0; --accent-soft:rgba(127,163,177,.18); }
