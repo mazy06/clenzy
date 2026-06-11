@@ -4,7 +4,6 @@ import com.clenzy.model.PaymentMethodConfig;
 import com.clenzy.model.PaymentProviderType;
 import com.clenzy.model.PaymentTransaction;
 import com.clenzy.payment.provider.CmiHashService;
-import com.clenzy.payment.provider.PayPalPaymentProvider;
 import com.clenzy.payment.provider.PayTabsPaymentProvider;
 import com.clenzy.payment.provider.PayzonePaymentProvider;
 import com.clenzy.repository.PaymentTransactionRepository;
@@ -39,7 +38,7 @@ import static org.mockito.Mockito.when;
  * Unit tests for {@link PaymentWebhookRouter}.
  *
  * <p>Covers signature validation, payload parsing, provider routing
- * (PayTabs, CMI, Payzone, PayPal), success vs failure status dispatch.</p>
+ * (PayTabs, CMI, Payzone), success vs failure status dispatch.</p>
  */
 @ExtendWith(MockitoExtension.class)
 class PaymentWebhookRouterTest {
@@ -48,7 +47,6 @@ class PaymentWebhookRouterTest {
     @Mock private PaymentMethodConfigService configService;
     @Mock private PayTabsPaymentProvider payTabsProvider;
     @Mock private PayzonePaymentProvider payzoneProvider;
-    @Mock private PayPalPaymentProvider payPalProvider;
     @Mock private CmiHashService cmiHashService;
     @Mock private PaymentTransactionRepository transactionRepository;
     @Mock private TenantContext tenantContext;
@@ -64,7 +62,7 @@ class PaymentWebhookRouterTest {
         PaymentTransactionService paymentTransactionService =
                 new PaymentTransactionService(transactionRepository, tenantContext);
         router = new PaymentWebhookRouter(orchestrationService, configService,
-                payTabsProvider, payzoneProvider, payPalProvider, cmiHashService,
+                payTabsProvider, payzoneProvider, cmiHashService,
                 paymentTransactionService, objectMapper);
         Field f = PaymentWebhookRouter.class.getDeclaredField("stripeWebhookSecret");
         f.setAccessible(true);
@@ -515,129 +513,4 @@ class PaymentWebhookRouterTest {
         }
     }
 
-    // ─── PayPal webhook ──────────────────────────────────────────────────────
-
-    @Nested
-    @DisplayName("handlePayPalWebhook")
-    class PayPalWebhook {
-
-        @Test
-        @DisplayName("returns 401 when transmissionSig is missing")
-        void whenNoTransmissionSig_thenUnauthorized() {
-            ResponseEntity<String> response = router.handlePayPalWebhook("{}",
-                    "SHA256", "url", "tid", null, "time");
-            assertThat(response.getStatusCode().value()).isEqualTo(401);
-        }
-
-        @Test
-        @DisplayName("returns 401 when any header is missing")
-        void whenAnyHeaderMissing_thenUnauthorized() {
-            ResponseEntity<String> response = router.handlePayPalWebhook("{}",
-                    null, "url", "tid", "sig", "time");
-            assertThat(response.getStatusCode().value()).isEqualTo(401);
-        }
-
-        @Test
-        @DisplayName("returns 400 when payload is invalid JSON")
-        void whenInvalidJson_thenBadRequest() {
-            ResponseEntity<String> response = router.handlePayPalWebhook("not-json",
-                    "SHA256", "url", "tid", "sig", "time");
-            assertThat(response.getStatusCode().value()).isEqualTo(400);
-        }
-
-        @Test
-        @DisplayName("returns 200 when event_type is not PAYMENT.CAPTURE.*")
-        void whenIrrelevantEvent_thenOk() {
-            ResponseEntity<String> response = router.handlePayPalWebhook(
-                    "{\"event_type\":\"BILLING.SUBSCRIPTION.CREATED\"}",
-                    "SHA256", "url", "tid", "sig", "time");
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(orchestrationService, never()).completeTransaction(any());
-        }
-
-        @Test
-        @DisplayName("returns 400 when reference_id cannot be extracted")
-        void whenNoReferenceId_thenBadRequest() {
-            ResponseEntity<String> response = router.handlePayPalWebhook(
-                    "{\"event_type\":\"PAYMENT.CAPTURE.COMPLETED\",\"resource\":{}}",
-                    "SHA256", "url", "tid", "sig", "time");
-            assertThat(response.getStatusCode().value()).isEqualTo(400);
-        }
-
-        @Test
-        @DisplayName("returns 404 when transaction not found")
-        void whenTxNotFound_thenNotFound() {
-            when(transactionRepository.findByTransactionRef("CUSTOM-REF"))
-                    .thenReturn(Optional.empty());
-
-            ResponseEntity<String> response = router.handlePayPalWebhook(
-                    "{\"event_type\":\"PAYMENT.CAPTURE.COMPLETED\",\"resource\":{\"custom_id\":\"CUSTOM-REF\"}}",
-                    "SHA256", "url", "tid", "sig", "time");
-
-            assertThat(response.getStatusCode().value()).isEqualTo(404);
-        }
-
-        @Test
-        @DisplayName("returns 401 when API verification fails")
-        void whenStrictVerifyFails_thenUnauthorized() {
-            PaymentTransaction tx = buildTx("CUSTOM-REF", 1L);
-            when(transactionRepository.findByTransactionRef("CUSTOM-REF"))
-                    .thenReturn(Optional.of(tx));
-            when(payPalProvider.verifyWebhookStrict(any(), any(), eq(1L))).thenReturn(false);
-
-            ResponseEntity<String> response = router.handlePayPalWebhook(
-                    "{\"event_type\":\"PAYMENT.CAPTURE.COMPLETED\",\"resource\":{\"custom_id\":\"CUSTOM-REF\"}}",
-                    "SHA256", "url", "tid", "sig", "time");
-
-            assertThat(response.getStatusCode().value()).isEqualTo(401);
-        }
-
-        @Test
-        @DisplayName("completes when PAYMENT.CAPTURE.COMPLETED")
-        void whenCaptureCompleted_thenCompletes() {
-            PaymentTransaction tx = buildTx("CUSTOM-REF", 1L);
-            when(transactionRepository.findByTransactionRef("CUSTOM-REF"))
-                    .thenReturn(Optional.of(tx));
-            when(payPalProvider.verifyWebhookStrict(any(), any(), eq(1L))).thenReturn(true);
-
-            ResponseEntity<String> response = router.handlePayPalWebhook(
-                    "{\"event_type\":\"PAYMENT.CAPTURE.COMPLETED\",\"resource\":{\"custom_id\":\"CUSTOM-REF\"}}",
-                    "SHA256", "url", "tid", "sig", "time");
-
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(orchestrationService).completeTransaction("CUSTOM-REF");
-        }
-
-        @Test
-        @DisplayName("fails when PAYMENT.CAPTURE.DENIED")
-        void whenCaptureDenied_thenFails() {
-            PaymentTransaction tx = buildTx("CUSTOM-REF", 1L);
-            when(transactionRepository.findByTransactionRef("CUSTOM-REF"))
-                    .thenReturn(Optional.of(tx));
-            when(payPalProvider.verifyWebhookStrict(any(), any(), eq(1L))).thenReturn(true);
-
-            ResponseEntity<String> response = router.handlePayPalWebhook(
-                    "{\"event_type\":\"PAYMENT.CAPTURE.DENIED\",\"resource\":{\"custom_id\":\"CUSTOM-REF\"}}",
-                    "SHA256", "url", "tid", "sig", "time");
-
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(orchestrationService).failTransaction(eq("CUSTOM-REF"), anyString());
-        }
-
-        @Test
-        @DisplayName("extracts reference from purchase_units array if custom_id missing")
-        void whenReferenceFromPurchaseUnits_thenExtracted() {
-            PaymentTransaction tx = buildTx("PU-REF", 1L);
-            when(transactionRepository.findByTransactionRef("PU-REF"))
-                    .thenReturn(Optional.of(tx));
-            when(payPalProvider.verifyWebhookStrict(any(), any(), eq(1L))).thenReturn(true);
-
-            ResponseEntity<String> response = router.handlePayPalWebhook(
-                    "{\"event_type\":\"PAYMENT.CAPTURE.COMPLETED\",\"resource\":{\"purchase_units\":[{\"reference_id\":\"PU-REF\"}]}}",
-                    "SHA256", "url", "tid", "sig", "time");
-
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            verify(orchestrationService).completeTransaction("PU-REF");
-        }
-    }
 }

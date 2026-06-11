@@ -169,13 +169,14 @@ class BookingCalendarServiceTest {
 
             service.handleCalendarEvent(event);
 
-            verify(calendarEngine).updatePrice(
+            verify(calendarEngine).updateExternalPrice(
                     eq(PROPERTY_ID),
                     eq(LocalDate.of(2025, 8, 1)),
                     eq(LocalDate.of(2025, 8, 15)),
                     any(BigDecimal.class),
                     eq(ORG_ID),
-                    eq("booking-webhook")
+                    eq("booking-webhook"),
+                    eq("BOOKING")
             );
             verify(auditLogService).logSync(eq("BookingCalendar"), eq(ROOM_ID), anyString());
         }
@@ -412,7 +413,7 @@ class BookingCalendarServiceTest {
         }
 
         @Test
-        @DisplayName("missing price skips updatePrice call but still audits")
+        @DisplayName("missing price skips updateExternalPrice call but still audits")
         void whenPriceMissing_thenSkipsUpdateButAudits() {
             stubOrgResolution();
             ChannelMapping mapping = buildMapping();
@@ -426,7 +427,7 @@ class BookingCalendarServiceTest {
 
             service.handleCalendarEvent(buildEvent("rates.updated", data));
 
-            verify(calendarEngine, never()).updatePrice(anyLong(), any(), any(), any(), anyLong(), anyString());
+            verify(calendarEngine, never()).updateExternalPrice(anyLong(), any(), any(), any(), anyLong(), anyString(), anyString());
             verify(auditLogService).logSync(eq("BookingCalendar"), eq(ROOM_ID), anyString());
         }
 
@@ -446,7 +447,7 @@ class BookingCalendarServiceTest {
 
             service.handleCalendarEvent(buildEvent("rates.updated", data));
 
-            verify(calendarEngine).updatePrice(anyLong(), any(), any(), any(BigDecimal.class), anyLong(), anyString());
+            verify(calendarEngine).updateExternalPrice(anyLong(), any(), any(), any(BigDecimal.class), anyLong(), anyString(), anyString());
         }
 
         @Test
@@ -465,7 +466,7 @@ class BookingCalendarServiceTest {
 
             service.handleCalendarEvent(buildEvent("rates.updated", data));
 
-            verify(calendarEngine, never()).updatePrice(anyLong(), any(), any(), any(), anyLong(), anyString());
+            verify(calendarEngine, never()).updateExternalPrice(anyLong(), any(), any(), any(), anyLong(), anyString(), anyString());
         }
 
         @Test
@@ -477,7 +478,7 @@ class BookingCalendarServiceTest {
                     .thenReturn(Optional.of(mapping));
 
             doThrow(new CalendarLockException(PROPERTY_ID))
-                    .when(calendarEngine).updatePrice(anyLong(), any(), any(), any(), anyLong(), anyString());
+                    .when(calendarEngine).updateExternalPrice(anyLong(), any(), any(), any(), anyLong(), anyString(), anyString());
 
             Map<String, Object> data = new HashMap<>();
             data.put("room_id", ROOM_ID);

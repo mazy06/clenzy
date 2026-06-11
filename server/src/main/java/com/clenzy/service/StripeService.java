@@ -21,7 +21,6 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
-import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,7 +51,7 @@ public class StripeService {
     private final SplitPaymentService splitPaymentService;
     private final AutoInvoiceService autoInvoiceService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final TenantContext tenantContext;
+    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
     private final StripeGateway stripeGateway;
     private final PaymentStatusTransitionService paymentStatusTransitionService;
     private final PaymentLedgerReversalService paymentLedgerReversalService;
@@ -82,7 +81,7 @@ public class StripeService {
                          SplitPaymentService splitPaymentService,
                          AutoInvoiceService autoInvoiceService,
                          KafkaTemplate<String, Object> kafkaTemplate,
-                         TenantContext tenantContext,
+                         com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard,
                          StripeGateway stripeGateway,
                          PaymentStatusTransitionService paymentStatusTransitionService,
                          PaymentLedgerReversalService paymentLedgerReversalService) {
@@ -96,7 +95,7 @@ public class StripeService {
         this.splitPaymentService = splitPaymentService;
         this.autoInvoiceService = autoInvoiceService;
         this.kafkaTemplate = kafkaTemplate;
-        this.tenantContext = tenantContext;
+        this.organizationAccessGuard = organizationAccessGuard;
         this.stripeGateway = stripeGateway;
         this.paymentStatusTransitionService = paymentStatusTransitionService;
         this.paymentLedgerReversalService = paymentLedgerReversalService;
@@ -407,21 +406,12 @@ public class StripeService {
 
     /**
      * Refuse l'acces si l'intervention appartient a une autre organisation.
-     * Bypass pour le staff plateforme (SUPER_ADMIN/SUPER_MANAGER) et les orgs
-     * SYSTEM — memes exemptions que le filtre Hibernate organizationFilter
-     * (cf. TenantFilter), que findById ne traverse pas.
-     * Meme pattern que SmartLockService.requireSameOrganization.
+     * Delegue a {@link com.clenzy.service.access.OrganizationAccessGuard}
+     * (fail-closed, bypass platform staff + org SYSTEM), que findById ne traverse pas.
      */
     private void requireSameOrganization(Intervention intervention) {
-        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
-            return;
-        }
-        Long orgId = tenantContext.getOrganizationId();
-        if (orgId != null && intervention.getOrganizationId() != null
-                && !orgId.equals(intervention.getOrganizationId())) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Intervention hors de votre organisation");
-        }
+        organizationAccessGuard.requireSameOrganization(
+                intervention.getOrganizationId(), "Intervention hors de votre organisation");
     }
 
     /**

@@ -50,6 +50,7 @@ public class PropertyService {
     private final AirbnbListingMappingRepository listingMappingRepository;
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
+    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository,
@@ -59,7 +60,8 @@ public class PropertyService {
                           CheckInInstructionsRepository checkInInstructionsRepository,
                           AirbnbListingMappingRepository listingMappingRepository,
                           NotificationService notificationService,
-                          TenantContext tenantContext) {
+                          TenantContext tenantContext,
+                          com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.managerPropertyRepository = managerPropertyRepository;
@@ -69,6 +71,7 @@ public class PropertyService {
         this.listingMappingRepository = listingMappingRepository;
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     @CacheEvict(value = "properties", allEntries = true)
@@ -176,20 +179,16 @@ public class PropertyService {
 
     /**
      * Refuse l'acces si la propriete appartient a une autre organisation.
-     * Bypass pour le staff plateforme (SUPER_ADMIN/SUPER_MANAGER) et les orgs
-     * SYSTEM, memes exemptions que le filtre Hibernate organizationFilter
-     * (pattern SmartLockService.requireSameOrganization).
+     * Delegue a {@link com.clenzy.service.access.OrganizationAccessGuard}
+     * (fail-closed, bypass platform staff + org SYSTEM), que findById ne traverse pas.
      */
     private void requireSameOrganization(Property property) {
-        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
-            return;
-        }
-        Long orgId = tenantContext.getOrganizationId();
-        if (orgId != null && property.getOrganizationId() != null
-                && !orgId.equals(property.getOrganizationId())) {
+        try {
+            organizationAccessGuard.requireSameOrganization(
+                    property.getOrganizationId(), "Vous n'avez pas accès à cette propriété");
+        } catch (org.springframework.security.access.AccessDeniedException e) {
             log.warn("Acces cross-organisation refuse pour la propriete {}", property.getId());
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Vous n'avez pas accès à cette propriété");
+            throw e;
         }
     }
 

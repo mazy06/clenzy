@@ -18,8 +18,6 @@ import java.math.BigDecimal;
  *   <li><strong>CMI</strong> : refund manuel via back-office, n/a.</li>
  *   <li><strong>Payzone</strong> : nécessite l'orgId pour charger les
  *       credentials marchand spécifiques.</li>
- *   <li><strong>PayPal</strong> : nécessite le {@code capture_id} (différent
- *       de l'{@code order_id} retourné par createPayment).</li>
  * </ul>
  *
  * <h2>Compatibilité</h2>
@@ -29,8 +27,8 @@ import java.math.BigDecimal;
  * continuer à l'implémenter directement.</p>
  *
  * @param orgId organisation propriétaire de la transaction (tenant)
- * @param providerTxId identifiant du provider (tran_ref PayTabs, capture_id
- *                     PayPal, etc.) — généralement stocké dans
+ * @param providerTxId identifiant du provider (tran_ref PayTabs, etc.) —
+ *                     généralement stocké dans
  *                     {@code PaymentTransaction.providerTxId}
  * @param originalTransactionRef notre référence Clenzy
  *                               (= {@code PaymentTransaction.transactionRef})

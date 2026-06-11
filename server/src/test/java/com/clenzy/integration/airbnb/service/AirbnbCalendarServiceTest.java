@@ -89,7 +89,7 @@ class AirbnbCalendarServiceTest {
 
             // Assert
             verify(webhookService).markAsFailed("evt-1", "Missing data field");
-            verify(calendarEngine, never()).updatePrice(any(), any(), any(), any(), any(), any());
+            verify(calendarEngine, never()).updateExternalPrice(any(), any(), any(), any(), any(), any(), any());
         }
     }
 
@@ -115,7 +115,7 @@ class AirbnbCalendarServiceTest {
 
             // Assert
             verify(webhookService).markAsProcessed("evt-2");
-            verify(calendarEngine, never()).updatePrice(any(), any(), any(), any(), any(), any());
+            verify(calendarEngine, never()).updateExternalPrice(any(), any(), any(), any(), any(), any(), any());
         }
 
         @Test
@@ -132,7 +132,7 @@ class AirbnbCalendarServiceTest {
 
             // Assert
             verify(webhookService).markAsProcessed("evt-3");
-            verify(calendarEngine, never()).updatePrice(any(), any(), any(), any(), any(), any());
+            verify(calendarEngine, never()).updateExternalPrice(any(), any(), any(), any(), any(), any(), any());
             verify(calendarEngine, never()).block(any(), any(), any(), any(), any(), any(), any());
             verify(calendarEngine, never()).unblock(any(), any(), any(), any(), any());
         }
@@ -160,13 +160,14 @@ class AirbnbCalendarServiceTest {
             service.handleCalendarEvent(event);
 
             // Assert
-            verify(calendarEngine).updatePrice(
+            verify(calendarEngine).updateExternalPrice(
                     eq(42L),
                     eq(LocalDate.of(2025, 6, 1)),
                     eq(LocalDate.of(2025, 6, 5)),
                     eq(BigDecimal.valueOf(150.0)),
                     eq(10L),
-                    eq("airbnb-webhook")
+                    eq("airbnb-webhook"),
+                    eq("AIRBNB")
             );
             verify(auditLogService).logSync(eq("AirbnbCalendar"), eq("AIRBNB-123"), contains("42"));
             verify(webhookService).markAsProcessed("evt-4");
@@ -187,7 +188,7 @@ class AirbnbCalendarServiceTest {
             service.handleCalendarEvent(event);
 
             // Assert
-            verify(calendarEngine, never()).updatePrice(any(), any(), any(), any(), any(), any());
+            verify(calendarEngine, never()).updateExternalPrice(any(), any(), any(), any(), any(), any(), any());
             verify(auditLogService).logSync(eq("AirbnbCalendar"), eq("AIRBNB-123"),
                     contains("dates manquantes"));
             verify(webhookService).markAsProcessed("evt-5");
@@ -207,14 +208,14 @@ class AirbnbCalendarServiceTest {
             service.handleCalendarEvent(event);
 
             // Assert
-            verify(calendarEngine, never()).updatePrice(any(), any(), any(), any(), any(), any());
+            verify(calendarEngine, never()).updateExternalPrice(any(), any(), any(), any(), any(), any(), any());
             verify(auditLogService).logSync(eq("AirbnbCalendar"), eq("AIRBNB-123"),
                     contains("dates manquantes"));
             verify(webhookService).markAsProcessed("evt-6");
         }
 
         @Test
-        @DisplayName("logs sync without calling updatePrice when nightly_price is null")
+        @DisplayName("logs sync without calling updateExternalPrice when nightly_price is null")
         void whenNoPriceField_thenLogsWithoutCallingUpdatePrice() {
             // Arrange
             Map<String, Object> data = buildDataWithDates("2025-06-01", "2025-06-05");
@@ -227,7 +228,7 @@ class AirbnbCalendarServiceTest {
             service.handleCalendarEvent(event);
 
             // Assert
-            verify(calendarEngine, never()).updatePrice(any(), any(), any(), any(), any(), any());
+            verify(calendarEngine, never()).updateExternalPrice(any(), any(), any(), any(), any(), any(), any());
             verify(auditLogService).logSync(eq("AirbnbCalendar"), eq("AIRBNB-123"),
                     contains("synchronise"));
             verify(webhookService).markAsProcessed("evt-7");
@@ -243,7 +244,7 @@ class AirbnbCalendarServiceTest {
             when(listingMappingRepository.findByAirbnbListingId("AIRBNB-123"))
                     .thenReturn(Optional.of(createMapping()));
             doThrow(new CalendarLockException(42L))
-                    .when(calendarEngine).updatePrice(any(), any(), any(), any(), any(), any());
+                    .when(calendarEngine).updateExternalPrice(any(), any(), any(), any(), any(), any(), any());
 
             // Act & Assert
             // The CalendarLockException is caught by the outer catch -> markAsFailed

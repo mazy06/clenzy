@@ -80,7 +80,7 @@ class PaymentMethodConfigServiceTest {
 
     @Test
     void getEnabledProviders_supportsWildcardCountry() {
-        PaymentMethodConfig wild = sample(PaymentProviderType.PAYPAL);
+        PaymentMethodConfig wild = sample(PaymentProviderType.PAYTABS);
         wild.setCountryCodes("*");
 
         when(repository.findByOrganizationIdAndEnabledTrue(ORG_ID)).thenReturn(List.of(wild));
@@ -362,8 +362,10 @@ class PaymentMethodConfigServiceTest {
 
     @Test
     void getDefaultProvidersForCountry_unknown_returnsGlobalFallback() {
+        // PayPal retiré (décision produit) — le fallback global ne propose
+        // plus que Stripe.
         assertThat(service.getDefaultProvidersForCountry("ZZ"))
-            .containsExactly(PaymentProviderType.STRIPE, PaymentProviderType.PAYPAL);
+            .containsExactly(PaymentProviderType.STRIPE);
     }
 
     @Test

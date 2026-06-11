@@ -18,13 +18,6 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
 
     Optional<PaymentTransaction> findByIdempotencyKey(String idempotencyKey);
 
-    /**
-     * Resolution par identifiant provider (order_id / capture_id PayPal...).
-     * Requete indexee (changeset 0228) — remplace l'ancien findAll().stream()
-     * du retour PayPal qui chargeait toute la table en memoire (Z3-SEC-04).
-     */
-    Optional<PaymentTransaction> findByProviderTxId(String providerTxId);
-
     List<PaymentTransaction> findByOrganizationIdAndSourceTypeAndSourceId(
         Long organizationId, String sourceType, Long sourceId);
 

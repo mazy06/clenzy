@@ -26,7 +26,6 @@ import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.YieldRuleRepository;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.lang.Nullable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,6 +71,7 @@ public class RateManagerService {
     private final PropertyRepository propertyRepository;
     private final ReservationService reservationService;
     private final TenantContext tenantContext;
+    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     public RateManagerService(AdvancedRateManager advancedRateManager,
                               RateDistributionService rateDistributionService,
@@ -85,7 +85,8 @@ public class RateManagerService {
                               RateOverrideRepository rateOverrideRepository,
                               PropertyRepository propertyRepository,
                               ReservationService reservationService,
-                              TenantContext tenantContext) {
+                              TenantContext tenantContext,
+                              com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard) {
         this.advancedRateManager = advancedRateManager;
         this.rateDistributionService = rateDistributionService;
         this.yieldManagementScheduler = yieldManagementScheduler;
@@ -99,6 +100,7 @@ public class RateManagerService {
         this.propertyRepository = propertyRepository;
         this.reservationService = reservationService;
         this.tenantContext = tenantContext;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     // ── Calendrier tarifaire ─────────────────────────────────────────────────
@@ -406,17 +408,13 @@ public class RateManagerService {
 
     /**
      * Refuse l'acces si la regle appartient a une autre organisation.
-     * Bypass pour le staff plateforme et les orgs SYSTEM — memes exemptions
-     * que le filtre Hibernate organizationFilter (pattern SmartLockService).
+     * Delegue a {@link com.clenzy.service.access.OrganizationAccessGuard}
+     * (fail-closed, bypass platform staff + org SYSTEM). Le {@code keycloakId}
+     * est conserve dans la signature pour la coherence avec {@link #requireRuleAccess}.
      */
     private void requireSameOrganization(Long entityOrgId, String keycloakId) {
-        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
-            return;
-        }
-        Long orgId = tenantContext.getOrganizationId();
-        if (orgId != null && entityOrgId != null && !orgId.equals(entityOrgId)) {
-            throw new AccessDeniedException("Acces refuse : regle tarifaire hors de votre organisation");
-        }
+        organizationAccessGuard.requireSameOrganization(
+                entityOrgId, "Acces refuse : regle tarifaire hors de votre organisation");
     }
 
     // ── Mappers ──────────────────────────────────────────────────────────────
