@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -365,6 +366,82 @@ class WelcomeGuideServiceTest {
         assertThat(result.getExpiresAt())
             .isEqualTo(LocalDate.of(2026, 7, 17).atTime(LocalTime.MAX).plusDays(1));
         assertThat(result.isRevoked()).isFalse();
+    }
+
+    @Test
+    void whenGenerateTokenWithoutReservation_thenBindsToCurrentReservation() {
+        // Bouton de partage hote (reservation == null) : le token doit etre borne a la
+        // reservation COURANTE/prochaine du logement, pas a la reservation figee a la
+        // creation du livret (qui peut etre terminee -> token mort-ne -> 404).
+        Property property = new Property();
+        property.setId(50L);
+
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setOrganizationId(7L);
+        guide.setProperty(property);
+
+        Reservation ancienneResaFigee = new Reservation();
+        ancienneResaFigee.setId(900L);
+        ancienneResaFigee.setCheckIn(LocalDate.of(2020, 1, 1));
+        ancienneResaFigee.setCheckOut(LocalDate.of(2020, 1, 8));
+        guide.setReservation(ancienneResaFigee);
+
+        Reservation resaCourante = new Reservation();
+        resaCourante.setId(901L);
+        resaCourante.setCheckIn(LocalDate.of(2026, 7, 10));
+        resaCourante.setCheckOut(LocalDate.of(2026, 7, 17));
+
+        when(guideRepository.findByIdAndOrganizationId(1L, 7L)).thenReturn(Optional.of(guide));
+        when(reservationRepository.findCurrentOrNextByPropertyId(eq(50L), any(LocalDate.class), eq(7L)))
+            .thenReturn(List.of(resaCourante));
+        when(guideConfig.getLeadDays()).thenReturn(7);
+        when(guideConfig.getGraceDays()).thenReturn(1);
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.generateToken(1L, 7L, null);
+
+        ArgumentCaptor<WelcomeGuideToken> captor = ArgumentCaptor.forClass(WelcomeGuideToken.class);
+        verify(tokenRepository).save(captor.capture());
+        WelcomeGuideToken saved = captor.getValue();
+
+        assertThat(saved.getReservation()).isSameAs(resaCourante);          // PAS l'ancienne figee
+        assertThat(saved.getValidFrom())
+            .isEqualTo(LocalDate.of(2026, 7, 10).atStartOfDay().minusDays(7));
+        assertThat(saved.getExpiresAt())
+            .isEqualTo(LocalDate.of(2026, 7, 17).atTime(LocalTime.MAX).plusDays(1));
+    }
+
+    @Test
+    void whenNoCurrentReservation_thenFallsBackToGuideReservation() {
+        // Repli inter-sejours : aucune reservation courante/prochaine -> le token retombe
+        // sur la reservation rattachee au livret.
+        Property property = new Property();
+        property.setId(50L);
+
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setOrganizationId(7L);
+        guide.setProperty(property);
+
+        Reservation guideReservation = new Reservation();
+        guideReservation.setId(900L);
+        guideReservation.setCheckIn(LocalDate.of(2026, 8, 1));
+        guideReservation.setCheckOut(LocalDate.of(2026, 8, 5));
+        guide.setReservation(guideReservation);
+
+        when(guideRepository.findByIdAndOrganizationId(1L, 7L)).thenReturn(Optional.of(guide));
+        when(reservationRepository.findCurrentOrNextByPropertyId(eq(50L), any(LocalDate.class), eq(7L)))
+            .thenReturn(List.of());
+        when(guideConfig.getLeadDays()).thenReturn(7);
+        when(guideConfig.getGraceDays()).thenReturn(1);
+        when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        WelcomeGuideToken result = service.generateToken(1L, 7L, null);
+
+        assertThat(result.getReservation()).isSameAs(guideReservation);
+        assertThat(result.getValidFrom())
+            .isEqualTo(LocalDate.of(2026, 8, 1).atStartOfDay().minusDays(7));
     }
 
     @Test
