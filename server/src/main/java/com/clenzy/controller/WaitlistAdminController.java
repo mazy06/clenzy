@@ -1,6 +1,6 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.WaitlistSignup;
+import com.clenzy.dto.WaitlistSignupAdminDto;
 import com.clenzy.service.WaitlistService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,8 +28,11 @@ public class WaitlistAdminController {
     }
 
     @GetMapping
-    public ResponseEntity<List<WaitlistSignup>> list() {
-        return ResponseEntity.ok(waitlistService.listAll());
+    public ResponseEntity<List<WaitlistSignupAdminDto>> list() {
+        return ResponseEntity.ok(
+            waitlistService.listAll().stream()
+                .map(WaitlistSignupAdminDto::from)
+                .toList());
     }
 
     @GetMapping("/stats")
