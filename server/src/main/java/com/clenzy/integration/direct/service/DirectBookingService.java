@@ -19,6 +19,7 @@ import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -235,12 +236,30 @@ public class DirectBookingService {
     }
 
     /**
-     * Confirme une reservation apres paiement reussi.
+     * Confirmation cote endpoint public.
+     *
+     * I1-OTA-01 : un client ne peut JAMAIS confirmer une reservation PAYANTE
+     * depuis l'endpoint public — sinon il suffirait d'appeler /confirm sans payer.
+     * La confirmation d'une resa payante vient UNIQUEMENT du webhook Stripe
+     * ({@link #confirmPaidBookingFromWebhook}) apres paiement reussi.
+     *
+     * Cette methode n'autorise donc QUE le flux sans paiement (proprietes dont la
+     * config direct booking a {@code requirePayment=false}, OU Stripe desactive).
+     * Tout le reste est refuse ({@link AccessDeniedException} -> HTTP 403).
      */
     public DirectBookingResponse confirmBooking(String bookingId, Long orgId) {
-        log.info("confirmBooking: bookingId={}, orgId={}", bookingId, orgId);
+        log.info("confirmBooking (public): bookingId={}, orgId={}", bookingId, orgId);
 
         Reservation reservation = findReservationByConfirmationCode(bookingId, orgId);
+
+        if (isPaymentRequired(reservation)) {
+            log.warn("confirmBooking (public) REFUSE pour resa payante {} (org={}) : "
+                    + "la confirmation doit venir du webhook Stripe", bookingId, orgId);
+            throw new AccessDeniedException(
+                    "La confirmation d'une reservation payante ne peut pas etre declenchee "
+                    + "depuis le client : elle est faite automatiquement apres paiement.");
+        }
+
         reservation.setStatus("confirmed");
         reservationRepository.save(reservation);
 
@@ -248,6 +267,48 @@ public class DirectBookingService {
                 reservation.getCheckIn(), reservation.getCheckOut(),
                 reservation.getTotalPrice(), config.getDefaultCurrency(),
                 "Reservation confirmee avec succes");
+    }
+
+    /**
+     * Confirmation declenchee par le webhook Stripe (payment_intent.succeeded,
+     * metadata type=direct_booking) APRES paiement reussi. Le webhook a deja
+     * verifie la signature Stripe (StripeWebhookController) : c'est la seule voie
+     * de confirmation d'une reservation directe payante (I1-OTA-01).
+     *
+     * Idempotent : si la resa est deja 'confirmed', ne re-sauvegarde pas
+     * (une re-livraison du webhook ne produit pas d'effet).
+     */
+    public void confirmPaidBookingFromWebhook(String bookingId, Long orgId) {
+        log.info("confirmPaidBookingFromWebhook: bookingId={}, orgId={}", bookingId, orgId);
+
+        Reservation reservation = findReservationByConfirmationCode(bookingId, orgId);
+        if ("confirmed".equals(reservation.getStatus())) {
+            log.debug("confirmPaidBookingFromWebhook: resa {} deja confirmee, no-op", bookingId);
+            return;
+        }
+        reservation.setStatus("confirmed");
+        reservationRepository.save(reservation);
+        log.info("Reservation directe {} confirmee via webhook Stripe (org={})", bookingId, orgId);
+    }
+
+    /**
+     * Une reservation directe est "payante" si la config direct booking de sa
+     * propriete exige le paiement ET que Stripe est active globalement
+     * (meme condition que dans {@link #createBooking}). Si la config a disparu,
+     * on considere par prudence (fail-closed) que le paiement etait requis.
+     */
+    private boolean isPaymentRequired(Reservation reservation) {
+        if (!config.isStripeEnabled()) {
+            return false;
+        }
+        Long propertyId = reservation.getProperty() != null ? reservation.getProperty().getId() : null;
+        Long orgId = reservation.getOrganizationId();
+        if (propertyId == null || orgId == null) {
+            return true;
+        }
+        return configRepository.findEnabledByPropertyId(propertyId, orgId)
+                .map(DirectBookingConfiguration::isRequirePayment)
+                .orElse(true);
     }
 
     /**
@@ -305,10 +366,24 @@ public class DirectBookingService {
 
     /**
      * Retourne un resume de la propriete pour l'affichage dans le widget.
+     *
+     * I1-OTA-03 : endpoint public, le filtre tenant Hibernate n'est pas actif
+     * et {@code findById} contournerait l'isolation org. On exige donc l'orgId
+     * et on verifie qu'une DirectBookingConfiguration ENABLED existe pour le
+     * couple (propertyId, orgId) AVANT d'exposer la moindre donnee. Sans config
+     * active pour cette org, on repond comme si la propriete etait introuvable
+     * (pas de fuite cross-org, pas d'enumeration d'ID).
      */
     @Transactional(readOnly = true)
-    public DirectPropertySummaryDto getPropertySummary(Long propertyId) {
+    public DirectPropertySummaryDto getPropertySummary(Long propertyId, Long orgId) {
+        if (configRepository.findEnabledByPropertyId(propertyId, orgId).isEmpty()) {
+            log.warn("getPropertySummary refuse : pas de config direct booking ENABLED pour "
+                    + "propertyId={} orgId={}", propertyId, orgId);
+            throw new IllegalArgumentException("Propriete introuvable: " + propertyId);
+        }
+
         Property property = propertyRepository.findById(propertyId)
+                .filter(p -> orgId.equals(p.getOrganizationId()))
                 .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable: " + propertyId));
 
         List<String> photoUrls = property.getPhotos().stream()
@@ -435,7 +510,14 @@ public class DirectBookingService {
                     .setAmount(amountInCents)
                     .setCurrency(currency.toLowerCase())
                     .setDescription("Reservation " + bookingId + " - " + property.getName())
+                    // type=direct_booking : route le webhook payment_intent.succeeded vers
+                    // confirmPaidBookingFromWebhook. La confirmation d'une reservation payante
+                    // ne vient JAMAIS du client (I1-OTA-01) : seul le webhook Stripe, apres
+                    // paiement reussi et verification de signature, fait passer la resa en
+                    // 'confirmed'. org_id permet de re-scoper la lecture cross-org du webhook.
+                    .putMetadata("type", "direct_booking")
                     .putMetadata("booking_id", bookingId)
+                    .putMetadata("org_id", String.valueOf(reservation.getOrganizationId()))
                     .putMetadata("property_id", String.valueOf(property.getId()))
                     .putMetadata("reservation_id", String.valueOf(reservation.getId()))
                     .build();

@@ -80,9 +80,15 @@ public class MinutController {
         }
     }
 
+    // Callback OAuth PUBLIC : appele par une redirection navigateur depuis Minut
+    // (pas de JWT/session). Sans permitAll(), la method-security de classe
+    // (isAuthenticated()) bloque le callback en 401 (I2-IOT-03). L'org/userId est
+    // resolu via le state CSRF Redis (stocke au /connect authentifie), pas le JWT.
+    // Modele : NetatmoController.callback.
     @GetMapping("/callback")
     @Operation(summary = "Callback OAuth Minut",
             description = "Recoit le code d'autorisation et l'echange contre un token")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, Object>> callback(
             @RequestParam("code") String code,
             @RequestParam("state") String state) {

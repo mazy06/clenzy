@@ -68,9 +68,12 @@ public class DirectBookingController {
     @GetMapping("/property/{id}/summary")
     @Operation(summary = "Obtenir les informations d'une propriete pour le widget")
     public ResponseEntity<DirectPropertySummaryDto> getPropertySummary(
-            @PathVariable("id") Long propertyId) {
-        log.debug("GET /api/public/direct-booking/property/{}/summary", propertyId);
-        DirectPropertySummaryDto summary = directBookingService.getPropertySummary(propertyId);
+            @PathVariable("id") Long propertyId,
+            @RequestHeader(value = "X-Organization-Id", required = true) Long orgId) {
+        log.debug("GET /api/public/direct-booking/property/{}/summary: orgId={}", propertyId, orgId);
+        // I1-OTA-03 : orgId obligatoire + verification d'une config direct booking
+        // ENABLED pour (propertyId, orgId) cote service — pas de fuite cross-org.
+        DirectPropertySummaryDto summary = directBookingService.getPropertySummary(propertyId, orgId);
         return ResponseEntity.ok(summary);
     }
 

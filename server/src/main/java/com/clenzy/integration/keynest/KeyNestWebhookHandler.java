@@ -79,9 +79,15 @@ public class KeyNestWebhookHandler {
      * Verifie la signature HMAC-SHA256 du webhook.
      */
     public boolean verifySignature(String payload, String signature) {
+        // I2-IOT-02 : fail-closed. Sans secret configure, on ne peut pas verifier la
+        // signature → on REJETTE (auparavant : return true = fail-open). Configurer
+        // KEYNEST_WEBHOOK_SECRET pour activer la reception des webhooks KeyNest.
         if (config.getWebhookSecret() == null || config.getWebhookSecret().isBlank()) {
-            log.warn("Webhook secret non configure — signature non verifiee");
-            return true; // Accepter si pas de secret configure (dev)
+            log.error("Webhook KeyNest rejete : secret HMAC non configure (KEYNEST_WEBHOOK_SECRET)");
+            return false;
+        }
+        if (signature == null || signature.isBlank()) {
+            return false;
         }
 
         try {

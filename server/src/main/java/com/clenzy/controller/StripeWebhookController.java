@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.booking.service.PublicBookingService;
+import com.clenzy.integration.direct.service.DirectBookingService;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
@@ -48,6 +49,7 @@ public class StripeWebhookController {
     private final PublicBookingService publicBookingService;
     private final UpsellService upsellService;
     private final StripeGateway stripeGateway;
+    private final DirectBookingService directBookingService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -61,7 +63,8 @@ public class StripeWebhookController {
                                    ShopService shopService,
                                    PublicBookingService publicBookingService,
                                    UpsellService upsellService,
-                                   StripeGateway stripeGateway) {
+                                   StripeGateway stripeGateway,
+                                   DirectBookingService directBookingService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
@@ -72,6 +75,7 @@ public class StripeWebhookController {
         this.publicBookingService = publicBookingService;
         this.upsellService = upsellService;
         this.stripeGateway = stripeGateway;
+        this.directBookingService = directBookingService;
     }
 
     /**
@@ -408,10 +412,40 @@ public class StripeWebhookController {
         } else if ("mobile_intervention".equals(type)) {
             // Paiement d'intervention via Payment Sheet mobile
             mobilePaymentService.completeInterventionPayment(paymentIntent);
+        } else if ("direct_booking".equals(type)) {
+            // I1-OTA-01 : SEULE voie de confirmation d'une reservation directe payante.
+            // Le webhook a deja verifie la signature Stripe → on confirme la resa.
+            confirmDirectBooking(paymentIntent);
         } else {
             // PaymentIntent non gere par le mobile (peut etre un PI d'un Checkout Session web)
             logger.debug("payment_intent.succeeded ignore (type={})", type);
         }
+    }
+
+    /**
+     * Confirme une reservation directe payante apres paiement Stripe reussi
+     * (metadata type=direct_booking, cf. DirectBookingService.createBookingWithPayment).
+     * La confirmation est idempotente cote service (re-livraison Stripe sans effet).
+     */
+    private void confirmDirectBooking(PaymentIntent paymentIntent) {
+        java.util.Map<String, String> metadata = paymentIntent.getMetadata();
+        String bookingId = metadata != null ? metadata.get("booking_id") : null;
+        String orgIdStr = metadata != null ? metadata.get("org_id") : null;
+        if (bookingId == null || orgIdStr == null) {
+            // Metadata incompletes : deterministe, une re-livraison echouerait pareil — on acquitte.
+            logger.error("payment_intent.succeeded direct_booking sans booking_id/org_id (PI {})",
+                    paymentIntent.getId());
+            return;
+        }
+        final Long orgId;
+        try {
+            orgId = Long.parseLong(orgIdStr);
+        } catch (NumberFormatException e) {
+            logger.error("org_id invalide '{}' sur PaymentIntent direct_booking {}",
+                    orgIdStr, paymentIntent.getId());
+            return;
+        }
+        directBookingService.confirmPaidBookingFromWebhook(bookingId, orgId);
     }
 
     /**

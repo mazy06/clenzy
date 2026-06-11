@@ -161,25 +161,25 @@ class DirectBookingControllerTest {
                     48.8566, 2.3522, 4.5, 12
             );
 
-            when(directBookingService.getPropertySummary(PROPERTY_ID)).thenReturn(summary);
+            when(directBookingService.getPropertySummary(PROPERTY_ID, ORG_ID)).thenReturn(summary);
 
             ResponseEntity<DirectPropertySummaryDto> response =
-                    controller.getPropertySummary(PROPERTY_ID);
+                    controller.getPropertySummary(PROPERTY_ID, ORG_ID);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().name()).isEqualTo("Appartement Paris");
             assertThat(response.getBody().maxGuests()).isEqualTo(4);
-            verify(directBookingService).getPropertySummary(PROPERTY_ID);
+            verify(directBookingService).getPropertySummary(PROPERTY_ID, ORG_ID);
         }
 
         @Test
-        @DisplayName("propagates exception when property not found")
+        @DisplayName("propagates exception when property not found / cross-org")
         void getPropertySummary_notFound_returns404() {
-            when(directBookingService.getPropertySummary(999L))
+            when(directBookingService.getPropertySummary(999L, ORG_ID))
                     .thenThrow(new IllegalArgumentException("Propriete introuvable: 999"));
 
-            assertThatThrownBy(() -> controller.getPropertySummary(999L))
+            assertThatThrownBy(() -> controller.getPropertySummary(999L, ORG_ID))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("introuvable");
         }
