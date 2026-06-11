@@ -2265,3 +2265,17 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: true
         stripComments: false
+
+  # Ajoute le lien du livret d'accueil ({guideLink}) au template "Information Check-in"
+  # (append non destructif) pour les orgs ayant un livret publié, afin que l'email
+  # automatique de check-in contienne enfin le lien du livret (le tag n'était pas dans
+  # le template seedé). splitStatements: false — le corps contient des sauts de ligne
+  # E'\n' et du markdown, on exécute l'UPDATE en une seule instruction.
+  - changeSet:
+      id: "0230-add-guidelink-to-checkin-templates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0230__add_guidelink_to_checkin_templates.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
