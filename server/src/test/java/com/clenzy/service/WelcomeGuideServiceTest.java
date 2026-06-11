@@ -475,6 +475,45 @@ class WelcomeGuideServiceTest {
     }
 
     @Test
+    void getPublicGuidePayload_guideBoundToPastReservationButTokenOnActiveStay_returnsAvailablePayload() {
+        // Cas réel prod : le livret reste figé sur une réservation révolue (#8), mais le token
+        // partagé est lié au séjour courant (#9). Le payload doit se baser sur la résa DU TOKEN
+        // (disponible), pas sur la résa figée du livret (qui afficherait « réservation révolue »).
+        UUID tokenValue = UUID.randomUUID();
+        Property property = new Property();
+        property.setId(99L);
+
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setTitle("Public Guide");
+        guide.setProperty(property);
+        guide.setPublished(true);
+        Reservation pastReservation = new Reservation();
+        pastReservation.setCheckOut(LocalDate.now().minusDays(2)); // séjour révolu (résa figée)
+        guide.setReservation(pastReservation);
+
+        Reservation activeReservation = new Reservation();
+        activeReservation.setId(909L);
+        activeReservation.setCheckIn(LocalDate.now());
+        activeReservation.setCheckOut(LocalDate.now().plusDays(4)); // séjour en cours (token)
+
+        WelcomeGuideToken token = new WelcomeGuideToken();
+        token.setToken(tokenValue);
+        token.setGuide(guide);
+        token.setReservation(activeReservation);
+        token.setExpiresAt(LocalDateTime.now().plusDays(4));
+
+        when(tokenRepository.findByToken(tokenValue)).thenReturn(Optional.of(token));
+        when(checkInInstructionsRepository.findByPropertyId(99L)).thenReturn(Optional.empty());
+
+        Optional<WelcomeGuidePublicDto> result = service.getPublicGuidePayload(tokenValue);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().available()).isTrue();
+        assertThat(result.get().title()).isEqualTo("Public Guide");
+    }
+
+    @Test
     void getPublicGuidePayload_beforeCheckInTime_masksAccessCodeWithLock() {
         UUID tokenValue = UUID.randomUUID();
         Property property = new Property();
