@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <version>3.5.13</version>
         <relativePath/>
     </parent>
 
@@ -23,7 +23,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-cloud.version>2023.0.0</spring-cloud.version>
+        <spring-cloud.version>2024.0.0</spring-cloud.version>
         <aws.sdk.version>2.23.0</aws.sdk.version>
         <serverless.version>1.0.0</serverless.version>
         <testcontainers.version>1.19.3</testcontainers.version>
@@ -42,16 +42,11 @@
         -->
         <liquibase.version>4.29.2</liquibase.version>
         <!--
-            CVE 2026-06 (audit D, incrément 1 — overrides chirurgicaux, Spring Boot 3.2 conservé).
-            Tomcat : Spring Boot 3.2.0 manage tomcat-embed-core 10.1.16, affecté par
-            CVE-2025-24813 (RCE non authentifiée via PUT partiel, CVSS 9.8 ; corrigé en 10.1.35).
-            On surcharge la version managée (même mineure 10.1.x → API compatible) pour fermer
-            le RCE sans attendre la montée Boot 3.5 (incrément 2).
-            Postgres : 42.6.0 (managé) affecté par CVE-2024-1597 (injection via NUL byte,
-            corrigé en 42.7.2) → 42.7.x.
+            Incrément 1 (overrides tomcat.version/postgresql.version pour fermer
+            CVE-2025-24813 / CVE-2024-1597 sur Boot 3.2) RETIRÉ : Spring Boot 3.5.x
+            manage déjà des versions patchées (tomcat ≥ 10.1.4x, postgresql ≥ 42.7.x).
+            Vérifié post-build via dependency:list.
         -->
-        <tomcat.version>10.1.39</tomcat.version>
-        <postgresql.version>42.7.4</postgresql.version>
     </properties>
 
     <dependencies>
