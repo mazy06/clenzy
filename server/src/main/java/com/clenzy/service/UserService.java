@@ -17,7 +17,6 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.UUID;
 import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
@@ -413,8 +412,7 @@ public class UserService {
             user.setRole(role);
             user.setStatus(UserStatus.ACTIVE);
             user.setEmailVerified(true);
-            // Mot de passe aleatoire — l'utilisateur se connecte via Keycloak, pas via ce password
-            user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
+            // Aucun mot de passe persiste en base : l'auth passe exclusivement par Keycloak.
 
             // Resoudre l'organizationId UNIQUEMENT depuis le tenant context — fail-closed.
             // PAS de fallback vers une "organisation par defaut" : rattacher silencieusement
@@ -506,7 +504,7 @@ public class UserService {
         dto.firstName = user.getFirstName();
         dto.lastName = user.getLastName();
         dto.email = user.getEmail();
-        dto.password = user.getPassword(); // Include password in DTO
+        dto.password = null; // Jamais expose : l'auth passe exclusivement par Keycloak
         dto.newPassword = null; // Ne jamais exposer le nouveau mot de passe
         dto.phoneNumber = user.getPhoneNumber();
         dto.role = user.getRole();

@@ -1,0 +1,26 @@
+-- 0235 : suppression de la colonne legacy users.password (audit MB1 — M1-MODEL-01).
+--
+-- CONTEXTE : Keycloak est la SEULE source d'authentification du PMS (cf.
+-- InscriptionService -> keycloakUser.setPassword, NewUserService -> keycloakService.createUser).
+-- La colonne users.password stockait un mot de passe EN CLAIR (champ entite legacy,
+-- @Column(nullable=false)), redondant avec Keycloak et expose dans un DTO de sortie
+-- (UserService.toDto -> dto.password = user.getPassword()). Faille critique :
+-- divulgation de mot de passe en clair.
+--
+-- CORRECTIF : le champ JPA password a ete retire de l'entite User ; aucune
+-- persistance ni exposition en clair ne subsiste. Le mot de passe ne transite plus
+-- qu'en parametre de methode (DTO d'entree -> Keycloak). Ce changeset aligne le
+-- schema PostgreSQL en supprimant la colonne devenue orpheline.
+--
+-- IDEMPOTENT : DROP COLUMN IF EXISTS -> rejouable sans effet.
+--
+-- ddl-auto=validate : apres ce DROP + suppression du champ JPA, le schema reste
+-- coherent (ni colonne ni champ). En prod, cette entree DOIT etre presente dans
+-- db.changelog-master.yaml sinon la colonne NOT NULL subsiste cote DB alors que
+-- l'entite ne la mappe plus -> divergence (Hibernate ignore les colonnes inconnues,
+-- mais la contrainte NOT NULL ferait echouer tout INSERT d'un nouvel utilisateur).
+--
+-- Aucune requete native ni methode de repository ne reference users.password
+-- (grep exhaustif effectue) -> DROP sans dependance.
+
+ALTER TABLE users DROP COLUMN IF EXISTS password;

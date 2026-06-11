@@ -66,7 +66,10 @@ export function wouldConflict(
   if (isInterventionEvent) {
     // 1. Check overlap with reservations on the same property
     const reservations = allEvents.filter(
-      (e) => e.propertyId === modifiedEvent.propertyId && e.type === 'reservation',
+      (e) =>
+        e.propertyId === modifiedEvent.propertyId &&
+        e.type === 'reservation' &&
+        e.status !== 'cancelled',
     );
     const overlapsReservation = reservations.some(
       (e) => modifiedEvent.startDate < e.endDate && modifiedEvent.endDate > e.startDate,
@@ -94,7 +97,8 @@ export function wouldConflict(
     (e) =>
       e.id !== modifiedEvent.id &&
       e.propertyId === modifiedEvent.propertyId &&
-      e.type === 'reservation',
+      e.type === 'reservation' &&
+      e.status !== 'cancelled',
   );
 
   // 1. Direct reservation overlap
@@ -193,7 +197,11 @@ export function validateReservationUpdate(
 
   // 1. Check overlap with other reservations on the same property
   const otherReservations = allEvents.filter(
-    (e) => e.id !== eventId && e.propertyId === propertyId && e.type === 'reservation',
+    (e) =>
+      e.id !== eventId &&
+      e.propertyId === propertyId &&
+      e.type === 'reservation' &&
+      e.status !== 'cancelled',
   );
 
   const newStart = toTimestamp(newCheckIn, newCheckInTime);
@@ -285,7 +293,10 @@ export function validateInterventionUpdate(
 
   // 1. Check overlap with reservations on the same property
   const reservations = allEvents.filter(
-    (e) => e.propertyId === propertyId && e.type === 'reservation',
+    (e) =>
+      e.propertyId === propertyId &&
+      e.type === 'reservation' &&
+      e.status !== 'cancelled',
   );
 
   for (const res of reservations) {

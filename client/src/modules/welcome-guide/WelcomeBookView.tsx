@@ -128,6 +128,26 @@ function formatDate(iso: string | null, lang: Lang): string {
   }
 }
 
+/**
+ * Valide qu'une URL fournie par l'utilisateur (lien d'activité curée, lien de
+ * check-in) est bien un lien web sûr avant de l'injecter dans un `href`.
+ *
+ * SECURITE (F4-GUEST-MONEY-01) : cette page guest est PUBLIQUE (/guide/:token)
+ * et les liens viennent de données saisies par l'hôte. Sans contrôle du schéma,
+ * un `javascript:alert(...)` dans `href` s'exécute au clic (XSS). On n'accepte
+ * QUE `http:`/`https:` ; tout autre schéma (javascript:, data:, vbscript:…) ou
+ * une URL non parsable renvoie `undefined` → le lien n'est pas rendu.
+ */
+function safeHttpUrl(raw: string | null | undefined): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw, window.location.origin);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function Stars({ value = 5, size = 15 }: { value?: number; size?: number }) {
   return (
     <span style={{ display: 'inline-flex', gap: 1 }}>
@@ -610,10 +630,13 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                     </div>
                   </div>
                 );
+                // F4-GUEST-MONEY-01 : lien curé par l'hôte → n'autoriser que http(s),
+                // sinon pas de lien (évite javascript:/data: dans href sur cette page publique).
+                const bookingUrl = safeHttpUrl(a.bookingUrl);
                 return (
                   <div key={a.id} className="wb-pressable" style={{ flexShrink: 0, width: 210 }}>
-                    {a.bookingUrl ? (
-                      <a href={interactive ? a.bookingUrl : undefined} target="_blank" rel="noopener noreferrer" onClick={() => interactive && onActivityClick?.(a)} style={{ textDecoration: 'none', display: 'block', height: '100%', cursor: interactive ? 'pointer' : 'default' }}>{card}</a>
+                    {bookingUrl ? (
+                      <a href={interactive ? bookingUrl : undefined} target="_blank" rel="noopener noreferrer" onClick={() => interactive && onActivityClick?.(a)} style={{ textDecoration: 'none', display: 'block', height: '100%', cursor: interactive ? 'pointer' : 'default' }}>{card}</a>
                     ) : card}
                   </div>
                 );
@@ -757,9 +780,17 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
           <WarmBlock label={L.checkinTitle}>
             {checkIn.status === 'COMPLETED' ? (
               <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--terra-deep)', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Check size={16} strokeWidth={2} /> {L.checkinDone}</div>
-            ) : (
-              <a href={interactive ? checkIn.link : undefined} target="_blank" rel="noopener noreferrer" onClick={() => interactive && onCheckinClick?.()} className="wb-btn wb-pressable" style={{ textDecoration: 'none', cursor: interactive ? 'pointer' : 'default' }}>{L.checkinCta} <ArrowUpRight size={18} strokeWidth={1.8} /></a>
-            )}
+            ) : (() => {
+              // F4-GUEST-MONEY-01 : le lien de check-in vient de données métier →
+              // n'autoriser que http(s) dans href (pas de javascript:/data:). Si le
+              // lien est absent/invalide, on rend la CTA en span non cliquable.
+              const checkinUrl = safeHttpUrl(checkIn.link);
+              return checkinUrl ? (
+                <a href={interactive ? checkinUrl : undefined} target="_blank" rel="noopener noreferrer" onClick={() => interactive && onCheckinClick?.()} className="wb-btn wb-pressable" style={{ textDecoration: 'none', cursor: interactive ? 'pointer' : 'default' }}>{L.checkinCta} <ArrowUpRight size={18} strokeWidth={1.8} /></a>
+              ) : (
+                <span className="wb-btn" style={{ textDecoration: 'none', opacity: 0.6, cursor: 'default' }}>{L.checkinCta} <ArrowUpRight size={18} strokeWidth={1.8} /></span>
+              );
+            })()}
           </WarmBlock>
         ) : null}
 

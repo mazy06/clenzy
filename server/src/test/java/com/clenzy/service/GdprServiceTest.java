@@ -312,7 +312,6 @@ class GdprServiceTest {
         assertThat(saved.getFirstName()).isEqualTo("Anonyme");
         assertThat(saved.getLastName()).isEqualTo("Utilisateur");
         assertThat(saved.getEmail()).startsWith("anon_").endsWith("@anonymized.clenzy.fr");
-        assertThat(saved.getPassword()).isEqualTo("ANONYMIZED");
         assertThat(saved.getPhoneNumber()).isNull();
         assertThat(saved.getProfilePictureUrl()).isNull();
         assertThat(saved.getCognitoUserId()).isNull();

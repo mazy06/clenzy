@@ -174,7 +174,14 @@ function restoreSessionFromMetadata(session: SessionInfo): void {
   }
 }
 
-function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
+/**
+ * Decode le payload d'un JWT (claims) en gerant correctement le base64url
+ * (`-`/`_` → `+`/`/`). `atob()` brut echoue sur ces caracteres : c'est pourquoi
+ * tout decodage artisanal `JSON.parse(atob(token.split('.')[1]))` est interdit
+ * (cf. F6-IDENTITY-01) — utiliser cette fonction partout (auto-login, etc.).
+ * Retourne `undefined` si le token est absent ou malforme (jamais de throw).
+ */
+export function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
   if (!token) return undefined
   const parts = token.split('.')
   if (parts.length !== 3) return undefined

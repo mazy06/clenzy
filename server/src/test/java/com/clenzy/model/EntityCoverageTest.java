@@ -33,11 +33,11 @@ class EntityCoverageTest {
             assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
         }
         @Test void parameterizedConstructor() {
+            // Le 4e parametre (mot de passe legacy) est ignore : non persiste, auth via Keycloak.
             User user = new User("Jean", "Dupont", "jean@test.com", "password");
             assertThat(user.getFirstName()).isEqualTo("Jean");
             assertThat(user.getLastName()).isEqualTo("Dupont");
             assertThat(user.getEmail()).isEqualTo("jean@test.com");
-            assertThat(user.getPassword()).isEqualTo("password");
         }
         @Test void gettersAndSetters() {
             User user = new User();
@@ -45,7 +45,6 @@ class EntityCoverageTest {
             user.setFirstName("Jean");
             user.setLastName("Dupont");
             user.setEmail("jean@test.com");
-            user.setPassword("pass123");
             user.setPhoneNumber("+33600000000");
             user.setRole(UserRole.SUPER_ADMIN);
             user.setStatus(UserStatus.ACTIVE);
@@ -84,7 +83,6 @@ class EntityCoverageTest {
             assertThat(user.getLastName()).isEqualTo("Dupont");
             assertThat(user.getEmail()).isEqualTo("jean@test.com");
             assertThat(user.getEmailHash()).isNotNull(); // setEmail computes hash
-            assertThat(user.getPassword()).isEqualTo("pass123");
             assertThat(user.getPhoneNumber()).isEqualTo("+33600000000");
             assertThat(user.getRole()).isEqualTo(UserRole.SUPER_ADMIN);
             assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);

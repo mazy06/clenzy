@@ -200,7 +200,8 @@ public class GdprService {
         user.setFirstName("Anonyme");
         user.setLastName("Utilisateur");
         user.setEmail(anonymousId + "@anonymized.clenzy.fr");
-        user.setPassword("ANONYMIZED");
+        // Plus de colonne password a scrubber : le mot de passe n'est plus persiste
+        // (Keycloak = seule source d'auth ; l'utilisateur Keycloak est detache via keycloakId=null).
         user.setPhoneNumber(null);
         user.setProfilePictureUrl(null);
         user.setCognitoUserId(null);

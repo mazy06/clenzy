@@ -246,7 +246,7 @@ public class OrganizationInvitationService {
             user.setRole(mappedRole);
             user.setStatus(UserStatus.ACTIVE);
             user.setEmailVerified(true);
-            user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
+            // Aucun mot de passe persiste en base : l'auth passe exclusivement par Keycloak.
             user.setOrganizationId(invitation.getOrganization().getId());
             user = userRepository.save(user);
             log.info("Auto-provisioning via invitation: userId={}, email={}", user.getId(), user.getEmail());
@@ -355,8 +355,7 @@ public class OrganizationInvitationService {
         user.setRole(mappedRole);
         user.setStatus(UserStatus.ACTIVE);
         user.setEmailVerified(true); // verifie via le lien d'invitation
-        // Hash placeholder local — l'auth reelle passe par Keycloak.
-        user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
+        // Aucun mot de passe persiste en base : l'auth reelle passe par Keycloak.
         user.setOrganizationId(orgId);
         user = userRepository.save(user);
 
