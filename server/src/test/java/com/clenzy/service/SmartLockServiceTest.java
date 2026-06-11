@@ -49,7 +49,7 @@ class SmartLockServiceTest {
     @BeforeEach
     void setUp() {
         service = new SmartLockService(smartLockRepository, propertyRepository, tuyaApiService, tenantContext, claimService,
-                providerRegistry);
+                providerRegistry, new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
         lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
     }
 

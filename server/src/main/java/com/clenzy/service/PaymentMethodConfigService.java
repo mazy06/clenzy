@@ -190,7 +190,8 @@ public class PaymentMethodConfigService {
     public List<PaymentProviderType> getDefaultProvidersForCountry(String countryCode) {
         List<PaymentProviderType> defaults = COUNTRY_DEFAULTS.get(countryCode);
         if (defaults != null) return defaults;
-        // Global fallback
-        return List.of(PaymentProviderType.STRIPE, PaymentProviderType.PAYPAL);
+        // Global fallback — PayPal retiré (décision produit), Stripe seul provider
+        // global proposé par défaut.
+        return List.of(PaymentProviderType.STRIPE);
     }
 }

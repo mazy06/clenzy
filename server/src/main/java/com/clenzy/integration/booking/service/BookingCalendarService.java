@@ -188,13 +188,14 @@ public class BookingCalendarService {
 
         if (price != null) {
             try {
-                calendarEngine.updatePrice(
+                calendarEngine.updateExternalPrice(
                         mapping.getInternalId(),
                         startDate,
                         endDate,
                         price,
                         mapping.getOrganizationId(),
-                        "booking-webhook"
+                        "booking-webhook",
+                        "BOOKING"
                 );
                 log.info("Prix mis a jour pour propriete {} (Booking room {}) : {} [{}, {})",
                         mapping.getInternalId(), mapping.getExternalId(), price, startDate, endDate);

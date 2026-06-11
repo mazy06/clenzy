@@ -130,13 +130,14 @@ public class AirbnbCalendarService {
 
         if (nightlyPrice != null) {
             try {
-                calendarEngine.updatePrice(
+                calendarEngine.updateExternalPrice(
                         mapping.getPropertyId(),
                         startDate,
                         endDate,
                         nightlyPrice,
                         mapping.getOrganizationId(),
-                        "airbnb-webhook"
+                        "airbnb-webhook",
+                        "AIRBNB"
                 );
                 log.info("Prix mis a jour pour propriete {} (listing {}) : {} [{}, {})",
                         mapping.getPropertyId(), mapping.getAirbnbListingId(), nightlyPrice, startDate, endDate);

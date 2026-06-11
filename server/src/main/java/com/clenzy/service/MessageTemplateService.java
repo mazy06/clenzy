@@ -23,10 +23,58 @@ import java.util.Optional;
 @Service
 public class MessageTemplateService {
 
+    /**
+     * Bloc markdown ajoute en fin de corps des templates CHECK_IN pour y injecter le
+     * lien du livret d'accueil. IDENTIQUE au bloc seede par la migration 0230 (append
+     * non destructif) : la generalisation a la publication d'un livret et le re-seed
+     * historique doivent produire exactement le meme texte. Le tag {@code {guideLink}}
+     * est resolu a l'envoi par {@code GuestMessagingService.templateReferencesGuideLink}.
+     */
+    static final String GUIDE_LINK_TAG = "{guideLink}";
+    static final String GUIDE_LINK_BLOCK =
+        "\n\n🏠 **Votre livret d'accueil numérique**\n"
+        + "Retrouvez le code d'accès, les instructions d'arrivée et toutes les infos pratiques de votre séjour :\n"
+        + "[Ouvrir mon livret d'accueil](" + GUIDE_LINK_TAG + ")\n";
+
     private final MessageTemplateRepository templateRepository;
 
     public MessageTemplateService(MessageTemplateRepository templateRepository) {
         this.templateRepository = templateRepository;
+    }
+
+    /**
+     * Garantit que les templates CHECK_IN actifs de l'organisation referencent le tag
+     * {@code {guideLink}}, afin que l'email de bienvenue contienne le lien du livret.
+     *
+     * <p>Appele a la publication d'un livret (premier livret publie d'une org) : c'est
+     * l'equivalent runtime de la migration 0230, pour les organisations qui publient
+     * leur premier livret APRES cette migration et n'auraient donc jamais beneficie du
+     * re-seed historique.</p>
+     *
+     * <p>Idempotent : un template dont le corps OU le sujet contient deja le tag n'est
+     * pas modifie (pas de double bloc). Org-scope : seuls les templates de
+     * {@code organizationId} sont touches. No-op si {@code organizationId} est null
+     * (staff plateforme sans org de contexte n'edite pas les templates d'une org).</p>
+     */
+    @Transactional
+    public void ensureGuideLinkTag(Long organizationId) {
+        if (organizationId == null) {
+            return;
+        }
+        for (MessageTemplate template : templateRepository
+                .findByOrganizationIdAndTypeAndIsActiveTrue(organizationId, MessageTemplateType.CHECK_IN)) {
+            if (referencesGuideLink(template)) {
+                continue; // deja present (corps ou sujet) -> idempotent
+            }
+            template.setBody(template.getBody() + GUIDE_LINK_BLOCK);
+            templateRepository.save(template);
+        }
+    }
+
+    /** Vrai si le sujet ou le corps du template reference deja le tag {@code {guideLink}}. */
+    private static boolean referencesGuideLink(MessageTemplate template) {
+        return (template.getSubject() != null && template.getSubject().contains(GUIDE_LINK_TAG))
+            || (template.getBody() != null && template.getBody().contains(GUIDE_LINK_TAG));
     }
 
     @Transactional(readOnly = true)

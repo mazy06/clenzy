@@ -359,7 +359,9 @@ class CalendarEngineTest {
 
     @Test
     void whenLegacyUpdatePriceIsUsed_thenNoRateOverrideIsCreated() {
-        // Arrange : le chemin updatePrice (imports OTA inbound) ne cree pas d'override
+        // Arrange : le chemin bas niveau updatePrice (n'ecrit que calendar_days)
+        // ne cree pas d'override. Les imports OTA inbound passent desormais par
+        // updateExternalPrice (override source OTA:* visible du PriceEngine).
         when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
         when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
         when(calendarDayRepository.findByPropertyAndDateRange(propertyId, checkIn, checkOut.minusDays(1), orgId))
@@ -368,6 +370,116 @@ class CalendarEngineTest {
 
         // Act
         calendarEngine.updatePrice(propertyId, checkIn, checkOut, new BigDecimal("120.00"), orgId, actorId);
+
+        // Assert
+        verifyNoInteractions(rateOverrideRepository);
+    }
+
+    // ── updateExternalPrice : prix OTA importe visible du PriceEngine (Z5-BUGS-04 reliquat) ──
+
+    @Test
+    void whenExternalPriceIsImported_thenOtaRateOverridesAreCreated() {
+        // Arrange
+        BigDecimal otaPrice = new BigDecimal("175.00");
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, checkIn, checkOut.minusDays(1), orgId))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, checkIn, checkOut, orgId))
+                .thenReturn(List.of());
+        when(rateOverrideRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        calendarEngine.updateExternalPrice(propertyId, checkIn, checkOut, otaPrice, orgId,
+                "airbnb-webhook", "AIRBNB");
+
+        // Assert : un override OTA:AIRBNB par jour de la plage [checkIn, checkOut)
+        ArgumentCaptor<List<RateOverride>> captor = ArgumentCaptor.forClass(List.class);
+        verify(rateOverrideRepository).saveAll(captor.capture());
+        List<RateOverride> overrides = captor.getValue();
+        assertEquals(4, overrides.size());
+        for (RateOverride override : overrides) {
+            assertEquals("OTA:AIRBNB", override.getSource());
+            assertEquals(otaPrice, override.getNightlyPrice());
+            assertEquals("airbnb-webhook", override.getCreatedBy());
+        }
+        // L'ecriture calendrier (affichage) reste effectuee + event outbox emis
+        verify(calendarDayRepository).saveAll(anyList());
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_PRICE_UPDATED"), eq(propertyId), eq(orgId), anyString());
+    }
+
+    @Test
+    void whenExternalPriceImportedOnYieldOverride_thenOverrideIsRewrittenToOta() {
+        // Arrange : un override yield existe sur le premier jour -> remplace par l'OTA
+        BigDecimal otaPrice = new BigDecimal("160.00");
+        RateOverride yieldOverride = new RateOverride(property, checkIn, new BigDecimal("90.00"), "YIELD_RULE", orgId);
+
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, checkIn, checkOut.minusDays(1), orgId))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, checkIn, checkOut, orgId))
+                .thenReturn(List.of(yieldOverride));
+        when(rateOverrideRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        calendarEngine.updateExternalPrice(propertyId, checkIn, checkOut, otaPrice, orgId,
+                "booking-webhook", "BOOKING");
+
+        // Assert : l'override yield est requalifie OTA:BOOKING avec le prix importe
+        assertEquals("OTA:BOOKING", yieldOverride.getSource());
+        assertEquals(otaPrice, yieldOverride.getNightlyPrice());
+    }
+
+    @Test
+    void whenExternalPriceImportedOnManualOverride_thenManualPriceIsPreserved() {
+        // Arrange : un prix MANUEL (saisi par l'hote) existe sur le premier jour.
+        // L'import OTA ne doit pas l'ecraser (l'intention de l'hote prime).
+        BigDecimal otaPrice = new BigDecimal("200.00");
+        BigDecimal hostPrice = new BigDecimal("250.00");
+        RateOverride manualOverride = new RateOverride(property, checkIn, hostPrice, "MANUAL", orgId);
+
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, checkIn, checkOut.minusDays(1), orgId))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, checkIn, checkOut, orgId))
+                .thenReturn(List.of(manualOverride));
+        when(rateOverrideRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        calendarEngine.updateExternalPrice(propertyId, checkIn, checkOut, otaPrice, orgId,
+                "expedia-webhook", "VRBO");
+
+        // Assert : le jour MANUEL est intact, les 3 autres jours recoivent un override OTA:VRBO
+        assertEquals("MANUAL", manualOverride.getSource());
+        assertEquals(hostPrice, manualOverride.getNightlyPrice());
+
+        ArgumentCaptor<List<RateOverride>> captor = ArgumentCaptor.forClass(List.class);
+        verify(rateOverrideRepository).saveAll(captor.capture());
+        List<RateOverride> saved = captor.getValue();
+        assertEquals(3, saved.size());
+        for (RateOverride override : saved) {
+            assertEquals("OTA:VRBO", override.getSource());
+            assertEquals(otaPrice, override.getNightlyPrice());
+        }
+    }
+
+    @Test
+    void whenExternalPriceIsNull_thenNoOverrideIsCreated() {
+        // Arrange : un prix null (champ absent du payload OTA) ne cree aucun override
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, checkIn, checkOut.minusDays(1), orgId))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        calendarEngine.updateExternalPrice(propertyId, checkIn, checkOut, null, orgId,
+                "airbnb-webhook", "AIRBNB");
 
         // Assert
         verifyNoInteractions(rateOverrideRepository);

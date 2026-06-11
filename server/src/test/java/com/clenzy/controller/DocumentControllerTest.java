@@ -62,7 +62,8 @@ class DocumentControllerTest {
         // Pattern Vague A : service REEL construit au-dessus des mocks repository/tenant
         // pour garder la couverture bout-en-bout (org isolation + ownership intervention).
         controller = new DocumentController(generatorService, documentStorageService, complianceService,
-                new DocumentAccessService(interventionRepository, tenantContext));
+                new DocumentAccessService(interventionRepository,
+                        new com.clenzy.service.access.OrganizationAccessGuard(tenantContext)));
     }
 
     @Nested
@@ -139,9 +140,12 @@ class DocumentControllerTest {
         void whenDownloadGeneration_thenReturnsResource() {
             Jwt jwt = createJwt();
             DocumentGeneration gen = new DocumentGeneration();
+            // Org alignee au tenant : OrganizationAccessGuard est fail-closed (org NULL -> refus).
+            gen.setOrganizationId(1L);
             gen.setFilePath("/path/to/file.pdf");
             gen.setFileName("document.pdf");
             when(generatorService.getGeneration(1L)).thenReturn(gen);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
 
             Resource resource = new ByteArrayResource(new byte[]{1, 2, 3});
             when(documentStorageService.load("/path/to/file.pdf")).thenReturn(resource);
@@ -155,8 +159,11 @@ class DocumentControllerTest {
         void whenDownloadGenerationWithNoFile_thenThrowsNotFound() {
             Jwt jwt = createJwt();
             DocumentGeneration gen = new DocumentGeneration();
+            // Org alignee au tenant : OrganizationAccessGuard est fail-closed (org NULL -> refus).
+            gen.setOrganizationId(1L);
             gen.setFilePath(null);
             when(generatorService.getGeneration(1L)).thenReturn(gen);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
 
             try {
                 controller.downloadGeneration(jwt, 1L);

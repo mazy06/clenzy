@@ -48,6 +48,7 @@ class WelcomeGuideServiceTest {
     @Mock private PropertyPhotoRepository propertyPhotoRepository;
     @Mock private com.clenzy.repository.ActivityAffiliateConfigRepository activityAffiliateConfigRepository;
     @Mock private com.clenzy.service.access.GuestUnlockService guestUnlockService;
+    @Mock private MessageTemplateService messageTemplateService;
 
     private WelcomeGuideService service;
 
@@ -56,7 +57,7 @@ class WelcomeGuideServiceTest {
         service = new WelcomeGuideService(guideRepository, tokenRepository, entryRepository, eventRepository,
             propertyRepository, reservationRepository, checkInInstructionsRepository, guideConfig, accessCodeResolverService,
             onlineCheckInService, photoStorageService, propertyPhotoRepository, activityAffiliateConfigRepository,
-            guestUnlockService, java.util.List.of());
+            guestUnlockService, messageTemplateService, java.util.List.of());
     }
 
     @Test
@@ -328,6 +329,59 @@ class WelcomeGuideServiceTest {
 
         assertThat(result.getTitle()).isEqualTo("New Title");
         assertThat(result.isPublished()).isTrue();
+    }
+
+    @Test
+    void updateGuide_transitionToPublished_ensuresGuideLinkTag() {
+        // A la PREMIERE publication d'un livret, on generalise la migration 0230 : on garantit
+        // que le template CHECK_IN de l'org reference {guideLink}. Borne a la transition.
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setOrganizationId(7L);
+        guide.setPublished(false);
+
+        when(guideRepository.findByIdAndOrganizationId(1L, 7L)).thenReturn(Optional.of(guide));
+        when(guideRepository.save(any())).thenReturn(guide);
+
+        service.updateGuide(1L, 7L, new WelcomeGuideRequest(
+            null, null, null, null, null, null, null, null, null, null, true, null, null, null, null, null, null, null));
+
+        verify(messageTemplateService).ensureGuideLinkTag(7L);
+    }
+
+    @Test
+    void updateGuide_alreadyPublished_doesNotReEnsureGuideLinkTag() {
+        // Re-sauvegarde d'un livret deja publie (ex. edition de contenu) : pas de transition,
+        // donc pas de re-traitement des templates.
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setOrganizationId(7L);
+        guide.setPublished(true);
+
+        when(guideRepository.findByIdAndOrganizationId(1L, 7L)).thenReturn(Optional.of(guide));
+        when(guideRepository.save(any())).thenReturn(guide);
+
+        service.updateGuide(1L, 7L, new WelcomeGuideRequest(
+            null, "Nouveau titre", null, null, null, null, null, null, null, null, true, null, null, null, null, null, null, null));
+
+        verify(messageTemplateService, never()).ensureGuideLinkTag(any());
+    }
+
+    @Test
+    void updateGuide_unpublish_doesNotEnsureGuideLinkTag() {
+        // Depublication (publie -> non publie) : aucune raison de toucher aux templates.
+        WelcomeGuide guide = new WelcomeGuide();
+        guide.setId(1L);
+        guide.setOrganizationId(7L);
+        guide.setPublished(true);
+
+        when(guideRepository.findByIdAndOrganizationId(1L, 7L)).thenReturn(Optional.of(guide));
+        when(guideRepository.save(any())).thenReturn(guide);
+
+        service.updateGuide(1L, 7L, new WelcomeGuideRequest(
+            null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null));
+
+        verify(messageTemplateService, never()).ensureGuideLinkTag(any());
     }
 
     @Test

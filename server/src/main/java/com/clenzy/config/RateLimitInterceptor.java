@@ -53,10 +53,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     // l'enjeu physique (acces logement). Complete par le lockout par token cote
     // KeyVerificationThrottle.
     private static final int KEY_VERIFY_RATE_LIMIT = 10;
-    // Retour PayPal public (Z3-SEC-04) : un guest legitime ne revient qu'une
-    // fois de PayPal — 15 req/min/IP absorbe les retries navigateur tout en
-    // bloquant le scan d'order_id et l'epuisement BDD/API PayPal.
-    private static final int PAYPAL_RETURN_RATE_LIMIT = 15;
     // Livre d'or public du livret d'accueil (Z4B-SECBUGS-05) : un guest poste
     // 1 entree — 5 POST/min/IP absorbe les retries tout en bloquant le spam.
     // Complete les plafonds applicatifs par token/livret de
@@ -126,11 +122,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             // d'echange de cles (protection brute-force des codes 6 chiffres).
             key = "key-verify:" + getClientIp(request);
             limit = KEY_VERIFY_RATE_LIMIT;
-        } else if (path.equals("/api/payments/paypal/return")) {
-            // Limite stricte par IP sur le retour PayPal public (anti scan
-            // d'order_id / DoS, Z3-SEC-04).
-            key = "paypal-return:" + getClientIp(request);
-            limit = PAYPAL_RETURN_RATE_LIMIT;
         } else if (isPublicGuestbookPost(request, path)) {
             // Limite stricte par IP sur l'ajout public d'entrees de livre d'or
             // (anti spam/storage abuse, Z4B-SECBUGS-05). La lecture (GET) reste

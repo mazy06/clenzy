@@ -169,7 +169,7 @@ public class PaymentOrchestrationService {
         PaymentResult result;
         try {
             // Construit le contexte enrichi pour les providers régionaux (PayTabs,
-            // Payzone, PayPal) qui ont besoin de l'orgId + currency + transactionRef
+            // Payzone) qui ont besoin de l'orgId + currency + transactionRef
             // pour reconstruire la requête refund auprès de la passerelle. Pour
             // Stripe, la default method de l'interface délègue à l'ancienne
             // signature (rétro-compat).

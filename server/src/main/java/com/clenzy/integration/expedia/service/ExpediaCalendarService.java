@@ -126,13 +126,14 @@ public class ExpediaCalendarService {
         BigDecimal nightlyPrice = parsePriceField(data, "price_per_night");
 
         if (nightlyPrice != null) {
-            calendarEngine.updatePrice(
+            calendarEngine.updateExternalPrice(
                     mapping.getInternalId(),
                     startDate,
                     endDate,
                     nightlyPrice,
                     mapping.getOrganizationId(),
-                    "expedia-webhook"
+                    "expedia-webhook",
+                    "VRBO"
             );
             log.info("Prix mis a jour pour propriete {} (Expedia {}) : {} [{}, {})",
                     mapping.getInternalId(), mapping.getExternalId(),
@@ -212,13 +213,14 @@ public class ExpediaCalendarService {
             return;
         }
 
-        calendarEngine.updatePrice(
+        calendarEngine.updateExternalPrice(
                 mapping.getInternalId(),
                 startDate,
                 endDate,
                 price,
                 mapping.getOrganizationId(),
-                "expedia-webhook"
+                "expedia-webhook",
+                "VRBO"
         );
 
         log.info("Tarif mis a jour pour propriete {} (Expedia {}) : {} [{}, {})",

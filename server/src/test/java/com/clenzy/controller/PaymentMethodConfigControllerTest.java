@@ -93,14 +93,14 @@ class PaymentMethodConfigControllerTest {
     void updateConfig_lowercaseProvider_isUppercased() {
         PaymentMethodConfigUpdateRequest req = new PaymentMethodConfigUpdateRequest(
             null, null, null, null, null, null, null);
-        PaymentMethodConfig saved = buildConfig(2L, PaymentProviderType.PAYPAL, null, false, false);
-        when(configService.updateConfig(anyLong(), eq(PaymentProviderType.PAYPAL),
+        PaymentMethodConfig saved = buildConfig(2L, PaymentProviderType.PAYTABS, null, false, false);
+        when(configService.updateConfig(anyLong(), eq(PaymentProviderType.PAYTABS),
             any(), any(), any(), any(), any(), any(), any())).thenReturn(saved);
 
-        ResponseEntity<PaymentMethodConfigDto> response = controller.updateConfig("paypal", req);
+        ResponseEntity<PaymentMethodConfigDto> response = controller.updateConfig("paytabs", req);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("PAYPAL", response.getBody().providerType());
+        assertEquals("PAYTABS", response.getBody().providerType());
     }
 
     @Test
@@ -114,12 +114,12 @@ class PaymentMethodConfigControllerTest {
     @Test
     void getDefaults_returnsProviderNames() {
         when(configService.getDefaultProvidersForCountry("FR"))
-            .thenReturn(List.of(PaymentProviderType.STRIPE, PaymentProviderType.PAYPAL));
+            .thenReturn(List.of(PaymentProviderType.STRIPE, PaymentProviderType.PAYTABS));
 
         ResponseEntity<List<String>> response = controller.getDefaults("FR");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(List.of("STRIPE", "PAYPAL"), response.getBody());
+        assertEquals(List.of("STRIPE", "PAYTABS"), response.getBody());
     }
 
     @Test

@@ -76,7 +76,8 @@ class PaymentControllerTest {
                 userService, stripeService, tenantContext);
         InterventionPaymentService interventionPaymentService = new InterventionPaymentService(
                 interventionRepository, orchestrationService, stripeService,
-                paymentTransactionService, tenantContext);
+                paymentTransactionService, tenantContext,
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
         controller = new PaymentController(interventionPaymentService, paymentQueryService, paymentTransactionService);
 
         jwt = Jwt.withTokenValue("token")

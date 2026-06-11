@@ -36,19 +36,22 @@ public class SmartLockService {
     private final TenantContext tenantContext;
     private final TuyaDeviceClaimService claimService;
     private final com.clenzy.service.smartlock.SmartLockProviderRegistry providerRegistry;
+    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     public SmartLockService(SmartLockDeviceRepository smartLockRepository,
                             PropertyRepository propertyRepository,
                             TuyaApiService tuyaApiService,
                             TenantContext tenantContext,
                             TuyaDeviceClaimService claimService,
-                            com.clenzy.service.smartlock.SmartLockProviderRegistry providerRegistry) {
+                            com.clenzy.service.smartlock.SmartLockProviderRegistry providerRegistry,
+                            com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard) {
         this.smartLockRepository = smartLockRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
         this.tenantContext = tenantContext;
         this.claimService = claimService;
         this.providerRegistry = providerRegistry;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -125,19 +128,13 @@ public class SmartLockService {
 
     /**
      * Refuse l'accès si la serrure appartient à une autre organisation.
-     * Bypass pour le staff plateforme (SUPER_ADMIN/SUPER_MANAGER) et les orgs
-     * SYSTEM — mêmes exemptions que le filtre Hibernate organizationFilter
-     * (cf. TenantFilter), que findById ne traverse pas.
+     * Delegue a {@link com.clenzy.service.access.OrganizationAccessGuard}
+     * (fail-closed, bypass platform staff + org SYSTEM), que findById ne
+     * traverse pas.
      */
     private void requireSameOrganization(SmartLockDevice device) {
-        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
-            return;
-        }
-        Long orgId = tenantContext.getOrganizationId();
-        if (orgId != null && device.getOrganizationId() != null && !orgId.equals(device.getOrganizationId())) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Serrure hors de votre organisation");
-        }
+        organizationAccessGuard.requireSameOrganization(
+                device.getOrganizationId(), "Serrure hors de votre organisation");
     }
 
     // ─── Lock operations ─────────────────────────────────────────

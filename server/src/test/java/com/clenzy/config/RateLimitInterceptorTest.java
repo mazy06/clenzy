@@ -144,40 +144,6 @@ class RateLimitInterceptorTest {
     }
 
     @Nested
-    @DisplayName("PayPal return endpoint — limite stricte par IP (Z3-SEC-04)")
-    class PayPalReturnEndpoint {
-
-        @Test
-        void whenPayPalReturnRequest_thenUsesDedicatedKeyAndStrictLimit() throws Exception {
-            stubRateLimitScript("ratelimit:paypal-return:8.8.8.8", 1L, 60_000L);
-
-            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/payments/paypal/return");
-            request.setRemoteAddr("8.8.8.8");
-            MockHttpServletResponse response = new MockHttpServletResponse();
-
-            boolean result = interceptor.preHandle(request, response, new Object());
-
-            assertThat(result).isTrue();
-            assertThat(response.getHeader("X-RateLimit-Limit")).isEqualTo("15");
-            verifyRateLimitScript("ratelimit:paypal-return:8.8.8.8");
-        }
-
-        @Test
-        void whenPayPalReturnLimitExceeded_thenBlocked429() throws Exception {
-            stubRateLimitScript("ratelimit:paypal-return:8.8.8.8", 16L, 30_000L);
-
-            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/payments/paypal/return");
-            request.setRemoteAddr("8.8.8.8");
-            MockHttpServletResponse response = new MockHttpServletResponse();
-
-            boolean result = interceptor.preHandle(request, response, new Object());
-
-            assertThat(result).isFalse();
-            assertThat(response.getStatus()).isEqualTo(429);
-        }
-    }
-
-    @Nested
     @DisplayName("Public guestbook POST — limite stricte par IP (Z4B-SECBUGS-05)")
     class GuestbookPostEndpoint {
 
