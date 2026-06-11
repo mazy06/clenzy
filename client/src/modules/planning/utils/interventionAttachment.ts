@@ -8,7 +8,16 @@
 //      départ » planifié le jour du checkout (même après 11h) appartient à la
 //      réservation qui se termine ce jour-là. Si plusieurs candidates : celle
 //      dont le checkout == jour de l'intervention, sinon celle qui couvre la
-//      date (check-in le plus récent — le séjour en cours).
+//      date (check-in le plus récent — le séjour en cours), OU
+//   3. FENÊTRE DE VACANCE : ménage/maintenance planifié à checkout+N (N
+//      variable). La date tombe APRÈS le checkout d'une réservation et AVANT
+//      le check-in suivant → rattachée à la réservation la plus récemment
+//      terminée avant cette date. Si une réservation suivante a déjà commencé
+//      dans ]checkout, date], pas de rattachement via ce cas (le cas 2 « dans
+//      le séjour » couvre déjà la suivante).
+//
+// Une intervention sans aucune candidate (date avant tout séjour, propriété
+// sans réservation chargée) reste ORPHELINE → pastille isolée sur la grille.
 //
 // Le lien explicite est souvent ABSENT en données réelles : le backend ne le
 // renseigne que si la réservation référence l'intervention via son FK
@@ -48,19 +57,27 @@ export function resolveAttachedReservationId(
   // 2. Heuristique par propriété + date (comparaison lexicale ISO).
   const date = intervention.startDate;
   if (!date) return null;
-  const candidates = reservations.filter(
-    (r) =>
-      r.propertyId === intervention.propertyId &&
-      r.status !== 'cancelled' &&
-      r.checkIn <= date &&
-      date <= r.checkOut,
+  const sameProperty = reservations.filter(
+    (r) => r.propertyId === intervention.propertyId && r.status !== 'cancelled',
   );
-  if (candidates.length === 0) return null;
+  const candidates = sameProperty.filter((r) => r.checkIn <= date && date <= r.checkOut);
+  if (candidates.length > 0) {
+    // Ménage post-départ : la réservation qui SE TERMINE ce jour-là gagne.
+    const checkoutMatch = candidates.find((r) => r.checkOut === date);
+    if (checkoutMatch) return checkoutMatch.id;
 
-  // Ménage post-départ : la réservation qui SE TERMINE ce jour-là gagne.
-  const checkoutMatch = candidates.find((r) => r.checkOut === date);
-  if (checkoutMatch) return checkoutMatch.id;
+    // Sinon : la réservation qui couvre la date (check-in le plus récent).
+    return candidates.reduce((best, r) => (r.checkIn > best.checkIn ? r : best)).id;
+  }
 
-  // Sinon : la réservation qui couvre la date (check-in le plus récent).
-  return candidates.reduce((best, r) => (r.checkIn > best.checkIn ? r : best)).id;
+  // 3. Fenêtre de vacance post-checkout (ménage à checkout+N) : la réservation
+  //    la plus récemment terminée AVANT la date, sauf si une autre réservation
+  //    a déjà commencé dans ]checkout, date].
+  const ended = sameProperty.filter((r) => r.checkOut < date);
+  if (ended.length === 0) return null;
+  const lastEnded = ended.reduce((best, r) => (r.checkOut > best.checkOut ? r : best));
+  const nextStayStarted = sameProperty.some(
+    (r) => r.checkIn > lastEnded.checkOut && r.checkIn <= date,
+  );
+  return nextStayStarted ? null : lastEnded.id;
 }

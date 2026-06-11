@@ -84,9 +84,85 @@ describe('resolveAttachedReservationId', () => {
       expect(id).toBeNull();
     });
 
-    it('date hors de tout séjour → orpheline (null)', () => {
+    it('date avant tout séjour → orpheline (null)', () => {
       const id = resolveAttachedReservationId(
-        { propertyId: 1, startDate: '2026-03-25' },
+        { propertyId: 1, startDate: '2026-03-05' },
+        [gerard, nextGuest],
+      );
+      expect(id).toBeNull();
+    });
+  });
+
+  describe('fenêtre de vacance post-checkout (ménage à checkout+N)', () => {
+    it('checkout+2 sans séjour suivant → réservation qui vient de se terminer', () => {
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-17' },
+        [gerard],
+      );
+      expect(id).toBe(42);
+    });
+
+    it('checkout+5 sans séjour suivant → réservation qui vient de se terminer', () => {
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-20' },
+        [gerard],
+      );
+      expect(id).toBe(42);
+    });
+
+    it('borne : la veille du check-in suivant → encore rattachée à la sortante', () => {
+      // Gérard part le 15, le séjour suivant commence le 19 → le 18 est
+      // encore dans la vacance de Gérard.
+      const later: AttachmentCandidate = {
+        id: 44,
+        propertyId: 1,
+        checkIn: '2026-03-19',
+        checkOut: '2026-03-24',
+        status: 'confirmed',
+      };
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-18' },
+        [gerard, later],
+      );
+      expect(id).toBe(42);
+    });
+
+    it('borne : le jour du check-in suivant → rattachée au séjour suivant (cas 2), pas à la sortante', () => {
+      const later: AttachmentCandidate = {
+        id: 44,
+        propertyId: 1,
+        checkIn: '2026-03-19',
+        checkOut: '2026-03-24',
+        status: 'confirmed',
+      };
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-19' },
+        [gerard, later],
+      );
+      expect(id).toBe(44);
+    });
+
+    it('plusieurs séjours terminés → la plus récemment terminée gagne', () => {
+      // Gérard (checkout 15) puis nextGuest (checkout 20) → le 22 appartient
+      // à la vacance de nextGuest.
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-22' },
+        [gerard, nextGuest],
+      );
+      expect(id).toBe(43);
+    });
+
+    it('réservation annulée exclue de la fenêtre de vacance', () => {
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-17' },
+        [{ ...gerard, status: 'cancelled' }],
+      );
+      expect(id).toBeNull();
+    });
+
+    it('propriété sans aucun séjour chargé → orpheline (null)', () => {
+      const id = resolveAttachedReservationId(
+        { propertyId: 7, startDate: '2026-03-17' },
         [gerard, nextGuest],
       );
       expect(id).toBeNull();

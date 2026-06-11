@@ -95,8 +95,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
 
   // ── Interventions rattachées à une réservation (maquette) ────────────────
   // RÈGLE UNIQUE : une intervention RATTACHÉE (lien explicite
-  // linkedReservationId OU heuristique même propriété + date planifiée dans
-  // [checkIn, checkOut] inclusif — cf. resolveAttachedReservationId) est
+  // linkedReservationId, heuristique même propriété + date planifiée dans
+  // [checkIn, checkOut] inclusif, OU fenêtre de vacance post-checkout
+  // (ménage à checkout+N avant le check-in suivant) — cf.
+  // resolveAttachedReservationId) est
   // UNIQUEMENT rendue comme pastille DANS la brique de sa réservation
   // (pastille blanche 20px — sur brique étroite elle compte dans le « +N »).
   // Si la brique hôte n'est pas rendue (masquée par les filtres/légende, hors
