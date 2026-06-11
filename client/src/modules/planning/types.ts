@@ -126,16 +126,6 @@ export interface PlanningProperty {
   longitude?: number;
 }
 
-// ─── Month separator (for date headers) ──────────────────────────────────────
-
-export interface MonthSeparator {
-  month: number;
-  year: number;
-  label: string;
-  startIndex: number;
-  count: number;
-}
-
 // ─── Drag & drop ────────────────────────────────────────────────────────────
 
 export type DragType = 'move' | 'resize';
