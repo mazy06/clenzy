@@ -65,11 +65,12 @@ public class EmailWrapperService {
     public String wrap(String wrapperStyle, String interpolatedBody) {
         String style = wrapperStyle != null ? wrapperStyle : "NOTIFICATION_OWNER";
         // Defense en profondeur stored XSS : les overrides per-org de templates
-        // sont editables via l'API ; on supprime au rendu tout construct dangereux
-        // (script/iframe/object/embed, on*=, javascript:) — couvre aussi les
-        // overrides stockes avant la sanitisation au stockage. Les blocs HTML
-        // trusted ({detailsHtml}, {urgencyBanner}) n'en contiennent pas et
-        // restent intacts (suppression ciblee, pas de reformatage).
+        // sont editables via l'API ; on nettoie au rendu via une allowlist jsoup
+        // (script/iframe/object/embed, on*=, javascript: ecartes) — couvre aussi
+        // les overrides stockes avant la sanitisation au stockage. Les blocs HTML
+        // trusted ({detailsHtml}, {urgencyBanner}) n'utilisent que des balises
+        // email-safe et restent rendus (le HTML est re-serialise par jsoup, pas
+        // garanti byte-identique : entites echappees, attributs normalises).
         String safeBody = EmailHtmlSanitizer.sanitize(interpolatedBody);
         String bodyHtml = convertPlainTextToHtml(safeBody, "INVITATION".equals(style));
 

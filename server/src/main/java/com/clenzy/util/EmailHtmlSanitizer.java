@@ -1,136 +1,123 @@
 package com.clenzy.util;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Attribute;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Entities;
+import org.jsoup.parser.Parser;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- * Sanitisation HTML conservatrice pour le contenu des templates email
- * editables par les utilisateurs (overrides per-org des templates systeme).
+ * Sanitisation HTML pour le contenu des templates email editables par les
+ * utilisateurs (overrides per-org des templates systeme) ET pour les emails
+ * "document HTML complet" deja rendus (ex. briefings).
  *
- * <p>Approche par SUPPRESSION ciblee (pas de reformatage) : le contenu
- * legitime — plain text avec sauts de ligne, mini-markdown ({@code *gras*},
- * {@code _italique_}) et blocs HTML email-safe ({@code <table>}, {@code <div>},
- * styles inline) — reste byte-identique. Seuls les constructs dangereux sont
- * retires :</p>
+ * <p><b>Approche : jsoup en mode "arbre", document-aware</b>. Le HTML est
+ * reparse par un parseur robuste ({@link Jsoup#parse(String)}) puis nettoye
+ * <em>sur l'arbre</em> :</p>
  * <ul>
- *   <li>elements {@code <script>}, {@code <iframe>}, {@code <object>} (avec
- *       leur contenu) et {@code <embed>}</li>
- *   <li>attributs event-handler {@code on*=} (onerror, onclick, onload…)</li>
- *   <li>URLs {@code javascript:}, {@code vbscript:} et {@code data:} dans les
- *       attributs href/src/action/formaction/xlink:href/background — y compris
- *       obfusquees (espaces/controles intercales, entites numeriques,
- *       {@code &colon;})</li>
+ *   <li>les elements dangereux ({@code script, iframe, object, embed, frame,
+ *       frameset, base, form}) sont supprimes avec leur contenu ;</li>
+ *   <li>tous les attributs event-handler ({@code on*=}) sont retires ;</li>
+ *   <li>les attributs d'URL ({@code href, src, action, formaction, xlink:href,
+ *       background}) sont retires si leur scheme, une fois decode et debarrasse
+ *       des espaces/controles, est {@code javascript:}, {@code data:} ou
+ *       {@code vbscript:} — ce qui couvre les obfuscations (entites numeriques,
+ *       tab intercale, casse).</li>
  * </ul>
  *
- * <p><b>Pourquoi pas {@code Jsoup.clean()}</b> (pourtant en dependance) : le
- * body des templates est du plain text + mini-markdown edite dans un editeur
- * texte ; jsoup re-serialise le document (entites echappees, whitespace
- * normalise), ce qui corromprait le round-trip editeur → stockage → editeur.
- * La suppression ciblee laisse le contenu legitime intact.</p>
+ * <p><b>Pourquoi {@link Jsoup#parse(String)} et pas {@link Jsoup#clean}</b> :
+ * {@code Jsoup.clean(html, "", safelist)} ne retourne qu'un FRAGMENT body et
+ * <em>jette</em> la structure d'un document complet ({@code <!doctype>},
+ * {@code <html>}, {@code <head>}, {@code <body>}, {@code <meta>}, {@code <title>}).
+ * Or ce sanitizer est aussi applique a des emails "document HTML complet". On
+ * parse donc l'arbre (qui preserve html/head/body) et on supprime
+ * chirurgicalement les seuls noeuds/attributs dangereux. La structure du
+ * document est conservee quand l'entree en est un ; sinon on re-serialise le
+ * fragment ({@code body().html()}) sans wrapper html/body ajoute.</p>
  *
- * <p>La sanitisation boucle jusqu'a stabilite (fixpoint) pour neutraliser les
- * payloads imbriques (ex. {@code <scr<script>ipt>}).</p>
+ * <p><b>Normalisation</b> : jsoup re-serialise. Le contenu n'est donc PAS
+ * garanti byte-identique (caracteres {@code < > &} du texte echappes en entites,
+ * {@code <tbody>} insere dans les tables, doctype en minuscules). C'est le
+ * compromis assume du passage a un parseur : robustesse de la sanitisation
+ * contre fidelite byte-a-byte. {@code prettyPrint(false)} evite que jsoup
+ * reflowe/indente le HTML (ce qui casserait le decoupage en paragraphes en
+ * aval par {@code EmailWrapperService}).</p>
  */
 public final class EmailHtmlSanitizer {
 
-    /** Elements dont le contenu est lui-meme dangereux : supprimes avec leur contenu. */
-    private static final Pattern PAIRED_DANGEROUS = Pattern.compile(
-        "(?is)<(script|iframe|object)\\b[^>]*>.*?</\\1\\s*>");
+    /** Elements dont la simple presence est dangereuse : supprimes avec leur contenu. */
+    private static final String DANGEROUS_ELEMENTS =
+        "script,iframe,object,embed,frame,frameset,base,form";
 
-    /** Balises dangereuses residuelles (orphelines, non fermees, embed). */
-    private static final Pattern ORPHAN_DANGEROUS = Pattern.compile(
-        "(?is)</?(script|iframe|object|embed)\\b[^>]*>?");
+    /** Attributs d'URL dont le scheme doit etre verifie. */
+    private static final Set<String> URL_ATTRIBUTES = Set.of(
+        "href", "src", "action", "formaction", "xlink:href", "background");
 
-    /** Toute balise HTML — perimetre du nettoyage d'attributs (jamais le texte). */
-    private static final Pattern TAG = Pattern.compile("<[a-zA-Z][^>]*>");
-
-    /**
-     * Attribut event-handler {@code on*=} au sein d'une balise. Le lookbehind
-     * exige un separateur (whitespace ou fin de valeur quotee) pour ne pas
-     * mordre dans une URL legitime contenant "...on...=".
-     */
-    private static final Pattern EVENT_HANDLER_ATTR = Pattern.compile(
-        "(?i)(?<=[\\s\"'])on[a-z0-9_-]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]*)");
-
-    /** Attributs URL dont le scheme doit etre verifie. */
-    private static final Pattern URL_ATTR = Pattern.compile(
-        "(?i)\\s(?:href|src|action|formaction|xlink:href|background)\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]*)");
-
-    /** Entites numeriques HTML ({@code &#106;}, {@code &#x6A;}) dans une valeur d'attribut. */
-    private static final Pattern NUMERIC_ENTITY = Pattern.compile("(?i)&#x?[0-9a-f]+;?");
-
-    private static final Set<String> DANGEROUS_SCHEMES = Set.of("javascript", "vbscript", "data");
+    /** Schemes interdits dans un attribut d'URL. */
+    private static final Set<String> DANGEROUS_SCHEMES = Set.of("javascript", "data", "vbscript");
 
     private EmailHtmlSanitizer() { /* util class */ }
 
     /**
-     * Supprime les constructs HTML dangereux du texte. {@code null} → {@code null}.
-     * Le texte sans construct dangereux est retourne strictement identique.
+     * Nettoie le HTML en supprimant les seuls constructs dangereux, tout en
+     * preservant la structure d'un document HTML complet quand l'entree en est
+     * un. {@code null} / vide → retourne l'entree telle quelle.
+     *
+     * <p>Vecteurs neutralises : elements {@code script/iframe/object/embed/
+     * frame/frameset/base/form}, handlers {@code on*=}, schemes
+     * {@code javascript:}/{@code data:}/{@code vbscript:} dans les attributs
+     * d'URL (y compris obfusques).</p>
      */
     public static String sanitize(String html) {
         if (html == null || html.isEmpty()) {
             return html;
         }
-        String previous;
-        String current = html;
-        do {
-            previous = current;
-            current = PAIRED_DANGEROUS.matcher(current).replaceAll("");
-            current = ORPHAN_DANGEROUS.matcher(current).replaceAll("");
-            current = cleanTagAttributes(current);
-        } while (!current.equals(previous));
-        return current;
+
+        Document doc = Jsoup.parse(html);
+        doc.outputSettings()
+            .prettyPrint(false)
+            .escapeMode(Entities.EscapeMode.xhtml);
+
+        doc.select(DANGEROUS_ELEMENTS).remove();
+        removeDangerousAttributes(doc);
+
+        // Document complet (l'entree contenait <html>) → on conserve la structure
+        // (doctype/html/head/body). Sinon → fragment, pas de wrapper html/body ajoute.
+        return isFullDocument(html) ? doc.html() : doc.body().html();
     }
 
-    /** Nettoie les attributs dangereux de chaque balise, sans toucher au texte hors balise. */
-    private static String cleanTagAttributes(String html) {
-        Matcher tags = TAG.matcher(html);
-        if (!tags.find()) {
-            return html;
-        }
-        StringBuilder out = new StringBuilder();
-        do {
-            String cleaned = EVENT_HANDLER_ATTR.matcher(tags.group()).replaceAll("");
-            cleaned = removeDangerousUrlAttributes(cleaned);
-            tags.appendReplacement(out, Matcher.quoteReplacement(cleaned));
-        } while (tags.find());
-        tags.appendTail(out);
-        return out.toString();
+    /** Vrai si l'entree est un document HTML complet (presence d'une balise {@code <html}). */
+    private static boolean isFullDocument(String html) {
+        return html.toLowerCase(Locale.ROOT).contains("<html");
     }
 
-    /** Supprime les attributs URL (href/src/…) dont le scheme est dangereux. */
-    private static String removeDangerousUrlAttributes(String tag) {
-        Matcher urls = URL_ATTR.matcher(tag);
-        if (!urls.find()) {
-            return tag;
+    /** Retire les attributs event-handler {@code on*=} et les attributs d'URL a scheme dangereux. */
+    private static void removeDangerousAttributes(Document doc) {
+        for (Element element : doc.getAllElements()) {
+            List<String> toRemove = new ArrayList<>();
+            for (Attribute attribute : element.attributes()) {
+                String name = attribute.getKey().toLowerCase(Locale.ROOT);
+                if (name.startsWith("on")
+                        || (URL_ATTRIBUTES.contains(name) && hasDangerousScheme(attribute.getValue()))) {
+                    toRemove.add(attribute.getKey());
+                }
+            }
+            toRemove.forEach(element::removeAttr);
         }
-        StringBuilder out = new StringBuilder();
-        do {
-            String replacement = hasDangerousScheme(unquote(urls.group(1)))
-                ? "" : Matcher.quoteReplacement(urls.group());
-            urls.appendReplacement(out, replacement);
-        } while (urls.find());
-        urls.appendTail(out);
-        return out.toString();
-    }
-
-    private static String unquote(String value) {
-        if (value.length() >= 2
-                && (value.charAt(0) == '"' || value.charAt(0) == '\'')
-                && value.charAt(value.length() - 1) == value.charAt(0)) {
-            return value.substring(1, value.length() - 1);
-        }
-        return value;
     }
 
     /**
-     * Detecte un scheme dangereux meme obfusque : entites numeriques decodees,
+     * Detecte un scheme dangereux meme obfusque : entites HTML decodees,
      * whitespace/caracteres de controle retires avant comparaison.
      */
     private static boolean hasDangerousScheme(String rawValue) {
-        String value = decodeBasicEntities(rawValue)
+        String value = Parser.unescapeEntities(rawValue, true)
             .replaceAll("[\\s\\p{Cntrl}]", "")
             .toLowerCase(Locale.ROOT);
         int colon = value.indexOf(':');
@@ -138,34 +125,5 @@ public final class EmailHtmlSanitizer {
             return false;
         }
         return DANGEROUS_SCHEMES.contains(value.substring(0, colon));
-    }
-
-    /** Decode les entites numeriques + {@code &colon;}/{@code &tab;}/{@code &newline;} (check de scheme uniquement). */
-    private static String decodeBasicEntities(String value) {
-        if (value.indexOf('&') < 0) {
-            return value;
-        }
-        Matcher entities = NUMERIC_ENTITY.matcher(value);
-        StringBuilder out = new StringBuilder();
-        while (entities.find()) {
-            entities.appendReplacement(out, Matcher.quoteReplacement(decodeNumericEntity(entities.group())));
-        }
-        entities.appendTail(out);
-        return out.toString()
-            .replaceAll("(?i)&colon;", ":")
-            .replaceAll("(?i)&tab;", "\t")
-            .replaceAll("(?i)&newline;", "\n");
-    }
-
-    private static String decodeNumericEntity(String entity) {
-        try {
-            boolean hex = entity.regionMatches(true, 0, "&#x", 0, 3);
-            String digits = entity.substring(hex ? 3 : 2)
-                .replace(";", "");
-            int codePoint = Integer.parseInt(digits, hex ? 16 : 10);
-            return new String(Character.toChars(codePoint));
-        } catch (RuntimeException e) {
-            return entity; // entite invalide : laissee telle quelle
-        }
     }
 }

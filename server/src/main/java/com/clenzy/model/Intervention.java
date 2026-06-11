@@ -25,7 +25,7 @@ public class Intervention {
     @Column(name = "version")
     private Long version = 0L;
 
-    @Column(name = "organization_id")
+    @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
     @NotBlank(message = "Le titre de l'intervention est obligatoire")

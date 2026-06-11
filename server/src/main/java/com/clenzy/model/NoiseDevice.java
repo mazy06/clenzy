@@ -28,7 +28,7 @@ public class NoiseDevice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "organization_id")
+    @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
     @Column(name = "user_id", nullable = false)

@@ -5,6 +5,7 @@ import com.clenzy.model.AuditLog;
 import com.clenzy.model.AuditSource;
 import com.clenzy.repository.AuditLogRepository;
 import com.clenzy.tenant.TenantContext;
+import com.clenzy.util.ClientIpResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -147,13 +148,19 @@ public class AuditLoggingInterceptor implements HandlerInterceptor {
         return ADMIN_PATHS.stream().anyMatch(path::startsWith);
     }
 
+    /**
+     * Resout l'IP cliente reelle pour l'audit. Delegue a {@link ClientIpResolver}
+     * (source de verite unique partagee avec {@code RateLimitInterceptor} /
+     * {@code TrustedClientIpResolver}) : X-Forwarded-For n'est exploite que si le
+     * pair direct est un proxy de confiance, et il est parcouru de DROITE a GAUCHE
+     * en sautant les proxies de confiance. L'ancien {@code split(",")[0]} retenait
+     * la 1re entree (gauche), spoofable par le client (Z1-SEC-04).
+     */
     private String getClientIp(HttpServletRequest request) {
-        String remoteAddr = request.getRemoteAddr();
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return remoteAddr;
+        return ClientIpResolver.resolve(
+                request.getRemoteAddr(),
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"));
     }
 
     private String truncate(String value, int maxLength) {
