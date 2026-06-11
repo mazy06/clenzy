@@ -379,8 +379,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     let cancelled = false;
     setConflictLoading(true);
 
-    // Parse desired date to ISO format for the backend
-    const dateStr = new Date(watchedDesiredDate).toISOString().replace('Z', '');
+    // La valeur du datetime-local est deja une heure LOCALE au format 'YYYY-MM-DDTHH:mm'
+    // (= format attendu par LocalDateTime.parse cote back). Pas de round-trip via Date/toISOString
+    // qui re-serialiserait en UTC et verifierait le mauvais creneau (decalage d'heure/de jour).
+    const dateStr = watchedDesiredDate;
     const duration = watchedEstimatedDuration || 4;
 
     if (watchedAssignedToType === 'team') {
@@ -599,7 +601,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     setError(null);
 
     try {
-      const desiredDate = formData.desiredDate ? new Date(formData.desiredDate).toISOString() : null;
+      // La valeur du datetime-local est deja une heure LOCALE au format 'YYYY-MM-DDTHH:mm'
+      // (= format attendu par LocalDateTime cote back). Pas de round-trip via Date/toISOString
+      // qui re-serialiserait en UTC et decalerait l'heure.
+      const desiredDate = formData.desiredDate || null;
 
       const backendData: Record<string, string | number | boolean | null> = {
         title: formData.title,

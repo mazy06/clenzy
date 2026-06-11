@@ -170,9 +170,12 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           return;
         }
 
-        // Map API fields to form fields
+        // Map API fields to form fields.
+        // sr.desiredDate est deja une heure LOCALE (LocalDateTime 'YYYY-MM-DDTHH:mm:ss[...]').
+        // On tronque a 'YYYY-MM-DDTHH:mm' pour le datetime-local SANS round-trip via Date/toISOString
+        // qui re-decalerait en UTC.
         const desiredDateFormatted = sr.desiredDate
-          ? new Date(sr.desiredDate).toISOString().slice(0, 16)
+          ? sr.desiredDate.slice(0, 16)
           : '';
 
         reset({
@@ -388,8 +391,10 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     setError(null);
 
     try {
-      // Transformer la date en format ISO pour le backend
-      const desiredDate = formData.desiredDate ? new Date(formData.desiredDate).toISOString() : null;
+      // La valeur du datetime-local est deja une heure LOCALE au format 'YYYY-MM-DDTHH:mm'
+      // (= format attendu par LocalDateTime cote back). Pas de round-trip via Date/toISOString
+      // qui re-serialiserait en UTC et decalerait l'heure (voire le jour).
+      const desiredDate = formData.desiredDate || null;
 
       // Préparer les données pour le backend
       const backendData: Record<string, string | number | boolean | null> = {

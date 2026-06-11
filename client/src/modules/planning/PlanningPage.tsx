@@ -165,7 +165,9 @@ const PlanningPage: React.FC = () => {
   }, [filteredEvents, selectEvent, setPanelTab]);
 
   // Reservation update (dates & times from panel, with validation)
-  const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation, updateGuestInfo } = useReservationUpdate(filteredEvents, interventions);
+  // Conflict validation must run against the FULL event set, not the UI-filtered one,
+  // otherwise a real overlap with a reservation hidden by a filter goes undetected.
+  const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation, updateGuestInfo } = useReservationUpdate(events, interventions);
 
   const handleHideEvent = useCallback((event: { reservation?: { id: number } }) => {
     if (event.reservation) hideReservation(event.reservation.id);
@@ -179,7 +181,7 @@ const PlanningPage: React.FC = () => {
     setPriority,
     updateInterventionDates,
     updateInterventionNotes,
-  } = useInterventionActions(filteredEvents, interventions);
+  } = useInterventionActions(events, interventions);
 
   // Intervention lifecycle actions (start, complete, validate, photos, progress, payment)
   const startIntervention = useCallback(async (interventionId: number) => {
@@ -284,9 +286,10 @@ const PlanningPage: React.FC = () => {
     };
   }, []);
 
-  // Drag & drop
+  // Drag & drop — conflict check (wouldConflict) needs the full event set, not the
+  // filtered view, to catch overlaps with reservations hidden by the UI filters.
   const drag = usePlanningDrag({
-    events: filteredEvents,
+    events,
     properties: filteredProperties,
     interventions,
     days: timeline.days,

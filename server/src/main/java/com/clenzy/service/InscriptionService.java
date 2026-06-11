@@ -409,7 +409,8 @@ public class InscriptionService {
             user.setFirstName(pending.getFirstName());
             user.setLastName(pending.getLastName());
             user.setEmail(pending.getEmail());
-            user.setPassword(password);
+            // Le mot de passe a deja ete provisionne dans Keycloak (cf. keycloakUser.setPassword
+            // ci-dessus). Il n'est PAS persiste en base : Keycloak est la seule source d'auth.
             user.setPhoneNumber(pending.getPhoneNumber());
             user.setKeycloakId(keycloakId);
             user.setRole(UserRole.HOST);

@@ -112,7 +112,8 @@ public class NewUserService {
             businessUser.setEmail(createUserDto.getEmail());
             businessUser.setFirstName(createUserDto.getFirstName());
             businessUser.setLastName(createUserDto.getLastName());
-            businessUser.setPassword(createUserDto.getPassword());
+            // Mot de passe deja provisionne dans Keycloak (keycloakService.createUser ci-dessus) ;
+            // jamais persiste en base : Keycloak est la seule source d'auth.
             businessUser.setRole(UserRole.valueOf(createUserDto.getRole()));
             businessUser.setStatus(UserStatus.ACTIVE);
 

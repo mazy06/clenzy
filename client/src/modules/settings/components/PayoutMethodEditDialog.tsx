@@ -216,7 +216,15 @@ export default function PayoutMethodEditDialog({
     return trimmed.includes('*');
   }, [iban, hasExistingIban, currentConfig?.maskedIban]);
 
-  const saveSepaOrWise = async () => {
+  /**
+   * Sauvegarde SEPA/Wise. Retourne {@code true} en cas de succes, {@code false}
+   * si une erreur de validation a ete posee (via {@code setIbanError}).
+   *
+   * IMPORTANT (stale closure) : le state {@code ibanError} pose ici n'est PAS
+   * lisible dans le meme tick (valeur du render precedent). On signale donc le
+   * succes par la valeur de retour — jamais en relisant {@code ibanError}.
+   */
+  const saveSepaOrWise = async (): Promise<boolean> => {
     const trimmed = iban.trim();
 
     // Cas 1 : champ contient encore le mask OU est vide
@@ -224,21 +232,21 @@ export default function PayoutMethodEditDialog({
     if (ibanUnchanged || !trimmed) {
       if (!hasExistingIban) {
         setIbanError("Veuillez saisir l'IBAN du compte destinataire.");
-        return;
+        return false;
       }
       await switchMethodOnly(selectedMethod);
-      return;
+      return true;
     }
 
     // Cas 2 : nouvel IBAN saisi → validation + update complet
     const cleanIban = trimmed.replace(/\s+/g, '').toUpperCase();
     if (!IBAN_REGEX.test(cleanIban)) {
       setIbanError('Format IBAN invalide (ex: FR76 1234 5678 9012 3456 7890 123).');
-      return;
+      return false;
     }
     if (!holder.trim()) {
       setIbanError('Titulaire du compte requis.');
-      return;
+      return false;
     }
 
     const data: UpdateSepaRequest = {
@@ -259,12 +267,18 @@ export default function PayoutMethodEditDialog({
     if (selectedMethod === 'WISE') {
       await switchMethodOnly('WISE');
     }
+    return true;
   };
 
-  const initOpenBanking = async () => {
+  /**
+   * Initialise le flow Open Banking. Retourne {@code true} si la redirection
+   * SCA a ete declenchee (le navigateur quitte la page), {@code false} si une
+   * erreur de validation a ete posee (via {@code setError}).
+   */
+  const initOpenBanking = async (): Promise<boolean> => {
     if (!institutionId.trim()) {
       setError('Banque requise');
-      return;
+      return false;
     }
     const initData: OpenBankingInitRequest = {
       institutionId: institutionId.trim(),
@@ -275,6 +289,7 @@ export default function PayoutMethodEditDialog({
       : await accountingApi.initOpenBankingForOwner(ownerId!, initData);
     // Redirige le browser vers le SCA bancaire
     window.location.href = response.redirectUrl;
+    return true;
   };
 
   const extractErrorMessage = (e: unknown): string => {
@@ -294,24 +309,28 @@ export default function PayoutMethodEditDialog({
     setError(null);
     setIbanError('');
     try {
+      // Chaque branche signale son succes par sa VALEUR DE RETOUR — jamais en
+      // relisant un state (ibanError/error) pose dans le meme tick (stale
+      // closure : on lirait la valeur du render precedent, donc vide → faux
+      // succes + fermeture de la modale). Cf. F1-SETTINGS-02.
+      let success: boolean;
       switch (selectedMethod) {
         case 'SEPA_TRANSFER':
         case 'WISE':
-          await saveSepaOrWise();
+          success = await saveSepaOrWise();
           break;
         case 'OPEN_BANKING':
           await initOpenBanking();
-          return; // pas de close — on redirige vers le SCA
+          return; // pas de close — on redirige vers le SCA (ou erreur affichee)
         case 'STRIPE_CONNECT':
         case 'MANUAL':
           await switchMethodOnly(selectedMethod);
+          success = true;
           break;
       }
-      // Si on a setIbanError mais pas thrown, le save n'a pas eu lieu : on garde la modale ouverte
-      if (ibanError) {
-        setSaving(false);
-        return;
-      }
+      // Validation echouee (ex. IBAN manquant) : on garde la modale ouverte avec
+      // le message d'erreur deja pose, sans declencher onSaved()/onClose().
+      if (!success) return;
       onSaved();
       onClose();
     } catch (e) {
