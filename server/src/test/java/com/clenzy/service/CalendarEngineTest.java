@@ -6,10 +6,12 @@ import com.clenzy.exception.RestrictionViolationException;
 import com.clenzy.model.CalendarDay;
 import com.clenzy.model.CalendarDayStatus;
 import com.clenzy.model.Property;
+import com.clenzy.model.RateOverride;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.CalendarCommandRepository;
 import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.config.SyncMetrics;
 import io.micrometer.core.instrument.Timer;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -54,6 +57,9 @@ class CalendarEngineTest {
 
     @Mock
     private PriceEngine priceEngine;
+
+    @Mock
+    private RateOverrideRepository rateOverrideRepository;
 
     @Mock
     private SyncMetrics syncMetrics;
@@ -293,5 +299,205 @@ class CalendarEngineTest {
         calendarEngine.linkReservation(propertyId, checkIn, checkOut, reservationId, orgId);
 
         verify(calendarDayRepository).linkReservation(propertyId, checkIn, checkOut, reservationId, orgId);
+    }
+
+    // ── updateManualPrice : prix manuel visible du PriceEngine (Z5-BUGS-04) ──
+
+    @Test
+    void whenManualPriceIsSet_thenManualRateOverridesAreCreated() {
+        // Arrange
+        BigDecimal manualPrice = new BigDecimal("180.00");
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, checkIn, checkOut.minusDays(1), orgId))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, checkIn, checkOut, orgId))
+                .thenReturn(List.of());
+        when(rateOverrideRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        calendarEngine.updateManualPrice(propertyId, checkIn, checkOut, manualPrice, orgId, actorId);
+
+        // Assert : un override MANUAL par jour de la plage [checkIn, checkOut)
+        ArgumentCaptor<List<RateOverride>> captor = ArgumentCaptor.forClass(List.class);
+        verify(rateOverrideRepository).saveAll(captor.capture());
+        List<RateOverride> overrides = captor.getValue();
+        assertEquals(4, overrides.size());
+        for (RateOverride override : overrides) {
+            assertEquals("MANUAL", override.getSource());
+            assertEquals(manualPrice, override.getNightlyPrice());
+            assertEquals(actorId, override.getCreatedBy());
+        }
+        // L'ecriture calendrier (affichage) reste effectuee
+        verify(calendarDayRepository).saveAll(anyList());
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_PRICE_UPDATED"), eq(propertyId), eq(orgId), anyString());
+    }
+
+    @Test
+    void whenManualPriceIsSetOnExistingOverride_thenOverrideIsRewrittenToManual() {
+        // Arrange : un override yield existe sur le premier jour
+        BigDecimal manualPrice = new BigDecimal("200.00");
+        RateOverride yieldOverride = new RateOverride(property, checkIn, new BigDecimal("90.00"), "YIELD_RULE", orgId);
+
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, checkIn, checkOut.minusDays(1), orgId))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, checkIn, checkOut, orgId))
+                .thenReturn(List.of(yieldOverride));
+        when(rateOverrideRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        calendarEngine.updateManualPrice(propertyId, checkIn, checkOut, manualPrice, orgId, actorId);
+
+        // Assert : l'override existant est requalifie MANUAL avec le nouveau prix
+        assertEquals("MANUAL", yieldOverride.getSource());
+        assertEquals(manualPrice, yieldOverride.getNightlyPrice());
+    }
+
+    @Test
+    void whenLegacyUpdatePriceIsUsed_thenNoRateOverrideIsCreated() {
+        // Arrange : le chemin updatePrice (imports OTA inbound) ne cree pas d'override
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, checkIn, checkOut.minusDays(1), orgId))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        calendarEngine.updatePrice(propertyId, checkIn, checkOut, new BigDecimal("120.00"), orgId, actorId);
+
+        // Assert
+        verifyNoInteractions(rateOverrideRepository);
+    }
+
+    // ── move : deplacement d'une reservation (Z5-BUGS-01) ───────────────────
+
+    private CalendarEngine.ReservationMove sampleMove(LocalDate newCheckIn, LocalDate newCheckOut) {
+        return new CalendarEngine.ReservationMove(
+                reservationId, orgId,
+                propertyId, checkIn, checkOut,
+                propertyId, newCheckIn, newCheckOut,
+                source, actorId);
+    }
+
+    @Test
+    void move_releasesOldDaysBooksNewOnes_andPublishesBothOutboxEvents() {
+        // Arrange
+        LocalDate newCheckIn = checkIn.plusDays(10);
+        LocalDate newCheckOut = checkOut.plusDays(10);
+
+        Reservation reservation = new Reservation();
+        reservation.setId(reservationId);
+        reservation.setProperty(property);
+
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(calendarDayRepository.releaseByReservation(reservationId, orgId)).thenReturn(4);
+        when(restrictionEngine.validate(propertyId, newCheckIn, newCheckOut, orgId))
+                .thenReturn(RestrictionEngine.ValidationResult.valid());
+        when(calendarDayRepository.countConflicts(propertyId, newCheckIn, newCheckOut, orgId)).thenReturn(0L);
+        when(priceEngine.resolvePriceRange(propertyId, newCheckIn, newCheckOut, orgId)).thenReturn(Map.of());
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(calendarDayRepository.findByPropertyAndDateRange(
+                propertyId, newCheckIn, newCheckOut.minusDays(1), orgId)).thenReturn(List.of());
+
+        ArgumentCaptor<List<CalendarDay>> captor = ArgumentCaptor.forClass(List.class);
+        when(calendarDayRepository.saveAll(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Act
+        List<CalendarDay> result = calendarEngine.move(sampleMove(newCheckIn, newCheckOut));
+
+        // Assert : anciens jours liberes
+        verify(calendarDayRepository).releaseByReservation(reservationId, orgId);
+        // Nouveaux jours reserves et lies a la reservation
+        assertEquals(4, result.size());
+        List<CalendarDay> savedDays = captor.getValue();
+        for (CalendarDay day : savedDays) {
+            assertEquals(CalendarDayStatus.BOOKED, day.getStatus());
+            assertEquals(reservation, day.getReservation());
+            assertFalse(day.getDate().isBefore(newCheckIn));
+            assertTrue(day.getDate().isBefore(newCheckOut));
+        }
+        // Deux events outbox publies (sync channels)
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_CANCELLED"), eq(propertyId), eq(orgId), anyString());
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_BOOKED"), eq(propertyId), eq(orgId), anyString());
+    }
+
+    @Test
+    void move_conflictOnNewRange_throwsAndDoesNotBook() {
+        // Arrange
+        LocalDate newCheckIn = checkIn.plusDays(10);
+        LocalDate newCheckOut = checkOut.plusDays(10);
+
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(calendarDayRepository.releaseByReservation(reservationId, orgId)).thenReturn(4);
+        when(restrictionEngine.validate(propertyId, newCheckIn, newCheckOut, orgId))
+                .thenReturn(RestrictionEngine.ValidationResult.valid());
+        when(calendarDayRepository.countConflicts(propertyId, newCheckIn, newCheckOut, orgId)).thenReturn(2L);
+
+        // Act & Assert : l'exception remonte (rollback transactionnel complet en prod)
+        assertThrows(CalendarConflictException.class,
+                () -> calendarEngine.move(sampleMove(newCheckIn, newCheckOut)));
+
+        verify(syncMetrics).incrementConflictDetected();
+        verify(calendarDayRepository, never()).saveAll(anyList());
+        verify(outboxPublisher, never()).publishCalendarEvent(eq("CALENDAR_BOOKED"), anyLong(), anyLong(), anyString());
+    }
+
+    @Test
+    void move_lockFailed_throwsCalendarLockException() {
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(false);
+
+        assertThrows(CalendarLockException.class,
+                () -> calendarEngine.move(sampleMove(checkIn.plusDays(10), checkOut.plusDays(10))));
+
+        verify(syncMetrics).incrementLockContention();
+        verify(calendarDayRepository, never()).releaseByReservation(anyLong(), anyLong());
+        verify(calendarDayRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void move_distinctProperties_acquiresBothLocksInIdOrder() {
+        // Arrange : move de la propriete 2 vers la propriete 1
+        Long oldPropertyId = 2L;
+        LocalDate newCheckIn = checkIn.plusDays(10);
+        LocalDate newCheckOut = checkOut.plusDays(10);
+
+        Reservation reservation = new Reservation();
+        reservation.setId(reservationId);
+        reservation.setProperty(property);
+
+        when(calendarDayRepository.acquirePropertyLock(anyLong())).thenReturn(true);
+        when(calendarDayRepository.releaseByReservation(reservationId, orgId)).thenReturn(4);
+        when(restrictionEngine.validate(propertyId, newCheckIn, newCheckOut, orgId))
+                .thenReturn(RestrictionEngine.ValidationResult.valid());
+        when(calendarDayRepository.countConflicts(propertyId, newCheckIn, newCheckOut, orgId)).thenReturn(0L);
+        when(priceEngine.resolvePriceRange(propertyId, newCheckIn, newCheckOut, orgId)).thenReturn(Map.of());
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(calendarDayRepository.findByPropertyAndDateRange(
+                propertyId, newCheckIn, newCheckOut.minusDays(1), orgId)).thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        CalendarEngine.ReservationMove move = new CalendarEngine.ReservationMove(
+                reservationId, orgId,
+                oldPropertyId, checkIn, checkOut,
+                propertyId, newCheckIn, newCheckOut,
+                source, actorId);
+
+        // Act
+        calendarEngine.move(move);
+
+        // Assert : lock id croissant d'abord (1 puis 2), puis re-acquisition par book (1)
+        InOrder inOrder = inOrder(calendarDayRepository);
+        inOrder.verify(calendarDayRepository).acquirePropertyLock(1L);
+        inOrder.verify(calendarDayRepository).acquirePropertyLock(2L);
+        verify(calendarDayRepository).releaseByReservation(reservationId, orgId);
+        // L'event CANCELLED porte sur l'ancienne propriete, le BOOKED sur la nouvelle
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_CANCELLED"), eq(oldPropertyId), eq(orgId), anyString());
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_BOOKED"), eq(propertyId), eq(orgId), anyString());
     }
 }

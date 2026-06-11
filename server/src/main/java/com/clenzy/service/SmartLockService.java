@@ -109,20 +109,30 @@ public class SmartLockService {
      * Supprime une serrure.
      * Utilise findById (et non findByIdAndUserId) car getUserDevices() retourne
      * toutes les serrures ACTIVE de l'organisation sans filtrer par userId.
-     * L'isolation multi-tenant est assuree par le filtre Hibernate organizationFilter.
+     * findById ne passe PAS par le filtre Hibernate organizationFilter →
+     * l'ownership org est verifie explicitement via requireSameOrganization.
      */
     @Transactional
     public void deleteDevice(String userId, Long deviceId) {
         SmartLockDevice device = smartLockRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
+        requireSameOrganization(device);
 
         claimService.release(device.getExternalDeviceId());
         smartLockRepository.delete(device);
         log.info("Serrure supprimee: {} (id={}) pour user={}", device.getName(), deviceId, userId);
     }
 
-    /** Refuse l'accès si la serrure appartient à une autre organisation (staff plateforme exempté). */
+    /**
+     * Refuse l'accès si la serrure appartient à une autre organisation.
+     * Bypass pour le staff plateforme (SUPER_ADMIN/SUPER_MANAGER) et les orgs
+     * SYSTEM — mêmes exemptions que le filtre Hibernate organizationFilter
+     * (cf. TenantFilter), que findById ne traverse pas.
+     */
     private void requireSameOrganization(SmartLockDevice device) {
+        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
+            return;
+        }
         Long orgId = tenantContext.getOrganizationId();
         if (orgId != null && device.getOrganizationId() != null && !orgId.equals(device.getOrganizationId())) {
             throw new org.springframework.security.access.AccessDeniedException(
@@ -142,6 +152,7 @@ public class SmartLockService {
     public Map<String, Object> getLockStatus(String userId, Long deviceId) {
         SmartLockDevice device = smartLockRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
+        requireSameOrganization(device);
 
         if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isEmpty()) {
             return Map.of(
@@ -218,6 +229,7 @@ public class SmartLockService {
     public void sendLockCommand(String userId, Long deviceId, boolean lock) {
         SmartLockDevice device = smartLockRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
+        requireSameOrganization(device);
 
         performLockCommand(device, lock);
 

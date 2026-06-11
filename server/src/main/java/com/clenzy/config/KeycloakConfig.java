@@ -9,6 +9,15 @@ import org.springframework.context.annotation.Primary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Client admin Keycloak (realm master).
+ *
+ * <p><b>Z1-SEC-06</b> : plus AUCUN credential par defaut ({@code admin/admin}
+ * supprimes). Si KEYCLOAK_ADMIN_USERNAME / KEYCLOAK_ADMIN_PASSWORD ne sont pas
+ * fournis, les champs restent vides : {@link EnvironmentValidator} bloque le
+ * boot en profil prod, et en dev le premier appel admin echoue explicitement
+ * au lieu de tenter silencieusement admin/admin.</p>
+ */
 @Configuration
 public class KeycloakConfig {
 
@@ -20,10 +29,10 @@ public class KeycloakConfig {
     @Value("${KEYCLOAK_MASTER_REALM:master}")
     private String masterRealm;
 
-    @Value("${KEYCLOAK_ADMIN_USERNAME:${keycloak.admin.username:admin}}")
+    @Value("${KEYCLOAK_ADMIN_USERNAME:${keycloak.admin.username:}}")
     private String adminUsername;
 
-    @Value("${KEYCLOAK_ADMIN_PASSWORD:${keycloak.admin.password:admin}}")
+    @Value("${KEYCLOAK_ADMIN_PASSWORD:${keycloak.admin.password:}}")
     private String adminPassword;
 
     @Value("${KEYCLOAK_ADMIN_CLIENT_ID:${keycloak.admin.client-id:admin-cli}}")
@@ -32,11 +41,16 @@ public class KeycloakConfig {
     @Bean
     @Primary
     public Keycloak keycloak() {
-        logger.info("🔧 Configuration Keycloak Admin Client");
-        logger.info("🔧 URL: {}", keycloakUrl);
-        logger.info("🔧 Master Realm: {}", masterRealm);
-        logger.info("🔧 Username: {}", adminUsername);
-        logger.info("🔧 Client ID: {}", adminClientId);
+        logger.info("Configuration Keycloak Admin Client — URL: {}, master realm: {}, client ID: {}",
+                keycloakUrl, masterRealm, adminClientId);
+
+        if (adminUsername == null || adminUsername.isBlank()
+                || adminPassword == null || adminPassword.isBlank()) {
+            // Pas de repli admin/admin : en prod EnvironmentValidator a deja
+            // bloque le boot ; en dev les appels admin echoueront explicitement.
+            logger.warn("Credentials admin Keycloak absents (KEYCLOAK_ADMIN_USERNAME/PASSWORD) : "
+                    + "l'administration Keycloak sera indisponible.");
+        }
 
         // Construction lazy — pas de validation au démarrage.
         // Le token sera obtenu lors du premier appel API Keycloak.
@@ -48,7 +62,7 @@ public class KeycloakConfig {
                 .clientId(adminClientId)
                 .build();
 
-        logger.info("✅ Bean Keycloak Admin Client créé (validation lazy au premier appel)");
+        logger.info("Bean Keycloak Admin Client créé (validation lazy au premier appel)");
         return keycloak;
     }
 }

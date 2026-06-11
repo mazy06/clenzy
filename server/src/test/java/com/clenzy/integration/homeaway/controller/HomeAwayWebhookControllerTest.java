@@ -49,7 +49,10 @@ class HomeAwayWebhookControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new HomeAwayWebhookController(config, connectionRepository, syncService);
+        // Service reel sur repository mocke (refactor T-ARCH-01)
+        controller = new HomeAwayWebhookController(config,
+                new com.clenzy.integration.homeaway.service.HomeAwayConnectionQueryService(connectionRepository),
+                syncService);
     }
 
     private String sign(String payload, String secret) {

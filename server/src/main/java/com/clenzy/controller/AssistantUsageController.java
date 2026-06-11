@@ -1,8 +1,8 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.AssistantUsageDto;
-import com.clenzy.repository.AssistantConversationRepository;
 import com.clenzy.service.ai.AssistantUsageService;
+import com.clenzy.service.assistant.AssistantConversationService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>{@code @PreAuthorize("isAuthenticated()")} : seul l'utilisateur connecte
  *       peut lire la consommation de son organisation</li>
  *   <li>Pour {@code /conversations/{id}/usage} : verification d'ownership via
- *       {@link AssistantConversationRepository#findByIdAndUser} pour eviter
+ *       {@link AssistantConversationService#findOwnedConversation} pour eviter
  *       qu'un user lise la conso d'un autre user de la meme org</li>
  *   <li>Tenant isolation via {@link TenantContext#getRequiredOrganizationId()}</li>
  * </ul>
@@ -37,14 +37,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class AssistantUsageController {
 
     private final AssistantUsageService usageService;
-    private final AssistantConversationRepository conversationRepository;
+    private final AssistantConversationService conversationService;
     private final TenantContext tenantContext;
 
     public AssistantUsageController(AssistantUsageService usageService,
-                                      AssistantConversationRepository conversationRepository,
+                                      AssistantConversationService conversationService,
                                       TenantContext tenantContext) {
         this.usageService = usageService;
-        this.conversationRepository = conversationRepository;
+        this.conversationService = conversationService;
         this.tenantContext = tenantContext;
     }
 
@@ -73,7 +73,7 @@ public class AssistantUsageController {
         }
         // Ownership check : la conv doit appartenir au caller (defense en
         // profondeur, en plus du tenant filter sur l'org).
-        return conversationRepository.findByIdAndUser(conversationId, keycloakId)
+        return conversationService.findOwnedConversation(conversationId, keycloakId)
                 .map(conv -> ResponseEntity.ok(
                         usageService.getConversationUsage(conversationId, keycloakId)))
                 .orElseGet(() -> ResponseEntity.notFound().build());

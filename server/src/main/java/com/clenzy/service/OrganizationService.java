@@ -136,6 +136,39 @@ public class OrganizationService {
     }
 
     /**
+     * Recupere une organisation par son id.
+     * (T-ARCH-01 : lookup expose aux controllers pour ne plus injecter le repository.)
+     */
+    @Transactional(readOnly = true)
+    public Optional<Organization> findById(Long id) {
+        return organizationRepository.findById(id);
+    }
+
+    /**
+     * Liste toutes les organisations (usage staff plateforme : annuaire admin).
+     */
+    @Transactional(readOnly = true)
+    public List<Organization> findAll() {
+        return organizationRepository.findAll();
+    }
+
+    /**
+     * Compte les membres d'une organisation.
+     */
+    @Transactional(readOnly = true)
+    public long countMembers(Long organizationId) {
+        return memberRepository.countByOrganizationId(organizationId);
+    }
+
+    /**
+     * Recupere le membership d'un utilisateur (role dans l'organisation).
+     */
+    @Transactional(readOnly = true)
+    public Optional<OrganizationMember> findMembershipByUserId(Long userId) {
+        return memberRepository.findByUserId(userId);
+    }
+
+    /**
      * Recupere l'organisation d'un utilisateur.
      */
     @Transactional(readOnly = true)
@@ -334,6 +367,43 @@ public class OrganizationService {
 
         organizationRepository.delete(org);
         logger.info("Organisation supprimee : id={}, name={}", id, org.getName());
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SEPA — coordonnees debiteur de l'organisation
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Met a jour les coordonnees SEPA debiteur de l'organisation (nom, IBAN, BIC).
+     * Champs null = inchanges. IBAN/BIC normalises (strip espaces + upper) et valides.
+     * (T-ARCH-01 : logique extraite de SepaDebtorSettingsController.)
+     *
+     * @throws IllegalArgumentException si l'organisation est introuvable ou si IBAN/BIC invalide
+     */
+    public Organization updateSepaDebtorConfig(Long organizationId, String name, String iban, String bic) {
+        Organization org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable"));
+
+        if (name != null) {
+            org.setSepaDebtorName(name.trim());
+        }
+        if (iban != null) {
+            String cleanIban = iban.replaceAll("\\s", "").toUpperCase();
+            if (cleanIban.length() < 15 || cleanIban.length() > 34) {
+                throw new IllegalArgumentException("L'IBAN doit contenir entre 15 et 34 caracteres");
+            }
+            org.setSepaDebtorIban(cleanIban);
+        }
+        if (bic != null) {
+            String cleanBic = bic.replaceAll("\\s", "").toUpperCase();
+            if (!cleanBic.matches("^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$")) {
+                throw new IllegalArgumentException("Le BIC doit contenir 8 ou 11 caracteres alphanumeriques au format SWIFT");
+            }
+            org.setSepaDebtorBic(cleanBic);
+        }
+
+        organizationRepository.save(org);
+        return org;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

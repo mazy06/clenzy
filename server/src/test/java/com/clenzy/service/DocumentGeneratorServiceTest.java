@@ -28,7 +28,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -57,7 +56,6 @@ class DocumentGeneratorServiceTest {
     @Mock private EmailService emailService;
     @Mock private NotificationService notificationService;
     @Mock private AuditLogService auditLogService;
-    @Mock private KafkaTemplate<String, Object> kafkaTemplate;
     @Mock private DocumentNumberingService numberingService;
     @Mock private DocumentComplianceService complianceService;
     @Mock private InvoiceGeneratorService invoiceGeneratorService;
@@ -79,16 +77,25 @@ class DocumentGeneratorServiceTest {
     @BeforeEach
     void setUp() {
         MeterRegistry meterRegistry = new SimpleMeterRegistry();
-        service = new DocumentGeneratorService(
-                templateRepository, tagRepository, generationRepository,
-                templateStorageService, documentStorageService,
-                templateParserService, tagResolverService, conversionService,
-                emailService, notificationService, auditLogService,
-                kafkaTemplate, numberingService, complianceService,
-                invoiceGeneratorService, taxRulePreValidator, tenantContext, fiscalProfileRepository,
+        DocumentTemplateRenderer renderer = new DocumentTemplateRenderer(templateStorageService);
+        DocumentTemplateManager templateManager = new DocumentTemplateManager(
+                templateRepository, tagRepository, templateStorageService, templateParserService,
+                notificationService, auditLogService, tenantContext, renderer);
+        DocumentEmailDispatcher emailDispatcher = new DocumentEmailDispatcher(
+                emailService, generationRepository);
+        DocumentGenerationPipeline generationPipeline = new DocumentGenerationPipeline(
+                generationRepository, documentStorageService, tagResolverService, conversionService,
+                numberingService, complianceService, invoiceGeneratorService, notificationService,
+                auditLogService, tenantContext, failureRecorder, emailDispatcher, renderer, meterRegistry);
+        DocumentPreviewService previewService = new DocumentPreviewService(
+                tagResolverService, numberingService, complianceService, conversionService,
+                tenantContext, entityManager, renderer,
                 interventionRepository, receivedFormRepository, serviceRequestRepository,
-                reservationRepository, propertyRepository, providerExpenseRepository,
-                entityManager, failureRecorder, meterRegistry
+                reservationRepository, propertyRepository, providerExpenseRepository);
+        service = new DocumentGeneratorService(
+                templateManager, previewService, generationPipeline, emailDispatcher,
+                templateRepository, generationRepository, taxRulePreValidator,
+                tenantContext, fiscalProfileRepository
         );
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")

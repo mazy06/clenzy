@@ -1,7 +1,8 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.PlatformPromoCodeDto;
 import com.clenzy.model.PlatformPromoCode;
-import com.clenzy.repository.PlatformPromoCodeRepository;
+import com.clenzy.service.PlatformPromoCodeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,10 @@ import java.util.Map;
  * un ecran admin dedie. Le DTO accepte est un Map simple pour minimiser la
  * surface : seul SUPER_ADMIN y a acces, et la validation cote service refuse
  * deja les valeurs hors plage.</p>
+ *
+ * <p>Controller mince (audit T-ARCH-01) : acces donnees au niveau
+ * {@link PlatformPromoCodeService} ; reponses en {@link PlatformPromoCodeDto}
+ * (T-ARCH-07 : jamais d'entite JPA exposee, shape JSON inchangee).</p>
  */
 @RestController
 @RequestMapping("/api/admin/promo-codes")
@@ -29,16 +34,18 @@ import java.util.Map;
 @Tag(name = "Admin - Promo Codes", description = "CRUD des codes promo (admin uniquement)")
 public class AdminPlatformPromoCodeController {
 
-    private final PlatformPromoCodeRepository repository;
+    private final PlatformPromoCodeService promoCodeService;
 
-    public AdminPlatformPromoCodeController(PlatformPromoCodeRepository repository) {
-        this.repository = repository;
+    public AdminPlatformPromoCodeController(PlatformPromoCodeService promoCodeService) {
+        this.promoCodeService = promoCodeService;
     }
 
     @GetMapping
     @Operation(summary = "Lister tous les codes promo")
-    public ResponseEntity<List<PlatformPromoCode>> list() {
-        return ResponseEntity.ok(repository.findAll());
+    public ResponseEntity<List<PlatformPromoCodeDto>> list() {
+        return ResponseEntity.ok(promoCodeService.findAll().stream()
+                .map(PlatformPromoCodeDto::fromEntity)
+                .toList());
     }
 
     @PostMapping
@@ -77,8 +84,8 @@ public class AdminPlatformPromoCodeController {
             promo.setCreatedBy(jwt.getSubject());
 
             // Validation cote entity (% range, type, etc.) via JPA constraints
-            PlatformPromoCode saved = repository.save(promo);
-            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+            PlatformPromoCode saved = promoCodeService.create(promo);
+            return ResponseEntity.status(HttpStatus.CREATED).body(PlatformPromoCodeDto.fromEntity(saved));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -87,22 +94,16 @@ public class AdminPlatformPromoCodeController {
     @PutMapping("/{id}/activate")
     @Operation(summary = "(Re)activer un code promo")
     public ResponseEntity<?> activate(@PathVariable Long id) {
-        return repository.findById(id)
-                .map(promo -> {
-                    promo.setActive(true);
-                    return ResponseEntity.ok((Object) repository.save(promo));
-                })
+        return promoCodeService.setActive(id, true)
+                .map(promo -> ResponseEntity.ok((Object) PlatformPromoCodeDto.fromEntity(promo)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/deactivate")
     @Operation(summary = "Desactiver un code promo")
     public ResponseEntity<?> deactivate(@PathVariable Long id) {
-        return repository.findById(id)
-                .map(promo -> {
-                    promo.setActive(false);
-                    return ResponseEntity.ok((Object) repository.save(promo));
-                })
+        return promoCodeService.setActive(id, false)
+                .map(promo -> ResponseEntity.ok((Object) PlatformPromoCodeDto.fromEntity(promo)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

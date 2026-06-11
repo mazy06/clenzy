@@ -1,11 +1,7 @@
 package com.clenzy.controller;
 
-import com.clenzy.model.NotificationKey;
 import com.clenzy.model.OwnerPayout;
-import com.clenzy.model.OwnerPayout.PayoutStatus;
-import com.clenzy.payment.payout.PayoutNotifier;
-import com.clenzy.repository.OwnerPayoutRepository;
-import com.clenzy.service.NotificationService;
+import com.clenzy.payment.payout.PayoutWebhookService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -19,7 +15,6 @@ import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
-import java.time.Instant;
 import java.util.Base64;
 
 /**
@@ -45,7 +40,9 @@ import java.util.Base64;
  *
  * <h2>Mapping vers nos payouts</h2>
  * <p>Le {@code paymentReference} de nos payouts contient {@code "WISE:" + transferId}
- * — on recherche par cette référence pour identifier le payout impacté.</p>
+ * — on recherche par cette référence pour identifier le payout impacté. Les
+ * transitions d'état (idempotentes, compare-and-set) sont déléguées à
+ * {@link PayoutWebhookService}.</p>
  */
 @RestController
 @RequestMapping("/api/webhooks/payouts/wise")
@@ -60,18 +57,12 @@ public class WiseWebhookController {
     @Value("${wise.public-key:}")
     private String wisePublicKeyPem;
 
-    private final OwnerPayoutRepository payoutRepository;
-    private final PayoutNotifier notifier;
-    private final NotificationService notificationService;
+    private final PayoutWebhookService payoutWebhookService;
     private final ObjectMapper objectMapper;
 
-    public WiseWebhookController(OwnerPayoutRepository payoutRepository,
-                                  PayoutNotifier notifier,
-                                  NotificationService notificationService,
+    public WiseWebhookController(PayoutWebhookService payoutWebhookService,
                                   ObjectMapper objectMapper) {
-        this.payoutRepository = payoutRepository;
-        this.notifier = notifier;
-        this.notificationService = notificationService;
+        this.payoutWebhookService = payoutWebhookService;
         this.objectMapper = objectMapper;
     }
 
@@ -123,8 +114,8 @@ public class WiseWebhookController {
         String currentState = textOrNull(data, "current_state");
 
         // 3. Lookup payout via paymentReference="WISE:<transferId>"
-        OwnerPayout payout = payoutRepository
-            .findFirstByPaymentReference("WISE:" + transferId)
+        OwnerPayout payout = payoutWebhookService
+            .findByPaymentReference("WISE:" + transferId)
             .orElse(null);
         if (payout == null) {
             log.warn("Wise webhook : payout inconnu pour transferId={}", transferId);
@@ -132,46 +123,19 @@ public class WiseWebhookController {
             return ResponseEntity.ok("Unknown transfer");
         }
 
-        // 4. Mapping état Wise → état Clenzy
+        // 4. Mapping état Wise → état Clenzy (transitions idempotentes en service)
         switch (currentState != null ? currentState.toLowerCase() : "") {
-            case "outgoing_payment_sent" -> markPaid(payout, transferId);
-            case "funds_refunded", "charged_back", "cancelled", "bounced_back" ->
-                markFailed(payout, "Wise state: " + currentState);
+            case "outgoing_payment_sent" ->
+                payoutWebhookService.markPaid(payout, "Wise", transferId);
+            case "funds_refunded", "charged_back", "cancelled", "bounced_back" -> {
+                String reason = "Wise state: " + currentState;
+                payoutWebhookService.markFailed(payout, reason,
+                    "Reversement Wise reverse",
+                    "Le reversement #" + payout.getId() + " a ete reverse par Wise : " + reason);
+            }
             default -> log.debug("Wise webhook : transferId={} state {} (no action)", transferId, currentState);
         }
         return ResponseEntity.ok("OK");
-    }
-
-    private void markPaid(OwnerPayout payout, String transferId) {
-        if (payout.getStatus() == PayoutStatus.PAID) {
-            log.debug("Wise webhook : payout {} deja PAID, idempotence", payout.getId());
-            return;
-        }
-        payout.setStatus(PayoutStatus.PAID);
-        payout.setPaidAt(Instant.now());
-        OwnerPayout saved = payoutRepository.save(payout);
-        notifier.notifySuccess(saved);
-        log.info("Wise webhook : payout {} marque PAID (transferId={})", payout.getId(), transferId);
-    }
-
-    private void markFailed(OwnerPayout payout, String reason) {
-        if (payout.getStatus() == PayoutStatus.PAID) {
-            log.warn("Wise webhook : payout {} deja PAID, ignore state {}",
-                payout.getId(), reason);
-            // On notifie quand même les admins car c'est un cas anormal (refund/chargeback)
-            notificationService.notifyAdminsAndManagersByOrgId(
-                payout.getOrganizationId(),
-                NotificationKey.PAYOUT_FAILED,
-                "Reversement Wise reverse",
-                "Le reversement #" + payout.getId() + " a ete reverse par Wise : " + reason,
-                "/billing");
-            return;
-        }
-        payout.setStatus(PayoutStatus.FAILED);
-        payout.setFailureReason(reason);
-        OwnerPayout saved = payoutRepository.save(payout);
-        notifier.notifyFailure(saved, reason);
-        log.warn("Wise webhook : payout {} marque FAILED ({})", payout.getId(), reason);
     }
 
     /**

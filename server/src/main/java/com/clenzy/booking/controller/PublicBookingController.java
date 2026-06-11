@@ -48,13 +48,16 @@ public class PublicBookingController {
     private final PublicBookingService bookingService;
     private final BookingServiceOptionsService serviceOptionsService;
     private final com.clenzy.service.PropertyPhotoService photoService;
+    private final com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
-                                    com.clenzy.service.PropertyPhotoService photoService) {
+                                    com.clenzy.service.PropertyPhotoService photoService,
+                                    com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
+        this.rateLimiter = rateLimiter;
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -112,12 +115,18 @@ public class PublicBookingController {
     /**
      * POST /{slug}/reserve
      * Cree une reservation PENDING avec expiration 30 min.
+     *
+     * <p>Rate-limit Redis IP+propriete (reliquat revue A3) : chaque appel cree un
+     * hold qui gele les dates 30 min — sans limite, DoS du calendrier.</p>
      */
     @PostMapping("/reserve")
-    public ResponseEntity<BookingReserveResponseDto> reserve(
+    public ResponseEntity<?> reserve(
             @PathVariable String slug,
             @Valid @RequestBody BookingReserveRequestDto request,
             HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquireHold(httpRequest, request.propertyId())) {
+            return tooManyReservationAttempts();
+        }
         OrgContext ctx = resolveContext(slug, httpRequest);
         return ResponseEntity.ok(bookingService.reserve(ctx, request));
     }
@@ -129,15 +138,24 @@ public class PublicBookingController {
      * <p>Utile pour les sejours multiples (panier avec plusieurs proprietes ou plusieurs
      * creneaux). Si un seul item n'est pas disponible, toute l'operation est rollback.</p>
      *
-     * <p>Le guest est partage entre tous les items.</p>
+     * <p>Le guest est partage entre tous les items. Rate-limit par IP (un batch
+     * peut creer jusqu'a 20 holds d'un coup).</p>
      */
     @PostMapping("/reserve-batch")
-    public ResponseEntity<BookingReserveBatchResponseDto> reserveBatch(
+    public ResponseEntity<?> reserveBatch(
             @PathVariable String slug,
             @Valid @RequestBody BookingReserveBatchRequestDto request,
             HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquireBatch(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
         OrgContext ctx = resolveContext(slug, httpRequest);
         return ResponseEntity.ok(bookingService.reserveBatch(ctx, request));
+    }
+
+    private ResponseEntity<Map<String, String>> tooManyReservationAttempts() {
+        return ResponseEntity.status(429)
+            .body(Map.of("error", "Trop de tentatives de reservation, reessayez plus tard"));
     }
 
     /**

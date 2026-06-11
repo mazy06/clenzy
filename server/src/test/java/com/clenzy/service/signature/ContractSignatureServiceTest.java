@@ -15,6 +15,10 @@ import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.ManagementContractRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.DocumentStorageService;
 import com.clenzy.service.EmailService;
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -33,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -160,6 +166,33 @@ class ContractSignatureServiceTest {
         verify(notificationService).notifyAdminsAndManagersByOrgId(
                 eq(ORG_ID), eq(NotificationKey.CONTRACT_SIGNED), anyString(),
                 contains("activation manuelle"), anyString());
+    }
+
+    @Test
+    void whenSignerHeadersOversized_thenProofValuesTruncatedToColumnLimits() throws Exception {
+        // Arrange — un en-tete client surdimensionne ne doit pas faire echouer la
+        // persistance du dossier de preuve (signer_ip 64, signer_user_agent 512).
+        ContractSignatureRequest request = pendingRequest();
+        ManagementContract contract = contract(ContractStatus.DRAFT);
+        when(signatureRequestRepository.findByToken(TOKEN)).thenReturn(Optional.of(request));
+        when(contractRepository.findById(1L)).thenReturn(Optional.of(contract));
+        when(generationRepository.findById(7L)).thenReturn(Optional.of(mandateGeneration()));
+        when(documentStorageService.loadAsBytes(anyString())).thenReturn("PDF".getBytes());
+        when(signatureRequestRepository.markSigned(5L)).thenReturn(1);
+        when(signatureRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(contractRepository.findActiveByPropertyId(100L, ORG_ID)).thenReturn(Optional.empty());
+        when(contractRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(certificateStamper.appendCertificate(any(), any())).thenReturn("PDF-SIGNED".getBytes());
+        when(documentStorageService.store(anyString(), anyString(), any())).thenReturn("path.pdf");
+        String oversizedIp = "9".repeat(100);
+        String oversizedUserAgent = "U".repeat(2000);
+
+        // Act
+        service.sign(TOKEN, "Jean Dupont", true, oversizedIp, oversizedUserAgent);
+
+        // Assert — valeurs bornees aux colonnes de preuve
+        assertEquals(64, request.getSignerIp().length());
+        assertEquals(512, request.getSignerUserAgent().length());
     }
 
     @Test
@@ -296,6 +329,76 @@ class ContractSignatureServiceTest {
         ResponseStatusException e = assertThrows(ResponseStatusException.class,
                 () -> service.getMandateForContract(1L, ORG_ID));
         assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
+    }
+
+    // ─── Masquage PII dans les logs (T-BP-01) ────────────────────────────────
+
+    private ListAppender<ILoggingEvent> attachLogCapture() {
+        Logger logger = (Logger) LoggerFactory.getLogger(ContractSignatureService.class);
+        logger.setLevel(Level.INFO);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        return appender;
+    }
+
+    private String detachAndJoinLogs(ListAppender<ILoggingEvent> appender) {
+        Logger logger = (Logger) LoggerFactory.getLogger(ContractSignatureService.class);
+        logger.detachAppender(appender);
+        return appender.list.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .collect(Collectors.joining("\n"));
+    }
+
+    @Test
+    void whenSignatureLinkSent_thenOwnerEmailMaskedInLogs() {
+        // Arrange
+        ManagementContract contract = contract(ContractStatus.DRAFT);
+        DocumentGeneration generation = mandateGeneration();
+        generation.setId(7L);
+        when(generationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
+                ReferenceType.MANAGEMENT_CONTRACT, 1L)).thenReturn(List.of(generation));
+        SignatureProvider provider = mock(SignatureProvider.class);
+        when(providerRegistry.getActiveProvider()).thenReturn(provider);
+        when(provider.createSignatureRequest(any())).thenReturn(
+                SignatureResult.success(TOKEN.toString(), "https://app.clenzy.fr/sign/" + TOKEN));
+        when(signatureRequestRepository.findFirstByContractIdAndStatus(1L, ContractSignatureRequest.Status.PENDING))
+                .thenReturn(Optional.of(pendingRequest()));
+        ListAppender<ILoggingEvent> appender = attachLogCapture();
+
+        // Act
+        service.requestSignature(contract, "owner@example.com");
+
+        // Assert — jamais l'email en clair, version masquee seulement
+        String logs = detachAndJoinLogs(appender);
+        assertFalse(logs.contains("owner@example.com"), "email du proprietaire en clair dans les logs");
+        assertTrue(logs.contains("o***@example.com"), "email masque attendu dans les logs");
+    }
+
+    @Test
+    void whenContractSigned_thenSignerNameMaskedInLogs() throws Exception {
+        // Arrange
+        ContractSignatureRequest request = pendingRequest();
+        ManagementContract contract = contract(ContractStatus.DRAFT);
+        when(signatureRequestRepository.findByToken(TOKEN)).thenReturn(Optional.of(request));
+        when(contractRepository.findById(1L)).thenReturn(Optional.of(contract));
+        when(generationRepository.findById(7L)).thenReturn(Optional.of(mandateGeneration()));
+        when(documentStorageService.loadAsBytes(anyString())).thenReturn("PDF".getBytes());
+        when(signatureRequestRepository.markSigned(5L)).thenReturn(1);
+        when(signatureRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(contractRepository.findActiveByPropertyId(100L, ORG_ID)).thenReturn(Optional.empty());
+        when(contractRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(certificateStamper.appendCertificate(any(), any())).thenReturn("PDF-SIGNED".getBytes());
+        when(documentStorageService.store(anyString(), anyString(), any())).thenReturn("path.pdf");
+        ListAppender<ILoggingEvent> appender = attachLogCapture();
+
+        // Act
+        service.sign(TOKEN, "Jean Dupont", true, "1.2.3.4", "Mozilla/5.0");
+
+        // Assert — initiales seulement, jamais le nom complet du signataire
+        String logs = detachAndJoinLogs(appender);
+        assertFalse(logs.contains("Jean Dupont"), "nom complet du signataire en clair dans les logs");
+        assertTrue(logs.contains("J.D."), "initiales masquees attendues dans les logs");
     }
 
     // ─── cancelPending() ─────────────────────────────────────────────────────

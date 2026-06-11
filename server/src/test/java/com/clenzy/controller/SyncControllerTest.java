@@ -5,6 +5,7 @@ import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.KeycloakService;
+import com.clenzy.service.UserKeycloakSyncService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -29,7 +30,8 @@ class SyncControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new SyncController(keycloakService, userRepository);
+        // Service REEL construit au-dessus des mocks (pattern Vague A)
+        controller = new SyncController(new UserKeycloakSyncService(keycloakService, userRepository));
     }
 
     @Nested

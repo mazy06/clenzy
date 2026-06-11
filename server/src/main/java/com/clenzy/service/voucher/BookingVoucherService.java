@@ -339,6 +339,21 @@ public class BookingVoucherService {
             ));
     }
 
+    /**
+     * Verifie qu'une propriete existe ET appartient a l'organisation donnee.
+     *
+     * <p>Utilise par la validation publique des vouchers (booking engine, sans
+     * auth) comme garde anti-enumeration cross-tenant : en cas de propriete
+     * inconnue OU hors org, le caller renvoie la MEME reponse NOT_FOUND pour
+     * ne leaker ni l'existence de la propriete ni celle du code voucher.</p>
+     */
+    @Transactional(readOnly = true)
+    public boolean propertyBelongsToOrganization(Long propertyId, Long organizationId) {
+        return propertyRepo.findById(propertyId)
+            .map(p -> p.getOrganizationId().equals(organizationId))
+            .orElse(false);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Permission helper (utile aussi pour le controller en checkAccess)
     // ─────────────────────────────────────────────────────────────────────────

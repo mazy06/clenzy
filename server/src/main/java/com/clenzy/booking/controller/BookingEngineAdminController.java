@@ -1,9 +1,8 @@
 package com.clenzy.booking.controller;
 
 import com.clenzy.booking.dto.BookingEngineAdminConfigDto;
-import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.service.BookingEngineAdminService;
-import com.clenzy.tenant.TenantContext;
+import com.clenzy.booking.service.BookingEngineConfigService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -22,15 +21,12 @@ import java.util.Map;
 public class BookingEngineAdminController {
 
     private final BookingEngineAdminService adminService;
-    private final BookingEngineConfigRepository configRepository;
-    private final TenantContext tenantContext;
+    private final BookingEngineConfigService configService;
 
     public BookingEngineAdminController(BookingEngineAdminService adminService,
-                                         BookingEngineConfigRepository configRepository,
-                                         TenantContext tenantContext) {
+                                         BookingEngineConfigService configService) {
         this.adminService = adminService;
-        this.configRepository = configRepository;
-        this.tenantContext = tenantContext;
+        this.configService = configService;
     }
 
     // ─── Lightweight status (used by dashboard widget) ───────────────────
@@ -42,21 +38,19 @@ public class BookingEngineAdminController {
      */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getStatus() {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-        var configs = configRepository.findAllByOrganizationId(orgId);
-        if (configs.isEmpty()) {
+        BookingEngineConfigService.BookingEngineStatus status = configService.getStatus();
+        if (!status.configured()) {
             return ResponseEntity.ok(Map.of(
                 "configured", false,
                 "enabled", false,
                 "templateCount", 0
             ));
         }
-        boolean anyEnabled = configs.stream().anyMatch(c -> c.isEnabled());
         return ResponseEntity.ok(Map.<String, Object>of(
             "configured", true,
-            "enabled", anyEnabled,
-            "templateCount", configs.size(),
-            "apiKey", maskApiKey(configs.get(0).getApiKey())
+            "enabled", status.enabled(),
+            "templateCount", status.templateCount(),
+            "apiKey", status.maskedApiKey()
         ));
     }
 
@@ -186,12 +180,5 @@ public class BookingEngineAdminController {
     public ResponseEntity<BookingEngineAdminConfigDto> regenerateApiKey() {
         BookingEngineAdminConfigDto existing = adminService.getConfig();
         return ResponseEntity.ok(adminService.regenerateApiKey(existing.id()));
-    }
-
-    // ─── Helpers ─────────────────────────────────────────────────────────
-
-    private String maskApiKey(String apiKey) {
-        if (apiKey == null || apiKey.length() < 12) return "****";
-        return apiKey.substring(0, 8) + "..." + apiKey.substring(apiKey.length() - 4);
     }
 }

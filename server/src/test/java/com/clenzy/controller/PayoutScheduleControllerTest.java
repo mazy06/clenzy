@@ -3,10 +3,11 @@ package com.clenzy.controller;
 import com.clenzy.dto.PayoutScheduleConfigDto;
 import com.clenzy.model.PayoutScheduleConfig;
 import com.clenzy.repository.PayoutScheduleConfigRepository;
+import com.clenzy.service.PayoutScheduleService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -23,8 +24,14 @@ class PayoutScheduleControllerTest {
 
     @Mock private PayoutScheduleConfigRepository repository;
 
-    @InjectMocks
     private PayoutScheduleController controller;
+
+    @BeforeEach
+    void setUp() {
+        // Service reel branche sur le mock : les assertions existantes sur le
+        // repository restent valables a travers la couche service.
+        controller = new PayoutScheduleController(new PayoutScheduleService(repository));
+    }
 
     @Test
     void getScheduleConfig_existing_returnsOk() {

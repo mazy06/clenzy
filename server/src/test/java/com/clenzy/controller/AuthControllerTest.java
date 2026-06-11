@@ -4,10 +4,7 @@ import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import com.clenzy.model.Organization;
-import com.clenzy.model.OrganizationMember;
 import com.clenzy.dto.RolePermissionsDto;
-import com.clenzy.repository.OrganizationRepository;
-import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.service.*;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,8 +35,7 @@ class AuthControllerTest {
     @Mock private SecurityAuditService securityAuditService;
     @Mock private LoginProtectionService loginProtectionService;
     @Mock private OrganizationInvitationService invitationService;
-    @Mock private OrganizationRepository organizationRepository;
-    @Mock private OrganizationMemberRepository organizationMemberRepository;
+    @Mock private OrganizationService organizationService;
     @Mock private RestTemplate restTemplate;
 
     private AuthController controller;
@@ -62,7 +58,7 @@ class AuthControllerTest {
     void setUp() throws Exception {
         controller = new AuthController(userService, permissionService,
                 auditLogService, securityAuditService, loginProtectionService,
-                invitationService, organizationRepository, organizationMemberRepository,
+                invitationService, organizationService,
                 restTemplate);
         // Set @Value fields via reflection
         setField("keycloakUrl", "http://localhost:8080");
@@ -230,8 +226,8 @@ class AuthControllerTest {
 
             Organization org = new Organization();
             org.setName("Org A");
-            when(organizationRepository.findById(10L)).thenReturn(Optional.of(org));
-            when(organizationMemberRepository.findByUserId(1L)).thenReturn(Optional.empty());
+            when(organizationService.findById(10L)).thenReturn(Optional.of(org));
+            when(organizationService.findMembershipByUserId(1L)).thenReturn(Optional.empty());
 
             Map<String, Object> result = controller.me(jwt);
 

@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.UserPreferencesDto;
 import com.clenzy.model.UserPreferences;
 import com.clenzy.repository.UserPreferencesRepository;
+import com.clenzy.service.UserPreferencesService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,7 +43,8 @@ class UserPreferencesControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new UserPreferencesController(repository, tenantContext);
+        // Service REEL construit au-dessus du repository mocke (pattern Vague A)
+        controller = new UserPreferencesController(new UserPreferencesService(repository, tenantContext));
     }
 
     private Jwt jwtFor(String keycloakId) {

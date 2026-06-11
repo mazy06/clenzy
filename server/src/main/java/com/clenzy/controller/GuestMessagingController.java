@@ -5,9 +5,7 @@ import com.clenzy.dto.MessagingAutomationConfigDto;
 import com.clenzy.dto.SendManualMessageRequest;
 import com.clenzy.model.GuestMessageLog;
 import com.clenzy.model.MessageChannelType;
-import com.clenzy.model.MessagingAutomationConfig;
-import com.clenzy.repository.GuestMessageLogRepository;
-import com.clenzy.repository.MessagingAutomationConfigRepository;
+import com.clenzy.service.messaging.GuestMessagingQueryService;
 import com.clenzy.service.messaging.GuestMessagingService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
@@ -25,19 +23,16 @@ import java.util.Map;
 @PreAuthorize("isAuthenticated()")
 public class GuestMessagingController {
 
-    private final MessagingAutomationConfigRepository configRepository;
-    private final GuestMessageLogRepository messageLogRepository;
+    private final GuestMessagingQueryService queryService;
     private final GuestMessagingService messagingService;
     private final TenantContext tenantContext;
 
     public GuestMessagingController(
-            MessagingAutomationConfigRepository configRepository,
-            GuestMessageLogRepository messageLogRepository,
+            GuestMessagingQueryService queryService,
             GuestMessagingService messagingService,
             TenantContext tenantContext
     ) {
-        this.configRepository = configRepository;
-        this.messageLogRepository = messageLogRepository;
+        this.queryService = queryService;
         this.messagingService = messagingService;
         this.tenantContext = tenantContext;
     }
@@ -47,11 +42,8 @@ public class GuestMessagingController {
     @GetMapping("/config")
     public ResponseEntity<MessagingAutomationConfigDto> getConfig() {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return configRepository.findByOrganizationId(orgId)
-            .map(MessagingAutomationConfigDto::fromEntity)
-            .map(ResponseEntity::ok)
-            .orElseGet(() -> ResponseEntity.ok(MessagingAutomationConfigDto.fromEntity(
-                new MessagingAutomationConfig(orgId))));
+        return ResponseEntity.ok(MessagingAutomationConfigDto.fromEntity(
+            queryService.getConfigOrDefault(orgId)));
     }
 
     @PutMapping("/config")
@@ -59,20 +51,8 @@ public class GuestMessagingController {
             @RequestBody MessagingAutomationConfigDto dto
     ) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-
-        MessagingAutomationConfig config = configRepository.findByOrganizationId(orgId)
-            .orElseGet(() -> new MessagingAutomationConfig(orgId));
-
-        config.setAutoSendCheckIn(dto.autoSendCheckIn());
-        config.setAutoSendCheckOut(dto.autoSendCheckOut());
-        config.setHoursBeforeCheckIn(dto.hoursBeforeCheckIn());
-        config.setHoursBeforeCheckOut(dto.hoursBeforeCheckOut());
-        config.setCheckInTemplateId(dto.checkInTemplateId());
-        config.setCheckOutTemplateId(dto.checkOutTemplateId());
-        config.setAutoPushPricingEnabled(dto.autoPushPricingEnabled());
-
-        MessagingAutomationConfig saved = configRepository.save(config);
-        return ResponseEntity.ok(MessagingAutomationConfigDto.fromEntity(saved));
+        return ResponseEntity.ok(MessagingAutomationConfigDto.fromEntity(
+            queryService.updateConfig(orgId, dto)));
     }
 
     // ── Envoi manuel ──
@@ -109,9 +89,7 @@ public class GuestMessagingController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER') or @organizationSecurityService.isOrgAdmin()")
     public ResponseEntity<GuestMessageLogDto> resendMessage(@PathVariable Long logId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        GuestMessageLog logEntry = messageLogRepository.findById(logId)
-            .filter(l -> l.getOrganizationId().equals(orgId))
-            .orElse(null);
+        GuestMessageLog logEntry = queryService.findLogForOrganization(logId, orgId).orElse(null);
 
         if (logEntry == null) {
             return ResponseEntity.notFound().build();
@@ -127,9 +105,7 @@ public class GuestMessagingController {
     @GetMapping("/preview/{logId}")
     public ResponseEntity<Map<String, String>> previewMessage(@PathVariable Long logId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        GuestMessageLog logEntry = messageLogRepository.findById(logId)
-            .filter(l -> l.getOrganizationId().equals(orgId))
-            .orElse(null);
+        GuestMessageLog logEntry = queryService.findLogForOrganization(logId, orgId).orElse(null);
 
         if (logEntry == null || logEntry.getTemplateId() == null) {
             return ResponseEntity.notFound().build();
@@ -155,14 +131,16 @@ public class GuestMessagingController {
     @GetMapping("/history")
     public List<GuestMessageLogDto> getHistory() {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return messageLogRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId).stream()
+        return queryService.getHistory(orgId).stream()
             .map(GuestMessageLogDto::fromEntity)
             .toList();
     }
 
     @GetMapping("/history/reservation/{reservationId}")
     public List<GuestMessageLogDto> getReservationHistory(@PathVariable Long reservationId) {
-        return messageLogRepository.findByReservationIdOrderByCreatedAtDesc(reservationId).stream()
+        // Org du requester (null = platform staff, lecture cross-org autorisee).
+        Long orgId = tenantContext.isSuperAdmin() ? null : tenantContext.getRequiredOrganizationId();
+        return queryService.getReservationHistory(reservationId, orgId).stream()
             .map(GuestMessageLogDto::fromEntity)
             .toList();
     }

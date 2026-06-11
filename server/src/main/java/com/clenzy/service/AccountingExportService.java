@@ -2,6 +2,8 @@ package com.clenzy.service;
 
 import com.clenzy.model.*;
 import com.clenzy.repository.InvoiceRepository;
+import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -15,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -35,17 +38,66 @@ public class AccountingExportService {
     private final ProviderExpenseRepository expenseRepository;
     private final InvoiceRepository invoiceRepository;
     private final UserRepository userRepository;
+    private final OwnerPayoutConfigRepository payoutConfigRepository;
+    private final OrganizationRepository organizationRepository;
+    private final SepaXmlService sepaXmlService;
 
     public AccountingExportService(ReservationRepository reservationRepository,
                                    OwnerPayoutRepository payoutRepository,
                                    ProviderExpenseRepository expenseRepository,
                                    InvoiceRepository invoiceRepository,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   OwnerPayoutConfigRepository payoutConfigRepository,
+                                   OrganizationRepository organizationRepository,
+                                   SepaXmlService sepaXmlService) {
         this.reservationRepository = reservationRepository;
         this.payoutRepository = payoutRepository;
         this.expenseRepository = expenseRepository;
         this.invoiceRepository = invoiceRepository;
         this.userRepository = userRepository;
+        this.payoutConfigRepository = payoutConfigRepository;
+        this.organizationRepository = organizationRepository;
+        this.sepaXmlService = sepaXmlService;
+    }
+
+    /**
+     * Genere le fichier SEPA pain.001 pour un lot de payouts de l'organisation.
+     *
+     * <p>Seuls les payouts APPROVED/PROCESSING appartenant a l'org courante
+     * sont retenus (requete scoped {@code findByIdsAndOrgId} — un id d'une
+     * autre org est silencieusement ignore). Chaque proprietaire doit avoir
+     * une configuration bancaire verifiee.</p>
+     *
+     * @throws IllegalArgumentException si l'organisation est introuvable,
+     *         si aucun payout n'est eligible, ou si une config n'est pas verifiee.
+     */
+    public String generateSepaXml(List<Long> payoutIds, Long orgId) {
+        Organization org = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable"));
+
+        List<OwnerPayout> payouts = payoutRepository.findByIdsAndOrgId(payoutIds, orgId).stream()
+                .filter(p -> p.getStatus() == OwnerPayout.PayoutStatus.APPROVED
+                        || p.getStatus() == OwnerPayout.PayoutStatus.PROCESSING)
+                .toList();
+        if (payouts.isEmpty()) {
+            throw new IllegalArgumentException("Aucun payout eligible (statut APPROVED ou PROCESSING) pour les IDs fournis");
+        }
+
+        List<Long> ownerIds = payouts.stream().map(OwnerPayout::getOwnerId).distinct().toList();
+        Map<Long, OwnerPayoutConfig> configsByOwnerId = payoutConfigRepository.findAllByOrgId(orgId).stream()
+                .filter(c -> ownerIds.contains(c.getOwnerId()))
+                .filter(OwnerPayoutConfig::isVerified)
+                .collect(Collectors.toMap(OwnerPayoutConfig::getOwnerId, Function.identity()));
+
+        List<Long> unverifiedOwners = ownerIds.stream()
+                .filter(id -> !configsByOwnerId.containsKey(id))
+                .toList();
+        if (!unverifiedOwners.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Configuration bancaire non verifiee pour les proprietaires: " + unverifiedOwners);
+        }
+
+        return sepaXmlService.generatePain001(org, payouts, configsByOwnerId);
     }
 
     /**

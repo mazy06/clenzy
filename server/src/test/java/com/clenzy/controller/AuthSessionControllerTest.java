@@ -12,8 +12,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,7 +28,8 @@ import static org.mockito.Mockito.when;
  *
  * <h2>Focus</h2>
  * <ul>
- *   <li>GET /api/auth/session : 200 avec token si header Authorization Bearer, 401 sinon</li>
+ *   <li>GET /api/auth/session : 200 avec metadonnees non sensibles (JAMAIS le token brut
+ *       — Z1-SEC-FRONTAUX-02) si principal JWT present, 401 sinon</li>
  *   <li>POST /api/auth/session : pose un cookie HttpOnly/Secure/SameSite=Strict, 400 si pas de header</li>
  *   <li>DELETE /api/auth/session : pose un cookie max-age=0 (suppression)</li>
  *   <li>isSecure : false en dev, secureCookie param sinon</li>
@@ -52,47 +56,94 @@ class AuthSessionControllerTest {
 
     // ─── GET /api/auth/session ───────────────────────────────────────────
 
-    @Test
-    @DisplayName("getSession returns token from Authorization header when Bearer present")
-    void getSession_validBearer_returnsToken() {
-        when(request.getHeader("Authorization")).thenReturn("Bearer my-jwt-token");
+    private static final String RAW_TOKEN = "raw-jwt-value-must-never-leak";
 
-        ResponseEntity<Map<String, String>> response = controller.getSession(request);
-
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).containsEntry("token", "my-jwt-token");
+    private static Jwt jwtWithClaims() {
+        return Jwt.withTokenValue(RAW_TOKEN)
+                .header("alg", "RS256")
+                .subject("kc-user-1")
+                .claim("preferred_username", "host1")
+                .claim("email", "host@clenzy.fr")
+                .claim("given_name", "Jean")
+                .claim("family_name", "Dupont")
+                .claim("realm_access", Map.of("roles", List.of("HOST", "SUPERVISOR")))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
     }
 
     @Test
-    @DisplayName("getSession returns 401 when Authorization header missing")
-    void getSession_noHeader_returns401() {
-        when(request.getHeader("Authorization")).thenReturn(null);
+    @DisplayName("getSession avec principal JWT retourne les metadonnees de session")
+    void getSession_withJwtPrincipal_returnsSessionMetadata() {
+        Jwt jwt = jwtWithClaims();
 
-        ResponseEntity<Map<String, String>> response = controller.getSession(request);
+        ResponseEntity<?> result = controller.getSession(jwt);
 
-        assertThat(response.getStatusCode().value()).isEqualTo(401);
-        assertThat(response.getBody()).containsKey("error");
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        AuthSessionController.SessionInfoDto body = (AuthSessionController.SessionInfoDto) result.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.authenticated()).isTrue();
+        assertThat(body.expiresAt()).isEqualTo(jwt.getExpiresAt().getEpochSecond());
+        assertThat(body.subject()).isEqualTo("kc-user-1");
+        assertThat(body.preferredUsername()).isEqualTo("host1");
+        assertThat(body.email()).isEqualTo("host@clenzy.fr");
+        assertThat(body.givenName()).isEqualTo("Jean");
+        assertThat(body.familyName()).isEqualTo("Dupont");
+        assertThat(body.roles()).containsExactly("HOST", "SUPERVISOR");
     }
 
     @Test
-    @DisplayName("getSession returns 401 when Authorization is Basic (not Bearer)")
-    void getSession_basicAuth_returns401() {
-        when(request.getHeader("Authorization")).thenReturn("Basic dXNlcjpwYXNz");
+    @DisplayName("getSession ne renvoie JAMAIS le token brut (Z1-SEC-FRONTAUX-02)")
+    void getSession_withJwtPrincipal_neverEchoesRawToken() {
+        ResponseEntity<?> result = controller.getSession(jwtWithClaims());
 
-        ResponseEntity<Map<String, String>> response = controller.getSession(request);
-
-        assertThat(response.getStatusCode().value()).isEqualTo(401);
+        // Le DTO ne doit contenir le token brut dans aucun de ses champs.
+        assertThat(String.valueOf(result.getBody())).doesNotContain(RAW_TOKEN);
     }
 
     @Test
-    @DisplayName("getSession strips 'Bearer ' prefix exactly (7 chars)")
-    void getSession_stripsBearerPrefix() {
-        when(request.getHeader("Authorization")).thenReturn("Bearer    spaces-token");
+    @DisplayName("getSession retourne 401 sans principal JWT (pas de cookie valide)")
+    void getSession_withoutJwtPrincipal_returns401() {
+        ResponseEntity<?> result = controller.getSession(null);
 
-        ResponseEntity<Map<String, String>> response = controller.getSession(request);
+        assertThat(result.getStatusCode().value()).isEqualTo(401);
+        assertThat(result.getBody()).asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                .containsKey("error");
+    }
 
-        // Note: only the literal "Bearer " (7 chars) is stripped — spaces stay
-        assertThat(response.getBody()).containsEntry("token", "   spaces-token");
+    @Test
+    @DisplayName("getSession sans claim realm_access retourne une liste de roles vide")
+    void getSession_withoutRealmAccessClaim_returnsEmptyRoles() {
+        Jwt jwt = Jwt.withTokenValue(RAW_TOKEN)
+                .header("alg", "RS256")
+                .subject("kc-user-2")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(60))
+                .build();
+
+        ResponseEntity<?> result = controller.getSession(jwt);
+
+        AuthSessionController.SessionInfoDto body = (AuthSessionController.SessionInfoDto) result.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.roles()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("getSession avec realm_access.roles malforme (non-liste) retourne une liste vide")
+    void getSession_withMalformedRealmRoles_returnsEmptyRoles() {
+        Jwt jwt = Jwt.withTokenValue(RAW_TOKEN)
+                .header("alg", "RS256")
+                .subject("kc-user-3")
+                .claim("realm_access", Map.of("roles", "HOST"))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(60))
+                .build();
+
+        ResponseEntity<?> result = controller.getSession(jwt);
+
+        AuthSessionController.SessionInfoDto body = (AuthSessionController.SessionInfoDto) result.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.roles()).isEmpty();
     }
 
     // ─── POST /api/auth/session ──────────────────────────────────────────

@@ -2,7 +2,6 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.UserService;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
@@ -34,16 +33,14 @@ import java.util.concurrent.TimeUnit;
 public class PublicHostAvatarController {
 
     private final UserService userService;
-    private final UserRepository userRepository;
 
-    public PublicHostAvatarController(UserService userService, UserRepository userRepository) {
+    public PublicHostAvatarController(UserService userService) {
         this.userService = userService;
-        this.userRepository = userRepository;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Resource> getHostAvatar(@PathVariable Long id) {
-        User user = userRepository.findById(id).orElse(null);
+        User user = userService.findById(id).orElse(null);
         if (user == null || user.getRole() != UserRole.HOST) {
             // 404 on non-hosts so we don't leak the existence of internal accounts.
             return ResponseEntity.notFound().build();

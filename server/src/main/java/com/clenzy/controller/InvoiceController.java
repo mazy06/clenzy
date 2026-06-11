@@ -3,15 +3,10 @@ package com.clenzy.controller;
 import com.clenzy.dto.GenerateInvoiceRequest;
 import com.clenzy.dto.InvoiceDto;
 import com.clenzy.dto.PaymentOrchestrationResult;
-import com.clenzy.model.DocumentType;
-import com.clenzy.model.Invoice;
 import com.clenzy.model.PaymentProviderType;
-import com.clenzy.repository.DocumentTemplateRepository;
-import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.service.InvoiceGeneratorService;
 import com.clenzy.service.InvoicePaymentService;
-import com.clenzy.service.InvoicePdfService;
-import com.clenzy.tenant.TenantContext;
+import com.clenzy.service.InvoiceQueryService;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -40,24 +35,15 @@ import java.util.Map;
 public class InvoiceController {
 
     private final InvoiceGeneratorService invoiceGeneratorService;
-    private final InvoicePdfService invoicePdfService;
     private final InvoicePaymentService invoicePaymentService;
-    private final InvoiceRepository invoiceRepository;
-    private final DocumentTemplateRepository documentTemplateRepository;
-    private final TenantContext tenantContext;
+    private final InvoiceQueryService invoiceQueryService;
 
     public InvoiceController(InvoiceGeneratorService invoiceGeneratorService,
-                              InvoicePdfService invoicePdfService,
                               InvoicePaymentService invoicePaymentService,
-                              InvoiceRepository invoiceRepository,
-                              DocumentTemplateRepository documentTemplateRepository,
-                              TenantContext tenantContext) {
+                              InvoiceQueryService invoiceQueryService) {
         this.invoiceGeneratorService = invoiceGeneratorService;
-        this.invoicePdfService = invoicePdfService;
         this.invoicePaymentService = invoicePaymentService;
-        this.invoiceRepository = invoiceRepository;
-        this.documentTemplateRepository = documentTemplateRepository;
-        this.tenantContext = tenantContext;
+        this.invoiceQueryService = invoiceQueryService;
     }
 
     /**
@@ -107,27 +93,16 @@ public class InvoiceController {
      */
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-
-        Invoice invoice = invoiceRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Facture introuvable: " + id));
-
-        if (!invoice.getOrganizationId().equals(orgId)) {
-            throw new IllegalArgumentException("Facture introuvable: " + id);
-        }
-
-        byte[] pdfBytes = invoicePdfService.generatePdf(invoice);
-
-        String filename = "Facture_" + invoice.getInvoiceNumber().replace("/", "-") + ".pdf";
+        InvoiceQueryService.InvoicePdfFile pdf = invoiceQueryService.generatePdf(id);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDisposition(ContentDisposition.attachment()
-            .filename(filename)
+            .filename(pdf.filename())
             .build());
-        headers.setContentLength(pdfBytes.length);
+        headers.setContentLength(pdf.content().length);
 
-        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        return new ResponseEntity<>(pdf.content(), headers, HttpStatus.OK);
     }
 
     /**
@@ -159,16 +134,10 @@ public class InvoiceController {
      */
     @GetMapping("/template-status")
     public ResponseEntity<Map<String, Object>> getTemplateStatus() {
-        boolean hasTemplate = documentTemplateRepository.existsByDocumentTypeAndActiveTrue(DocumentType.FACTURE);
-        String templateName = null;
-        if (hasTemplate) {
-            templateName = documentTemplateRepository.findByDocumentTypeAndActiveTrue(DocumentType.FACTURE)
-                .map(t -> t.getName())
-                .orElse(null);
-        }
+        InvoiceQueryService.InvoiceTemplateStatus status = invoiceQueryService.getInvoiceTemplateStatus();
         return ResponseEntity.ok(Map.of(
-            "hasTemplate", hasTemplate,
-            "templateName", templateName != null ? templateName : ""
+            "hasTemplate", status.hasTemplate(),
+            "templateName", status.templateName() != null ? status.templateName() : ""
         ));
     }
 

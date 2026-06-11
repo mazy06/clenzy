@@ -9,6 +9,7 @@ import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.tenant.TenantContext;
+import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,6 +47,7 @@ public class InvoiceGeneratorService {
     private final FiscalEngine fiscalEngine;
     private final InvoiceNumberingService numberingService;
     private final TenantContext tenantContext;
+    private final EntityManager entityManager;
 
     public InvoiceGeneratorService(InvoiceRepository invoiceRepository,
                                     ReservationRepository reservationRepository,
@@ -52,7 +55,8 @@ public class InvoiceGeneratorService {
                                     FiscalProfileRepository fiscalProfileRepository,
                                     FiscalEngine fiscalEngine,
                                     InvoiceNumberingService numberingService,
-                                    TenantContext tenantContext) {
+                                    TenantContext tenantContext,
+                                    EntityManager entityManager) {
         this.invoiceRepository = invoiceRepository;
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
@@ -60,6 +64,7 @@ public class InvoiceGeneratorService {
         this.fiscalEngine = fiscalEngine;
         this.numberingService = numberingService;
         this.tenantContext = tenantContext;
+        this.entityManager = entityManager;
     }
 
     /**
@@ -71,8 +76,8 @@ public class InvoiceGeneratorService {
         Long orgId = tenantContext.getRequiredOrganizationId();
         String countryCode = tenantContext.getCountryCode();
 
-        // Verifier qu'il n'y a pas deja une facture de séjour pour cette reservation
-        invoiceRepository.findByReservationIdAndInvoiceType(request.reservationId(), InvoiceType.GUEST)
+        // Verifier qu'il n'y a pas deja une facture de sejour ACTIVE pour cette reservation
+        findActiveGuestInvoice(request.reservationId())
             .ifPresent(existing -> {
                 throw new IllegalStateException(
                     "Une facture existe deja pour la reservation " + request.reservationId()
@@ -94,101 +99,14 @@ public class InvoiceGeneratorService {
             .orElseThrow(() -> new IllegalStateException(
                 "Profil fiscal non configure pour l'organisation " + orgId));
 
-        // Creer la facture
-        Invoice invoice = new Invoice();
-        invoice.setOrganizationId(orgId);
-        invoice.setInvoiceNumber("DRAFT"); // sera remplace a l'emission
-        invoice.setInvoiceDate(LocalDate.now());
-        invoice.setDueDate(LocalDate.now().plusDays(30));
-        invoice.setCurrency(currency);
-        invoice.setCountryCode(countryCode);
-        invoice.setReservationId(reservation.getId());
-        invoice.setStatus(InvoiceStatus.DRAFT);
+        // Construction commune (en-tete + lignes hebergement/menage) : chemin fiscal unique
+        Invoice invoice = buildReservationDraft(reservation, orgId, fiscalProfile,
+            countryCode, currency,
+            request.buyerName() != null ? request.buyerName() : reservation.getGuestName(),
+            request.buyerAddress(), request.buyerTaxId());
 
-        // Infos vendeur depuis FiscalProfile
-        invoice.setSellerName(fiscalProfile.getLegalEntityName());
-        invoice.setSellerAddress(fiscalProfile.getLegalAddress());
-        invoice.setSellerTaxId(fiscalProfile.getVatNumber() != null
-            ? fiscalProfile.getVatNumber() : fiscalProfile.getTaxIdNumber());
-
-        // Infos acheteur
-        invoice.setBuyerName(request.buyerName() != null
-            ? request.buyerName() : reservation.getGuestName());
-        invoice.setBuyerAddress(request.buyerAddress());
-        invoice.setBuyerTaxId(request.buyerTaxId());
-
-        // Mentions legales
-        invoice.setLegalMentions(fiscalProfile.getLegalMentions());
-
-        // --- Generer les lignes ---
-        int lineNum = 1;
-
-        // Ligne 1: Hebergement (TVA reduite ACCOMMODATION)
-        BigDecimal roomRevenue = reservation.getRoomRevenue() != null
-            ? reservation.getRoomRevenue()
-            : reservation.getTotalPrice();
-
-        if (roomRevenue != null && roomRevenue.compareTo(BigDecimal.ZERO) > 0) {
-            long nights = ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
-            if (nights <= 0) nights = 1;
-
-            TaxResult accommodationTax = fiscalEngine.calculateTax(
-                countryCode,
-                new TaxableItem(roomRevenue, TaxCategory.ACCOMMODATION.name(),
-                    "Hebergement " + reservation.getCheckIn() + " - " + reservation.getCheckOut()),
-                reservation.getCheckIn()
-            );
-
-            InvoiceLine accommodationLine = createLine(lineNum++,
-                String.format("Hebergement du %s au %s (%d nuits)",
-                    reservation.getCheckIn(), reservation.getCheckOut(), nights),
-                BigDecimal.ONE, roomRevenue,
-                TaxCategory.ACCOMMODATION.name(),
-                accommodationTax.taxRate(), accommodationTax.taxAmount(),
-                accommodationTax.amountHT(), accommodationTax.amountTTC());
-            invoice.addLine(accommodationLine);
-        }
-
-        // Ligne 2: Frais de menage (TVA standard CLEANING)
-        BigDecimal cleaningFee = reservation.getCleaningFee();
-        if (cleaningFee != null && cleaningFee.compareTo(BigDecimal.ZERO) > 0) {
-            TaxResult cleaningTax = fiscalEngine.calculateTax(
-                countryCode,
-                new TaxableItem(cleaningFee, TaxCategory.CLEANING.name(), "Frais de menage"),
-                reservation.getCheckIn()
-            );
-
-            InvoiceLine cleaningLine = createLine(lineNum++,
-                "Frais de menage",
-                BigDecimal.ONE, cleaningFee,
-                TaxCategory.CLEANING.name(),
-                cleaningTax.taxRate(), cleaningTax.taxAmount(),
-                cleaningTax.amountHT(), cleaningTax.amountTTC());
-            invoice.addLine(cleaningLine);
-        }
-
-        // Ligne 3: Taxe de sejour (pas de TVA)
-        BigDecimal touristTaxRate = request.touristTaxRatePerPerson();
-        if (touristTaxRate != null && touristTaxRate.compareTo(BigDecimal.ZERO) > 0) {
-            int guests = reservation.getGuestCount() != null ? reservation.getGuestCount() : 1;
-            long nights = ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
-            if (nights <= 0) nights = 1;
-
-            TouristTaxResult touristTax = fiscalEngine.calculateTouristTax(
-                countryCode,
-                TouristTaxInput.perPerson(BigDecimal.ZERO, guests, (int) nights, 0, touristTaxRate)
-            );
-
-            if (touristTax.amount().compareTo(BigDecimal.ZERO) > 0) {
-                InvoiceLine touristTaxLine = createLine(lineNum++,
-                    touristTax.description(),
-                    BigDecimal.ONE, touristTax.amount(),
-                    TaxCategory.TOURIST_TAX.name(),
-                    BigDecimal.ZERO, BigDecimal.ZERO,
-                    touristTax.amount(), touristTax.amount());
-                invoice.addLine(touristTaxLine);
-            }
-        }
+        // Ligne additionnelle du flux manuel : taxe de sejour (pas de TVA)
+        addTouristTaxLine(invoice, reservation, countryCode, request.touristTaxRatePerPerson());
 
         // Calculer les totaux
         computeTotals(invoice);
@@ -325,6 +243,11 @@ public class InvoiceGeneratorService {
     /**
      * Genere une facture DRAFT pour une reservation.
      * Surcharge sans dependance TenantContext (utilisee depuis webhooks Stripe).
+     *
+     * <p>T-SOLID-8 : la construction (en-tete, dates, vendeur, lignes TTC→HT) passe
+     * par le meme chemin {@link #buildReservationDraft} que le flux manuel — seules
+     * les resolutions de contexte (pays/devise depuis FiscalProfile au lieu de
+     * TenantContext) different.</p>
      */
     @Transactional
     public Invoice generateFromReservation(Reservation reservation, Long orgId) {
@@ -338,72 +261,10 @@ public class InvoiceGeneratorService {
             ? reservation.getCurrency()
             : (fiscalProfile.getDefaultCurrency() != null ? fiscalProfile.getDefaultCurrency() : "EUR");
 
-        Invoice invoice = new Invoice();
-        invoice.setOrganizationId(orgId);
-        invoice.setInvoiceNumber("DRAFT");
-        invoice.setInvoiceDate(LocalDate.now());
-        invoice.setDueDate(LocalDate.now().plusDays(30));
-        invoice.setCurrency(currency);
-        invoice.setCountryCode(countryCode);
-        invoice.setReservationId(reservation.getId());
-        invoice.setStatus(InvoiceStatus.DRAFT);
-
-        // Infos vendeur
-        invoice.setSellerName(fiscalProfile.getLegalEntityName());
-        invoice.setSellerAddress(fiscalProfile.getLegalAddress());
-        invoice.setSellerTaxId(fiscalProfile.getVatNumber() != null
-            ? fiscalProfile.getVatNumber() : fiscalProfile.getTaxIdNumber());
-
-        // Infos acheteur
-        invoice.setBuyerName(reservation.getGuestName() != null
-            ? reservation.getGuestName() : "Client");
-
-        // Mentions legales
-        invoice.setLegalMentions(fiscalProfile.getLegalMentions());
-
-        // --- Lignes ---
-        int lineNum = 1;
-
-        // Hebergement
-        BigDecimal roomRevenue = reservation.getRoomRevenue() != null
-            ? reservation.getRoomRevenue() : reservation.getTotalPrice();
-
-        if (roomRevenue != null && roomRevenue.compareTo(BigDecimal.ZERO) > 0) {
-            long nights = ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
-            if (nights <= 0) nights = 1;
-
-            TaxResult accommodationTax = fiscalEngine.calculateTax(
-                countryCode,
-                new TaxableItem(roomRevenue, TaxCategory.ACCOMMODATION.name(),
-                    "Hebergement " + reservation.getCheckIn() + " - " + reservation.getCheckOut()),
-                reservation.getCheckIn()
-            );
-
-            invoice.addLine(createLine(lineNum++,
-                String.format("Hebergement du %s au %s (%d nuits)",
-                    reservation.getCheckIn(), reservation.getCheckOut(), nights),
-                BigDecimal.ONE, roomRevenue,
-                TaxCategory.ACCOMMODATION.name(),
-                accommodationTax.taxRate(), accommodationTax.taxAmount(),
-                accommodationTax.amountHT(), accommodationTax.amountTTC()));
-        }
-
-        // Frais de menage
-        BigDecimal cleaningFee = reservation.getCleaningFee();
-        if (cleaningFee != null && cleaningFee.compareTo(BigDecimal.ZERO) > 0) {
-            TaxResult cleaningTax = fiscalEngine.calculateTax(
-                countryCode,
-                new TaxableItem(cleaningFee, TaxCategory.CLEANING.name(), "Frais de menage"),
-                reservation.getCheckIn()
-            );
-
-            invoice.addLine(createLine(lineNum++,
-                "Frais de menage",
-                BigDecimal.ONE, cleaningFee,
-                TaxCategory.CLEANING.name(),
-                cleaningTax.taxRate(), cleaningTax.taxAmount(),
-                cleaningTax.amountHT(), cleaningTax.amountTTC()));
-        }
+        Invoice invoice = buildReservationDraft(reservation, orgId, fiscalProfile,
+            countryCode, currency,
+            reservation.getGuestName() != null ? reservation.getGuestName() : "Client",
+            null, null);
 
         computeTotals(invoice);
         invoice = invoiceRepository.save(invoice);
@@ -668,19 +529,28 @@ public class InvoiceGeneratorService {
 
     /**
      * Cree une facture ISSUED a partir d'une DocumentGeneration FACTURE.
-     * Utilise le numero legal deja attribue par DocumentNumberingService.
      * Idempotent : si une Invoice existe deja pour cette reference, elle est simplement liee.
+     *
+     * <p>Numerotation : l'entite Invoice est numerotee par l'UNIQUE sequence
+     * {@link InvoiceNumberingService} ({@code invoice_number_sequences}), dans la meme
+     * transaction que l'insertion. Le numero legal du document PDF
+     * ({@code documentLegalNumber}, sequence {@code document_number_sequences}) n'est
+     * plus reutilise pour la facture : deux sequences independantes sur
+     * {@code invoices.invoice_number} produisaient des doublons et des numeros
+     * non sequentiels (non-conformite NF). La course Kafka/webhook est fermee par
+     * les index uniques partiels (migration 0226) : le flux perdant rollback
+     * entierement, numero compris.</p>
      *
      * @param refType        RESERVATION ou INTERVENTION
      * @param referenceId    ID de la reservation ou intervention
      * @param orgId          ID de l'organisation
-     * @param invoiceNumber  Numero legal (ex: FA-2026-00001) deja genere
+     * @param documentLegalNumber  Numero legal du document PDF (conserve pour trace uniquement)
      * @param documentGenerationId  ID de la DocumentGeneration a lier
      * @return l'Invoice creee ou existante
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Invoice createIssuedFromDocumentGeneration(ReferenceType refType, Long referenceId,
-                                                       Long orgId, String invoiceNumber,
+                                                       Long orgId, String documentLegalNumber,
                                                        Long documentGenerationId) {
         // Idempotence : verifier si une Invoice existe deja
         Optional<Invoice> existing = findExistingInvoice(refType, referenceId);
@@ -688,40 +558,94 @@ public class InvoiceGeneratorService {
             return linkDocumentGeneration(existing.get(), documentGenerationId);
         }
 
-        Invoice invoice;
-        if (refType == ReferenceType.RESERVATION) {
-            Reservation reservation = reservationRepository.findById(referenceId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                    "Reservation introuvable: " + referenceId));
-            invoice = generateFromReservation(reservation, orgId);
-        } else if (refType == ReferenceType.INTERVENTION) {
-            Intervention intervention = interventionRepository.findById(referenceId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                    "Intervention introuvable: " + referenceId));
-            invoice = generateFromIntervention(intervention, orgId);
-        } else {
-            throw new IllegalArgumentException(
-                "Type de reference non supporte pour la facturation: " + refType);
-        }
+        Invoice invoice = createDraftForReference(refType, referenceId, orgId);
 
-        // Passer de DRAFT a ISSUED avec le numero deja genere
+        // Numerotation par l'unique sequence Invoice, dans la transaction courante :
+        // un rollback annule a la fois la facture et l'increment (pas de trou).
+        String invoiceNumber = numberingService.generateNextNumber(orgId);
         invoice.setInvoiceNumber(invoiceNumber);
         invoice.setStatus(InvoiceStatus.ISSUED);
         invoice.setDocumentGenerationId(documentGenerationId);
         invoice = invoiceRepository.save(invoice);
 
-        log.info("Invoice ISSUED {} creee depuis DocumentGeneration #{} ({} {})",
-            invoiceNumber, documentGenerationId, refType, referenceId);
+        log.info("Invoice ISSUED {} creee depuis DocumentGeneration #{} ({} {}, numero document {})",
+            invoiceNumber, documentGenerationId, refType, referenceId, documentLegalNumber);
         return invoice;
+    }
+
+    private Invoice createDraftForReference(ReferenceType refType, Long referenceId, Long orgId) {
+        if (refType == ReferenceType.RESERVATION) {
+            Reservation reservation = reservationRepository.findById(referenceId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Reservation introuvable: " + referenceId));
+            return generateFromReservation(reservation, orgId);
+        }
+        if (refType == ReferenceType.INTERVENTION) {
+            Intervention intervention = interventionRepository.findById(referenceId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Intervention introuvable: " + referenceId));
+            return generateFromIntervention(intervention, orgId);
+        }
+        throw new IllegalArgumentException(
+            "Type de reference non supporte pour la facturation: " + refType);
     }
 
     private Optional<Invoice> findExistingInvoice(ReferenceType refType, Long referenceId) {
         if (refType == ReferenceType.RESERVATION) {
-            return invoiceRepository.findByReservationIdAndInvoiceType(referenceId, InvoiceType.GUEST);
+            return findActiveGuestInvoice(referenceId);
         } else if (refType == ReferenceType.INTERVENTION) {
-            return invoiceRepository.findByInterventionId(referenceId);
+            return findActiveInterventionInvoice(referenceId);
         }
         return Optional.empty();
+    }
+
+    /**
+     * Facture de sejour ACTIVE d'une reservation (reliquat A2 / Z3-BUGS).
+     *
+     * <p>{@code findByReservationIdAndInvoiceType} retourne un {@code Optional}
+     * alors que plusieurs lignes GUEST peuvent coexister (facture annulee +
+     * re-emission, avoirs, doublons historiques annules par la migration 0226) :
+     * un appel direct leverait {@code IncorrectResultSizeDataAccessException}.
+     * On filtre donc cote service sur la meme semantique que l'index unique
+     * partiel {@code uq_invoices_reservation_type_active} (migration 0226) :
+     * type GUEST, non annulee, pas un avoir, pas un duplicata.</p>
+     */
+    private Optional<Invoice> findActiveGuestInvoice(Long reservationId) {
+        return invoiceRepository.findAllByReservationId(reservationId).stream()
+            .filter(invoice -> invoice.getInvoiceType() == InvoiceType.GUEST)
+            .filter(invoice -> invoice.getDuplicateOfId() == null)
+            .filter(invoice -> invoice.getStatus() != InvoiceStatus.CANCELLED
+                && invoice.getStatus() != InvoiceStatus.CREDIT_NOTE)
+            .min(Comparator.comparing(Invoice::getId,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+    }
+
+    /**
+     * Facture ACTIVE d'une intervention (reliquat A2 / T-SOLID-8).
+     *
+     * <p>{@code InvoiceRepository.findByInterventionId} retourne un {@code Optional}
+     * alors que plusieurs lignes peuvent coexister pour une meme intervention
+     * (facture annulee + re-emission, duplicata « -DUP » qui copie
+     * {@code interventionId}) : un appel direct leverait
+     * {@code IncorrectResultSizeDataAccessException}. Le repository etant fige
+     * (pas de {@code findAllByInterventionId}), la liste est chargee via JPQL
+     * puis filtree cote service sur la meme semantique que l'index unique
+     * partiel {@code uq_invoices_intervention_active} (migration 0226) :
+     * non annulee, pas un avoir, pas un duplicata — symetrique de
+     * {@link #findActiveGuestInvoice(Long)}.</p>
+     */
+    private Optional<Invoice> findActiveInterventionInvoice(Long interventionId) {
+        List<Invoice> candidates = entityManager.createQuery(
+                "SELECT i FROM Invoice i WHERE i.interventionId = :interventionId",
+                Invoice.class)
+            .setParameter("interventionId", interventionId)
+            .getResultList();
+        return candidates.stream()
+            .filter(invoice -> invoice.getDuplicateOfId() == null)
+            .filter(invoice -> invoice.getStatus() != InvoiceStatus.CANCELLED
+                && invoice.getStatus() != InvoiceStatus.CREDIT_NOTE)
+            .min(Comparator.comparing(Invoice::getId,
+                Comparator.nullsLast(Comparator.naturalOrder())));
     }
 
     private Invoice linkDocumentGeneration(Invoice invoice, Long documentGenerationId) {
@@ -733,7 +657,161 @@ public class InvoiceGeneratorService {
         return invoice;
     }
 
+    // --- Construction commune des factures de sejour (T-SOLID-8) ---
+
+    /**
+     * Construit la facture de sejour DRAFT (en-tete + lignes hebergement/menage).
+     *
+     * <p>Chemin de construction UNIQUE pour le flux manuel
+     * ({@link #generateFromReservation(GenerateInvoiceRequest)}) et le flux webhook
+     * ({@link #generateFromReservation(Reservation, Long)}) : les regles a enjeu
+     * fiscal (dates, echeance a 30 jours, infos vendeur, decomposition TTC→HT des
+     * montants encaisses) ne peuvent plus diverger entre les deux flux. Seules les
+     * resolutions de contexte (pays, devise, acheteur) restent a la charge des
+     * appelants. La facture n'est NI totalisee NI persistee ici.</p>
+     */
+    private Invoice buildReservationDraft(Reservation reservation, Long orgId,
+                                          FiscalProfile fiscalProfile,
+                                          String countryCode, String currency,
+                                          String buyerName, String buyerAddress,
+                                          String buyerTaxId) {
+        Invoice invoice = new Invoice();
+        invoice.setOrganizationId(orgId);
+        invoice.setInvoiceNumber("DRAFT"); // sera remplace a l'emission
+        invoice.setInvoiceDate(LocalDate.now());
+        invoice.setDueDate(LocalDate.now().plusDays(30));
+        invoice.setCurrency(currency);
+        invoice.setCountryCode(countryCode);
+        invoice.setReservationId(reservation.getId());
+        invoice.setStatus(InvoiceStatus.DRAFT);
+
+        // Infos vendeur depuis FiscalProfile
+        invoice.setSellerName(fiscalProfile.getLegalEntityName());
+        invoice.setSellerAddress(fiscalProfile.getLegalAddress());
+        invoice.setSellerTaxId(fiscalProfile.getVatNumber() != null
+            ? fiscalProfile.getVatNumber() : fiscalProfile.getTaxIdNumber());
+
+        // Infos acheteur (resolues par l'appelant)
+        invoice.setBuyerName(buyerName);
+        invoice.setBuyerAddress(buyerAddress);
+        invoice.setBuyerTaxId(buyerTaxId);
+
+        // Mentions legales
+        invoice.setLegalMentions(fiscalProfile.getLegalMentions());
+
+        addStayLines(invoice, reservation, countryCode);
+        return invoice;
+    }
+
+    /**
+     * Lignes hebergement + menage : decomposition du TTC encaisse en HT + TVA
+     * (les montants de la reservation sont ceux payes par le guest).
+     */
+    private void addStayLines(Invoice invoice, Reservation reservation, String countryCode) {
+        int lineNum = 1;
+
+        // Ligne 1: Hebergement (TVA reduite ACCOMMODATION)
+        BigDecimal roomRevenue = reservation.getRoomRevenue() != null
+            ? reservation.getRoomRevenue()
+            : reservation.getTotalPrice();
+
+        if (roomRevenue != null && roomRevenue.compareTo(BigDecimal.ZERO) > 0) {
+            long nights = stayNights(reservation);
+
+            // Le montant de la reservation est le montant ENCAISSE aupres du guest (TTC) :
+            // on en deduit HT et TVA, et non l'inverse (la facture doit afficher ce qui a ete paye).
+            TaxResult accommodationTax = decomposeTtcAmount(
+                countryCode, roomRevenue, TaxCategory.ACCOMMODATION,
+                "Hebergement " + reservation.getCheckIn() + " - " + reservation.getCheckOut(),
+                reservation.getCheckIn());
+
+            invoice.addLine(createLine(lineNum++,
+                String.format("Hebergement du %s au %s (%d nuits)",
+                    reservation.getCheckIn(), reservation.getCheckOut(), nights),
+                BigDecimal.ONE, accommodationTax.amountHT(),
+                TaxCategory.ACCOMMODATION.name(),
+                accommodationTax.taxRate(), accommodationTax.taxAmount(),
+                accommodationTax.amountHT(), accommodationTax.amountTTC()));
+        }
+
+        // Ligne 2: Frais de menage (TVA standard CLEANING) — montant encaisse = TTC
+        BigDecimal cleaningFee = reservation.getCleaningFee();
+        if (cleaningFee != null && cleaningFee.compareTo(BigDecimal.ZERO) > 0) {
+            TaxResult cleaningTax = decomposeTtcAmount(
+                countryCode, cleaningFee, TaxCategory.CLEANING,
+                "Frais de menage", reservation.getCheckIn());
+
+            invoice.addLine(createLine(lineNum,
+                "Frais de menage",
+                BigDecimal.ONE, cleaningTax.amountHT(),
+                TaxCategory.CLEANING.name(),
+                cleaningTax.taxRate(), cleaningTax.taxAmount(),
+                cleaningTax.amountHT(), cleaningTax.amountTTC()));
+        }
+    }
+
+    /**
+     * Ligne taxe de sejour (pas de TVA) — flux manuel uniquement.
+     */
+    private void addTouristTaxLine(Invoice invoice, Reservation reservation,
+                                   String countryCode, BigDecimal touristTaxRatePerPerson) {
+        if (touristTaxRatePerPerson == null
+                || touristTaxRatePerPerson.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        int guests = reservation.getGuestCount() != null ? reservation.getGuestCount() : 1;
+        long nights = stayNights(reservation);
+
+        TouristTaxResult touristTax = fiscalEngine.calculateTouristTax(
+            countryCode,
+            TouristTaxInput.perPerson(BigDecimal.ZERO, guests, (int) nights, 0,
+                touristTaxRatePerPerson)
+        );
+
+        if (touristTax.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        invoice.addLine(createLine(invoice.getLines().size() + 1,
+            touristTax.description(),
+            BigDecimal.ONE, touristTax.amount(),
+            TaxCategory.TOURIST_TAX.name(),
+            BigDecimal.ZERO, BigDecimal.ZERO,
+            touristTax.amount(), touristTax.amount()));
+    }
+
+    private long stayNights(Reservation reservation) {
+        long nights = ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
+        return nights <= 0 ? 1 : nights;
+    }
+
     // --- Helpers ---
+
+    /**
+     * Decompose un montant TTC encaisse en HT + TVA.
+     *
+     * <p>Les montants des reservations (roomRevenue, cleaningFee, totalPrice) sont les
+     * montants effectivement payes par le guest (Stripe encaisse totalPrice). La facture
+     * doit donc afficher totalTtc == montant encaisse : HT = TTC / (1 + taux) puis
+     * TVA = TTC - HT — et non une TVA ajoutee par-dessus le montant deja paye.
+     * Le moteur fiscal ne sert ici qu'a resoudre le taux et le nom de la taxe.</p>
+     */
+    private TaxResult decomposeTtcAmount(String countryCode, BigDecimal amountTtc,
+                                         TaxCategory category, String description,
+                                         LocalDate taxDate) {
+        TaxResult rateLookup = fiscalEngine.calculateTax(
+            countryCode,
+            new TaxableItem(amountTtc, category.name(), description),
+            taxDate);
+        BigDecimal taxRate = rateLookup.taxRate() != null ? rateLookup.taxRate() : BigDecimal.ZERO;
+
+        BigDecimal roundedTtc = MoneyUtils.round(amountTtc);
+        BigDecimal amountHt = MoneyUtils.calculateHT(roundedTtc, taxRate);
+        BigDecimal taxAmount = roundedTtc.subtract(amountHt);
+        return new TaxResult(amountHt, taxAmount, roundedTtc, taxRate,
+            rateLookup.taxName(), category.name());
+    }
 
     private InvoiceLine createLine(int lineNumber, String description,
                                     BigDecimal quantity, BigDecimal unitPriceHt,

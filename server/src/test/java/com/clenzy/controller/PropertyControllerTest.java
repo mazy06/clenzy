@@ -3,12 +3,12 @@ package com.clenzy.controller;
 import com.clenzy.dto.PropertyDto;
 import com.clenzy.exception.UnauthorizedException;
 import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
-import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
 import com.clenzy.model.Property;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.service.PropertyService;
 import com.clenzy.service.UserService;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,6 +30,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,7 +39,7 @@ class PropertyControllerTest {
 
     @Mock private PropertyService propertyService;
     @Mock private UserService userService;
-    @Mock private AirbnbListingMappingRepository listingMappingRepository;
+    @Mock private TenantContext tenantContext;
 
     private PropertyController controller;
 
@@ -54,7 +55,7 @@ class PropertyControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PropertyController(propertyService, userService, listingMappingRepository);
+        controller = new PropertyController(propertyService, userService, tenantContext);
     }
 
     @Nested
@@ -191,13 +192,86 @@ class PropertyControllerTest {
     }
 
     @Nested
+    @DisplayName("isolation organisation (IDOR cross-tenant)")
+    class OrganizationIsolation {
+
+        private Property propertyOfOrg(Long organizationId) {
+            Property property = new Property();
+            property.setOrganizationId(organizationId);
+            return property;
+        }
+
+        @Test
+        void whenTechnicianGetsPropertyFromOtherOrg_thenAccessDenied() {
+            Jwt jwt = createJwt("TECHNICIAN");
+            when(propertyService.getPropertyEntityById(1L)).thenReturn(propertyOfOrg(2L));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.get(1L, jwt))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(propertyService, never()).getById(1L);
+        }
+
+        @Test
+        void whenSupervisorDeletesPropertyFromOtherOrg_thenAccessDenied() {
+            Jwt jwt = createJwt("SUPERVISOR");
+            when(propertyService.getPropertyEntityById(1L)).thenReturn(propertyOfOrg(2L));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.delete(1L, jwt))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(propertyService, never()).delete(1L);
+        }
+
+        @Test
+        void whenHousekeeperUpdatesStatusFromOtherOrg_thenAccessDenied() {
+            Jwt jwt = createJwt("HOUSEKEEPER");
+            when(propertyService.getPropertyEntityById(1L)).thenReturn(propertyOfOrg(2L));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.updateStatus(1L, Map.of("status", "ACTIVE"), jwt))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(propertyService, never()).updateStatus(eq(1L), anyString());
+        }
+
+        @Test
+        void whenTechnicianGetsPropertyFromSameOrg_thenAllowed() {
+            Jwt jwt = createJwt("TECHNICIAN");
+            when(propertyService.getPropertyEntityById(1L)).thenReturn(propertyOfOrg(1L));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            PropertyDto dto = new PropertyDto();
+            dto.id = 1L;
+            when(propertyService.getById(1L)).thenReturn(dto);
+
+            PropertyDto result = controller.get(1L, jwt);
+
+            assertThat(result.id).isEqualTo(1L);
+        }
+
+        @Test
+        void whenHostUpdatesPropertyFromOtherOrg_thenAccessDenied() {
+            Jwt jwt = createJwt("HOST");
+            when(propertyService.getPropertyEntityById(1L)).thenReturn(propertyOfOrg(2L));
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.update(1L, new PropertyDto(), jwt))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(propertyService, never()).update(eq(1L), any(PropertyDto.class));
+        }
+    }
+
+    @Nested
     @DisplayName("getPropertyChannelStatus")
     class ChannelStatus {
         @Test
         void whenMappingExists_thenReturnsLinked() {
             AirbnbListingMapping mapping = new AirbnbListingMapping();
             mapping.setSyncEnabled(true);
-            when(listingMappingRepository.findByPropertyId(1L)).thenReturn(Optional.of(mapping));
+            when(propertyService.getAirbnbListingMapping(1L)).thenReturn(Optional.of(mapping));
 
             ResponseEntity<Map<String, Object>> response = controller.getPropertyChannelStatus(1L);
 
@@ -209,7 +283,7 @@ class PropertyControllerTest {
 
         @Test
         void whenNoMapping_thenReturnsNotLinked() {
-            when(listingMappingRepository.findByPropertyId(1L)).thenReturn(Optional.empty());
+            when(propertyService.getAirbnbListingMapping(1L)).thenReturn(Optional.empty());
 
             ResponseEntity<Map<String, Object>> response = controller.getPropertyChannelStatus(1L);
 

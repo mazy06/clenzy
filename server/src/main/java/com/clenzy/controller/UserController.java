@@ -2,7 +2,6 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.UserDto;
 import com.clenzy.model.User;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.DeviceTokenService;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
@@ -12,7 +11,6 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -39,14 +37,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @PreAuthorize("isAuthenticated()")
 public class UserController {
     private final UserService userService;
-    private final UserRepository userRepository;
     private final LoginProtectionService loginProtectionService;
     private final DeviceTokenService deviceTokenService;
 
-    public UserController(UserService userService, UserRepository userRepository,
+    public UserController(UserService userService,
                           LoginProtectionService loginProtectionService, DeviceTokenService deviceTokenService) {
         this.userService = userService;
-        this.userRepository = userRepository;
         this.loginProtectionService = loginProtectionService;
         this.deviceTokenService = deviceTokenService;
     }
@@ -58,14 +54,7 @@ public class UserController {
     @Operation(summary = "Mettre a jour son propre profil (telephone, etc.)")
     public ResponseEntity<?> updateMyProfile(@RequestBody Map<String, String> body,
                                               @AuthenticationPrincipal Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        User user = userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
-
-        if (body.containsKey("phoneNumber")) {
-            user.setPhoneNumber(body.get("phoneNumber"));
-        }
-        userRepository.save(user);
+        userService.updateOwnProfile(jwt.getSubject(), body);
         return ResponseEntity.ok(Map.of("success", true));
     }
 
@@ -80,10 +69,8 @@ public class UserController {
     @GetMapping("/me/marketing-preferences")
     @Operation(summary = "Obtenir ses preferences marketing (newsletter)")
     public ResponseEntity<Map<String, Object>> getMyMarketingPreferences(@AuthenticationPrincipal Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        User user = userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
-        return ResponseEntity.ok(Map.of("newsletterOptIn", user.isNewsletterOptIn()));
+        boolean newsletterOptIn = userService.getNewsletterOptIn(jwt.getSubject());
+        return ResponseEntity.ok(Map.of("newsletterOptIn", newsletterOptIn));
     }
 
     /**
@@ -94,10 +81,7 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> updateMyMarketingPreferences(
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        User user = userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
-
+        Boolean newsletterOptIn = null;
         if (body.containsKey("newsletterOptIn")) {
             Object raw = body.get("newsletterOptIn");
             if (!(raw instanceof Boolean)) {
@@ -106,10 +90,10 @@ public class UserController {
                         "message", "newsletterOptIn doit etre un booleen"
                 ));
             }
-            user.setNewsletterOptIn((Boolean) raw);
+            newsletterOptIn = (Boolean) raw;
         }
-        userRepository.save(user);
-        return ResponseEntity.ok(Map.of("newsletterOptIn", user.isNewsletterOptIn()));
+        boolean current = userService.updateNewsletterOptIn(jwt.getSubject(), newsletterOptIn);
+        return ResponseEntity.ok(Map.of("newsletterOptIn", current));
     }
 
     @PostMapping
@@ -158,8 +142,10 @@ public class UserController {
                     "Exigence Apple App Store pour la suppression de compte in-app.")
     public void deleteSelf(@AuthenticationPrincipal Jwt jwt) {
         String keycloakId = jwt.getSubject();
-        User user = userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+        User user = userService.findByKeycloakId(keycloakId);
+        if (user == null) {
+            throw new IllegalArgumentException("Utilisateur introuvable");
+        }
 
         // Supprimer les tokens push
         deviceTokenService.removeAllForUser(keycloakId);
@@ -174,7 +160,7 @@ public class UserController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Consulter le statut de verrouillage d'un utilisateur")
     public ResponseEntity<?> getLockoutStatus(@PathVariable Long id) {
-        User user = userRepository.findById(id).orElse(null);
+        User user = userService.findById(id).orElse(null);
         if (user == null || user.getEmail() == null) {
             return ResponseEntity.ok(Map.of("isLocked", false, "failedAttempts", 0, "remainingSeconds", 0));
         }
@@ -194,7 +180,7 @@ public class UserController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Debloquer manuellement un utilisateur verrouille")
     public ResponseEntity<?> unlockUser(@PathVariable Long id) {
-        User user = userRepository.findById(id).orElse(null);
+        User user = userService.findById(id).orElse(null);
         if (user == null || user.getEmail() == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Utilisateur introuvable"));
         }
@@ -238,10 +224,16 @@ public class UserController {
     /**
      * Stream the stored profile picture. Authenticated only — the photo is not public
      * (the URL is stable per user so it caches well on the client).
+     *
+     * <p>Z2-SEC-06 : l'acces est borne a la meme organisation (avatars internes :
+     * membres, chat, interventions), au proprietaire ou au platform staff — plus
+     * d'enumeration cross-org des photos par id.</p>
      */
     @GetMapping("/{id}/profile-picture")
     @Operation(summary = "Recuperer la photo de profil")
-    public ResponseEntity<Resource> getProfilePicture(@PathVariable Long id) {
+    public ResponseEntity<Resource> getProfilePicture(@PathVariable Long id,
+                                                      @AuthenticationPrincipal Jwt jwt) {
+        validateSameOrganizationOrPlatformStaff(id, jwt);
         Object[] payload = userService.streamProfilePicture(id);
         if (payload == null) {
             return ResponseEntity.notFound().build();
@@ -256,22 +248,37 @@ public class UserController {
 
     /**
      * Verifie que l'utilisateur authentifie est le proprietaire de la ressource ou un ADMIN.
+     * Le chargement de la ressource + la comparaison vivent dans UserService (T-ARCH-01) ;
+     * le controller ne fait qu'extraire le role plateforme du JWT.
      */
     private void validateOwnershipOrAdmin(Long resourceUserId, Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        // Verifier si l'utilisateur authentifie correspond a la ressource demandee
-        User resourceUser = userRepository.findById(resourceUserId).orElse(null);
-        boolean isOwner = resourceUser != null && keycloakId.equals(resourceUser.getKeycloakId());
-        // Verifier le role admin plateforme (SUPER_ADMIN) depuis le JWT Keycloak
-        boolean isAdmin = false;
+        userService.requireOwnershipOrAdmin(resourceUserId, jwt.getSubject(), isSuperAdmin(jwt));
+    }
+
+    /**
+     * Acces en lecture a la photo de profil (Z2-SEC-06) : proprietaire de la
+     * ressource, membre de la meme organisation ou platform staff
+     * (SUPER_ADMIN / SUPER_MANAGER, acces cross-org par design).
+     */
+    private void validateSameOrganizationOrPlatformStaff(Long resourceUserId, Jwt jwt) {
+        userService.requireSameOrganizationOrSelf(resourceUserId, jwt.getSubject(), isPlatformStaff(jwt));
+    }
+
+    /** Admin plateforme (SUPER_ADMIN) depuis le JWT Keycloak. */
+    private boolean isSuperAdmin(Jwt jwt) {
         Object realmAccess = jwt.getClaim("realm_access");
         if (realmAccess instanceof Map<?,?> ra && ra.get("roles") instanceof List<?> roles) {
-            isAdmin = roles.contains("SUPER_ADMIN");
+            return roles.contains("SUPER_ADMIN");
         }
-        if (!isOwner && !isAdmin) {
-            throw new AccessDeniedException("Acces refuse : vous ne pouvez acceder qu'a vos propres donnees");
+        return false;
+    }
+
+    /** Platform staff = acces cross-org en lecture (SUPER_ADMIN, SUPER_MANAGER). */
+    private boolean isPlatformStaff(Jwt jwt) {
+        Object realmAccess = jwt.getClaim("realm_access");
+        if (realmAccess instanceof Map<?, ?> ra && ra.get("roles") instanceof List<?> roles) {
+            return roles.contains("SUPER_ADMIN") || roles.contains("SUPER_MANAGER");
         }
+        return false;
     }
 }
-
-

@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.model.Incident;
+import com.clenzy.model.Incident.IncidentSeverity;
 import com.clenzy.model.Incident.IncidentStatus;
 import com.clenzy.model.Incident.IncidentType;
 import com.clenzy.model.NotificationKey;
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -188,6 +190,77 @@ public class IncidentService {
     @Transactional(readOnly = true)
     public List<Incident> getOpenIncidents() {
         return incidentRepository.findByStatus(IncidentStatus.OPEN);
+    }
+
+    /**
+     * Recherche d'incidents pour le listing admin.
+     *
+     * <p>Regles metier :</p>
+     * <ul>
+     *   <li>{@code status == OPEN} : tous les OPEN, peu importe leur age — sinon
+     *       les incidents stuck (config retiree, scheduler en panne) disparaissent
+     *       du tableau de bord alors qu'ils continuent a polluer les KPI.</li>
+     *   <li>{@code status != null} : incidents de ce statut ouverts apres
+     *       {@code since}.</li>
+     *   <li>{@code status == null} : mix — tous les OPEN (sans limite d'age) +
+     *       les incidents actifs dans la fenetre ('actif' = ouvert OU resolu
+     *       dans la periode, necessaire pour visualiser les RESOLVED qui
+     *       contribuent encore a la moyenne KPI P1).</li>
+     *   <li>Le filtre {@code severity} inclut les incidents a severity null
+     *       (legacy, avant introduction du champ) — sinon un vieil incident
+     *       polluant le KPI P1 reste invisible.</li>
+     * </ul>
+     */
+    @Transactional(readOnly = true)
+    public List<Incident> searchIncidents(IncidentStatus status, IncidentSeverity severity,
+                                          LocalDateTime since) {
+        List<Incident> incidents;
+        if (status == IncidentStatus.OPEN) {
+            incidents = incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN);
+        } else if (status != null) {
+            incidents = incidentRepository
+                    .findByStatusAndOpenedAtAfterOrderByOpenedAtDesc(status, since);
+        } else {
+            List<Incident> openAll = incidentRepository
+                    .findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN);
+            List<Incident> activeNonOpen = incidentRepository
+                    .findActiveSince(since)
+                    .stream()
+                    .filter(i -> i.getStatus() != IncidentStatus.OPEN)
+                    .toList();
+            List<Incident> merged = new ArrayList<>(openAll.size() + activeNonOpen.size());
+            merged.addAll(openAll);
+            merged.addAll(activeNonOpen);
+            incidents = merged;
+        }
+
+        if (severity != null) {
+            incidents = incidents.stream()
+                    .filter(i -> i.getSeverity() == null || i.getSeverity() == severity)
+                    .toList();
+        }
+        return incidents;
+    }
+
+    /**
+     * Nombre d'incidents OPEN, optionnellement filtre par severite
+     * ({@code null} = toutes severites).
+     */
+    @Transactional(readOnly = true)
+    public long countOpenIncidents(IncidentSeverity severity) {
+        return severity != null
+                ? incidentRepository.countByStatusAndSeverity(IncidentStatus.OPEN, severity)
+                : incidentRepository.countByStatus(IncidentStatus.OPEN);
+    }
+
+    /**
+     * Incident par id. Entite plateforme cross-org (pas d'organization_id) :
+     * la restriction d'acces est portee par le {@code @PreAuthorize} admin
+     * du controller.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Incident> findIncident(Long incidentId) {
+        return incidentRepository.findById(incidentId);
     }
 
     /**

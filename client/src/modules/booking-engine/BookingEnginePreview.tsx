@@ -198,17 +198,27 @@ const BookingEnginePreview: React.FC<BookingEnginePreviewProps> = (props) => {
               try {
                 const { bookingEngineApi } = await import('../../services/api/bookingEngineApi');
                 const firstItem = nav.cart[0];
-                if (!firstItem) return null;
-                const subtotal = nav.cart.reduce((s, item) => s + (item.property.nightlyPrice || 0) * item.nights, 0);
-                const cleaningFee = showCleaningFee ? nav.cart.reduce((s, item) => s + (item.property.cleaningFee || 0), 0) : 0;
-                // Tourist tax sera calculee cote serveur lors de la creation de la session
-                const totalAmount = subtotal + cleaningFee;
+                if (!firstItem || !organizationId || !nav.checkIn || !nav.checkOut) return null;
+                const guests = nav.adults + nav.children;
+                // Le montant envoye est un cross-check : le serveur recalcule le
+                // devis (PriceEngine) et rejette en 400 toute divergence. On ne
+                // calcule donc RIEN localement (nightlyPrice statique ≠ tarif
+                // dynamique) : on reprend le total du devis serveur via l'API
+                // availability admin (subtotal + menage + taxe de sejour).
+                const quote = await bookingEngineApi.checkPropertyAvailabilityAdmin({
+                  propertyId: firstItem.property.id,
+                  checkIn: nav.checkIn,
+                  checkOut: nav.checkOut,
+                  guests,
+                });
+                if (!quote.available) return null;
                 const response = await bookingEngineApi.createCheckoutSession({
                   propertyId: firstItem.property.id,
-                  amount: totalAmount,
-                  checkIn: nav.checkIn || '',
-                  checkOut: nav.checkOut || '',
-                  guests: nav.adults + nav.children,
+                  organizationId,
+                  amount: quote.total,
+                  checkIn: nav.checkIn,
+                  checkOut: nav.checkOut,
+                  guests,
                   customerEmail: guestAuth.session?.profile?.email,
                 });
                 return response.clientSecret;

@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -136,6 +137,72 @@ class PlatformPromoCodeServiceTest {
         void whenZeroRowsUpdated_thenFalse() {
             when(repository.tryIncrementUsedCount(42L)).thenReturn(0);
             assertThat(service.tryConsume(42L)).isFalse();
+        }
+    }
+
+    /**
+     * Acces donnees admin deplaces de AdminPlatformPromoCodeController
+     * (T-ARCH-01).
+     */
+    @Nested
+    @DisplayName("admin: findAll / create / setActive")
+    class AdminOperations {
+
+        @Test
+        @DisplayName("findAll returns repository content")
+        void findAll_returnsRepositoryFindAll() {
+            var promo = build("WELCOME10", 10, null, 0);
+            when(repository.findAll()).thenReturn(List.of(promo));
+
+            assertThat(service.findAll()).containsExactly(promo);
+        }
+
+        @Test
+        @DisplayName("create saves the promo")
+        void create_savesPromo() {
+            var promo = build("SUMMER20", 20, 100, 0);
+            when(repository.save(promo)).thenReturn(promo);
+
+            assertThat(service.create(promo)).isSameAs(promo);
+            verify(repository).save(promo);
+        }
+
+        @Test
+        @DisplayName("setActive(true) flips the flag and saves")
+        void setActiveTrue_setsActiveAndSaves() {
+            var promo = build("X", 5, null, 0);
+            promo.setActive(false);
+            when(repository.findById(5L)).thenReturn(Optional.of(promo));
+            when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            Optional<PlatformPromoCode> result = service.setActive(5L, true);
+
+            assertThat(result).isPresent();
+            assertThat(promo.isActive()).isTrue();
+            verify(repository).save(promo);
+        }
+
+        @Test
+        @DisplayName("setActive(false) deactivates")
+        void setActiveFalse_deactivates() {
+            var promo = build("X", 5, null, 0);
+            promo.setActive(true);
+            when(repository.findById(10L)).thenReturn(Optional.of(promo));
+            when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            Optional<PlatformPromoCode> result = service.setActive(10L, false);
+
+            assertThat(result).isPresent();
+            assertThat(promo.isActive()).isFalse();
+        }
+
+        @Test
+        @DisplayName("setActive returns empty when promo not found")
+        void setActive_notFound_returnsEmpty() {
+            when(repository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThat(service.setActive(99L, true)).isEmpty();
+            verify(repository, never()).save(any());
         }
     }
 

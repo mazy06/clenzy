@@ -16,6 +16,8 @@ public interface WelcomeGuideEntryRepository extends JpaRepository<WelcomeGuideE
 
     List<WelcomeGuideEntry> findTop100ByGuideIdOrderByCreatedAtDesc(Long guideId);
 
+    long countByGuideId(Long guideId);
+
     /** Supprime toutes les entrées de livre d'or d'un livret (suppression en cascade applicative). */
     @Modifying
     @Query("delete from WelcomeGuideEntry e where e.guide.id = :guideId")

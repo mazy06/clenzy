@@ -27,7 +27,7 @@ export const databaseAdminApi = {
     const link = document.createElement('a');
     // Use fetch to handle auth header, then download blob
     fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: 'include',
     })
       .then((res) => {

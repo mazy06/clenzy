@@ -124,7 +124,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // courant de keycloak (authenticated=false probablement) et on logout.
       }
 
-      if (keycloak.authenticated && keycloak.token) {
+      // Pas de condition sur keycloak.token : apres un hard refresh restaure
+      // via les metadonnees du cookie HttpOnly (Z1-SEC-FRONTAUX-02), le token
+      // ne quitte pas le cookie — l'auth des appels API passe par
+      // credentials: 'include' (TokenCookieFilter cote serveur).
+      if (keycloak.authenticated) {
         await loadUserFromKeycloak();
       } else {
         setUser(null);
@@ -134,11 +138,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const loadUserFromKeycloak = async () => {
       try {
+        const token = keycloak.token;
         const response = await fetch(API_CONFIG.ENDPOINTS.ME, {
           headers: {
-            Authorization: `Bearer ${keycloak.token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           },
+          credentials: 'include', // cookie HttpOnly clenzy_auth en repli du Bearer
         });
 
         if (response.ok) {
@@ -301,10 +307,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${keycloak.token}`,
+              ...(keycloak.token ? { Authorization: `Bearer ${keycloak.token}` } : {}),
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ userId: user.id }),
+            credentials: 'include', // cookie HttpOnly clenzy_auth en repli du Bearer
           },
         );
 

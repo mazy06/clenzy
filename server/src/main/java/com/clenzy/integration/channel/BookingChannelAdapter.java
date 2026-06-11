@@ -119,12 +119,27 @@ public class BookingChannelAdapter implements ChannelConnector {
     }
 
     /**
-     * Push calendrier vers Booking.com (OUTBOUND).
-     * Utilise l'API XML OTA pour pousser disponibilites et tarifs resolus par PriceEngine.
+     * Push calendrier vers Booking.com (OUTBOUND) avec resolution des prix de base.
+     * Delegue a la variante avec prix resolus (null = resolution via PriceEngine).
      */
     @Override
     public SyncResult pushCalendarUpdate(Long propertyId, LocalDate from,
                                           LocalDate to, Long orgId) {
+        return pushCalendarUpdate(propertyId, from, to, orgId, null);
+    }
+
+    /**
+     * Push calendrier vers Booking.com (OUTBOUND).
+     * Utilise l'API XML OTA pour pousser disponibilites et tarifs.
+     *
+     * <p>Audit Z5-BUGS-03 : si {@code resolvedPrices} est fourni (prix channel-specific
+     * calcules par AdvancedRateManager), la map est consommee telle quelle au lieu
+     * de re-resoudre les prix de base via PriceEngine.</p>
+     */
+    @Override
+    public SyncResult pushCalendarUpdate(Long propertyId, LocalDate from,
+                                          LocalDate to, Long orgId,
+                                          Map<LocalDate, BigDecimal> resolvedPrices) {
         long startTime = System.currentTimeMillis();
 
         Optional<ChannelMapping> mappingOpt = resolveMapping(propertyId, orgId);
@@ -141,7 +156,9 @@ public class BookingChannelAdapter implements ChannelConnector {
 
         try {
             // Resolve prices and restrictions from PMS
-            Map<LocalDate, BigDecimal> prices = priceEngine.resolvePriceRange(propertyId, from, to, orgId);
+            Map<LocalDate, BigDecimal> prices = resolvedPrices != null
+                    ? resolvedPrices
+                    : priceEngine.resolvePriceRange(propertyId, from, to, orgId);
             List<BookingRestriction> restrictions = bookingRestrictionRepository
                     .findApplicable(propertyId, from, to, orgId);
             String hotelId = resolveHotelId(mapping);

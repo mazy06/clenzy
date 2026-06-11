@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,8 +36,9 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link SitePreviewProxyController}.
  *
- * <p>Network-based methods ({@code proxySite}, {@code proxyPage}, {@code proxyAsset}) use a
- * private {@code RestTemplate} we cannot inject — we exercise their pre-flight validation
+ * <p>Network-based methods ({@code proxySite}, {@code proxyPage}, {@code proxyAsset})
+ * delegate to the injected {@link com.clenzy.booking.service.PinnedSiteFetcher} mock
+ * (Z4A-SEC-02 : fetch sur IP epinglee) — we exercise their pre-flight validation
  * branches (null/invalid/private URLs) and the snapshot endpoint via the injected
  * {@link SiteSnapshotService} mock. The rest is covered by reflection on the pure helpers
  * ({@code normalizeUrl}, {@code validateUrl}, {@code extractOrigin}, {@code rewriteHtml},
@@ -46,11 +48,13 @@ import static org.mockito.Mockito.when;
 class SitePreviewProxyControllerTest {
 
     @Mock private SiteSnapshotService snapshotService;
+    @Mock private com.clenzy.booking.service.PinnedSiteFetcher siteFetcher;
+    @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
     private SitePreviewProxyController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new SitePreviewProxyController(snapshotService);
+        controller = new SitePreviewProxyController(snapshotService, siteFetcher, rateLimiter);
     }
 
     // ─── snapshotSite ─────────────────────────────────────────────────────
@@ -320,16 +324,23 @@ class SitePreviewProxyControllerTest {
         }
 
         @Test
-        @DisplayName("buildHeaders copies content-type and sets frame-ancestors CSP")
+        @DisplayName("buildHeaders copies content-type and sets a restricted frame-ancestors CSP")
         void buildHeaders() throws Exception {
-            org.springframework.http.HttpHeaders source = new org.springframework.http.HttpHeaders();
-            source.setContentType(org.springframework.http.MediaType.TEXT_HTML);
-            ResponseEntity<byte[]> resp = ResponseEntity.ok().headers(source).body(new byte[0]);
-
             org.springframework.http.HttpHeaders result = (org.springframework.http.HttpHeaders)
-                    invoke("buildHeaders", resp);
+                    invoke("buildHeaders", "text/html");
 
             assertThat(result.getContentType()).isEqualTo(org.springframework.http.MediaType.TEXT_HTML);
+            // Z4A-SEC-03 : plus de wildcard * — restreint a 'self' + frontend
+            assertThat(result.getFirst("Content-Security-Policy")).contains("frame-ancestors 'self'");
+            assertThat(result.getFirst("Content-Security-Policy")).doesNotContain("frame-ancestors *");
+        }
+
+        @Test
+        @DisplayName("buildHeaders tolerates a null or unparseable content-type")
+        void buildHeaders_nullContentType() throws Exception {
+            org.springframework.http.HttpHeaders result = (org.springframework.http.HttpHeaders)
+                    invoke("buildHeaders", (Object) null);
+            assertThat(result.getContentType()).isNull();
             assertThat(result.getFirst("Content-Security-Policy")).contains("frame-ancestors");
         }
     }
@@ -542,6 +553,72 @@ class SitePreviewProxyControllerTest {
             ResponseEntity<String> result = controller.snapshotSite("example.com");
             assertThat(result.getHeaders().getCacheControl()).contains("max-age");
             assertThat(result.getHeaders().getContentType().toString()).contains("text/html");
+        }
+
+        @Test
+        @DisplayName("Z4A-SEC-03: validateUrl rejects non-443 ports (surface reduction)")
+        void validateUrl_rejectsCustomPort() {
+            assertThatThrownBy(() -> invokeNoSwallow("validateUrl", "https://example.com:8443/x"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("443");
+        }
+
+        @Test
+        @DisplayName("Z4A-SEC-02: proxySite serves the body fetched via the pinned fetcher")
+        void proxySite_usesPinnedFetcher() throws Exception {
+            when(siteFetcher.fetch(eq("https://example.com/page"), org.mockito.ArgumentMatchers.anyLong()))
+                    .thenReturn(new com.clenzy.booking.service.PinnedSiteFetcher.FetchedResource(
+                            "text/plain", "hello".getBytes(StandardCharsets.UTF_8)));
+
+            ResponseEntity<byte[]> result = controller.proxySite("https://example.com/page");
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(new String(result.getBody(), StandardCharsets.UTF_8)).isEqualTo("hello");
+            verify(siteFetcher).fetch(eq("https://example.com/page"), org.mockito.ArgumentMatchers.anyLong());
+        }
+
+        @Test
+        @DisplayName("proxyAsset returns 502 when the pinned fetch fails")
+        void proxyAsset_fetchFailure_returns502() throws Exception {
+            when(siteFetcher.fetch(anyString(), org.mockito.ArgumentMatchers.anyLong()))
+                    .thenThrow(new java.io.IOException("Erreur HTTP 301 lors du chargement du site"));
+
+            ResponseEntity<byte[]> result = controller.proxyAsset("https://example.com/a.css");
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+        }
+
+        @Test
+        @DisplayName("preview rate-limit filter returns 429 when the IP budget is exhausted")
+        void rateLimitFilter_blocksAt429() throws Exception {
+            when(rateLimiter.tryAcquirePreview(any())).thenReturn(false);
+            FilterRegistrationBean<Filter> reg = controller.previewProxyRateLimitFilter();
+            org.springframework.mock.web.MockHttpServletRequest req =
+                    new org.springframework.mock.web.MockHttpServletRequest("GET", "/api/public/preview-proxy/site");
+            org.springframework.mock.web.MockHttpServletResponse resp =
+                    new org.springframework.mock.web.MockHttpServletResponse();
+            FilterChain chain = mock(FilterChain.class);
+
+            reg.getFilter().doFilter(req, resp, chain);
+
+            assertThat(resp.getStatus()).isEqualTo(429);
+            verify(chain, never()).doFilter(any(), any());
+        }
+
+        @Test
+        @DisplayName("preview rate-limit filter lets requests through under the limit")
+        void rateLimitFilter_allowsUnderLimit() throws Exception {
+            when(rateLimiter.tryAcquirePreview(any())).thenReturn(true);
+            FilterRegistrationBean<Filter> reg = controller.previewProxyRateLimitFilter();
+            org.springframework.mock.web.MockHttpServletRequest req =
+                    new org.springframework.mock.web.MockHttpServletRequest("GET", "/api/public/preview-proxy/site");
+            org.springframework.mock.web.MockHttpServletResponse resp =
+                    new org.springframework.mock.web.MockHttpServletResponse();
+            FilterChain chain = mock(FilterChain.class);
+
+            reg.getFilter().doFilter(req, resp, chain);
+
+            verify(chain).doFilter(any(), any());
         }
     }
 

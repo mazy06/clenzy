@@ -1,12 +1,10 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.MaintenanceRequestDto;
-import com.clenzy.model.ReceivedForm;
-import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.ReceivedFormService;
 import com.clenzy.model.NotificationKey;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,19 +33,17 @@ public class MaintenanceController {
     private static final Logger log = LoggerFactory.getLogger(MaintenanceController.class);
 
     private final EmailService emailService;
-    private final ReceivedFormRepository receivedFormRepository;
-    private final ObjectMapper objectMapper;
+    private final ReceivedFormService receivedFormService;
     private final NotificationService notificationService;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
-    public MaintenanceController(EmailService emailService, ReceivedFormRepository receivedFormRepository,
-                                 ObjectMapper objectMapper, NotificationService notificationService) {
+    public MaintenanceController(EmailService emailService, ReceivedFormService receivedFormService,
+                                 NotificationService notificationService) {
         this.emailService = emailService;
-        this.receivedFormRepository = receivedFormRepository;
-        this.objectMapper = objectMapper;
+        this.receivedFormService = receivedFormService;
         this.notificationService = notificationService;
     }
 
@@ -84,17 +80,7 @@ public class MaintenanceController {
 
         // 3b. Sauvegarde en BDD (double écriture)
         try {
-            ReceivedForm form = new ReceivedForm();
-            form.setFormType("MAINTENANCE");
-            form.setFullName(dto.getFullName());
-            form.setEmail(dto.getEmail());
-            form.setPhone(dto.getPhone());
-            form.setCity(dto.getCity());
-            form.setPostalCode(dto.getPostalCode());
-            form.setSubject("Maintenance — " + dto.getFullName() + (dto.getCity() != null ? " — " + dto.getCity() : ""));
-            form.setPayload(objectMapper.writeValueAsString(dto));
-            form.setIpAddress(clientIp);
-            receivedFormRepository.save(form);
+            receivedFormService.recordMaintenanceForm(dto, clientIp);
         } catch (Exception e) {
             log.error("Erreur sauvegarde formulaire maintenance : {}", e.getMessage());
         }

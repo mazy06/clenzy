@@ -657,3 +657,47 @@ Apres que le code fonctionne :
 - God class qui sait tout et fait tout
 - `@Autowired` sur un champ au lieu du constructeur
 <!-- /solid-skills -->
+
+## Discipline de travail (inspirée des Karpathy guidelines)
+
+> Biais assumé : prudence > vitesse. Pour les tâches triviales, jugement.
+
+1. **Réfléchir avant de coder** — Énoncer ses hypothèses explicitement ; si plusieurs interprétations existent, les présenter au lieu d'en choisir une en silence ; si une approche plus simple existe, le dire ; si quelque chose est flou, s'arrêter et nommer ce qui est flou.
+2. **Simplicité d'abord** — Le minimum de code qui résout le problème. Pas de feature au-delà de la demande, pas d'abstraction pour du code à usage unique, pas de gestion d'erreur pour des scénarios impossibles. Test : « un senior dirait-il que c'est sur-compliqué ? »
+3. **Changements chirurgicaux** — Ne toucher que ce qui est nécessaire. Pas d'« amélioration » du code adjacent, pas de refactor de ce qui n'est pas cassé, style existant respecté. Chaque ligne modifiée doit se tracer à la demande. Nettoyer UNIQUEMENT les orphelins créés par SES propres changements.
+4. **Exécution pilotée par le but** — Transformer la tâche en critère vérifiable : « corriger le bug » → « écrire le test qui le reproduit, puis le faire passer » ; « refactorer X » → « les tests existants passent avant ET après, sans changement d'assertions ».
+
+## Leçons de l'audit 2026-06 — règles exécutoires
+
+> Chaque règle ci-dessous provient d'un bug RÉEL trouvé (et corrigé) par la campagne d'audit
+> des 2026-06-10/11 (124 constats — voir AUDIT_REPORT.md). Elles priment sur toute habitude contraire.
+> Réflexe : avant d'écrire du code paiement/tenancy/dates/logs, relire la ligne correspondante.
+
+### Composants canoniques (NE PAS réinventer, NE PAS contourner)
+
+| Besoin | Composant obligatoire | Interdit (bug d'origine) |
+|---|---|---|
+| Appel Stripe | `com.clenzy.payment.StripeGateway` (RequestOptions par appel, idempotency keys) | `Stripe.apiKey = ...` global (T-SOLID-3) ; appel statique SDK sans RequestOptions (régression DirectBookingService) |
+| Euros → centimes | `StripeAmounts.toMinorUnits` (HALF_UP + longValueExact) | `multiply(100).longValue()` tronquant (Z3-BUGS-09) |
+| Transition de statut de paiement | `PaymentStatusTransitionService` (UPDATE conditionnel / CAS) | check-then-act sur le statut → double crédit sur re-livraison webhook (Z3-BUGS-01) |
+| Contexte tenant hors HTTP (scheduler, Kafka, @Async) | `TenantScopedExecutor` (+ TaskDecorator AsyncConfig) | `tenantContext.set...` sans finally-clear ni activation du filtre Hibernate (Z2-EFFETS-01/02) |
+| IP cliente derrière proxy | `TrustedClientIpResolver` / pattern CIDR exact droite→gauche | `X-Forwarded-For.split(",")[0]` spoofable (Z1-SEC-04) |
+| HTML stocké/rendu (templates email) | `EmailHtmlSanitizer` au stockage ET au rendu + `StringUtils.escapeHtml` sur tout input user | HTML brut concaténé → stored XSS cross-user (Z7-SEC-01/02) |
+| URL de feed / PII dans les logs | `FeedUrlMasker.mask`, `PiiMasker` (email → t***@x.fr) | URL avec token secret ou email/nom en clair (T-BP-01/02) |
+
+### Règles absolues (chaque violation = bug de prod constaté)
+
+1. **Argent : ne JAMAIS faire confiance à un montant venant du client.** Le serveur recalcule depuis l'entité métier (estimatedCost, devis PriceEngine) ; le montant client est au mieux un cross-check (400 si écart). Bugs d'origine : Z3-SEC-01, Z4A-SEC-01 (checkout public à montant arbitraire).
+2. **Jamais d'appel HTTP externe (Stripe, OTA, webhook sortant) DANS une transaction DB.** Préparer en transaction courte → appel externe hors transaction (avec idempotency key) → persister le résultat dans une nouvelle transaction ; effets externes post-commit via `TransactionSynchronization.afterCommit`. Bugs : Z3-BUGS-06 (refund), Z5-BUGS-07.
+3. **Tout chargement par ID dans un flux utilisateur DOIT valider l'org.** `findById` contourne le filtre Hibernate : appeler `requireSameOrganization(entity)` (pattern SmartLockService — bypass platform staff inclus) immédiatement après. Bugs : Z2-SEC-01/02/03 (IDOR serrures/documents/propriétés) + trou PaymentController trouvé au contre-audit.
+4. **Controller mince — JAMAIS de repository dans un controller** (règle ArchUnit gelée, voir `server/src/test/java/com/clenzy/architecture/`). Le controller fait : validation d'entrée + délégation au service + mapping DTO. Transactions et logique au niveau service. Bug : T-ARCH-01/02 (PUT réservation non transactionnel → double-booking).
+5. **Jamais d'entité JPA exposée par un endpoint REST** — records DTO avec mapping explicite (mêmes shapes JSON vérifiées champ à champ). Bug : T-ARCH-07.
+6. **Attention à l'auto-invocation `@Transactional`** : appeler une méthode @Transactional de la MÊME classe ne passe pas par le proxy Spring (transaction silencieusement absente ou partagée). Si besoin d'une transaction par itération : `ObjectProvider<Self>` ou bean séparé. Bug : T-BP-06 (syncFeeds).
+7. **Jamais de `catch (Exception)` avaleur.** Un échec se propage (retry/DLT Kafka), ou produit un statut de réconciliation explicite + notification admin (`notifyLedgerReconciliationRequired`-like) — jamais un log.debug et on continue. Bugs : Z3-BUGS-10, Z6-SECBUGS-03, T-BP-04/07.
+8. **Concurrence : check-then-act interdit** sur les ressources partagées — verrou pessimiste, UPDATE conditionnel, contrainte unique DB ou opération Redis atomique (INCR+EXPIRE). Bugs : Z1-BUGS-03, Z4A-BUGS-03 (double-booking), Z3-BUGS-07 (numérotation factures).
+9. **Dates : toujours la timezone de la propriété** (`property.getTimezone()`, repli documenté Europe/Paris), jamais la zone système/JVM — y compris parsing iCal (suffixe Z, TZID). Bugs : Z5-BUGS-08, Z6-SECBUGS-04 (décalage d'un jour → overbooking).
+10. **BigDecimal : `compareTo`, jamais `equals`** (sensible au scale) ; arrondis explicites `RoundingMode`. Bug : Z5-BUGS-10.
+11. **Sécurité par profil Spring : jamais de matching négatif** (`@Profile("!prod")` → un profil inconnu active la config permissive). Liste positive + fail-fast au boot si aucun profil de sécurité reconnu. Bug : Z1-SEC-03.
+12. **Jamais de credentials par défaut dans le code** (`admin/admin`) : fail-fast au boot en prod si le secret est absent (pattern EnvironmentValidator). Bug : Z1-SEC-06.
+13. **Un commentaire qui contredit le code est un bug** : soit le code est faux, soit le commentaire — corriger l'un des deux dans le même commit. Bugs : Z1-BUGS-01 (DLQ annoncée mais absente), T-BP-03/06.
+14. **Code mort : preuve avant suppression** (grep exhaustif références + registries/réflexion), et penser aux tables orphelines (migration DROP dédiée). Jamais accumuler de stubs « au cas où » hors décision explicite (docuseal/yousign = délibérés Phase 2).

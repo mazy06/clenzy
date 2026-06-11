@@ -150,8 +150,10 @@ public class RateDistributionService {
             Map<LocalDate, BigDecimal> channelPrices = advancedRateManager
                     .resolveChannelPriceRange(propertyId, from, to, channelName, orgId);
 
-            // Pousser la mise a jour calendrier (inclut les prix)
-            SyncResult result = connector.pushCalendarUpdate(propertyId, from, to, orgId);
+            // Pousser la mise a jour calendrier AVEC les prix channel resolus
+            // (audit Z5-BUGS-03 : sans ce passage, les ChannelRateModifier etaient
+            // jetes et le connecteur re-resolvait les prix de base via PriceEngine)
+            SyncResult result = connector.pushCalendarUpdate(propertyId, from, to, orgId, channelPrices);
 
             long elapsed = System.currentTimeMillis() - startMs;
             logDistribution(propertyId, channelName, result, orgId);

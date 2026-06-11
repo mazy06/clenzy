@@ -33,7 +33,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -283,6 +285,102 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+
+    // ─── Profil de l'utilisateur connecte (self-service) ─────────────────────
+
+    /**
+     * Mise a jour partielle du profil de l'utilisateur connecte (telephone, etc.).
+     * Semantique PATCH : seules les cles presentes dans {@code updates} sont appliquees.
+     */
+    @Transactional
+    public void updateOwnProfile(String keycloakId, Map<String, String> updates) {
+        User user = requireByKeycloakId(keycloakId);
+        if (updates.containsKey("phoneNumber")) {
+            user.setPhoneNumber(updates.get("phoneNumber"));
+        }
+        userRepository.save(user);
+    }
+
+    /**
+     * Lecture de l'opt-in newsletter de l'utilisateur connecte (RGPD article 7-3).
+     */
+    @Transactional(readOnly = true)
+    public boolean getNewsletterOptIn(String keycloakId) {
+        return requireByKeycloakId(keycloakId).isNewsletterOptIn();
+    }
+
+    /**
+     * Mise a jour de l'opt-in newsletter (RGPD article 7-3 : le retrait du consentement
+     * doit etre aussi simple que son octroi). {@code newsletterOptIn} null = inchange.
+     *
+     * @return la valeur courante apres mise a jour
+     */
+    @Transactional
+    public boolean updateNewsletterOptIn(String keycloakId, Boolean newsletterOptIn) {
+        User user = requireByKeycloakId(keycloakId);
+        if (newsletterOptIn != null) {
+            user.setNewsletterOptIn(newsletterOptIn);
+        }
+        userRepository.save(user);
+        return user.isNewsletterOptIn();
+    }
+
+    private User requireByKeycloakId(String keycloakId) {
+        return userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
+    }
+
+    // ─── Gardes d'ownership (audit Z2-SEC-06 / T-ARCH-01) ────────────────────
+    // findById contourne le filtre Hibernate organizationFilter : la validation
+    // d'acces est donc explicite ici, avec bypass platform staff transmis par le
+    // controller (extrait du JWT).
+
+    /**
+     * Refuse l'acces si la ressource {@code resourceUserId} n'appartient pas au
+     * requester ({@code requesterKeycloakId}) et que celui-ci n'est pas admin plateforme.
+     */
+    @Transactional(readOnly = true)
+    public void requireOwnershipOrAdmin(Long resourceUserId, String requesterKeycloakId, boolean platformAdmin) {
+        if (platformAdmin) {
+            return;
+        }
+        User resourceUser = userRepository.findById(resourceUserId).orElse(null);
+        boolean isOwner = resourceUser != null && requesterKeycloakId != null
+                && requesterKeycloakId.equals(resourceUser.getKeycloakId());
+        if (!isOwner) {
+            throw new AccessDeniedException("Acces refuse : vous ne pouvez acceder qu'a vos propres donnees");
+        }
+    }
+
+    /**
+     * Acces en lecture aux donnees de profil partagees (photo) : proprietaire de la
+     * ressource, membre de la meme organisation ou platform staff (SUPER_ADMIN /
+     * SUPER_MANAGER, acces cross-org par design). Audit Z2-SEC-06.
+     */
+    @Transactional(readOnly = true)
+    public void requireSameOrganizationOrSelf(Long resourceUserId, String requesterKeycloakId, boolean platformStaff) {
+        if (platformStaff) {
+            return;
+        }
+        User resourceUser = userRepository.findById(resourceUserId).orElse(null);
+        if (resourceUser != null && requesterKeycloakId != null
+                && requesterKeycloakId.equals(resourceUser.getKeycloakId())) {
+            return;
+        }
+        User requester = userRepository.findByKeycloakId(requesterKeycloakId).orElse(null);
+        boolean sameOrganization = resourceUser != null && requester != null
+                && requester.getOrganizationId() != null
+                && requester.getOrganizationId().equals(resourceUser.getOrganizationId());
+        if (!sameOrganization) {
+            throw new AccessDeniedException(
+                    "Acces refuse : vous ne pouvez consulter que les photos de votre organisation");
+        }
+    }
+
+    @Transactional(readOnly = true)
     public User findByEmail(String email) {
         if (email == null) return null;
         String hash = StringUtils.computeEmailHash(email);
@@ -318,17 +416,17 @@ public class UserService {
             // Mot de passe aleatoire — l'utilisateur se connecte via Keycloak, pas via ce password
             user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
 
-            // Resoudre l'organizationId : tenant context d'abord, puis fallback sur la premiere org
+            // Resoudre l'organizationId UNIQUEMENT depuis le tenant context — fail-closed.
+            // PAS de fallback vers une "organisation par defaut" : rattacher silencieusement
+            // un sujet JWT inconnu en base a la premiere organisation contournerait le
+            // fail-closed du TenantFilter (acces persistant a une org sans legitimite).
+            // Le rattachement legitime passe par autoAcceptPendingInvitations (appele juste
+            // apres dans AuthController.me) ou par le flux d'inscription qui cree user+org
+            // AVANT le premier login Keycloak. Un utilisateur provisionne sans org reste
+            // confine aux chemins tenant-optionnels (403/onboarding ailleurs).
             Long orgId = tenantContext.getOrganizationId();
             if (orgId == null) {
-                log.warn("Auto-provisioning: tenantContext sans organizationId, recherche d'une organisation par defaut...");
-                var allOrgs = organizationRepository.findAll();
-                if (!allOrgs.isEmpty()) {
-                    orgId = allOrgs.get(0).getId();
-                    log.info("Auto-provisioning: organisation par defaut trouvee: id={}, name={}", orgId, allOrgs.get(0).getName());
-                } else {
-                    log.error("Auto-provisioning: aucune organisation trouvee en base, l'utilisateur sera sans organisation");
-                }
+                log.warn("Auto-provisioning: tenantContext sans organizationId — utilisateur provisionne sans organisation (keycloakId={})", keycloakId);
             }
             user.setOrganizationId(orgId);
 

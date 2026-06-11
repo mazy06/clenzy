@@ -3,7 +3,7 @@ package com.clenzy.scheduler;
 import com.clenzy.model.ICalFeed;
 import com.clenzy.repository.ICalFeedRepository;
 import com.clenzy.service.ICalImportService;
-import com.clenzy.tenant.TenantContext;
+import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,9 +21,14 @@ import java.util.stream.Collectors;
  * Execute toutes les 3 heures pour re-importer les reservations
  * avec dedoublonnage automatique par UID.
  *
- * Multi-tenant : s'execute HORS contexte HTTP (pas de TenantFilter).
- * On cree un RequestAttributes synthetique par org pour que les beans
- * @RequestScope (TenantContext) fonctionnent correctement.
+ * Multi-tenant : s'execute HORS contexte HTTP (pas de TenantFilter), donc le
+ * filtre Hibernate {@code organizationFilter} n'est jamais active par la
+ * security chain. Chaque iteration par org est deleguee a
+ * {@link TenantScopedExecutor} qui pose le TenantContext, active le filtre
+ * Hibernate sur la Session liee au thread et nettoie TOUT en finally
+ * (contrat de securite ThreadLocal — le thread sched-* est partage par tous
+ * les @Scheduled). On cree aussi un RequestAttributes synthetique pour les
+ * eventuels beans @RequestScope.
  * Le traitement est groupe par organization_id pour isoler les erreurs.
  */
 @Component
@@ -33,14 +38,14 @@ public class ICalSyncScheduler {
 
     private final ICalImportService iCalImportService;
     private final ICalFeedRepository iCalFeedRepository;
-    private final TenantContext tenantContext;
+    private final TenantScopedExecutor tenantScopedExecutor;
 
     public ICalSyncScheduler(ICalImportService iCalImportService,
                              ICalFeedRepository iCalFeedRepository,
-                             TenantContext tenantContext) {
+                             TenantScopedExecutor tenantScopedExecutor) {
         this.iCalImportService = iCalImportService;
         this.iCalFeedRepository = iCalFeedRepository;
-        this.tenantContext = tenantContext;
+        this.tenantScopedExecutor = tenantScopedExecutor;
     }
 
     /**
@@ -74,33 +79,30 @@ public class ICalSyncScheduler {
             List<ICalFeed> orgFeeds = entry.getValue();
 
             try {
-                // Setup synthetic request scope so @RequestScope beans (TenantContext) work
-                setupRequestScope(orgId);
+                // Request scope synthetique pour les eventuels beans @RequestScope
+                RequestContextHolder.setRequestAttributes(new SchedulerRequestAttributes());
 
                 log.info("Synchro iCal org={} : {} feeds", orgId, orgFeeds.size());
-                iCalImportService.syncFeeds(orgFeeds);
+                // Z2-EFFETS-02 : execution tenant-scoped — TenantContext pose +
+                // filtre Hibernate organizationFilter actif sur la Session liee
+                // au thread (aligne l'isolation sur celle des requetes HTTP),
+                // nettoyage TenantContext + EntityManager en finally cote executor.
+                tenantScopedExecutor.runAsOrganization(orgId,
+                        () -> iCalImportService.syncFeeds(orgFeeds));
                 successOrgs++;
             } catch (Exception e) {
                 failedOrgs++;
                 log.error("Erreur synchro iCal pour org={} ({} feeds): {}",
                         orgId, orgFeeds.size(), e.getMessage());
             } finally {
-                // Clean up synthetic request scope
+                // RequestAttributes synthetique (le TenantContext, lui, est purge
+                // par TenantScopedExecutor dans son propre finally).
                 RequestContextHolder.resetRequestAttributes();
             }
         }
 
         log.info("Synchro iCal terminee : {}/{} orgs OK, {} erreurs",
                 successOrgs, totalOrgs, failedOrgs);
-    }
-
-    /**
-     * Cree un RequestAttributes synthetique pour simuler un contexte de requete HTTP.
-     * Necessaire pour que les beans @RequestScope (TenantContext) fonctionnent dans le scheduler.
-     */
-    private void setupRequestScope(Long orgId) {
-        RequestContextHolder.setRequestAttributes(new SchedulerRequestAttributes());
-        tenantContext.setOrganizationId(orgId);
     }
 
     /**

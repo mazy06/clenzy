@@ -1,10 +1,9 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.MaintenanceRequestDto;
-import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.clenzy.service.ReceivedFormService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +21,7 @@ import static org.mockito.Mockito.*;
 class MaintenanceControllerTest {
 
     @Mock private EmailService emailService;
-    @Mock private ReceivedFormRepository receivedFormRepository;
+    @Mock private ReceivedFormService receivedFormService;
     @Mock private NotificationService notificationService;
     @Mock private HttpServletRequest httpRequest;
 
@@ -30,7 +29,7 @@ class MaintenanceControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new MaintenanceController(emailService, receivedFormRepository, new ObjectMapper(), notificationService);
+        controller = new MaintenanceController(emailService, receivedFormService, notificationService);
         lenient().when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         lenient().when(httpRequest.getHeader(anyString())).thenReturn(null);
     }

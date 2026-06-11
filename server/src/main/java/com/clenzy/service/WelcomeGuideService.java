@@ -6,6 +6,7 @@ import com.clenzy.dto.WelcomeGuideRequest;
 import com.clenzy.exception.WelcomeGuideAlreadyExistsException;
 import com.clenzy.integration.activities.AffiliateLinkDecorator;
 import com.clenzy.service.access.AccessCodeResolverService;
+import com.clenzy.service.access.StayTimes;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.model.*;
 import com.clenzy.repository.ActivityAffiliateConfigRepository;
@@ -407,7 +408,7 @@ public class WelcomeGuideService {
      * Sert une photo d'indication d'acces pour un token guest valide. Verifie que la cle
      * appartient bien aux {@code arrivalPhotos} des instructions du logement du livret
      * (token-scope), puis recupere le binaire via {@link PhotoStorageService}. Vide si token
-     * invalide / livret non publie / cle inconnue.
+     * invalide / livret non publie / cle inconnue / avant l'heure de check-in.
      */
     @Transactional(readOnly = true)
     public Optional<byte[]> getAccessPhotoBytes(UUID token, String key) {
@@ -418,6 +419,11 @@ public class WelcomeGuideService {
             .filter(WelcomeGuideToken::isCurrentlyValid)
             .map(WelcomeGuideToken::getGuide)
             .filter(g -> g != null && g.isPublished() && g.getProperty() != null)
+            // Meme regle anti entree anticipee que le code d'acces du payload : la fenetre
+            // du token s'ouvre leadDays AVANT l'arrivee, mais les photos d'indication
+            // d'acces (boite a cle, digicode photographie...) ne sont servies qu'a partir
+            // de l'heure de check-in.
+            .filter(g -> StayTimes.isAfterCheckIn(g.getReservation(), g.getProperty()))
             .flatMap(g -> checkInInstructionsRepository.findByPropertyId(g.getProperty().getId()))
             .filter(ci -> ci.getArrivalPhotos() != null
                 && ci.getArrivalPhotos().contains("\"" + key + "\""))
@@ -529,14 +535,51 @@ public class WelcomeGuideService {
         // sejour (apres le check-out, le bouton disparait — et l'action serait refusee de toute facon).
         boolean guestUnlockAvailable = ci != null && ci.isGuestUnlockEnabled()
             && reservation != null
-            && com.clenzy.service.access.StayTimes.isDuringStay(reservation, property)
+            && StayTimes.isDuringStay(reservation, property)
             && property != null && guestUnlockService.hasRemoteUnlockableLock(property.getId());
         WelcomeGuidePublicDto dto =
             WelcomeGuidePublicDto.from(guide, property, ci, reservation, dynamicAccessCode, checkIn,
                 heroImageUrls, accessCodeUnlocked, guestUnlockAvailable);
+        if (!accessCodeUnlocked) {
+            dto = maskArrivalAccessDetails(dto);
+        }
         // Injecte les ID d'affiliation (Klook, GetYourGuide, ...) dans les liens des activites curatees.
         String decorated = decorateAffiliateLinks(dto.curatedActivities(), guide.getOrganizationId());
         return Optional.of(decorated.equals(dto.curatedActivities()) ? dto : dto.withCuratedActivities(decorated));
+    }
+
+    /**
+     * Avant l'heure de check-in, les instructions d'arrivee et les photos d'indication
+     * d'acces sont masquees comme le code d'acces : l'hote y place souvent l'emplacement
+     * de la boite a cle ou le digicode en texte libre, ce qui contournerait la regle
+     * anti entree anticipee si elles restaient servies pendant la fenetre lead du token.
+     * S'applique a tous les chemins derives du payload (livret public, chatbot guest).
+     */
+    private WelcomeGuidePublicDto maskArrivalAccessDetails(WelcomeGuidePublicDto dto) {
+        WelcomeGuidePublicDto.PracticalInfo practical = dto.practical();
+        if (practical == null) {
+            return dto;
+        }
+        WelcomeGuidePublicDto.PracticalInfo masked = new WelcomeGuidePublicDto.PracticalInfo(
+            practical.wifiName(),
+            practical.wifiPassword(),
+            practical.accessCode(),
+            practical.parkingInfo(),
+            null,                                  // arrivalInstructions : revelees au check-in
+            practical.departureInstructions(),
+            practical.houseRules(),
+            practical.emergencyContact(),
+            practical.additionalNotes(),
+            "[]",                                  // arrivalPhotos : revelees au check-in
+            practical.extraCodes(),
+            practical.accessCodeLocked(),
+            practical.guestUnlockAvailable());
+        return new WelcomeGuidePublicDto(
+            dto.title(), dto.language(), dto.brandingColor(), dto.theme(), dto.heroImageUrls(),
+            dto.welcomeMessage(), dto.hostNames(), dto.logoUrl(), dto.sections(), dto.pois(),
+            dto.curatedActivities(), dto.property(), masked, dto.stay(), dto.checkIn(),
+            dto.chatbotEnabled(), dto.guestbookEnabled(), dto.activitiesEnabled(),
+            dto.upsellsEnabled(), dto.available(), dto.unavailableReason());
     }
 
     /**
@@ -546,7 +589,7 @@ public class WelcomeGuideService {
      * Sans date de reservation, aucune restriction (rien sur quoi se baser).
      */
     private boolean isAccessCodeUnlocked(Reservation reservation, Property property) {
-        return com.clenzy.service.access.StayTimes.isAfterCheckIn(reservation, property);
+        return StayTimes.isAfterCheckIn(reservation, property);
     }
 
     /**

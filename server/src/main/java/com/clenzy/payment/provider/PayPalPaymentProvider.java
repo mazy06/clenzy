@@ -39,10 +39,13 @@ import java.util.Set;
  * <p>PayPal propose deux modèles de vérification :</p>
  * <ul>
  *   <li><strong>Local (offline)</strong> : impossible — PayPal ne fournit
- *       pas de secret HMAC partagé contrairement aux autres providers.</li>
+ *       pas de secret HMAC partagé contrairement aux autres providers.
+ *       {@link #verifyWebhook} refuse donc systématiquement (fail-closed,
+ *       Z3-SEC-03).</li>
  *   <li><strong>API verify</strong> : POST /v1/notifications/verify-webhook-signature
  *       avec les headers reçus + le payload + le webhook_id. PayPal renvoie
- *       SUCCESS/FAILURE. Voir {@link #verifyWebhook}.</li>
+ *       SUCCESS/FAILURE. Voir {@link #verifyWebhookStrict} — seul chemin
+ *       valide, utilisé par {@code PaymentWebhookRouter.handlePayPalWebhook}.</li>
  * </ul>
  */
 @Component
@@ -257,25 +260,24 @@ public class PayPalPaymentProvider implements PaymentProvider {
             "PayPal payouts API not implemented — see Wise/Stripe Connect for outgoing payouts");
     }
 
+    /**
+     * Fail-closed (Z3-SEC-03) : PayPal ne fournit pas de HMAC partagé, aucune
+     * vérification offline n'est possible avec cette signature d'interface.
+     * L'ancienne implémentation « soft » acceptait le webhook dès que le
+     * webhook_id était présent — n'importe quel appelant générique
+     * ({@code provider.verifyWebhook(...)}) pouvait donc laisser passer un
+     * PAYMENT.CAPTURE.COMPLETED forgé. Ce chemin refuse désormais
+     * systématiquement : la seule vérification valide est
+     * {@link #verifyWebhookStrict} (appel API
+     * /v1/notifications/verify-webhook-signature), utilisée par
+     * {@code PaymentWebhookRouter.handlePayPalWebhook}.
+     */
     @Override
     public boolean verifyWebhook(String payload, String signature, String secret) {
-        // PayPal n'utilise pas de HMAC partagé. La vérification nécessite un
-        // appel API à /v1/notifications/verify-webhook-signature avec les
-        // headers PayPal-Transmission-* et le webhook_id. Le payload `secret`
-        // ici contient le webhook_id de l'org.
-        //
-        // Pour MVP : verification "soft" — on accepte le webhook si le secret
-        // (webhook_id) est présent. La vraie verification API sera ajoutée
-        // dans une PR ultérieure. C'est moins sécurisé mais acceptable en
-        // sandbox local.
-        //
-        // TODO PR ultérieure : implémenter verifyWebhookSignature via API PayPal
-        if (secret == null || secret.isBlank()) {
-            log.warn("PayPal webhook : webhook_id absent dans la config, rejet");
-            return false;
-        }
-        log.warn("PayPal webhook : verification soft (à durcir en PR ultérieure)");
-        return true;
+        log.error("PayPal verifyWebhook(payload, signature, secret) appele : verification offline "
+            + "impossible pour PayPal — rejet systematique (fail-closed). "
+            + "Utiliser verifyWebhookStrict(headers, payload, orgId).");
+        return false;
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────

@@ -10,7 +10,30 @@ import java.util.concurrent.Callable;
  * Cache a deux niveaux : Caffeine L1 (local, 30s) devant Redis L2.
  * - get : L1 d'abord, si miss → L2, si hit en L2 → populate L1
  * - put : ecrit dans les deux
- * - evict : invalide les deux
+ * - evict : invalide les deux, L2 PUIS L1 (voir contrat d'invalidation)
+ *
+ * <p><b>Contrat d'invalidation (Z1-BUGS-09)</b> : evict/clear invalident
+ * Redis (L2) AVANT Caffeine (L1). Avec l'ordre inverse, un lookup concurrent
+ * pouvait relire l'ancienne valeur dans Redis (pas encore evincee) et
+ * repeupler L1 juste apres son invalidation — la donnee perimee survivait
+ * alors tout un TTL L1 supplementaire. L2-puis-L1 borne la fenetre de
+ * course a la duree de l'evict lui-meme.</p>
+ *
+ * <p><b>Tolerance multi-instance (documentee, Z1-BUGS-09)</b> : il n'y a pas
+ * d'invalidation cross-instance (pas de Redis pub/sub). Le deploiement actuel
+ * est mono-instance ; si l'application passe en 2+ instances, le L1 des autres
+ * noeuds peut servir une valeur perimee pendant au plus le TTL Caffeine
+ * (30s, cf. CacheConfig). Cette tolerance est assumee pour les caches
+ * concernes (properties, permissions). Avant tout passage multi-instance,
+ * ajouter une invalidation par Redis pub/sub ou reduire le TTL L1.</p>
+ *
+ * <p><b>Contrat null (Z1-BUGS-04)</b> : {@code allowNullValues=true}, donc une
+ * valeur {@code null} (methode {@code @Cacheable} retournant null) est stockee
+ * en L1 sous la sentinelle {@code NullValue} via {@link #toStoreValue(Object)} —
+ * Caffeine interdit les valeurs null brutes (NPE sinon). Le L2 Redis est
+ * configure avec {@code disableCachingNullValues} (CacheConfig) : les nulls ne
+ * sont PAS propages en L2 (sinon IllegalArgumentException), ils ne sont caches
+ * que localement pendant le TTL L1.</p>
  *
  * Niveau 8 — Scalabilite : cache local pour reduire les appels Redis.
  */
@@ -38,55 +61,71 @@ public class TwoLayerCache extends AbstractValueAdaptingCache {
         return caffeineCache;
     }
 
+    /**
+     * Retourne la valeur au format "store" (eventuellement {@code NullValue}) :
+     * {@link AbstractValueAdaptingCache#get(Object)} applique fromStoreValue.
+     */
     @Override
     protected Object lookup(Object key) {
-        // L1 d'abord
-        Object value = caffeineCache.getIfPresent(key);
-        if (value != null) {
-            return value;
+        // L1 d'abord (contient des store values : NullValue possible)
+        Object storeValue = caffeineCache.getIfPresent(key);
+        if (storeValue != null) {
+            return storeValue;
         }
-        // L2 Redis
+        // L2 Redis (ne contient jamais de null : disableCachingNullValues)
         ValueWrapper wrapper = redisCache.get(key);
-        if (wrapper != null) {
-            Object redisValue = wrapper.get();
-            if (redisValue != null) {
-                caffeineCache.put(key, redisValue); // populate L1
-            }
-            return redisValue;
+        if (wrapper == null) {
+            return null;
         }
-        return null;
+        Object redisValue = wrapper.get();
+        if (redisValue == null) {
+            return null;
+        }
+        caffeineCache.put(key, redisValue); // populate L1 (non-null : identite)
+        return redisValue;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T> T get(Object key, Callable<T> valueLoader) {
-        Object value = lookup(key);
-        if (value != null) {
-            return (T) value;
+        Object storeValue = lookup(key);
+        if (storeValue != null) {
+            return (T) fromStoreValue(storeValue);
         }
-        // Les deux miss → charger et mettre dans les deux
-        T loaded = redisCache.get(key, valueLoader);
-        if (loaded != null) {
-            caffeineCache.put(key, loaded);
+        // Les deux miss → charger puis ecrire dans les deux (put est null-safe :
+        // un null est cache en L1 seulement, jamais pousse vers Redis).
+        final T loaded;
+        try {
+            loaded = valueLoader.call();
+        } catch (Exception e) {
+            throw new ValueRetrievalException(key, valueLoader, e);
         }
+        put(key, loaded);
         return loaded;
     }
 
     @Override
     public void put(Object key, Object value) {
-        caffeineCache.put(key, value);
-        redisCache.put(key, value);
+        caffeineCache.put(key, toStoreValue(value));
+        if (value != null) {
+            redisCache.put(key, value);
+        }
     }
 
+    /**
+     * Evince L2 avant L1 : si L1 etait evince en premier, un lookup concurrent
+     * pouvait repeupler L1 depuis le Redis pas encore evince (Z1-BUGS-09).
+     */
     @Override
     public void evict(Object key) {
-        caffeineCache.invalidate(key);
         redisCache.evict(key);
+        caffeineCache.invalidate(key);
     }
 
+    /** Meme ordre que {@link #evict(Object)} : L2 puis L1 (Z1-BUGS-09). */
     @Override
     public void clear() {
-        caffeineCache.invalidateAll();
         redisCache.clear();
+        caffeineCache.invalidateAll();
     }
 }

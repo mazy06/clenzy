@@ -9,11 +9,12 @@ import com.clenzy.integration.direct.repository.PromoCodeRepository;
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyPhoto;
 import com.clenzy.model.Reservation;
+import com.clenzy.payment.StripeAmounts;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.PriceEngine;
-import com.stripe.Stripe;
 import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ public class DirectBookingService {
     private final ReservationRepository reservationRepository;
     private final CalendarEngine calendarEngine;
     private final PriceEngine priceEngine;
+    private final StripeGateway stripeGateway;
 
     public DirectBookingService(DirectBookingConfig config,
                                  DirectBookingConfigRepository configRepository,
@@ -54,7 +56,8 @@ public class DirectBookingService {
                                  PropertyRepository propertyRepository,
                                  ReservationRepository reservationRepository,
                                  CalendarEngine calendarEngine,
-                                 PriceEngine priceEngine) {
+                                 PriceEngine priceEngine,
+                                 StripeGateway stripeGateway) {
         this.config = config;
         this.configRepository = configRepository;
         this.promoCodeRepository = promoCodeRepository;
@@ -62,6 +65,7 @@ public class DirectBookingService {
         this.reservationRepository = reservationRepository;
         this.calendarEngine = calendarEngine;
         this.priceEngine = priceEngine;
+        this.stripeGateway = stripeGateway;
     }
 
     // ----------------------------------------------------------------
@@ -424,8 +428,8 @@ public class DirectBookingService {
                                                             BigDecimal totalPrice, String currency,
                                                             String bookingId) {
         try {
-            // Montant en centimes pour Stripe
-            long amountInCents = totalPrice.multiply(BigDecimal.valueOf(100)).longValue();
+            // Montant en centimes pour Stripe (HALF_UP + controle d'overflow, cf. StripeAmounts)
+            long amountInCents = StripeAmounts.toMinorUnits(totalPrice);
 
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount(amountInCents)
@@ -436,7 +440,9 @@ public class DirectBookingService {
                     .putMetadata("reservation_id", String.valueOf(reservation.getId()))
                     .build();
 
-            PaymentIntent intent = PaymentIntent.create(params);
+            // Cle API portee par le gateway (RequestOptions par appel) : l'ancien appel
+            // statique dependait du Stripe.apiKey global supprime par l'audit T-SOLID-3.
+            PaymentIntent intent = stripeGateway.createPaymentIntent(params);
 
             log.info("Stripe PaymentIntent cree : {} pour reservation {}", intent.getId(), bookingId);
 

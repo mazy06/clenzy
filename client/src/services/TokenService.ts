@@ -42,6 +42,18 @@ export type TokenEvent =
   | 'token-refreshed'
   | 'token-health-check';
 
+// ─── Synchro multi-onglets ───────────────────────────────────────────────────
+
+type TokenSyncAction = 'refresh' | 'logout';
+
+/** Message echange entre onglets. Le shape est valide avant tout traitement. */
+interface TokenSyncMessage {
+  type?: string;
+  action: TokenSyncAction;
+  payload?: Record<string, unknown>;
+  timestamp?: number;
+}
+
 class TokenService {
   private static instance: TokenService;
   private listeners: Map<TokenEvent, Function[]> = new Map();
@@ -50,6 +62,9 @@ class TokenService {
   private maxRetries = 3;
   private lastHealthCheck = 0;
   private healthCheckInterval = 30000; // 30 secondes entre les vérifications
+  /** Canal principal de synchro multi-onglets (same-origin par construction). */
+  private syncChannel: BroadcastChannel | null = null;
+  private static readonly SYNC_CHANNEL_NAME = 'clenzy_token_update';
 
   constructor() {
     // Ne pas initialiser immédiatement, attendre l'appel à initialize()
@@ -438,31 +453,68 @@ class TokenService {
     this.listeners.clear();
     this.isInitialized = false;
     this.retryCount = 0;
+    this.syncChannel?.close();
+    this.syncChannel = null;
   }
 
   /**
-   * Gestion des sessions multiples (onglets)
+   * Gestion des sessions multiples (onglets).
+   *
+   * Canal principal : BroadcastChannel (same-origin par construction, pas de
+   * (de)serialisation manuelle). Fallback : event 'storage' pour les
+   * navigateurs sans BroadcastChannel (Z1-SEC-FRONTAUX-05). Dans les deux
+   * cas le shape du message est valide avant traitement.
    */
   private setupMultiTabSync() {
-    // Écouter les changements de stockage pour synchroniser entre onglets
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'clenzy_token_update') {
-        this.handleTokenUpdate(JSON.parse(event.newValue || '{}'));
-      }
-    });
+    if (typeof BroadcastChannel !== 'undefined') {
+      this.syncChannel = new BroadcastChannel(TokenService.SYNC_CHANNEL_NAME);
+      this.syncChannel.addEventListener('message', (event: MessageEvent) => {
+        const update = this.parseSyncMessage(event.data);
+        if (update) this.handleTokenUpdate(update);
+      });
+    } else {
+      // Fallback : l'event 'storage' ne se declenche que dans les AUTRES
+      // onglets du meme origin. Parse defensif : une valeur malformee sur la
+      // cle (autre code, extension, corruption) ne doit pas casser la synchro.
+      window.addEventListener('storage', (event) => {
+        if (event.key !== STORAGE_KEYS.TOKEN_UPDATE || !event.newValue) return;
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(event.newValue);
+        } catch {
+          return;
+        }
+        const update = this.parseSyncMessage(parsed);
+        if (update) this.handleTokenUpdate(update);
+      });
+    }
 
-    // Écouter les messages entre onglets
+    // Canal postMessage historique : n'accepter que les messages de NOTRE
+    // origine (Z1-SEC-FRONTAUX-04) — sans ce garde, toute fenetre/iframe
+    // capable de poster vers la page pourrait piloter la session.
     window.addEventListener('message', (event) => {
-      if (event.data?.type === 'TOKEN_UPDATE') {
-        this.handleTokenUpdate(event.data.payload);
-      }
+      if (event.origin !== window.location.origin) return;
+      if ((event.data as { type?: unknown } | null)?.type !== 'TOKEN_UPDATE') return;
+      const update = this.parseSyncMessage(event.data);
+      if (update) this.handleTokenUpdate(update);
     });
+  }
+
+  /**
+   * Valide le shape d'un message de synchro multi-onglets.
+   * Retourne null si le message n'appartient pas au protocole attendu.
+   */
+  private parseSyncMessage(raw: unknown): TokenSyncMessage | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const action = (raw as { action?: unknown }).action;
+    if (action !== 'refresh' && action !== 'logout') return null;
+    return raw as TokenSyncMessage;
   }
 
   /**
    * Gère la mise à jour des tokens depuis un autre onglet
    */
-  private handleTokenUpdate(update: { action: string; payload?: unknown; timestamp?: number }) {
+  private handleTokenUpdate(update: TokenSyncMessage) {
     if (update.action === 'refresh') {
       this.refreshToken();
     } else if (update.action === 'logout') {
@@ -471,19 +523,18 @@ class TokenService {
   }
 
   /**
-   * Notifie les autres onglets d'une mise à jour des tokens
+   * Notifie les autres onglets d'une mise à jour des tokens.
+   * Le postMessage same-window historique a ete retire : il ne notifiait que
+   * la fenetre courante (inutile pour l'inter-onglets) sans validation.
    */
-  private notifyOtherTabs(action: 'refresh' | 'logout', payload?: Record<string, unknown>) {
-    // Via localStorage
-    storageService.setJSON(STORAGE_KEYS.TOKEN_UPDATE, { action, payload, timestamp: Date.now() });
-
-    // Via postMessage
-    window.postMessage({
-      type: 'TOKEN_UPDATE',
-      action,
-      payload,
-      timestamp: Date.now(),
-    }, window.location.origin);
+  private notifyOtherTabs(action: TokenSyncAction, payload?: Record<string, unknown>) {
+    const message: TokenSyncMessage = { type: 'TOKEN_UPDATE', action, payload, timestamp: Date.now() };
+    if (this.syncChannel) {
+      this.syncChannel.postMessage(message);
+      return;
+    }
+    // Fallback localStorage : declenche l'event 'storage' dans les autres onglets
+    storageService.setJSON(STORAGE_KEYS.TOKEN_UPDATE, message);
   }
 
   /**

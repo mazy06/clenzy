@@ -1,13 +1,16 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.SplitConfigurationDto;
 import com.clenzy.dto.SplitRatios;
 import com.clenzy.model.SplitConfiguration;
 import com.clenzy.repository.SplitConfigurationRepository;
+import com.clenzy.service.SplitConfigurationService;
 import com.clenzy.service.SplitPaymentService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +36,12 @@ class SplitConfigurationControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new SplitConfigurationController(repository, splitPaymentService, tenantContext);
+        // Service reel branche sur les mocks : les assertions existantes sur le
+        // repository restent valables a travers la couche service.
+        SplitConfigurationService splitConfigurationService =
+                new SplitConfigurationService(repository, tenantContext);
+        controller = new SplitConfigurationController(
+                splitConfigurationService, splitPaymentService, tenantContext);
     }
 
     private SplitConfiguration sc(Long id, BigDecimal o, BigDecimal p, BigDecimal c) {
@@ -47,13 +55,17 @@ class SplitConfigurationControllerTest {
         return s;
     }
 
+    private SplitConfigurationDto dto(Long id, BigDecimal o, BigDecimal p, BigDecimal c) {
+        return new SplitConfigurationDto(id, 1L, null, o, p, c, false, null, null, null);
+    }
+
     @Test
     void list_returnsConfigs() {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
         when(repository.findByOrganizationId(1L)).thenReturn(List.of(
                 sc(1L, new BigDecimal("0.8000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"))));
 
-        ResponseEntity<List<SplitConfiguration>> response = controller.listConfigs();
+        ResponseEntity<List<SplitConfigurationDto>> response = controller.listConfigs();
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(1);
     }
@@ -71,23 +83,24 @@ class SplitConfigurationControllerTest {
     @Test
     void create_validShares_saves() {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-        SplitConfiguration sc = sc(null, new BigDecimal("0.8000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"));
-        SplitConfiguration saved = sc(10L, new BigDecimal("0.8000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"));
-        when(repository.save(any(SplitConfiguration.class))).thenReturn(saved);
+        SplitConfigurationDto request = dto(null, new BigDecimal("0.8000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"));
+        when(repository.save(any(SplitConfiguration.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ResponseEntity<SplitConfiguration> response = controller.createConfig(sc);
+        ResponseEntity<SplitConfigurationDto> response = controller.createConfig(request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(sc.getOrganizationId()).isEqualTo(1L);
-        assertThat(sc.getId()).isNull();
-        verify(repository).save(sc);
+
+        ArgumentCaptor<SplitConfiguration> captor = ArgumentCaptor.forClass(SplitConfiguration.class);
+        verify(repository).save(captor.capture());
+        assertThat(captor.getValue().getOrganizationId()).isEqualTo(1L);
+        assertThat(captor.getValue().getId()).isNull();
     }
 
     @Test
     void create_invalidShareSum_throws() {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-        SplitConfiguration sc = sc(null, new BigDecimal("0.6000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"));
+        SplitConfigurationDto request = dto(null, new BigDecimal("0.6000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"));
 
-        assertThatThrownBy(() -> controller.createConfig(sc))
+        assertThatThrownBy(() -> controller.createConfig(request))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Shares must sum to 1.0000");
     }
@@ -95,12 +108,9 @@ class SplitConfigurationControllerTest {
     @Test
     void create_missingShares_throws() {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-        SplitConfiguration sc = new SplitConfiguration();
-        sc.setOwnerShare(null);
-        sc.setPlatformShare(null);
-        sc.setConciergeShare(null);
+        SplitConfigurationDto request = dto(null, null, null, null);
 
-        assertThatThrownBy(() -> controller.createConfig(sc))
+        assertThatThrownBy(() -> controller.createConfig(request))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("required");
     }
@@ -109,13 +119,15 @@ class SplitConfigurationControllerTest {
     void update_validShares_saves() {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
         SplitConfiguration existing = sc(5L, new BigDecimal("0.8000"), new BigDecimal("0.0500"), new BigDecimal("0.1500"));
-        SplitConfiguration update = sc(5L, new BigDecimal("0.7000"), new BigDecimal("0.1000"), new BigDecimal("0.2000"));
-        update.setName("Updated");
+        SplitConfigurationDto update = new SplitConfigurationDto(
+                5L, 1L, "Updated",
+                new BigDecimal("0.7000"), new BigDecimal("0.1000"), new BigDecimal("0.2000"),
+                false, null, null, null);
 
         when(repository.findById(5L)).thenReturn(Optional.of(existing));
         when(repository.save(any(SplitConfiguration.class))).thenReturn(existing);
 
-        ResponseEntity<SplitConfiguration> response = controller.updateConfig(5L, update);
+        ResponseEntity<SplitConfigurationDto> response = controller.updateConfig(5L, update);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(existing.getName()).isEqualTo("Updated");
         assertThat(existing.getOwnerShare()).isEqualByComparingTo("0.7000");
@@ -126,7 +138,7 @@ class SplitConfigurationControllerTest {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
-        SplitConfiguration update = sc(99L, new BigDecimal("0.7"), new BigDecimal("0.1"), new BigDecimal("0.2"));
+        SplitConfigurationDto update = dto(99L, new BigDecimal("0.7"), new BigDecimal("0.1"), new BigDecimal("0.2"));
         assertThatThrownBy(() -> controller.updateConfig(99L, update))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("not found");
@@ -139,7 +151,7 @@ class SplitConfigurationControllerTest {
         existing.setOrganizationId(999L);
         when(repository.findById(5L)).thenReturn(Optional.of(existing));
 
-        SplitConfiguration update = sc(5L, new BigDecimal("0.8"), new BigDecimal("0.05"), new BigDecimal("0.15"));
+        SplitConfigurationDto update = dto(5L, new BigDecimal("0.8"), new BigDecimal("0.05"), new BigDecimal("0.15"));
         assertThatThrownBy(() -> controller.updateConfig(5L, update))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Access denied");

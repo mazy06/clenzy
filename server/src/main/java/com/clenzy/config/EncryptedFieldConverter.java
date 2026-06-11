@@ -1,5 +1,6 @@
 package com.clenzy.config;
 
+import com.clenzy.exception.FieldDecryptionException;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import org.jasypt.util.text.AES256TextEncryptor;
@@ -21,6 +22,10 @@ import org.springframework.stereotype.Component;
  * Les valeurs sont chiffrees avant ecriture en base et dechiffrees a la lecture.
  * En base, les colonnes contiennent des valeurs chiffrees AES-256 (illisibles).
  *
+ * Gestion d'erreur (Z1-SEC-08) : un echec de dechiffrement leve une
+ * {@link FieldDecryptionException} (la valeur brute n'est jamais renvoyee ni
+ * loggee). Detecte les rotations de cle ratees et les donnees alterees.
+ *
  * IMPORTANT : Le mot de passe de chiffrement (JASYPT_ENCRYPTOR_PASSWORD) doit etre
  * identique entre les deployments pour pouvoir lire les donnees existantes.
  */
@@ -33,6 +38,16 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
     private static AES256TextEncryptor encryptor;
 
     /**
+     * Mode strict (defaut) : un echec de dechiffrement leve une
+     * {@link FieldDecryptionException}. Le mode tolerant
+     * ({@code clenzy.security.field-encryption.fail-on-decrypt-error=false})
+     * est une soupape de transition UNIQUEMENT : si des lignes legacy non
+     * chiffrees subsistent (la migration progressive n'a pas de backfill SQL),
+     * il permet de les servir le temps du backfill applicatif, avec log ERROR.
+     */
+    private static boolean failOnDecryptError = true;
+
+    /**
      * Initialisation statique du chiffreur.
      * Spring injecte la valeur via @Value sur le setter pour que le composant static fonctionne.
      */
@@ -41,6 +56,11 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
         encryptor = new AES256TextEncryptor();
         encryptor.setPassword(password);
         log.debug("EncryptedFieldConverter initialise avec succes");
+    }
+
+    @Value("${clenzy.security.field-encryption.fail-on-decrypt-error:true}")
+    public void setFailOnDecryptError(boolean value) {
+        failOnDecryptError = value;
     }
 
     @Override
@@ -72,9 +92,21 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
         try {
             return encryptor.decrypt(dbData);
         } catch (Exception e) {
-            // Si le dechiffrement echoue, retourner la valeur brute
-            // (peut arriver si la donnee n'a pas ete chiffree — migration progressive)
-            log.warn("Dechiffrement impossible pour une valeur en base (migration progressive?): {}", e.getMessage());
+            // Z1-SEC-08 : ne plus renvoyer silencieusement la valeur brute (le
+            // ciphertext ou une donnee alteree serait servie comme valeur metier
+            // sans alerte, et une rotation incorrecte de JASYPT_ENCRYPTOR_PASSWORD
+            // passerait inapercue). Echec bruyant via exception typee.
+            // Log volontairement sans la valeur ni le message d'origine
+            // (aucune donnee sensible ne doit fuiter dans les logs).
+            log.error("Echec de dechiffrement d'un champ chiffre en base "
+                    + "(cle JASYPT incorrecte ou donnee alteree) [{}]",
+                    e.getClass().getSimpleName());
+            if (failOnDecryptError) {
+                throw new FieldDecryptionException(
+                        "Echec de dechiffrement d'un champ chiffre au repos", e);
+            }
+            // Mode tolerant explicite (transition migration progressive) :
+            // sert la valeur brute, mais l'echec reste visible (ERROR ci-dessus).
             return dbData;
         }
     }

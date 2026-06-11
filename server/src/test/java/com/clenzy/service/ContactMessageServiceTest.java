@@ -1,7 +1,11 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.ContactAttachmentBase64Dto;
+import com.clenzy.dto.ContactAttachmentContentDto;
+import com.clenzy.dto.ContactAttachmentDto;
 import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.model.*;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.clenzy.repository.ContactAttachmentFileRepository;
 import com.clenzy.repository.ContactMessageRepository;
 import com.clenzy.repository.ManagerUserRepository;
@@ -888,6 +892,159 @@ class ContactMessageServiceTest {
             // Act & Assert
             assertThatThrownBy(() -> service.getMessageForUser(999L, senderJwt))
                     .isInstanceOf(NoSuchElementException.class);
+        }
+    }
+
+    // ── pieces jointes (telechargement / base64) ─────────────────────────────
+
+    @Nested
+    class GetAttachmentContentTests {
+
+        private static final String ATTACHMENTS_JSON =
+                "[{\"id\":\"att-1\",\"filename\":\"file.pdf\",\"originalName\":\"rapport.pdf\","
+                + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"db\"}]";
+
+        private ContactMessage messageWithAttachments() {
+            ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
+            msg.setAttachments(ATTACHMENTS_JSON);
+            return msg;
+        }
+
+        @SuppressWarnings("unchecked")
+        private void stubAttachmentMetadata() throws Exception {
+            doReturn(List.of(new ContactAttachmentDto(
+                    "att-1", "file.pdf", "rapport.pdf", 1024L, "application/pdf", "db")))
+                    .when(objectMapper).readValue(eq(ATTACHMENTS_JSON), any(TypeReference.class));
+        }
+
+        @Test
+        void whenAttachmentExists_thenReturnsMetadataNameAndFileBytes() throws Exception {
+            // Arrange
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
+                    .thenReturn(Optional.of(messageWithAttachments()));
+            stubAttachmentMetadata();
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.of(new ContactAttachmentFile(
+                            1L, "att-1", "pdf-content".getBytes(), "application/pdf", "rapport.pdf", 1024L)));
+
+            // Act
+            ContactAttachmentContentDto content = service.getAttachmentContent(senderJwt, 1L, "att-1");
+
+            // Assert
+            assertThat(content.originalName()).isEqualTo("rapport.pdf");
+            assertThat(content.contentType()).isEqualTo("application/pdf");
+            assertThat(content.data()).isEqualTo("pdf-content".getBytes());
+        }
+
+        @Test
+        void whenAttachmentIdAbsentFromMetadata_thenThrowsIntrouvable() throws Exception {
+            // Arrange
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
+                    .thenReturn(Optional.of(messageWithAttachments()));
+            stubAttachmentMetadata();
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.getAttachmentContent(senderJwt, 1L, "nonexistent-id"))
+                    .isInstanceOf(NoSuchElementException.class)
+                    .hasMessageContaining("introuvable");
+        }
+
+        @Test
+        void whenFileNotStored_thenThrowsNonDisponible() throws Exception {
+            // Arrange
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
+                    .thenReturn(Optional.of(messageWithAttachments()));
+            stubAttachmentMetadata();
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.getAttachmentContent(senderJwt, 1L, "att-1"))
+                    .isInstanceOf(NoSuchElementException.class)
+                    .hasMessageContaining("non disponible");
+        }
+
+        @Test
+        void whenAttachmentsJsonNull_thenThrowsIntrouvable() {
+            // Arrange
+            ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
+            msg.setAttachments(null);
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
+                    .thenReturn(Optional.of(msg));
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.getAttachmentContent(senderJwt, 1L, "att-1"))
+                    .isInstanceOf(NoSuchElementException.class)
+                    .hasMessageContaining("introuvable");
+        }
+
+        @Test
+        void whenUserNotSenderNorRecipient_thenThrowsMessageIntrouvable() {
+            // Arrange : findByIdForUser scope la lecture au sender/recipient —
+            // un tiers (meme org) ne voit jamais le message ni ses pieces jointes.
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.getAttachmentContent(senderJwt, 1L, "att-1"))
+                    .isInstanceOf(NoSuchElementException.class)
+                    .hasMessageContaining("Message introuvable");
+        }
+    }
+
+    @Nested
+    class GetAttachmentAsBase64Tests {
+
+        @Test
+        void whenFileStored_thenReturnsDataUriAndMetadata() {
+            // Arrange
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
+                    .thenReturn(Optional.of(buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID)));
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.of(new ContactAttachmentFile(
+                            1L, "att-1", "hello".getBytes(), "image/png", "img.png", 5L)));
+
+            // Act
+            ContactAttachmentBase64Dto dto = service.getAttachmentAsBase64(senderJwt, 1L, "att-1");
+
+            // Assert
+            assertThat(dto.dataUri()).startsWith("data:image/png;base64,");
+            assertThat(dto.contentType()).isEqualTo("image/png");
+            assertThat(dto.originalName()).isEqualTo("img.png");
+            assertThat(dto.size()).isEqualTo(5L);
+        }
+
+        @Test
+        void whenContentTypeNull_thenDefaultsToOctetStreamAndEmptyName() {
+            // Arrange
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
+                    .thenReturn(Optional.of(buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID)));
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.of(new ContactAttachmentFile(
+                            1L, "att-1", "data".getBytes(), null, null, null)));
+
+            // Act
+            ContactAttachmentBase64Dto dto = service.getAttachmentAsBase64(senderJwt, 1L, "att-1");
+
+            // Assert
+            assertThat(dto.contentType()).isEqualTo("application/octet-stream");
+            assertThat(dto.dataUri()).startsWith("data:application/octet-stream;base64,");
+            assertThat(dto.originalName()).isEmpty();
+            assertThat(dto.size()).isZero();
+        }
+
+        @Test
+        void whenFileMissing_thenThrowsNonDisponible() {
+            // Arrange
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
+                    .thenReturn(Optional.of(buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID)));
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.getAttachmentAsBase64(senderJwt, 1L, "att-1"))
+                    .isInstanceOf(NoSuchElementException.class)
+                    .hasMessageContaining("non disponible");
         }
     }
 

@@ -7,8 +7,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,6 +20,16 @@ import java.util.Map;
  *
  * Si SPRING_DATASOURCE_REPLICA_URL n'est pas defini, les deux pointent
  * vers la meme base (fallback gracieux).
+ *
+ * <p><b>LazyConnectionDataSourceProxy obligatoire (Z1-BUGS-05)</b> : avec
+ * JpaTransactionManager, la connexion JDBC d'une transaction est acquise pendant
+ * {@code doBegin} (pour {@code Connection.setReadOnly}), AVANT que le flag
+ * readOnly soit publie dans le TransactionSynchronizationManager par
+ * {@code prepareSynchronization}. Sans le proxy lazy, le lookup de
+ * {@link ReadWriteRoutingDataSource} voyait donc toujours {@code readOnly=false}
+ * et TOUTES les transactions partaient sur PRIMARY (replica jamais utilisee).
+ * Le proxy differe l'acquisition de la connexion physique au premier statement,
+ * une fois le flag readOnly pose : le routage devient effectif.</p>
  *
  * Niveau 8 — Scalabilite : read replica routing.
  */
@@ -51,8 +63,7 @@ public class DataSourceRoutingConfig {
                 .build();
     }
 
-    @Bean
-    @Primary
+    @Bean("routingDataSource")
     public DataSource routingDataSource(
             @Qualifier("primaryDataSource") DataSource primaryDataSource,
             @Qualifier("replicaDataSource") DataSource replicaDataSource) {
@@ -67,5 +78,25 @@ public class DataSourceRoutingConfig {
         routingDataSource.setDefaultTargetDataSource(primaryDataSource);
 
         return routingDataSource;
+    }
+
+    /**
+     * DataSource expose a JPA/Liquibase : proxy lazy devant le routing datasource,
+     * pour que le choix PRIMARY/REPLICA se fasse au premier statement (flag
+     * readOnly deja pose) et non a l'ouverture de la transaction.
+     *
+     * <p>Les defauts auto-commit / isolation sont fixes explicitement
+     * (defauts Hikari + PostgreSQL) : sans eux, le proxy ouvrirait une connexion
+     * eager des sa construction pour les decouvrir — exactement ce que le proxy
+     * lazy doit eviter sur un routing datasource.</p>
+     */
+    @Bean
+    @Primary
+    public DataSource dataSource(@Qualifier("routingDataSource") DataSource routingDataSource) {
+        LazyConnectionDataSourceProxy proxy = new LazyConnectionDataSourceProxy();
+        proxy.setTargetDataSource(routingDataSource);
+        proxy.setDefaultAutoCommit(true);
+        proxy.setDefaultTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        return proxy;
     }
 }

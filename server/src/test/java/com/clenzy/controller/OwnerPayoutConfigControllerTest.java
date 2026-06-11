@@ -11,6 +11,7 @@ import com.clenzy.payment.payout.openbanking.GoCardlessPisClient;
 import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.OwnerPayoutConfigService;
 import com.clenzy.service.StripeConnectService;
 import com.clenzy.tenant.TenantContext;
 import com.stripe.exception.StripeException;
@@ -66,10 +67,13 @@ class OwnerPayoutConfigControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new OwnerPayoutConfigController(
-                configRepository, tenantContext, userRepository,
+        // Service reel branche sur les mocks : les assertions existantes sur les
+        // repositories restent valables a travers la couche service.
+        OwnerPayoutConfigService configService = new OwnerPayoutConfigService(
+                configRepository, userRepository, tenantContext,
                 stripeConnectService, notificationService, gocardlessClient);
-        ReflectionTestUtils.setField(controller, "clenzyBaseUrl", "https://app.clenzy.fr");
+        ReflectionTestUtils.setField(configService, "clenzyBaseUrl", "https://app.clenzy.fr");
+        controller = new OwnerPayoutConfigController(configService);
     }
 
     private User user(Long id, String keycloakId) {

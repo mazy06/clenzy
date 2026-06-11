@@ -6,8 +6,12 @@ import com.clenzy.model.Guest;
 import com.clenzy.model.GuestChannel;
 import com.clenzy.model.Organization;
 import com.clenzy.repository.GuestRepository;
+import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.UserRepository;
 import com.clenzy.service.GuestService;
+import com.clenzy.service.OrganizationService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,8 +31,10 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,16 +48,24 @@ import static org.mockito.Mockito.when;
 @DisplayName("GuestController")
 class GuestControllerTest {
 
-    @Mock private GuestService guestService;
     @Mock private GuestRepository guestRepository;
+    @Mock private ReservationRepository reservationRepository;
     @Mock private OrganizationRepository organizationRepository;
+    @Mock private OrganizationMemberRepository memberRepository;
+    @Mock private UserRepository userRepository;
     @Mock private TenantContext tenantContext;
 
+    private GuestService guestService;
     private GuestController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new GuestController(guestService, guestRepository, organizationRepository, tenantContext);
+        // Services REELS au-dessus des repositories mockes (pattern Vague A) ;
+        // spy pour stubber findOrCreate/recalculateAllStats au niveau service.
+        OrganizationService organizationService =
+            new OrganizationService(organizationRepository, memberRepository, userRepository);
+        guestService = spy(new GuestService(guestRepository, reservationRepository, organizationService));
+        controller = new GuestController(guestService, tenantContext);
     }
 
     private Guest newGuest(Long id, Long orgId, String first, String last, String email, GuestChannel ch) {
@@ -286,9 +300,9 @@ class GuestControllerTest {
             GuestDto input = new GuestDto(null, "Alice", "Dupont", "alice@x.com", "+33600000000", null);
 
             Guest created = newGuest(99L, 1L, "Alice", "Dupont", "alice@x.com", GuestChannel.DIRECT);
-            when(guestService.findOrCreate(
+            doReturn(created).when(guestService).findOrCreate(
                 eq("Alice"), eq("Dupont"), eq("alice@x.com"), eq("+33600000000"),
-                eq(GuestChannel.DIRECT), isNull(), eq(1L))).thenReturn(created);
+                eq(GuestChannel.DIRECT), isNull(), eq(1L));
 
             ResponseEntity<GuestDto> response = controller.create(input);
 
@@ -363,7 +377,7 @@ class GuestControllerTest {
         @Test
         @DisplayName("delegates to service + returns count")
         void whenCalled_thenReturnsCount() {
-            when(guestService.recalculateAllStats()).thenReturn(42);
+            doReturn(42).when(guestService).recalculateAllStats();
 
             Map<String, Object> response = controller.recalculateStats();
 

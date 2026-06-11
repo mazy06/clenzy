@@ -3,7 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.*;
 import com.clenzy.exception.*;
 import com.clenzy.model.*;
-import com.clenzy.repository.InterventionRepository;
+import com.clenzy.service.DocumentAccessService;
 import com.clenzy.service.DocumentComplianceService;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.DocumentStorageService;
@@ -23,7 +23,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,46 +44,16 @@ public class DocumentController {
     private final DocumentGeneratorService generatorService;
     private final DocumentStorageService documentStorageService;
     private final DocumentComplianceService complianceService;
-    private final InterventionRepository interventionRepository;
+    private final DocumentAccessService documentAccessService;
 
     public DocumentController(DocumentGeneratorService generatorService,
                                DocumentStorageService documentStorageService,
                                DocumentComplianceService complianceService,
-                               InterventionRepository interventionRepository) {
+                               DocumentAccessService documentAccessService) {
         this.generatorService = generatorService;
         this.documentStorageService = documentStorageService;
         this.complianceService = complianceService;
-        this.interventionRepository = interventionRepository;
-    }
-
-    /**
-     * Verifie que l'utilisateur a le droit d'acceder aux documents d'une intervention.
-     * Les roles de management (SUPER_ADMIN, SUPER_MANAGER, ADMIN, MANAGER, SUPERVISOR)
-     * ont acces a tous les documents de l'org (filtre Hibernate).
-     * Les roles operationnels (HOUSEKEEPER, TECHNICIAN, etc.) ne voient que les documents
-     * des interventions qui leur sont assignees.
-     */
-    /**
-     * Verifie que l'utilisateur a le droit d'acceder aux documents d'une intervention.
-     * Staff plateforme et superviseurs voient tout (dans leur org via le filtre Hibernate).
-     * Les roles operationnels (HOUSEKEEPER, TECHNICIAN, etc.) ne voient que les documents
-     * des interventions qui leur sont assignees.
-     */
-    private void validateInterventionOwnership(Jwt jwt, Long interventionId) {
-        final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
-
-        // Staff plateforme + superviseurs : acces a toute l'org
-        if (role.isPlatformStaff() || role == UserRole.SUPERVISOR || role == UserRole.HOST) return;
-
-        // Roles operationnels : verifier l'assignation
-        // Uses a scalar JPQL projection to avoid LazyInitializationException
-        // (no open Hibernate session in the controller layer).
-        final String keycloakId = jwt.getSubject();
-        final String assignedKeycloakId = interventionRepository.findAssignedUserKeycloakIdById(interventionId);
-
-        if (assignedKeycloakId == null || !keycloakId.equals(assignedKeycloakId)) {
-            throw new AccessDeniedException("Acces refuse : vous n'etes pas assigne a cette intervention");
-        }
+        this.documentAccessService = documentAccessService;
     }
 
     // ─── Templates ──────────────────────────────────────────────────────────
@@ -181,7 +150,6 @@ public class DocumentController {
     @GetMapping("/templates/{id}/download")
     @Operation(summary = "Telecharger le fichier original du template (.odt source)")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
-    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> downloadTemplateOriginal(@PathVariable Long id) {
         DocumentTemplate template = generatorService.getTemplate(id);
         byte[] content = generatorService.getTemplateOriginalContent(id);
@@ -199,7 +167,6 @@ public class DocumentController {
     @GetMapping("/templates/{id}/preview")
     @Operation(summary = "Apercu PDF du template rempli avec des donnees factices")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
-    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> previewTemplate(@PathVariable Long id) {
         DocumentTemplate template = generatorService.getTemplate(id);
         byte[] pdf = generatorService.generateTemplatePreview(id);
@@ -253,7 +220,6 @@ public class DocumentController {
     @GetMapping("/generations/by-reference")
     @Operation(summary = "Generations de documents par type de reference et ID")
     @PreAuthorize("isAuthenticated()")
-    @Transactional(readOnly = true)
     public ResponseEntity<List<DocumentGenerationDto>> getGenerationsByReference(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String referenceType,
@@ -268,7 +234,7 @@ public class DocumentController {
 
         // Ownership check pour les interventions
         if (refType == ReferenceType.INTERVENTION) {
-            validateInterventionOwnership(jwt, referenceId);
+            documentAccessService.validateInterventionOwnership(jwt, referenceId);
         }
 
         List<DocumentGenerationDto> generations = generatorService.getGenerationsByReference(refType, referenceId);
@@ -291,16 +257,19 @@ public class DocumentController {
     @GetMapping("/generations/{id}/download")
     @Operation(summary = "Telecharger un document genere")
     @PreAuthorize("isAuthenticated()")
-    @Transactional(readOnly = true)
     public ResponseEntity<Resource> downloadGeneration(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id
     ) {
         DocumentGeneration generation = generatorService.getGeneration(id);
 
+        // Isolation multi-tenant : valider l'org AVANT de servir le binaire
+        // (getGeneration → findById bypasse le filtre Hibernate).
+        documentAccessService.requireSameOrganization(generation);
+
         // Ownership check : si le document reference une intervention
         if (generation.getReferenceType() == ReferenceType.INTERVENTION && generation.getReferenceId() != null) {
-            validateInterventionOwnership(jwt, generation.getReferenceId());
+            documentAccessService.validateInterventionOwnership(jwt, generation.getReferenceId());
         }
 
         if (generation.getFilePath() == null || generation.getFilePath().isBlank()) {

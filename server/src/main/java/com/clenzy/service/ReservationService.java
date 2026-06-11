@@ -1,9 +1,14 @@
 package com.clenzy.service;
 
 import com.clenzy.config.SyncMetrics;
+import com.clenzy.dto.ReservationDto;
 import com.clenzy.exception.CalendarConflictException;
+import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.*;
+import com.clenzy.repository.GuestRepository;
+import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.MinNightsOverrideRepository;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.SmartLockDeviceRepository;
@@ -14,6 +19,8 @@ import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +28,9 @@ import com.clenzy.tenant.TenantContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Transactional(readOnly = true)
@@ -41,6 +50,11 @@ public class ReservationService {
     private final AutomationEvaluationService automationEvaluationService;
     private final SmartLockDeviceRepository smartLockDeviceRepository;
     private final SmartLockAccessCodeService smartLockAccessCodeService;
+    private final ReservationMapper reservationMapper;
+    private final InterventionRepository interventionRepository;
+    private final PropertyRepository propertyRepository;
+    private final GuestRepository guestRepository;
+    private final StripeService stripeService;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -54,7 +68,13 @@ public class ReservationService {
                               AutomationEvaluationService automationEvaluationService,
                               SmartLockDeviceRepository smartLockDeviceRepository,
                               // @Lazy : casse un eventuel cycle (codes -> messaging -> ...).
-                              @Lazy SmartLockAccessCodeService smartLockAccessCodeService) {
+                              @Lazy SmartLockAccessCodeService smartLockAccessCodeService,
+                              ReservationMapper reservationMapper,
+                              InterventionRepository interventionRepository,
+                              PropertyRepository propertyRepository,
+                              GuestRepository guestRepository,
+                              // @Lazy : evite un cycle potentiel via les services de paiement.
+                              @Lazy StripeService stripeService) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -67,6 +87,11 @@ public class ReservationService {
         this.automationEvaluationService = automationEvaluationService;
         this.smartLockDeviceRepository = smartLockDeviceRepository;
         this.smartLockAccessCodeService = smartLockAccessCodeService;
+        this.reservationMapper = reservationMapper;
+        this.interventionRepository = interventionRepository;
+        this.propertyRepository = propertyRepository;
+        this.guestRepository = guestRepository;
+        this.stripeService = stripeService;
     }
 
     /**
@@ -98,6 +123,91 @@ public class ReservationService {
      */
     public List<Reservation> getByProperty(Long propertyId) {
         return reservationRepository.findByPropertyId(propertyId, tenantContext.getRequiredOrganizationId());
+    }
+
+    /**
+     * Charge une reservation avec toutes ses relations (fetch-all, evite les
+     * LazyInitializationException avec open-in-view=false).
+     *
+     * @throws NotFoundException si la reservation n'existe pas
+     */
+    public Reservation getByIdFetchAll(Long id) {
+        return reservationRepository.findByIdFetchAll(id)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+    }
+
+    /**
+     * Recharge une reservation avec toutes ses relations pour la conversion DTO.
+     * Repli sur l'instance fournie si la reservation n'est plus trouvable.
+     */
+    public Reservation reloadWithRelations(Reservation reservation) {
+        return reservationRepository.findByIdFetchAll(reservation.getId()).orElse(reservation);
+    }
+
+    /**
+     * Recherche par nom de guest ou de logement (autocomplete rattachement « a trier »).
+     */
+    public List<Reservation> searchByGuestOrProperty(String query, int limit) {
+        return reservationRepository.searchByGuestOrProperty(query, PageRequest.of(0, limit));
+    }
+
+    /**
+     * Interventions liees a une reservation (org courante).
+     */
+    public List<Intervention> getLinkedInterventions(Long reservationId) {
+        return interventionRepository.findByReservationId(
+                reservationId, tenantContext.getRequiredOrganizationId());
+    }
+
+    /**
+     * Valide qu'un guest appartient a l'organisation courante (no-op si guestId null).
+     *
+     * @throws NotFoundException si le guest n'existe pas dans l'organisation
+     */
+    public void validateGuestBelongsToOrganization(Long guestId) {
+        if (guestId == null) return;
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        guestRepository.findByIdAndOrganizationId(guestId, orgId)
+                .orElseThrow(() -> new NotFoundException("Guest introuvable: " + guestId));
+    }
+
+    /**
+     * Valide que l'utilisateur a acces a la propriete : propriete dans
+     * l'organisation courante ET (super admin OU platform staff OU proprietaire).
+     * Deplace de ReservationController (T-ARCH-01).
+     *
+     * @throws NotFoundException     si la propriete n'existe pas
+     * @throws AccessDeniedException si l'utilisateur n'a pas acces
+     */
+    public void validatePropertyAccess(Long propertyId, String keycloakId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new NotFoundException("Propriete introuvable: " + propertyId));
+
+        if (property.getOrganizationId() != null && !property.getOrganizationId().equals(orgId)) {
+            throw new AccessDeniedException("Acces refuse : propriete hors de votre organisation");
+        }
+
+        if (tenantContext.isSuperAdmin()) return;
+
+        User user = userRepository.findByKeycloakId(keycloakId).orElse(null);
+        if (user != null && user.getRole() != null && user.getRole().isPlatformStaff()) return;
+
+        // Comparaison par ID (PK) pour eviter LazyInitializationException sur le proxy User
+        if (user != null && property.getOwner() != null
+                && property.getOwner().getId().equals(user.getId())) return;
+
+        throw new AccessDeniedException("Acces refuse : vous n'etes pas proprietaire de cette propriete");
+    }
+
+    /**
+     * Persiste le masquage planning (flag hiddenFromPlanning deja applique par
+     * l'appelant apres validation du statut cancelled).
+     */
+    @Transactional
+    public Reservation persistHiddenFromPlanning(Reservation reservation) {
+        return reservationRepository.save(reservation);
     }
 
     /**
@@ -191,6 +301,164 @@ public class ReservationService {
     }
 
     /**
+     * Met a jour une reservation (PUT /reservations/{id}) de maniere atomique.
+     *
+     * Orchestration complete dans UNE seule transaction :
+     * - creation/liaison du Guest si absent (cas import iCal)
+     * - application des champs du DTO (y compris le statut)
+     * - synchronisation du calendrier via CalendarEngine (sous lock advisory) :
+     *     pending -> confirmed              : reserve les jours (book)
+     *     confirmed -> cancelled/pending    : libere les jours (cancel)
+     *     confirmed + dates/propriete       : libere puis re-reserve (move)
+     *   Un conflit de disponibilite leve CalendarConflictException (HTTP 409)
+     *   et annule TOUTE la mise a jour (rollback complet).
+     * - decalage de l'intervention liee si le checkout change
+     * - regeneration des codes serrure si les dates changent (non bloquant)
+     * - notification de mise a jour
+     *
+     * @param id      id de la reservation a modifier
+     * @param dto     champs a appliquer
+     * @param actorId keycloakId de l'utilisateur a l'origine de la modification
+     * @return la reservation sauvegardee
+     */
+    @Transactional
+    public Reservation update(Long id, ReservationDto dto, String actorId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        Reservation existing = reservationRepository.findByIdFetchAll(id)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+        if (!orgId.equals(existing.getOrganizationId())) {
+            throw new RuntimeException("Acces refuse : reservation hors de votre organisation");
+        }
+
+        linkGuestIfMissing(existing, orgId);
+
+        LocalDate oldCheckIn = existing.getCheckIn();
+        LocalDate oldCheckOut = existing.getCheckOut();
+        Long oldPropertyId = existing.getProperty().getId();
+        String oldStatus = existing.getStatus();
+
+        reservationMapper.apply(dto, existing);
+        if (dto.status() != null && !dto.status().isBlank()) {
+            existing.setStatus(dto.status());
+        }
+
+        syncCalendarOnUpdate(existing, oldStatus, oldPropertyId, oldCheckIn, oldCheckOut, orgId, actorId);
+        rescheduleLinkedIntervention(existing, oldCheckOut);
+
+        Reservation saved = reservationRepository.save(existing);
+
+        boolean datesChanged = !Objects.equals(saved.getCheckIn(), oldCheckIn)
+                || !Objects.equals(saved.getCheckOut(), oldCheckOut);
+        if (datesChanged && "confirmed".equals(saved.getStatus())) {
+            // Non bloquant : une panne serrure ne doit pas bloquer la mise a jour.
+            revokeAccessCodes(saved.getId());
+            generateAccessCodes(saved, orgId);
+        }
+
+        notifyReservationUpdated(saved);
+        return saved;
+    }
+
+    /**
+     * Cree/lie le Guest si la reservation n'en a pas (cas import iCal),
+     * sinon guestEmail/guestPhone ne seraient jamais persistes.
+     */
+    private void linkGuestIfMissing(Reservation reservation, Long orgId) {
+        if (reservation.getGuest() != null || reservation.getGuestName() == null
+                || reservation.getGuestName().isBlank()) {
+            return;
+        }
+        Guest guest = guestService.findOrCreateFromName(
+                reservation.getGuestName(), reservation.getSource(), orgId);
+        if (guest != null) {
+            reservation.setGuest(guest);
+            log.info("Guest cree/lie pour reservation #{} (import iCal sans Guest): guestId={}",
+                    reservation.getId(), guest.getId());
+        }
+    }
+
+    /**
+     * Synchronise calendar_days avec la mise a jour (Z5-BUGS-01).
+     * Seules les reservations "confirmed" bloquent le calendrier.
+     */
+    private void syncCalendarOnUpdate(Reservation reservation, String oldStatus, Long oldPropertyId,
+                                      LocalDate oldCheckIn, LocalDate oldCheckOut,
+                                      Long orgId, String actorId) {
+        boolean wasBlocking = "confirmed".equals(oldStatus);
+        boolean isBlocking = "confirmed".equals(reservation.getStatus());
+        if (!wasBlocking && !isBlocking) return;
+
+        if (wasBlocking && !isBlocking) {
+            // confirmed -> cancelled/pending : liberer les jours + revoquer les codes
+            calendarEngine.cancel(reservation.getId(), orgId, actorId);
+            revokeAccessCodes(reservation.getId());
+            return;
+        }
+
+        if (!wasBlocking) {
+            // pending -> confirmed : bloquer le calendrier comme a la creation
+            validateMinimumNights(reservation, orgId);
+            bookCalendarDays(reservation, orgId, actorId);
+            return;
+        }
+
+        // confirmed -> confirmed : deplacer si les dates ou la propriete changent
+        boolean datesChanged = !Objects.equals(oldCheckIn, reservation.getCheckIn())
+                || !Objects.equals(oldCheckOut, reservation.getCheckOut());
+        boolean propertyChanged = !Objects.equals(oldPropertyId, reservation.getProperty().getId());
+        if (!datesChanged && !propertyChanged) return;
+
+        moveCalendarDays(reservation, oldPropertyId, oldCheckIn, oldCheckOut, orgId, actorId);
+    }
+
+    private void bookCalendarDays(Reservation reservation, Long orgId, String actorId) {
+        try {
+            calendarEngine.book(reservation.getProperty().getId(), reservation.getCheckIn(),
+                    reservation.getCheckOut(), reservation.getId(), orgId,
+                    reservation.getSource(), actorId);
+        } catch (CalendarConflictException e) {
+            syncMetrics.incrementDoubleBookingPrevented();
+            throw e;
+        }
+    }
+
+    private void moveCalendarDays(Reservation reservation, Long oldPropertyId,
+                                  LocalDate oldCheckIn, LocalDate oldCheckOut,
+                                  Long orgId, String actorId) {
+        try {
+            calendarEngine.move(new CalendarEngine.ReservationMove(
+                    reservation.getId(), orgId,
+                    oldPropertyId, oldCheckIn, oldCheckOut,
+                    reservation.getProperty().getId(), reservation.getCheckIn(), reservation.getCheckOut(),
+                    reservation.getSource(), actorId));
+        } catch (CalendarConflictException e) {
+            syncMetrics.incrementDoubleBookingPrevented();
+            throw e;
+        }
+    }
+
+    /** Decale l'intervention liee si le checkout a change (meme heure, nouvelle date). */
+    private void rescheduleLinkedIntervention(Reservation reservation, LocalDate oldCheckOut) {
+        Intervention intervention = reservation.getIntervention();
+        if (intervention == null || reservation.getCheckOut() == null
+                || reservation.getCheckOut().equals(oldCheckOut)) {
+            return;
+        }
+        LocalTime timeOfDay = intervention.getScheduledDate() != null
+                ? intervention.getScheduledDate().toLocalTime()
+                : LocalTime.of(11, 0);
+        LocalDateTime newScheduled = reservation.getCheckOut().atTime(timeOfDay);
+        intervention.setScheduledDate(newScheduled);
+        intervention.setGuestCheckoutTime(newScheduled);
+        // Mettre a jour startTime/endTime aussi pour coherence
+        intervention.setStartTime(newScheduled);
+        if (intervention.getEstimatedDurationHours() != null) {
+            intervention.setEndTime(newScheduled.plusHours(intervention.getEstimatedDurationHours()));
+        }
+        interventionRepository.save(intervention);
+    }
+
+    /**
      * Annule une reservation : met le statut a "cancelled" et libere
      * les jours dans le calendrier.
      *
@@ -218,9 +486,58 @@ public class ReservationService {
         // Revoque les codes d'acces serrure de la reservation (best-effort, non bloquant).
         revokeAccessCodes(reservationId);
 
+        // Annulation manuelle d'une resa pending avec session Stripe ouverte :
+        // expirer la session pour qu'un guest ne puisse plus payer des dates
+        // liberees (reliquat revue A3 — meme garde que le cleanup scheduler).
+        expireStripeSessionAfterCommit(cancelled);
+
         notifyReservationCancelled(cancelled);
 
         return cancelled;
+    }
+
+    /**
+     * Expire la session Stripe Checkout d'une reservation annulee manuellement
+     * dont le paiement est encore attendu. L'appel HTTP Stripe est differe
+     * APRES le commit (pas d'appel externe dans la transaction). Si la session
+     * a ete payee entre temps (race annulation / paiement), le paiement est
+     * rembourse automatiquement — les dates viennent d'etre liberees.
+     */
+    private void expireStripeSessionAfterCommit(Reservation reservation) {
+        String sessionId = reservation.getStripeSessionId();
+        boolean paymentStillExpected = reservation.getPaymentStatus() == PaymentStatus.PENDING
+                || reservation.getPaymentStatus() == PaymentStatus.PROCESSING
+                || reservation.getPaymentStatus() == PaymentStatus.FAILED;
+        if (sessionId == null || sessionId.isBlank() || !paymentStillExpected) {
+            return;
+        }
+        final Long reservationId = reservation.getId();
+        Runnable expireAction = () -> {
+            try {
+                StripeService.CheckoutSessionExpiryResult result =
+                        stripeService.expireCheckoutSession(sessionId);
+                if (result == StripeService.CheckoutSessionExpiryResult.PAID) {
+                    log.error("Reservation {} annulee manuellement mais session Stripe {} deja payee — "
+                            + "remboursement automatique", reservationId, sessionId);
+                    stripeService.refundCheckoutSessionPayment(sessionId,
+                            "reservation annulee manuellement apres paiement");
+                }
+            } catch (Exception e) {
+                log.error("Expiration de la session Stripe {} impossible apres annulation de la "
+                        + "reservation {} : {}", sessionId, reservationId, e.getMessage());
+            }
+        };
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    expireAction.run();
+                }
+            });
+            return;
+        }
+        expireAction.run();
     }
 
     /**

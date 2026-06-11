@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.model.Incident;
+import com.clenzy.model.Incident.IncidentSeverity;
 import com.clenzy.model.Incident.IncidentStatus;
 import com.clenzy.model.Incident.IncidentType;
 import com.clenzy.model.NotificationKey;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -350,6 +352,124 @@ class IncidentServiceTest {
 
             assertThat(result).isFalse();
             verify(incidentRepository, never()).deleteById(any());
+        }
+    }
+
+    // ─── Logique de listing extraite d'IncidentController (T-ARCH-01) ───
+
+    @Nested
+    @DisplayName("searchIncidents")
+    class SearchIncidents {
+
+        private Incident incident(Long id, IncidentSeverity severity, IncidentStatus status,
+                                  String serviceName) {
+            Incident incident = new Incident();
+            incident.setId(id);
+            incident.setType(IncidentType.SERVICE_DOWN);
+            incident.setSeverity(severity);
+            incident.setStatus(status);
+            incident.setServiceName(serviceName);
+            incident.setOpenedAt(LocalDateTime.now().minusHours(2));
+            return incident;
+        }
+
+        @Test
+        @DisplayName("status=OPEN -> tous les OPEN sans limite d'age")
+        void whenStatusOpen_thenUsesUnboundedOpenQuery() {
+            Incident open = incident(1L, IncidentSeverity.P1, IncidentStatus.OPEN, "smtp");
+            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
+                    .thenReturn(List.of(open));
+
+            List<Incident> result = service.searchIncidents(
+                    IncidentStatus.OPEN, null, LocalDateTime.now().minusDays(30));
+
+            assertThat(result).containsExactly(open);
+            verify(incidentRepository, never()).findActiveSince(any());
+        }
+
+        @Test
+        @DisplayName("status=RESOLVED -> requete scoped par date")
+        void whenStatusResolved_thenUsesScopedQuery() {
+            LocalDateTime since = LocalDateTime.now().minusDays(30);
+            Incident resolved = incident(1L, IncidentSeverity.P1, IncidentStatus.RESOLVED, "kafka");
+            when(incidentRepository.findByStatusAndOpenedAtAfterOrderByOpenedAtDesc(
+                    IncidentStatus.RESOLVED, since)).thenReturn(List.of(resolved));
+
+            List<Incident> result = service.searchIncidents(IncidentStatus.RESOLVED, null, since);
+
+            assertThat(result).containsExactly(resolved);
+        }
+
+        @Test
+        @DisplayName("status null -> mix OPEN (sans limite) + actifs hors OPEN")
+        void whenStatusNull_thenMixesOpenAndActive() {
+            LocalDateTime since = LocalDateTime.now().minusDays(30);
+            Incident open = incident(1L, IncidentSeverity.P1, IncidentStatus.OPEN, "smtp");
+            Incident resolved = incident(2L, IncidentSeverity.P1, IncidentStatus.RESOLVED, "kafka");
+            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
+                    .thenReturn(List.of(open));
+            // findActiveSince retourne aussi l'OPEN : il doit etre deduplique (filtre != OPEN)
+            when(incidentRepository.findActiveSince(since)).thenReturn(List.of(open, resolved));
+
+            List<Incident> result = service.searchIncidents(null, null, since);
+
+            assertThat(result).containsExactly(open, resolved);
+        }
+
+        @Test
+        @DisplayName("filtre severity -> garde la severite demandee + les legacy null")
+        void whenSeverityFilter_thenKeepsMatchingAndLegacyNull() {
+            Incident p1 = incident(1L, IncidentSeverity.P1, IncidentStatus.OPEN, "smtp");
+            Incident p2 = incident(2L, IncidentSeverity.P2, IncidentStatus.OPEN, "kafka");
+            Incident legacy = incident(3L, null, IncidentStatus.OPEN, "redis");
+            when(incidentRepository.findByStatusOrderByOpenedAtDesc(IncidentStatus.OPEN))
+                    .thenReturn(List.of(p1, p2, legacy));
+
+            List<Incident> result = service.searchIncidents(
+                    IncidentStatus.OPEN, IncidentSeverity.P1, LocalDateTime.now().minusDays(30));
+
+            assertThat(result).containsExactly(p1, legacy);
+        }
+    }
+
+    @Nested
+    @DisplayName("countOpenIncidents")
+    class CountOpenIncidents {
+
+        @Test
+        void whenNoSeverity_thenCountsAllOpen() {
+            when(incidentRepository.countByStatus(IncidentStatus.OPEN)).thenReturn(5L);
+
+            assertThat(service.countOpenIncidents(null)).isEqualTo(5L);
+        }
+
+        @Test
+        void whenSeverityP1_thenCountsBySeverity() {
+            when(incidentRepository.countByStatusAndSeverity(IncidentStatus.OPEN, IncidentSeverity.P1))
+                    .thenReturn(3L);
+
+            assertThat(service.countOpenIncidents(IncidentSeverity.P1)).isEqualTo(3L);
+        }
+    }
+
+    @Nested
+    @DisplayName("findIncident")
+    class FindIncident {
+
+        @Test
+        void whenFound_thenReturnsIncident() {
+            Incident incident = new Incident();
+            incident.setId(1L);
+            when(incidentRepository.findById(1L)).thenReturn(Optional.of(incident));
+
+            assertThat(service.findIncident(1L)).contains(incident);
+        }
+
+        @Test
+        void whenNotFound_thenReturnsEmpty() {
+            when(incidentRepository.findById(99L)).thenReturn(Optional.empty());
+
+            assertThat(service.findIncident(99L)).isEmpty();
         }
     }
 }

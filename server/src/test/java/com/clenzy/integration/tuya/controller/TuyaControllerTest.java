@@ -42,7 +42,10 @@ class TuyaControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new TuyaController(apiService, noiseDeviceRepository, tuyaConfig, platformConfigService, appAccountService);
+        // Service reel sur repository mocke (refactor T-ARCH-01)
+        controller = new TuyaController(apiService,
+                new com.clenzy.integration.tuya.service.TuyaDeviceQueryService(noiseDeviceRepository),
+                tuyaConfig, platformConfigService, appAccountService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")

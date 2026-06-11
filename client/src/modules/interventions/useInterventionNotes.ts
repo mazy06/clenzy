@@ -203,11 +203,13 @@ export function useInterventionNotes({
         if (notesJson !== lastSavedNotesRef.current && id && intervention) {
           const formData = new URLSearchParams();
           formData.append('notes', notesJson);
+          // Header conditionnel : sans token JS (session restauree via le
+          // cookie HttpOnly), "Bearer null" court-circuiterait le repli cookie.
           const token = getAccessToken();
           fetch(buildApiUrl(`/interventions/${id}/notes`), {
             method: 'PUT',
             headers: {
-              'Authorization': `Bearer ${token}`,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
               'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: formData.toString(),

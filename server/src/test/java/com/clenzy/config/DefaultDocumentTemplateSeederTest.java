@@ -22,6 +22,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +40,11 @@ import static org.mockito.Mockito.when;
  * <p>On mocke les repositories, le parser et le PlatformTransactionManager.
  * Le {@code TransactionTemplate} construit dans le constructeur execute le
  * callback de maniere synchrone avec un manager mocke.</p>
+ *
+ * <p>Z1-BUGS-07 : le seeder est desormais org-scope — il resout d'abord
+ * l'organisation Clenzy puis ne considere que SES templates actifs (via
+ * {@code findByDocumentTypeOrderByVersionDesc} filtre par org), sans etre
+ * perturbe par les templates actifs des autres organisations.</p>
  *
  * <p>Les ressources ODT reelles (src/main/resources) sont sur le classpath de
  * test : le chemin heureux valide donc aussi que les fichiers embarques sont
@@ -87,7 +93,7 @@ class DefaultDocumentTemplateSeederTest {
     @DisplayName("run: aucun template actif -> seede les 8 types configures, org Clenzy, actifs")
     void run_noActiveTemplate_seedsAllConfiguredTypes() {
         Organization org = org(42L);
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(any())).thenReturn(false);
+        stubNoTemplates();
         when(organizationRepository.findByName("Clenzy")).thenReturn(Optional.of(org));
         when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
         when(templateParserService.parseTemplate(any(byte[].class)))
@@ -112,7 +118,7 @@ class DefaultDocumentTemplateSeederTest {
     @DisplayName("run: metadata du DEVIS seede (nom, fichier, type, actif)")
     void run_devisSeed_hasCorrectMetadata() {
         Organization org = org(7L);
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(any())).thenReturn(false);
+        stubNoTemplates();
         when(organizationRepository.findByName("Clenzy")).thenReturn(Optional.of(org));
         when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
         when(templateParserService.parseTemplate(any(byte[].class)))
@@ -133,7 +139,7 @@ class DefaultDocumentTemplateSeederTest {
     @Test
     @DisplayName("run: organisation Clenzy introuvable -> aucun insert")
     void run_orgMissing_skips() {
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(any())).thenReturn(false);
+        stubNoTemplates();
         when(organizationRepository.findByName("Clenzy")).thenReturn(Optional.empty());
 
         seeder.run(null);
@@ -143,13 +149,42 @@ class DefaultDocumentTemplateSeederTest {
     }
 
     @Test
+    @DisplayName("run: un actif du meme type dans une AUTRE org -> seed Clenzy quand meme (Z1-BUGS-07)")
+    void run_activeTemplateInOtherOrg_doesNotSuppressClenzySeed() {
+        Organization org = org(42L);
+        when(organizationRepository.findByName("Clenzy")).thenReturn(Optional.of(org));
+        // Toutes les recherches par type retournent un actif d'une autre org (id 777) :
+        // l'ancien exists/find global aurait saute le seed (voire leve
+        // IncorrectResultSizeDataAccessException avec 2 actifs).
+        for (DocumentType type : ALL_TYPES) {
+            when(templateRepository.findByDocumentTypeOrderByVersionDesc(type))
+                    .thenReturn(List.of(active(type, "system-seed", "other-org", 777L)));
+        }
+        when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(templateParserService.parseTemplate(any(byte[].class)))
+                .thenAnswer(inv -> List.of(new DocumentTemplateTag()));
+
+        seeder.run(null);
+
+        ArgumentCaptor<DocumentTemplate> captor = ArgumentCaptor.forClass(DocumentTemplate.class);
+        verify(templateRepository, times(ALL_TYPES.length)).save(captor.capture());
+        assertThat(captor.getAllValues()).allSatisfy(t ->
+                assertThat(t.getOrganizationId()).isEqualTo(42L));
+    }
+
+    @Test
     @DisplayName("run: contenu different -> rendu MAJ + tags re-parses (DEVIS + FACTURE)")
     void run_seededTemplatesChanged_updateBoth() {
-        DocumentTemplate devis = active(DocumentType.DEVIS, "system-seed", "ancien-devis");
-        DocumentTemplate facture = active(DocumentType.FACTURE, "system-seed", "ancienne-facture");
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(any())).thenReturn(true);
-        when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS)).thenReturn(Optional.of(devis));
-        when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.FACTURE)).thenReturn(Optional.of(facture));
+        Organization org = org(42L);
+        DocumentTemplate devis = active(DocumentType.DEVIS, "system-seed", "ancien-devis", 42L);
+        DocumentTemplate facture = active(DocumentType.FACTURE, "system-seed", "ancienne-facture", 42L);
+        when(organizationRepository.findByName("Clenzy")).thenReturn(Optional.of(org));
+        when(templateRepository.findByDocumentTypeOrderByVersionDesc(DocumentType.DEVIS))
+                .thenReturn(List.of(devis));
+        when(templateRepository.findByDocumentTypeOrderByVersionDesc(DocumentType.FACTURE))
+                .thenReturn(List.of(facture));
+        // Les autres types ont un actif PERSONNALISE (jamais re-parse ni ecrase).
+        stubTypesAsCustomActive(42L, Set.of(DocumentType.DEVIS, DocumentType.FACTURE));
         when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
         when(templateParserService.parseTemplate(any(byte[].class))).thenAnswer(inv -> {
             DocumentTemplateTag t = new DocumentTemplateTag();
@@ -164,12 +199,12 @@ class DefaultDocumentTemplateSeederTest {
         assertThat(devis.getVersion()).isEqualTo(2);
         assertThat(new String(facture.getFileContent())).isNotEqualTo("ancienne-facture");
         assertThat(facture.getVersion()).isEqualTo(2);
-        // Tags re-parses sur les 2 templates (corrige les tags incomplets du seed 0163).
+        // Tags re-parses sur les 2 templates seedes uniquement (pas les personnalises).
         verify(templateParserService, times(2)).parseTemplate(any(byte[].class));
         assertThat(devis.getTags()).extracting(DocumentTemplateTag::getTagName).containsExactly("intervention.lignes");
         assertThat(facture.getTags()).extracting(DocumentTemplateTag::getTagName).containsExactly("intervention.lignes");
-        // Les autres types n'ont pas de template actif stubbe -> Optional.empty -> aucun insert.
-        verify(organizationRepository, never()).findByName(any());
+        // Aucun nouvel insert (persistTags n'est appele que sur le chemin seed).
+        verify(tagRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -184,14 +219,17 @@ class DefaultDocumentTemplateSeederTest {
         facture.setDocumentType(DocumentType.FACTURE);
         facture.setActive(true);
         facture.setCreatedBy("system-seed");
+        facture.setOrganizationId(42L);
         facture.setFileContent(bundled); // MEME contenu -> checksum identique
         facture.setVersion(1);
         DocumentTemplateTag stale = new DocumentTemplateTag();
         stale.setTagName("client.email"); // tags d'origine incomplets : manque intervention.lignes
         facture.setTags(new java.util.ArrayList<>(List.of(stale)));
 
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(any())).thenReturn(true);
-        when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.FACTURE)).thenReturn(Optional.of(facture));
+        when(organizationRepository.findByName("Clenzy")).thenReturn(Optional.of(org(42L)));
+        when(templateRepository.findByDocumentTypeOrderByVersionDesc(DocumentType.FACTURE))
+                .thenReturn(List.of(facture));
+        stubTypesAsCustomActive(42L, Set.of(DocumentType.FACTURE));
         when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
         DocumentTemplateTag t1 = new DocumentTemplateTag();
         t1.setTagName("client.email");
@@ -210,11 +248,8 @@ class DefaultDocumentTemplateSeederTest {
     @Test
     @DisplayName("run: templates personnalises par un admin -> jamais ecrases")
     void run_customizedTemplates_notOverwritten() {
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(any())).thenReturn(true);
-        when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.DEVIS))
-                .thenReturn(Optional.of(active(DocumentType.DEVIS, "admin-user", "perso-devis")));
-        when(templateRepository.findByDocumentTypeAndActiveTrue(DocumentType.FACTURE))
-                .thenReturn(Optional.of(active(DocumentType.FACTURE, "admin-user", "perso-facture")));
+        when(organizationRepository.findByName("Clenzy")).thenReturn(Optional.of(org(42L)));
+        stubTypesAsCustomActive(42L, Set.of());
 
         seeder.run(null);
 
@@ -225,12 +260,14 @@ class DefaultDocumentTemplateSeederTest {
     @DisplayName("run: une erreur sur un type est isolee -> les autres types restent traites")
     void run_oneTypeFails_othersStillProcessed() {
         Organization org = org(99L);
-        // Defaut : tous "existent" -> no-op (findBy vide). On force DEVIS a lever, FACTURE a seeder.
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(any())).thenReturn(true);
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(DocumentType.DEVIS))
-                .thenThrow(new RuntimeException("DB down"));
-        when(templateRepository.existsByDocumentTypeAndActiveTrue(DocumentType.FACTURE)).thenReturn(false);
+        // DEVIS leve, FACTURE n'a aucun actif -> seede, les autres ont un actif
+        // personnalise -> no-op.
         when(organizationRepository.findByName("Clenzy")).thenReturn(Optional.of(org));
+        when(templateRepository.findByDocumentTypeOrderByVersionDesc(DocumentType.DEVIS))
+                .thenThrow(new RuntimeException("DB down"));
+        when(templateRepository.findByDocumentTypeOrderByVersionDesc(DocumentType.FACTURE))
+                .thenReturn(List.of());
+        stubTypesAsCustomActive(99L, Set.of(DocumentType.DEVIS, DocumentType.FACTURE));
         when(templateRepository.save(any(DocumentTemplate.class))).thenAnswer(inv -> inv.getArgument(0));
         when(templateParserService.parseTemplate(any(byte[].class)))
                 .thenAnswer(inv -> List.of(new DocumentTemplateTag()));
@@ -242,11 +279,27 @@ class DefaultDocumentTemplateSeederTest {
         assertThat(captor.getValue().getDocumentType()).isEqualTo(DocumentType.FACTURE);
     }
 
-    private static DocumentTemplate active(DocumentType type, String createdBy, String content) {
+    /** Aucun template existant, quel que soit le type. */
+    private void stubNoTemplates() {
+        when(templateRepository.findByDocumentTypeOrderByVersionDesc(any())).thenReturn(List.of());
+    }
+
+    /** Tous les types hors {@code except} ont un actif PERSONNALISE dans l'org donnee. */
+    private void stubTypesAsCustomActive(Long organizationId, Set<DocumentType> except) {
+        for (DocumentType type : ALL_TYPES) {
+            if (!except.contains(type)) {
+                when(templateRepository.findByDocumentTypeOrderByVersionDesc(type))
+                        .thenReturn(List.of(active(type, "admin-user", "custom-" + type, organizationId)));
+            }
+        }
+    }
+
+    private static DocumentTemplate active(DocumentType type, String createdBy, String content, Long organizationId) {
         DocumentTemplate t = new DocumentTemplate();
         t.setDocumentType(type);
         t.setActive(true);
         t.setCreatedBy(createdBy);
+        t.setOrganizationId(organizationId);
         t.setFileContent(content.getBytes());
         t.setVersion(1);
         return t;

@@ -1,7 +1,19 @@
 package com.clenzy.service;
 
+import com.clenzy.model.Intervention;
+import com.clenzy.model.LedgerEntry;
+import com.clenzy.model.LedgerEntryType;
+import com.clenzy.model.LedgerReferenceType;
+import com.clenzy.model.PaymentStatus;
+import com.clenzy.model.Property;
+import com.clenzy.model.Reservation;
+import com.clenzy.model.ServiceRequest;
+import com.clenzy.model.User;
 import com.clenzy.model.Wallet;
 import com.clenzy.model.WalletType;
+import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.WalletRepository;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -20,6 +33,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,13 +43,18 @@ class WalletServiceTest {
 
     @Mock private WalletRepository walletRepository;
     @Mock private LedgerService ledgerService;
+    @Mock private InterventionRepository interventionRepository;
+    @Mock private ReservationRepository reservationRepository;
+    @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private TenantContext tenantContext;
 
     private WalletService service;
 
     @BeforeEach
     void setUp() {
-        service = new WalletService(walletRepository, ledgerService, tenantContext);
+        service = new WalletService(walletRepository, ledgerService,
+                interventionRepository, reservationRepository, serviceRequestRepository,
+                tenantContext);
     }
 
     private Wallet buildWallet(Long id, Long orgId, WalletType type, Long ownerId) {
@@ -243,6 +264,201 @@ class WalletServiceTest {
             assertThatThrownBy(() -> service.getWalletById(99L))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("not found");
+        }
+    }
+
+    // ── initializeWallets (backfill deplace de WalletController, T-ARCH-03) ──
+
+    @Nested
+    @DisplayName("initializeWallets")
+    class InitializeWallets {
+
+        private final Wallet platform = buildWallet(1L, 1L, WalletType.PLATFORM, null);
+        private final Wallet escrow = buildWallet(2L, 1L, WalletType.ESCROW, null);
+
+        /**
+         * Stubs communs : wallets de base existants + aucune source de paiement.
+         * lenient() car chaque test surcharge la source qui le concerne.
+         */
+        private void setupBaseWalletsAndEmptySources() {
+            lenient().when(walletRepository.findByOrganizationIdAndWalletTypeAndOwnerIdIsNullAndCurrency(
+                    1L, WalletType.PLATFORM, "EUR")).thenReturn(Optional.of(platform));
+            lenient().when(walletRepository.findByOrganizationIdAndWalletTypeAndOwnerIdIsNullAndCurrency(
+                    1L, WalletType.ESCROW, "EUR")).thenReturn(Optional.of(escrow));
+            lenient().when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
+                    .thenReturn(new PageImpl<>(List.of()));
+            lenient().when(reservationRepository.findAllWithPayment(1L)).thenReturn(List.of());
+            lenient().when(serviceRequestRepository.findAll()).thenReturn(List.<ServiceRequest>of());
+            lenient().when(walletRepository.findByOrganizationId(1L)).thenReturn(List.of(platform, escrow));
+        }
+
+        @Test
+        void whenNoPaidPayments_thenZeroBackfilled() {
+            setupBaseWalletsAndEmptySources();
+
+            WalletService.WalletInitializationResult result = service.initializeWallets(1L);
+
+            assertThat(result.paymentsRecorded()).isEqualTo(0);
+            assertThat(result.walletsCreated()).isEqualTo(2);
+            verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), anyString());
+        }
+
+        @Test
+        void whenPaidInterventionWithoutLedger_thenBackfillsTransferAndOwnerWallet() {
+            setupBaseWalletsAndEmptySources();
+
+            User owner = new User();
+            owner.setId(42L);
+            Property prop = new Property();
+            prop.setOwner(owner);
+
+            Intervention paid = mock(Intervention.class);
+            when(paid.getId()).thenReturn(5L);
+            when(paid.getEstimatedCost()).thenReturn(new BigDecimal("100"));
+            when(paid.getProperty()).thenReturn(prop);
+            when(paid.getTitle()).thenReturn("Cleaning");
+            when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
+                    .thenReturn(new PageImpl<>(List.of(paid)));
+            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "5"))
+                    .thenReturn(List.of());
+            Wallet ownerWallet = buildWallet(10L, 1L, WalletType.OWNER, 42L);
+            when(walletRepository.findByOrganizationIdAndWalletTypeAndOwnerIdAndCurrency(
+                    1L, WalletType.OWNER, 42L, "EUR")).thenReturn(Optional.of(ownerWallet));
+
+            WalletService.WalletInitializationResult result = service.initializeWallets(1L);
+
+            assertThat(result.paymentsRecorded()).isEqualTo(1);
+            verify(walletRepository).findByOrganizationIdAndWalletTypeAndOwnerIdAndCurrency(
+                    1L, WalletType.OWNER, 42L, "EUR");
+            verify(ledgerService).recordTransfer(eq(escrow), eq(platform),
+                    eq(new BigDecimal("100")), eq(LedgerReferenceType.PAYMENT), eq("5"), anyString());
+        }
+
+        @Test
+        void whenInterventionAlreadyInLedger_thenSkipsBackfill() {
+            setupBaseWalletsAndEmptySources();
+
+            Intervention paid = mock(Intervention.class);
+            when(paid.getId()).thenReturn(5L);
+            when(paid.getEstimatedCost()).thenReturn(new BigDecimal("100"));
+            when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
+                    .thenReturn(new PageImpl<>(List.of(paid)));
+            LedgerEntry existing = new LedgerEntry();
+            existing.setId(1L);
+            existing.setEntryType(LedgerEntryType.DEBIT);
+            existing.setAmount(BigDecimal.TEN);
+            existing.setReferenceType(LedgerReferenceType.PAYMENT);
+            existing.setReferenceId("5");
+            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "5"))
+                    .thenReturn(List.of(existing));
+
+            WalletService.WalletInitializationResult result = service.initializeWallets(1L);
+
+            assertThat(result.paymentsRecorded()).isEqualTo(0);
+            verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), anyString());
+        }
+
+        @Test
+        void whenInterventionZeroCost_thenSkips() {
+            setupBaseWalletsAndEmptySources();
+
+            Intervention free = mock(Intervention.class);
+            when(free.getEstimatedCost()).thenReturn(BigDecimal.ZERO);
+            when(interventionRepository.findPaymentHistory(eq(PaymentStatus.PAID), isNull(), any(), eq(1L)))
+                    .thenReturn(new PageImpl<>(List.of(free)));
+
+            WalletService.WalletInitializationResult result = service.initializeWallets(1L);
+
+            assertThat(result.paymentsRecorded()).isEqualTo(0);
+            verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), anyString());
+        }
+
+        @Test
+        void whenPaidReservationWithoutLedger_thenBackfillsAndEnsuresOwnerWallet() {
+            setupBaseWalletsAndEmptySources();
+
+            Reservation res = new Reservation();
+            res.setId(7L);
+            res.setPaymentStatus(PaymentStatus.PAID);
+            res.setTotalPrice(new BigDecimal("250"));
+            res.setGuestName("Alice");
+            User resOwner = new User();
+            resOwner.setId(50L);
+            Property prop = new Property();
+            prop.setOwner(resOwner);
+            res.setProperty(prop);
+            when(reservationRepository.findAllWithPayment(1L)).thenReturn(List.of(res));
+            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "7"))
+                    .thenReturn(List.of());
+            Wallet ownerWallet = buildWallet(11L, 1L, WalletType.OWNER, 50L);
+            when(walletRepository.findByOrganizationIdAndWalletTypeAndOwnerIdAndCurrency(
+                    1L, WalletType.OWNER, 50L, "EUR")).thenReturn(Optional.of(ownerWallet));
+
+            WalletService.WalletInitializationResult result = service.initializeWallets(1L);
+
+            assertThat(result.paymentsRecorded()).isEqualTo(1);
+            verify(walletRepository).findByOrganizationIdAndWalletTypeAndOwnerIdAndCurrency(
+                    1L, WalletType.OWNER, 50L, "EUR");
+            verify(ledgerService).recordTransfer(eq(escrow), eq(platform),
+                    eq(new BigDecimal("250")), eq(LedgerReferenceType.PAYMENT), eq("7"), anyString());
+        }
+
+        @Test
+        void whenReservationGuestNameNull_thenUsesDefaultLabel() {
+            setupBaseWalletsAndEmptySources();
+
+            Reservation res = new Reservation();
+            res.setId(8L);
+            res.setPaymentStatus(PaymentStatus.PAID);
+            res.setTotalPrice(new BigDecimal("100"));
+            res.setGuestName(null);
+            when(reservationRepository.findAllWithPayment(1L)).thenReturn(List.of(res));
+            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "8"))
+                    .thenReturn(List.of());
+
+            WalletService.WalletInitializationResult result = service.initializeWallets(1L);
+
+            assertThat(result.paymentsRecorded()).isEqualTo(1);
+            ArgumentCaptor<String> description = ArgumentCaptor.forClass(String.class);
+            verify(ledgerService).recordTransfer(eq(escrow), eq(platform),
+                    eq(new BigDecimal("100")), eq(LedgerReferenceType.PAYMENT), eq("8"),
+                    description.capture());
+            assertThat(description.getValue()).contains("guest");
+        }
+
+        @Test
+        void whenPaidServiceRequestForCurrentOrg_thenBackfills() {
+            setupBaseWalletsAndEmptySources();
+
+            ServiceRequest sr = mock(ServiceRequest.class);
+            when(sr.getId()).thenReturn(9L);
+            when(sr.getOrganizationId()).thenReturn(1L);
+            when(sr.getPaymentStatus()).thenReturn(PaymentStatus.PAID);
+            when(sr.getEstimatedCost()).thenReturn(new BigDecimal("80"));
+            when(sr.getTitle()).thenReturn("Repair");
+            when(serviceRequestRepository.findAll()).thenReturn(List.of(sr));
+            when(ledgerService.getEntriesByReference(LedgerReferenceType.PAYMENT, "9"))
+                    .thenReturn(List.of());
+
+            WalletService.WalletInitializationResult result = service.initializeWallets(1L);
+
+            assertThat(result.paymentsRecorded()).isEqualTo(1);
+            verify(ledgerService).recordTransfer(eq(escrow), eq(platform),
+                    eq(new BigDecimal("80")), eq(LedgerReferenceType.PAYMENT), eq("9"), anyString());
+        }
+
+        @Test
+        void whenServiceRequestBelongsToOtherOrg_thenSkipped() {
+            setupBaseWalletsAndEmptySources();
+
+            ServiceRequest other = mock(ServiceRequest.class);
+            when(other.getOrganizationId()).thenReturn(99L);
+            when(serviceRequestRepository.findAll()).thenReturn(List.of(other));
+
+            WalletService.WalletInitializationResult result = service.initializeWallets(1L);
+
+            assertThat(result.paymentsRecorded()).isEqualTo(0);
+            verify(ledgerService, never()).recordTransfer(any(), any(), any(), any(), any(), anyString());
         }
     }
 }

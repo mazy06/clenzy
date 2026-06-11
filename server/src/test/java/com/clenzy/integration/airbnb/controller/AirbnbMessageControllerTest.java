@@ -31,7 +31,10 @@ class AirbnbMessageControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new AirbnbMessageController(messageRepository, tenantContext);
+        // Service reel sur repository mocke (refactor T-ARCH-01)
+        controller = new AirbnbMessageController(
+                new com.clenzy.integration.airbnb.service.AirbnbMessageQueryService(messageRepository),
+                tenantContext);
         lenient().when(tenantContext.getOrganizationId()).thenReturn(42L);
     }
 

@@ -6,8 +6,8 @@ import com.clenzy.dto.PortfolioStatsDto;
 import com.clenzy.dto.PortfolioTeamDto;
 import com.clenzy.model.TeamRole;
 import com.clenzy.model.User;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.PortfolioService;
+import com.clenzy.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,7 +21,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -32,7 +31,7 @@ import static org.mockito.Mockito.when;
 class PortfolioControllerTest {
 
     @Mock private PortfolioService portfolioService;
-    @Mock private UserRepository userRepository;
+    @Mock private UserService userService;
 
     private PortfolioController controller;
 
@@ -48,7 +47,7 @@ class PortfolioControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PortfolioController(portfolioService, userRepository);
+        controller = new PortfolioController(portfolioService, userService);
     }
 
     @Nested
@@ -122,7 +121,7 @@ class PortfolioControllerTest {
         void whenManagerAccessesOwnPortfolios_thenReturnsOk() {
             User user = new User();
             user.setId(5L);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
             when(portfolioService.getPortfoliosByManager(5L)).thenReturn(List.of());
 
             ResponseEntity<List<PortfolioDto>> response = controller.getPortfoliosByManager("5", createJwt("SUPER_MANAGER"));
@@ -133,7 +132,7 @@ class PortfolioControllerTest {
         void whenManagerAccessesOtherPortfolios_thenReturns403() {
             User user = new User();
             user.setId(99L); // Different from requested manager ID
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("user-123")).thenReturn(user);
 
             ResponseEntity<List<PortfolioDto>> response = controller.getPortfoliosByManager("5", createJwt("SUPER_MANAGER"));
             assertThat(response.getStatusCode().value()).isEqualTo(403);
@@ -143,7 +142,7 @@ class PortfolioControllerTest {
         void whenKeycloakId_thenResolvesFromDb() {
             User user = new User();
             user.setId(5L);
-            when(userRepository.findByKeycloakId("kc-uuid")).thenReturn(Optional.of(user));
+            when(userService.findByKeycloakId("kc-uuid")).thenReturn(user);
             when(portfolioService.getPortfoliosByManager(5L)).thenReturn(List.of());
 
             ResponseEntity<List<PortfolioDto>> response = controller.getPortfoliosByManager("kc-uuid", createJwt("SUPER_ADMIN"));

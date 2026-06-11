@@ -1153,4 +1153,113 @@ class ServiceRequestServiceTest {
         }
     }
 
+    // ── getPlanningServiceRequests (deplace de ServiceRequestController, T-ARCH-01) ──
+
+    @Nested
+    @DisplayName("getPlanningServiceRequests")
+    class GetPlanningServiceRequests {
+
+        private final LocalDateTime from = LocalDateTime.of(2026, 3, 1, 0, 0);
+        private final LocalDateTime to = LocalDateTime.of(2026, 9, 1, 23, 59);
+
+        @Test
+        void whenNoPropertyIds_thenUsesGeneralQuery() {
+            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
+                    RequestStatus.AWAITING_PAYMENT, from, to, ORG_ID))
+                    .thenReturn(List.of());
+
+            List<Map<String, Object>> result = service.getPlanningServiceRequests(null, from, to);
+
+            assertThat(result).isEmpty();
+            verify(serviceRequestRepository).findByStatusAndDesiredDateBetween(
+                    RequestStatus.AWAITING_PAYMENT, from, to, ORG_ID);
+        }
+
+        @Test
+        void whenPropertyIdsProvided_thenUsesPropertyQuery() {
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(5L);
+            sr.setTitle("Test SR");
+            sr.setEstimatedDurationHours(2);
+            when(serviceRequestRepository.findByStatusAndPropertyIdsAndDesiredDateBetween(
+                    RequestStatus.AWAITING_PAYMENT, List.of(10L), from, to, ORG_ID))
+                    .thenReturn(List.of(sr));
+
+            List<Map<String, Object>> result = service.getPlanningServiceRequests(List.of(10L), from, to);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0)).containsEntry("id", 5L).containsEntry("status", "AWAITING_PAYMENT");
+        }
+
+        @Test
+        void whenSrHasUserAssignee_thenIncludesNameInResult() {
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(8L);
+            sr.setTitle("Task");
+            sr.setEstimatedDurationHours(2);
+            sr.setAssignedToType("user");
+            sr.setAssignedToId(50L);
+            sr.setDesiredDate(LocalDateTime.of(2026, 4, 1, 9, 0));
+
+            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
+                    RequestStatus.AWAITING_PAYMENT, from, to, ORG_ID))
+                    .thenReturn(List.of(sr));
+
+            User user = new User();
+            user.setId(50L);
+            user.setFirstName("Alice");
+            user.setLastName("Test");
+            when(userRepository.findAllById(List.of(50L))).thenReturn(List.of(user));
+
+            List<Map<String, Object>> result = service.getPlanningServiceRequests(null, from, to);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0)).containsEntry("assignedToName", "Alice Test");
+            assertThat(result.get(0)).containsEntry("startTime", "09:00");
+            assertThat(result.get(0)).containsEntry("endTime", "11:00");
+        }
+
+        @Test
+        void whenSrHasTeamAssignee_thenIncludesTeamName() {
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(9L);
+            sr.setTitle("Task");
+            sr.setEstimatedDurationHours(3);
+            sr.setAssignedToType("team");
+            sr.setAssignedToId(60L);
+
+            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
+                    RequestStatus.AWAITING_PAYMENT, from, to, ORG_ID))
+                    .thenReturn(List.of(sr));
+
+            Team team = new Team();
+            team.setId(60L);
+            team.setName("Team Bravo");
+            when(teamRepository.findAllById(List.of(60L))).thenReturn(List.of(team));
+
+            List<Map<String, Object>> result = service.getPlanningServiceRequests(null, from, to);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0)).containsEntry("assignedToName", "Team Bravo");
+            assertThat(result.get(0)).containsEntry("startDate", (Object) null); // no desiredDate
+        }
+
+        @Test
+        void whenAssigneeUnknown_thenFallsBackToIdLabel() {
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(11L);
+            sr.setTitle("Task");
+            sr.setAssignedToType("user");
+            sr.setAssignedToId(77L);
+
+            when(serviceRequestRepository.findByStatusAndDesiredDateBetween(
+                    RequestStatus.AWAITING_PAYMENT, from, to, ORG_ID))
+                    .thenReturn(List.of(sr));
+            when(userRepository.findAllById(List.of(77L))).thenReturn(List.of());
+
+            List<Map<String, Object>> result = service.getPlanningServiceRequests(null, from, to);
+
+            assertThat(result.get(0)).containsEntry("assignedToName", "Utilisateur #77");
+        }
+    }
 }

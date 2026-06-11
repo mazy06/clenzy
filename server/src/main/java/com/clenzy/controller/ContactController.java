@@ -1,18 +1,13 @@
 package com.clenzy.controller;
 
-import com.clenzy.dto.ContactAttachmentDto;
+import com.clenzy.dto.ContactAttachmentBase64Dto;
+import com.clenzy.dto.ContactAttachmentContentDto;
 import com.clenzy.dto.ContactBulkDeleteRequest;
 import com.clenzy.dto.ContactBulkStatusRequest;
 import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.dto.ContactSendRequest;
 import com.clenzy.dto.ContactThreadSummaryDto;
-import com.clenzy.model.ContactAttachmentFile;
-import com.clenzy.model.ContactMessage;
-import com.clenzy.repository.ContactAttachmentFileRepository;
-import com.clenzy.service.ContactFileStorageService;
 import com.clenzy.service.ContactMessageService;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -33,7 +28,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -46,18 +40,10 @@ public class ContactController {
 
     private static final Logger log = LoggerFactory.getLogger(ContactController.class);
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private final ContactMessageService contactMessageService;
-    private final ContactFileStorageService fileStorageService;
-    private final ContactAttachmentFileRepository attachmentFileRepository;
 
-    public ContactController(ContactMessageService contactMessageService,
-                              ContactFileStorageService fileStorageService,
-                              ContactAttachmentFileRepository attachmentFileRepository) {
+    public ContactController(ContactMessageService contactMessageService) {
         this.contactMessageService = contactMessageService;
-        this.fileStorageService = fileStorageService;
-        this.attachmentFileRepository = attachmentFileRepository;
     }
 
     // ─── Lecture (contact:view) ─────────────────────────────────────────────
@@ -208,22 +194,10 @@ public class ContactController {
             @PathVariable Long messageId,
             @PathVariable String attachmentId
     ) {
-        // 1. Valider l'acces utilisateur au message
-        ContactMessage message = contactMessageService.getMessageForUser(messageId, jwt);
+        ContactAttachmentContentDto attachment =
+                contactMessageService.getAttachmentContent(jwt, messageId, attachmentId);
 
-        // 2. Chercher la piece jointe dans les metadonnees
-        List<ContactAttachmentDto> attachments = parseAttachments(message.getAttachments());
-        ContactAttachmentDto attachment = attachments.stream()
-                .filter(a -> attachmentId.equals(a.id()))
-                .findFirst()
-                .orElseThrow(() -> new NoSuchElementException("Piece jointe introuvable"));
-
-        // 3. Charger les donnees depuis la base de donnees
-        ContactAttachmentFile file = attachmentFileRepository
-                .findByMessageIdAndAttachmentId(messageId, attachmentId)
-                .orElseThrow(() -> new NoSuchElementException("Fichier non disponible en telechargement"));
-
-        // 4. Content-Disposition avec encodage RFC 5987 pour les noms non-ASCII
+        // Content-Disposition avec encodage RFC 5987 pour les noms non-ASCII
         String encodedFilename = URLEncoder.encode(attachment.originalName(), StandardCharsets.UTF_8)
                 .replace("+", "%20");
         String contentDisposition = "attachment; filename=\"" + attachment.originalName() + "\"; "
@@ -233,7 +207,7 @@ public class ContactController {
                 .header("Content-Type", attachment.contentType())
                 .header("Content-Disposition", contentDisposition)
                 .header("Cache-Control", "private, max-age=86400")
-                .body(new ByteArrayResource(file.getData()));
+                .body(new ByteArrayResource(attachment.data()));
     }
 
     /**
@@ -248,34 +222,15 @@ public class ContactController {
             @PathVariable Long messageId,
             @PathVariable String attachmentId
     ) {
-        // 1. Valider l'acces utilisateur au message
-        contactMessageService.getMessageForUser(messageId, jwt);
-
-        // 2. Charger les donnees depuis la base de donnees
-        ContactAttachmentFile file = attachmentFileRepository
-                .findByMessageIdAndAttachmentId(messageId, attachmentId)
-                .orElseThrow(() -> new NoSuchElementException("Fichier non disponible"));
-
-        // 3. Encoder en data URI
-        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
-        String base64Data = Base64.getEncoder().encodeToString(file.getData());
-        String dataUri = "data:" + contentType + ";base64," + base64Data;
+        ContactAttachmentBase64Dto attachment =
+                contactMessageService.getAttachmentAsBase64(jwt, messageId, attachmentId);
 
         return ResponseEntity.ok(Map.of(
-                "data", dataUri,
-                "contentType", contentType,
-                "originalName", file.getOriginalName() != null ? file.getOriginalName() : "",
-                "size", file.getSize() != null ? file.getSize() : 0
+                "data", attachment.dataUri(),
+                "contentType", attachment.contentType(),
+                "originalName", attachment.originalName(),
+                "size", attachment.size()
         ));
-    }
-
-    private List<ContactAttachmentDto> parseAttachments(String json) {
-        if (json == null || json.isBlank()) return List.of();
-        try {
-            return MAPPER.readValue(json, new TypeReference<>() {});
-        } catch (Exception e) {
-            return List.of();
-        }
     }
 
     // ─── Envoi (contact:send) ──────────────────────────────────────────────

@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.OwnerPayoutConfig;
 import com.clenzy.model.PayoutMethod;
 import com.clenzy.model.User;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.UserRepository;
 import com.stripe.exception.ApiException;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -29,31 +29,31 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Extension de {@link StripeConnectServiceTest} qui couvre les chemins
- * appelant le SDK Stripe (Account.create, AccountLink.create, Transfer.create).
+ * appelant le SDK Stripe (creation d'account, generation de lien
+ * d'onboarding, creation de transfer).
  *
- * <p>Utilise {@code mockStatic} pour intercepter les appels statiques au SDK
- * et permettre le test des branches de creation d'account, generation de
- * lien d'onboarding et creation de transfer.</p>
+ * <p>Depuis la migration T-SOLID-3, ces appels passent par {@link StripeGateway}
+ * (plus d'etat statique {@code Stripe.apiKey}) : on mocke le gateway.</p>
  */
 @ExtendWith(MockitoExtension.class)
 class StripeConnectServiceMockedStaticTest {
 
     @Mock private OwnerPayoutConfigRepository configRepository;
     @Mock private UserRepository userRepository;
+    @Mock private StripeGateway stripeGateway;
 
     private StripeConnectService service;
 
     @BeforeEach
     void setUp() {
-        service = new StripeConnectService(configRepository, userRepository);
-        ReflectionTestUtils.setField(service, "secretKey", "sk_test_x");
+        service = new StripeConnectService(configRepository, userRepository, stripeGateway);
         ReflectionTestUtils.setField(service, "returnUrl", "https://app.clenzy.com/ret");
         ReflectionTestUtils.setField(service, "refreshUrl", "https://app.clenzy.com/ref");
     }
@@ -81,18 +81,22 @@ class StripeConnectServiceMockedStaticTest {
         when(acct.getId()).thenReturn("acct_new123");
         when(configRepository.save(any(OwnerPayoutConfig.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        try (MockedStatic<Account> mocked = mockStatic(Account.class)) {
-            mocked.when(() -> Account.create(any(AccountCreateParams.class))).thenReturn(acct);
+        when(stripeGateway.createAccount(any(AccountCreateParams.class))).thenReturn(acct);
 
-            OwnerPayoutConfig result = service.createConnectedAccount(11L, 7L);
+        OwnerPayoutConfig result = service.createConnectedAccount(11L, 7L);
 
-            assertThat(result.getStripeConnectedAccountId()).isEqualTo("acct_new123");
-            assertThat(result.getPayoutMethod()).isEqualTo(PayoutMethod.STRIPE_CONNECT);
-            assertThat(result.isStripeOnboardingComplete()).isFalse();
-            assertThat(result.getOrganizationId()).isEqualTo(7L);
-            assertThat(result.getOwnerId()).isEqualTo(11L);
-            verify(configRepository).save(any(OwnerPayoutConfig.class));
-        }
+        assertThat(result.getStripeConnectedAccountId()).isEqualTo("acct_new123");
+        assertThat(result.getPayoutMethod()).isEqualTo(PayoutMethod.STRIPE_CONNECT);
+        assertThat(result.isStripeOnboardingComplete()).isFalse();
+        assertThat(result.getOrganizationId()).isEqualTo(7L);
+        assertThat(result.getOwnerId()).isEqualTo(11L);
+        verify(configRepository).save(any(OwnerPayoutConfig.class));
+
+        // T-SOLID-3 : parametres du compte Express captures via le gateway
+        ArgumentCaptor<AccountCreateParams> accountCaptor =
+                ArgumentCaptor.forClass(AccountCreateParams.class);
+        verify(stripeGateway).createAccount(accountCaptor.capture());
+        assertThat(accountCaptor.getValue().getEmail()).isEqualTo("owner@example.com");
     }
 
     @Test
@@ -105,12 +109,10 @@ class StripeConnectServiceMockedStaticTest {
         when(acct.getId()).thenReturn("acct_noEmail");
         when(configRepository.save(any(OwnerPayoutConfig.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        try (MockedStatic<Account> mocked = mockStatic(Account.class)) {
-            mocked.when(() -> Account.create(any(AccountCreateParams.class))).thenReturn(acct);
+        when(stripeGateway.createAccount(any(AccountCreateParams.class))).thenReturn(acct);
 
-            OwnerPayoutConfig result = service.createConnectedAccount(11L, 7L);
-            assertThat(result.getStripeConnectedAccountId()).isEqualTo("acct_noEmail");
-        }
+        OwnerPayoutConfig result = service.createConnectedAccount(11L, 7L);
+        assertThat(result.getStripeConnectedAccountId()).isEqualTo("acct_noEmail");
     }
 
     @Test
@@ -127,14 +129,12 @@ class StripeConnectServiceMockedStaticTest {
         when(acct.getId()).thenReturn("acct_added");
         when(configRepository.save(any(OwnerPayoutConfig.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        try (MockedStatic<Account> mocked = mockStatic(Account.class)) {
-            mocked.when(() -> Account.create(any(AccountCreateParams.class))).thenReturn(acct);
+        when(stripeGateway.createAccount(any(AccountCreateParams.class))).thenReturn(acct);
 
-            OwnerPayoutConfig result = service.createConnectedAccount(11L, 7L);
-            assertThat(result).isSameAs(existing);
-            assertThat(result.getStripeConnectedAccountId()).isEqualTo("acct_added");
-            assertThat(result.getPayoutMethod()).isEqualTo(PayoutMethod.STRIPE_CONNECT);
-        }
+        OwnerPayoutConfig result = service.createConnectedAccount(11L, 7L);
+        assertThat(result).isSameAs(existing);
+        assertThat(result.getStripeConnectedAccountId()).isEqualTo("acct_added");
+        assertThat(result.getPayoutMethod()).isEqualTo(PayoutMethod.STRIPE_CONNECT);
     }
 
     // ─── generateOnboardingLink ──────────────────────────────────────────
@@ -145,13 +145,11 @@ class StripeConnectServiceMockedStaticTest {
         AccountLink link = mock(AccountLink.class);
         when(link.getUrl()).thenReturn("https://connect.stripe.com/onboarding/abc");
 
-        try (MockedStatic<AccountLink> mocked = mockStatic(AccountLink.class)) {
-            mocked.when(() -> AccountLink.create(any(AccountLinkCreateParams.class))).thenReturn(link);
+        when(stripeGateway.createAccountLink(any(AccountLinkCreateParams.class))).thenReturn(link);
 
-            String url = service.generateOnboardingLink("acct_xyz");
+        String url = service.generateOnboardingLink("acct_xyz");
 
-            assertThat(url).isEqualTo("https://connect.stripe.com/onboarding/abc");
-        }
+        assertThat(url).isEqualTo("https://connect.stripe.com/onboarding/abc");
     }
 
     // ─── createTransfer ──────────────────────────────────────────────────
@@ -162,22 +160,20 @@ class StripeConnectServiceMockedStaticTest {
         Transfer transfer = mock(Transfer.class);
         when(transfer.getId()).thenReturn("tr_001");
 
-        try (MockedStatic<Transfer> mocked = mockStatic(Transfer.class)) {
-            ArgumentCaptor<TransferCreateParams> captor =
-                    ArgumentCaptor.forClass(TransferCreateParams.class);
-            mocked.when(() -> Transfer.create(captor.capture())).thenReturn(transfer);
+        ArgumentCaptor<TransferCreateParams> captor =
+                ArgumentCaptor.forClass(TransferCreateParams.class);
+        when(stripeGateway.createTransfer(captor.capture(), isNull())).thenReturn(transfer);
 
-            Transfer result = service.createTransfer(
-                    new BigDecimal("125.674"), "EUR", "acct_dest", "payout-test");
+        Transfer result = service.createTransfer(
+                new BigDecimal("125.674"), "EUR", "acct_dest", "payout-test");
 
-            assertThat(result).isSameAs(transfer);
-            TransferCreateParams params = captor.getValue();
-            // 125.674 * 100 = 12567.40 -> HALF_UP -> 12567
-            assertThat(params.getAmount()).isEqualTo(12567L);
-            assertThat(params.getCurrency()).isEqualTo("eur");
-            assertThat(params.getDestination()).isEqualTo("acct_dest");
-            assertThat(params.getDescription()).isEqualTo("payout-test");
-        }
+        assertThat(result).isSameAs(transfer);
+        TransferCreateParams params = captor.getValue();
+        // 125.674 * 100 = 12567.40 -> HALF_UP -> 12567
+        assertThat(params.getAmount()).isEqualTo(12567L);
+        assertThat(params.getCurrency()).isEqualTo("eur");
+        assertThat(params.getDestination()).isEqualTo("acct_dest");
+        assertThat(params.getDescription()).isEqualTo("payout-test");
     }
 
     @Test
@@ -186,29 +182,25 @@ class StripeConnectServiceMockedStaticTest {
         Transfer transfer = mock(Transfer.class);
         when(transfer.getId()).thenReturn("tr_002");
 
-        try (MockedStatic<Transfer> mocked = mockStatic(Transfer.class)) {
-            ArgumentCaptor<TransferCreateParams> captor =
-                    ArgumentCaptor.forClass(TransferCreateParams.class);
-            mocked.when(() -> Transfer.create(captor.capture())).thenReturn(transfer);
+        ArgumentCaptor<TransferCreateParams> captor =
+                ArgumentCaptor.forClass(TransferCreateParams.class);
+        when(stripeGateway.createTransfer(captor.capture(), isNull())).thenReturn(transfer);
 
-            service.createTransfer(BigDecimal.TEN, "USD", "acct_x", "desc");
+        service.createTransfer(BigDecimal.TEN, "USD", "acct_x", "desc");
 
-            assertThat(captor.getValue().getCurrency()).isEqualTo("usd");
-        }
+        assertThat(captor.getValue().getCurrency()).isEqualTo("usd");
     }
 
     @Test
     @DisplayName("createTransfer propagates StripeException on API error")
-    void createTransfer_stripeError_propagated() {
-        try (MockedStatic<Transfer> mocked = mockStatic(Transfer.class)) {
-            StripeException ex = new ApiException("Insufficient funds", null, "fund_err", 402, null);
-            mocked.when(() -> Transfer.create(any(TransferCreateParams.class))).thenThrow(ex);
+    void createTransfer_stripeError_propagated() throws Exception {
+        StripeException ex = new ApiException("Insufficient funds", null, "fund_err", 402, null);
+        when(stripeGateway.createTransfer(any(TransferCreateParams.class), isNull())).thenThrow(ex);
 
-            assertThatThrownBy(() ->
-                    service.createTransfer(BigDecimal.ONE, "EUR", "acct_x", "desc"))
-                    .isInstanceOf(StripeException.class)
-                    .hasMessageContaining("Insufficient funds");
-        }
+        assertThatThrownBy(() ->
+                service.createTransfer(BigDecimal.ONE, "EUR", "acct_x", "desc"))
+                .isInstanceOf(StripeException.class)
+                .hasMessageContaining("Insufficient funds");
     }
 
     @Test

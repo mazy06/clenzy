@@ -1,15 +1,11 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.ChannelCommissionDto;
 import com.clenzy.dto.OwnerPayoutDto;
 import com.clenzy.integration.channel.ChannelName;
-import com.clenzy.model.ChannelCommission;
-import com.clenzy.model.Organization;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
-import com.clenzy.model.User;
-import com.clenzy.repository.OrganizationRepository;
-import com.clenzy.repository.OwnerPayoutRepository;
-import com.clenzy.repository.UserRepository;
+import com.clenzy.service.AccountingQueryService;
 import com.clenzy.service.AccountingService;
 import com.clenzy.service.OwnerStatementService;
 import com.clenzy.service.PayoutExecutionService;
@@ -17,14 +13,13 @@ import com.clenzy.tenant.TenantContext;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/accounting")
@@ -33,26 +28,20 @@ public class AccountingController {
 
     private final AccountingService accountingService;
     private final PayoutExecutionService payoutExecutionService;
-    private final OwnerPayoutRepository payoutRepository;
-    private final UserRepository userRepository;
+    private final AccountingQueryService accountingQueryService;
     private final TenantContext tenantContext;
     private final OwnerStatementService ownerStatementService;
-    private final OrganizationRepository organizationRepository;
 
     public AccountingController(AccountingService accountingService,
                                 PayoutExecutionService payoutExecutionService,
-                                OwnerPayoutRepository payoutRepository,
-                                UserRepository userRepository,
+                                AccountingQueryService accountingQueryService,
                                 TenantContext tenantContext,
-                                OwnerStatementService ownerStatementService,
-                                OrganizationRepository organizationRepository) {
+                                OwnerStatementService ownerStatementService) {
         this.accountingService = accountingService;
         this.payoutExecutionService = payoutExecutionService;
-        this.payoutRepository = payoutRepository;
-        this.userRepository = userRepository;
+        this.accountingQueryService = accountingQueryService;
         this.tenantContext = tenantContext;
         this.ownerStatementService = ownerStatementService;
-        this.organizationRepository = organizationRepository;
     }
 
     @GetMapping("/payouts")
@@ -67,15 +56,14 @@ public class AccountingController {
         } else {
             payouts = accountingService.getPayouts(orgId);
         }
-        return toDtosWithOwnerNames(payouts);
+        return accountingQueryService.toDtosWithOwnerNames(payouts);
     }
 
     @GetMapping("/payouts/{id}")
     public OwnerPayoutDto getPayout(@PathVariable Long id) {
         Long orgId = tenantContext.getOrganizationId();
         OwnerPayout payout = accountingService.getPayoutById(id, orgId);
-        String ownerName = resolveOwnerName(payout.getOwnerId());
-        return OwnerPayoutDto.from(payout, ownerName);
+        return accountingQueryService.toDtoWithOwnerName(payout);
     }
 
     @PostMapping("/payouts/generate")
@@ -86,8 +74,7 @@ public class AccountingController {
                                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Long orgId = tenantContext.getOrganizationId();
         OwnerPayout payout = accountingService.generatePayout(ownerId, orgId, from, to);
-        String ownerName = resolveOwnerName(ownerId);
-        return OwnerPayoutDto.from(payout, ownerName);
+        return accountingQueryService.toDtoWithOwnerName(payout);
     }
 
     /**
@@ -104,7 +91,7 @@ public class AccountingController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Long orgId = tenantContext.getOrganizationId();
         List<OwnerPayout> payouts = accountingService.generatePayoutsBatch(orgId, from, to);
-        return toDtosWithOwnerNames(payouts);
+        return accountingQueryService.toDtosWithOwnerNames(payouts);
     }
 
     /**
@@ -119,8 +106,7 @@ public class AccountingController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         Long orgId = tenantContext.getOrganizationId();
-        String conciergerieName = organizationRepository.findById(orgId)
-            .map(Organization::getName)
+        String conciergerieName = accountingQueryService.getOrganizationName(orgId)
             .orElse("Votre conciergerie");
 
         OwnerStatementService.OwnerStatementResult result =
@@ -142,8 +128,7 @@ public class AccountingController {
     public OwnerPayoutDto approvePayout(@PathVariable Long id) {
         Long orgId = tenantContext.getOrganizationId();
         OwnerPayout payout = accountingService.approvePayout(id, orgId);
-        String ownerName = resolveOwnerName(payout.getOwnerId());
-        return OwnerPayoutDto.from(payout, ownerName);
+        return accountingQueryService.toDtoWithOwnerName(payout);
     }
 
     @PutMapping("/payouts/{id}/pay")
@@ -152,8 +137,7 @@ public class AccountingController {
                                       @RequestParam String paymentReference) {
         Long orgId = tenantContext.getOrganizationId();
         OwnerPayout payout = accountingService.markAsPaid(id, orgId, paymentReference);
-        String ownerName = resolveOwnerName(payout.getOwnerId());
-        return OwnerPayoutDto.from(payout, ownerName);
+        return accountingQueryService.toDtoWithOwnerName(payout);
     }
 
     @PostMapping("/payouts/{id}/execute")
@@ -161,8 +145,7 @@ public class AccountingController {
     public OwnerPayoutDto executePayout(@PathVariable Long id) {
         Long orgId = tenantContext.getOrganizationId();
         OwnerPayout payout = payoutExecutionService.executePayout(id, orgId);
-        String ownerName = resolveOwnerName(payout.getOwnerId());
-        return OwnerPayoutDto.from(payout, ownerName);
+        return accountingQueryService.toDtoWithOwnerName(payout);
     }
 
     @PostMapping("/payouts/{id}/retry")
@@ -170,18 +153,17 @@ public class AccountingController {
     public OwnerPayoutDto retryPayout(@PathVariable Long id) {
         Long orgId = tenantContext.getOrganizationId();
         OwnerPayout payout = payoutExecutionService.retryPayout(id, orgId);
-        String ownerName = resolveOwnerName(payout.getOwnerId());
-        return OwnerPayoutDto.from(payout, ownerName);
+        return accountingQueryService.toDtoWithOwnerName(payout);
     }
 
     @GetMapping("/payouts/pending-count")
     public Map<String, Object> getPendingPayoutCount() {
         Long orgId = tenantContext.getOrganizationId();
-        long count = payoutRepository.countPendingByOrgId(orgId);
-        BigDecimal totalAmount = payoutRepository.sumPendingAmountByOrgId(orgId);
+        AccountingQueryService.PendingPayoutSummary summary =
+            accountingQueryService.getPendingPayoutSummary(orgId);
         return Map.of(
-                "pendingCount", count,
-                "totalPendingAmount", totalAmount
+                "pendingCount", summary.pendingCount(),
+                "totalPendingAmount", summary.totalPendingAmount()
         );
     }
 
@@ -190,52 +172,28 @@ public class AccountingController {
      * Uses the user's database ID as ownerId to filter payouts.
      */
     @GetMapping("/payouts/my-pending")
-    public Map<String, Object> getMyPendingPayout(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.jwt.Jwt jwt) {
-        final String keycloakId = jwt.getSubject();
-        final User user = userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
-        final long count = payoutRepository.countPendingByOwnerId(user.getId());
-        final BigDecimal totalAmount = payoutRepository.sumPendingAmountByOwnerId(user.getId());
+    public Map<String, Object> getMyPendingPayout(@AuthenticationPrincipal Jwt jwt) {
+        AccountingQueryService.PendingPayoutSummary summary =
+            accountingQueryService.getMyPendingPayoutSummary(jwt.getSubject());
         return Map.of(
-                "pendingCount", count,
-                "totalPendingAmount", totalAmount
+                "pendingCount", summary.pendingCount(),
+                "totalPendingAmount", summary.totalPendingAmount()
         );
     }
 
     @GetMapping("/commissions")
-    public List<ChannelCommission> getCommissions() {
+    public List<ChannelCommissionDto> getCommissions() {
         Long orgId = tenantContext.getOrganizationId();
-        return accountingService.getChannelCommissions(orgId);
+        return accountingService.getChannelCommissions(orgId).stream()
+            .map(ChannelCommissionDto::from)
+            .toList();
     }
 
     @PutMapping("/commissions/{channel}")
-    public ChannelCommission saveCommission(@PathVariable ChannelName channel,
-                                             @RequestBody ChannelCommission commission) {
+    public ChannelCommissionDto saveCommission(@PathVariable ChannelName channel,
+                                                @RequestBody ChannelCommissionDto commission) {
         Long orgId = tenantContext.getOrganizationId();
-        commission.setOrganizationId(orgId);
-        commission.setChannelName(channel);
-        return accountingService.saveChannelCommission(commission);
-    }
-
-    // ── Private helpers ─────────────────────────────────────────────────────
-
-    private String resolveOwnerName(Long ownerId) {
-        return userRepository.findById(ownerId)
-            .map(User::getFullName).orElse(null);
-    }
-
-    /**
-     * Resout les noms des proprietaires en batch pour eviter les N+1 queries.
-     */
-    private List<OwnerPayoutDto> toDtosWithOwnerNames(List<OwnerPayout> payouts) {
-        Set<Long> ownerIds = payouts.stream()
-            .map(OwnerPayout::getOwnerId)
-            .collect(Collectors.toSet());
-        Map<Long, String> namesByOwnerId = userRepository.findAllById(ownerIds).stream()
-            .collect(Collectors.toMap(User::getId, User::getFullName, (a, b) -> a));
-        return payouts.stream()
-            .map(p -> OwnerPayoutDto.from(p, namesByOwnerId.get(p.getOwnerId())))
-            .toList();
+        return ChannelCommissionDto.from(
+            accountingService.saveChannelCommission(channel, orgId, commission));
     }
 }

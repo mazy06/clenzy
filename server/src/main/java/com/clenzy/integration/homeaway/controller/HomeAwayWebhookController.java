@@ -1,8 +1,7 @@
 package com.clenzy.integration.homeaway.controller;
 
 import com.clenzy.integration.homeaway.config.HomeAwayConfig;
-import com.clenzy.integration.homeaway.model.HomeAwayConnection;
-import com.clenzy.integration.homeaway.repository.HomeAwayConnectionRepository;
+import com.clenzy.integration.homeaway.service.HomeAwayConnectionQueryService;
 import com.clenzy.integration.homeaway.service.HomeAwaySyncService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Controller pour les webhooks HomeAway/Abritel.
@@ -39,14 +37,14 @@ public class HomeAwayWebhookController {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
 
     private final HomeAwayConfig config;
-    private final HomeAwayConnectionRepository connectionRepository;
+    private final HomeAwayConnectionQueryService connectionQueryService;
     private final HomeAwaySyncService syncService;
 
     public HomeAwayWebhookController(HomeAwayConfig config,
-                                     HomeAwayConnectionRepository connectionRepository,
+                                     HomeAwayConnectionQueryService connectionQueryService,
                                      HomeAwaySyncService syncService) {
         this.config = config;
-        this.connectionRepository = connectionRepository;
+        this.connectionQueryService = connectionQueryService;
         this.syncService = syncService;
     }
 
@@ -94,8 +92,8 @@ public class HomeAwayWebhookController {
                 ));
             }
 
-            // Resoudre l'orgId depuis le listing
-            Long orgId = resolveOrganizationId(listingId);
+            // Resoudre l'orgId depuis le listing (lookup sans org : flux signe HMAC)
+            Long orgId = connectionQueryService.resolveOrganizationId(listingId);
             if (orgId == null) {
                 log.warn("Listing HomeAway {} non liee, webhook ignore", listingId);
                 return ResponseEntity.ok(Map.of(
@@ -150,14 +148,5 @@ public class HomeAwayWebhookController {
             log.error("Erreur verification signature webhook HomeAway: {}", e.getMessage());
             return false;
         }
-    }
-
-    /**
-     * Resout l'organizationId depuis un listing HomeAway.
-     */
-    private Long resolveOrganizationId(String listingId) {
-        if (listingId == null) return null;
-        Optional<HomeAwayConnection> connection = connectionRepository.findByListingId(listingId);
-        return connection.map(HomeAwayConnection::getOrganizationId).orElse(null);
     }
 }

@@ -1,16 +1,11 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.*;
-import com.clenzy.model.ContactAttachmentFile;
-import com.clenzy.model.ContactMessage;
-import com.clenzy.repository.ContactAttachmentFileRepository;
-import com.clenzy.service.ContactFileStorageService;
 import com.clenzy.service.ContactMessageService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -18,10 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,15 +27,13 @@ import static org.mockito.Mockito.*;
 class ContactControllerTest {
 
     @Mock private ContactMessageService contactMessageService;
-    @Mock private ContactFileStorageService fileStorageService;
-    @Mock private ContactAttachmentFileRepository attachmentFileRepository;
 
     private ContactController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new ContactController(contactMessageService, fileStorageService, attachmentFileRepository);
+        controller = new ContactController(contactMessageService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
@@ -347,17 +340,9 @@ class ContactControllerTest {
         @DisplayName("returns file resource when attachment found in DB")
         void whenAttachmentFound_thenReturnsResource() {
             // Arrange
-            ContactMessage message = new ContactMessage();
-            message.setId(1L);
-            String attachmentsJson = "[{\"id\":\"att-1\",\"filename\":\"file.pdf\",\"originalName\":\"rapport.pdf\","
-                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"db\"}]";
-            message.setAttachments(attachmentsJson);
-            when(contactMessageService.getMessageForUser(1L, jwt)).thenReturn(message);
-
-            ContactAttachmentFile dbFile = new ContactAttachmentFile(
-                    1L, "att-1", "pdf-content".getBytes(), "application/pdf", "rapport.pdf", 1024L);
-            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
-                    .thenReturn(Optional.of(dbFile));
+            when(contactMessageService.getAttachmentContent(jwt, 1L, "att-1"))
+                    .thenReturn(new ContactAttachmentContentDto(
+                            "rapport.pdf", "application/pdf", "pdf-content".getBytes()));
 
             // Act
             ResponseEntity<Resource> response = controller.downloadAttachment(jwt, 1L, "att-1");
@@ -373,11 +358,8 @@ class ContactControllerTest {
         @DisplayName("throws NoSuchElementException when attachment ID not found in metadata")
         void whenAttachmentIdNotFound_thenThrows() {
             // Arrange
-            ContactMessage message = new ContactMessage();
-            message.setId(1L);
-            message.setAttachments("[{\"id\":\"att-1\",\"filename\":\"file.pdf\",\"originalName\":\"rapport.pdf\","
-                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"db\"}]");
-            when(contactMessageService.getMessageForUser(1L, jwt)).thenReturn(message);
+            when(contactMessageService.getAttachmentContent(jwt, 1L, "nonexistent-id"))
+                    .thenThrow(new NoSuchElementException("Piece jointe introuvable"));
 
             // Act & Assert
             assertThatThrownBy(() -> controller.downloadAttachment(jwt, 1L, "nonexistent-id"))
@@ -389,13 +371,8 @@ class ContactControllerTest {
         @DisplayName("throws NoSuchElementException when file not found in DB")
         void whenFileNotInDb_thenThrows() {
             // Arrange
-            ContactMessage message = new ContactMessage();
-            message.setId(1L);
-            message.setAttachments("[{\"id\":\"att-1\",\"filename\":\"file.pdf\",\"originalName\":\"rapport.pdf\","
-                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"db\"}]");
-            when(contactMessageService.getMessageForUser(1L, jwt)).thenReturn(message);
-            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
-                    .thenReturn(Optional.empty());
+            when(contactMessageService.getAttachmentContent(jwt, 1L, "att-1"))
+                    .thenThrow(new NoSuchElementException("Fichier non disponible en telechargement"));
 
             // Act & Assert
             assertThatThrownBy(() -> controller.downloadAttachment(jwt, 1L, "att-1"))
@@ -407,10 +384,8 @@ class ContactControllerTest {
         @DisplayName("throws NoSuchElementException when attachments JSON is null")
         void whenAttachmentsNull_thenThrowsNotFound() {
             // Arrange
-            ContactMessage message = new ContactMessage();
-            message.setId(1L);
-            message.setAttachments(null);
-            when(contactMessageService.getMessageForUser(1L, jwt)).thenReturn(message);
+            when(contactMessageService.getAttachmentContent(jwt, 1L, "att-1"))
+                    .thenThrow(new NoSuchElementException("Piece jointe introuvable"));
 
             // Act & Assert
             assertThatThrownBy(() -> controller.downloadAttachment(jwt, 1L, "att-1"))
@@ -471,19 +446,16 @@ class ContactControllerTest {
     class GetBase64 {
         @Test
         void returnsBase64DataUri() {
-            when(contactMessageService.getMessageForUser(1L, jwt))
-                    .thenReturn(new ContactMessage());
-            ContactAttachmentFile file = new ContactAttachmentFile(
-                    1L, "att-1", "hello".getBytes(), "image/png", "img.png", 5L);
-            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
-                    .thenReturn(Optional.of(file));
+            String dataUri = "data:image/png;base64," + Base64.getEncoder().encodeToString("hello".getBytes());
+            when(contactMessageService.getAttachmentAsBase64(jwt, 1L, "att-1"))
+                    .thenReturn(new ContactAttachmentBase64Dto(dataUri, "image/png", "img.png", 5L));
 
             ResponseEntity<Map<String, Object>> response =
                     controller.getAttachmentBase64(jwt, 1L, "att-1");
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            String dataUri = (String) response.getBody().get("data");
-            assertThat(dataUri).startsWith("data:image/png;base64,");
+            String data = (String) response.getBody().get("data");
+            assertThat(data).startsWith("data:image/png;base64,");
             assertThat(response.getBody().get("contentType")).isEqualTo("image/png");
             assertThat(response.getBody().get("originalName")).isEqualTo("img.png");
             assertThat(response.getBody().get("size")).isEqualTo(5L);
@@ -491,10 +463,8 @@ class ContactControllerTest {
 
         @Test
         void whenFileMissing_throwsNotFound() {
-            when(contactMessageService.getMessageForUser(1L, jwt))
-                    .thenReturn(new ContactMessage());
-            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
-                    .thenReturn(Optional.empty());
+            when(contactMessageService.getAttachmentAsBase64(jwt, 1L, "att-1"))
+                    .thenThrow(new NoSuchElementException("Fichier non disponible"));
 
             assertThatThrownBy(() -> controller.getAttachmentBase64(jwt, 1L, "att-1"))
                     .isInstanceOf(NoSuchElementException.class);
@@ -502,12 +472,10 @@ class ContactControllerTest {
 
         @Test
         void whenContentTypeNull_defaultsToOctetStream() {
-            when(contactMessageService.getMessageForUser(1L, jwt))
-                    .thenReturn(new ContactMessage());
-            ContactAttachmentFile file = new ContactAttachmentFile(
-                    1L, "att-1", "data".getBytes(), null, null, null);
-            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
-                    .thenReturn(Optional.of(file));
+            String dataUri = "data:application/octet-stream;base64,"
+                    + Base64.getEncoder().encodeToString("data".getBytes());
+            when(contactMessageService.getAttachmentAsBase64(jwt, 1L, "att-1"))
+                    .thenReturn(new ContactAttachmentBase64Dto(dataUri, "application/octet-stream", "", 0L));
 
             ResponseEntity<Map<String, Object>> response =
                     controller.getAttachmentBase64(jwt, 1L, "att-1");
