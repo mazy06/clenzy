@@ -1,9 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.MessageTemplateDto;
-import com.clenzy.model.MessageTemplate;
-import com.clenzy.model.MessageTemplateType;
-import com.clenzy.repository.MessageTemplateRepository;
+import com.clenzy.service.MessageTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
@@ -20,21 +18,21 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class MessageTemplateController {
 
-    private final MessageTemplateRepository templateRepository;
+    private final MessageTemplateService templateService;
     private final TenantContext tenantContext;
 
     public MessageTemplateController(
-            MessageTemplateRepository templateRepository,
+            MessageTemplateService templateService,
             TenantContext tenantContext
     ) {
-        this.templateRepository = templateRepository;
+        this.templateService = templateService;
         this.tenantContext = tenantContext;
     }
 
     @GetMapping
     public List<MessageTemplateDto> getAll() {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return templateRepository.findByOrganizationIdOrderByNameAsc(orgId).stream()
+        return templateService.getTemplates(orgId).stream()
             .map(MessageTemplateDto::fromEntity)
             .toList();
     }
@@ -42,7 +40,7 @@ public class MessageTemplateController {
     @GetMapping("/{id}")
     public ResponseEntity<MessageTemplateDto> getById(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return templateRepository.findByIdAndOrganizationId(id, orgId)
+        return templateService.getTemplate(id, orgId)
             .map(MessageTemplateDto::fromEntity)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
@@ -51,47 +49,24 @@ public class MessageTemplateController {
     @PostMapping
     public ResponseEntity<MessageTemplateDto> create(@RequestBody MessageTemplateDto dto) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-
-        MessageTemplate template = new MessageTemplate();
-        template.setOrganizationId(orgId);
-        template.setName(dto.name());
-        template.setType(MessageTemplateType.valueOf(dto.type()));
-        template.setSubject(dto.subject());
-        template.setBody(dto.body());
-        template.setLanguage(dto.language() != null ? dto.language() : "fr");
-        template.setActive(true);
-
-        MessageTemplate saved = templateRepository.save(template);
-        return ResponseEntity.ok(MessageTemplateDto.fromEntity(saved));
+        return ResponseEntity.ok(MessageTemplateDto.fromEntity(templateService.createTemplate(orgId, dto)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<MessageTemplateDto> update(@PathVariable Long id, @RequestBody MessageTemplateDto dto) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-
-        return templateRepository.findByIdAndOrganizationId(id, orgId)
-            .map(existing -> {
-                if (dto.name() != null) existing.setName(dto.name());
-                if (dto.type() != null) existing.setType(MessageTemplateType.valueOf(dto.type()));
-                if (dto.subject() != null) existing.setSubject(dto.subject());
-                if (dto.body() != null) existing.setBody(dto.body());
-                if (dto.language() != null) existing.setLanguage(dto.language());
-                return ResponseEntity.ok(MessageTemplateDto.fromEntity(templateRepository.save(existing)));
-            })
+        return templateService.updateTemplate(id, orgId, dto)
+            .map(MessageTemplateDto::fromEntity)
+            .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-
-        return templateRepository.findByIdAndOrganizationId(id, orgId)
-            .map(existing -> {
-                existing.setActive(false);
-                templateRepository.save(existing);
-                return ResponseEntity.noContent().<Void>build();
-            })
-            .orElse(ResponseEntity.notFound().build());
+        return templateService.deactivateTemplate(id, orgId)
+            ? ResponseEntity.noContent().build()
+            : ResponseEntity.notFound().build();
     }
 
     /**

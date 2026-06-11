@@ -74,8 +74,11 @@ class ChannexConnectControllerTest {
 
     @BeforeEach
     void setUp() {
+        // Service sync-log reel sur repository mocke (refactor T-ARCH-01)
         controller = new ChannexConnectController(connectService, importService, tenantContext,
-            capabilityService, syncLogRepository, priceDriftService, syncService, channexClient,
+            capabilityService,
+            new com.clenzy.integration.channex.service.ChannexSyncLogService(syncLogRepository),
+            priceDriftService, syncService, channexClient,
             // Items 2-3-4 paid apps services mocked
             org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexMessagingService.class),
             org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexReviewsService.class),

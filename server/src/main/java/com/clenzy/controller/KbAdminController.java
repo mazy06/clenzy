@@ -1,7 +1,6 @@
 package com.clenzy.controller;
 
 import com.clenzy.model.KbDocument;
-import com.clenzy.repository.KbDocumentRepository;
 import com.clenzy.service.agent.kb.IngestionService;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
@@ -41,14 +40,11 @@ public class KbAdminController {
     private static final long MAX_UPLOAD_BYTES = 2L * 1024 * 1024; // 2 MB par fichier markdown
 
     private final IngestionService ingestionService;
-    private final KbDocumentRepository documentRepository;
     private final TenantContext tenantContext;
 
     public KbAdminController(IngestionService ingestionService,
-                              KbDocumentRepository documentRepository,
                               TenantContext tenantContext) {
         this.ingestionService = ingestionService;
-        this.documentRepository = documentRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -120,7 +116,7 @@ public class KbAdminController {
     @GetMapping("/documents")
     public ResponseEntity<List<Map<String, Object>>> listDocuments() {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        List<KbDocument> docs = documentRepository.findVisibleByOrg(orgId);
+        List<KbDocument> docs = ingestionService.listVisibleDocuments(orgId);
         List<Map<String, Object>> dto = docs.stream().map(d -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", d.getId());

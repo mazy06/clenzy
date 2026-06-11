@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.booking.service.PublicBookingService;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
@@ -60,14 +61,14 @@ class StripeWebhookControllerTest {
     @Mock private ShopService shopService;
     @Mock private PublicBookingService publicBookingService;
     @Mock private UpsellService upsellService;
+    @Mock private StripeGateway stripeGateway;
 
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway);
         setField("webhookSecret", "whsec_test_secret");
-        setField("stripeSecretKey", "sk_test_xxx");
     }
 
     private void setField(String name, String value) throws Exception {
@@ -78,8 +79,9 @@ class StripeWebhookControllerTest {
 
     /** Build a fake Event with a stubbed deserializer + object. */
     private Event mockEvent(String type, Object stripeObject) {
-        Event event = mock(Event.class);
+        Event event = mock(Event.class, org.mockito.Mockito.withSettings().strictness(org.mockito.quality.Strictness.LENIENT));
         when(event.getType()).thenReturn(type);
+        when(event.getId()).thenReturn("evt_test_1");
         EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
         when(event.getDataObjectDeserializer()).thenReturn(deserializer);
         when(deserializer.getObject()).thenReturn(Optional.of((com.stripe.model.StripeObject) stripeObject));
@@ -345,8 +347,8 @@ class StripeWebhookControllerTest {
         }
 
         @Test
-        @DisplayName("still returns 200 when intervention confirmation throws")
-        void whenConfirmationFails_thenStill200() {
+        @DisplayName("returns 500 when intervention confirmation throws (Z3-BUGS-10: Stripe re-delivers)")
+        void whenConfirmationFails_thenReturns500() {
             Session s = mockSession("sess_e", "paid", "payment", new HashMap<>());
             Event event = mockEvent("checkout.session.completed", s);
             doThrow(new RuntimeException("boom")).when(stripeService).confirmPayment("sess_e");
@@ -355,15 +357,85 @@ class StripeWebhookControllerTest {
                 mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
                         .thenReturn(event);
 
-                // RuntimeException propagates because the controller doesn't catch it for that branch.
-                // Actually: from controller, the call is wrapped, let's check current behavior.
-                try {
-                    ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
-                    // If it returns, status is 200 (controller catches at outer level)
-                    assertThat(response.getStatusCode().value()).isIn(200, 400);
-                } catch (Exception ignored) {
-                    // accept if propagates — focus is on signature validation coverage
-                }
+                ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
+
+                assertThat(response.getStatusCode().value()).isEqualTo(500);
+            }
+        }
+
+        @Test
+        @DisplayName("returns 500 when reservation confirmation throws so Stripe re-delivers (Z3-BUGS-10)")
+        void whenReservationConfirmationFails_thenReturns500() {
+            Session s = mockSession("sess_r_fail", "paid", "payment",
+                    Map.of("type", "reservation"));
+            Event event = mockEvent("checkout.session.completed", s);
+            doThrow(new RuntimeException("stripeSessionId pas encore persiste"))
+                    .when(stripeService).confirmReservationPayment("sess_r_fail");
+
+            try (MockedStatic<Webhook> mockedWebhook = mockStatic(Webhook.class)) {
+                mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                        .thenReturn(event);
+
+                ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
+
+                assertThat(response.getStatusCode().value()).isEqualTo(500);
+            }
+        }
+
+        @Test
+        @DisplayName("returns 500 when booking engine confirmation throws (Z3-BUGS-10)")
+        void whenBookingEngineConfirmationFails_thenReturns500() {
+            Session s = mockSession("sess_be_fail", "paid", "payment",
+                    Map.of("type", "booking_engine"));
+            Event event = mockEvent("checkout.session.completed", s);
+            doThrow(new RuntimeException("conflit calendrier")).when(publicBookingService)
+                    .confirmBookingEngineCheckout(s);
+
+            try (MockedStatic<Webhook> mockedWebhook = mockStatic(Webhook.class)) {
+                mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                        .thenReturn(event);
+
+                ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
+
+                assertThat(response.getStatusCode().value()).isEqualTo(500);
+            }
+        }
+
+        @Test
+        @DisplayName("returns 500 when upsell confirmation throws (Z3-BUGS-10)")
+        void whenUpsellConfirmationFails_thenReturns500() {
+            Session s = mockSession("sess_up_fail", "paid", "payment",
+                    Map.of("type", "upsell"));
+            Event event = mockEvent("checkout.session.completed", s);
+            doThrow(new RuntimeException("upsell introuvable")).when(upsellService)
+                    .markPaidBySession("sess_up_fail");
+
+            try (MockedStatic<Webhook> mockedWebhook = mockStatic(Webhook.class)) {
+                mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                        .thenReturn(event);
+
+                ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
+
+                assertThat(response.getStatusCode().value()).isEqualTo(500);
+            }
+        }
+
+        @Test
+        @DisplayName("returns 500 when service request confirmation throws (Z3-BUGS-10)")
+        void whenServiceRequestConfirmationFails_thenReturns500() {
+            Session s = mockSession("sess_sr_fail", "paid", "payment",
+                    Map.of("type", "service_request", "service_request_id", "42"));
+            Event event = mockEvent("checkout.session.completed", s);
+            doThrow(new RuntimeException("SR deadlock")).when(stripeService)
+                    .confirmServiceRequestPayment("sess_sr_fail");
+
+            try (MockedStatic<Webhook> mockedWebhook = mockStatic(Webhook.class)) {
+                mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                        .thenReturn(event);
+
+                ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
+
+                assertThat(response.getStatusCode().value()).isEqualTo(500);
             }
         }
     }
@@ -708,8 +780,8 @@ class StripeWebhookControllerTest {
         }
 
         @Test
-        @DisplayName("still returns 200 when stripeConnectService throws")
-        void whenServiceThrows_thenStill200() {
+        @DisplayName("returns 500 when stripeConnectService throws (Z3-BUGS-10: Stripe re-delivers)")
+        void whenServiceThrows_thenReturns500() {
             Account account = mock(Account.class);
             when(account.getId()).thenReturn("acct_e");
             when(account.getChargesEnabled()).thenReturn(true);
@@ -724,7 +796,7 @@ class StripeWebhookControllerTest {
 
                 ResponseEntity<String> response = controller.handleStripeWebhook("payload", "sig");
 
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
+                assertThat(response.getStatusCode().value()).isEqualTo(500);
             }
         }
     }

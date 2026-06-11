@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
  * <p>Memes principes que {@link WhatsAppTemplateController} :</p>
  * <ul>
  *   <li>Resolution org/systeme automatique (override > systeme)</li>
- *   <li>{@code @PreAuthorize("isAuthenticated()")} au niveau classe</li>
+ *   <li>{@code @PreAuthorize("isAuthenticated()")} au niveau classe (lecture)</li>
  *   <li>Isolation per-org via {@link TenantContext#getRequiredOrganizationId}</li>
  * </ul>
  *
@@ -39,6 +39,14 @@ import java.util.regex.Pattern;
  *   <li>{@code PUT /{key}/{language}} : cree/met a jour un override per-org</li>
  *   <li>{@code DELETE /{key}/{language}} : supprime l'override → retour systeme</li>
  * </ul>
+ *
+ * <h3>Securite (stored XSS / phishing email)</h3>
+ * <p>Le body des overrides est emis dans des emails transactionnels recus par
+ * des tiers (proprietaires, voyageurs). L'ecriture (PUT/DELETE) est donc
+ * restreinte aux roles d'administration d'org — SUPER_ADMIN, SUPER_MANAGER,
+ * ADMIN, HOST — jamais aux roles operationnels (TECHNICIAN, HOUSEKEEPER,
+ * SUPERVISOR…). Le body est en outre sanitise cote service
+ * ({@link com.clenzy.util.EmailHtmlSanitizer}) au stockage ET au rendu.</p>
  */
 @RestController
 @RequestMapping("/api/system-email-templates")
@@ -86,8 +94,10 @@ public class SystemEmailTemplateController {
     /**
      * Cree ou met a jour un override per-org pour une langue donnee.
      * Body : {@code { "subject": "...", "body": "..." }}.
+     * Reserve aux roles d'administration d'org (cf. javadoc classe).
      */
     @PutMapping("/{key}/{language}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
     public ResponseEntity<SystemEmailTemplateDto> upsertOverride(
             @PathVariable String key,
             @PathVariable String language,
@@ -106,8 +116,9 @@ public class SystemEmailTemplateController {
         }
     }
 
-    /** Supprime l'override per-org → retour au defaut systeme. */
+    /** Supprime l'override per-org → retour au defaut systeme. Reserve aux roles d'administration d'org. */
     @DeleteMapping("/{key}/{language}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
     public ResponseEntity<Void> removeOverride(@PathVariable String key, @PathVariable String language) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 

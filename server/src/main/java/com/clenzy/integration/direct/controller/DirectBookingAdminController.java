@@ -2,8 +2,7 @@ package com.clenzy.integration.direct.controller;
 
 import com.clenzy.integration.direct.model.DirectBookingConfiguration;
 import com.clenzy.integration.direct.model.PromoCode;
-import com.clenzy.integration.direct.repository.DirectBookingConfigRepository;
-import com.clenzy.integration.direct.repository.PromoCodeRepository;
+import com.clenzy.integration.direct.service.DirectBookingAdminService;
 import com.clenzy.integration.direct.service.DirectBookingWidgetService;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,17 +30,14 @@ public class DirectBookingAdminController {
 
     private static final Logger log = LoggerFactory.getLogger(DirectBookingAdminController.class);
 
-    private final DirectBookingConfigRepository configRepository;
-    private final PromoCodeRepository promoCodeRepository;
+    private final DirectBookingAdminService adminService;
     private final DirectBookingWidgetService widgetService;
     private final TenantContext tenantContext;
 
-    public DirectBookingAdminController(DirectBookingConfigRepository configRepository,
-                                         PromoCodeRepository promoCodeRepository,
+    public DirectBookingAdminController(DirectBookingAdminService adminService,
                                          DirectBookingWidgetService widgetService,
                                          TenantContext tenantContext) {
-        this.configRepository = configRepository;
-        this.promoCodeRepository = promoCodeRepository;
+        this.adminService = adminService;
         this.widgetService = widgetService;
         this.tenantContext = tenantContext;
     }
@@ -64,26 +60,7 @@ public class DirectBookingAdminController {
             @RequestBody DirectBookingConfiguration update) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         log.debug("PUT /api/admin/direct-booking/config/{}: orgId={}", propertyId, orgId);
-
-        DirectBookingConfiguration existing = configRepository
-                .findByPropertyIdAndOrganizationId(propertyId, orgId)
-                .orElseGet(() -> {
-                    DirectBookingConfiguration newConfig = new DirectBookingConfiguration(orgId, propertyId);
-                    return newConfig;
-                });
-
-        existing.setEnabled(update.isEnabled());
-        existing.setWidgetThemeColor(update.getWidgetThemeColor());
-        existing.setWidgetLogo(update.getWidgetLogo());
-        existing.setCustomCss(update.getCustomCss());
-        existing.setTermsAndConditionsUrl(update.getTermsAndConditionsUrl());
-        existing.setCancellationPolicyText(update.getCancellationPolicyText());
-        existing.setConfirmationEmailTemplate(update.getConfirmationEmailTemplate());
-        existing.setAutoConfirm(update.isAutoConfirm());
-        existing.setRequirePayment(update.isRequirePayment());
-        existing.setAllowedCurrencies(update.getAllowedCurrencies());
-
-        DirectBookingConfiguration saved = configRepository.save(existing);
+        DirectBookingConfiguration saved = adminService.updateWidgetConfig(propertyId, orgId, update);
         return ResponseEntity.ok(saved);
     }
 
@@ -94,7 +71,7 @@ public class DirectBookingAdminController {
     public ResponseEntity<List<PromoCode>> listPromoCodes() {
         Long orgId = tenantContext.getRequiredOrganizationId();
         log.debug("GET /api/admin/direct-booking/promo-codes: orgId={}", orgId);
-        List<PromoCode> codes = promoCodeRepository.findAllByOrganizationId(orgId);
+        List<PromoCode> codes = adminService.listPromoCodes(orgId);
         return ResponseEntity.ok(codes);
     }
 
@@ -104,10 +81,7 @@ public class DirectBookingAdminController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         log.debug("POST /api/admin/direct-booking/promo-codes: code={}, orgId={}",
                 promoCode.getCode(), orgId);
-
-        promoCode.setOrganizationId(orgId);
-        promoCode.setCurrentUses(0);
-        PromoCode saved = promoCodeRepository.save(promoCode);
+        PromoCode saved = adminService.createPromoCode(orgId, promoCode);
         return ResponseEntity.ok(saved);
     }
 
@@ -117,22 +91,7 @@ public class DirectBookingAdminController {
                                                        @RequestBody PromoCode update) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         log.debug("PUT /api/admin/direct-booking/promo-codes/{}: orgId={}", id, orgId);
-
-        PromoCode existing = promoCodeRepository.findById(id)
-                .filter(p -> orgId.equals(p.getOrganizationId()))
-                .orElseThrow(() -> new IllegalArgumentException("Code promo introuvable: " + id));
-
-        existing.setCode(update.getCode());
-        existing.setDiscountType(update.getDiscountType());
-        existing.setDiscountValue(update.getDiscountValue());
-        existing.setValidFrom(update.getValidFrom());
-        existing.setValidUntil(update.getValidUntil());
-        existing.setMinNights(update.getMinNights());
-        existing.setMaxUses(update.getMaxUses());
-        existing.setPropertyId(update.getPropertyId());
-        existing.setActive(update.isActive());
-
-        PromoCode saved = promoCodeRepository.save(existing);
+        PromoCode saved = adminService.updatePromoCode(orgId, id, update);
         return ResponseEntity.ok(saved);
     }
 
@@ -141,13 +100,7 @@ public class DirectBookingAdminController {
     public ResponseEntity<Void> deactivatePromoCode(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         log.debug("DELETE /api/admin/direct-booking/promo-codes/{}: orgId={}", id, orgId);
-
-        PromoCode existing = promoCodeRepository.findById(id)
-                .filter(p -> orgId.equals(p.getOrganizationId()))
-                .orElseThrow(() -> new IllegalArgumentException("Code promo introuvable: " + id));
-
-        existing.setActive(false);
-        promoCodeRepository.save(existing);
+        adminService.deactivatePromoCode(orgId, id);
         return ResponseEntity.noContent().build();
     }
 

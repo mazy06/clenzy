@@ -42,7 +42,7 @@ public class ChannexConnectController {
     private final ChannexImportService importService;
     private final TenantContext tenantContext;
     private final com.clenzy.integration.channex.service.ChannexCapabilityService capabilityService;
-    private final com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository;
+    private final com.clenzy.integration.channex.service.ChannexSyncLogService syncLogService;
     private final com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService;
     private final com.clenzy.integration.channex.service.ChannexSyncService syncService;
     // Sprint A4-A7 (Quick Wins) : access direct au client pour logs/usage/test webhook
@@ -56,7 +56,7 @@ public class ChannexConnectController {
                                       ChannexImportService importService,
                                       TenantContext tenantContext,
                                       com.clenzy.integration.channex.service.ChannexCapabilityService capabilityService,
-                                      com.clenzy.integration.channex.repository.ChannexSyncLogRepository syncLogRepository,
+                                      com.clenzy.integration.channex.service.ChannexSyncLogService syncLogService,
                                       com.clenzy.integration.channex.service.ChannexPriceDriftService priceDriftService,
                                       com.clenzy.integration.channex.service.ChannexSyncService syncService,
                                       com.clenzy.integration.channex.client.ChannexClient channexClient,
@@ -67,7 +67,7 @@ public class ChannexConnectController {
         this.importService = importService;
         this.tenantContext = tenantContext;
         this.capabilityService = capabilityService;
-        this.syncLogRepository = syncLogRepository;
+        this.syncLogService = syncLogService;
         this.priceDriftService = priceDriftService;
         this.syncService = syncService;
         this.channexClient = channexClient;
@@ -230,9 +230,7 @@ public class ChannexConnectController {
             @RequestParam(defaultValue = "50") int limit) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         int safeLimit = Math.min(Math.max(1, limit), 200);
-        return syncLogRepository
-            .findByPropertyOrdered(orgId, clenzyPropertyId,
-                org.springframework.data.domain.PageRequest.of(0, safeLimit))
+        return syncLogService.findByPropertyOrdered(orgId, clenzyPropertyId, safeLimit)
             .stream()
             .map(com.clenzy.integration.channex.dto.ChannexSyncLogDto::from)
             .toList();

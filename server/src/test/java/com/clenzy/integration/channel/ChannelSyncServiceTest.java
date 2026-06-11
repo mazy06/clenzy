@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -297,6 +298,49 @@ class ChannelSyncServiceTest {
             // Success metrics recorded for Booking and VRBO
             verify(syncMetrics).recordSyncSuccess(eq("BOOKING"), anyLong());
             verify(syncMetrics).recordSyncSuccess(eq("VRBO"), anyLong());
+        }
+    }
+
+    @Nested
+    @DisplayName("Propagation des echecs globaux vers retry/DLT (Z6-SECBUGS-03)")
+    class GlobalFailurePropagation {
+
+        @Test
+        @DisplayName("un payload JSON invalide leve une exception (retry puis DLT, pas d'ack silencieux)")
+        void whenPayloadIsInvalidJson_thenExceptionPropagatesForRetryAndDlt() {
+            // Arrange
+            String payload = "{not-valid-json";
+
+            // Act + Assert : l'echec de deserialisation remonte au DefaultErrorHandler
+            assertThatThrownBy(() -> channelSyncService.onCalendarUpdate(payload))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("illisible");
+            verifyNoInteractions(channelMappingRepository, connectorRegistry, syncLogRepository);
+        }
+
+        @Test
+        @DisplayName("un type de payload inattendu leve une exception au lieu d'etre avale")
+        void whenPayloadTypeIsUnexpected_thenExceptionPropagates() {
+            // Act + Assert
+            assertThatThrownBy(() -> channelSyncService.onCalendarUpdate(42))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("inattendu");
+            verifyNoInteractions(channelMappingRepository, connectorRegistry, syncLogRepository);
+        }
+
+        @Test
+        @DisplayName("un echec d'acces DB se propage pour declencher le retry/DLT du container")
+        void whenDatabaseAccessFails_thenExceptionPropagatesForRetryAndDlt() {
+            // Arrange
+            String payload = "{\"action\":\"BOOKED\",\"propertyId\":1,\"orgId\":1,\"from\":\"2025-06-01\",\"to\":\"2025-06-05\"}";
+            when(channelMappingRepository.findActiveByPropertyId(1L, 1L))
+                    .thenThrow(new RuntimeException("DB indisponible"));
+
+            // Act + Assert : pas de catch(Exception) avaleur, le message sera rejoue
+            assertThatThrownBy(() -> channelSyncService.onCalendarUpdate(payload))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessage("DB indisponible");
+            verifyNoInteractions(connectorRegistry, syncLogRepository);
         }
     }
 

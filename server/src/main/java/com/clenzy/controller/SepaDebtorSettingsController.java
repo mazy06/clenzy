@@ -1,7 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.model.Organization;
-import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.service.OrganizationService;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.IbanMasker;
 import org.springframework.http.ResponseEntity;
@@ -13,19 +13,19 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("isAuthenticated()")
 public class SepaDebtorSettingsController {
 
-    private final OrganizationRepository organizationRepository;
+    private final OrganizationService organizationService;
     private final TenantContext tenantContext;
 
-    public SepaDebtorSettingsController(OrganizationRepository organizationRepository,
+    public SepaDebtorSettingsController(OrganizationService organizationService,
                                          TenantContext tenantContext) {
-        this.organizationRepository = organizationRepository;
+        this.organizationService = organizationService;
         this.tenantContext = tenantContext;
     }
 
     @GetMapping
     public ResponseEntity<SepaDebtorConfigResponse> getSepaDebtorConfig() {
         Long orgId = tenantContext.getOrganizationId();
-        Organization org = organizationRepository.findById(orgId)
+        Organization org = organizationService.findById(orgId)
                 .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable"));
 
         String maskedIban = IbanMasker.mask(org.getSepaDebtorIban());
@@ -41,28 +41,8 @@ public class SepaDebtorSettingsController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public SepaDebtorConfigResponse updateSepaDebtorConfig(@RequestBody UpdateSepaDebtorRequest request) {
         Long orgId = tenantContext.getOrganizationId();
-        Organization org = organizationRepository.findById(orgId)
-                .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable"));
-
-        if (request.name() != null) {
-            org.setSepaDebtorName(request.name().trim());
-        }
-        if (request.iban() != null) {
-            String cleanIban = request.iban().replaceAll("\\s", "").toUpperCase();
-            if (cleanIban.length() < 15 || cleanIban.length() > 34) {
-                throw new IllegalArgumentException("L'IBAN doit contenir entre 15 et 34 caracteres");
-            }
-            org.setSepaDebtorIban(cleanIban);
-        }
-        if (request.bic() != null) {
-            String cleanBic = request.bic().replaceAll("\\s", "").toUpperCase();
-            if (!cleanBic.matches("^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$")) {
-                throw new IllegalArgumentException("Le BIC doit contenir 8 ou 11 caracteres alphanumeriques au format SWIFT");
-            }
-            org.setSepaDebtorBic(cleanBic);
-        }
-
-        organizationRepository.save(org);
+        Organization org = organizationService.updateSepaDebtorConfig(
+                orgId, request.name(), request.iban(), request.bic());
 
         return new SepaDebtorConfigResponse(
                 org.getSepaDebtorName(),

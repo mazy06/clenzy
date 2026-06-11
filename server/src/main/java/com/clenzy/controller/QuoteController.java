@@ -5,16 +5,14 @@ import com.clenzy.dto.QuoteResponseDto;
 import com.clenzy.dto.WaitlistSignupDto;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.NotificationKey;
-import com.clenzy.model.ReceivedForm;
 import com.clenzy.model.ReferenceType;
-import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.PlatformSettingsService;
 import com.clenzy.service.PricingConfigService;
+import com.clenzy.service.ReceivedFormService;
 import com.clenzy.service.WaitlistService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,8 +45,7 @@ public class QuoteController {
 
     private final EmailService emailService;
     private final PricingConfigService pricingConfigService;
-    private final ReceivedFormRepository receivedFormRepository;
-    private final ObjectMapper objectMapper;
+    private final ReceivedFormService receivedFormService;
     private final NotificationService notificationService;
     private final DocumentGeneratorService documentGeneratorService;
     private final PlatformSettingsService platformSettingsService;
@@ -59,15 +56,14 @@ public class QuoteController {
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
     public QuoteController(EmailService emailService, PricingConfigService pricingConfigService,
-                           ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
+                           ReceivedFormService receivedFormService,
                            NotificationService notificationService,
                            DocumentGeneratorService documentGeneratorService,
                            PlatformSettingsService platformSettingsService,
                            WaitlistService waitlistService) {
         this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
-        this.receivedFormRepository = receivedFormRepository;
-        this.objectMapper = objectMapper;
+        this.receivedFormService = receivedFormService;
         this.notificationService = notificationService;
         this.documentGeneratorService = documentGeneratorService;
         this.platformSettingsService = platformSettingsService;
@@ -133,20 +129,9 @@ public class QuoteController {
 
         // 4. Sauvegarde en BDD (PRIORITAIRE — si ca echoue, on remonte une 500
         //    pour que le prospect retente plutot que de perdre sa demande).
-        ReceivedForm savedForm;
+        final Long savedFormId;
         try {
-            ReceivedForm form = new ReceivedForm();
-            form.setFormType("DEVIS");
-            form.setFullName(dto.getFullName());
-            form.setEmail(dto.getEmail());
-            form.setPhone(dto.getPhone());
-            form.setCity(dto.getCity());
-            form.setPostalCode(dto.getPostalCode());
-            form.setSubject("Demande de devis — " + dto.getFullName() + " — " + dto.getCity());
-            form.setPayload(objectMapper.writeValueAsString(dto));
-            form.setIpAddress(clientIp);
-            savedForm = receivedFormRepository.save(form);
-            log.info("ReceivedForm DEVIS saved id={} for {} ({})", savedForm.getId(), dto.getFullName(), dto.getEmail());
+            savedFormId = receivedFormService.recordQuoteForm(dto, clientIp);
         } catch (Exception e) {
             log.error("Erreur CRITIQUE sauvegarde formulaire devis pour {} : {}",
                     dto.getFullName(), e.getMessage(), e);
@@ -172,7 +157,7 @@ public class QuoteController {
                         dto.getEmail(), dto.getFullName(), dto.getPhone(),
                         dto.getPropertyCount(), dto.getCity(), "devis"), clientIp);
             } catch (Exception e) {
-                log.warn("Ajout du devis #{} à la waitlist KO : {}", savedForm.getId(), e.getMessage());
+                log.warn("Ajout du devis #{} à la waitlist KO : {}", savedFormId, e.getMessage());
             }
         }
 
@@ -186,7 +171,7 @@ public class QuoteController {
             try {
                 documentGeneratorService.generateFromEvent(
                         DocumentType.DEVIS,
-                        savedForm.getId(),
+                        savedFormId,
                         ReferenceType.RECEIVED_FORM,
                         dto.getEmail(),
                         null   // organizationId null → template GLOBAL (si configuré en BDD)
@@ -194,11 +179,11 @@ public class QuoteController {
                 prospectNotified = true;
             } catch (Exception e) {
                 log.warn("Envoi devis prospect KO pour #{} ({}) : {}",
-                        savedForm.getId(), dto.getFullName(), e.getMessage());
+                        savedFormId, dto.getFullName(), e.getMessage());
             }
         } else if (!prospectEmailsEnabled) {
             log.info("Emails devis prospect DÉSACTIVÉS (réglage plateforme) — devis #{} non envoyé au prospect ; info@ sera notifié.",
-                    savedForm.getId());
+                    savedFormId);
         }
         // FILET : le prospect n'a pas pu être notifié (pas d'email — cas théorique car
         // validateRequest l'exige — OU échec d'envoi/génération) → on prévient quand
@@ -208,7 +193,7 @@ public class QuoteController {
             try {
                 emailService.sendQuoteRequestNotification(dto, recommendedPackage, recommendedRate, null);
             } catch (Exception e) {
-                log.warn("Notification interne devis #{} KO : {}", savedForm.getId(), e.getMessage());
+                log.warn("Notification interne devis #{} KO : {}", savedFormId, e.getMessage());
             }
         }
 
@@ -225,7 +210,7 @@ public class QuoteController {
             );
         } catch (Exception e) {
             log.error("Notification admins KO mais demande #{} sauvegardee en BDD : {}",
-                    savedForm.getId(), e.getMessage());
+                    savedFormId, e.getMessage());
         }
 
         log.info("Demande de devis traitée : {} ({}) — Forfait : {} ({}€/intervention)",

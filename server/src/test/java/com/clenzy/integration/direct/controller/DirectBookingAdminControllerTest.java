@@ -43,7 +43,10 @@ class DirectBookingAdminControllerTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        controller = new DirectBookingAdminController(configRepository, promoCodeRepository,
+        // Service admin reel sur repositories mockes (refactor T-ARCH-01)
+        controller = new DirectBookingAdminController(
+                new com.clenzy.integration.direct.service.DirectBookingAdminService(
+                        configRepository, promoCodeRepository),
                 widgetService, tenantContext);
     }
 

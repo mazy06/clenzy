@@ -7,13 +7,17 @@ import java.time.LocalDate;
 
 /**
  * Requete de creation d'une reservation PENDING via le Booking Engine.
+ *
+ * <p>Z4A-BUGS-08 : {@code checkIn} accepte le jour meme pour permettre les
+ * reservations same-day (minAdvanceDays=0). La validation timezone-aware est
+ * faite dans {@code PublicBookingService.checkAvailability}.</p>
  */
 public record BookingReserveRequestDto(
     @NotNull(message = "propertyId est obligatoire")
     Long propertyId,
 
     @NotNull(message = "checkIn est obligatoire")
-    @Future(message = "checkIn doit etre dans le futur")
+    @FutureOrPresent(message = "checkIn ne peut pas etre dans le passe")
     LocalDate checkIn,
 
     @NotNull(message = "checkOut est obligatoire")

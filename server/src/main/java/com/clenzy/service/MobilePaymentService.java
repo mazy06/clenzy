@@ -4,9 +4,9 @@ import com.clenzy.dto.InscriptionDto;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.User;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
 import com.stripe.model.Invoice;
@@ -41,9 +41,7 @@ public class MobilePaymentService {
     private final InterventionRepository interventionRepository;
     private final AuditLogService auditLogService;
     private final PricingConfigService pricingConfigService;
-
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
+    private final StripeGateway stripeGateway;
 
     @Value("${stripe.publishable-key}")
     private String publishableKey;
@@ -54,11 +52,13 @@ public class MobilePaymentService {
     public MobilePaymentService(UserRepository userRepository,
                                 InterventionRepository interventionRepository,
                                 AuditLogService auditLogService,
-                                PricingConfigService pricingConfigService) {
+                                PricingConfigService pricingConfigService,
+                                StripeGateway stripeGateway) {
         this.userRepository = userRepository;
         this.interventionRepository = interventionRepository;
         this.auditLogService = auditLogService;
         this.pricingConfigService = pricingConfigService;
+        this.stripeGateway = stripeGateway;
     }
 
     /**
@@ -74,8 +74,6 @@ public class MobilePaymentService {
     public Map<String, String> createPaymentSheet(String keycloakId, String type,
                                                    String forfait, Long interventionId,
                                                    Long amountCents) throws StripeException {
-        Stripe.apiKey = stripeSecretKey;
-
         User user = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
@@ -189,7 +187,7 @@ public class MobilePaymentService {
         if (user.getStripeCustomerId() != null && !user.getStripeCustomerId().isEmpty()) {
             // Verifier que le customer existe toujours chez Stripe
             try {
-                Customer existing = Customer.retrieve(user.getStripeCustomerId());
+                Customer existing = stripeGateway.retrieveCustomer(user.getStripeCustomerId());
                 if (existing.getDeleted() == null || !existing.getDeleted()) {
                     return user.getStripeCustomerId();
                 }
@@ -207,7 +205,7 @@ public class MobilePaymentService {
                 .putMetadata("keycloakId", user.getKeycloakId() != null ? user.getKeycloakId() : "")
                 .build();
 
-        Customer customer = Customer.create(params);
+        Customer customer = stripeGateway.createCustomer(params);
 
         user.setStripeCustomerId(customer.getId());
         userRepository.save(user);
@@ -221,7 +219,7 @@ public class MobilePaymentService {
                 .setCustomer(customerId)
                 .build();
 
-        EphemeralKey ephemeralKey = EphemeralKey.create(params);
+        EphemeralKey ephemeralKey = stripeGateway.createEphemeralKey(params);
         return ephemeralKey.getSecret();
     }
 
@@ -271,7 +269,7 @@ public class MobilePaymentService {
                         .build())
                 .build();
 
-        Price price = Price.create(priceParams);
+        Price price = stripeGateway.createPrice(priceParams);
 
         // Creer la Subscription avec default_incomplete
         SubscriptionCreateParams subParams = SubscriptionCreateParams.builder()
@@ -291,7 +289,7 @@ public class MobilePaymentService {
                 .putMetadata("previousForfait", currentForfait)
                 .build();
 
-        Subscription subscription = Subscription.create(subParams);
+        Subscription subscription = stripeGateway.createSubscription(subParams);
 
         // Extraire le PaymentIntent de la derniere facture
         Invoice invoice = subscription.getLatestInvoiceObject();
@@ -306,8 +304,8 @@ public class MobilePaymentService {
                 .putMetadata("subscriptionId", subscription.getId())
                 .build();
 
-        paymentIntent = PaymentIntent.retrieve(paymentIntent.getId())
-                .update(piUpdateParams);
+        paymentIntent = stripeGateway.updatePaymentIntent(
+                stripeGateway.retrievePaymentIntent(paymentIntent.getId()), piUpdateParams);
 
         log.info("Subscription {} creee (default_incomplete) avec PaymentIntent {} pour user {}",
                 subscription.getId(), paymentIntent.getId(), user.getEmail());
@@ -350,7 +348,7 @@ public class MobilePaymentService {
                 .putMetadata("userId", user.getId().toString())
                 .build();
 
-        PaymentIntent paymentIntent = PaymentIntent.create(params);
+        PaymentIntent paymentIntent = stripeGateway.createPaymentIntent(params);
 
         // Mettre a jour le statut de l'intervention
         intervention.setPaymentStatus(PaymentStatus.PROCESSING);
@@ -369,9 +367,9 @@ public class MobilePaymentService {
         }
 
         try {
-            Subscription existingSub = Subscription.retrieve(user.getStripeSubscriptionId());
+            Subscription existingSub = stripeGateway.retrieveSubscription(user.getStripeSubscriptionId());
             if (!"canceled".equals(existingSub.getStatus())) {
-                existingSub.cancel(SubscriptionCancelParams.builder()
+                stripeGateway.cancelSubscription(existingSub, SubscriptionCancelParams.builder()
                         .setProrate(true)
                         .build());
                 log.info("Ancien abonnement Stripe {} annule pour user {}",

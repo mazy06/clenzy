@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.ShopCheckoutRequest;
 import com.clenzy.model.HardwareOrder;
 import com.clenzy.model.OrderStatus;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.HardwareOrderRepository;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,7 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedStatic;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -26,9 +27,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +36,7 @@ import static org.mockito.Mockito.when;
 class ShopServiceTest {
 
     @Mock private HardwareOrderRepository hardwareOrderRepository;
+    @Mock private StripeGateway stripeGateway;
 
     private TenantContext tenantContext;
     private ObjectMapper objectMapper;
@@ -51,8 +51,7 @@ class ShopServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         objectMapper = new ObjectMapper();
-        service = new ShopService(hardwareOrderRepository, tenantContext, objectMapper);
-        ReflectionTestUtils.setField(service, "stripeSecretKey", "sk_test_dummy");
+        service = new ShopService(hardwareOrderRepository, tenantContext, objectMapper, stripeGateway);
         ReflectionTestUtils.setField(service, "successUrl", "http://localhost/success");
         ReflectionTestUtils.setField(service, "cancelUrl", "http://localhost/cancel");
     }
@@ -140,23 +139,28 @@ class ShopServiceTest {
                 return o;
             });
 
-            try (MockedStatic<Session> stripeSession = mockStatic(Session.class)) {
-                stripeSession.when(() -> Session.create(any(SessionCreateParams.class)))
-                        .thenReturn(session);
+            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
 
-                Map<String, String> result = service.createCheckoutSession(
-                        new ShopCheckoutRequest(List.of(
-                                new ShopCheckoutRequest.CartItem("CLENZY-NM-01", 2),
-                                new ShopCheckoutRequest.CartItem("KIT-ESSENTIAL", 1)
-                        )),
-                        EMAIL, USER_KC_ID
-                );
+            Map<String, String> result = service.createCheckoutSession(
+                    new ShopCheckoutRequest(List.of(
+                            new ShopCheckoutRequest.CartItem("CLENZY-NM-01", 2),
+                            new ShopCheckoutRequest.CartItem("KIT-ESSENTIAL", 1)
+                    )),
+                    EMAIL, USER_KC_ID
+            );
 
-                assertThat(result).containsEntry("sessionId", "cs_test_123");
-                assertThat(result).containsEntry("url", "https://checkout.stripe.com/cs_test_123");
-                // Saved twice: once for PENDING order, once with stripe session id
-                verify(hardwareOrderRepository, times(2)).save(any(HardwareOrder.class));
-            }
+            assertThat(result).containsEntry("sessionId", "cs_test_123");
+            assertThat(result).containsEntry("url", "https://checkout.stripe.com/cs_test_123");
+            // Saved twice: once for PENDING order, once with stripe session id
+            verify(hardwareOrderRepository, times(2)).save(any(HardwareOrder.class));
+
+            // T-SOLID-3 : la session est creee via le gateway avec les metadata attendues
+            ArgumentCaptor<SessionCreateParams> paramsCaptor =
+                    ArgumentCaptor.forClass(SessionCreateParams.class);
+            verify(stripeGateway).createSession(paramsCaptor.capture());
+            assertThat(paramsCaptor.getValue().getMetadata())
+                    .containsEntry("type", "hardware_purchase")
+                    .containsEntry("user_id", USER_KC_ID);
         }
 
         @Test
@@ -167,14 +171,11 @@ class ShopServiceTest {
                 return o;
             });
 
-            try (MockedStatic<Session> stripeSession = mockStatic(Session.class)) {
-                StripeException err = mock(StripeException.class);
-                stripeSession.when(() -> Session.create(any(SessionCreateParams.class)))
-                        .thenThrow(err);
+            StripeException err = mock(StripeException.class);
+            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenThrow(err);
 
-                assertThatThrownBy(() -> service.createCheckoutSession(validRequest(), EMAIL, USER_KC_ID))
-                        .isInstanceOf(StripeException.class);
-            }
+            assertThatThrownBy(() -> service.createCheckoutSession(validRequest(), EMAIL, USER_KC_ID))
+                    .isInstanceOf(StripeException.class);
         }
     }
 
@@ -205,26 +206,23 @@ class ShopServiceTest {
         }
 
         @Test
-        void whenStripeRetrieveFails_thenStillMarksPaid() {
+        void whenStripeRetrieveFails_thenStillMarksPaid() throws StripeException {
             HardwareOrder pending = new HardwareOrder();
             pending.setId(2L);
             pending.setStatus(OrderStatus.PENDING);
             when(hardwareOrderRepository.findByStripeSessionId("cs_y"))
                     .thenReturn(Optional.of(pending));
 
-            try (MockedStatic<Session> stripeSession = mockStatic(Session.class)) {
-                stripeSession.when(() -> Session.retrieve("cs_y"))
-                        .thenThrow(new RuntimeException("stripe down"));
+            when(stripeGateway.retrieveSession("cs_y")).thenThrow(new RuntimeException("stripe down"));
 
-                service.completeOrder("cs_y");
+            service.completeOrder("cs_y");
 
-                assertThat(pending.getStatus()).isEqualTo(OrderStatus.PAID);
-                verify(hardwareOrderRepository).save(pending);
-            }
+            assertThat(pending.getStatus()).isEqualTo(OrderStatus.PAID);
+            verify(hardwareOrderRepository).save(pending);
         }
 
         @Test
-        void whenStripeRetrieveReturnsSessionWithPaymentIntent_thenStoresIt() {
+        void whenStripeRetrieveReturnsSessionWithPaymentIntent_thenStoresIt() throws StripeException {
             HardwareOrder pending = new HardwareOrder();
             pending.setId(3L);
             pending.setStatus(OrderStatus.PENDING);
@@ -234,14 +232,12 @@ class ShopServiceTest {
             when(hardwareOrderRepository.findByStripeSessionId("cs_z"))
                     .thenReturn(Optional.of(pending));
 
-            try (MockedStatic<Session> stripeSession = mockStatic(Session.class)) {
-                stripeSession.when(() -> Session.retrieve("cs_z")).thenReturn(session);
+            when(stripeGateway.retrieveSession("cs_z")).thenReturn(session);
 
-                service.completeOrder("cs_z");
+            service.completeOrder("cs_z");
 
-                assertThat(pending.getStatus()).isEqualTo(OrderStatus.PAID);
-                assertThat(pending.getStripePaymentIntentId()).isEqualTo("pi_test_123");
-            }
+            assertThat(pending.getStatus()).isEqualTo(OrderStatus.PAID);
+            assertThat(pending.getStripePaymentIntentId()).isEqualTo("pi_test_123");
         }
     }
 

@@ -52,8 +52,7 @@ public class ChannexWebhookController {
     private final ChannexMetrics metrics;
     // Sprint A2 + A3 deps : pour re-ack + flag sync errors sur mapping
     private final com.clenzy.integration.channex.client.ChannexClient channexClient;
-    private final com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository mappingRepository;
-    private final com.clenzy.integration.channex.service.ChannexSyncLogService syncLogService;
+    private final com.clenzy.integration.channex.service.ChannexSyncErrorService syncErrorService;
     // Item 2 + 3 (paid apps) : routing webhooks Messages + Reviews
     private final com.clenzy.integration.channex.service.ChannexMessagingService messagingService;
 
@@ -62,16 +61,14 @@ public class ChannexWebhookController {
                                       ObjectMapper objectMapper,
                                       ChannexMetrics metrics,
                                       com.clenzy.integration.channex.client.ChannexClient channexClient,
-                                      com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository mappingRepository,
-                                      com.clenzy.integration.channex.service.ChannexSyncLogService syncLogService,
+                                      com.clenzy.integration.channex.service.ChannexSyncErrorService syncErrorService,
                                       com.clenzy.integration.channex.service.ChannexMessagingService messagingService) {
         this.signatureValidator = signatureValidator;
         this.bookingService = bookingService;
         this.objectMapper = objectMapper;
         this.metrics = metrics;
         this.channexClient = channexClient;
-        this.mappingRepository = mappingRepository;
-        this.syncLogService = syncLogService;
+        this.syncErrorService = syncErrorService;
         this.messagingService = messagingService;
     }
 
@@ -296,23 +293,15 @@ public class ChannexWebhookController {
             return ResponseEntity.ok(Map.of("status", "ignored", "reason", "no_property_id"));
         }
         // Tenant-agnostic lookup (sync_error arrive sans tenant context)
-        var mappingOpt = mappingRepository.findByChannexPropertyIdAnyOrg(channexPropertyId);
+        var mappingOpt = syncErrorService.findMappingAnyOrg(channexPropertyId);
         if (mappingOpt.isEmpty()) {
             log.warn("Channex webhook[sync_error]: mapping introuvable pour property={}", channexPropertyId);
             return ResponseEntity.ok(Map.of("status", "ignored", "reason", "no_mapping"));
         }
         var mapping = mappingOpt.get();
         try {
-            mapping.setSyncStatus(com.clenzy.integration.channex.model.ChannexSyncStatus.ERROR);
-            mapping.setLastSyncError("OTA sync error: " + errorMessage);
-            mapping.setLastSyncAt(java.time.Instant.now());
-            mappingRepository.save(mapping);
-            // Sync log FAIL pour l'historique consultable dans le diagnose dialog
-            syncLogService.record(mapping.getOrganizationId(), mapping.getClenzyPropertyId(),
-                mapping.getId(),
-                com.clenzy.integration.channex.model.ChannexSyncLog.SyncType.PUSH_PROPERTY,
-                com.clenzy.integration.channex.model.ChannexSyncLog.Status.FAIL,
-                0, java.time.Instant.now(), errorMessage);
+            // Flag ERROR + sync log FAIL pour l'historique consultable dans le diagnose dialog
+            syncErrorService.flagSyncError(mapping, errorMessage);
             log.warn("Channex webhook[sync_error]: mapping={} property={} flagged ERROR: {}",
                 mapping.getId(), mapping.getClenzyPropertyId(), errorMessage);
             return ResponseEntity.ok(Map.of(

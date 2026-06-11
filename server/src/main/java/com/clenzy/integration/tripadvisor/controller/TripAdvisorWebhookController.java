@@ -1,8 +1,7 @@
 package com.clenzy.integration.tripadvisor.controller;
 
 import com.clenzy.integration.tripadvisor.config.TripAdvisorConfig;
-import com.clenzy.integration.tripadvisor.model.TripAdvisorConnection;
-import com.clenzy.integration.tripadvisor.repository.TripAdvisorConnectionRepository;
+import com.clenzy.integration.tripadvisor.service.TripAdvisorConnectionQueryService;
 import com.clenzy.integration.tripadvisor.service.TripAdvisorSyncService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,14 +41,14 @@ public class TripAdvisorWebhookController {
 
     private final TripAdvisorConfig config;
     private final TripAdvisorSyncService syncService;
-    private final TripAdvisorConnectionRepository connectionRepository;
+    private final TripAdvisorConnectionQueryService connectionQueryService;
 
     public TripAdvisorWebhookController(TripAdvisorConfig config,
                                          TripAdvisorSyncService syncService,
-                                         TripAdvisorConnectionRepository connectionRepository) {
+                                         TripAdvisorConnectionQueryService connectionQueryService) {
         this.config = config;
         this.syncService = syncService;
-        this.connectionRepository = connectionRepository;
+        this.connectionQueryService = connectionQueryService;
     }
 
     /**
@@ -104,11 +103,10 @@ public class TripAdvisorWebhookController {
                 ));
             }
 
-            // Resoudre l'organisation via le partner_id
-            Optional<TripAdvisorConnection> connectionOpt =
-                    connectionRepository.findByPartnerId(partnerId);
+            // Resoudre l'organisation via le partner_id (lookup sans org : flux signe HMAC)
+            Optional<Long> orgIdOpt = connectionQueryService.resolveOrganizationId(partnerId);
 
-            if (connectionOpt.isEmpty()) {
+            if (orgIdOpt.isEmpty()) {
                 log.warn("Webhook TripAdvisor: partner_id {} non trouve", partnerId);
                 return ResponseEntity.ok(Map.of(
                         "status", "ok",
@@ -116,7 +114,7 @@ public class TripAdvisorWebhookController {
                 ));
             }
 
-            Long orgId = connectionOpt.get().getOrganizationId();
+            Long orgId = orgIdOpt.get();
 
             // Traiter l'evenement
             syncService.handleBookingWebhook(eventType, webhookData, orgId);

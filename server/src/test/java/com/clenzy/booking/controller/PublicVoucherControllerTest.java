@@ -5,7 +5,11 @@ import com.clenzy.dto.voucher.VoucherValidationResponseDto;
 import com.clenzy.model.BookingVoucher;
 import com.clenzy.model.Property;
 import com.clenzy.model.voucher.VoucherChannelScope;
+import com.clenzy.repository.BookingVoucherRepository;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.VoucherPropertyScopeRepository;
+import com.clenzy.service.voucher.BookingVoucherService;
 import com.clenzy.service.voucher.VoucherApplyResult;
 import com.clenzy.service.voucher.VoucherEngine;
 import com.clenzy.service.voucher.VoucherValidationError;
@@ -26,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,7 +59,14 @@ class PublicVoucherControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PublicVoucherController(voucherEngine, propertyRepository);
+        // Pattern Vague A : BookingVoucherService REEL construit au-dessus du
+        // propertyRepository mocke (stubs/verify inchanges, couverture e2e).
+        BookingVoucherService voucherService = new BookingVoucherService(
+            mock(BookingVoucherRepository.class),
+            mock(VoucherPropertyScopeRepository.class),
+            propertyRepository,
+            mock(OrganizationRepository.class));
+        controller = new PublicVoucherController(voucherEngine, voucherService);
     }
 
     private VoucherValidationRequestDto request(Long orgId, Long propertyId, String code) {

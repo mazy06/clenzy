@@ -4,6 +4,7 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.payment.payout.PayoutNotifier;
+import com.clenzy.payment.payout.PayoutWebhookService;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.service.NotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,11 +18,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +34,10 @@ import static org.mockito.Mockito.when;
  *
  * Covers signature config absent (degraded mode), missing/invalid sig (when configured),
  * event-type filter, transfer state mapping, idempotence, and admin escalation on revert.
+ *
+ * <p>Le controller est branche sur un {@link PayoutWebhookService} reel (CAS via
+ * UPDATE conditionnel) alimente par les mocks — les transitions sont verifiees
+ * via les appels repository conditionnels, plus de mutation d'entite en memoire.</p>
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WiseWebhookController")
@@ -46,7 +53,9 @@ class WiseWebhookControllerTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        controller = new WiseWebhookController(payoutRepository, notifier, notificationService, objectMapper);
+        PayoutWebhookService payoutWebhookService =
+            new PayoutWebhookService(payoutRepository, notifier, notificationService);
+        controller = new WiseWebhookController(payoutWebhookService, objectMapper);
         // Default: no public key configured (signature check disabled — degraded mode)
         ReflectionTestUtils.setField(controller, "wisePublicKeyPem", "");
     }
@@ -191,36 +200,40 @@ class WiseWebhookControllerTest {
     class StateMapping {
 
         @Test
-        @DisplayName("outgoing_payment_sent -> markPaid + notifySuccess")
+        @DisplayName("outgoing_payment_sent -> transition conditionnelle PAID + notifySuccess")
         void whenOutgoingPaymentSent_thenMarkPaid() {
             String body = transferEvent(123456L, "outgoing_payment_sent");
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class)))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PAID);
-            assertThat(payout.getPaidAt()).isNotNull();
+            verify(payoutRepository).markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class));
             verify(notifier).notifySuccess(payout);
         }
 
         @Test
-        @DisplayName("funds_refunded -> markFailed + notifyFailure")
+        @DisplayName("funds_refunded -> transition conditionnelle FAILED + notifyFailure")
         void whenFundsRefunded_thenMarkFailed() {
             String body = transferEvent(123456L, "funds_refunded");
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "Wise state: funds_refunded", PayoutStatus.PAID))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             controller.handleTransferStateChange(body, null);
 
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
-            assertThat(payout.getFailureReason()).contains("funds_refunded");
-            verify(notifier).notifyFailure(any(), anyString());
+            verify(payoutRepository).markFailedIfNotPaid(
+                10L, PayoutStatus.FAILED, "Wise state: funds_refunded", PayoutStatus.PAID);
+            verify(notifier).notifyFailure(any(), eq("Wise state: funds_refunded"));
         }
 
         @Test
@@ -230,11 +243,14 @@ class WiseWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "Wise state: charged_back", PayoutStatus.PAID))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             controller.handleTransferStateChange(body, null);
 
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
+            verify(notifier).notifyFailure(any(), eq("Wise state: charged_back"));
         }
 
         @Test
@@ -244,11 +260,14 @@ class WiseWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "Wise state: cancelled", PayoutStatus.PAID))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             controller.handleTransferStateChange(body, null);
 
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
+            verify(notifier).notifyFailure(any(), eq("Wise state: cancelled"));
         }
 
         @Test
@@ -258,11 +277,14 @@ class WiseWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "Wise state: bounced_back", PayoutStatus.PAID))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             controller.handleTransferStateChange(body, null);
 
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
+            verify(notifier).notifyFailure(any(), eq("Wise state: bounced_back"));
         }
 
         @Test
@@ -278,6 +300,10 @@ class WiseWebhookControllerTest {
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PROCESSING);
             verify(payoutRepository, never()).save(any());
+            verify(payoutRepository, never())
+                .markPaidIfNotAlreadyPaid(any(), any(), any());
+            verify(payoutRepository, never())
+                .markFailedIfNotPaid(any(), any(), any(), any());
         }
 
         @Test
@@ -287,11 +313,13 @@ class WiseWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class)))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             controller.handleTransferStateChange(body, null);
 
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PAID);
+            verify(notifier).notifySuccess(payout);
         }
     }
 
@@ -306,6 +334,9 @@ class WiseWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PAID);
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
+            // CAS : 0 ligne modifiee = deja PAID
+            when(payoutRepository.markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class)))
+                .thenReturn(0);
 
             ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
 
@@ -321,12 +352,17 @@ class WiseWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 42L, PayoutStatus.PAID);
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
+            // CAS : 0 ligne modifiee = deja PAID, le statut n'est pas ecrase
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "Wise state: funds_refunded", PayoutStatus.PAID))
+                .thenReturn(0);
 
             ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PAID);
             verify(payoutRepository, never()).save(any());
+            verify(notifier, never()).notifyFailure(any(), anyString());
             verify(notificationService).notifyAdminsAndManagersByOrgId(
                 org.mockito.ArgumentMatchers.eq(42L),
                 any(NotificationKey.class),

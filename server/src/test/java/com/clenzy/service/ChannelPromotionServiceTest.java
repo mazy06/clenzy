@@ -9,16 +9,20 @@ import com.clenzy.integration.channel.SyncResult;
 import com.clenzy.model.ChannelPromotion;
 import com.clenzy.model.PromotionStatus;
 import com.clenzy.model.PromotionType;
+import com.clenzy.model.Property;
 import com.clenzy.repository.ChannelPromotionRepository;
+import com.clenzy.repository.PropertyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +35,8 @@ class ChannelPromotionServiceTest {
 
     @Mock private ChannelPromotionRepository promotionRepository;
     @Mock private ChannelConnectorRegistry connectorRegistry;
+    @Mock private PropertyRepository propertyRepository;
+    @Mock private PlatformTransactionManager transactionManager;
 
     @InjectMocks
     private ChannelPromotionService service;
@@ -79,6 +85,69 @@ class ChannelPromotionServiceTest {
     }
 
     @Test
+    void create_withSuccessfulPush_promotionBecomesActive() {
+        // Z5-BUGS-07 : le push part apres le save (post-commit en prod, fallback
+        // immediat ici sans transaction) et c'est lui qui pose ACTIVE.
+        var request = new CreateChannelPromotionRequest(
+            PROPERTY_ID, ChannelName.BOOKING, PromotionType.GENIUS,
+            new BigDecimal("15.00"), LocalDate.now(), LocalDate.now().plusMonths(3), null);
+
+        java.util.concurrent.atomic.AtomicReference<ChannelPromotion> savedRef =
+            new java.util.concurrent.atomic.AtomicReference<>();
+        when(promotionRepository.save(any(ChannelPromotion.class))).thenAnswer(inv -> {
+            ChannelPromotion p = inv.getArgument(0);
+            p.setId(10L);
+            savedRef.set(p);
+            return p;
+        });
+        when(promotionRepository.findByIdAndOrgId(10L, ORG_ID))
+            .thenAnswer(inv -> Optional.of(savedRef.get()));
+
+        ChannelConnector connector = mock(ChannelConnector.class);
+        when(connectorRegistry.getConnector(ChannelName.BOOKING)).thenReturn(Optional.of(connector));
+        when(connector.supports(ChannelCapability.PROMOTIONS)).thenReturn(true);
+        SyncResult ok = mock(SyncResult.class);
+        when(ok.getStatus()).thenReturn(SyncResult.Status.SUCCESS);
+        when(connector.pushPromotion(any(ChannelPromotion.class), eq(ORG_ID))).thenReturn(ok);
+
+        ChannelPromotion result = service.create(request, ORG_ID);
+
+        assertEquals(PromotionStatus.ACTIVE, result.getStatus());
+        assertNotNull(result.getSyncedAt());
+    }
+
+    @Test
+    void create_whenPushThrows_promotionStaysPendingForReconciliation() {
+        // Z5-BUGS-07 : echec technique post-commit => la promo reste PENDING
+        // (statut de reconciliation), jamais ACTIVE non confirme, pas d'exception.
+        var request = new CreateChannelPromotionRequest(
+            PROPERTY_ID, ChannelName.BOOKING, PromotionType.GENIUS,
+            new BigDecimal("15.00"), LocalDate.now(), LocalDate.now().plusMonths(3), null);
+
+        java.util.concurrent.atomic.AtomicReference<ChannelPromotion> savedRef =
+            new java.util.concurrent.atomic.AtomicReference<>();
+        when(promotionRepository.save(any(ChannelPromotion.class))).thenAnswer(inv -> {
+            ChannelPromotion p = inv.getArgument(0);
+            p.setId(10L);
+            savedRef.set(p);
+            return p;
+        });
+        when(promotionRepository.findByIdAndOrgId(10L, ORG_ID))
+            .thenAnswer(inv -> Optional.of(savedRef.get()));
+
+        ChannelConnector connector = mock(ChannelConnector.class);
+        when(connectorRegistry.getConnector(ChannelName.BOOKING)).thenReturn(Optional.of(connector));
+        when(connector.supports(ChannelCapability.PROMOTIONS)).thenReturn(true);
+        when(connector.pushPromotion(any(ChannelPromotion.class), eq(ORG_ID)))
+            .thenThrow(new RuntimeException("OTA timeout"));
+
+        ChannelPromotion result = service.create(request, ORG_ID);
+
+        assertEquals(PromotionStatus.PENDING, result.getStatus());
+        assertNull(result.getSyncedAt());
+    }
+
+    @Test
     void getById_found_returnsPromotion() {
         when(promotionRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(samplePromo));
 
@@ -107,7 +176,10 @@ class ChannelPromotionServiceTest {
     }
 
     @Test
-    void togglePromotion_disabledToEnabled() {
+    void togglePromotion_disabledToEnabled_staysPendingUntilOtaConfirms() {
+        // Z5-BUGS-07 : ACTIVE n'est pose qu'apres confirmation OTA post-commit.
+        // Ici le push (fallback immediat, pas de transaction) ne trouve aucun
+        // connecteur => la promo reste PENDING, en attente de confirmation.
         samplePromo.setEnabled(false);
         samplePromo.setStatus(PromotionStatus.PENDING);
         when(promotionRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(samplePromo));
@@ -116,15 +188,40 @@ class ChannelPromotionServiceTest {
         ChannelPromotion result = service.togglePromotion(1L, ORG_ID);
 
         assertTrue(result.getEnabled());
+        assertEquals(PromotionStatus.PENDING, result.getStatus());
+        verify(connectorRegistry).getConnector(ChannelName.BOOKING); // push bien tente
+    }
+
+    @Test
+    void togglePromotion_enabledWithSuccessfulPush_becomesActive() {
+        samplePromo.setEnabled(false);
+        samplePromo.setStatus(PromotionStatus.PENDING);
+        when(promotionRepository.findByIdAndOrgId(1L, ORG_ID)).thenReturn(Optional.of(samplePromo));
+        when(promotionRepository.save(any(ChannelPromotion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ChannelConnector connector = mock(ChannelConnector.class);
+        when(connectorRegistry.getConnector(ChannelName.BOOKING)).thenReturn(Optional.of(connector));
+        when(connector.supports(ChannelCapability.PROMOTIONS)).thenReturn(true);
+        SyncResult ok = mock(SyncResult.class);
+        when(ok.getStatus()).thenReturn(SyncResult.Status.SUCCESS);
+        when(connector.pushPromotion(samplePromo, ORG_ID)).thenReturn(ok);
+
+        ChannelPromotion result = service.togglePromotion(1L, ORG_ID);
+
+        assertTrue(result.getEnabled());
         assertEquals(PromotionStatus.ACTIVE, result.getStatus());
+        assertNotNull(result.getSyncedAt());
     }
 
     @Test
     void expireOldPromotions_expiresAndReturnsCount() {
+        // endDate largement passee (toutes timezones) ; propertyId null => zone fallback
         ChannelPromotion expired1 = new ChannelPromotion();
         expired1.setStatus(PromotionStatus.ACTIVE);
+        expired1.setEndDate(LocalDate.now().minusDays(5));
         ChannelPromotion expired2 = new ChannelPromotion();
         expired2.setStatus(PromotionStatus.ACTIVE);
+        expired2.setEndDate(LocalDate.now().minusDays(5));
 
         when(promotionRepository.findExpired(any(LocalDate.class), eq(ORG_ID)))
             .thenReturn(List.of(expired1, expired2));
@@ -304,14 +401,17 @@ class ChannelPromotionServiceTest {
     }
 
     @Test
-    void pushPromotionToChannel_exception_swallowed() {
+    void pushPromotionToChannel_exception_fallsBackToPendingForReconciliation() {
         ChannelConnector connector = mock(ChannelConnector.class);
         when(connectorRegistry.getConnector(ChannelName.BOOKING)).thenReturn(Optional.of(connector));
         when(connector.supports(ChannelCapability.PROMOTIONS)).thenReturn(true);
         when(connector.pushPromotion(samplePromo, ORG_ID)).thenThrow(new RuntimeException("push error"));
 
-        // Should not throw
+        // Should not throw — Z5-BUGS-07 : echec technique => statut de reconciliation
         service.pushPromotionToChannel(samplePromo, ORG_ID);
+
+        assertEquals(PromotionStatus.PENDING, samplePromo.getStatus());
+        verify(promotionRepository).save(samplePromo);
     }
 
     // ====== SYNC WITH CHANNEL — error path ======
@@ -334,8 +434,10 @@ class ChannelPromotionServiceTest {
     void scheduledExpirePromotions_expiresAll() {
         ChannelPromotion p1 = new ChannelPromotion();
         p1.setStatus(PromotionStatus.ACTIVE);
+        p1.setEndDate(LocalDate.now().minusDays(5));
         ChannelPromotion p2 = new ChannelPromotion();
         p2.setStatus(PromotionStatus.ACTIVE);
+        p2.setEndDate(LocalDate.now().minusDays(5));
         when(promotionRepository.findAllExpired(any(LocalDate.class))).thenReturn(List.of(p1, p2));
 
         service.scheduledExpirePromotions();
@@ -352,5 +454,71 @@ class ChannelPromotionServiceTest {
         service.scheduledExpirePromotions();
 
         verify(promotionRepository, never()).save(any());
+    }
+
+    // ====== EXPIRATION — timezone propriete (Z5-BUGS-08) ======
+
+    @Test
+    void whenEndDateIsTodayInPropertyTimezone_thenPromotionStaysActive() {
+        // Arrange : propriete a Pago Pago (UTC-11), endDate = aujourd'hui la-bas.
+        // Une JVM en UTC/Paris (date locale potentiellement +1) l'aurait expiree a tort.
+        ZoneId pagoPago = ZoneId.of("Pacific/Pago_Pago");
+        Property property = new Property();
+        property.setTimezone("Pacific/Pago_Pago");
+
+        ChannelPromotion promo = new ChannelPromotion();
+        promo.setStatus(PromotionStatus.ACTIVE);
+        promo.setPropertyId(PROPERTY_ID);
+        promo.setEndDate(LocalDate.now(pagoPago));
+
+        when(promotionRepository.findAllExpired(any(LocalDate.class))).thenReturn(List.of(promo));
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+
+        // Act
+        service.scheduledExpirePromotions();
+
+        // Assert : pas encore expiree dans la timezone de la propriete
+        assertEquals(PromotionStatus.ACTIVE, promo.getStatus());
+        verify(promotionRepository, never()).save(any());
+    }
+
+    @Test
+    void whenEndDateIsPastInPropertyTimezone_thenPromotionExpires() {
+        ZoneId pagoPago = ZoneId.of("Pacific/Pago_Pago");
+        Property property = new Property();
+        property.setTimezone("Pacific/Pago_Pago");
+
+        ChannelPromotion promo = new ChannelPromotion();
+        promo.setStatus(PromotionStatus.ACTIVE);
+        promo.setPropertyId(PROPERTY_ID);
+        promo.setEndDate(LocalDate.now(pagoPago).minusDays(1));
+
+        when(promotionRepository.findAllExpired(any(LocalDate.class))).thenReturn(List.of(promo));
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+        when(promotionRepository.save(any(ChannelPromotion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.scheduledExpirePromotions();
+
+        assertEquals(PromotionStatus.EXPIRED, promo.getStatus());
+    }
+
+    @Test
+    void whenPropertyTimezoneInvalid_thenFallsBackToEuropeParis() {
+        Property property = new Property();
+        property.setTimezone("Mars/Olympus");
+
+        ChannelPromotion promo = new ChannelPromotion();
+        promo.setStatus(PromotionStatus.ACTIVE);
+        promo.setPropertyId(PROPERTY_ID);
+        promo.setEndDate(LocalDate.now(ZoneId.of("Europe/Paris")).minusDays(1));
+
+        when(promotionRepository.findAllExpired(any(LocalDate.class))).thenReturn(List.of(promo));
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+        when(promotionRepository.save(any(ChannelPromotion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.scheduledExpirePromotions();
+
+        // Fallback Europe/Paris : la promo d'hier (Paris) est bien expiree, sans crash
+        assertEquals(PromotionStatus.EXPIRED, promo.getStatus());
     }
 }

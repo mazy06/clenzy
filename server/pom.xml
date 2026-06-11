@@ -388,6 +388,17 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- ArchUnit — regles d'architecture executables (audit T-ARCH-01) :
+             la regle controllers -> repositories est GELEE (FreezingArchRule) :
+             les violations historiques sont tolerees via archunit_store/,
+             toute NOUVELLE violation fait echouer le build. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>1.3.0</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>

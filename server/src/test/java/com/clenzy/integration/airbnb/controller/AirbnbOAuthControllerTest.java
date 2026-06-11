@@ -34,7 +34,9 @@ class AirbnbOAuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new AirbnbOAuthController(oAuthService, listingMappingRepository);
+        // Service reel sur repository mocke (refactor T-ARCH-01)
+        controller = new AirbnbOAuthController(oAuthService,
+                new com.clenzy.integration.airbnb.service.AirbnbListingMappingQueryService(listingMappingRepository));
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")

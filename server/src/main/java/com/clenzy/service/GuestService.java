@@ -1,7 +1,10 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.GuestDto;
+import com.clenzy.dto.GuestListDto;
 import com.clenzy.model.Guest;
 import com.clenzy.model.GuestChannel;
+import com.clenzy.model.Organization;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -13,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service de gestion des voyageurs (guests).
@@ -21,6 +26,7 @@ import java.util.Optional;
  * Responsabilites :
  * - Deduplication : trouver un guest existant ou en creer un nouveau
  * - Tracking : incrementer total_stays et total_spent
+ * - Lectures et mise a jour pour la page Voyageurs (listing, recherche, email)
  *
  * La deduplication fonctionne en 2 etapes :
  * 1. Par (channel, channelGuestId) en SQL (non chiffre)
@@ -34,11 +40,14 @@ public class GuestService {
 
     private final GuestRepository guestRepository;
     private final ReservationRepository reservationRepository;
+    private final OrganizationService organizationService;
 
     public GuestService(GuestRepository guestRepository,
-                        ReservationRepository reservationRepository) {
+                        ReservationRepository reservationRepository,
+                        OrganizationService organizationService) {
         this.guestRepository = guestRepository;
         this.reservationRepository = reservationRepository;
+        this.organizationService = organizationService;
     }
 
     /**
@@ -182,6 +191,130 @@ public class GuestService {
 
         log.info("Recalculated stats for {} guests ({} updated)", allGuests.size(), updated);
         return updated;
+    }
+
+    // ================================================================
+    // Lectures et mise a jour pour la page Voyageurs
+    // (logique deplacee depuis GuestController — refactor T-ARCH-01)
+    // ================================================================
+
+    /**
+     * Listing complet pour la page Voyageurs, avec filtres search/channel
+     * appliques en memoire (champs chiffres AES-256 en base).
+     *
+     * @param organizationId org du requester ; {@code null} = platform staff
+     *                       (SUPER_ADMIN/SUPER_MANAGER), lecture cross-org avec
+     *                       resolution des noms d'organisation
+     */
+    public List<GuestListDto> listGuests(Long organizationId, String search, String channel) {
+        boolean crossTenant = organizationId == null;
+        List<Guest> guests = crossTenant
+                ? guestRepository.findAllOrderByLastName()
+                : guestRepository.findByOrganizationId(organizationId);
+
+        // Lookup des noms d'org pour la vue cross-tenant
+        Map<Long, String> orgNames = crossTenant
+                ? organizationService.findAll().stream()
+                    .collect(Collectors.toMap(Organization::getId, Organization::getName, (a, b) -> a))
+                : Map.of();
+
+        String lowerSearch = (search != null && search.length() >= 2)
+                ? search.toLowerCase().trim() : null;
+
+        return guests.stream()
+                .filter(g -> {
+                    // Filtre search (en memoire — champs chiffres)
+                    if (lowerSearch != null) {
+                        String fn = g.getFirstName() != null ? g.getFirstName().toLowerCase() : "";
+                        String ln = g.getLastName() != null ? g.getLastName().toLowerCase() : "";
+                        String email = g.getEmail() != null ? g.getEmail().toLowerCase() : "";
+                        String full = fn + " " + ln;
+                        if (!fn.contains(lowerSearch) && !ln.contains(lowerSearch)
+                                && !full.contains(lowerSearch) && !email.contains(lowerSearch)) {
+                            return false;
+                        }
+                    }
+                    // Filtre channel
+                    if (channel != null && !channel.isBlank()) {
+                        return g.getChannel() != null && g.getChannel().name().equalsIgnoreCase(channel);
+                    }
+                    return true;
+                })
+                .map(g -> toListDto(g, orgNames.getOrDefault(g.getOrganizationId(), null)))
+                .toList();
+    }
+
+    /**
+     * Recherche par nom dans l'organisation (en memoire car firstName/lastName
+     * sont chiffres en base). Limite a 20 resultats. L'appelant garantit un
+     * terme d'au moins 2 caracteres.
+     */
+    public List<GuestDto> searchByName(Long organizationId, String search) {
+        String lowerSearch = search.toLowerCase().trim();
+
+        return guestRepository.findByOrganizationId(organizationId).stream()
+                .filter(g -> {
+                    String fn = g.getFirstName() != null ? g.getFirstName().toLowerCase() : "";
+                    String ln = g.getLastName() != null ? g.getLastName().toLowerCase() : "";
+                    String full = fn + " " + ln;
+                    return fn.contains(lowerSearch) || ln.contains(lowerSearch)
+                            || full.contains(lowerSearch);
+                })
+                .limit(20)
+                .map(GuestService::toDto)
+                .toList();
+    }
+
+    /**
+     * Met a jour l'email d'un voyageur de l'organisation.
+     * {@code findById} ne passe pas par le filtre Hibernate organizationFilter :
+     * l'ownership org est valide explicitement (cross-org = introuvable).
+     *
+     * @return le DTO mis a jour, ou {@code Optional.empty()} si le guest
+     *         n'existe pas ou appartient a une autre organisation
+     */
+    @Transactional
+    public Optional<GuestDto> updateGuestEmail(Long guestId, Long organizationId, String email) {
+        return guestRepository.findById(guestId)
+                .filter(g -> g.getOrganizationId().equals(organizationId))
+                .map(guest -> {
+                    guest.setEmail(email.trim());
+                    guestRepository.save(guest);
+                    return toDto(guest);
+                });
+    }
+
+    // ================================================================
+    // Mapping DTO
+    // ================================================================
+
+    public static GuestDto toDto(Guest g) {
+        return new GuestDto(
+                g.getId(),
+                g.getFirstName(),
+                g.getLastName(),
+                g.getEmail(),
+                g.getPhone(),
+                g.getFullName()
+        );
+    }
+
+    private static GuestListDto toListDto(Guest g, String organizationName) {
+        return new GuestListDto(
+                g.getId(),
+                g.getFirstName(),
+                g.getLastName(),
+                g.getEmail(),
+                g.getPhone(),
+                g.getFullName(),
+                g.getChannel() != null ? g.getChannel().name() : null,
+                g.getTotalStays(),
+                g.getTotalSpent(),
+                g.getLanguage(),
+                g.getCreatedAt(),
+                g.getOrganizationId(),
+                organizationName
+        );
     }
 
     // ================================================================

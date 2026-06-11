@@ -4,6 +4,7 @@ import com.clenzy.dto.MessageTemplateDto;
 import com.clenzy.model.MessageTemplate;
 import com.clenzy.model.MessageTemplateType;
 import com.clenzy.repository.MessageTemplateRepository;
+import com.clenzy.service.MessageTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +35,8 @@ class MessageTemplateControllerTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(1L);
-        controller = new MessageTemplateController(templateRepository, tenantContext);
+        // Service REEL au-dessus du repository mocke (pattern Vague A).
+        controller = new MessageTemplateController(new MessageTemplateService(templateRepository), tenantContext);
 
         template = new MessageTemplate();
         template.setId(10L);

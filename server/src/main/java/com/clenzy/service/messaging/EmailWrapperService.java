@@ -1,5 +1,6 @@
 package com.clenzy.service.messaging;
 
+import com.clenzy.util.EmailHtmlSanitizer;
 import com.clenzy.util.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -63,7 +64,14 @@ public class EmailWrapperService {
      */
     public String wrap(String wrapperStyle, String interpolatedBody) {
         String style = wrapperStyle != null ? wrapperStyle : "NOTIFICATION_OWNER";
-        String bodyHtml = convertPlainTextToHtml(interpolatedBody, "INVITATION".equals(style));
+        // Defense en profondeur stored XSS : les overrides per-org de templates
+        // sont editables via l'API ; on supprime au rendu tout construct dangereux
+        // (script/iframe/object/embed, on*=, javascript:) — couvre aussi les
+        // overrides stockes avant la sanitisation au stockage. Les blocs HTML
+        // trusted ({detailsHtml}, {urgencyBanner}) n'en contiennent pas et
+        // restent intacts (suppression ciblee, pas de reformatage).
+        String safeBody = EmailHtmlSanitizer.sanitize(interpolatedBody);
+        String bodyHtml = convertPlainTextToHtml(safeBody, "INVITATION".equals(style));
 
         return switch (style) {
             case "NOTIFICATION_GUEST" -> wrapNotificationGuest(bodyHtml);
@@ -86,9 +94,10 @@ public class EmailWrapperService {
      * volontairement (cf. HTML_SAFE_VARIABLES dans
      * {@link TemplateInterpolationService}).</p>
      *
-     * <p><b>Securite</b> : le body provient d'un super-admin Baitly ou d'un
-     * host qui edite SON propre override. Pas d'input voyageur direct injecte.
-     * Le risque d'XSS est interne (admin malveillant) — acceptable a ce stade.</p>
+     * <p><b>Securite</b> : le body est sanitise par {@link EmailHtmlSanitizer}
+     * dans {@link #wrap} avant d'arriver ici (suppression script/iframe/on*=/
+     * javascript:) — l'ecriture des overrides est par ailleurs restreinte aux
+     * roles d'administration d'org cote controller.</p>
      */
     private String convertPlainTextToHtml(String text, boolean invitationMode) {
         if (text == null) return "";

@@ -4,6 +4,7 @@ import com.clenzy.dto.rate.RateCalendarDto;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -13,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,6 +38,31 @@ import java.util.stream.Collectors;
 public class AdvancedRateManager {
 
     private static final Logger log = LoggerFactory.getLogger(AdvancedRateManager.class);
+
+    /** Source des overrides ecrits par le yield management. */
+    static final String YIELD_RULE_SOURCE = "YIELD_RULE";
+
+    /**
+     * Garde-fou par defaut quand minPrice/maxPrice ne sont pas configures sur la
+     * regle (champs nullables, audit Z5-BUGS-02) : le prix ajuste est borne a
+     * ±50% du prix de base pour eviter tout effondrement/explosion du tarif.
+     */
+    static final BigDecimal DEFAULT_YIELD_CLAMP_RATIO = new BigDecimal("0.50");
+
+    /**
+     * Fallback documente (audit Z5-BUGS-08) quand la propriete n'a pas de
+     * timezone exploitable : aligne sur le defaut du champ {@code Property.timezone}.
+     */
+    static final ZoneId DEFAULT_PROPERTY_ZONE = ZoneId.of("Europe/Paris");
+
+    /**
+     * Defauts des fenetres de ciblage quand la triggerCondition est incomplete.
+     * Partages entre l'evaluation ({@code evaluateDaysBeforeArrival} /
+     * {@code evaluateLastMinuteFill}) et l'affichage calendrier (Z5-BUGS-09)
+     * pour garantir que les deux restent alignes.
+     */
+    static final int DEFAULT_DAYS_AHEAD = 30;
+    static final int DEFAULT_WITHIN_DAYS = 3;
 
     private final PriceEngine priceEngine;
     private final ChannelRateModifierRepository channelRateModifierRepository;
@@ -133,8 +161,9 @@ public class AdvancedRateManager {
         Map<ChannelName, List<ChannelRateModifier>> modifiersByChannel = allModifiers.stream()
                 .collect(Collectors.groupingBy(ChannelRateModifier::getChannelName));
 
-        // Charger les yield rules et LOS pour l'affichage
+        // Charger les yield rules et pre-calculer leurs fenetres d'application
         List<YieldRule> yieldRules = yieldRuleRepository.findActiveByPropertyId(propertyId, orgId);
+        List<YieldRuleWindow> yieldWindows = resolveYieldRuleWindows(propertyId, yieldRules);
 
         List<RateCalendarDto> calendar = new ArrayList<>();
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
@@ -149,12 +178,13 @@ public class AdvancedRateManager {
                 channelPrices.put(entry.getKey(), channelPrice);
             }
 
-            // Trouver la yield rule applicable (pour info)
+            // Yield rule applicable a CETTE date (Z5-BUGS-09 : l'ancien findFirst
+            // sans filtre de date affichait la meme regle sur tous les jours)
             final LocalDate currentDate = date;
-            String appliedYieldRule = yieldRules.stream()
-                    .filter(YieldRule::isActive)
+            String appliedYieldRule = yieldWindows.stream()
+                    .filter(window -> window.contains(currentDate))
                     .findFirst()
-                    .map(YieldRule::getName)
+                    .map(YieldRuleWindow::ruleName)
                     .orElse(null);
 
             calendar.add(new RateCalendarDto(
@@ -190,7 +220,10 @@ public class AdvancedRateManager {
             return;
         }
 
-        LocalDate today = LocalDate.now();
+        // « Aujourd'hui » dans la timezone de la propriete, pas celle de la JVM
+        // (audit Z5-BUGS-08) : evite les ajustements last-minute/anticipation
+        // appliques au mauvais jour autour de minuit.
+        LocalDate today = LocalDate.now(resolvePropertyZone(property));
         LocalDate horizon = today.plusDays(90); // 90 jours d'horizon
 
         for (YieldRule rule : rules) {
@@ -235,6 +268,87 @@ public class AdvancedRateManager {
 
     // ── Methodes privees ────────────────────────────────────────────────────
 
+    /**
+     * Fenetre [fromInclusive, toExclusive) pendant laquelle une yield rule cible
+     * des dates — utilisee uniquement pour l'affichage calendrier (Z5-BUGS-09).
+     */
+    private record YieldRuleWindow(String ruleName, LocalDate fromInclusive, LocalDate toExclusive) {
+        boolean contains(LocalDate date) {
+            return !date.isBefore(fromInclusive) && date.isBefore(toExclusive);
+        }
+    }
+
+    /**
+     * Pre-calcule les fenetres d'application des regles actives pour l'affichage
+     * (Z5-BUGS-09) : « aujourd'hui » est resolu dans la timezone de la propriete,
+     * comme dans {@link #applyYieldRules}.
+     */
+    private List<YieldRuleWindow> resolveYieldRuleWindows(Long propertyId, List<YieldRule> rules) {
+        if (rules.isEmpty()) return List.of();
+
+        LocalDate today = LocalDate.now(propertyRepository.findById(propertyId)
+                .map(AdvancedRateManager::resolvePropertyZone)
+                .orElse(DEFAULT_PROPERTY_ZONE));
+
+        List<YieldRuleWindow> windows = new ArrayList<>();
+        for (YieldRule rule : rules) {
+            if (!rule.isActive()) continue;
+            YieldRuleWindow window = toDisplayWindow(rule, today);
+            if (window != null) {
+                windows.add(window);
+            }
+        }
+        return windows;
+    }
+
+    /**
+     * Reproduit la fenetre de ciblage du moteur ({@link #evaluateDaysBeforeArrival},
+     * {@link #evaluateLastMinuteFill}) pour l'affichage. OCCUPANCY_THRESHOLD et
+     * GAP_FILL ne sont pas evalues par le moteur (donnees d'occupation requises) :
+     * ils ne sont donc jamais affiches comme appliques (Z5-BUGS-09).
+     */
+    private YieldRuleWindow toDisplayWindow(YieldRule rule, LocalDate today) {
+        try {
+            JsonNode condition = objectMapper.readTree(rule.getTriggerCondition());
+            return switch (rule.getRuleType()) {
+                case DAYS_BEFORE_ARRIVAL -> {
+                    int daysAhead = condition.has("daysAhead")
+                            ? condition.get("daysAhead").asInt() : DEFAULT_DAYS_AHEAD;
+                    LocalDate target = today.plusDays(daysAhead);
+                    yield new YieldRuleWindow(rule.getName(), target, target.plusDays(1));
+                }
+                case LAST_MINUTE_FILL -> {
+                    int withinDays = condition.has("withinDays")
+                            ? condition.get("withinDays").asInt() : DEFAULT_WITHIN_DAYS;
+                    yield new YieldRuleWindow(rule.getName(), today, today.plusDays(withinDays));
+                }
+                case OCCUPANCY_THRESHOLD, GAP_FILL -> null;
+            };
+        } catch (JsonProcessingException e) {
+            log.warn("TriggerCondition illisible pour yield rule '{}' (id={}) : {}",
+                    rule.getName(), rule.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Timezone de la propriete ; fallback {@link #DEFAULT_PROPERTY_ZONE} si la
+     * timezone est absente ou invalide (audit Z5-BUGS-08).
+     */
+    private static ZoneId resolvePropertyZone(Property property) {
+        String timezone = property.getTimezone();
+        if (timezone == null || timezone.isBlank()) {
+            return DEFAULT_PROPERTY_ZONE;
+        }
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException e) {
+            log.warn("Timezone invalide '{}' pour property={}, fallback {}",
+                    timezone, property.getId(), DEFAULT_PROPERTY_ZONE);
+            return DEFAULT_PROPERTY_ZONE;
+        }
+    }
+
     private BigDecimal applyChannelModifiers(BigDecimal basePrice, Long propertyId,
                                              LocalDate date, ChannelName channel, Long orgId) {
         List<ChannelRateModifier> modifiers = channelRateModifierRepository
@@ -278,37 +392,57 @@ public class AdvancedRateManager {
     private void evaluateDaysBeforeArrival(YieldRule rule, Property property,
                                            JsonNode condition, LocalDate from,
                                            LocalDate to, Long orgId) {
-        int daysAhead = condition.has("daysAhead") ? condition.get("daysAhead").asInt() : 30;
+        int daysAhead = condition.has("daysAhead") ? condition.get("daysAhead").asInt() : DEFAULT_DAYS_AHEAD;
         LocalDate targetDate = from.plusDays(daysAhead);
 
         if (targetDate.isAfter(to)) return;
 
-        BigDecimal currentPrice = priceEngine.resolvePrice(property.getId(), targetDate, orgId);
-        if (currentPrice == null) return;
-
-        BigDecimal adjustedPrice = applyYieldAdjustment(currentPrice, rule);
-        BigDecimal clampedPrice = rule.clampPrice(adjustedPrice);
-
-        if (!clampedPrice.equals(currentPrice)) {
-            createOrUpdateOverride(property, targetDate, currentPrice, clampedPrice, rule, orgId);
-        }
+        applyYieldRuleToDate(rule, property, targetDate, orgId);
     }
 
     private void evaluateLastMinuteFill(YieldRule rule, Property property,
                                         JsonNode condition, LocalDate from, Long orgId) {
-        int daysThreshold = condition.has("withinDays") ? condition.get("withinDays").asInt() : 3;
+        int daysThreshold = condition.has("withinDays") ? condition.get("withinDays").asInt() : DEFAULT_WITHIN_DAYS;
         LocalDate limit = from.plusDays(daysThreshold);
 
         for (LocalDate date = from; date.isBefore(limit); date = date.plusDays(1)) {
-            BigDecimal currentPrice = priceEngine.resolvePrice(property.getId(), date, orgId);
-            if (currentPrice == null) continue;
+            applyYieldRuleToDate(rule, property, date, orgId);
+        }
+    }
 
-            BigDecimal adjustedPrice = applyYieldAdjustment(currentPrice, rule);
-            BigDecimal clampedPrice = rule.clampPrice(adjustedPrice);
+    /**
+     * Applique une regle de yield a une date, de facon idempotente (audit Z5-BUGS-02) :
+     * <ul>
+     *   <li>l'ajustement est calcule depuis le prix de base HORS overrides
+     *       YIELD_RULE — deux runs successifs produisent le meme prix (pas de
+     *       derive composee sur le resultat du run precedent) ;</li>
+     *   <li>un override d'une autre source (MANUAL, EXTERNAL_PRICING, OTA:*)
+     *       n'est JAMAIS ecrase par le yield ;</li>
+     *   <li>si la regle n'a pas de minPrice/maxPrice, un garde-fou ±50% du prix
+     *       de base est applique ({@link #DEFAULT_YIELD_CLAMP_RATIO}).</li>
+     * </ul>
+     */
+    private void applyYieldRuleToDate(YieldRule rule, Property property, LocalDate date, Long orgId) {
+        Optional<RateOverride> existing = rateOverrideRepository
+                .findByPropertyIdAndDate(property.getId(), date, orgId);
 
-            if (!clampedPrice.equals(currentPrice)) {
-                createOrUpdateOverride(property, date, currentPrice, clampedPrice, rule, orgId);
-            }
+        if (existing.isPresent() && !YIELD_RULE_SOURCE.equals(existing.get().getSource())) {
+            log.debug("YieldRule '{}' : override source={} existant pour property={} date={}, non ecrase",
+                    rule.getName(), existing.get().getSource(), property.getId(), date);
+            return;
+        }
+
+        BigDecimal basePrice = priceEngine.resolvePrice(property.getId(), date, orgId,
+                Set.of(YIELD_RULE_SOURCE));
+        if (basePrice == null) return;
+
+        BigDecimal adjustedPrice = applyYieldAdjustment(basePrice, rule);
+        BigDecimal clampedPrice = clampWithDefaultBounds(adjustedPrice, basePrice, rule);
+
+        BigDecimal currentPrice = existing.map(RateOverride::getNightlyPrice).orElse(basePrice);
+        if (clampedPrice.compareTo(currentPrice) != 0) {
+            createOrUpdateOverride(property, date, currentPrice, clampedPrice,
+                    existing.orElse(null), rule, orgId);
         }
     }
 
@@ -323,20 +457,41 @@ public class AdvancedRateManager {
         };
     }
 
-    @Transactional
+    /**
+     * Applique les bornes de la regle, puis le garde-fou par defaut ±50% du prix
+     * de base pour chaque borne absente (minPrice/maxPrice nullables).
+     */
+    private BigDecimal clampWithDefaultBounds(BigDecimal adjustedPrice, BigDecimal basePrice,
+                                              YieldRule rule) {
+        BigDecimal clamped = rule.clampPrice(adjustedPrice);
+
+        if (rule.getMinPrice() == null) {
+            BigDecimal floor = basePrice.multiply(BigDecimal.ONE.subtract(DEFAULT_YIELD_CLAMP_RATIO))
+                    .setScale(2, RoundingMode.HALF_UP);
+            if (clamped.compareTo(floor) < 0) {
+                clamped = floor;
+            }
+        }
+        if (rule.getMaxPrice() == null) {
+            BigDecimal ceiling = basePrice.multiply(BigDecimal.ONE.add(DEFAULT_YIELD_CLAMP_RATIO))
+                    .setScale(2, RoundingMode.HALF_UP);
+            if (clamped.compareTo(ceiling) > 0) {
+                clamped = ceiling;
+            }
+        }
+        return clamped;
+    }
+
     private void createOrUpdateOverride(Property property, LocalDate date,
                                         BigDecimal previousPrice, BigDecimal newPrice,
+                                        RateOverride existingOverride,
                                         YieldRule rule, Long orgId) {
-        Optional<RateOverride> existing = rateOverrideRepository
-                .findByPropertyIdAndDate(property.getId(), date, orgId);
-
-        if (existing.isPresent()) {
-            RateOverride override = existing.get();
-            override.setNightlyPrice(newPrice);
-            override.setSource("YIELD_RULE");
-            rateOverrideRepository.save(override);
+        if (existingOverride != null) {
+            existingOverride.setNightlyPrice(newPrice);
+            existingOverride.setSource(YIELD_RULE_SOURCE);
+            rateOverrideRepository.save(existingOverride);
         } else {
-            RateOverride override = new RateOverride(property, date, newPrice, "YIELD_RULE", orgId);
+            RateOverride override = new RateOverride(property, date, newPrice, YIELD_RULE_SOURCE, orgId);
             override.setCreatedBy("SYSTEM");
             rateOverrideRepository.save(override);
         }
@@ -345,7 +500,7 @@ public class AdvancedRateManager {
         RateAuditLog auditLog = new RateAuditLog(
                 orgId, property.getId(), date,
                 previousPrice, newPrice,
-                "YIELD_RULE", "SYSTEM", rule.getName()
+                YIELD_RULE_SOURCE, "SYSTEM", rule.getName()
         );
         rateAuditLogRepository.save(auditLog);
 

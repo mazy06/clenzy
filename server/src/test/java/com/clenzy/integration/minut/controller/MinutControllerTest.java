@@ -36,7 +36,9 @@ class MinutControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new MinutController(oAuthService, apiService, noiseDeviceRepository);
+        // Service reel sur repository mocke (refactor T-ARCH-01)
+        controller = new MinutController(oAuthService, apiService,
+                new com.clenzy.integration.minut.service.MinutDeviceQueryService(noiseDeviceRepository));
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")

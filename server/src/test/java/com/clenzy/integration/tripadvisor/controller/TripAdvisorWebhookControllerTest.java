@@ -54,7 +54,9 @@ class TripAdvisorWebhookControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new TripAdvisorWebhookController(config, syncService, connectionRepository);
+        // Service reel sur repository mocke (refactor T-ARCH-01)
+        controller = new TripAdvisorWebhookController(config, syncService,
+                new com.clenzy.integration.tripadvisor.service.TripAdvisorConnectionQueryService(connectionRepository));
     }
 
     private String sign(String payload, String secret) {

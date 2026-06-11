@@ -134,13 +134,15 @@ class PayPalPaymentProviderTest {
     }
 
     @Test
-    @DisplayName("verifyWebhook retourne true en mode soft (webhook_id présent) — MVP")
-    void verifyWebhook_softMode_returnsTrue() {
-        // PayPal verification réelle = appel API, pas un HMAC local.
-        // En mode MVP on accepte si le webhook_id (secret) est fourni.
-        // À durcir dans PR ultérieure.
+    @DisplayName("verifyWebhook refuse même avec webhook_id présent (fail-closed, Z3-SEC-03)")
+    void whenVerifyWebhookCalledWithWebhookIdPresent_thenStillRejects() {
+        // PayPal n'a pas de HMAC partage : aucune verification offline n'est
+        // possible avec cette signature d'interface. L'ancien mode "soft"
+        // acceptait des que le webhook_id etait present — un appelant generique
+        // pouvait donc faire passer un webhook forge. Ce chemin doit refuser
+        // systematiquement ; la seule verification valide est verifyWebhookStrict.
         assertThat(provider.verifyWebhook("payload", "any-signature", "webhook_id_present"))
-            .isTrue();
+            .isFalse();
     }
 
     // ─── Capture / refund ─────────────────────────────────────────────────

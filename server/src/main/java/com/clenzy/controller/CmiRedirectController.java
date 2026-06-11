@@ -4,7 +4,7 @@ import com.clenzy.model.PaymentTransaction;
 import com.clenzy.payment.provider.CmiHashService;
 import com.clenzy.payment.provider.CmiPaymentProvider;
 import com.clenzy.payment.provider.CmiPaymentProvider.CmiCredentials;
-import com.clenzy.repository.PaymentTransactionRepository;
+import com.clenzy.service.PaymentTransactionService;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,18 +53,18 @@ public class CmiRedirectController {
 
     private static final Logger log = LoggerFactory.getLogger(CmiRedirectController.class);
 
-    private final PaymentTransactionRepository transactionRepository;
+    private final PaymentTransactionService paymentTransactionService;
     private final CmiPaymentProvider cmiProvider;
 
-    public CmiRedirectController(PaymentTransactionRepository transactionRepository,
+    public CmiRedirectController(PaymentTransactionService paymentTransactionService,
                                   CmiPaymentProvider cmiProvider) {
-        this.transactionRepository = transactionRepository;
+        this.paymentTransactionService = paymentTransactionService;
         this.cmiProvider = cmiProvider;
     }
 
     @GetMapping(value = "/cmi-redirect/{transactionRef}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> renderCmiRedirect(@PathVariable String transactionRef) {
-        PaymentTransaction tx = transactionRepository.findByTransactionRef(transactionRef).orElse(null);
+        PaymentTransaction tx = paymentTransactionService.findByTransactionRef(transactionRef).orElse(null);
         if (tx == null) {
             log.warn("CMI redirect : transaction inconnue txRef={}", transactionRef);
             return errorPage(HttpStatus.NOT_FOUND, "Transaction introuvable");

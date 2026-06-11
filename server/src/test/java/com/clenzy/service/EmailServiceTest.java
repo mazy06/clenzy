@@ -747,16 +747,14 @@ class EmailServiceTest {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // formatRoleName tests (via reflection for private method)
+    // Libelles de roles (extraits vers RoleEmailLabels — T-SOLID-9)
     // ═══════════════════════════════════════════════════════════════
 
     @Nested
     class FormatRoleNameTests {
 
-        private String invokeFormatRoleName(String role) throws Exception {
-            Method method = EmailService.class.getDeclaredMethod("formatRoleName", String.class);
-            method.setAccessible(true);
-            return (String) method.invoke(emailService, role);
+        private String invokeFormatRoleName(String role) {
+            return com.clenzy.service.email.RoleEmailLabels.displayName(role);
         }
 
         @ParameterizedTest
@@ -794,16 +792,14 @@ class EmailServiceTest {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // formatPackageName tests (via reflection for private method)
+    // formatPackageName (extrait vers QuoteEmailComposer — T-SOLID-9)
     // ═══════════════════════════════════════════════════════════════
 
     @Nested
     class FormatPackageNameTests {
 
-        private String invokeFormatPackageName(String packageId) throws Exception {
-            Method method = EmailService.class.getDeclaredMethod("formatPackageName", String.class);
-            method.setAccessible(true);
-            return (String) method.invoke(emailService, packageId);
+        private String invokeFormatPackageName(String packageId) {
+            return new com.clenzy.service.email.QuoteEmailComposer().formatPackageName(packageId);
         }
 
         @Test
@@ -828,17 +824,18 @@ class EmailServiceTest {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // getLabel tests (via reflection for private method)
+    // getLabel tests (methode privee de QuoteEmailComposer — T-SOLID-9)
     // ═══════════════════════════════════════════════════════════════
 
     @Nested
     class GetLabelTests {
 
-        @SuppressWarnings("unchecked")
         private String invokeGetLabel(java.util.Map<String, String> labels, String key) throws Exception {
-            Method method = EmailService.class.getDeclaredMethod("getLabel", java.util.Map.class, String.class);
+            var composer = new com.clenzy.service.email.QuoteEmailComposer();
+            Method method = com.clenzy.service.email.QuoteEmailComposer.class
+                    .getDeclaredMethod("getLabel", java.util.Map.class, String.class);
             method.setAccessible(true);
-            return (String) method.invoke(emailService, labels, key);
+            return (String) method.invoke(composer, labels, key);
         }
 
         @Test
@@ -1144,12 +1141,13 @@ class EmailServiceTest {
 
         @Test
         void getLabel_withNullAndEmptyArguments() throws Exception {
-            java.lang.reflect.Method m = EmailService.class.getDeclaredMethod("getLabel",
-                    java.util.Map.class, String.class);
+            var composer = new com.clenzy.service.email.QuoteEmailComposer();
+            java.lang.reflect.Method m = com.clenzy.service.email.QuoteEmailComposer.class
+                    .getDeclaredMethod("getLabel", java.util.Map.class, String.class);
             m.setAccessible(true);
             java.util.Map<String, String> labels = java.util.Map.of("k", "<v>");
-            assertThat((String) m.invoke(emailService, labels, "k")).isEqualTo("&lt;v&gt;");
-            assertThat((String) m.invoke(emailService, labels, null)).isEqualTo("Non renseigné");
+            assertThat((String) m.invoke(composer, labels, "k")).isEqualTo("&lt;v&gt;");
+            assertThat((String) m.invoke(composer, labels, null)).isEqualTo("Non renseigné");
         }
     }
 
@@ -1303,6 +1301,91 @@ class EmailServiceTest {
                     .extracting(Object::toString).containsExactly("nicolas@hotmail.fr");
             // Plus aucun CC interne sur le mail prospect (remplacé par sendQuoteInternalCopy).
             assertThat(sent.getRecipients(jakarta.mail.Message.RecipientType.CC)).isNull();
+        }
+    }
+
+    /**
+     * Z7-SEC-02 : le corps personnalise de l'editeur "Renvoyer" (input user)
+     * doit etre echappe avant insertion dans le HTML de l'email prospect —
+     * le HTML brut est rendu comme texte litteral, le markdown leger reste rendu.
+     */
+    @Nested
+    class QuoteToProspectCustomBodyEscapingTests {
+
+        @Test
+        void whenCustomBodyContainsHtml_thenItIsEscapedInProspectEmail() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendQuoteToProspect("prospect@example.com", "PDF".getBytes(), "Devis.pdf",
+                    null, "Bonjour,\n\n<a href=\"https://evil.example\">Cliquez ici</a>");
+
+            ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+            verify(mailSender).send(captor.capture());
+            String html = extractHtmlPart(captor.getValue());
+
+            assertThat(html).isNotNull();
+            assertThat(html).doesNotContain("<a href=\"https://evil.example\">");
+            assertThat(html).contains("&lt;a href=&quot;https://evil.example&quot;&gt;Cliquez ici&lt;/a&gt;");
+        }
+
+        @Test
+        void whenCustomBodyUsesLightMarkdown_thenRenderingIsPreserved() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendQuoteToProspect("prospect@example.com", "PDF".getBytes(), "Devis.pdf",
+                    null, "Bonjour,\n\nVotre devis *personnalisé* est en _pièce jointe_.");
+
+            ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+            verify(mailSender).send(captor.capture());
+            String html = extractHtmlPart(captor.getValue());
+
+            assertThat(html).isNotNull();
+            assertThat(html).contains("<strong>personnalisé</strong>");
+            assertThat(html).contains("<em>pièce jointe</em>");
+        }
+
+        @Test
+        void whenNoCustomBody_thenDefaultTemplateBodyIsUsedUnchanged() throws Exception {
+            MimeMessage mimeMessage = createRealMimeMessage();
+            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+            emailService.sendQuoteToProspect("prospect@example.com", "PDF".getBytes(), "Devis.pdf",
+                    null, null);
+
+            ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+            verify(mailSender).send(captor.capture());
+            String html = extractHtmlPart(captor.getValue());
+
+            // Corps par defaut (template stub "quote_to_prospect" → body "Stub") rendu sans alteration.
+            assertThat(html).isNotNull();
+            assertThat(html).contains("Stub");
+        }
+
+        /**
+         * Extrait recursivement la partie text/html du message multipart.
+         * <p>{@code saveChanges()} d'abord : sur un MimeMessage construit en memoire,
+         * les en-tetes Content-Type des parties ne sont synchronises qu'a cet appel
+         * (sinon tout se declare text/plain et la partie HTML est introuvable).
+         * Fidele a la prod : {@code Transport.send} fait le meme saveChanges.</p>
+         */
+        private String extractHtmlPart(MimeMessage message) throws Exception {
+            message.saveChanges();
+            return findHtmlPart(message);
+        }
+
+        private String findHtmlPart(jakarta.mail.Part part) throws Exception {
+            if (part.isMimeType("text/html")) {
+                return String.valueOf(part.getContent());
+            }
+            if (part.getContent() instanceof jakarta.mail.Multipart multipart) {
+                for (int i = 0; i < multipart.getCount(); i++) {
+                    String html = findHtmlPart(multipart.getBodyPart(i));
+                    if (html != null) return html;
+                }
+            }
+            return null;
         }
     }
 }

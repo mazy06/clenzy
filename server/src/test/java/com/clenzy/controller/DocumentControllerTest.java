@@ -6,9 +6,11 @@ import com.clenzy.model.DocumentGeneration;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.TagCategory;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.service.DocumentAccessService;
 import com.clenzy.service.DocumentComplianceService;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.DocumentStorageService;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,7 +30,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +43,7 @@ class DocumentControllerTest {
     @Mock private DocumentStorageService documentStorageService;
     @Mock private DocumentComplianceService complianceService;
     @Mock private InterventionRepository interventionRepository;
+    @Mock private TenantContext tenantContext;
 
     private DocumentController controller;
 
@@ -54,7 +59,10 @@ class DocumentControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new DocumentController(generatorService, documentStorageService, complianceService, interventionRepository);
+        // Pattern Vague A : service REEL construit au-dessus des mocks repository/tenant
+        // pour garder la couverture bout-en-bout (org isolation + ownership intervention).
+        controller = new DocumentController(generatorService, documentStorageService, complianceService,
+                new DocumentAccessService(interventionRepository, tenantContext));
     }
 
     @Nested
@@ -155,6 +163,52 @@ class DocumentControllerTest {
             } catch (DocumentNotFoundException e) {
                 assertThat(e.getMessage()).contains("Fichier non disponible");
             }
+        }
+
+        @Test
+        void whenDownloadGenerationFromOtherOrganization_thenAccessDenied() {
+            DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(2L);
+            gen.setFilePath("/path/to/file.pdf");
+            when(generatorService.getGeneration(1L)).thenReturn(gen);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+
+            assertThatThrownBy(() -> controller.downloadGeneration(createJwt(), 1L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+            verify(documentStorageService, never()).load(anyString());
+        }
+
+        @Test
+        void whenDownloadGenerationSameOrganization_thenReturnsResource() {
+            DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(1L);
+            gen.setFilePath("/path/to/file.pdf");
+            gen.setFileName("document.pdf");
+            when(generatorService.getGeneration(1L)).thenReturn(gen);
+            when(tenantContext.getOrganizationId()).thenReturn(1L);
+            when(documentStorageService.load("/path/to/file.pdf"))
+                    .thenReturn(new ByteArrayResource(new byte[]{1, 2, 3}));
+
+            ResponseEntity<Resource> response = controller.downloadGeneration(createJwt(), 1L);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+
+        @Test
+        void whenPlatformStaffDownloadsCrossOrgGeneration_thenAllowed() {
+            DocumentGeneration gen = new DocumentGeneration();
+            gen.setOrganizationId(2L);
+            gen.setFilePath("/path/to/file.pdf");
+            gen.setFileName("document.pdf");
+            when(generatorService.getGeneration(1L)).thenReturn(gen);
+            when(tenantContext.isSuperAdmin()).thenReturn(true);
+            when(documentStorageService.load("/path/to/file.pdf"))
+                    .thenReturn(new ByteArrayResource(new byte[]{1, 2, 3}));
+
+            ResponseEntity<Resource> response = controller.downloadGeneration(createJwt(), 1L);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
     }
 

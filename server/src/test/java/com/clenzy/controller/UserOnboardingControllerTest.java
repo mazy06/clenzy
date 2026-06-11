@@ -3,8 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.OnboardingStatusDto;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.UserOnboardingService;
+import com.clenzy.service.UserService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -27,7 +26,7 @@ import static org.mockito.Mockito.*;
 class UserOnboardingControllerTest {
 
     @Mock private UserOnboardingService onboardingService;
-    @Mock private UserRepository userRepository;
+    @Mock private UserService userService;
     @Mock private TenantContext tenantContext;
     @Mock private Jwt jwt;
 
@@ -43,7 +42,7 @@ class UserOnboardingControllerTest {
         user.setId(42L);
         user.setKeycloakId(KC_ID);
         lenient().when(jwt.getSubject()).thenReturn(KC_ID);
-        lenient().when(userRepository.findByKeycloakId(KC_ID)).thenReturn(Optional.of(user));
+        lenient().when(userService.findByKeycloakId(KC_ID)).thenReturn(user);
     }
 
     @Test
@@ -66,7 +65,7 @@ class UserOnboardingControllerTest {
 
     @Test
     void getMyStatus_userNotFound_throwsIllegalState() {
-        when(userRepository.findByKeycloakId(KC_ID)).thenReturn(Optional.empty());
+        when(userService.findByKeycloakId(KC_ID)).thenReturn(null);
 
         IllegalStateException ex = assertThrows(IllegalStateException.class,
             () -> controller.getMyStatus(jwt));

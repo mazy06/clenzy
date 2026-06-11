@@ -21,6 +21,15 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     Optional<Invoice> findByOrganizationIdAndInvoiceNumber(Long organizationId, String invoiceNumber);
 
+    /**
+     * Facture avec ses lignes initialisées (fetch join) — pour la génération PDF
+     * hors transaction : les lignes sont LAZY et open-in-view est désactivé,
+     * l'appelant doit donc recevoir une entité complètement initialisée à la
+     * sortie de la transaction courte du repository.
+     */
+    @Query("SELECT i FROM Invoice i LEFT JOIN FETCH i.lines WHERE i.id = :id")
+    Optional<Invoice> findWithLinesById(@Param("id") Long id);
+
     /** Toutes les factures (séjour + commission) liées à une réservation. */
     List<Invoice> findAllByReservationId(Long reservationId);
 

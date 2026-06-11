@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.UserUiPreferenceDto;
 import com.clenzy.model.UserUiPreference;
 import com.clenzy.repository.UserUiPreferenceRepository;
+import com.clenzy.service.UserUiPreferencesService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -57,7 +58,9 @@ class UserUiPreferencesControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new UserUiPreferencesController(repository, objectMapper);
+        // Service REEL construit au-dessus du repository mocke (pattern Vague A)
+        controller = new UserUiPreferencesController(
+                new UserUiPreferencesService(repository, objectMapper), objectMapper);
         lenient().when(jwt.getSubject()).thenReturn(KC_ID);
     }
 

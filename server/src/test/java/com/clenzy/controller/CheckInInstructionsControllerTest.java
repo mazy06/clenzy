@@ -7,6 +7,7 @@ import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.dto.UpdateCheckInInstructionsDto;
+import com.clenzy.service.CheckInInstructionsService;
 import com.clenzy.service.PhotoStorageService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.AfterEach;
@@ -53,9 +54,11 @@ class CheckInInstructionsControllerTest {
         // de clear() manuel ici (le hotfix initial PR #159 reste valide mais
         // redondant — on garde la simple ligne setOrganizationId pour la lisibilite).
         tenantContext.setOrganizationId(1L);
-        controller = new CheckInInstructionsController(
-            instructionsRepository, propertyRepository, userRepository, photoStorageService, tenantContext,
-            reservationRepository, accessCodeResolverService);
+        // Pattern Vague A : service REEL construit au-dessus des mocks repository
+        // pour garder la couverture bout-en-bout (ownership propriete + org).
+        controller = new CheckInInstructionsController(new CheckInInstructionsService(
+            instructionsRepository, propertyRepository, userRepository,
+            reservationRepository, accessCodeResolverService, photoStorageService, tenantContext));
 
         owner = new User();
         owner.setId(1L);

@@ -3,8 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.OnboardingStatusDto;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.UserOnboardingService;
+import com.clenzy.service.UserService;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.JwtRoleExtractor;
 import org.springframework.http.ResponseEntity;
@@ -19,14 +19,14 @@ import org.springframework.web.bind.annotation.*;
 public class UserOnboardingController {
 
     private final UserOnboardingService onboardingService;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final TenantContext tenantContext;
 
     public UserOnboardingController(UserOnboardingService onboardingService,
-                                     UserRepository userRepository,
+                                     UserService userService,
                                      TenantContext tenantContext) {
         this.onboardingService = onboardingService;
-        this.userRepository = userRepository;
+        this.userService = userService;
         this.tenantContext = tenantContext;
     }
 
@@ -70,7 +70,10 @@ public class UserOnboardingController {
 
     private User resolveUser(Jwt jwt) {
         final String keycloakId = jwt.getSubject();
-        return userRepository.findByKeycloakId(keycloakId)
-            .orElseThrow(() -> new IllegalStateException("User not found for keycloakId: " + keycloakId));
+        final User user = userService.findByKeycloakId(keycloakId);
+        if (user == null) {
+            throw new IllegalStateException("User not found for keycloakId: " + keycloakId);
+        }
+        return user;
     }
 }

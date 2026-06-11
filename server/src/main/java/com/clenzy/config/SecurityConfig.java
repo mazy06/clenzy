@@ -42,7 +42,12 @@ import java.util.stream.Collectors;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@Profile("!prod")
+// Liste POSITIVE des profils dev/test (Z1-SEC-03) : un profil inconnu ou mal
+// orthographie ("production", "staging"...) ne doit JAMAIS retomber sur cette
+// chaine permissive. EnvironmentValidator bloque le boot si aucun profil de
+// securite reconnu n'est actif. Garder cette liste alignee avec
+// EnvironmentValidator.DEV_SECURITY_PROFILES.
+@Profile({"dev", "local", "test", "ci", "performance"})
 public class SecurityConfig {
 
     /**

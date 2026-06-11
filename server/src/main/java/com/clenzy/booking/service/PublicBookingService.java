@@ -4,6 +4,8 @@ import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.dto.TouristTaxCalculationDto;
+import com.clenzy.exception.CalendarConflictException;
+import com.clenzy.exception.RestrictionViolationException;
 import com.clenzy.model.*;
 import com.clenzy.model.voucher.VoucherChannelScope;
 import com.clenzy.repository.*;
@@ -16,11 +18,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -38,6 +44,27 @@ public class PublicBookingService {
     /** Duree d'expiration d'une reservation PENDING (minutes). */
     private static final int PENDING_EXPIRATION_MINUTES = 30;
 
+    /**
+     * Duree de vie de la session Stripe du flux /reserve + /checkout (minutes).
+     * Legerement superieure au hold (30 min) pour absorber les horloges
+     * decalees — Stripe impose un minimum de 30 min (reliquat revue A3 :
+     * sans expires_at, une session restait payable 24h apres liberation des
+     * dates).
+     */
+    private static final long CHECKOUT_SESSION_LIFETIME_MINUTES = 35;
+
+    /** Borne haute raisonnable pour une date d'arrivee (anti dates absurdes). */
+    private static final int MAX_ADVANCE_YEARS = 3;
+
+    /** Duree maximale d'un sejour booking engine (nuits). */
+    private static final int MAX_STAY_NIGHTS = 365;
+
+    /**
+     * Tolerance d'arrondi acceptee entre le montant reellement charge sur Stripe
+     * et le devis recalcule serveur (Z4A-SEC-01).
+     */
+    public static final BigDecimal AMOUNT_TOLERANCE = new BigDecimal("0.01");
+
     private final BookingEngineConfigRepository configRepository;
     private final OrganizationRepository organizationRepository;
     private final PropertyRepository propertyRepository;
@@ -51,6 +78,8 @@ public class PublicBookingService {
     private final StripeService stripeService;
     private final GuestReviewRepository guestReviewRepository;
     private final VoucherEngine voucherEngine;
+    private final NotificationService notificationService;
+    private final BookingServiceOptionsService serviceOptionsService;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -65,7 +94,9 @@ public class PublicBookingService {
             TouristTaxService touristTaxService,
             StripeService stripeService,
             GuestReviewRepository guestReviewRepository,
-            VoucherEngine voucherEngine) {
+            VoucherEngine voucherEngine,
+            NotificationService notificationService,
+            BookingServiceOptionsService serviceOptionsService) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -79,6 +110,8 @@ public class PublicBookingService {
         this.stripeService = stripeService;
         this.guestReviewRepository = guestReviewRepository;
         this.voucherEngine = voucherEngine;
+        this.notificationService = notificationService;
+        this.serviceOptionsService = serviceOptionsService;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -176,8 +209,25 @@ public class PublicBookingService {
                 List.of("Nombre de voyageurs depasse la capacite maximale (" + property.getMaxGuests() + ")"));
         }
 
-        // Verifier advance days (min/max)
-        long daysInAdvance = ChronoUnit.DAYS.between(LocalDate.now(), checkIn);
+        // Z4A-BUGS-08 : « aujourd'hui » s'evalue dans le fuseau de la PROPRIETE,
+        // pas celui de la JVM (conteneur en UTC) — sinon off-by-one autour de
+        // minuit (same-day refuse, ou date deja passee localement acceptee).
+        LocalDate today = LocalDate.now(resolvePropertyZone(property));
+        if (checkIn.isBefore(today)) {
+            return AvailabilityResponseDto.unavailable(propertyId, checkIn, checkOut, guests,
+                List.of("checkIn est dans le passe"));
+        }
+        if (checkIn.isAfter(today.plusYears(MAX_ADVANCE_YEARS))) {
+            return AvailabilityResponseDto.unavailable(propertyId, checkIn, checkOut, guests,
+                List.of("Date d'arrivee trop lointaine (maximum " + MAX_ADVANCE_YEARS + " ans)"));
+        }
+        if (ChronoUnit.DAYS.between(checkIn, checkOut) > MAX_STAY_NIGHTS) {
+            return AvailabilityResponseDto.unavailable(propertyId, checkIn, checkOut, guests,
+                List.of("Duree de sejour maximale depassee (" + MAX_STAY_NIGHTS + " nuits)"));
+        }
+
+        // Verifier advance days (min/max) — meme reference timezone-aware
+        long daysInAdvance = ChronoUnit.DAYS.between(today, checkIn);
         BookingEngineConfig config = ctx.config();
         if (config.getMinAdvanceDays() != null && daysInAdvance < config.getMinAdvanceDays()) {
             return AvailabilityResponseDto.unavailable(propertyId, checkIn, checkOut, guests,
@@ -211,8 +261,13 @@ public class PublicBookingService {
 
         for (LocalDate date = checkIn; date.isBefore(checkOut); date = date.plusDays(1)) {
             BigDecimal price = priceMap.getOrDefault(date, property.getNightlyPrice());
-            if (price == null) {
-                price = BigDecimal.ZERO;
+            // Z4A-BUGS-06 : le PriceEngine insere chaque date dans la map, avec
+            // valeur null si aucun tarif n'est configure (ni rate plan, ni
+            // override, ni nightlyPrice). Une nuit sans tarif (ou <= 0) ne doit
+            // JAMAIS etre facturee 0 EUR : la propriete n'est pas reservable.
+            if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+                return AvailabilityResponseDto.unavailable(propertyId, checkIn, checkOut, guests,
+                    List.of("Tarif non configure pour la nuit du " + date));
             }
             // Determiner le type de tarif (simplifie — le PriceEngine ne retourne que le montant)
             String rateType = priceMap.containsKey(date) && priceMap.get(date) != null ? "CUSTOM" : "BASE";
@@ -261,6 +316,24 @@ public class PublicBookingService {
             property.getDefaultCheckOutTime(),
             List.of()
         );
+    }
+
+    /**
+     * Fuseau horaire de la propriete (defaut Europe/Paris si absent ou invalide)
+     * pour evaluer « aujourd'hui » cote booking engine (Z4A-BUGS-08).
+     */
+    private ZoneId resolvePropertyZone(Property property) {
+        String tz = property.getTimezone();
+        if (tz == null || tz.isBlank()) {
+            return ZoneId.of("Europe/Paris");
+        }
+        try {
+            return ZoneId.of(tz);
+        } catch (DateTimeException e) {
+            log.warn("Timezone invalide '{}' pour property {} — fallback Europe/Paris",
+                tz, property.getId());
+            return ZoneId.of("Europe/Paris");
+        }
     }
 
     // ─── Reserve ─────────────────────────────────────────────────────────────────
@@ -355,14 +428,16 @@ public class PublicBookingService {
         // Code de confirmation unique
         reservation.setConfirmationCode(generateConfirmationCode());
 
-        // Auto-confirm si active
+        // Auto-confirm si active — mais jamais avant paiement quand le paiement est
+        // collecte a la reservation (Z4A-BUGS-04) : la confirmation intervient au
+        // webhook Stripe (confirmReservationPayment passe pending → confirmed).
         BookingEngineConfig config = ctx.config();
-        if (config.isAutoConfirm()) {
+        boolean requiresPayment = config.isCollectPaymentOnBooking();
+        if (config.isAutoConfirm() && !requiresPayment) {
             reservation.setStatus("confirmed");
         }
 
         // Si paiement non requis, marquer comme tel
-        boolean requiresPayment = config.isCollectPaymentOnBooking();
         if (!requiresPayment) {
             reservation.setPaymentStatus(PaymentStatus.NOT_REQUIRED);
         }
@@ -396,12 +471,14 @@ public class PublicBookingService {
             reservation.getId(), orgId, "direct", "booking-engine"
         );
 
-        // 6. Calculer l'expiration (seulement si paiement requis et non auto-confirme)
-        LocalDateTime expiresAt = requiresPayment && !config.isAutoConfirm()
+        // 6. Calculer l'expiration : des qu'un paiement est attendu, la reservation
+        // reste pending et expire si non payee (Z4A-BUGS-04 — le cleanup scheduler
+        // ne ramasse que les reservations status='pending').
+        LocalDateTime expiresAt = requiresPayment
             ? LocalDateTime.now().plusMinutes(PENDING_EXPIRATION_MINUTES)
             : null;
 
-        String status = config.isAutoConfirm() ? "CONFIRMED" : "PENDING";
+        String status = reservation.getStatus().toUpperCase();
         log.info("Booking Engine: reservation {} {} creee pour property {} (org {}, requiresPayment={})",
             status, reservation.getConfirmationCode(), req.propertyId(), orgId, requiresPayment);
 
@@ -453,6 +530,12 @@ public class PublicBookingService {
             throw new IllegalArgumentException("Le panier doit contenir au moins un item");
         }
 
+        // Z4A-BUGS-09 : deux items du panier qui se chevauchent sur la meme
+        // propriete passeraient chacun la pre-validation individuelle puis
+        // echoueraient au blocage calendrier — rejet propre des l'entree,
+        // aucune reservation creee.
+        rejectOverlappingItems(req.items());
+
         // ─── 1. Pre-validation : disponibilite de chaque item ────────────────────
         // (on fait toutes les checks d'abord avant de creer quoi que ce soit)
         List<AvailabilityResponseDto> availabilities = new ArrayList<>(req.items().size());
@@ -494,8 +577,9 @@ public class PublicBookingService {
         List<BookingReserveResponseDto> responses = new ArrayList<>(req.items().size());
         BigDecimal grandTotal = BigDecimal.ZERO;
         LocalDateTime earliestExpiration = null;
-        boolean autoConfirmed = config.isAutoConfirm();
         boolean requiresPayment = config.isCollectPaymentOnBooking();
+        // Z4A-BUGS-04 : pas d'auto-confirm tant que le paiement attendu n'est pas recu
+        boolean autoConfirmed = config.isAutoConfirm() && !requiresPayment;
 
         for (int i = 0; i < req.items().size(); i++) {
             BookingReserveBatchRequestDto.Item item = req.items().get(i);
@@ -535,7 +619,7 @@ public class PublicBookingService {
                 reservation.getId(), orgId, "direct", "booking-engine-batch:" + batchCode
             );
 
-            LocalDateTime expiresAt = requiresPayment && !autoConfirmed
+            LocalDateTime expiresAt = requiresPayment
                 ? LocalDateTime.now().plusMinutes(PENDING_EXPIRATION_MINUTES)
                 : null;
             if (expiresAt != null && (earliestExpiration == null || expiresAt.isBefore(earliestExpiration))) {
@@ -563,6 +647,27 @@ public class PublicBookingService {
         return new BookingReserveBatchResponseDto(
             batchCode, responses, grandTotal, batchCurrency, earliestExpiration, requiresPayment
         );
+    }
+
+    /**
+     * Rejette les paniers contenant deux sejours qui se chevauchent sur la meme
+     * propriete (Z4A-BUGS-09) — la pre-validation item par item ne voit pas les
+     * autres items du meme panier.
+     */
+    private void rejectOverlappingItems(List<BookingReserveBatchRequestDto.Item> items) {
+        for (int i = 0; i < items.size(); i++) {
+            for (int j = i + 1; j < items.size(); j++) {
+                BookingReserveBatchRequestDto.Item a = items.get(i);
+                BookingReserveBatchRequestDto.Item b = items.get(j);
+                boolean sameProperty = Objects.equals(a.propertyId(), b.propertyId());
+                boolean overlaps = a.checkIn().isBefore(b.checkOut())
+                    && b.checkIn().isBefore(a.checkOut());
+                if (sameProperty && overlaps) {
+                    throw new IllegalArgumentException("Items " + (i + 1) + " et " + (j + 1)
+                        + " du panier se chevauchent sur la propriete " + a.propertyId());
+                }
+            }
+        }
     }
 
     // ─── Checkout (Stripe) ───────────────────────────────────────────────────────
@@ -596,12 +701,15 @@ public class PublicBookingService {
             String guestEmail = reservation.getGuest() != null
                 ? reservation.getGuest().getEmail() : null;
 
+            // expires_at ~35 min : la session devient inutilisable peu apres
+            // l'expiration du hold de 30 min (reliquat revue A3).
             Session session = stripeService.createReservationCheckoutSession(
                 reservation.getId(),
                 reservation.getTotalPrice(),
                 guestEmail,
                 reservation.getGuestName(),
-                propertyName
+                propertyName,
+                java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES)
             );
 
             reservation.setStripeSessionId(session.getId());
@@ -616,6 +724,132 @@ public class PublicBookingService {
                 reservation.getConfirmationCode(), e.getMessage(), e);
             throw new RuntimeException("Erreur lors de la creation du paiement", e);
         }
+    }
+
+    // ─── Embedded Checkout : retenue des dates (Z4A-BUGS-03) ─────────────────────
+
+    /**
+     * Cree la reservation PENDING qui retient les dates pendant le paiement
+     * Embedded Checkout. Bloque le calendrier sous lock : une
+     * {@link CalendarConflictException} remonte si un autre guest a reserve
+     * les memes dates entre la verification de disponibilite et l'appel.
+     *
+     * <p>Z4A-BUGS-10 : les options de service selectionnees sont snapshotees en
+     * {@code ReservationServiceItem} et {@code serviceOptionsTotal} est renseigne
+     * sur le hold — le totalPrice (sejour + options) est ainsi entierement
+     * ventile des la creation, et la facture generee au paiement est complete.</p>
+     *
+     * <p>Le hold suit le cycle de vie standard des reservations pending : s'il
+     * n'est pas paye sous 30 minutes, {@link PendingReservationCleanupScheduler}
+     * expire la session Stripe puis libere les dates.</p>
+     */
+    @Transactional
+    public Reservation createEmbeddedCheckoutHold(OrgContext ctx, Long propertyId,
+            LocalDate checkIn, LocalDate checkOut, int guests,
+            String customerEmail, String customerName,
+            AvailabilityResponseDto availability, BigDecimal serviceOptionsTotal,
+            List<SelectedServiceOptionDto> serviceOptions) {
+        Long orgId = ctx.orgId();
+        Property property = propertyRepository.findBookingEngineProperty(propertyId, orgId)
+            .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable"));
+
+        String[] nameParts = splitName(customerName);
+        Guest guest = guestService.findOrCreate(
+            nameParts[0], nameParts[1], customerEmail, null,
+            GuestChannel.DIRECT, null, orgId);
+
+        String guestName = (customerName != null && !customerName.isBlank())
+            ? customerName : nameParts[0];
+        BigDecimal totalPrice = availability.total().add(
+            serviceOptionsTotal != null ? serviceOptionsTotal : BigDecimal.ZERO);
+
+        Reservation reservation = buildPendingReservation(
+            property, guest, orgId, guestName, guests, checkIn, checkOut, availability, totalPrice);
+        reservation = reservationRepository.save(reservation);
+
+        calendarEngine.book(propertyId, checkIn, checkOut,
+            reservation.getId(), orgId, "direct", "booking-engine-embedded");
+
+        snapshotServiceOptions(reservation, serviceOptions, guests, checkIn, checkOut, orgId);
+
+        log.info("Booking Engine: hold PENDING {} cree pour property {} (org {})",
+            reservation.getConfirmationCode(), propertyId, orgId);
+        return reservation;
+    }
+
+    /**
+     * Surcharge retro-compatible (signature historique sans selections) —
+     * le hold est cree sans snapshot d'options.
+     */
+    @Transactional
+    public Reservation createEmbeddedCheckoutHold(OrgContext ctx, Long propertyId,
+            LocalDate checkIn, LocalDate checkOut, int guests,
+            String customerEmail, String customerName,
+            AvailabilityResponseDto availability, BigDecimal serviceOptionsTotal) {
+        return createEmbeddedCheckoutHold(ctx, propertyId, checkIn, checkOut, guests,
+            customerEmail, customerName, availability, serviceOptionsTotal, List.of());
+    }
+
+    /** Snapshot des options de service en lignes de reservation (Z4A-BUGS-10). */
+    private void snapshotServiceOptions(Reservation reservation,
+            List<SelectedServiceOptionDto> serviceOptions, int guests,
+            LocalDate checkIn, LocalDate checkOut, Long orgId) {
+        if (serviceOptions == null || serviceOptions.isEmpty()) {
+            return;
+        }
+        int nights = Math.max(1, (int) ChronoUnit.DAYS.between(checkIn, checkOut));
+        serviceOptionsService.createReservationServiceItems(
+            reservation, serviceOptions, guests, nights, orgId);
+    }
+
+    /** Associe la session Stripe au hold cree par {@link #createEmbeddedCheckoutHold}. */
+    @Transactional
+    public void attachStripeSessionToHold(Long reservationId, String sessionId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new IllegalArgumentException("Reservation introuvable : " + reservationId));
+        reservation.setStripeSessionId(sessionId);
+        reservationRepository.save(reservation);
+    }
+
+    /** Annule un hold dont la session Stripe n'a pas pu etre creee (rollback). */
+    @Transactional
+    public void releaseEmbeddedCheckoutHold(Long reservationId) {
+        reservationRepository.findById(reservationId).ifPresent(reservation -> {
+            reservation.setStatus("cancelled");
+            reservation.setPaymentStatus(PaymentStatus.CANCELLED);
+            reservationRepository.save(reservation);
+            calendarEngine.cancel(reservationId, reservation.getOrganizationId(),
+                "booking-engine-embedded-rollback");
+            log.info("Booking Engine: hold {} libere (session Stripe non creee)",
+                reservation.getConfirmationCode());
+        });
+    }
+
+    /** Construit une reservation pending non payee du flux booking engine. */
+    private Reservation buildPendingReservation(Property property, Guest guest, Long orgId,
+            String guestName, int guests, LocalDate checkIn, LocalDate checkOut,
+            AvailabilityResponseDto availability, BigDecimal totalPrice) {
+        Reservation reservation = new Reservation();
+        reservation.setOrganizationId(orgId);
+        reservation.setProperty(property);
+        reservation.setGuest(guest);
+        reservation.setGuestName(guestName);
+        reservation.setGuestCount(guests);
+        reservation.setCheckIn(checkIn);
+        reservation.setCheckOut(checkOut);
+        reservation.setCheckInTime(property.getDefaultCheckInTime());
+        reservation.setCheckOutTime(property.getDefaultCheckOutTime());
+        reservation.setStatus("pending");
+        reservation.setSource("direct");
+        reservation.setSourceName("Clenzy Booking Engine");
+        reservation.setCurrency(property.getDefaultCurrency());
+        reservation.setPaymentStatus(PaymentStatus.PENDING);
+        reservation.setRoomRevenue(availability.subtotal());
+        reservation.setCleaningFee(availability.cleaningFee());
+        reservation.setTouristTaxAmount(availability.touristTax());
+        reservation.setTotalPrice(totalPrice);
+        reservation.setConfirmationCode(generateConfirmationCode());
+        return reservation;
     }
 
     // ─── Confirmation ────────────────────────────────────────────────────────────
@@ -660,14 +894,18 @@ public class PublicBookingService {
      * <p>Appele par {@link com.clenzy.controller.StripeWebhookController} sur l'evenement
      * {@code checkout.session.completed} quand {@code metadata.type=booking_engine}.</p>
      *
-     * <p>Deux cas geres :</p>
+     * <p>Cas geres :</p>
      * <ul>
-     *   <li><b>Reservation deja creee</b> (cas standard si le SDK passe par {@code /reserve} avant
-     *       {@code /checkout/create-session}) : on retrouve la reservation via le {@code sessionId}
-     *       deja persiste, on la passe en CONFIRMED + PAID, on emet les notifications.</li>
-     *   <li><b>Pas de reservation prealable</b> (cas du flux Embedded Checkout direct) : on extrait
-     *       les donnees depuis {@code session.metadata}, on revalide la disponibilite, on cree la
-     *       reservation directement en CONFIRMED + PAID, on bloque les dates dans CalendarEngine.</li>
+     *   <li><b>Reservation deja creee</b> (hold du create-session Embedded, ou flux
+     *       {@code /reserve}) : retrouvee via le {@code sessionId}, elle est passee en
+     *       CONFIRMED + PAID par {@code confirmReservationPayment} (transition gardee,
+     *       wallets, factures, notifications).</li>
+     *   <li><b>Fallback legacy</b> (session creee avant la retenue de dates au
+     *       create-session) : revalidation de la disponibilite ET du montant paye
+     *       contre le devis serveur. En cas d'indisponibilite ou de divergence de
+     *       montant, AUCUNE reservation n'est creee : le paiement est rembourse
+     *       automatiquement et les admins sont notifies (Z4A-SEC-01 / Z4A-BUGS-03 —
+     *       plus de creation en « mode degrade »).</li>
      * </ul>
      *
      * <p><b>Idempotent</b> : si une reservation est deja PAID pour ce {@code sessionId}, on retourne
@@ -679,7 +917,7 @@ public class PublicBookingService {
         Map<String, String> metadata = session.getMetadata() != null
             ? session.getMetadata() : Collections.emptyMap();
 
-        // ─── 1. Idempotence : reservation deja confirmee ? ──────────────────────
+        // ─── 1. Idempotence : reservation deja rattachee a la session ? ─────────
         Optional<Reservation> existing = reservationRepository.findByStripeSessionId(sessionId);
         if (existing.isPresent()) {
             Reservation r = existing.get();
@@ -688,14 +926,95 @@ public class PublicBookingService {
                     sessionId, r.getConfirmationCode());
                 return;
             }
-            // Reservation existante mais pas encore PAID → on la confirme via le flux existant
             log.info("Booking Engine: confirmation reservation existante {} via session {}",
                 r.getConfirmationCode(), sessionId);
             stripeService.confirmReservationPayment(sessionId);
             return;
         }
 
-        // ─── 2. Pas de reservation prealable → creer depuis metadata ────────────
+        // ─── 1b. Hold cree au create-session mais session non rattachee ─────────
+        if (confirmPendingHoldFromMetadata(sessionId, metadata)) {
+            return;
+        }
+
+        // ─── 2. Fallback legacy : session sans hold prealable ───────────────────
+        WebhookBookingContext wb = parseWebhookMetadata(session, metadata);
+        if (wb == null) {
+            return;
+        }
+
+        Property property = propertyRepository.findBookingEngineProperty(wb.propertyId(), wb.orgId())
+            .orElseThrow(() -> new IllegalStateException(
+                "Booking Engine: propriete " + wb.propertyId() + " introuvable pour org " + wb.orgId()));
+
+        OrgContext ctx = resolveOrgById(wb.orgId());
+        AvailabilityResponseDto availability = checkAvailability(ctx, new AvailabilityRequestDto(
+            wb.propertyId(), wb.checkIn(), wb.checkOut(), wb.guests()
+        ));
+
+        // Z4A-BUGS-03 : plus de creation en mode degrade — remboursement automatique
+        if (!availability.available()) {
+            refundUnhonorablePayment(sessionId, wb,
+                "dates plus disponibles apres paiement (" + String.join(", ", availability.violations()) + ")");
+            return;
+        }
+
+        // Z4A-SEC-01 : le montant encaisse doit correspondre au devis serveur.
+        // Deux references acceptees (les sessions legacy etaient facturees hors
+        // taxe de sejour) : total complet OU subtotal + menage + options.
+        BigDecimal expectedTotal = availability.total().add(wb.serviceOptionsTotal());
+        BigDecimal expectedExclTax = availability.subtotal().add(availability.cleaningFee())
+            .add(wb.serviceOptionsTotal());
+        BigDecimal stripeTotal = session.getAmountTotal() != null
+            ? BigDecimal.valueOf(session.getAmountTotal()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+            : expectedTotal;
+        if (stripeTotal.subtract(expectedTotal).abs().compareTo(AMOUNT_TOLERANCE) > 0
+            && stripeTotal.subtract(expectedExclTax).abs().compareTo(AMOUNT_TOLERANCE) > 0) {
+            refundUnhonorablePayment(sessionId, wb,
+                "montant paye (" + stripeTotal + ") divergent du devis serveur (" + expectedTotal + ")");
+            return;
+        }
+
+        createReservationFromWebhook(session, wb, property, availability, stripeTotal);
+    }
+
+    /**
+     * Filet de securite : si l'attache du sessionId au hold a echoue au
+     * create-session, on retrouve le hold via {@code metadata.reservation_id}
+     * pour eviter une double creation de reservation.
+     */
+    private boolean confirmPendingHoldFromMetadata(String sessionId, Map<String, String> metadata) {
+        String holdIdStr = metadata.get("reservation_id");
+        if (holdIdStr == null || holdIdStr.isBlank()) {
+            return false;
+        }
+        final Long holdId;
+        try {
+            holdId = Long.parseLong(holdIdStr);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        Optional<Reservation> hold = reservationRepository.findById(holdId);
+        if (hold.isEmpty() || hold.get().getStripeSessionId() != null
+            || !"pending".equalsIgnoreCase(hold.get().getStatus())) {
+            return false;
+        }
+        Reservation reservation = hold.get();
+        reservation.setStripeSessionId(sessionId);
+        reservationRepository.save(reservation);
+        log.warn("Booking Engine: session {} non rattachee au hold {} — rattrapage via metadata",
+            sessionId, reservation.getConfirmationCode());
+        stripeService.confirmReservationPayment(sessionId);
+        return true;
+    }
+
+    /** Donnees extraites des metadata Stripe du flux Embedded Checkout. */
+    private record WebhookBookingContext(Long propertyId, Long orgId, LocalDate checkIn,
+                                         LocalDate checkOut, int guests, BigDecimal serviceOptionsTotal,
+                                         List<SelectedServiceOptionDto> serviceOptions,
+                                         String customerEmail, String customerName) {}
+
+    private WebhookBookingContext parseWebhookMetadata(Session session, Map<String, String> metadata) {
         String propertyIdStr = metadata.get("property_id");
         String orgIdStr = metadata.get("organization_id");
         String checkInStr = metadata.get("check_in");
@@ -704,114 +1023,161 @@ public class PublicBookingService {
         if (propertyIdStr == null || orgIdStr == null
             || checkInStr == null || checkOutStr == null || guestsStr == null) {
             log.error("Booking Engine: metadata incompletes pour session {} - skip (meta={})",
-                sessionId, metadata);
-            return;
+                session.getId(), metadata);
+            return null;
         }
-
-        Long propertyId = Long.parseLong(propertyIdStr);
-        Long orgId = Long.parseLong(orgIdStr);
-        LocalDate checkIn = LocalDate.parse(checkInStr);
-        LocalDate checkOut = LocalDate.parse(checkOutStr);
-        int guests = Integer.parseInt(guestsStr);
-        String customerEmail = session.getCustomerEmail();
         String customerName = session.getCustomerDetails() != null
             ? session.getCustomerDetails().getName() : null;
+        return new WebhookBookingContext(
+            Long.parseLong(propertyIdStr), Long.parseLong(orgIdStr),
+            LocalDate.parse(checkInStr), LocalDate.parse(checkOutStr), Integer.parseInt(guestsStr),
+            parseAmountOrZero(metadata.get("service_options_total")),
+            parseServiceOptionsMetadata(metadata.get("service_options")),
+            session.getCustomerEmail(), customerName);
+    }
 
-        // ─── 3. Charger la propriete (verif cross-tenant) ──────────────────────
-        Property property = propertyRepository.findBookingEngineProperty(propertyId, orgId)
-            .orElseThrow(() -> new IllegalStateException(
-                "Booking Engine: propriete " + propertyId + " introuvable pour org " + orgId));
-
-        // ─── 4. Re-valider disponibilite (concurrence) ─────────────────────────
-        OrgContext ctx = resolveOrgById(orgId);
-        AvailabilityResponseDto availability = checkAvailability(ctx, new AvailabilityRequestDto(
-            propertyId, checkIn, checkOut, guests
-        ));
-        if (!availability.available()) {
-            // Conflit detecte (autre voyageur a reserve entre temps) : on cree quand meme la
-            // reservation en CONFIRMED + PAID mais on log une alerte critique pour intervention manuelle.
-            log.error("Booking Engine: CONFLIT detection apres paiement reussi - session {}, property {}, "
-                + "dates {} → {}, violations: {}. Reservation creee en mode DEGRADE. Intervention manuelle requise.",
-                sessionId, propertyId, checkIn, checkOut, availability.violations());
+    /**
+     * Deserialise les selections d'options posees en metadata Stripe par
+     * {@code BookingCheckoutController} (format compact {@code id:qty,id:qty}).
+     * Les entrees illisibles sont ignorees (les prix sont de toute facon
+     * recalcules serveur au snapshot — Z4A-BUGS-10).
+     */
+    private List<SelectedServiceOptionDto> parseServiceOptionsMetadata(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
         }
-
-        // ─── 5. Trouver ou creer le Guest ──────────────────────────────────────
-        String[] nameParts = splitName(customerName != null ? customerName : "Guest");
-        Guest guest = guestService.findOrCreate(
-            nameParts[0], nameParts[1],
-            customerEmail, null,
-            GuestChannel.DIRECT, null, orgId
-        );
-
-        // ─── 6. Creer la reservation directement en CONFIRMED + PAID ───────────
-        Reservation reservation = new Reservation();
-        reservation.setOrganizationId(orgId);
-        reservation.setProperty(property);
-        reservation.setGuest(guest);
-        reservation.setGuestName(customerName != null ? customerName : nameParts[0]);
-        reservation.setGuestCount(guests);
-        reservation.setCheckIn(checkIn);
-        reservation.setCheckOut(checkOut);
-        reservation.setCheckInTime(property.getDefaultCheckInTime());
-        reservation.setCheckOutTime(property.getDefaultCheckOutTime());
-        reservation.setStatus("confirmed");
-        reservation.setSource("direct");
-        reservation.setSourceName("Clenzy Booking Engine");
-        reservation.setCurrency(property.getDefaultCurrency());
-        reservation.setPaymentStatus(PaymentStatus.PAID);
-        reservation.setPaidAt(LocalDateTime.now());
-        reservation.setStripeSessionId(sessionId);
-
-        // Montants : on prend ceux re-calcules par availability (source de verite)
-        reservation.setRoomRevenue(availability.subtotal());
-        reservation.setCleaningFee(availability.cleaningFee());
-        reservation.setTouristTaxAmount(availability.touristTax());
-
-        // Total : Stripe amount_total est en cents, on compare avec availability pour log
-        BigDecimal stripeTotal = session.getAmountTotal() != null
-            ? BigDecimal.valueOf(session.getAmountTotal()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
-            : availability.total();
-        reservation.setTotalPrice(stripeTotal);
-
-        if (stripeTotal.compareTo(availability.total()) != 0) {
-            log.warn("Booking Engine: divergence montant Stripe ({}) vs availability ({}) - "
-                + "diff potentielle service options. Session {}", stripeTotal, availability.total(), sessionId);
+        List<SelectedServiceOptionDto> selections = new ArrayList<>();
+        for (String entry : raw.split(",")) {
+            String[] parts = entry.trim().split(":");
+            if (parts.length != 2) {
+                continue;
+            }
+            try {
+                selections.add(new SelectedServiceOptionDto(
+                    Long.parseLong(parts[0].trim()), Integer.parseInt(parts[1].trim())));
+            } catch (NumberFormatException e) {
+                log.warn("Booking Engine: selection d'option illisible en metadata : '{}'", entry);
+            }
         }
+        return selections;
+    }
 
-        reservation.setConfirmationCode(generateConfirmationCode());
-        reservation = reservationRepository.save(reservation);
-
-        // ─── 7. Bloquer les dates via CalendarEngine ───────────────────────────
+    private BigDecimal parseAmountOrZero(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return BigDecimal.ZERO;
+        }
         try {
-            calendarEngine.book(
-                propertyId, checkIn, checkOut,
-                reservation.getId(), orgId, "direct", "booking-engine-webhook"
-            );
-        } catch (Exception e) {
-            log.error("Booking Engine: echec blocage calendrier pour reservation {} (paiement deja recu, "
-                + "intervention manuelle requise): {}", reservation.getConfirmationCode(), e.getMessage());
-        }
-
-        log.info("Booking Engine: reservation {} creee + confirmee via webhook (session={}, property={}, "
-            + "total={})", reservation.getConfirmationCode(), sessionId, propertyId, stripeTotal);
-
-        // ─── 8. Effets de bord (wallets, notifications, factures) ──────────────
-        // Delegue a stripeService.confirmReservationPayment qui mutualise toute la post-confirmation logic.
-        // Note : cette methode re-cherche la reservation par sessionId — elle la trouvera maintenant.
-        try {
-            stripeService.confirmReservationPayment(sessionId);
-        } catch (Exception e) {
-            log.error("Booking Engine: echec post-confirmation (wallets/notifications/factures) "
-                + "pour reservation {}: {}", reservation.getConfirmationCode(), e.getMessage(), e);
-            // On n'echoue pas le webhook — la reservation est creee et marquee PAID, c'est le critique.
+            return new BigDecimal(raw);
+        } catch (NumberFormatException e) {
+            return BigDecimal.ZERO;
         }
     }
 
     /**
-     * Variante de {@link #resolveOrg(String)} utilisant directement l'orgId.
-     * Utilise par les webhooks ou l'org est resolue depuis les metadata Stripe.
+     * Cree la reservation du fallback legacy en PENDING puis delegue la transition
+     * PAID + confirmed (et les effets de bord wallets/factures/notifications) a la
+     * version idempotente de {@code confirmReservationPayment} (Z4A-BUGS-05).
+     * En cas de conflit calendrier sous lock (race perdue), la reservation est
+     * annulee et le paiement rembourse — jamais deux reservations confirmees sur
+     * les memes dates.
      */
-    private OrgContext resolveOrgById(Long orgId) {
+    private void createReservationFromWebhook(Session session, WebhookBookingContext wb,
+            Property property, AvailabilityResponseDto availability, BigDecimal stripeTotal) {
+        String[] nameParts = splitName(wb.customerName() != null ? wb.customerName() : "Guest");
+        Guest guest = guestService.findOrCreate(
+            nameParts[0], nameParts[1], wb.customerEmail(), null,
+            GuestChannel.DIRECT, null, wb.orgId());
+
+        Reservation reservation = buildPendingReservation(
+            property, guest, wb.orgId(),
+            wb.customerName() != null ? wb.customerName() : nameParts[0],
+            wb.guests(), wb.checkIn(), wb.checkOut(), availability, stripeTotal);
+        reservation.setStripeSessionId(session.getId());
+        reservation = reservationRepository.save(reservation);
+
+        try {
+            calendarEngine.book(wb.propertyId(), wb.checkIn(), wb.checkOut(),
+                reservation.getId(), wb.orgId(), "direct", "booking-engine-webhook");
+        } catch (CalendarConflictException | RestrictionViolationException e) {
+            reservation.setStatus("cancelled");
+            reservation.setPaymentStatus(PaymentStatus.CANCELLED);
+            reservationRepository.save(reservation);
+            refundUnhonorablePayment(session.getId(), wb, "conflit calendrier au blocage des dates");
+            return;
+        }
+
+        // Z4A-BUGS-10 : snapshot des options de service en lignes de reservation
+        // (serviceOptionsTotal + ReservationServiceItem) — le fallback legacy
+        // n'enregistrait que le totalPrice global, laissant un ecart non ventile.
+        snapshotServiceOptions(reservation, wb.serviceOptions(), wb.guests(),
+            wb.checkIn(), wb.checkOut(), wb.orgId());
+
+        log.info("Booking Engine: reservation {} creee via webhook (session={}, property={}, total={})",
+            reservation.getConfirmationCode(), session.getId(), wb.propertyId(), stripeTotal);
+        stripeService.confirmReservationPayment(session.getId());
+    }
+
+    /**
+     * Paiement recu pour une session qui ne peut plus aboutir (dates indisponibles,
+     * montant divergent, conflit calendrier) : remboursement automatique + alerte
+     * admins (Z4A-BUGS-03). Aucune reservation confirmee n'est creee.
+     *
+     * <p>L'appel Stripe (HTTP externe) et la notification sont executes APRES le
+     * commit de la transaction du webhook (reliquat revue A3) : une exception
+     * traversant un proxy {@code @Transactional} interne marquerait sinon la
+     * transaction rollback-only alors que le catch l'avale — le commit final
+     * leverait une {@code UnexpectedRollbackException} silencieuse et
+     * l'annulation de la reservation serait perdue.</p>
+     */
+    private void refundUnhonorablePayment(String sessionId, WebhookBookingContext wb, String reason) {
+        log.error("Booking Engine: paiement non honorable - session {}, property {}, dates {} → {} : {}. "
+            + "Remboursement automatique en cours.",
+            sessionId, wb.propertyId(), wb.checkIn(), wb.checkOut(), reason);
+        Long orgId = wb.orgId();
+        runAfterCommit(() -> {
+            try {
+                stripeService.refundCheckoutSessionPayment(sessionId, reason);
+            } catch (Exception e) {
+                log.error("Booking Engine: remboursement automatique impossible pour session {} — "
+                    + "intervention manuelle requise : {}", sessionId, e.getMessage(), e);
+            }
+            try {
+                notificationService.notifyAdminsAndManagersByOrgId(orgId,
+                    NotificationKey.PAYMENT_REFUND_INITIATED,
+                    "Paiement booking engine rembourse",
+                    "Un paiement recu via le booking engine n'a pas pu etre honore (" + reason + "). "
+                        + "Remboursement automatique declenche pour la session " + sessionId + ".",
+                    "/reservations");
+            } catch (Exception e) {
+                log.warn("Booking Engine: notification remboursement impossible : {}", e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Execute {@code action} apres le commit de la transaction courante, ou
+     * immediatement s'il n'y a pas de transaction active (tests unitaires,
+     * appels hors contexte transactionnel).
+     */
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+            return;
+        }
+        action.run();
+    }
+
+    /**
+     * Variante de {@link #resolveOrg(String)} utilisant directement l'orgId.
+     * Utilisee par les webhooks et le create-session Embedded Checkout, ou l'org
+     * est connue par son id (metadata Stripe / propriete).
+     */
+    public OrgContext resolveOrgById(Long orgId) {
         Organization org = organizationRepository.findById(orgId)
             .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable : " + orgId));
         BookingEngineConfig config = configRepository.findAllByOrganizationId(orgId)

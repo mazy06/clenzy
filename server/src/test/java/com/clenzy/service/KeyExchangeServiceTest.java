@@ -795,6 +795,112 @@ class KeyExchangeServiceTest {
                     .hasMessageContaining("Code inactif ou expire");
             verify(codeRepository, never()).save(any());
         }
+
+        // ── Machine d'etats stricte (Z4B-SECBUGS-04) ─────────────────────────
+
+        @Test
+        @DisplayName("when action 'returned' on CANCELLED code - refuses, no save, no event")
+        void whenReturnedOnCancelled_thenRefuses() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.CANCELLED);
+
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            assertThatThrownBy(() -> service.confirmKeyMovement("token-xyz", "123456", "returned"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("retour refuse");
+            assertThat(c.getReturnedAt()).isNull();
+            verify(codeRepository, never()).save(any());
+            verify(eventRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("when action 'returned' on ACTIVE code (direct return, DROP_OFF flow) - records returnedAt + USED + event KEY_RETURNED")
+        void whenReturnedOnActive_thenRecordsReturnAndConsumesCode() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.ACTIVE);
+
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            service.confirmKeyMovement("token-xyz", "123456", "returned");
+
+            assertThat(c.getReturnedAt()).isNotNull();
+            assertThat(c.getStatus()).isEqualTo(CodeStatus.USED); // code consomme
+            verify(codeRepository).save(c);
+
+            ArgumentCaptor<KeyExchangeEvent> captor = ArgumentCaptor.forClass(KeyExchangeEvent.class);
+            verify(eventRepository).save(captor.capture());
+            assertThat(captor.getValue().getEventType()).isEqualTo(EventType.KEY_RETURNED);
+            assertThat(captor.getValue().getSource()).isEqualTo(EventSource.PUBLIC_PAGE);
+        }
+
+        @Test
+        @DisplayName("when action 'returned' on USED code expired by date - still accepted (late checkout)")
+        void whenReturnedAfterValidUntil_thenStillAccepted() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.USED);
+            c.setValidUntil(LocalDateTime.now().minusDays(1));
+
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            service.confirmKeyMovement("token-xyz", "123456", "returned");
+
+            assertThat(c.getReturnedAt()).isNotNull();
+            ArgumentCaptor<KeyExchangeEvent> captor = ArgumentCaptor.forClass(KeyExchangeEvent.class);
+            verify(eventRepository).save(captor.capture());
+            assertThat(captor.getValue().getEventType()).isEqualTo(EventType.KEY_RETURNED);
+        }
+
+        @Test
+        @DisplayName("when action 'returned' twice - second return refused")
+        void whenReturnedTwice_thenSecondRefused() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.USED);
+            c.setReturnedAt(LocalDateTime.now().minusHours(2));
+
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            assertThatThrownBy(() -> service.confirmKeyMovement("token-xyz", "123456", "returned"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("deja rendue");
+            verify(eventRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("when action 'deposited' on CANCELLED code - refuses, no save, no event")
+        void whenDepositedOnCancelled_thenRefuses() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.CANCELLED);
+
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            assertThatThrownBy(() -> service.confirmKeyMovement("token-xyz", "123456", "deposited"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Code inactif ou expire");
+            verify(codeRepository, never()).save(any());
+            verify(eventRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("when action 'deposited' on expired code - refuses")
+        void whenDepositedOnExpired_thenRefuses() {
+            KeyExchangePoint p = point(50L, Provider.CLENZY_KEYVAULT);
+            KeyExchangeCode c = code(1L, 50L, "123456", CodeStatus.ACTIVE);
+            c.setValidUntil(LocalDateTime.now().minusDays(1));
+
+            when(pointRepository.findByVerificationToken("token-xyz")).thenReturn(Optional.of(p));
+            when(codeRepository.findByCode("123456")).thenReturn(Optional.of(c));
+
+            assertThatThrownBy(() -> service.confirmKeyMovement("token-xyz", "123456", "deposited"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Code inactif ou expire");
+            verify(eventRepository, never()).save(any());
+        }
     }
 
     // ── brute-force throttle integration ─────────────────────────────────────

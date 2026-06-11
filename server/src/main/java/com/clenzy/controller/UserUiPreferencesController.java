@@ -2,7 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.UserUiPreferenceDto;
 import com.clenzy.model.UserUiPreference;
-import com.clenzy.repository.UserUiPreferenceRepository;
+import com.clenzy.service.UserUiPreferencesService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,8 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,8 +19,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,17 +40,15 @@ import java.util.Map;
      description = "Preferences UI generiques par utilisateur (key-value JSONB) — filtres planning, zoom, densite, etc.")
 public class UserUiPreferencesController {
 
-    private static final Logger log = LoggerFactory.getLogger(UserUiPreferencesController.class);
-
     /** Limite raisonnable pour eviter qu'un client malveillant ne sature la table. */
     private static final int MAX_VALUE_LENGTH = 16_384;
 
-    private final UserUiPreferenceRepository repository;
+    private final UserUiPreferencesService userUiPreferencesService;
     private final ObjectMapper objectMapper;
 
-    public UserUiPreferencesController(UserUiPreferenceRepository repository,
+    public UserUiPreferencesController(UserUiPreferencesService userUiPreferencesService,
                                        ObjectMapper objectMapper) {
-        this.repository = repository;
+        this.userUiPreferencesService = userUiPreferencesService;
         this.objectMapper = objectMapper;
     }
 
@@ -62,18 +56,7 @@ public class UserUiPreferencesController {
     @Operation(summary = "Liste toutes les preferences UI de l'utilisateur courant",
                description = "Retourne une map { key -> value } ou value est un JsonNode arbitraire.")
     public Map<String, JsonNode> getAll(@AuthenticationPrincipal Jwt jwt) {
-        final String keycloakId = jwt.getSubject();
-        final List<UserUiPreference> prefs = repository.findByKeycloakId(keycloakId);
-        final Map<String, JsonNode> result = new HashMap<>(prefs.size());
-        for (UserUiPreference pref : prefs) {
-            try {
-                result.put(pref.getPrefKey(), objectMapper.readTree(pref.getPrefValue()));
-            } catch (JsonProcessingException e) {
-                log.warn("Skipping unparseable pref {} for user {}: {}",
-                        pref.getPrefKey(), keycloakId, e.getMessage());
-            }
-        }
-        return result;
+        return userUiPreferencesService.getAllForUser(jwt.getSubject());
     }
 
     @PutMapping("/{key}")
@@ -84,7 +67,6 @@ public class UserUiPreferencesController {
             @PathVariable @NotBlank @Size(max = 120) String key,
             @RequestBody JsonNode value) {
 
-        final String keycloakId = jwt.getSubject();
         final String serialized;
         try {
             serialized = objectMapper.writeValueAsString(value);
@@ -96,14 +78,7 @@ public class UserUiPreferencesController {
                     "La valeur depasse la taille maximale (" + MAX_VALUE_LENGTH + " chars)");
         }
 
-        final UserUiPreference pref = repository.findByKeycloakIdAndPrefKey(keycloakId, key)
-                .map(existing -> {
-                    existing.setPrefValue(serialized);
-                    return existing;
-                })
-                .orElseGet(() -> new UserUiPreference(keycloakId, key, serialized));
-
-        final UserUiPreference saved = repository.save(pref);
+        final UserUiPreference saved = userUiPreferencesService.upsert(jwt.getSubject(), key, serialized);
         return ResponseEntity.ok(new UserUiPreferenceDto(saved.getPrefKey(), value));
     }
 
@@ -112,7 +87,6 @@ public class UserUiPreferencesController {
     @Operation(summary = "Supprime une preference UI (retour au defaut frontend)")
     public void delete(@AuthenticationPrincipal Jwt jwt,
                        @PathVariable @NotBlank @Size(max = 120) String key) {
-        final String keycloakId = jwt.getSubject();
-        repository.deleteByKeycloakIdAndPrefKey(keycloakId, key);
+        userUiPreferencesService.delete(jwt.getSubject(), key);
     }
 }

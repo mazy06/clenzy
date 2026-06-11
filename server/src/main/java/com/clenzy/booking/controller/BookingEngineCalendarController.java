@@ -3,13 +3,10 @@ package com.clenzy.booking.controller;
 import com.clenzy.booking.dto.AvailabilityRequestDto;
 import com.clenzy.booking.dto.AvailabilityResponseDto;
 import com.clenzy.booking.dto.CalendarAvailabilityResponseDto;
-import com.clenzy.booking.model.BookingEngineConfig;
-import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.service.BookingEngineCalendarService;
+import com.clenzy.booking.service.BookingEngineConfigService;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.booking.service.PublicBookingService.OrgContext;
-import com.clenzy.model.Organization;
-import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,19 +32,16 @@ public class BookingEngineCalendarController {
     private final BookingEngineCalendarService calendarService;
     private final TenantContext tenantContext;
     private final PublicBookingService publicBookingService;
-    private final OrganizationRepository organizationRepository;
-    private final BookingEngineConfigRepository configRepository;
+    private final BookingEngineConfigService configService;
 
     public BookingEngineCalendarController(BookingEngineCalendarService calendarService,
                                             TenantContext tenantContext,
                                             PublicBookingService publicBookingService,
-                                            OrganizationRepository organizationRepository,
-                                            BookingEngineConfigRepository configRepository) {
+                                            BookingEngineConfigService configService) {
         this.calendarService = calendarService;
         this.tenantContext = tenantContext;
         this.publicBookingService = publicBookingService;
-        this.organizationRepository = organizationRepository;
-        this.configRepository = configRepository;
+        this.configService = configService;
     }
 
     /**
@@ -96,15 +90,7 @@ public class BookingEngineCalendarController {
     public ResponseEntity<AvailabilityResponseDto> checkAvailability(
             @Valid @RequestBody AvailabilityRequestDto request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-
-        Organization org = organizationRepository.findById(orgId)
-            .orElseThrow(() -> new IllegalStateException("Organisation introuvable : " + orgId));
-        BookingEngineConfig config = configRepository.findAllByOrganizationId(orgId)
-            .stream().filter(BookingEngineConfig::isEnabled).findFirst()
-            .orElseThrow(() -> new IllegalStateException(
-                "Booking Engine desactive pour l'organisation " + orgId));
-
-        OrgContext ctx = new OrgContext(org, config);
+        OrgContext ctx = configService.resolveEnabledOrgContext(orgId);
         return ResponseEntity.ok(publicBookingService.checkAvailability(ctx, request));
     }
 }

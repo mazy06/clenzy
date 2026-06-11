@@ -9,7 +9,7 @@ import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.RolePermissionRepository;
 import com.clenzy.repository.RoleRepository;
 import com.clenzy.repository.PermissionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
@@ -43,8 +43,7 @@ public class PermissionService {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
 
-    @Autowired(required = false)
-    private NotificationService notificationService;
+    private final NotificationService notificationService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -60,7 +59,8 @@ public class PermissionService {
                              TenantContext tenantContext,
                              RolePermissionRepository rolePermissionRepository,
                              RoleRepository roleRepository,
-                             PermissionRepository permissionRepository) {
+                             PermissionRepository permissionRepository,
+                             ObjectProvider<NotificationService> notificationServiceProvider) {
         this.redisTemplate = redisTemplate;
         this.cacheManager = cacheManager;
         this.userRepository = userRepository;
@@ -68,6 +68,7 @@ public class PermissionService {
         this.rolePermissionRepository = rolePermissionRepository;
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
+        this.notificationService = notificationServiceProvider.getIfAvailable();
         log.debug("PermissionService Redis initialise - Base de donnees = Source de verite unique");
         log.debug("Ce service utilise Redis pour le cache des permissions");
         log.debug("Toutes les permissions viennent de la base de donnees");

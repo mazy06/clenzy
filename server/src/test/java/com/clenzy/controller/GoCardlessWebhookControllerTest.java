@@ -4,6 +4,7 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.payment.payout.PayoutNotifier;
+import com.clenzy.payment.payout.PayoutWebhookService;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.service.NotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,13 +22,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +39,10 @@ import static org.mockito.Mockito.when;
  *
  * Covers signature validation (HMAC-SHA256), payload parsing, event dispatch,
  * idempotence (already-PAID), and admin escalation on revert post-paid.
+ *
+ * <p>Le controller est branche sur un {@link PayoutWebhookService} reel (CAS via
+ * UPDATE conditionnel) alimente par les mocks — les transitions sont verifiees
+ * via les appels repository conditionnels, plus de mutation d'entite en memoire.</p>
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GoCardlessWebhookController")
@@ -54,7 +60,9 @@ class GoCardlessWebhookControllerTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        controller = new GoCardlessWebhookController(payoutRepository, notifier, notificationService, objectMapper);
+        PayoutWebhookService payoutWebhookService =
+            new PayoutWebhookService(payoutRepository, notifier, notificationService);
+        controller = new GoCardlessWebhookController(payoutWebhookService, objectMapper);
         ReflectionTestUtils.setField(controller, "webhookSecret", SECRET);
     }
 
@@ -162,7 +170,7 @@ class GoCardlessWebhookControllerTest {
     class EventDispatch {
 
         @Test
-        @DisplayName("action=paid -> markPaid + notifier.notifySuccess + status PAID")
+        @DisplayName("action=paid -> transition conditionnelle PAID + notifier.notifySuccess")
         void whenActionPaid_thenMarkPaidAndNotify() {
             String body = """
                 {"events":[{"resource_type":"payments","action":"paid","links":{"payment":"pay-123"}}]}
@@ -171,13 +179,14 @@ class GoCardlessWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference("GOCARDLESS:pay-123"))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class)))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             ResponseEntity<String> response = controller.handleEvent(body, sig);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PAID);
-            assertThat(payout.getPaidAt()).isNotNull();
+            verify(payoutRepository).markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class));
             verify(notifier).notifySuccess(payout);
         }
 
@@ -191,17 +200,18 @@ class GoCardlessWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference(anyString()))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class)))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             ResponseEntity<String> response = controller.handleEvent(body, sig);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PAID);
             verify(notifier).notifySuccess(payout);
         }
 
         @Test
-        @DisplayName("action=failed -> markFailed + notifier.notifyFailure + status FAILED")
+        @DisplayName("action=failed -> transition conditionnelle FAILED + notifier.notifyFailure")
         void whenActionFailed_thenMarkFailed() {
             String body = """
                 {"events":[{"resource_type":"payments","action":"failed","links":{"payment":"pay-123"}}]}
@@ -210,14 +220,17 @@ class GoCardlessWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference(anyString()))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "GoCardless action: failed", PayoutStatus.PAID))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             ResponseEntity<String> response = controller.handleEvent(body, sig);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
-            assertThat(payout.getFailureReason()).contains("failed");
-            verify(notifier).notifyFailure(any(OwnerPayout.class), anyString());
+            verify(payoutRepository).markFailedIfNotPaid(
+                10L, PayoutStatus.FAILED, "GoCardless action: failed", PayoutStatus.PAID);
+            verify(notifier).notifyFailure(any(OwnerPayout.class), eq("GoCardless action: failed"));
         }
 
         @Test
@@ -230,10 +243,13 @@ class GoCardlessWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference(anyString()))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "GoCardless action: cancelled", PayoutStatus.PAID))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             controller.handleEvent(body, sig);
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
+            verify(notifier).notifyFailure(any(OwnerPayout.class), eq("GoCardless action: cancelled"));
         }
 
         @Test
@@ -246,10 +262,14 @@ class GoCardlessWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PROCESSING);
             when(payoutRepository.findFirstByPaymentReference(anyString()))
                 .thenReturn(Optional.of(payout));
-            when(payoutRepository.save(any())).thenReturn(payout);
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "GoCardless action: customer_approval_denied", PayoutStatus.PAID))
+                .thenReturn(1);
+            when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
             controller.handleEvent(body, sig);
-            assertThat(payout.getStatus()).isEqualTo(PayoutStatus.FAILED);
+            verify(notifier).notifyFailure(any(OwnerPayout.class),
+                eq("GoCardless action: customer_approval_denied"));
         }
 
         @Test
@@ -268,6 +288,10 @@ class GoCardlessWebhookControllerTest {
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PROCESSING);
             verify(payoutRepository, never()).save(any());
+            verify(payoutRepository, never())
+                .markPaidIfNotAlreadyPaid(any(), any(), any());
+            verify(payoutRepository, never())
+                .markFailedIfNotPaid(any(), any(), any(), any());
         }
     }
 
@@ -357,6 +381,9 @@ class GoCardlessWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 1L, PayoutStatus.PAID);
             when(payoutRepository.findFirstByPaymentReference(anyString()))
                 .thenReturn(Optional.of(payout));
+            // CAS : 0 ligne modifiee = deja PAID
+            when(payoutRepository.markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class)))
+                .thenReturn(0);
 
             ResponseEntity<String> response = controller.handleEvent(body, sig);
 
@@ -375,6 +402,10 @@ class GoCardlessWebhookControllerTest {
             OwnerPayout payout = newPayout(10L, 42L, PayoutStatus.PAID);
             when(payoutRepository.findFirstByPaymentReference(anyString()))
                 .thenReturn(Optional.of(payout));
+            // CAS : 0 ligne modifiee = deja PAID, le statut n'est pas ecrase
+            when(payoutRepository.markFailedIfNotPaid(
+                    10L, PayoutStatus.FAILED, "GoCardless action: failed", PayoutStatus.PAID))
+                .thenReturn(0);
 
             ResponseEntity<String> response = controller.handleEvent(body, sig);
 
@@ -382,6 +413,7 @@ class GoCardlessWebhookControllerTest {
             // Status stays PAID — revert is escalated to admins
             assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PAID);
             verify(payoutRepository, never()).save(any());
+            verify(notifier, never()).notifyFailure(any(), anyString());
             ArgumentCaptor<Long> orgIdCap = ArgumentCaptor.forClass(Long.class);
             verify(notificationService).notifyAdminsAndManagersByOrgId(
                 orgIdCap.capture(),
@@ -413,13 +445,19 @@ class GoCardlessWebhookControllerTest {
                 .thenReturn(Optional.of(p1));
             when(payoutRepository.findFirstByPaymentReference("GOCARDLESS:pay-2"))
                 .thenReturn(Optional.of(p2));
-            when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(payoutRepository.markPaidIfNotAlreadyPaid(eq(1L), eq(PayoutStatus.PAID), any(Instant.class)))
+                .thenReturn(1);
+            when(payoutRepository.markFailedIfNotPaid(
+                    2L, PayoutStatus.FAILED, "GoCardless action: failed", PayoutStatus.PAID))
+                .thenReturn(1);
+            when(payoutRepository.findById(1L)).thenReturn(Optional.of(p1));
+            when(payoutRepository.findById(2L)).thenReturn(Optional.of(p2));
 
             ResponseEntity<String> response = controller.handleEvent(body, sig);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(p1.getStatus()).isEqualTo(PayoutStatus.PAID);
-            assertThat(p2.getStatus()).isEqualTo(PayoutStatus.FAILED);
+            verify(notifier).notifySuccess(p1);
+            verify(notifier).notifyFailure(p2, "GoCardless action: failed");
         }
     }
 }

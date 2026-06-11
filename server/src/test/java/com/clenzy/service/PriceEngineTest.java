@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -303,17 +304,21 @@ class PriceEngineTest {
 
     @Test
     void resolvePrice_EARLY_BIRD_beats_LAST_MINUTE() {
-        Property property = new Property();
-        property.setId(propertyId);
-        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, date, orgId))
+        // Sejour dans 40 jours : EARLY_BIRD (fenetre par defaut >= 30j) applicable,
+        // LAST_MINUTE rendu applicable via une borne explicite maxLeadDays
+        LocalDate stayDate = LocalDate.now().plusDays(40);
+        RatePlan lastMinute = plan(RatePlanType.LAST_MINUTE, new BigDecimal("70.00"), 0);
+        lastMinute.setMaxLeadDays(60);
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, stayDate, orgId))
             .thenReturn(Optional.empty());
         when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
             .thenReturn(List.of(
-                plan(RatePlanType.LAST_MINUTE, new BigDecimal("70.00"), 0),
+                lastMinute,
                 plan(RatePlanType.EARLY_BIRD, new BigDecimal("60.00"), 0)
             ));
 
-        BigDecimal result = priceEngine.resolvePrice(propertyId, date, orgId);
+        BigDecimal result = priceEngine.resolvePrice(propertyId, stayDate, orgId);
         // EARLY_BIRD avant LAST_MINUTE dans TYPE_PRIORITY → 60 gagne
         assertEquals(new BigDecimal("60.00"), result);
     }
@@ -377,5 +382,248 @@ class PriceEngineTest {
         BigDecimal result = priceEngine.resolvePrice(propertyId, monday, orgId);
         // Lundi ne matche pas le filtre [5,6,7] → fallback sur BASE
         assertEquals(new BigDecimal("80.00"), result);
+    }
+
+    // ─── Audit Z5-BUGS-05 : evaluation du lead time (LAST_MINUTE / EARLY_BIRD) ─
+
+    @Test
+    void whenLastMinutePlanWithoutLeadConfig_andStayFarAhead_thenPlanIsIgnored() {
+        // Arrange : sejour dans 30 jours, plan LAST_MINUTE sans lead time configure
+        LocalDate stayDate = LocalDate.now().plusDays(30);
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, stayDate, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.LAST_MINUTE, new BigDecimal("70.00"), 0),
+                plan(RatePlanType.BASE, new BigDecimal("100.00"), 0)
+            ));
+
+        // Act
+        BigDecimal result = priceEngine.resolvePrice(propertyId, stayDate, orgId);
+
+        // Assert : fenetre par defaut (<= 7 jours) → LAST_MINUTE ecarte, BASE gagne
+        assertEquals(new BigDecimal("100.00"), result);
+    }
+
+    @Test
+    void whenLastMinutePlanWithoutLeadConfig_andStayWithinDefaultWindow_thenPlanApplies() {
+        // Arrange : sejour dans 3 jours (dans la fenetre par defaut de 7 jours)
+        LocalDate stayDate = LocalDate.now().plusDays(3);
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, stayDate, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.LAST_MINUTE, new BigDecimal("70.00"), 0),
+                plan(RatePlanType.BASE, new BigDecimal("100.00"), 0)
+            ));
+
+        // Act
+        BigDecimal result = priceEngine.resolvePrice(propertyId, stayDate, orgId);
+
+        // Assert : prix brade applique dans sa fenetre metier
+        assertEquals(new BigDecimal("70.00"), result);
+    }
+
+    @Test
+    void whenLastMinutePlanWithExplicitMaxLeadDays_andStayBeyond_thenPlanIsIgnored() {
+        // Arrange : maxLeadDays=14, sejour dans 20 jours → hors fenetre
+        LocalDate stayDate = LocalDate.now().plusDays(20);
+        RatePlan lastMinute = plan(RatePlanType.LAST_MINUTE, new BigDecimal("70.00"), 0);
+        lastMinute.setMaxLeadDays(14);
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, stayDate, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(lastMinute, plan(RatePlanType.BASE, new BigDecimal("100.00"), 0)));
+
+        // Act
+        BigDecimal result = priceEngine.resolvePrice(propertyId, stayDate, orgId);
+
+        // Assert
+        assertEquals(new BigDecimal("100.00"), result);
+    }
+
+    @Test
+    void whenLastMinutePlanWithExplicitMaxLeadDays_andStayWithin_thenPlanApplies() {
+        // Arrange : maxLeadDays=14, sejour dans 10 jours → dans la fenetre
+        LocalDate stayDate = LocalDate.now().plusDays(10);
+        RatePlan lastMinute = plan(RatePlanType.LAST_MINUTE, new BigDecimal("70.00"), 0);
+        lastMinute.setMaxLeadDays(14);
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, stayDate, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(lastMinute, plan(RatePlanType.BASE, new BigDecimal("100.00"), 0)));
+
+        // Act
+        BigDecimal result = priceEngine.resolvePrice(propertyId, stayDate, orgId);
+
+        // Assert
+        assertEquals(new BigDecimal("70.00"), result);
+    }
+
+    @Test
+    void whenEarlyBirdPlanWithoutLeadConfig_andStayClose_thenPlanIsIgnored() {
+        // Arrange : sejour dans 5 jours, EARLY_BIRD sans lead time configure
+        // (fenetre par defaut >= 30 jours)
+        LocalDate stayDate = LocalDate.now().plusDays(5);
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, stayDate, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.EARLY_BIRD, new BigDecimal("60.00"), 0),
+                plan(RatePlanType.BASE, new BigDecimal("100.00"), 0)
+            ));
+
+        // Act
+        BigDecimal result = priceEngine.resolvePrice(propertyId, stayDate, orgId);
+
+        // Assert
+        assertEquals(new BigDecimal("100.00"), result);
+    }
+
+    @Test
+    void whenEarlyBirdPlanWithExplicitMinLeadDays_andStayFarEnough_thenPlanApplies() {
+        // Arrange : minLeadDays=60, sejour dans 90 jours
+        LocalDate stayDate = LocalDate.now().plusDays(90);
+        RatePlan earlyBird = plan(RatePlanType.EARLY_BIRD, new BigDecimal("60.00"), 0);
+        earlyBird.setMinLeadDays(60);
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, stayDate, orgId))
+            .thenReturn(Optional.empty());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(earlyBird, plan(RatePlanType.BASE, new BigDecimal("100.00"), 0)));
+
+        // Act
+        BigDecimal result = priceEngine.resolvePrice(propertyId, stayDate, orgId);
+
+        // Assert
+        assertEquals(new BigDecimal("60.00"), result);
+    }
+
+    @Test
+    void whenLeadTimeWindowApplies_thenRangeResolutionMatchesSingleDateResolution() {
+        // Arrange : plage couvrant l'interieur ET l'exterieur de la fenetre par defaut
+        LocalDate from = LocalDate.now().plusDays(6);
+        LocalDate to = LocalDate.now().plusDays(10); // [now+6, now+10)
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, from, to, orgId))
+            .thenReturn(List.of());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.LAST_MINUTE, new BigDecimal("70.00"), 0),
+                plan(RatePlanType.BASE, new BigDecimal("100.00"), 0)
+            ));
+
+        // Act
+        Map<LocalDate, BigDecimal> result = priceEngine.resolvePriceRange(propertyId, from, to, orgId);
+
+        // Assert : jours <= now+7 brades, au-dela prix BASE
+        assertEquals(new BigDecimal("70.00"), result.get(LocalDate.now().plusDays(6)));
+        assertEquals(new BigDecimal("70.00"), result.get(LocalDate.now().plusDays(7)));
+        assertEquals(new BigDecimal("100.00"), result.get(LocalDate.now().plusDays(8)));
+        assertEquals(new BigDecimal("100.00"), result.get(LocalDate.now().plusDays(9)));
+    }
+
+    // ─── Audit Z5-BUGS-02 : exclusion d'overrides par source ─────────────────
+
+    @Test
+    void whenOverrideSourceIsExcluded_thenResolutionFallsBackToPlans() {
+        // Arrange : override YIELD_RULE present mais exclu de la resolution
+        RateOverride yieldOverride = new RateOverride();
+        yieldOverride.setDate(date);
+        yieldOverride.setNightlyPrice(new BigDecimal("90.00"));
+        yieldOverride.setSource("YIELD_RULE");
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, date, orgId))
+            .thenReturn(Optional.of(yieldOverride));
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(plan(RatePlanType.BASE, new BigDecimal("100.00"), 0)));
+
+        // Act
+        BigDecimal result = priceEngine.resolvePrice(propertyId, date, orgId, Set.of("YIELD_RULE"));
+
+        // Assert : le prix de base est retourne, pas l'override yield
+        assertEquals(new BigDecimal("100.00"), result);
+    }
+
+    @Test
+    void whenOverrideSourceIsNotExcluded_thenOverrideStillWins() {
+        // Arrange : override MANUAL, exclusion limitee a YIELD_RULE
+        RateOverride manualOverride = new RateOverride();
+        manualOverride.setDate(date);
+        manualOverride.setNightlyPrice(new BigDecimal("180.00"));
+        manualOverride.setSource("MANUAL");
+
+        when(rateOverrideRepository.findByPropertyIdAndDate(propertyId, date, orgId))
+            .thenReturn(Optional.of(manualOverride));
+
+        // Act
+        BigDecimal result = priceEngine.resolvePrice(propertyId, date, orgId, Set.of("YIELD_RULE"));
+
+        // Assert : le prix manuel reste prioritaire (audit Z5-BUGS-04)
+        assertEquals(new BigDecimal("180.00"), result);
+    }
+
+    // ─── Audit T-ARCH-04 : resolution avec source (cascade unique) ───────────
+
+    @Test
+    void whenEventPlanWins_thenResolvedSourceIsEVENT() {
+        // Arrange : EVENT etait absent de la copie divergente du controller
+        LocalDate from = date;
+        LocalDate to = date.plusDays(1);
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, from, to, orgId))
+            .thenReturn(List.of());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId))
+            .thenReturn(List.of(
+                plan(RatePlanType.SEASONAL, new BigDecimal("150.00"), 0),
+                plan(RatePlanType.EVENT, new BigDecimal("250.00"), 0)
+            ));
+
+        // Act
+        Map<LocalDate, PriceEngine.ResolvedPrice> result =
+                priceEngine.resolvePriceRangeWithSource(propertyId, from, to, orgId);
+
+        // Assert
+        assertEquals(new BigDecimal("250.00"), result.get(date).price());
+        assertEquals("EVENT", result.get(date).source());
+    }
+
+    @Test
+    void whenOverrideExists_thenResolvedSourceIsOVERRIDE() {
+        LocalDate from = date;
+        LocalDate to = date.plusDays(1);
+        RateOverride override = new RateOverride();
+        override.setDate(date);
+        override.setNightlyPrice(new BigDecimal("300.00"));
+
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, from, to, orgId))
+            .thenReturn(List.of(override));
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId)).thenReturn(List.of());
+
+        Map<LocalDate, PriceEngine.ResolvedPrice> result =
+                priceEngine.resolvePriceRangeWithSource(propertyId, from, to, orgId);
+
+        assertEquals(new BigDecimal("300.00"), result.get(date).price());
+        assertEquals(PriceEngine.SOURCE_OVERRIDE, result.get(date).source());
+    }
+
+    @Test
+    void whenNoPlanApplies_thenResolvedSourceIsPropertyDefault() {
+        LocalDate from = date;
+        LocalDate to = date.plusDays(1);
+        Property property = new Property();
+        property.setId(propertyId);
+        property.setNightlyPrice(new BigDecimal("100.00"));
+
+        when(rateOverrideRepository.findByPropertyIdAndDateRange(propertyId, from, to, orgId))
+            .thenReturn(List.of());
+        when(ratePlanRepository.findActiveByPropertyId(propertyId, orgId)).thenReturn(List.of());
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+
+        Map<LocalDate, PriceEngine.ResolvedPrice> result =
+                priceEngine.resolvePriceRangeWithSource(propertyId, from, to, orgId);
+
+        assertEquals(new BigDecimal("100.00"), result.get(date).price());
+        assertEquals(PriceEngine.SOURCE_PROPERTY_DEFAULT, result.get(date).source());
     }
 }

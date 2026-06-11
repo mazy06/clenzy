@@ -1,18 +1,20 @@
 package com.clenzy.booking.controller;
 
 import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
+import com.clenzy.booking.security.BookingPublicRateLimiter;
+import com.clenzy.booking.service.PinnedSiteFetcher;
 import com.clenzy.booking.service.SiteSnapshotService;
-import com.clenzy.service.ICalUrlValidator;
 
 import java.io.IOException;
 import java.net.URI;
@@ -22,25 +24,46 @@ import java.nio.charset.StandardCharsets;
  * Full reverse proxy for previewing external sites in the booking engine iframe.
  *
  * Endpoints:
- * - GET /api/public/preview-proxy/site/{encodedUrl}  → proxies the HTML page (SPA-compatible via iframe src)
- * - GET /api/public/preview-proxy/asset?url=...       → proxies any asset (CSS, JS, images, fonts)
- * - GET /api/public/preview-proxy?url=...             → legacy HTML proxy (kept for backward compat)
+ * - GET /api/public/preview-proxy/site?url=...      → proxies the HTML page (SPA-compatible via iframe src)
+ * - GET /api/public/preview-proxy/asset?url=...     → proxies any asset (CSS, JS, images, fonts)
+ * - GET /api/public/preview-proxy?url=...           → legacy HTML proxy (kept for backward compat)
+ * - GET /api/public/preview-proxy/snapshot?url=...  → self-contained static snapshot
  *
- * The /site/ endpoint is designed for use with <iframe src="...">, which allows
- * SPAs to function correctly (window.location.pathname = "/api/public/preview-proxy/site/...").
- * The HTML is rewritten so all assets are routed through the /asset proxy.
+ * <p><b>Securite (Z4A-SEC-02 / Z4A-SEC-03 / Z2-SEC-07)</b> — endpoint expose en
+ * permitAll, donc :</p>
+ * <ul>
+ *   <li>tous les fetchs passent par {@link PinnedSiteFetcher} : DNS resolu une
+ *       seule fois par {@code ICalUrlValidator.validateAndResolve} puis connexion
+ *       TCP sur l'IP epinglee (anti DNS-rebinding/TOCTOU), HTTPS port 443
+ *       uniquement, redirections non suivies, taille bornee ;</li>
+ *   <li>rate-limit Redis par IP ({@link BookingPublicRateLimiter}) sur toute la
+ *       surface du proxy pour limiter l'usage en open-proxy anonyme ;</li>
+ *   <li>la CSP {@code frame-ancestors} des reponses proxifiees est restreinte au
+ *       frontend Clenzy (plus de wildcard {@code *}).</li>
+ * </ul>
  */
 @RestController
 @RequestMapping("/api/public/preview-proxy")
 public class SitePreviewProxyController {
 
     private static final Logger log = LoggerFactory.getLogger(SitePreviewProxyController.class);
-    private final RestTemplate restTemplate;
-    private final SiteSnapshotService snapshotService;
 
-    public SitePreviewProxyController(SiteSnapshotService snapshotService) {
-        this.restTemplate = new RestTemplate();
+    /** Taille max d'une page/asset proxifie (5 MB). */
+    private static final long MAX_PROXY_RESPONSE_BYTES = 5 * 1024 * 1024;
+
+    private final SiteSnapshotService snapshotService;
+    private final PinnedSiteFetcher siteFetcher;
+    private final BookingPublicRateLimiter rateLimiter;
+
+    @Value("${FRONTEND_URL:http://localhost:3000}")
+    private String frontendUrl;
+
+    public SitePreviewProxyController(SiteSnapshotService snapshotService,
+                                      PinnedSiteFetcher siteFetcher,
+                                      BookingPublicRateLimiter rateLimiter) {
         this.snapshotService = snapshotService;
+        this.siteFetcher = siteFetcher;
+        this.rateLimiter = rateLimiter;
     }
 
     /**
@@ -73,6 +96,35 @@ public class SitePreviewProxyController {
         return reg;
     }
 
+    /**
+     * Rate-limit par IP sur toute la surface du proxy (Z4A-SEC-03) : endpoint
+     * anonyme en permitAll, la seule barriere anti open-proxy est cette limite
+     * (+ la validation SSRF). Pose en Filter pour couvrir les 4 endpoints sans
+     * toucher leurs signatures.
+     */
+    @Bean
+    public FilterRegistrationBean<Filter> previewProxyRateLimitFilter() {
+        FilterRegistrationBean<Filter> reg = new FilterRegistrationBean<>();
+        reg.setFilter(new Filter() {
+            @Override
+            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+                    throws IOException, ServletException {
+                HttpServletRequest httpRequest = (HttpServletRequest) request;
+                HttpServletResponse httpResponse = (HttpServletResponse) response;
+                if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+                    httpResponse.setStatus(429);
+                    httpResponse.setContentType("application/json");
+                    httpResponse.getWriter().write("{\"error\":\"too_many_requests\"}");
+                    return;
+                }
+                chain.doFilter(request, response);
+            }
+        });
+        reg.addUrlPatterns("/api/public/preview-proxy", "/api/public/preview-proxy/*");
+        reg.setOrder(Integer.MAX_VALUE - 1);
+        return reg;
+    }
+
     // ─── Site proxy (iframe src compatible) ────────────────────────────────────
 
     /**
@@ -84,32 +136,7 @@ public class SitePreviewProxyController {
      */
     @GetMapping("/site")
     public ResponseEntity<byte[]> proxySite(@RequestParam String url) {
-        url = normalizeUrl(url);
-        if (url == null) {
-            return ResponseEntity.badRequest().body("Invalid URL".getBytes(StandardCharsets.UTF_8));
-        }
-
-        try {
-            validateUrl(url);
-            ResponseEntity<byte[]> response = restTemplate.exchange(
-                    URI.create(url), HttpMethod.GET, null, byte[].class);
-            byte[] body = response.getBody();
-            HttpHeaders headers = buildHeaders(response);
-
-            if (body != null && isHtml(headers)) {
-                String html = new String(body, StandardCharsets.UTF_8);
-                html = rewriteHtml(html, url);
-                body = html.getBytes(StandardCharsets.UTF_8);
-            }
-
-            return ResponseEntity.ok().headers(headers).body(body);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage().getBytes(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            log.warn("Preview proxy failed for {}: {}", url, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                    .body(("Failed to load site: " + e.getMessage()).getBytes(StandardCharsets.UTF_8));
-        }
+        return proxyHtmlPage(url);
     }
 
     // ─── Snapshot endpoint (self-contained HTML) ────────────────────────────────
@@ -147,6 +174,11 @@ public class SitePreviewProxyController {
      */
     @GetMapping
     public ResponseEntity<byte[]> proxyPage(@RequestParam String url) {
+        return proxyHtmlPage(url);
+    }
+
+    /** Fetch epingle (anti TOCTOU) + reecriture HTML, commun a /site et au legacy. */
+    private ResponseEntity<byte[]> proxyHtmlPage(String url) {
         url = normalizeUrl(url);
         if (url == null) {
             return ResponseEntity.badRequest().body("Invalid URL".getBytes(StandardCharsets.UTF_8));
@@ -154,10 +186,9 @@ public class SitePreviewProxyController {
 
         try {
             validateUrl(url);
-            ResponseEntity<byte[]> response = restTemplate.exchange(
-                    URI.create(url), HttpMethod.GET, null, byte[].class);
-            byte[] body = response.getBody();
-            HttpHeaders headers = buildHeaders(response);
+            PinnedSiteFetcher.FetchedResource resource = siteFetcher.fetch(url, MAX_PROXY_RESPONSE_BYTES);
+            byte[] body = resource.body();
+            HttpHeaders headers = buildHeaders(resource.contentType());
 
             if (body != null && isHtml(headers)) {
                 String html = new String(body, StandardCharsets.UTF_8);
@@ -189,11 +220,10 @@ public class SitePreviewProxyController {
 
         try {
             validateUrl(url);
-            ResponseEntity<byte[]> response = restTemplate.exchange(
-                    URI.create(url), HttpMethod.GET, null, byte[].class);
-            HttpHeaders headers = buildHeaders(response);
+            PinnedSiteFetcher.FetchedResource resource = siteFetcher.fetch(url, MAX_PROXY_RESPONSE_BYTES);
+            HttpHeaders headers = buildHeaders(resource.contentType());
 
-            byte[] body = response.getBody();
+            byte[] body = resource.body();
             if (body != null && isCss(headers)) {
                 String css = new String(body, StandardCharsets.UTF_8);
                 String origin = extractOrigin(url);
@@ -332,15 +362,18 @@ public class SitePreviewProxyController {
     }
 
     /**
-     * Garde SSRF. Endpoint expose en permitAll (non authentifie) : cette
-     * validation est la SEULE barriere. Delegue au validateur partage qui
-     * impose HTTPS, bloque localhost/.local/.internal + metadata cloud, resout
-     * le DNS et rejette toute IP RFC 1918 (10/8, 172.16/12, 192.168/16) +
-     * loopback/link-local. L'ancien prefix-match laissait passer 169.254.169.254,
-     * 172.17-31.x et les IP encodees (decimal/hex) ou via DNS rebinding.
+     * Garde SSRF (pre-flight 400). Endpoint expose en permitAll (non
+     * authentifie). Delegue au validateur partage qui impose HTTPS sur le port
+     * 443 uniquement, bloque localhost/.local/.internal + metadata cloud,
+     * resout le DNS et rejette toute IP RFC 1918 + loopback/link-local.
+     *
+     * <p>Z4A-SEC-02 : la valeur de retour (IP epinglee) est volontairement
+     * ignoree ICI — c'est {@link PinnedSiteFetcher#fetch} qui re-valide et se
+     * connecte sur l'IP epinglee, supprimant le TOCTOU DNS entre validation et
+     * requete.</p>
      */
     private void validateUrl(String url) {
-        ICalUrlValidator.validateAndResolve(url);
+        PinnedSiteFetcher.validatePublicHttpsUrl(url);
     }
 
     private String extractOrigin(String url) {
@@ -360,12 +393,25 @@ public class SitePreviewProxyController {
         return URI.create(url).getHost();
     }
 
-    private HttpHeaders buildHeaders(ResponseEntity<byte[]> response) {
+    /**
+     * Headers de la reponse proxifiee : content-type d'origine + CSP
+     * frame-ancestors restreinte au frontend Clenzy (Z4A-SEC-03 — l'ancien
+     * {@code frame-ancestors *} permettait d'embarquer le contenu proxifie
+     * sur n'importe quel site, facilitant le clickjacking).
+     */
+    private HttpHeaders buildHeaders(String contentType) {
         HttpHeaders headers = new HttpHeaders();
-        if (response.getHeaders().getContentType() != null) {
-            headers.setContentType(response.getHeaders().getContentType());
+        if (contentType != null && !contentType.isBlank()) {
+            try {
+                headers.setContentType(MediaType.parseMediaType(contentType));
+            } catch (RuntimeException e) {
+                // content-type d'origine illisible : laisser Spring deviner
+            }
         }
-        headers.set("Content-Security-Policy", "frame-ancestors *");
+        String ancestors = (frontendUrl != null && !frontendUrl.isBlank())
+                ? "'self' " + frontendUrl.trim()
+                : "'self'";
+        headers.set("Content-Security-Policy", "frame-ancestors " + ancestors);
         return headers;
     }
 

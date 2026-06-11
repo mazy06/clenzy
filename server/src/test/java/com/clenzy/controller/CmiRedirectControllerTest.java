@@ -6,6 +6,8 @@ import com.clenzy.payment.provider.CmiHashService;
 import com.clenzy.payment.provider.CmiPaymentProvider;
 import com.clenzy.payment.provider.CmiPaymentProvider.CmiCredentials;
 import com.clenzy.repository.PaymentTransactionRepository;
+import com.clenzy.service.PaymentTransactionService;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,12 +31,16 @@ class CmiRedirectControllerTest {
     @Mock private PaymentTransactionRepository transactionRepository;
     @Mock private CmiPaymentProvider cmiProvider;
     @Mock private CmiHashService hashService;
+    @Mock private TenantContext tenantContext;
 
     private CmiRedirectController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new CmiRedirectController(transactionRepository, cmiProvider);
+        // T-ARCH-01 : le controller n'injecte plus le repository — service reel
+        // construit sur le repository mocke (les stubs existants restent valides).
+        controller = new CmiRedirectController(
+                new PaymentTransactionService(transactionRepository, tenantContext), cmiProvider);
     }
 
     private PaymentTransaction tx(String ref, PaymentProviderType type) {

@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.filter.CorsFilter;
@@ -141,7 +142,6 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/whatsapp/openwa").permitAll()
                         .requestMatchers("/api/webhooks/keynest").permitAll()
                         .requestMatchers("/api/webhooks/nuki/**").permitAll()
-                        .requestMatchers("/api/webhooks/hubspot/**").permitAll()
                         .requestMatchers("/api/webhooks/pennylane/**").permitAll()
                         .requestMatchers("/api/webhooks/channex/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
@@ -161,9 +161,22 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/quickbooks/callback").permitAll()
                         .requestMatchers("/api/xero/callback").permitAll()
                         .requestMatchers("/api/sage/callback").permitAll()
-                        // Actuator : health, info, prometheus et metrics sans auth (accès réseau Docker interne uniquement,
-                        // non exposés par nginx). Les autres endpoints actuator restent protégés.
-                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus", "/actuator/metrics").permitAll()
+                        // Actuator (Z1-SEC-07) : seules les probes health restent publiques.
+                        // /actuator/prometheus et /actuator/metrics : reserves au scrape interne
+                        // (Prometheus via le reseau Docker — loopback/RFC 1918 sur l'adresse
+                        // socket, pas de forward-headers configure donc non spoofable via
+                        // X-Forwarded-For) ou a un SUPER_ADMIN authentifie. Defense en
+                        // profondeur : nginx ne route pas /actuator, mais on ne repose plus
+                        // uniquement sur cette regle. /actuator/info et le reste passent
+                        // sous SUPER_ADMIN.
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/prometheus", "/actuator/metrics", "/actuator/metrics/**")
+                                .access(new WebExpressionAuthorizationManager(
+                                        "hasRole('SUPER_ADMIN')"
+                                        + " or hasIpAddress('127.0.0.0/8') or hasIpAddress('::1')"
+                                        + " or hasIpAddress('10.0.0.0/8')"
+                                        + " or hasIpAddress('172.16.0.0/12')"
+                                        + " or hasIpAddress('192.168.0.0/16')"))
                         .requestMatchers("/actuator/**").hasRole("SUPER_ADMIN")
                         // Endpoints authentifies
                         .requestMatchers("/api/me").authenticated()

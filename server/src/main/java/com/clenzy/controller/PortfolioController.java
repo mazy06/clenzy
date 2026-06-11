@@ -7,7 +7,7 @@ import com.clenzy.dto.PortfolioTeamDto;
 import com.clenzy.model.TeamRole;
 import com.clenzy.model.User;
 import com.clenzy.service.PortfolioService;
-import com.clenzy.repository.UserRepository;
+import com.clenzy.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -26,12 +25,12 @@ import org.springframework.security.access.AccessDeniedException;
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     public PortfolioController(PortfolioService portfolioService,
-                               UserRepository userRepository) {
+                               UserService userService) {
         this.portfolioService = portfolioService;
-        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     /**
@@ -41,9 +40,11 @@ public class PortfolioController {
         try {
             return Long.parseLong(managerId);
         } catch (NumberFormatException e) {
-            return userRepository.findByKeycloakId(managerId)
-                    .map(User::getId)
-                    .orElseThrow(() -> new IllegalArgumentException("Manager non trouve: " + managerId));
+            User user = userService.findByKeycloakId(managerId);
+            if (user == null) {
+                throw new IllegalArgumentException("Manager non trouve: " + managerId);
+            }
+            return user.getId();
         }
     }
 
@@ -71,7 +72,7 @@ public class PortfolioController {
         }
         // Le manager ne peut acceder qu'a ses propres portfolios
         String keycloakId = jwt.getSubject();
-        User user = userRepository.findByKeycloakId(keycloakId).orElse(null);
+        User user = userService.findByKeycloakId(keycloakId);
         if (user == null || !user.getId().equals(managerId)) {
             throw new AccessDeniedException("Vous n'avez pas acces aux portfolios de ce manager");
         }

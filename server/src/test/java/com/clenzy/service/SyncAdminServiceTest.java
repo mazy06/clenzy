@@ -2,10 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.config.SyncMetrics;
 import com.clenzy.dto.syncadmin.SyncAdminDtos.*;
-import com.clenzy.integration.channel.ChannelConnector;
-import com.clenzy.integration.channel.ChannelConnectorRegistry;
 import com.clenzy.integration.channel.ChannelName;
-import com.clenzy.integration.channel.HealthStatus;
 import com.clenzy.integration.channel.SyncDirection;
 import com.clenzy.integration.channel.model.ChannelConnection;
 import com.clenzy.integration.channel.model.ChannelMapping;
@@ -52,7 +49,7 @@ class SyncAdminServiceTest {
     @Mock private OutboxEventRepository outboxEventRepository;
     @Mock private CalendarCommandRepository calendarCommandRepository;
     @Mock private CalendarDayRepository calendarDayRepository;
-    @Mock private ChannelConnectorRegistry connectorRegistry;
+    @Mock private ChannelHealthPort channelHealth;
     @Mock private SyncMetrics syncMetrics;
     @Mock private ReconciliationRunRepository reconciliationRunRepository;
     @Mock private ReconciliationService reconciliationService;
@@ -63,7 +60,7 @@ class SyncAdminServiceTest {
     void setUp() {
         service = new SyncAdminService(connectionRepository, syncLogRepository, mappingRepository,
                 outboxEventRepository, calendarCommandRepository, calendarDayRepository,
-                connectorRegistry, syncMetrics, reconciliationRunRepository, reconciliationService);
+                channelHealth, syncMetrics, reconciliationRunRepository, reconciliationService);
     }
 
     // ===== GET CONNECTIONS =====
@@ -83,7 +80,7 @@ class SyncAdminServiceTest {
 
             when(connectionRepository.findAllCrossOrg()).thenReturn(List.of(cc));
             when(mappingRepository.countByConnectionId(1L)).thenReturn(3L);
-            when(connectorRegistry.getConnector(ChannelName.AIRBNB)).thenReturn(Optional.empty());
+            when(channelHealth.checkHealth("AIRBNB", 1L)).thenReturn("UNKNOWN");
 
             // Act
             List<ConnectionSummaryDto> result = service.getConnections();
@@ -116,11 +113,9 @@ class SyncAdminServiceTest {
             cc.setChannel(ChannelName.AIRBNB);
             cc.setStatus(ChannelConnection.ConnectionStatus.ACTIVE);
 
-            ChannelConnector connector = mock(ChannelConnector.class);
-            when(connector.checkHealth(1L)).thenReturn(HealthStatus.HEALTHY);
             when(connectionRepository.findAllCrossOrg()).thenReturn(List.of(cc));
             when(mappingRepository.countByConnectionId(1L)).thenReturn(0L);
-            when(connectorRegistry.getConnector(ChannelName.AIRBNB)).thenReturn(Optional.of(connector));
+            when(channelHealth.checkHealth("AIRBNB", 1L)).thenReturn("HEALTHY");
 
             // Act
             List<ConnectionSummaryDto> result = service.getConnections();
@@ -148,7 +143,7 @@ class SyncAdminServiceTest {
 
             when(connectionRepository.findById(1L)).thenReturn(Optional.of(cc));
             when(mappingRepository.countByConnectionId(1L)).thenReturn(2L);
-            when(connectorRegistry.getConnector(ChannelName.AIRBNB)).thenReturn(Optional.empty());
+            when(channelHealth.checkHealth("AIRBNB", 1L)).thenReturn("UNKNOWN");
 
             // Act
             Optional<ConnectionDetailDto> result = service.getConnectionDetail(1L);
@@ -198,10 +193,8 @@ class SyncAdminServiceTest {
             cc.setId(1L);
             cc.setChannel(ChannelName.AIRBNB);
 
-            ChannelConnector connector = mock(ChannelConnector.class);
-            when(connector.checkHealth(1L)).thenReturn(HealthStatus.HEALTHY);
             when(connectionRepository.findById(1L)).thenReturn(Optional.of(cc));
-            when(connectorRegistry.getConnector(ChannelName.AIRBNB)).thenReturn(Optional.of(connector));
+            when(channelHealth.checkHealth("AIRBNB", 1L)).thenReturn("HEALTHY");
 
             // Act
             String result = service.forceHealthCheck(1L);
@@ -219,7 +212,7 @@ class SyncAdminServiceTest {
             cc.setChannel(ChannelName.AIRBNB);
 
             when(connectionRepository.findById(1L)).thenReturn(Optional.of(cc));
-            when(connectorRegistry.getConnector(ChannelName.AIRBNB)).thenReturn(Optional.empty());
+            when(channelHealth.checkHealth("AIRBNB", 1L)).thenReturn("UNKNOWN");
 
             // Act
             String result = service.forceHealthCheck(1L);
@@ -586,7 +579,7 @@ class SyncAdminServiceTest {
 
             when(connectionRepository.findAllCrossOrg()).thenReturn(List.of(activeConn));
             when(connectionRepository.findAllActive()).thenReturn(List.of(activeConn));
-            when(connectorRegistry.getConnector(ChannelName.AIRBNB)).thenReturn(Optional.empty());
+            when(channelHealth.checkHealth("AIRBNB", 1L)).thenReturn("UNKNOWN");
 
             when(outboxEventRepository.countByStatusStr("PENDING")).thenReturn(3L);
             when(outboxEventRepository.countByStatusStr("FAILED")).thenReturn(1L);

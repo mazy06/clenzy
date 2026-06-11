@@ -1,7 +1,7 @@
 package com.clenzy.service.messaging;
 
 import com.clenzy.model.MessageChannelType;
-import com.clenzy.util.StringUtils;
+import com.clenzy.util.EmailHtmlSanitizer;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,11 +65,18 @@ public class EmailChannel implements MessageChannel {
             // listes a puces). On l'habille dans le template HTML guest (header Baitly,
             // paragraphes, listes, footer) pour un rendu email professionnel.
             // Exception : un document HTML COMPLET (ex. briefing deja rendu par son propre
-            // template) est envoye tel quel — le wrapper le corromprait (double-wrap).
+            // template) n'est pas re-wrappe — le wrapper le corromprait (double-wrap).
+            // Securite (Z7-SEC-03) : cette branche court-circuitait toute protection ;
+            // un template de message guest commencant par <html (corps host-editable,
+            // non echappe par TemplateInterpolationService) partait verbatim au voyageur.
+            // On applique donc la MEME sanitisation que le wrapper (EmailHtmlSanitizer,
+            // utilise par EmailWrapperService.wrap) : suppression ciblee des constructs
+            // dangereux (script/iframe/object/embed, handlers on*=, URLs javascript:),
+            // contenu legitime (briefings) restitue byte-identique.
             String body = request.htmlBody() != null ? request.htmlBody() : "";
             String trimmed = body.stripLeading().toLowerCase();
             String html = (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html"))
-                    ? body
+                    ? EmailHtmlSanitizer.sanitize(body)
                     : emailWrapperService.wrap("NOTIFICATION_GUEST", body);
             helper.setText(html, true);
 

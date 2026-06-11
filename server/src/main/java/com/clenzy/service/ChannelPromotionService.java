@@ -8,16 +8,28 @@ import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.integration.channel.SyncResult;
 import com.clenzy.model.ChannelPromotion;
 import com.clenzy.model.PromotionStatus;
+import com.clenzy.model.Property;
 import com.clenzy.repository.ChannelPromotionRepository;
+import com.clenzy.repository.PropertyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -25,6 +37,17 @@ import java.util.Optional;
  *
  * Gere le CRUD des promotions, la synchronisation bidirectionnelle avec les channels,
  * le push vers les OTAs (Airbnb, Booking.com), et l'expiration automatique.
+ *
+ * <p>Cycle de statut (audit Z5-BUGS-07) :
+ * <ul>
+ *   <li>{@code PENDING} — creee / en attente de confirmation OTA, ou push en echec
+ *       technique (statut de reconciliation : un toggle/update relance le push) ;</li>
+ *   <li>{@code ACTIVE} — confirmee par l'OTA, uniquement APRES commit + push reussi ;</li>
+ *   <li>{@code REJECTED} — refusee par l'OTA ;</li>
+ *   <li>{@code EXPIRED} — date de fin depassee dans la timezone de la propriete.</li>
+ * </ul>
+ * Le push HTTP vers l'OTA part toujours APRES le commit de la transaction metier :
+ * un rollback ne peut plus laisser une promotion active cote OTA mais absente en base.
  */
 @Service
 @Transactional(readOnly = true)
@@ -32,13 +55,30 @@ public class ChannelPromotionService {
 
     private static final Logger log = LoggerFactory.getLogger(ChannelPromotionService.class);
 
+    /**
+     * Fallback documente (audit Z5-BUGS-08) quand la propriete n'a pas de timezone
+     * exploitable : aligne sur le defaut du champ {@code Property.timezone}.
+     */
+    static final ZoneId DEFAULT_PROPERTY_ZONE = ZoneId.of("Europe/Paris");
+
     private final ChannelPromotionRepository promotionRepository;
     private final ChannelConnectorRegistry connectorRegistry;
+    private final PropertyRepository propertyRepository;
+    private final TransactionTemplate postCommitTxTemplate;
 
     public ChannelPromotionService(ChannelPromotionRepository promotionRepository,
-                                   ChannelConnectorRegistry connectorRegistry) {
+                                   ChannelConnectorRegistry connectorRegistry,
+                                   PropertyRepository propertyRepository,
+                                   PlatformTransactionManager transactionManager) {
         this.promotionRepository = promotionRepository;
         this.connectorRegistry = connectorRegistry;
+        this.propertyRepository = propertyRepository;
+        // REQUIRES_NEW : en afterCommit la transaction d'origine est deja commitee,
+        // toute ecriture qui la rejoindrait serait perdue (doc Spring
+        // TransactionSynchronization#afterCommit).
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.postCommitTxTemplate = template;
     }
 
     public List<ChannelPromotion> getAll(Long orgId) {
@@ -78,8 +118,10 @@ public class ChannelPromotionService {
 
         ChannelPromotion saved = promotionRepository.save(promo);
 
-        // Auto-push vers le channel OTA
-        pushPromotionToChannel(saved, orgId);
+        // Auto-push vers le channel OTA — APRES commit (Z5-BUGS-07) : l'appel HTTP
+        // ne tient plus la connexion DB et un rollback ne peut plus laisser une
+        // promotion active cote OTA. La promo reste PENDING jusqu'a confirmation.
+        schedulePushAfterCommit(saved.getId(), orgId);
 
         return saved;
     }
@@ -98,9 +140,9 @@ public class ChannelPromotionService {
 
         ChannelPromotion saved = promotionRepository.save(promo);
 
-        // Re-push updated promotion
+        // Re-push de la promotion mise a jour — APRES commit (Z5-BUGS-07)
         if (promo.getEnabled() && promo.getStatus() == PromotionStatus.ACTIVE) {
-            pushPromotionToChannel(saved, orgId);
+            schedulePushAfterCommit(saved.getId(), orgId);
         }
 
         return saved;
@@ -114,14 +156,15 @@ public class ChannelPromotionService {
         ChannelPromotion promo = getById(id, orgId);
         promo.setEnabled(!promo.getEnabled());
         if (promo.getEnabled()) {
-            promo.setStatus(PromotionStatus.ACTIVE);
-            ChannelPromotion saved = promotionRepository.save(promo);
-            pushPromotionToChannel(saved, orgId);
-            return saved;
-        } else {
+            // Reste PENDING tant que l'OTA n'a pas confirme : ACTIVE n'est pose
+            // qu'apres un push reussi, post-commit (Z5-BUGS-07).
             promo.setStatus(PromotionStatus.PENDING);
-            return promotionRepository.save(promo);
+            ChannelPromotion saved = promotionRepository.save(promo);
+            schedulePushAfterCommit(saved.getId(), orgId);
+            return saved;
         }
+        promo.setStatus(PromotionStatus.PENDING);
+        return promotionRepository.save(promo);
     }
 
     /**
@@ -147,6 +190,47 @@ public class ChannelPromotionService {
                 log.error("Failed to sync promotions from {} for property {}: {}",
                         connector.getChannelName(), propertyId, e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Planifie le push OTA d'une promotion APRES le commit de la transaction
+     * courante (audit Z5-BUGS-07). Sans transaction active (tests directs,
+     * contexte exotique), le push est execute immediatement.
+     */
+    private void schedulePushAfterCommit(Long promotionId, Long orgId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            runDeferredPush(promotionId, orgId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                runDeferredPush(promotionId, orgId);
+            }
+        });
+    }
+
+    /**
+     * Execute le push dans une transaction NEUVE (REQUIRES_NEW) : la transaction
+     * d'origine est deja commitee au moment de l'afterCommit, les ecritures de
+     * statut doivent donc ouvrir leur propre transaction pour etre persistees.
+     * Toute defaillance est journalisee, la promotion reste en PENDING
+     * (statut de reconciliation) — jamais d'etat ACTIVE non confirme par l'OTA.
+     */
+    private void runDeferredPush(Long promotionId, Long orgId) {
+        try {
+            postCommitTxTemplate.executeWithoutResult(status -> {
+                ChannelPromotion promo = promotionRepository.findByIdAndOrgId(promotionId, orgId).orElse(null);
+                if (promo == null) {
+                    log.warn("Push post-commit: promotion {} introuvable pour org {}", promotionId, orgId);
+                    return;
+                }
+                pushPromotionToChannel(promo, orgId);
+            });
+        } catch (Exception e) {
+            log.error("Push post-commit promotion {} echoue, statut laisse en attente de reconciliation: {}",
+                    promotionId, e.getMessage());
         }
     }
 
@@ -181,6 +265,10 @@ public class ChannelPromotionService {
             }
             // SKIPPED/UNSUPPORTED: leave status as-is
         } catch (Exception e) {
+            // Echec technique (reseau, timeout) : retombe en PENDING — statut de
+            // reconciliation (Z5-BUGS-07), un toggle/update relancera le push.
+            promo.setStatus(PromotionStatus.PENDING);
+            promotionRepository.save(promo);
             log.error("Erreur push promotion {} vers {}: {}",
                     promo.getId(), promo.getChannelName(), e.getMessage());
         }
@@ -189,18 +277,17 @@ public class ChannelPromotionService {
     /**
      * Expire les promotions dont la date de fin est depassee.
      * Planifie : tous les jours a 02:00.
+     *
+     * <p>« Aujourd'hui » est evalue dans la timezone de CHAQUE propriete (audit
+     * Z5-BUGS-08), pas dans celle de la JVM : les candidats sont charges avec la
+     * date locale la plus avancee du globe (UTC+14) puis filtres par timezone.</p>
      */
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
     public void scheduledExpirePromotions() {
         // Process all orgs — cross-tenant scheduled job
-        List<ChannelPromotion> expired = promotionRepository.findAllExpired(LocalDate.now());
-        int count = 0;
-        for (ChannelPromotion promo : expired) {
-            promo.setStatus(PromotionStatus.EXPIRED);
-            promotionRepository.save(promo);
-            count++;
-        }
+        List<ChannelPromotion> candidates = promotionRepository.findAllExpired(latestLocalDateOnEarth());
+        int count = expireInPropertyZone(candidates);
         if (count > 0) {
             log.info("PromotionExpiryScheduler: {} promotions expirees", count);
         }
@@ -208,15 +295,65 @@ public class ChannelPromotionService {
 
     @Transactional
     public int expireOldPromotions(Long orgId) {
-        List<ChannelPromotion> expired = promotionRepository.findExpired(LocalDate.now(), orgId);
-        for (ChannelPromotion promo : expired) {
+        List<ChannelPromotion> candidates = promotionRepository.findExpired(latestLocalDateOnEarth(), orgId);
+        int count = expireInPropertyZone(candidates);
+        if (count > 0) {
+            log.info("Expired {} promotions for org {}", count, orgId);
+        }
+        return count;
+    }
+
+    /** Passe en EXPIRED les candidats dont la date de fin est depassee dans la timezone de leur propriete. */
+    private int expireInPropertyZone(List<ChannelPromotion> candidates) {
+        Map<Long, ZoneId> zoneCache = new HashMap<>();
+        int count = 0;
+        for (ChannelPromotion promo : candidates) {
+            if (!isExpiredInPropertyZone(promo, zoneCache)) {
+                continue;
+            }
             promo.setStatus(PromotionStatus.EXPIRED);
             promotionRepository.save(promo);
+            count++;
         }
-        if (!expired.isEmpty()) {
-            log.info("Expired {} promotions for org {}", expired.size(), orgId);
+        return count;
+    }
+
+    private boolean isExpiredInPropertyZone(ChannelPromotion promo, Map<Long, ZoneId> zoneCache) {
+        if (promo.getEndDate() == null) {
+            return false;
         }
-        return expired.size();
+        ZoneId zone = promo.getPropertyId() != null
+                ? zoneCache.computeIfAbsent(promo.getPropertyId(), this::resolvePropertyZone)
+                : DEFAULT_PROPERTY_ZONE;
+        return promo.getEndDate().isBefore(LocalDate.now(zone));
+    }
+
+    /**
+     * Timezone de la propriete ; fallback {@link #DEFAULT_PROPERTY_ZONE} si la
+     * propriete est introuvable ou la timezone absente/invalide.
+     */
+    private ZoneId resolvePropertyZone(Long propertyId) {
+        String timezone = propertyRepository.findById(propertyId)
+                .map(Property::getTimezone)
+                .orElse(null);
+        if (timezone == null || timezone.isBlank()) {
+            return DEFAULT_PROPERTY_ZONE;
+        }
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException e) {
+            log.warn("Timezone invalide '{}' pour property={}, fallback {}",
+                    timezone, propertyId, DEFAULT_PROPERTY_ZONE);
+            return DEFAULT_PROPERTY_ZONE;
+        }
+    }
+
+    /**
+     * Date locale la plus avancee du globe (UTC+14, ile Kiritimati) : borne haute
+     * pour charger les candidats a l'expiration quelle que soit la timezone JVM.
+     */
+    private static LocalDate latestLocalDateOnEarth() {
+        return LocalDate.now(ZoneOffset.ofHours(14));
     }
 
     @Transactional

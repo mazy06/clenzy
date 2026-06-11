@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -41,6 +42,7 @@ class PermissionServiceTest {
     @Mock private RoleRepository roleRepository;
     @Mock private PermissionRepository permissionRepository;
     @Mock private NotificationService notificationService;
+    @Mock private ObjectProvider<NotificationService> notificationServiceProvider;
     @Mock private EntityManager entityManager;
     @Mock private Cache cache;
 
@@ -48,6 +50,7 @@ class PermissionServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(notificationServiceProvider.getIfAvailable()).thenReturn(notificationService);
         service = new PermissionService(
                 redisTemplate,
                 cacheManager,
@@ -55,9 +58,9 @@ class PermissionServiceTest {
                 tenantContext,
                 rolePermissionRepository,
                 roleRepository,
-                permissionRepository
+                permissionRepository,
+                notificationServiceProvider
         );
-        ReflectionTestUtils.setField(service, "notificationService", notificationService);
         ReflectionTestUtils.setField(service, "entityManager", entityManager);
     }
 
@@ -685,9 +688,21 @@ class PermissionServiceTest {
     // ═════════════════════════════════════════════════════════════════════════════
 
     @Test
+    @SuppressWarnings("unchecked")
     void updateRolePermissions_whenNotificationServiceNull_doesNotThrow() {
-        // Remove notification service
-        ReflectionTestUtils.setField(service, "notificationService", null);
+        // Service construit sans NotificationService disponible (getIfAvailable -> null)
+        ObjectProvider<NotificationService> emptyProvider = mock(ObjectProvider.class);
+        service = new PermissionService(
+                redisTemplate,
+                cacheManager,
+                userRepository,
+                tenantContext,
+                rolePermissionRepository,
+                roleRepository,
+                permissionRepository,
+                emptyProvider
+        );
+        ReflectionTestUtils.setField(service, "entityManager", entityManager);
 
         String roleName = "HOST";
         List<String> newPermissions = List.of("contact:view");

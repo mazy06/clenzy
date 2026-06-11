@@ -2,11 +2,8 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.SecurityAuditLogDto;
 import com.clenzy.model.SecurityAuditEventType;
-import com.clenzy.model.SecurityAuditLog;
-import com.clenzy.model.UserStatus;
-import com.clenzy.repository.SecurityAuditLogRepository;
-import com.clenzy.repository.UserRepository;
 import com.clenzy.service.JwtTokenService;
+import com.clenzy.service.MonitoringQueryService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -18,7 +15,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.web.PageableDefault;
@@ -37,7 +33,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.sql.Connection;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -49,8 +44,7 @@ public class MonitoringController {
 
     private static final Logger log = LoggerFactory.getLogger(MonitoringController.class);
 
-    private final SecurityAuditLogRepository auditLogRepository;
-    private final UserRepository userRepository;
+    private final MonitoringQueryService monitoringQueryService;
     private final JwtTokenService jwtTokenService;
     private final DataSource dataSource;
     private final RedisConnectionFactory redisConnectionFactory;
@@ -67,16 +61,14 @@ public class MonitoringController {
     @Value("${stripe.secret-key:}")
     private String stripeSecretKey;
 
-    public MonitoringController(SecurityAuditLogRepository auditLogRepository,
-                                UserRepository userRepository,
+    public MonitoringController(MonitoringQueryService monitoringQueryService,
                                 JwtTokenService jwtTokenService,
                                 DataSource dataSource,
                                 RedisConnectionFactory redisConnectionFactory,
                                 MeterRegistry meterRegistry,
                                 ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider,
                                 ObjectProvider<JavaMailSender> mailSenderProvider) {
-        this.auditLogRepository = auditLogRepository;
-        this.userRepository = userRepository;
+        this.monitoringQueryService = monitoringQueryService;
         this.jwtTokenService = jwtTokenService;
         this.dataSource = dataSource;
         this.redisConnectionFactory = redisConnectionFactory;
@@ -115,10 +107,10 @@ public class MonitoringController {
     @Operation(summary = "Metriques plateforme",
                description = "Utilisateurs, tokens, performance API, securite.")
     public ResponseEntity<Map<String, Object>> getKeycloakMetrics() {
-        Map<String, Object> users = buildUserMetrics();
+        Map<String, Object> users = monitoringQueryService.userMetrics();
         Map<String, Object> sessions = buildSessionMetrics();
         Map<String, Object> performance = buildPerformanceMetrics();
-        Map<String, Object> security = buildSecurityMetrics();
+        Map<String, Object> security = monitoringQueryService.securityMetrics();
 
         return ResponseEntity.ok(Map.of(
             "users", users,
@@ -140,23 +132,8 @@ public class MonitoringController {
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
 
-        Specification<SecurityAuditLog> spec = Specification.where(null);
-
-        if (eventType != null) {
-            spec = spec.and((root, query, cb) ->
-                cb.equal(root.get("eventType"), eventType));
-        }
-        if (actorId != null && !actorId.isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                cb.equal(root.get("actorId"), actorId));
-        }
-        if (result != null && !result.isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                cb.equal(root.get("result"), result));
-        }
-
-        Page<SecurityAuditLogDto> page = auditLogRepository.findAll(spec, pageable)
-            .map(SecurityAuditLogDto::from);
+        Page<SecurityAuditLogDto> page = monitoringQueryService.searchAuditLogs(
+            eventType, actorId, result, pageable);
 
         return ResponseEntity.ok(page);
     }
@@ -511,23 +488,6 @@ public class MonitoringController {
         return loadAvg >= 0 ? (loadAvg / processors) * 100 : 0;
     }
 
-    // ── Private: User metrics ───────────────────────────────────────────────────
-
-    private Map<String, Object> buildUserMetrics() {
-        long total = userRepository.count();
-        long active = userRepository.countByStatus(UserStatus.ACTIVE);
-        long inactive = total - active;
-        long newThisWeek = userRepository.countByCreatedAtAfter(
-            LocalDateTime.now().minusDays(7));
-
-        Map<String, Object> users = new LinkedHashMap<>();
-        users.put("total", total);
-        users.put("active", active);
-        users.put("inactive", inactive);
-        users.put("newThisWeek", newThisWeek);
-        return users;
-    }
-
     // ── Private: Session / Token metrics ────────────────────────────────────────
 
     private Map<String, Object> buildSessionMetrics() {
@@ -575,36 +535,5 @@ public class MonitoringController {
         perf.put("errorRate", Math.round(errorRate * 100.0) / 100.0);
         perf.put("uptimePercent", Math.round(uptimePercent * 10.0) / 10.0);
         return perf;
-    }
-
-    // ── Private: Security metrics ───────────────────────────────────────────────
-
-    private Map<String, Object> buildSecurityMetrics() {
-        Instant oneWeekAgo = Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS);
-
-        long failedLogins = auditLogRepository.countByEventTypeAndCreatedAtAfter(
-            SecurityAuditEventType.LOGIN_FAILURE, oneWeekAgo);
-        long permissionDenied = auditLogRepository.countByEventTypeAndCreatedAtAfter(
-            SecurityAuditEventType.PERMISSION_DENIED, oneWeekAgo);
-        long suspiciousActivity = auditLogRepository.countByEventTypeAndCreatedAtAfter(
-            SecurityAuditEventType.SUSPICIOUS_ACTIVITY, oneWeekAgo);
-
-        // Last security incident
-        var incidentTypes = List.of(
-            SecurityAuditEventType.LOGIN_FAILURE,
-            SecurityAuditEventType.PERMISSION_DENIED,
-            SecurityAuditEventType.SUSPICIOUS_ACTIVITY
-        );
-        String lastIncident = auditLogRepository
-            .findTopByEventTypeInOrderByCreatedAtDesc(incidentTypes)
-            .map(entry -> entry.getCreatedAt().toString())
-            .orElse(null);
-
-        Map<String, Object> sec = new LinkedHashMap<>();
-        sec.put("failedLogins", failedLogins);
-        sec.put("permissionDenied", permissionDenied);
-        sec.put("suspiciousActivity", suspiciousActivity);
-        sec.put("lastIncident", lastIncident);
-        return sec;
     }
 }

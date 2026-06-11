@@ -2,8 +2,8 @@ package com.clenzy.service;
 
 import com.clenzy.dto.InscriptionDto;
 import com.clenzy.model.User;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.UserRepository;
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
@@ -36,9 +36,7 @@ public class SubscriptionService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final PricingConfigService pricingConfigService;
-
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
+    private final StripeGateway stripeGateway;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -47,10 +45,11 @@ public class SubscriptionService {
     private String frontendUrl;
 
     public SubscriptionService(UserRepository userRepository, AuditLogService auditLogService,
-                               PricingConfigService pricingConfigService) {
+                               PricingConfigService pricingConfigService, StripeGateway stripeGateway) {
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
         this.pricingConfigService = pricingConfigService;
+        this.stripeGateway = stripeGateway;
     }
 
     /**
@@ -88,10 +87,9 @@ public class SubscriptionService {
         // Annuler l'ancien abonnement Stripe si existant
         if (user.getStripeSubscriptionId() != null && !user.getStripeSubscriptionId().isEmpty()) {
             try {
-                Stripe.apiKey = stripeSecretKey;
-                Subscription existingSub = Subscription.retrieve(user.getStripeSubscriptionId());
+                Subscription existingSub = stripeGateway.retrieveSubscription(user.getStripeSubscriptionId());
                 if (!"canceled".equals(existingSub.getStatus())) {
-                    existingSub.cancel(SubscriptionCancelParams.builder()
+                    stripeGateway.cancelSubscription(existingSub, SubscriptionCancelParams.builder()
                             .setProrate(true)
                             .build());
                     log.info("Ancien abonnement Stripe {} annule pour user {}", user.getStripeSubscriptionId(), user.getEmail());
@@ -103,8 +101,6 @@ public class SubscriptionService {
         }
 
         // Creer une nouvelle session Stripe Checkout
-        Stripe.apiKey = stripeSecretKey;
-
         String forfaitDisplayName = target.substring(0, 1).toUpperCase() + target.substring(1);
 
         SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
@@ -154,7 +150,7 @@ public class SubscriptionService {
             paramsBuilder.setCustomerEmail(user.getEmail());
         }
 
-        Session session = Session.create(paramsBuilder.build());
+        Session session = stripeGateway.createSession(paramsBuilder.build());
 
         log.info("Session Stripe Checkout upgrade creee: {} pour user {}", session.getId(), user.getEmail());
 
@@ -166,8 +162,7 @@ public class SubscriptionService {
      */
     public void completeUpgrade(String sessionId) {
         try {
-            Stripe.apiKey = stripeSecretKey;
-            Session session = Session.retrieve(sessionId);
+            Session session = stripeGateway.retrieveSession(sessionId);
 
             String type = session.getMetadata().get("type");
             if (!"upgrade".equals(type)) {

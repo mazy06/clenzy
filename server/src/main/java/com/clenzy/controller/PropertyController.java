@@ -2,12 +2,13 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.PropertyDto;
 import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
-import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
 import com.clenzy.service.PropertyService;
 import com.clenzy.service.UserService;
+import com.clenzy.model.Property;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.exception.UnauthorizedException;
+import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.JwtRoleExtractor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,38 +41,61 @@ public class PropertyController {
 
     private final PropertyService propertyService;
     private final UserService userService;
-    private final AirbnbListingMappingRepository listingMappingRepository;
+    private final TenantContext tenantContext;
 
     public PropertyController(PropertyService propertyService,
                               UserService userService,
-                              AirbnbListingMappingRepository listingMappingRepository) {
+                              TenantContext tenantContext) {
         this.propertyService = propertyService;
         this.userService = userService;
-        this.listingMappingRepository = listingMappingRepository;
+        this.tenantContext = tenantContext;
     }
 
     /**
-     * Vérifie si un HOST a accès à une propriété (doit être le propriétaire)
+     * Vérifie l'accès à une propriété pour TOUS les rôles (pas seulement HOST) :
+     * - staff plateforme (SUPER_ADMIN/SUPER_MANAGER) : accès complet ;
+     * - tout rôle org (TECHNICIAN, HOUSEKEEPER, SUPERVISOR, ...) : la propriété
+     *   doit appartenir à l'organisation du requester — le service charge via
+     *   findById qui ne passe PAS par le filtre Hibernate organizationFilter ;
+     * - HOST : doit en plus être le propriétaire de la propriété.
      */
-    private void checkHostAccess(Long propertyId, Jwt jwt) {
+    private void checkPropertyAccess(Long propertyId, Jwt jwt) {
         UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
+        if (userRole.isPlatformStaff()) {
+            return;
+        }
+
+        // Lève NotFoundException si la propriété n'existe pas.
+        Property property = propertyService.getPropertyEntityById(propertyId);
+        requireSameOrganization(property);
+
         if (userRole == UserRole.HOST && jwt != null) {
-            // Récupérer l'utilisateur depuis la base de données
             String keycloakId = jwt.getSubject();
             User user = userService.findByKeycloakId(keycloakId);
 
-            if (user != null) {
-                // Vérifier directement dans le repository pour éviter la récursion
-                com.clenzy.model.Property property = propertyService.getPropertyEntityById(propertyId);
-                if (property == null) {
-                    throw new com.clenzy.exception.NotFoundException("Property not found");
-                }
-
-                if (property.getOwner() == null || !property.getOwner().getId().equals(user.getId())) {
-                    log.warn("HOST attempted access to unowned property: {}", propertyId);
-                    throw new UnauthorizedException("Vous n'avez pas accès à cette propriété");
-                }
+            if (user != null
+                    && (property.getOwner() == null || !property.getOwner().getId().equals(user.getId()))) {
+                log.warn("HOST attempted access to unowned property: {}", propertyId);
+                throw new UnauthorizedException("Vous n'avez pas accès à cette propriété");
             }
+        }
+    }
+
+    /**
+     * Refuse l'accès si la propriété appartient à une autre organisation.
+     * Bypass pour les orgs SYSTEM (prestataires cross-org), même exemption
+     * que le filtre Hibernate organizationFilter (cf. TenantFilter).
+     */
+    private void requireSameOrganization(Property property) {
+        if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
+            return;
+        }
+        Long orgId = tenantContext.getOrganizationId();
+        if (orgId != null && property.getOrganizationId() != null
+                && !orgId.equals(property.getOrganizationId())) {
+            log.warn("Acces cross-organisation refuse pour la propriete {}", property.getId());
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Vous n'avez pas accès à cette propriété");
         }
     }
 
@@ -135,16 +159,14 @@ public class PropertyController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir un logement par ID")
     public PropertyDto get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        // Vérifier l'accès pour les HOST
-        checkHostAccess(id, jwt);
+        checkPropertyAccess(id, jwt);
         return propertyService.getById(id);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un logement")
     public PropertyDto update(@PathVariable Long id, @RequestBody PropertyDto dto, @AuthenticationPrincipal Jwt jwt) {
-        // Vérifier l'accès pour les HOST
-        checkHostAccess(id, jwt);
+        checkPropertyAccess(id, jwt);
         return propertyService.update(id, dto);
     }
 
@@ -152,8 +174,7 @@ public class PropertyController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Supprimer un logement")
     public void delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        // Vérifier l'accès pour les HOST
-        checkHostAccess(id, jwt);
+        checkPropertyAccess(id, jwt);
         propertyService.delete(id);
     }
 
@@ -162,7 +183,7 @@ public class PropertyController {
     public PropertyDto updateStatus(@PathVariable Long id,
                                     @RequestBody Map<String, String> body,
                                     @AuthenticationPrincipal Jwt jwt) {
-        checkHostAccess(id, jwt);
+        checkPropertyAccess(id, jwt);
         final String status = body.get("status");
         if (status == null || status.isBlank()) {
             throw new IllegalArgumentException("Le champ 'status' est requis");
@@ -194,7 +215,9 @@ public class PropertyController {
     public ResponseEntity<Map<String, Object>> getPropertyChannelStatus(@PathVariable Long propertyId) {
         Map<String, Object> airbnb = new LinkedHashMap<>();
 
-        var mapping = listingMappingRepository.findByPropertyId(propertyId);
+        // L'isolation org (404 si propriete inconnue, 403 cross-org) est validee
+        // dans PropertyService.getAirbnbListingMapping (audit 2026-06, regle 3).
+        var mapping = propertyService.getAirbnbListingMapping(propertyId);
         if (mapping.isPresent()) {
             AirbnbListingMapping m = mapping.get();
             airbnb.put("linked", true);

@@ -7,6 +7,7 @@ import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.ChannelSyncHealthAccessService;
 import com.clenzy.service.ChannelSyncHealthService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,8 +41,9 @@ class ChannelSyncHealthControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ChannelSyncHealthController(
-            syncHealthService, propertyRepository, userRepository, tenantContext);
+        // Service d'acces REEL construit au-dessus des repositories mockes (pattern Vague A)
+        controller = new ChannelSyncHealthController(syncHealthService,
+            new ChannelSyncHealthAccessService(propertyRepository, userRepository, tenantContext));
         jwt = Jwt.withTokenValue("token")
             .header("alg", "none")
             .subject("kc-user-1")

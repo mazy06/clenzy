@@ -4,6 +4,7 @@ import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.User;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
 import com.stripe.exception.ApiException;
@@ -26,8 +27,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
@@ -41,6 +42,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+/**
+ * Tests for MobilePaymentService.
+ *
+ * <p>Depuis la migration T-SOLID-3, tous les appels Stripe passent par
+ * {@link StripeGateway} (plus aucun appel statique au SDK) : les tests
+ * mockent le gateway au lieu de {@code mockStatic}.</p>
+ */
 @ExtendWith(MockitoExtension.class)
 class MobilePaymentServiceTest {
 
@@ -48,13 +56,14 @@ class MobilePaymentServiceTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private AuditLogService auditLogService;
     @Mock private PricingConfigService pricingConfigService;
+    @Mock private StripeGateway stripeGateway;
 
     private MobilePaymentService service;
 
     @BeforeEach
     void setUp() throws Exception {
-        service = new MobilePaymentService(userRepository, interventionRepository, auditLogService, pricingConfigService);
-        setField("stripeSecretKey", "sk_test_xxx");
+        service = new MobilePaymentService(userRepository, interventionRepository, auditLogService,
+                pricingConfigService, stripeGateway);
         setField("publishableKey", "pk_test_xxx");
         setField("currency", "EUR");
     }
@@ -113,23 +122,26 @@ class MobilePaymentServiceTest {
             when(pi.getId()).thenReturn("pi_int_1");
             when(pi.getClientSecret()).thenReturn("pi_int_secret");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class);
-                 MockedStatic<PaymentIntent> staticPi = mockStatic(PaymentIntent.class)) {
-                staticCust.when(() -> Customer.create(any(CustomerCreateParams.class))).thenReturn(customer);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
-                staticPi.when(() -> PaymentIntent.create(any(PaymentIntentCreateParams.class))).thenReturn(pi);
+            when(stripeGateway.createCustomer(any(CustomerCreateParams.class))).thenReturn(customer);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.createPaymentIntent(any(PaymentIntentCreateParams.class))).thenReturn(pi);
 
-                Map<String, String> result = service.createPaymentSheet("kc-1", "intervention", null, 99L, 8000L);
+            Map<String, String> result = service.createPaymentSheet("kc-1", "intervention", null, 99L, 8000L);
 
-                assertThat(result).containsEntry("paymentIntent", "pi_int_secret");
-                assertThat(result).containsEntry("ephemeralKey", "ek_secret");
-                assertThat(result).containsEntry("customer", "cus_new");
-                assertThat(result).containsEntry("publishableKey", "pk_test_xxx");
-                verify(interventionRepository).save(inter);
-                assertThat(inter.getPaymentStatus()).isEqualTo(PaymentStatus.PROCESSING);
-                assertThat(inter.getStripeSessionId()).isEqualTo("pi_int_1");
-            }
+            assertThat(result).containsEntry("paymentIntent", "pi_int_secret");
+            assertThat(result).containsEntry("ephemeralKey", "ek_secret");
+            assertThat(result).containsEntry("customer", "cus_new");
+            assertThat(result).containsEntry("publishableKey", "pk_test_xxx");
+            verify(interventionRepository).save(inter);
+            assertThat(inter.getPaymentStatus()).isEqualTo(PaymentStatus.PROCESSING);
+            assertThat(inter.getStripeSessionId()).isEqualTo("pi_int_1");
+
+            // T-SOLID-3 : verifie que le montant et la devise passent bien par le gateway
+            ArgumentCaptor<PaymentIntentCreateParams> piCaptor =
+                    ArgumentCaptor.forClass(PaymentIntentCreateParams.class);
+            verify(stripeGateway).createPaymentIntent(piCaptor.capture());
+            assertThat(piCaptor.getValue().getAmount()).isEqualTo(8000L);
+            assertThat(piCaptor.getValue().getCurrency()).isEqualTo("eur");
         }
 
         @Test
@@ -143,15 +155,12 @@ class MobilePaymentServiceTest {
             EphemeralKey ek = mock(EphemeralKey.class);
             when(ek.getSecret()).thenReturn("eks");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_existing")).thenReturn(existingCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
 
-                assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, null, 8000L))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("interventionId");
-            }
+            assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, null, 8000L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("interventionId");
         }
 
         @Test
@@ -166,15 +175,12 @@ class MobilePaymentServiceTest {
             EphemeralKey ek = mock(EphemeralKey.class);
             when(ek.getSecret()).thenReturn("eks");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_existing")).thenReturn(existingCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
 
-                assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, 404L, 8000L))
-                        .isInstanceOf(RuntimeException.class)
-                        .hasMessageContaining("introuvable");
-            }
+            assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, 404L, 8000L))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("introuvable");
         }
 
         @Test
@@ -192,15 +198,12 @@ class MobilePaymentServiceTest {
             EphemeralKey ek = mock(EphemeralKey.class);
             when(ek.getSecret()).thenReturn("eks");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_existing")).thenReturn(existingCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
 
-                assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, 99L, null))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("Montant invalide");
-            }
+            assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, 99L, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Montant invalide");
         }
 
         @Test
@@ -214,15 +217,12 @@ class MobilePaymentServiceTest {
             EphemeralKey ek = mock(EphemeralKey.class);
             when(ek.getSecret()).thenReturn("eks");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_existing")).thenReturn(existingCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
 
-                assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "BADTYPE", null, null, null))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("Type de paiement");
-            }
+            assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "BADTYPE", null, null, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Type de paiement");
         }
 
         @Test
@@ -236,15 +236,12 @@ class MobilePaymentServiceTest {
             EphemeralKey ek = mock(EphemeralKey.class);
             when(ek.getSecret()).thenReturn("eks");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_existing")).thenReturn(existingCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
 
-                assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "subscription", "bogus", null, null))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("Forfait invalide");
-            }
+            assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "subscription", "bogus", null, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Forfait invalide");
         }
 
         @Test
@@ -258,15 +255,12 @@ class MobilePaymentServiceTest {
             EphemeralKey ek = mock(EphemeralKey.class);
             when(ek.getSecret()).thenReturn("eks");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_existing")).thenReturn(existingCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
 
-                assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "subscription", "essentiel", null, null))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("forfait superieur");
-            }
+            assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "subscription", "essentiel", null, null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("forfait superieur");
         }
 
         @Test
@@ -284,7 +278,6 @@ class MobilePaymentServiceTest {
 
             Subscription oldSub = mock(Subscription.class);
             when(oldSub.getStatus()).thenReturn("active");
-            // .cancel needs param — no return value used; ignored.
 
             Price createdPrice = mock(Price.class);
             when(createdPrice.getId()).thenReturn("price_xyz");
@@ -302,26 +295,21 @@ class MobilePaymentServiceTest {
             PaymentIntent piUpdated = mock(PaymentIntent.class);
             when(piUpdated.getId()).thenReturn("pi_inv");
             when(piUpdated.getClientSecret()).thenReturn("pi_inv_secret");
-            when(piRetrieved.update(any(PaymentIntentUpdateParams.class))).thenReturn(piUpdated);
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class);
-                 MockedStatic<Price> staticPrice = mockStatic(Price.class);
-                 MockedStatic<Subscription> staticSub = mockStatic(Subscription.class);
-                 MockedStatic<PaymentIntent> staticPi = mockStatic(PaymentIntent.class)) {
-                staticCust.when(() -> Customer.create(any(CustomerCreateParams.class))).thenReturn(customer);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
-                staticSub.when(() -> Subscription.retrieve("sub_old")).thenReturn(oldSub);
-                staticSub.when(() -> Subscription.create(any(SubscriptionCreateParams.class))).thenReturn(createdSub);
-                staticPrice.when(() -> Price.create(any(PriceCreateParams.class))).thenReturn(createdPrice);
-                staticPi.when(() -> PaymentIntent.retrieve("pi_inv")).thenReturn(piRetrieved);
+            when(stripeGateway.createCustomer(any(CustomerCreateParams.class))).thenReturn(customer);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.retrieveSubscription("sub_old")).thenReturn(oldSub);
+            when(stripeGateway.createSubscription(any(SubscriptionCreateParams.class))).thenReturn(createdSub);
+            when(stripeGateway.createPrice(any(PriceCreateParams.class))).thenReturn(createdPrice);
+            when(stripeGateway.retrievePaymentIntent("pi_inv")).thenReturn(piRetrieved);
+            when(stripeGateway.updatePaymentIntent(eq(piRetrieved), any(PaymentIntentUpdateParams.class)))
+                    .thenReturn(piUpdated);
 
-                Map<String, String> result = service.createPaymentSheet("kc-1", "subscription", "premium", null, null);
+            Map<String, String> result = service.createPaymentSheet("kc-1", "subscription", "premium", null, null);
 
-                assertThat(result).containsEntry("paymentIntent", "pi_inv_secret");
-                assertThat(result).containsEntry("customer", "cus_new");
-                verify(oldSub).cancel(any(SubscriptionCancelParams.class));
-            }
+            assertThat(result).containsEntry("paymentIntent", "pi_inv_secret");
+            assertThat(result).containsEntry("customer", "cus_new");
+            verify(stripeGateway).cancelSubscription(eq(oldSub), any(SubscriptionCancelParams.class));
         }
 
         @Test
@@ -350,25 +338,20 @@ class MobilePaymentServiceTest {
             PaymentIntent piUpdated = mock(PaymentIntent.class);
             when(piUpdated.getId()).thenReturn("pi_inv");
             when(piUpdated.getClientSecret()).thenReturn("pi_inv_secret");
-            when(piRetrieved.update(any(PaymentIntentUpdateParams.class))).thenReturn(piUpdated);
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class);
-                 MockedStatic<Price> staticPrice = mockStatic(Price.class);
-                 MockedStatic<Subscription> staticSub = mockStatic(Subscription.class);
-                 MockedStatic<PaymentIntent> staticPi = mockStatic(PaymentIntent.class)) {
-                staticCust.when(() -> Customer.create(any(CustomerCreateParams.class))).thenReturn(customer);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
-                staticSub.when(() -> Subscription.retrieve("sub_old"))
-                        .thenThrow(new ApiException("retrieve down", null, "c", 500, null));
-                staticSub.when(() -> Subscription.create(any(SubscriptionCreateParams.class))).thenReturn(createdSub);
-                staticPrice.when(() -> Price.create(any(PriceCreateParams.class))).thenReturn(createdPrice);
-                staticPi.when(() -> PaymentIntent.retrieve("pi_inv")).thenReturn(piRetrieved);
+            when(stripeGateway.createCustomer(any(CustomerCreateParams.class))).thenReturn(customer);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.retrieveSubscription("sub_old"))
+                    .thenThrow(new ApiException("retrieve down", null, "c", 500, null));
+            when(stripeGateway.createSubscription(any(SubscriptionCreateParams.class))).thenReturn(createdSub);
+            when(stripeGateway.createPrice(any(PriceCreateParams.class))).thenReturn(createdPrice);
+            when(stripeGateway.retrievePaymentIntent("pi_inv")).thenReturn(piRetrieved);
+            when(stripeGateway.updatePaymentIntent(eq(piRetrieved), any(PaymentIntentUpdateParams.class)))
+                    .thenReturn(piUpdated);
 
-                Map<String, String> result = service.createPaymentSheet("kc-1", "subscription", "premium", null, null);
+            Map<String, String> result = service.createPaymentSheet("kc-1", "subscription", "premium", null, null);
 
-                assertThat(result.get("paymentIntent")).isEqualTo("pi_inv_secret");
-            }
+            assertThat(result.get("paymentIntent")).isEqualTo("pi_inv_secret");
         }
 
         @Test
@@ -389,18 +372,14 @@ class MobilePaymentServiceTest {
             when(pi.getId()).thenReturn("pi_use");
             when(pi.getClientSecret()).thenReturn("pi_use_s");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class);
-                 MockedStatic<PaymentIntent> staticPi = mockStatic(PaymentIntent.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_existing")).thenReturn(existingCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
-                staticPi.when(() -> PaymentIntent.create(any(PaymentIntentCreateParams.class))).thenReturn(pi);
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.createPaymentIntent(any(PaymentIntentCreateParams.class))).thenReturn(pi);
 
-                Map<String, String> result = service.createPaymentSheet("kc-1", "intervention", null, 50L, null);
+            Map<String, String> result = service.createPaymentSheet("kc-1", "intervention", null, 50L, null);
 
-                assertThat(result).containsEntry("customer", "cus_existing");
-                staticCust.verify(() -> Customer.create(any(CustomerCreateParams.class)), never());
-            }
+            assertThat(result).containsEntry("customer", "cus_existing");
+            verify(stripeGateway, never()).createCustomer(any(CustomerCreateParams.class));
         }
 
         @Test
@@ -423,18 +402,14 @@ class MobilePaymentServiceTest {
             when(pi.getId()).thenReturn("pi");
             when(pi.getClientSecret()).thenReturn("pis");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class);
-                 MockedStatic<PaymentIntent> staticPi = mockStatic(PaymentIntent.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_deleted")).thenReturn(existingCust);
-                staticCust.when(() -> Customer.create(any(CustomerCreateParams.class))).thenReturn(newCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
-                staticPi.when(() -> PaymentIntent.create(any(PaymentIntentCreateParams.class))).thenReturn(pi);
+            when(stripeGateway.retrieveCustomer("cus_deleted")).thenReturn(existingCust);
+            when(stripeGateway.createCustomer(any(CustomerCreateParams.class))).thenReturn(newCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.createPaymentIntent(any(PaymentIntentCreateParams.class))).thenReturn(pi);
 
-                Map<String, String> result = service.createPaymentSheet("kc-1", "intervention", null, 50L, null);
+            Map<String, String> result = service.createPaymentSheet("kc-1", "intervention", null, 50L, null);
 
-                assertThat(result).containsEntry("customer", "cus_new");
-            }
+            assertThat(result).containsEntry("customer", "cus_new");
         }
 
         @Test
@@ -455,19 +430,15 @@ class MobilePaymentServiceTest {
             when(pi.getId()).thenReturn("pi");
             when(pi.getClientSecret()).thenReturn("pis");
 
-            try (MockedStatic<Customer> staticCust = mockStatic(Customer.class);
-                 MockedStatic<EphemeralKey> staticEk = mockStatic(EphemeralKey.class);
-                 MockedStatic<PaymentIntent> staticPi = mockStatic(PaymentIntent.class)) {
-                staticCust.when(() -> Customer.retrieve("cus_bad"))
-                        .thenThrow(new ApiException("not found", null, "c", 404, null));
-                staticCust.when(() -> Customer.create(any(CustomerCreateParams.class))).thenReturn(newCust);
-                staticEk.when(() -> EphemeralKey.create(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
-                staticPi.when(() -> PaymentIntent.create(any(PaymentIntentCreateParams.class))).thenReturn(pi);
+            when(stripeGateway.retrieveCustomer("cus_bad"))
+                    .thenThrow(new ApiException("not found", null, "c", 404, null));
+            when(stripeGateway.createCustomer(any(CustomerCreateParams.class))).thenReturn(newCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+            when(stripeGateway.createPaymentIntent(any(PaymentIntentCreateParams.class))).thenReturn(pi);
 
-                Map<String, String> result = service.createPaymentSheet("kc-1", "intervention", null, 50L, null);
+            Map<String, String> result = service.createPaymentSheet("kc-1", "intervention", null, 50L, null);
 
-                assertThat(result).containsEntry("customer", "cus_new");
-            }
+            assertThat(result).containsEntry("customer", "cus_new");
         }
     }
 
@@ -538,10 +509,6 @@ class MobilePaymentServiceTest {
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("introuvable");
         }
-    }
-
-    private static <T> org.mockito.stubbing.Stubber doReturnStub(T value) {
-        return doReturn(value);
     }
 
     // ─── completeInterventionPayment ──────────────────────────────────────

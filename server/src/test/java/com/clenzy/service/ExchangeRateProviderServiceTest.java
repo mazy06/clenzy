@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.ExchangeRateDto;
 import com.clenzy.model.ExchangeRate;
 import com.clenzy.repository.ExchangeRateRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,12 +10,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -40,6 +45,135 @@ class ExchangeRateProviderServiceTest {
     @BeforeEach
     void setUp() {
         providerService = new ExchangeRateProviderService(exchangeRateRepository, restTemplate);
+    }
+
+    private ExchangeRate buildRate(Long id, String base, String target, BigDecimal rate, LocalDate date) {
+        ExchangeRate er = new ExchangeRate();
+        er.setBaseCurrency(base);
+        er.setTargetCurrency(target);
+        er.setRate(rate);
+        er.setRateDate(date);
+        er.setSource("ECB");
+        try {
+            var f = ExchangeRate.class.getDeclaredField("id");
+            f.setAccessible(true);
+            f.set(er, id);
+        } catch (Exception ignore) {}
+        return er;
+    }
+
+    /**
+     * Logique deplacee de ExchangeRateController (T-ARCH-01) : la matrice
+     * des taux courants est calculee au niveau service.
+     */
+    @Nested
+    class GetLatestMatrix {
+
+        @Test
+        void whenRatesExist_thenReturnsMatrixWithEur() {
+            ExchangeRate mad = buildRate(1L, "EUR", "MAD", new BigDecimal("10.5"), LocalDate.now());
+            when(exchangeRateRepository.findLatestRate(eq("EUR"), eq("MAD"), any(LocalDate.class)))
+                    .thenReturn(Optional.of(mad));
+            when(exchangeRateRepository.findLatestRate(eq("EUR"), eq("SAR"), any(LocalDate.class)))
+                    .thenReturn(Optional.empty());
+
+            ExchangeRateProviderService.RateMatrix matrix = providerService.getLatestMatrix();
+
+            assertThat(matrix.rates()).containsKey("EUR").containsEntry("MAD", new BigDecimal("10.5"));
+            assertThat(matrix.rates()).doesNotContainKey("SAR");
+            assertThat(matrix.date()).isEqualTo(mad.getRateDate());
+        }
+
+        @Test
+        void whenNoRates_thenReturnsOnlyEur() {
+            when(exchangeRateRepository.findLatestRate(any(), any(), any())).thenReturn(Optional.empty());
+
+            ExchangeRateProviderService.RateMatrix matrix = providerService.getLatestMatrix();
+
+            assertThat(matrix.rates()).containsOnlyKeys("EUR");
+            assertThat(matrix.date()).isNull();
+        }
+    }
+
+    /**
+     * Logique deplacee de ExchangeRateController (T-ARCH-01) : paires directes,
+     * inverses et croisees calculees au niveau service.
+     */
+    @Nested
+    class GetHistory {
+
+        @Test
+        void whenNoFilters_thenUsesGeneralQuery() {
+            ExchangeRate er = buildRate(1L, "EUR", "MAD", new BigDecimal("10.5"), LocalDate.now());
+            Page<ExchangeRate> page = new PageImpl<>(List.of(er));
+            when(exchangeRateRepository.findByRateDateBetween(any(LocalDate.class), any(LocalDate.class),
+                    any(PageRequest.class))).thenReturn(page);
+
+            List<ExchangeRateDto> result = providerService.getHistory(null, null, null, null, 0, 50);
+
+            assertThat(result).hasSize(1);
+        }
+
+        @Test
+        void whenEurBase_thenDirectQuery() {
+            ExchangeRate er = buildRate(1L, "EUR", "MAD", new BigDecimal("10.5"), LocalDate.now());
+            Page<ExchangeRate> page = new PageImpl<>(List.of(er));
+            when(exchangeRateRepository.findHistory(eq("EUR"), eq("MAD"), any(), any(), any(PageRequest.class)))
+                    .thenReturn(page);
+
+            List<ExchangeRateDto> result = providerService.getHistory(
+                    "EUR", "MAD", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 5, 1), 0, 50);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).baseCurrency()).isEqualTo("EUR");
+        }
+
+        @Test
+        void whenEurTarget_thenInverseCalc() {
+            ExchangeRate er = buildRate(1L, "EUR", "MAD", new BigDecimal("10"), LocalDate.now());
+            Page<ExchangeRate> page = new PageImpl<>(List.of(er));
+            when(exchangeRateRepository.findHistory(eq("EUR"), eq("MAD"), any(), any(), any(PageRequest.class)))
+                    .thenReturn(page);
+
+            List<ExchangeRateDto> result = providerService.getHistory("MAD", "EUR", null, null, 0, 50);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).baseCurrency()).isEqualTo("MAD");
+            assertThat(result.get(0).targetCurrency()).isEqualTo("EUR");
+            // 1/10 = 0.1
+            assertThat(result.get(0).rate()).isEqualByComparingTo("0.1");
+        }
+
+        @Test
+        void whenCrossPair_thenComputesCrossRate() {
+            LocalDate today = LocalDate.now();
+            // EUR→MAD = 10, EUR→SAR = 4 → MAD→SAR = 4/10 = 0.4
+            ExchangeRate eurMad = buildRate(1L, "EUR", "MAD", new BigDecimal("10"), today);
+            ExchangeRate eurSar = buildRate(2L, "EUR", "SAR", new BigDecimal("4"), today);
+
+            when(exchangeRateRepository.findAllByBaseCurrencyAndTargetCurrencyAndRateDateBetween(
+                    eq("EUR"), eq("MAD"), any(), any())).thenReturn(List.of(eurMad));
+            when(exchangeRateRepository.findAllByBaseCurrencyAndTargetCurrencyAndRateDateBetween(
+                    eq("EUR"), eq("SAR"), any(), any())).thenReturn(List.of(eurSar));
+
+            List<ExchangeRateDto> result = providerService.getHistory("MAD", "SAR", null, null, 0, 50);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).rate()).isEqualByComparingTo("0.4");
+        }
+
+        @Test
+        void whenSizeOverCap_thenCappedAt200() {
+            Page<ExchangeRate> page = new PageImpl<>(List.of());
+            when(exchangeRateRepository.findByRateDateBetween(any(), any(), any(PageRequest.class)))
+                    .thenReturn(page);
+
+            providerService.getHistory(null, null, null, null, 0, 9999);
+
+            ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
+            verify(exchangeRateRepository).findByRateDateBetween(any(), any(), captor.capture());
+            assertThat(captor.getValue().getPageSize()).isEqualTo(200);
+        }
     }
 
     @Nested

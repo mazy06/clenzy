@@ -2,9 +2,9 @@ package com.clenzy.service;
 
 import com.clenzy.model.OwnerPayoutConfig;
 import com.clenzy.model.PayoutMethod;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.UserRepository;
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
 import com.stripe.model.AccountLink;
@@ -27,9 +27,6 @@ public class StripeConnectService {
 
     private static final Logger log = LoggerFactory.getLogger(StripeConnectService.class);
 
-    @Value("${stripe.secret-key:}")
-    private String secretKey;
-
     @Value("${stripe.connect.return-url:https://app.clenzy.com/settings?tab=8}")
     private String returnUrl;
 
@@ -38,11 +35,14 @@ public class StripeConnectService {
 
     private final OwnerPayoutConfigRepository configRepository;
     private final UserRepository userRepository;
+    private final StripeGateway stripeGateway;
 
     public StripeConnectService(OwnerPayoutConfigRepository configRepository,
-                                UserRepository userRepository) {
+                                UserRepository userRepository,
+                                StripeGateway stripeGateway) {
         this.configRepository = configRepository;
         this.userRepository = userRepository;
+        this.stripeGateway = stripeGateway;
     }
 
     /**
@@ -51,8 +51,6 @@ public class StripeConnectService {
     @Transactional
     @CircuitBreaker(name = "stripe-api")
     public OwnerPayoutConfig createConnectedAccount(Long ownerId, Long orgId) throws StripeException {
-        Stripe.apiKey = secretKey;
-
         OwnerPayoutConfig config = configRepository.findByOwnerIdAndOrgId(ownerId, orgId)
                 .orElseGet(() -> {
                     OwnerPayoutConfig c = new OwnerPayoutConfig();
@@ -84,7 +82,7 @@ public class StripeConnectService {
             params.setEmail(email);
         }
 
-        Account account = Account.create(params.build());
+        Account account = stripeGateway.createAccount(params.build());
 
         config.setStripeConnectedAccountId(account.getId());
         config.setPayoutMethod(PayoutMethod.STRIPE_CONNECT);
@@ -99,8 +97,6 @@ public class StripeConnectService {
      */
     @CircuitBreaker(name = "stripe-api")
     public String generateOnboardingLink(String connectedAccountId) throws StripeException {
-        Stripe.apiKey = secretKey;
-
         AccountLinkCreateParams params = AccountLinkCreateParams.builder()
                 .setAccount(connectedAccountId)
                 .setRefreshUrl(refreshUrl)
@@ -108,7 +104,7 @@ public class StripeConnectService {
                 .setType(AccountLinkCreateParams.Type.ACCOUNT_ONBOARDING)
                 .build();
 
-        AccountLink link = AccountLink.create(params);
+        AccountLink link = stripeGateway.createAccountLink(params);
         return link.getUrl();
     }
 
@@ -119,8 +115,6 @@ public class StripeConnectService {
     @CircuitBreaker(name = "stripe-api")
     public Transfer createTransfer(BigDecimal amount, String currency,
                                     String connectedAccountId, String description) throws StripeException {
-        Stripe.apiKey = secretKey;
-
         long amountInCents = amount.multiply(BigDecimal.valueOf(100))
                 .setScale(0, RoundingMode.HALF_UP)
                 .longValueExact();
@@ -132,7 +126,7 @@ public class StripeConnectService {
                 .setDescription(description)
                 .build();
 
-        Transfer transfer = Transfer.create(params);
+        Transfer transfer = stripeGateway.createTransfer(params, null);
         log.info("Created Stripe transfer {} of {} {} to account {}",
                 transfer.getId(), amount, currency, connectedAccountId);
         return transfer;

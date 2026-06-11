@@ -3,10 +3,10 @@ package com.clenzy.service;
 import com.clenzy.dto.CreateUserDto;
 import com.clenzy.dto.InscriptionDto;
 import com.clenzy.model.*;
+import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.PendingInscriptionRepository;
 import com.clenzy.util.StringUtils;
 import com.clenzy.repository.UserRepository;
-import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Coupon;
 import com.stripe.model.checkout.Session;
@@ -53,9 +53,7 @@ public class InscriptionService {
     private final RestTemplate restTemplate;
     private final PlatformPromoCodeService promoCodeService;
     private final BrevoContactService brevoContactService;
-
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
+    private final StripeGateway stripeGateway;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -87,7 +85,8 @@ public class InscriptionService {
             EmailService emailService,
             RestTemplate restTemplate,
             PlatformPromoCodeService promoCodeService,
-            BrevoContactService brevoContactService) {
+            BrevoContactService brevoContactService,
+            StripeGateway stripeGateway) {
         this.pendingInscriptionRepository = pendingInscriptionRepository;
         this.userRepository = userRepository;
         this.keycloakService = keycloakService;
@@ -97,6 +96,7 @@ public class InscriptionService {
         this.restTemplate = restTemplate;
         this.promoCodeService = promoCodeService;
         this.brevoContactService = brevoContactService;
+        this.stripeGateway = stripeGateway;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -177,9 +177,6 @@ public class InscriptionService {
                 break;
         }
 
-        // Creer la session Stripe Checkout
-        Stripe.apiKey = stripeSecretKey;
-
         // Application du code promo si fourni et valide.
         // Ordre critique : valider → consommer (CAS atomique) → creer le Coupon Stripe.
         // Si la consommation echoue (quota epuise par race), on ignore le code et on
@@ -238,7 +235,8 @@ public class InscriptionService {
             );
         }
 
-        Session session = Session.create(paramsBuilder.build());
+        // Creer la session Stripe Checkout (cle resolue par le gateway, pas d'etat statique)
+        Session session = stripeGateway.createSession(paramsBuilder.build());
 
         // Sauvegarder l'inscription en attente (SANS le mot de passe)
         PendingInscription pending = new PendingInscription();
@@ -647,7 +645,7 @@ public class InscriptionService {
                 couponBuilder.setCurrency(currency.toLowerCase());
             }
 
-            Coupon coupon = Coupon.create(couponBuilder.build());
+            Coupon coupon = stripeGateway.createCoupon(couponBuilder.build());
             logger.info("Coupon Stripe cree pour {}: {} ({}) -> coupon_id={}",
                     emailForAudit, promo.getCode(), promo.getDiscountType(), coupon.getId());
             return coupon.getId();

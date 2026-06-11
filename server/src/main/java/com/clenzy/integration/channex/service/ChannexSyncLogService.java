@@ -4,11 +4,13 @@ import com.clenzy.integration.channex.model.ChannexSyncLog;
 import com.clenzy.integration.channex.repository.ChannexSyncLogRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -33,6 +35,16 @@ public class ChannexSyncLogService {
 
     public ChannexSyncLogService(ChannexSyncLogRepository repository) {
         this.repository = repository;
+    }
+
+    /**
+     * Historique des operations de sync d'une property (le plus recent en
+     * premier), borne a {@code limit} entrees — refactor T-ARCH-01 : la page
+     * sync-logs ne lit plus le repository depuis le controller.
+     */
+    @Transactional(readOnly = true)
+    public List<ChannexSyncLog> findByPropertyOrdered(Long orgId, Long propertyId, int limit) {
+        return repository.findByPropertyOrdered(orgId, propertyId, PageRequest.of(0, limit));
     }
 
     /**

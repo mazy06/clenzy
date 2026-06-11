@@ -51,6 +51,7 @@ class ICalImportServiceTest {
     @Mock private GuestService guestService;
     @Mock private ServiceRequestService serviceRequestService;
     @Mock private OtaReservationInvoicingService otaInvoicingService;
+    @Mock private org.springframework.beans.factory.ObjectProvider<ICalImportService> selfProvider;
 
     private TenantContext tenantContext;
     private ICalImportService icalImportService;
@@ -68,8 +69,12 @@ class ICalImportServiceTest {
                 propertyRepository, userRepository,
                 auditLogService, notificationService, pricingConfigService,
                 priceEngine, calendarEngine, guestService, tenantContext,
-                serviceRequestService, otaInvoicingService
+                serviceRequestService, otaInvoicingService,
+                new com.clenzy.service.ical.ICalFeedDownloader(),
+                selfProvider
         );
+        // syncFeeds importe via le proxy self (T-BP-06) : en test, le proxy = l'instance.
+        when(selfProvider.getObject()).thenAnswer(inv -> icalImportService);
     }
 
     private User buildHost(Long id, String keycloakId, String forfait) {
@@ -835,6 +840,98 @@ class ICalImportServiceTest {
         void whenAwsMetadata_thenThrows() {
             assertThatThrownBy(() -> icalImportService.fetchAndParseICalFeed("https://169.254.169.254/cal.ics"))
                     .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    // ===== fetchAndParseICalFeed - fermeture deterministe du flux (fuite de socket) =====
+
+    @Nested
+    @DisplayName("fetchAndParseICalFeed stream closing")
+    class FetchAndParseStreamClosing {
+
+        private static final String VALID_ICAL = "BEGIN:VCALENDAR\r\n"
+                + "VERSION:2.0\r\n"
+                + "PRODID:-//Test//Test//EN\r\n"
+                + "BEGIN:VEVENT\r\n"
+                + "UID:uid-stream-close-1\r\n"
+                + "DTSTART;VALUE=DATE:20260701\r\n"
+                + "DTEND;VALUE=DATE:20260705\r\n"
+                + "SUMMARY:John Doe (HM12345678)\r\n"
+                + "END:VEVENT\r\n"
+                + "END:VCALENDAR\r\n";
+
+        /**
+         * Flux qui trace l'appel a close() — simule le SocketClosingInputStream du
+         * downloader, dont le close() est le seul mecanisme liberant la socket TLS.
+         */
+        private static final class CloseTrackingInputStream extends java.io.FilterInputStream {
+            private boolean closed = false;
+
+            CloseTrackingInputStream(java.io.InputStream in) {
+                super(in);
+            }
+
+            @Override
+            public void close() throws java.io.IOException {
+                closed = true;
+                super.close();
+            }
+        }
+
+        private ICalImportService buildServiceWith(com.clenzy.service.ical.ICalFeedDownloader downloader) {
+            return new ICalImportService(
+                    icalFeedRepository, serviceRequestRepository,
+                    reservationRepository2, interventionRepository, invoiceRepository,
+                    propertyRepository, userRepository,
+                    auditLogService, notificationService, pricingConfigService,
+                    priceEngine, calendarEngine, guestService, tenantContext,
+                    serviceRequestService, otaInvoicingService,
+                    downloader,
+                    selfProvider
+            );
+        }
+
+        private CloseTrackingInputStream trackedStream(String content) {
+            return new CloseTrackingInputStream(new java.io.ByteArrayInputStream(
+                    content.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        }
+
+        @Test
+        @DisplayName("should close the downloaded stream after successful parsing")
+        void whenFeedParsedSuccessfully_thenDownloadedStreamIsClosed() throws Exception {
+            // Arrange
+            var downloader = mock(com.clenzy.service.ical.ICalFeedDownloader.class);
+            CloseTrackingInputStream stream = trackedStream(VALID_ICAL);
+            when(downloader.download(anyString())).thenReturn(stream);
+            ICalImportService service = buildServiceWith(downloader);
+
+            // Act
+            List<ICalEventPreview> events = service.fetchAndParseICalFeed("https://example.com/cal.ics");
+
+            // Assert
+            assertThat(events).hasSize(1);
+            assertThat(stream.closed)
+                    .as("le flux (donc la socket TLS) doit etre ferme apres le parsing")
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("should close the downloaded stream even when parsing fails")
+        void whenParsingFails_thenDownloadedStreamIsStillClosed() throws Exception {
+            // Arrange
+            var downloader = mock(com.clenzy.service.ical.ICalFeedDownloader.class);
+            CloseTrackingInputStream stream = trackedStream("ceci n'est pas un fichier iCal");
+            when(downloader.download(anyString())).thenReturn(stream);
+            ICalImportService service = buildServiceWith(downloader);
+
+            // Act
+            assertThatThrownBy(() -> service.fetchAndParseICalFeed("https://example.com/cal.ics"))
+                    .isInstanceOf(RuntimeException.class);
+
+            // Assert
+            assertThat(stream.closed)
+                    .as("le flux doit etre ferme meme quand le parsing leve une exception")
+                    .isTrue();
         }
     }
 
