@@ -379,15 +379,21 @@ public class ContractSignatureService {
         }
 
         // ── 4. Notification interne (best-effort) ──
+        // RGPD : le corps PERSISTÉ de la notification in-app ne contient que les
+        // initiales du signataire (J.D.), pas son nom complet — une notification
+        // n'a pas de politique de rétention/effacement et le nom complet reste
+        // de toute façon dans le dossier de preuve (contract_signature_requests,
+        // preuve légale légitime). Le lien /contracts permet de retrouver le détail.
         try {
             String propertyName = resolvePropertyName(contract.getPropertyId());
+            String signerInitials = PiiMasker.maskName(signerName);
             notificationService.notifyAdminsAndManagersByOrgId(
                     request.getOrganizationId(),
                     NotificationKey.CONTRACT_SIGNED,
                     "Mandat signé — " + propertyName,
                     activated
-                            ? signerName + " a signé le mandat " + contract.getContractNumber() + ". Le contrat est actif."
-                            : signerName + " a signé le mandat " + contract.getContractNumber()
+                            ? signerInitials + " a signé le mandat " + contract.getContractNumber() + ". Le contrat est actif."
+                            : signerInitials + " a signé le mandat " + contract.getContractNumber()
                                     + " — activation manuelle requise : un autre contrat est déjà actif sur ce logement.",
                     "/contracts");
         } catch (Exception e) {

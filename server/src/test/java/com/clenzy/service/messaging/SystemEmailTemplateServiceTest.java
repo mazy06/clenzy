@@ -278,7 +278,11 @@ class SystemEmailTemplateServiceTest {
         SystemEmailTemplate result = service.upsertOverride(ORG_ID, "noise_alert_owner", "fr",
             "Sujet", body);
 
-        assertThat(result.getBody()).isEqualTo(body);
+        // Texte, markdown leger (*..*) et sauts de ligne conserves. jsoup echappe
+        // le chevron nu en entite (> -> &gt;) a la re-serialisation : le rendu
+        // email est visuellement identique, aucun construct supprime.
+        String stored = "Bonjour {guestName},\n\n*Alerte* : bruit detecte.\n- niveau eleve\n- duree &gt; 10 min";
+        assertThat(result.getBody()).isEqualTo(stored);
     }
 
     // ----- removeOverride -----

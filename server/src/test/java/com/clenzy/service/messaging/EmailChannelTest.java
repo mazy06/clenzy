@@ -164,9 +164,14 @@ class EmailChannelTest {
         // Act
         var result = emailChannel.send(request);
 
-        // Assert — restitue byte-identique (pas de double-wrap, pas de re-encodage)
+        // Assert — pas de double-wrap (le document n'est PAS re-enrobe dans le
+        // template guest) ; la structure du document complet est preservee. jsoup
+        // re-serialise en sa forme normalisee : doctype minuscule + <head></head>
+        // explicite (cosmetique, pas de re-encodage du contenu ni perte de balise).
+        String normalized = "<!doctype html><html><head></head><body><h1>Briefing</h1>"
+            + "<p>Contenu &amp; lien <a href=\"https://app.clenzy.fr\">ici</a></p></body></html>";
         assertTrue(result.success());
-        assertEquals(cleanHtml, extractHtmlPart(realMessage));
+        assertEquals(normalized, extractHtmlPart(realMessage));
     }
 
     @Test

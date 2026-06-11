@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +12,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -18,6 +22,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Configuration
 @EnableCaching
@@ -60,8 +65,45 @@ public class CacheConfig {
         return new GenericJackson2JsonRedisSerializer(createObjectMapper());
     }
 
+    /**
+     * Identifiant unique de CE noeud, partage par le publisher et le listener
+     * d'invalidation. Permet a chaque instance d'ignorer ses propres messages
+     * pub/sub (pas de boucle de re-publication / double eviction locale).
+     */
     @Bean
-    public CacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
+    @Qualifier("cacheNodeId")
+    public String cacheNodeId() {
+        return UUID.randomUUID().toString();
+    }
+
+    @Bean
+    public CacheInvalidationPublisher cacheInvalidationPublisher(StringRedisTemplate stringRedisTemplate,
+                                                                 @Qualifier("cacheNodeId") String cacheNodeId) {
+        return new RedisCacheInvalidationPublisher(stringRedisTemplate, cacheNodeId);
+    }
+
+    /**
+     * Container pub/sub : abonne CE noeud au canal d'invalidation pour evincer son
+     * L1 local quand un AUTRE noeud evince/vide un cache (C3-AUDITIP-CACHE).
+     */
+    @Bean
+    public RedisMessageListenerContainer cacheInvalidationListenerContainer(
+            RedisConnectionFactory redisConnectionFactory,
+            CacheManager cacheManager,
+            @Qualifier("cacheNodeId") String cacheNodeId) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(redisConnectionFactory);
+        if (cacheManager instanceof TwoLayerCacheManager twoLayerCacheManager) {
+            CacheInvalidationListener listener =
+                    new CacheInvalidationListener(twoLayerCacheManager, cacheNodeId);
+            container.addMessageListener(listener, new ChannelTopic(RedisCacheInvalidationPublisher.CHANNEL));
+        }
+        return container;
+    }
+
+    @Bean
+    public CacheManager cacheManager(RedisConnectionFactory redisConnectionFactory,
+                                     CacheInvalidationPublisher cacheInvalidationPublisher) {
         // Sérialiseur configuré avec support JSR310
         GenericJackson2JsonRedisSerializer jsonSerializer = createRedisSerializer();
         
@@ -123,7 +165,9 @@ public class CacheConfig {
                 .withInitialCacheConfigurations(cacheConfigurations)
                 .build();
 
-        // Niveau 8 : Caffeine L1 (30s, 500 entries) devant Redis L2
-        return new TwoLayerCacheManager(redisCacheManager, Duration.ofSeconds(30), 500);
+        // Niveau 8 : Caffeine L1 (30s, 500 entries) devant Redis L2, avec
+        // invalidation L1 cross-instance via Redis pub/sub (C3-AUDITIP-CACHE).
+        return new TwoLayerCacheManager(
+                redisCacheManager, Duration.ofSeconds(30), 500, cacheInvalidationPublisher);
     }
 }

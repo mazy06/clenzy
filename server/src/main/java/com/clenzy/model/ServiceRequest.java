@@ -24,7 +24,7 @@ public class ServiceRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "organization_id")
+    @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
     @NotBlank(message = "Le titre de la demande est obligatoire")
