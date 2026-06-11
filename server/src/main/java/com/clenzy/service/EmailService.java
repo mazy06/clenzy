@@ -3,9 +3,12 @@ package com.clenzy.service;
 import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.model.WaitlistSignup;
+import com.clenzy.service.email.AccountEmailComposer;
+import com.clenzy.service.email.ContactEmailComposer;
 import com.clenzy.service.email.MaintenanceEmailComposer;
 import com.clenzy.service.email.QuoteEmailComposer;
 import com.clenzy.service.email.RoleEmailLabels;
+import com.clenzy.service.email.WaitlistEmailComposer;
 import com.clenzy.service.messaging.EmailWrapperService;
 import com.clenzy.service.messaging.SystemEmailTemplateService;
 import com.clenzy.service.messaging.TemplateInterpolationService;
@@ -78,8 +81,11 @@ public class EmailService {
     private final PlatformSettingsService platformSettingsService;
     private final QuoteEmailComposer quoteEmailComposer;
     private final MaintenanceEmailComposer maintenanceEmailComposer;
+    private final WaitlistEmailComposer waitlistEmailComposer;
+    private final ContactEmailComposer contactEmailComposer;
+    private final AccountEmailComposer accountEmailComposer;
 
-    /** Constructeur Spring : injection des composers de contenu (T-SOLID-9). */
+    /** Constructeur Spring : injection des composers de contenu (T-SOLID-9, G2). */
     @Autowired
     public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider,
                         SystemEmailTemplateService systemEmailTemplateService,
@@ -87,7 +93,10 @@ public class EmailService {
                         EmailWrapperService emailWrapperService,
                         PlatformSettingsService platformSettingsService,
                         QuoteEmailComposer quoteEmailComposer,
-                        MaintenanceEmailComposer maintenanceEmailComposer) {
+                        MaintenanceEmailComposer maintenanceEmailComposer,
+                        WaitlistEmailComposer waitlistEmailComposer,
+                        ContactEmailComposer contactEmailComposer,
+                        AccountEmailComposer accountEmailComposer) {
         this.mailSender = mailSenderProvider.getIfAvailable();
         this.systemEmailTemplateService = systemEmailTemplateService;
         this.templateInterpolationService = templateInterpolationService;
@@ -95,6 +104,9 @@ public class EmailService {
         this.platformSettingsService = platformSettingsService;
         this.quoteEmailComposer = quoteEmailComposer;
         this.maintenanceEmailComposer = maintenanceEmailComposer;
+        this.waitlistEmailComposer = waitlistEmailComposer;
+        this.contactEmailComposer = contactEmailComposer;
+        this.accountEmailComposer = accountEmailComposer;
         if (this.mailSender == null) {
             log.warn("JavaMailSender non configure: l'envoi d'emails est desactive. Configurez spring.mail.host (ou spring.mail.jndi-name) pour l'activer.");
         }
@@ -115,7 +127,9 @@ public class EmailService {
                         PlatformSettingsService platformSettingsService) {
         this(mailSenderProvider, systemEmailTemplateService, templateInterpolationService,
                 emailWrapperService, platformSettingsService,
-                new QuoteEmailComposer(), new MaintenanceEmailComposer());
+                new QuoteEmailComposer(), new MaintenanceEmailComposer(),
+                new WaitlistEmailComposer(), new ContactEmailComposer(),
+                new AccountEmailComposer());
     }
 
     /**
@@ -257,30 +271,9 @@ public class EmailService {
             if (s.getEmail() != null && !s.getEmail().isBlank()) {
                 helper.setReplyTo(s.getEmail());
             }
-            helper.setSubject("Nouvelle inscription waitlist — #" + position
-                    + (s.getFullName() != null ? " — " + s.getFullName() : ""));
+            helper.setSubject(waitlistEmailComposer.subject(s, position));
 
-            String name = s.getFullName() != null ? StringUtils.escapeHtml(s.getFullName()) : "—";
-            String email = s.getEmail() != null ? StringUtils.escapeHtml(s.getEmail()) : "—";
-            String phone = s.getPhone() != null ? StringUtils.escapeHtml(s.getPhone()) : "—";
-            String city = s.getCity() != null ? StringUtils.escapeHtml(s.getCity()) : "—";
-            String props = s.getPropertyCount() != null ? StringUtils.escapeHtml(s.getPropertyCount()) : "—";
-            String source = s.getSource() != null ? StringUtils.escapeHtml(s.getSource()) : "—";
-
-            String html = """
-                    <h2 style="font-family:Arial,sans-serif;color:#2b2b2b;">Nouvelle inscription waitlist</h2>
-                    <p style="font-family:Arial,sans-serif;color:#444;">Position d'arrivée : <strong>#%d</strong></p>
-                    <table style="font-family:Arial,sans-serif;color:#444;border-collapse:collapse;">
-                      <tr><td style="padding:4px 16px 4px 0;"><strong>Nom</strong></td><td>%s</td></tr>
-                      <tr><td style="padding:4px 16px 4px 0;"><strong>Email</strong></td><td>%s</td></tr>
-                      <tr><td style="padding:4px 16px 4px 0;"><strong>Téléphone</strong></td><td>%s</td></tr>
-                      <tr><td style="padding:4px 16px 4px 0;"><strong>Ville</strong></td><td>%s</td></tr>
-                      <tr><td style="padding:4px 16px 4px 0;"><strong>Nb de biens</strong></td><td>%s</td></tr>
-                      <tr><td style="padding:4px 16px 4px 0;"><strong>Source</strong></td><td>%s</td></tr>
-                    </table>
-                    """.formatted(position, name, email, phone, city, props, source);
-
-            helper.setText(html, true);
+            helper.setText(waitlistEmailComposer.renderWaitlistHtml(s, position), true);
             mailSender.send(message);
             log.info("Notif waitlist envoyée (inscrit position {} : {})", position, s.getEmail());
         } catch (Exception e) {
@@ -379,7 +372,7 @@ public class EmailService {
                 helper.setReplyTo(replyToEmail);
             }
             helper.setSubject(normalizedSubject);
-            helper.setText(normalizedText, buildContactHtmlBody(toName, replyToName, normalizedText));
+            helper.setText(normalizedText, contactEmailComposer.renderContactHtmlBody(toName, replyToName, normalizedText));
 
             List<MultipartFile> safeAttachments = AttachmentValidator.sanitizeAndFilter(attachments);
             AttachmentValidator.validate(safeAttachments, maxAttachments, maxAttachmentSizeBytes);
@@ -549,12 +542,8 @@ public class EmailService {
                 helper.setReplyTo(prospectEmail);
             }
 
-            String prospectLabel = (prospectEmail != null && !prospectEmail.isBlank())
-                    ? prospectEmail : "un prospect";
-            String subjectPlain = "Copie interne — devis envoyé à " + prospectLabel;
-            String bodyPlain = "Un devis vient d'être transmis à *" + prospectLabel + "*.\n\n"
-                    + "Le PDF du devis envoyé est joint à cet email. "
-                    + "Répondez directement à ce message pour écrire au prospect.";
+            String subjectPlain = quoteEmailComposer.internalCopySubject(prospectEmail);
+            String bodyPlain = quoteEmailComposer.internalCopyBody(prospectEmail);
             String htmlBody = emailWrapperService.wrap("INTERNAL_FORM", bodyPlain);
 
             helper.setSubject(sanitizeHeaderValue(subjectPlain));
@@ -577,9 +566,10 @@ public class EmailService {
 
     /**
      * Resout le contenu par defaut du mail devis prospect (template
-     * {@code quote_to_prospect} ou fallback). Renvoie {@code [subjectPlain,
-     * bodyPlain, wrapperStyle]} en texte brut (le wrapper HTML est applique a l'envoi).
-     * Utilise par {@link #sendQuoteToProspect} et l'endpoint de preload de l'editeur.
+     * {@code quote_to_prospect} ou fallback du composer). Renvoie
+     * {@code [subjectPlain, bodyPlain, wrapperStyle]} en texte brut (le wrapper
+     * HTML est applique a l'envoi). Utilise par {@link #sendQuoteToProspect}
+     * et l'endpoint de preload de l'editeur.
      */
     private String[] resolveQuoteDefaults() {
         var tpl = systemEmailTemplateService.resolve(null, "quote_to_prospect", "fr");
@@ -592,15 +582,7 @@ public class EmailService {
                 t.getWrapperStyle() != null ? t.getWrapperStyle() : "NOTIFICATION_GUEST"
             };
         }
-        return new String[]{
-            "Votre devis Baitly",
-            "Bonjour,\n\nNous avons le plaisir de vous transmettre votre devis "
-            + "personnalisé, que vous trouverez en pièce jointe au format PDF.\n\n"
-            + "Ce devis est sans engagement. Notre équipe reste à votre disposition "
-            + "pour toute question ou pour planifier une intervention.\n\n"
-            + "Au plaisir de collaborer avec vous,\nL'équipe Baitly",
-            "NOTIFICATION_GUEST"
-        };
+        return quoteEmailComposer.defaultProspectContent();
     }
 
     /**
@@ -874,7 +856,7 @@ public class EmailService {
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue("Bienvenue sur Clenzy — Votre compte a ete cree"));
-            String welcomeHtml = buildWelcomeHtml(firstName, lastName, toEmail, roleName, loginUrl);
+            String welcomeHtml = accountEmailComposer.renderWelcomeHtml(firstName, lastName, toEmail, roleName, loginUrl);
             helper.setText(htmlToPlainText(welcomeHtml), welcomeHtml);
             ms.send(message);
             log.info("Email de bienvenue envoye a {}", toEmail);
@@ -882,54 +864,6 @@ public class EmailService {
             log.error("Erreur d'envoi email de bienvenue a {}: {}", toEmail, e.getMessage(), e);
             // Ne pas propager — la creation de l'utilisateur ne doit pas echouer si l'email echoue
         }
-    }
-
-    private String buildWelcomeHtml(String firstName, String lastName, String email,
-                                     String roleName, String loginUrl) {
-        String safeName = StringUtils.escapeHtml(firstName);
-        String safeFullName = StringUtils.escapeHtml(firstName + " " + lastName);
-        String safeEmail = StringUtils.escapeHtml(email);
-        String safeRole = StringUtils.escapeHtml(roleName != null ? RoleEmailLabels.displayName(roleName) : "Utilisateur");
-        String safeUrl = StringUtils.escapeHtml(loginUrl);
-
-        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
-                + "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>"
-                // Header
-                + "<div style='background:linear-gradient(135deg,#A6C0CE 0%,#6B8A9A 100%);padding:30px;border-radius:10px 10px 0 0;text-align:center;'>"
-                + "<h1 style='color:white;margin:0;font-size:24px;'>Bienvenue sur Clenzy !</h1>"
-                + "<p style='color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px;'>Votre compte a ete cree avec succes</p>"
-                + "</div>"
-                // Body
-                + "<div style='background:#ffffff;padding:30px;border:1px solid #e2e8f0;'>"
-                + "<p style='font-size:16px;color:#334155;'>Bonjour " + safeName + ",</p>"
-                + "<p style='font-size:15px;color:#475569;'>Votre compte Clenzy a ete cree. "
-                + "Voici vos informations de connexion :</p>"
-                // Info box
-                + "<div style='background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:20px;margin:20px 0;'>"
-                + "<table style='width:100%;border-collapse:collapse;'>"
-                + "<tr><td style='padding:6px 0;font-weight:bold;color:#475569;width:35%;'>Nom</td>"
-                + "<td style='padding:6px 0;color:#1e293b;'>" + safeFullName + "</td></tr>"
-                + "<tr><td style='padding:6px 0;font-weight:bold;color:#475569;'>Email</td>"
-                + "<td style='padding:6px 0;color:#1e293b;'>" + safeEmail + "</td></tr>"
-                + "<tr><td style='padding:6px 0;font-weight:bold;color:#475569;'>Role</td>"
-                + "<td style='padding:6px 0;color:#1e293b;'>" + safeRole + "</td></tr>"
-                + "</table>"
-                + "</div>"
-                + "<p style='font-size:14px;color:#64748b;'>Votre mot de passe vous a ete communique par votre administrateur. "
-                + "Vous pouvez le modifier a tout moment depuis votre profil.</p>"
-                // CTA Button
-                + "<div style='text-align:center;margin:30px 0;'>"
-                + "<a href='" + safeUrl + "' style='display:inline-block;padding:14px 32px;"
-                + "background:linear-gradient(135deg,#A6C0CE 0%,#6B8A9A 100%);color:white;"
-                + "text-decoration:none;border-radius:8px;font-size:16px;font-weight:bold;'>"
-                + "Se connecter a Clenzy</a>"
-                + "</div>"
-                + "</div>"
-                // Footer
-                + "<div style='background:#f8fafc;padding:20px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;text-align:center;'>"
-                + "<p style='margin:0;color:#94a3b8;font-size:12px;'>Cet email a ete envoye automatiquement. Si vous n'etes pas a l'origine de cette demande, contactez votre administrateur.</p>"
-                + "</div>"
-                + "</div></body></html>";
     }
 
     /**
@@ -944,7 +878,7 @@ public class EmailService {
             applyDeliverabilityHeaders(message, helper);
             helper.setTo(toEmail);
             helper.setSubject(sanitizeHeaderValue("Confirmez votre inscription Clenzy"));
-            String confirmationHtml = buildInscriptionConfirmationHtml(fullName, confirmationLink, expiresAt);
+            String confirmationHtml = accountEmailComposer.renderInscriptionConfirmationHtml(fullName, confirmationLink, expiresAt);
             helper.setText(htmlToPlainText(confirmationHtml), confirmationHtml);
             ms.send(message);
             log.info("Email de confirmation d'inscription envoye a {}", toEmail);
@@ -955,61 +889,6 @@ public class EmailService {
             log.error("Erreur d'envoi email de confirmation a {}: {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email de confirmation", e);
         }
-    }
-
-    private String buildInscriptionConfirmationHtml(String fullName, String confirmationLink, LocalDateTime expiresAt) {
-        String safeName = StringUtils.escapeHtml(fullName);
-        String safeLink = StringUtils.escapeHtml(confirmationLink);
-        String expiresStr = expiresAt != null
-                ? expiresAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy a HH:mm"))
-                : "72 heures";
-
-        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
-                + "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>"
-                // Header — couleurs Clenzy
-                + "<div style='background:linear-gradient(135deg,#A6C0CE 0%,#6B8A9A 100%);padding:30px;border-radius:10px 10px 0 0;text-align:center;'>"
-                + "<h1 style='color:white;margin:0;font-size:24px;'>Bienvenue sur Clenzy !</h1>"
-                + "</div>"
-                // Body
-                + "<div style='background:#ffffff;padding:30px;border:1px solid #e2e8f0;'>"
-                + "<p style='font-size:16px;color:#334155;'>Bonjour " + safeName + ",</p>"
-                + "<p style='font-size:15px;color:#475569;'>Votre paiement a ete confirme avec succes. "
-                + "Pour finaliser votre inscription, cliquez sur le bouton ci-dessous afin de confirmer votre adresse email "
-                + "et creer votre mot de passe.</p>"
-                // CTA Button — gradient Clenzy
-                + "<div style='text-align:center;margin:30px 0;'>"
-                + "<a href='" + safeLink + "' style='display:inline-block;padding:14px 32px;"
-                + "background:linear-gradient(135deg,#A6C0CE 0%,#6B8A9A 100%);color:white;"
-                + "text-decoration:none;border-radius:8px;font-size:16px;font-weight:bold;'>"
-                + "Creer mon mot de passe</a>"
-                + "</div>"
-                + "<p style='font-size:13px;color:#94a3b8;'>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>"
-                + "<p style='font-size:12px;color:#6B8A9A;word-break:break-all;'>" + safeLink + "</p>"
-                + "</div>"
-                // Footer
-                + "<div style='background:#f8fafc;padding:20px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;text-align:center;'>"
-                + "<p style='margin:0;color:#94a3b8;font-size:12px;'>Ce lien expire le " + StringUtils.escapeHtml(expiresStr) + ".</p>"
-                + "<p style='margin:5px 0 0;color:#94a3b8;font-size:12px;'>Si vous n'avez pas demande cette inscription, vous pouvez ignorer ce message.</p>"
-                + "</div>"
-                + "</div></body></html>";
-    }
-
-    private String buildContactHtmlBody(String toName, String replyToName, String messageText) {
-        String safeToName = StringUtils.firstNonBlank(toName, "destinataire");
-        String safeReplyToName = StringUtils.firstNonBlank(replyToName, "expediteur");
-        String escapedMessage = StringUtils.escapeHtml(messageText).replace("\n", "<br>");
-
-        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
-                + "<div style='font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#1e293b;'>"
-                + "<h2 style='margin:0 0 16px 0;color:#0f172a;'>Nouveau message Clenzy</h2>"
-                + "<p style='margin:0 0 12px 0;'>Bonjour " + StringUtils.escapeHtml(safeToName) + ",</p>"
-                + "<div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px;'>"
-                + escapedMessage
-                + "</div>"
-                + "<p style='margin:0;color:#64748b;font-size:13px;'>Ce message vous a ete envoye par "
-                + StringUtils.escapeHtml(safeReplyToName)
-                + " via le module Contact Clenzy.</p>"
-                + "</div></body></html>";
     }
 
 }

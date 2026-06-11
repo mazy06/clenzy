@@ -10,6 +10,7 @@ import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.RestrictionViolationException;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
+import com.clenzy.payment.StripeAmounts;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -22,8 +23,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -126,8 +125,7 @@ public class BookingCheckoutController {
                                         Reservation hold) throws Exception {
         RequestOptions stripeOptions = RequestOptions.builder().setApiKey(stripeSecretKey).build();
 
-        long amountInCents = quote.totalAmount().multiply(BigDecimal.valueOf(100))
-            .setScale(0, RoundingMode.HALF_UP).longValueExact();
+        long amountInCents = StripeAmounts.toMinorUnits(quote.totalAmount());
         Property property = quote.property();
         String description = String.format("%s — %s au %s, %d voyageur(s)",
             property.getName(), request.checkIn(), request.checkOut(), request.guests());

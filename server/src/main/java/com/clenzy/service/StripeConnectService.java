@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.model.OwnerPayoutConfig;
 import com.clenzy.model.PayoutMethod;
+import com.clenzy.payment.StripeAmounts;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.UserRepository;
@@ -20,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Service
 public class StripeConnectService {
@@ -115,9 +115,7 @@ public class StripeConnectService {
     @CircuitBreaker(name = "stripe-api")
     public Transfer createTransfer(BigDecimal amount, String currency,
                                     String connectedAccountId, String description) throws StripeException {
-        long amountInCents = amount.multiply(BigDecimal.valueOf(100))
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
+        long amountInCents = StripeAmounts.toMinorUnits(amount);
 
         TransferCreateParams params = TransferCreateParams.builder()
                 .setAmount(amountInCents)
