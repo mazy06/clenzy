@@ -102,13 +102,19 @@ class ICalImportServiceImportFlowTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
 
-        service = new ICalImportService(
-            icalFeedRepository, serviceRequestRepository,
+        var canceller = new com.clenzy.service.ical.ICalReservationCanceller(
             reservationRepository2, interventionRepository, invoiceRepository,
+            serviceRequestRepository, calendarEngine);
+        service = new ICalImportService(
+            icalFeedRepository, serviceRequestRepository, reservationRepository2,
             propertyRepository, userRepository,
-            auditLogService, notificationService, pricingConfigService,
-            priceEngine, calendarEngine, guestService, tenantContext,
+            auditLogService, notificationService, tenantContext,
             serviceRequestService, otaInvoicingService, feedDownloader,
+            new com.clenzy.service.ical.ICalReservationImporter(
+                reservationRepository2, priceEngine, guestService, tenantContext, canceller),
+            new com.clenzy.service.ical.ICalOrphanDetector(reservationRepository2, canceller),
+            new com.clenzy.service.ical.ICalCleaningScheduler(
+                serviceRequestRepository, pricingConfigService, tenantContext),
             org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class));
 
         // Pricing config defaults (used by createCleaningServiceRequest)

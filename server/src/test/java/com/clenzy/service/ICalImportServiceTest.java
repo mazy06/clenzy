@@ -63,18 +63,29 @@ class ICalImportServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
 
-        icalImportService = new ICalImportService(
-                icalFeedRepository, serviceRequestRepository,
-                reservationRepository2, interventionRepository, invoiceRepository,
-                propertyRepository, userRepository,
-                auditLogService, notificationService, pricingConfigService,
-                priceEngine, calendarEngine, guestService, tenantContext,
-                serviceRequestService, otaInvoicingService,
-                new com.clenzy.service.ical.ICalFeedDownloader(),
-                selfProvider
-        );
+        icalImportService = buildService(new com.clenzy.service.ical.ICalFeedDownloader());
         // syncFeeds importe via le proxy self (T-BP-06) : en test, le proxy = l'instance.
         when(selfProvider.getObject()).thenAnswer(inv -> icalImportService);
+    }
+
+    /** Construit le service avec ses collaborateurs reels branches sur les memes mocks. */
+    private ICalImportService buildService(com.clenzy.service.ical.ICalFeedDownloader downloader) {
+        var canceller = new com.clenzy.service.ical.ICalReservationCanceller(
+                reservationRepository2, interventionRepository, invoiceRepository,
+                serviceRequestRepository, calendarEngine);
+        return new ICalImportService(
+                icalFeedRepository, serviceRequestRepository, reservationRepository2,
+                propertyRepository, userRepository,
+                auditLogService, notificationService, tenantContext,
+                serviceRequestService, otaInvoicingService,
+                downloader,
+                new com.clenzy.service.ical.ICalReservationImporter(
+                        reservationRepository2, priceEngine, guestService, tenantContext, canceller),
+                new com.clenzy.service.ical.ICalOrphanDetector(reservationRepository2, canceller),
+                new com.clenzy.service.ical.ICalCleaningScheduler(
+                        serviceRequestRepository, pricingConfigService, tenantContext),
+                selfProvider
+        );
     }
 
     private User buildHost(Long id, String keycloakId, String forfait) {
@@ -879,16 +890,7 @@ class ICalImportServiceTest {
         }
 
         private ICalImportService buildServiceWith(com.clenzy.service.ical.ICalFeedDownloader downloader) {
-            return new ICalImportService(
-                    icalFeedRepository, serviceRequestRepository,
-                    reservationRepository2, interventionRepository, invoiceRepository,
-                    propertyRepository, userRepository,
-                    auditLogService, notificationService, pricingConfigService,
-                    priceEngine, calendarEngine, guestService, tenantContext,
-                    serviceRequestService, otaInvoicingService,
-                    downloader,
-                    selfProvider
-            );
+            return buildService(downloader);
         }
 
         private CloseTrackingInputStream trackedStream(String content) {
