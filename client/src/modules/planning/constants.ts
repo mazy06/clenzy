@@ -28,9 +28,10 @@ export const PROPERTY_COL_WIDTH = 188;
 export const PROPERTY_COL_WIDTH_MD = 188;
 /** Small screens (<900px) */
 export const PROPERTY_COL_WIDTH_SM = 188;
-// 20px rangée mois + 52px rangée jour (spec .pl-day : padding 8px 0, .wd 9.5px
-// + .dn 14px / carré « aujourd'hui » 24×24 → ~35px de contenu + 2×8px).
-export const DATE_HEADER_HEIGHT = 72;
+// 52px rangée jour (spec .pl-day : padding 8px 0, .wd 9.5px + .dn 14px /
+// carré « aujourd'hui » 24×24 → ~35px de contenu + 2×8px). Pas de rangée
+// mois dans la grille : le mois/année vit dans la toolbar (‹ Mois Année ›).
+export const DATE_HEADER_HEIGHT = 52;
 export const ACTION_PANEL_WIDTH = 380;
 
 // ─── Row dimensions by density ──────────────────────────────────────────────

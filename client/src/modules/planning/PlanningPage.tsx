@@ -322,6 +322,50 @@ const PlanningPage: React.FC = () => {
     density: nav.density,
   });
 
+  // ── Libellé mois de la toolbar synchronisé sur le scroll horizontal ──────
+  // Le libellé « ‹ Mois Année › » suit le jour situé au tiers gauche du
+  // viewport de la grille (plus stable visuellement que le premier jour
+  // visible). State séparé de nav.currentDate : on ne touche ni à l'ancre,
+  // ni au buffer, ni au chargement de données.
+  const [visibleMonthDate, setVisibleMonthDate] = useState<Date>(() => nav.currentDate);
+  const monthSyncRaf = useRef<number | null>(null);
+  // Anti-boucle : quand ‹ › / « Aujourd'hui » changent l'ancre, le buffer se
+  // recentre et le scrollLeft est repositionné programmatiquement — on ignore
+  // les événements scroll pendant cette fenêtre pour ne pas réécrire un mois
+  // transitoire par-dessus celui de l'ancre.
+  const programmaticScrollUntil = useRef(0);
+
+  useEffect(() => {
+    programmaticScrollUntil.current = Date.now() + 300;
+    setVisibleMonthDate(nav.currentDate);
+  }, [nav.currentDate]);
+
+  // Throttle rAF : un seul calcul par frame, depuis scrollLeft / dayWidth.
+  const handleTimelineScroll = useCallback(() => {
+    timeline.handleScroll();
+    if (Date.now() < programmaticScrollUntil.current) return;
+    if (monthSyncRaf.current !== null) return;
+    monthSyncRaf.current = requestAnimationFrame(() => {
+      monthSyncRaf.current = null;
+      const el = timeline.scrollRef.current;
+      if (!el || timeline.days.length === 0) return;
+      // Jour 0 de la grille à x = scrollLeft (la colonne logements est sticky) ;
+      // sonde au tiers gauche de la zone de jours visible.
+      const gridViewportWidth = Math.max(0, el.clientWidth - propertyColWidth);
+      const probeIndex = Math.floor((el.scrollLeft + gridViewportWidth / 3) / nav.dayWidth);
+      const day = timeline.days[Math.min(timeline.days.length - 1, Math.max(0, probeIndex))];
+      setVisibleMonthDate((prev) =>
+        prev.getMonth() === day.getMonth() && prev.getFullYear() === day.getFullYear()
+          ? prev
+          : day,
+      );
+    });
+  }, [timeline.handleScroll, timeline.scrollRef, timeline.days, propertyColWidth, nav.dayWidth]);
+
+  useEffect(() => () => {
+    if (monthSyncRaf.current !== null) cancelAnimationFrame(monthSyncRaf.current);
+  }, []);
+
   // ── Initial scroll to today when timeline first becomes visible ──────────
   const hasInitialScrolled = useRef(false);
   useEffect(() => {
@@ -368,7 +412,7 @@ const PlanningPage: React.FC = () => {
       {/* Toolbar */}
       <Box sx={{ flexShrink: 0, mb: 1 }}>
         <PlanningToolbar
-          currentDate={nav.currentDate}
+          currentDate={visibleMonthDate}
           zoom={nav.zoom}
           density={nav.density}
           isFullscreen={nav.isFullscreen}
@@ -450,7 +494,7 @@ const PlanningPage: React.FC = () => {
             onEmptyClick={openQuickCreate}
             quickCreateOpen={!!quickCreateData}
             scrollRef={timeline.scrollRef}
-            onScroll={timeline.handleScroll}
+            onScroll={handleTimelineScroll}
             propertyColWidth={propertyColWidth}
             onPropertyColWidthChange={setPropertyColWidth}
             showPrices={filters.showPrices}
