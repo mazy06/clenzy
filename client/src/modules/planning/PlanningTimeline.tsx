@@ -11,6 +11,7 @@ import PlanningBarGhost from './PlanningBarGhost';
 // le rendu des entêtes/cellules.
 import './planningUrgency.css';
 import type { PlanningProperty, PlanningEvent, BarLayout, DensityMode, ZoomLevel, QuickCreateData } from './types';
+import type { AttachmentCandidate } from './utils/interventionAttachment';
 import type { UsePlanningDragReturn } from './hooks/usePlanningDrag';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
@@ -29,8 +30,8 @@ interface PlanningTimelineProps {
   totalGridWidth: number;
   selectedEventId: string | null;
   events: PlanningEvent[];
-  /** Ids de toutes les réservations chargées (non filtrées) — cf. PlanningRow. */
-  loadedReservationIds: Set<number>;
+  /** Toutes les réservations chargées (non filtrées) — cf. PlanningRow. */
+  loadedReservations: AttachmentCandidate[];
   drag: UsePlanningDragReturn;
   onEventClick: (event: PlanningEvent) => void;
   onHideEvent?: (event: PlanningEvent) => void;
@@ -58,7 +59,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   totalGridWidth,
   selectedEventId,
   events,
-  loadedReservationIds,
+  loadedReservations,
   drag,
   onEventClick,
   onHideEvent,
@@ -214,7 +215,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     minNightsMap={minNightsMap}
                     effectiveRowHeight={effectiveRowHeight}
                     allEvents={events}
-                    loadedReservationIds={loadedReservationIds}
+                    loadedReservations={loadedReservations}
                   />
                 ))}
 
