@@ -14,7 +14,7 @@ import {
   Tab,
 } from '@mui/material';
 import {
-  Home,
+  Apartment,
   Bed,
   Bathtub,
   SquareFoot,
@@ -28,6 +28,8 @@ import {
   Handyman,
   Assignment,
   ArrowForward,
+  Lock,
+  Wifi,
 } from '../../../icons';
 import { useNavigate } from 'react-router-dom';
 import { usePropertyDetails } from '../../../hooks/usePropertyDetails';
@@ -213,16 +215,59 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
     property.hasDisinfection && 'Désinfection',
   ].filter(Boolean);
 
-  const statusColor = property.status === 'active' ? '#4A9B8E' : '#757575';
+  const isActive = property.status === 'active';
+
+  // Ligne méta maquette : « ville · m² · ch » (seulement les données dispo).
+  const metaLine = [
+    property.city,
+    property.surfaceArea ? `${property.surfaceArea} m²` : null,
+    property.bedrooms ? `${property.bedrooms} ch` : null,
+  ].filter(Boolean).join(' · ');
+
+  // Section « ACCÈS » : uniquement les données existantes, sinon omise.
+  const accessRows = [
+    property.checkInInstructions?.accessCode
+      ? { icon: <Lock size={13} strokeWidth={1.75} />, label: 'Digicode', value: property.checkInInstructions.accessCode }
+      : null,
+    property.numberOfFloors
+      ? { icon: <Stairs size={13} strokeWidth={1.75} />, label: 'Étage', value: String(property.numberOfFloors) }
+      : null,
+    property.checkInInstructions?.wifiName
+      ? { icon: <Wifi size={13} strokeWidth={1.75} />, label: 'Wi-Fi', value: property.checkInInstructions.wifiName }
+      : null,
+  ].filter((r): r is { icon: React.ReactElement; label: string; value: string } => r !== null);
 
   return (
     <Box>
-      {/* ─── HEADER : icône + nom + statut ──────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
-          <Home size={15} strokeWidth={1.75} />
-        </Box>
-        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 700, flex: 1, lineHeight: 1.25, letterSpacing: '-0.01em' }}>
+      {/* ─── HÉRO : 96px accent-soft + icône bâtiment (maquette) ─────── */}
+      <Box
+        sx={{
+          height: 96,
+          borderRadius: '14px',
+          backgroundColor: 'var(--accent-soft)',
+          color: 'var(--accent)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          mb: 1.25,
+        }}
+      >
+        <Apartment size={40} strokeWidth={1.5} />
+      </Box>
+
+      {/* Nom + statut + ligne « ville · m² · ch » */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, mb: 0.25 }}>
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-display)',
+            fontSize: TITLE_FS,
+            fontWeight: 700,
+            flex: 1,
+            lineHeight: 1.25,
+            letterSpacing: '-0.01em',
+            color: 'var(--ink)',
+          }}
+        >
           {property.name}
         </Typography>
         <Chip
@@ -232,18 +277,57 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             fontSize: MICRO_FS,
             height: 18,
             fontWeight: 600,
-            backgroundColor: `${statusColor}18`,
-            color: statusColor,
-            border: `1px solid ${statusColor}40`,
-            borderRadius: '6px',
-            '& .MuiChip-label': { px: 0.625 },
+            backgroundColor: isActive ? 'var(--ok-soft)' : 'var(--hover)',
+            color: isActive ? 'var(--ok)' : 'var(--muted)',
+            border: 'none',
+            borderRadius: 'var(--radius-pill)',
+            '& .MuiChip-label': { px: 0.75 },
           }}
         />
       </Box>
 
+      {metaLine && (
+        <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', display: 'block', mb: 0.25 }}>
+          {metaLine}
+        </Typography>
+      )}
       <Typography sx={{ fontSize: LABEL_FS, color: 'text.secondary', display: 'block', mb: 1.5 }}>
         {property.address}, {property.city} {property.postalCode}
       </Typography>
+
+      {/* ─── ACCÈS : Digicode / Étage / Wi-Fi (si données) ───────────── */}
+      {accessRows.length > 0 && (
+        <Box sx={{ mb: 1.5 }}>
+          <Typography sx={SECTION_TITLE_SX}>Accès</Typography>
+          <Box sx={{ '& > * + *': { borderTop: '1px solid var(--line)' } }}>
+            {accessRows.map((row) => (
+              <Box key={row.label} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: '7px' }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0 }}>
+                  {row.icon}
+                </Box>
+                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', flexShrink: 0 }}>
+                  {row.label}
+                </Typography>
+                <Typography
+                  sx={{
+                    ml: 'auto',
+                    fontSize: BODY_FS,
+                    fontWeight: 600,
+                    color: 'var(--ink)',
+                    fontVariantNumeric: 'tabular-nums',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {row.value}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      )}
 
       {/* ─── STAT TILES : grid uniforme ────────────────────────────── */}
       <Box
@@ -551,8 +635,17 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         fullWidth
         startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
         onClick={() => navigate(`/properties/${propertyId}`)}
+        sx={{
+          textTransform: 'none',
+          fontSize: BODY_FS,
+          fontWeight: 600,
+          borderRadius: 'var(--radius-sm)',
+          color: 'var(--ink)',
+          borderColor: 'var(--line-2)',
+          '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
+        }}
       >
-        Voir la fiche logement
+        Ouvrir la fiche logement
       </Button>
     </Box>
   );

@@ -131,12 +131,14 @@ const RadarPastille: React.FC<{
 
 // ─── Pastille blanche (langage Signature, dans la brique) ───────────────────
 //
-// Indicateurs groupes a droite de la brique : carre arrondi blanc de 21px
-// (spec .s-brick__badge) avec icone coloree 13px (paiement, info manquante)
-// ou logo canal. Tooltip au survol. Variante "combo" : repli « +N ».
+// Indicateurs groupes a droite de la brique : carre arrondi blanc de 20px
+// (réconciliation brique 36px — spec .pl-bar : height 36, padding 0 7px 0 5px)
+// avec icone coloree 13px (paiement, info manquante) ou logo canal.
+// Tooltip au survol. Variante "combo" : repli « +N ».
+const BAR_BADGE_SIZE = 20;
 const BAR_BADGE_SX = {
-  width: 21,
-  height: 21,
+  width: BAR_BADGE_SIZE,
+  height: BAR_BADGE_SIZE,
   borderRadius: '7px',
   backgroundColor: '#fff',
   display: 'flex',
@@ -224,6 +226,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // « Détail » rouvre le panneau existant, « Message » la messagerie existante.
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
   const [messageOpen, setMessageOpen] = useState(false);
+  // Tooltip « +N » (indicateurs repliés) : ouvert au survol (Tooltip MUI)
+  // ET au clic/clavier sur la pastille — état contrôlé pour combiner les deux.
+  const [overflowOpen, setOverflowOpen] = useState(false);
 
   // Use resizeWidth if this bar is being resized, otherwise original width
   const isResizing = resizeWidth !== null;
@@ -232,7 +237,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // ── Intervention ménage/maintenance : pastille icône seule (maquette) ────
   // Plus de chip MÉNAGE/MAINTENANCE sur la grille : une intervention sans
   // réservation liée (ou dont la réservation n'est pas visible) est posée à
-  // sa date sous forme de pastille blanche 21×21 avec l'icône du type
+  // sa date sous forme de pastille blanche 20×20 avec l'icône du type
   // (balai = ménage var(--info), clé = maintenance var(--warn)), sans
   // étiquette texte. Clic = détail intervention existant, drag conservé.
   if (event.type === 'cleaning' || event.type === 'maintenance') {
@@ -258,7 +263,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           sx={{
             position: 'absolute',
             left: left + 2,
-            top: top + (height - 21) / 2,
+            top: top + (height - BAR_BADGE_SIZE) / 2,
             ...BAR_BADGE_SX,
             border: '1px solid var(--line)',
             color: isCleaning ? 'var(--info)' : 'var(--warn)',
@@ -268,10 +273,11 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             opacity: isDragging ? 0.3 : 1,
             zIndex: isSelected ? 5 : 2,
             transition: isDragging ? 'none' : 'transform .12s, box-shadow .12s',
+            // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5
             '&:hover': {
               boxShadow: '0 7px 16px -8px var(--shadow-pop)',
               transform: 'translateY(-1px)',
-              zIndex: 6,
+              zIndex: 5,
             },
             '@media (prefers-reduced-motion: reduce)': {
               transition: 'none',
@@ -320,6 +326,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       : 'Paiement en attente';
   const indicators: {
     key: string;
+    /** Libellé court pour la liste du tooltip « +N ». */
+    label: string;
     tooltip: string;
     color: string;
     icon: React.ReactNode;
@@ -328,6 +336,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   if (event.needsPaymentBadge) {
     indicators.push({
       key: 'pay',
+      label: paymentTooltip,
       tooltip: paymentTooltip,
       color: event.paymentBadgeStatus === 'FAILED'
         ? 'color-mix(in srgb, var(--err) 75%, var(--ink))'
@@ -338,6 +347,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   if (missingEmail) {
     indicators.push({
       key: 'miss',
+      label: 'Infos client manquantes',
       tooltip: 'Email voyageur manquant — les messages automatiques ne seront pas envoyés',
       color: 'var(--warn)',
       icon: <Warning size={13} strokeWidth={2} />,
@@ -350,6 +360,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     const typeLabel = INTERVENTION_TYPE_LABELS[(isCleaning ? 'cleaning' : 'maintenance') as PlanningInterventionType];
     indicators.push({
       key: linked.id,
+      label: typeLabel,
       tooltip: linked.label && linked.label !== typeLabel ? `${typeLabel} — ${linked.label}` : typeLabel,
       color: isCleaning ? 'var(--info)' : 'var(--warn)',
       icon: isCleaning
@@ -363,7 +374,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   }
 
   // Pastilles blanches inline (langage maquette). Seuil bas (56px = une
-  // pastille 21px + padding) : les interventions absorbées restent TOUJOURS
+  // pastille 20px + padding) : les interventions absorbées restent TOUJOURS
   // représentées — sur brique étroite elles comptent dans le « +N ». Le repli
   // radar ne subsiste que pour les briques où plus rien ne tient.
   const showBadgeGroup = isReservation && displayWidth > 56 && height >= 28;
@@ -372,6 +383,40 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     ? indicators
     : indicators.slice(0, Math.max(0, indicatorSlots - 1));
   const hiddenIndicators = indicators.slice(shownIndicators.length);
+
+  // ── Repli « +N » : contenu du tooltip (une ligne par indicateur masqué) ──
+  // Le canal rejoint la liste si sa pastille logo n'a pas la place d'être
+  // affichée (brique étroite) : « Canal : Airbnb ».
+  const channelFolded = !!sourceLogo && displayWidth <= 60;
+  const overflowItems: { key: string; label: string; color?: string; icon: React.ReactNode }[] = [
+    ...hiddenIndicators.map(({ key, label, color, icon }) => ({ key, label, color, icon })),
+    ...(channelFolded
+      ? [{
+          key: 'channel',
+          label: `Canal : ${event.sublabel || '—'}`,
+          icon: (
+            <Box
+              sx={{
+                width: 16,
+                height: 16,
+                borderRadius: '5px',
+                backgroundColor: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Box
+                component="img"
+                src={sourceLogo!}
+                alt=""
+                sx={{ width: 11, height: 11, objectFit: 'contain', display: 'block' }}
+              />
+            </Box>
+          ),
+        }]
+      : []),
+  ];
 
   // Avatar voyageur (rond, bord clair, 30px — spec .s-brick__av) — si la
   // place le permet. La taille ne varie PAS : variante étroite = masqué.
@@ -453,20 +498,20 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           ? 'center'
           : showLabel ? 'flex-start' : 'center',
         gap: isReservation ? 0 : (showLabel ? 0.5 : 0),
-        // Spec .s-brick : padding 0 8px (littéral — le spacing du thème vaut 6px).
-        px: isReservation ? '8px' : (showLabel ? 0.75 : 0),
-        py: 0,
-        // Spec .s-brick : transition transform .12s, box-shadow .12s
+        // Spec .pl-bar : padding 0 7px 0 5px (avatar collé à gauche,
+        // pastilles collées à droite).
+        padding: isReservation ? '0 7px 0 5px' : (showLabel ? '0 6px' : 0),
+        // Spec .pl-bar : transition transform .12s, box-shadow .12s
         // (+ width pour le feedback resize, spécifique timeline).
         transition: (isDragging || isResizing) ? 'none' : 'transform .12s, box-shadow .12s, width .12s',
         userSelect: 'none',
         opacity: draggedOpacity,
         zIndex: isSelected ? 5 : isIntervention ? 2 : 3,
-        // Spec .s-brick:hover (signature.css L208), transposée telle quelle.
+        // Spec .pl-bar:hover : translateY(-1px) + shadow, z-5.
         '&:hover': {
           boxShadow: '0 7px 16px -8px var(--shadow-pop)',
           transform: 'translateY(-1px)',
-          zIndex: 6,
+          zIndex: 5,
         },
         '@media (prefers-reduced-motion: reduce)': {
           transition: 'none',
@@ -509,8 +554,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            // Spec .s-brick : gap 9px entre avatar / texte / pastilles.
-            gap: '9px',
+            // Spec .pl-bar : gap 7px entre avatar / texte / pastilles.
+            gap: '7px',
             width: '100%',
             height: '100%',
             color: isCancelled ? 'var(--muted)' : 'var(--on-accent)',
@@ -521,15 +566,15 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             borderRadius: `${BAR_BORDER_RADIUS}px`,
           }}
         >
-          {/* Avatar voyageur (spec .s-brick__avw + .s-brick__av) : wrapper
-              relatif + rond 30px, bord clair, initiales 11px. La pastille
-              d'alerte (.s-brick__alert) se pose en haut-gauche de l'avatar. */}
+          {/* Avatar voyageur : rond 26px (réconciliation brique 36px, mêmes
+              proportions que la maquette), bord clair, initiales 10px. La
+              pastille d'alerte 10px se pose en haut-gauche de l'avatar. */}
           {showAvatar && (
             <Box sx={{ position: 'relative', display: 'flex', flexShrink: 0 }}>
               <Box
                 sx={{
-                  width: 30,
-                  height: 30,
+                  width: 26,
+                  height: 26,
                   borderRadius: '50%',
                   flexShrink: 0,
                   border: '1.5px solid rgba(255,255,255,.55)',
@@ -537,7 +582,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: 700,
                   color: isCancelled ? 'var(--muted)' : '#fff',
                   ...(isCancelled && {
@@ -553,8 +598,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                 <Box
                   sx={{
                     position: 'absolute',
-                    top: '3px',
-                    left: '3px',
+                    top: '2px',
+                    left: '2px',
                     width: 10,
                     height: 10,
                     borderRadius: '50%',
@@ -626,12 +671,69 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   </Box>
                 </Tooltip>
               ))}
-              {showBadgeGroup && hiddenIndicators.length > 0 && (
+              {showBadgeGroup && overflowItems.length > 0 && (
                 <Tooltip
                   arrow
-                  title={hiddenIndicators.map((it) => it.tooltip).join(' · ')}
+                  // Contrôlé : le survol (onOpen/onClose MUI) ET le clic /
+                  // clavier ouvrent le même tooltip thémé Signature (style
+                  // MuiTooltip global : fond var(--ink), texte var(--bg), r8).
+                  open={overflowOpen}
+                  onOpen={() => setOverflowOpen(true)}
+                  onClose={() => setOverflowOpen(false)}
+                  title={
+                    <Box
+                      component="ul"
+                      sx={{
+                        listStyle: 'none',
+                        m: 0,
+                        p: '2px 0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '5px',
+                      }}
+                    >
+                      {overflowItems.map((it) => (
+                        <Box
+                          component="li"
+                          key={it.key}
+                          sx={{ display: 'flex', alignItems: 'center', gap: '7px' }}
+                        >
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 16,
+                              flexShrink: 0,
+                              color: it.color,
+                            }}
+                          >
+                            {it.icon}
+                          </Box>
+                          <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
+                            {it.label}
+                          </Box>
+                        </Box>
+                      ))}
+                    </Box>
+                  }
                 >
                   <Box
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${overflowItems.length} ${overflowItems.length > 1 ? 'indicateurs masqués' : 'indicateur masqué'} : ${overflowItems.map((it) => it.label).join(', ')}`}
+                    onClick={(e) => {
+                      // Ne déclenche PAS le popover réservation de la brique.
+                      e.stopPropagation();
+                      setOverflowOpen(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setOverflowOpen((o) => !o);
+                      }
+                    }}
                     sx={{
                       ...BAR_BADGE_SX,
                       // Spec .s-brick__badge.combo
@@ -640,9 +742,14 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                       fontSize: '10px',
                       fontWeight: 700,
                       color: 'var(--ink)',
+                      cursor: 'pointer',
+                      '&:focus-visible': {
+                        outline: '2px solid var(--accent)',
+                        outlineOffset: 1,
+                      },
                     }}
                   >
-                    +{hiddenIndicators.length}
+                    +{overflowItems.length}
                   </Box>
                 </Tooltip>
               )}

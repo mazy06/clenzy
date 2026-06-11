@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
 import { CalendarMonth } from '../../icons';
@@ -25,8 +25,10 @@ import { usePlanningMinNights } from './hooks/usePlanningMinNights';
 import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
 import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
-import { ACTION_PANEL_WIDTH } from './constants';
+import { ACTION_PANEL_WIDTH, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
+import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent } from './types';
+import type { ReservationStatus } from '../../services/api';
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -74,6 +76,52 @@ const PlanningPage: React.FC = () => {
     filteredProperties,
   } = usePlanningFilters(events, properties);
 
+  // ── Filtres légende (rangées Canaux / Statuts de la toolbar) ──────────────
+  // État session-scoped, non persisté : tout est sélectionné par défaut, un
+  // clic sur une chip masque les briques du canal / statut correspondant.
+  const [activeChannels, setActiveChannels] = useState<Set<PlanningChannelKey>>(
+    () => new Set(PLANNING_CHANNEL_KEYS),
+  );
+  const [activeStatuses, setActiveStatuses] = useState<Set<ReservationStatus>>(
+    () => new Set(PLANNING_STATUS_KEYS),
+  );
+
+  const toggleChannel = useCallback((key: PlanningChannelKey) => {
+    setActiveChannels((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleStatus = useCallback((status: ReservationStatus) => {
+    setActiveStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  }, []);
+
+  // Masquage client-side des briques réservation selon les toggles légende.
+  // S'applique APRÈS usePlanningFilters (hooks de données inchangés) et AVANT
+  // le layout/rendu de la grille. Seul l'affichage est filtré : sélection,
+  // drag et validations de conflit continuent de voir l'ensemble complet.
+  // Les sources hors légende (ex: 'other') restent toujours visibles.
+  const visibleEvents = useMemo(() => {
+    const allSelected =
+      activeChannels.size === PLANNING_CHANNEL_KEYS.length
+      && activeStatuses.size === PLANNING_STATUS_KEYS.length;
+    if (allSelected) return filteredEvents;
+    return filteredEvents.filter((e) => {
+      if (e.type !== 'reservation') return true;
+      const source = e.reservation?.source;
+      if (source && source !== 'other' && !activeChannels.has(source)) return false;
+      return activeStatuses.has(e.status as ReservationStatus);
+    });
+  }, [filteredEvents, activeChannels, activeStatuses]);
+
   // Pagination (dynamic page size based on viewport height)
   const pagination = usePlanningPagination({
     totalProperties: filteredProperties,
@@ -106,9 +154,9 @@ const PlanningPage: React.FC = () => {
     true,
   );
 
-  // Layout (bar positions)
+  // Layout (bar positions) — sur les events visibles (toggles Canaux/Statuts)
   const { getBarLayouts, totalGridWidth } = usePlanningLayout(
-    filteredEvents,
+    visibleEvents,
     timeline.days,
     nav.dayWidth,
     nav.density,
@@ -337,6 +385,10 @@ const PlanningPage: React.FC = () => {
           onStatusFilter={setStatusFilter}
           onSearchChange={setSearchQuery}
           onClearFilters={clearFilters}
+          activeChannels={activeChannels}
+          onToggleChannel={toggleChannel}
+          activeStatuses={activeStatuses}
+          onToggleStatus={toggleStatus}
           onImportICal={() => setIcalModalOpen(true)}
           onBlockPeriod={() => setBlockDialogOpen(true)}
           leftOffset={propertyColWidth}
@@ -391,7 +443,7 @@ const PlanningPage: React.FC = () => {
             getBarLayouts={getBarLayouts}
             totalGridWidth={totalGridWidth}
             selectedEventId={selection.selectedEventId}
-            events={filteredEvents}
+            events={visibleEvents}
             drag={drag}
             onEventClick={handleEventClick}
             onHideEvent={handleHideEvent}

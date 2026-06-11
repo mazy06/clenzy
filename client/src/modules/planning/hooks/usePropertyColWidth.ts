@@ -8,9 +8,8 @@ import {
 /**
  * Returns a responsive property-column width based on viewport breakpoints.
  *
- * ≥ 1200px → 280px  (carousel + nom complet + sous-titre + tag count, large)
- * ≥  900px → 240px  (carousel + nom complet + sous-titre + tag count)
- * <  900px → 200px  (carousel + nom 2 lignes + sous-titre + tag count)
+ * Spec maquette .pl-corner / .pl-name : 188px à tous les breakpoints
+ * (nom 1 ligne ellipsis + ville). Reste redimensionnable par drag handle.
  */
 export function usePropertyColWidth(): number {
   const theme = useTheme();

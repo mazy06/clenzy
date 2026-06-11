@@ -2,13 +2,11 @@ import React, { useEffect, useMemo } from 'react';
 import {
   Drawer,
   Box,
-  Typography,
   IconButton,
-  Tabs,
-  Tab,
-  Divider,
   useTheme,
 } from '@mui/material';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import {
   Close,
   Info,
@@ -21,20 +19,19 @@ import {
 } from '../../icons';
 import type { PlanningEvent, PanelTab, PlanningProperty, PlanningEventType, PanelView } from './types';
 import type { PlanningIntervention } from '../../services/api';
+import PageTabs from '../../components/PageTabs';
 import PanelReservationInfo from './PlanningActionPanel/PanelReservationInfo';
 import PanelOperations from './PlanningActionPanel/PanelOperations';
 import PanelFinancial from './PlanningActionPanel/PanelFinancial';
-import PanelHistory from './PlanningActionPanel/PanelHistory';
-import PanelActions from './PlanningActionPanel/PanelActions';
 import PanelPropertyDetails from './PlanningActionPanel/PanelPropertyDetails';
 import PanelInterventionProgress from './PlanningActionPanel/PanelInterventionProgress';
 import PanelInterventionRecap from './PlanningActionPanel/PanelInterventionRecap';
 import PanelPayment from './PlanningActionPanel/PanelPayment';
 import PanelSubViewHeader from './PlanningActionPanel/PanelSubViewHeader';
 import PanelInterventionDetail from './PlanningActionPanel/PanelInterventionDetail';
+import PanelFooterActions from './PlanningActionPanel/PanelFooterActions';
 import { usePanelNavigation } from './PlanningActionPanel/usePanelNavigation';
-import { ACTION_PANEL_WIDTH } from './constants';
-import { hexToRgba } from './utils/colorUtils';
+import { toDate, daysBetween } from './utils/dateUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,6 +116,34 @@ const getSubViewTitle = (view: PanelView): string => {
     case 'intervention-detail': return 'Détail intervention';
     default: return '';
   }
+};
+
+// ─── Header helpers (maquette Signature) ─────────────────────────────────────
+
+/** « Jean D. » — prénom + initiale du nom (entête du drawer). */
+const formatGuestShort = (fullName: string): string => {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return fullName.trim();
+  return `${words[0]} ${words[1][0].toUpperCase()}.`;
+};
+
+/** « 10 → 13 févr. 2026 · 3 nuits » (mois/année portés par le départ). */
+const formatStayRange = (startStr: string, endStr: string): string => {
+  const start = toDate(startStr);
+  const end = toDate(endStr);
+  const nights = Math.max(1, daysBetween(start, end));
+  const sameMonth =
+    start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  const startLabel = sameMonth ? format(start, 'd') : format(start, 'd MMM', { locale: fr });
+  const endLabel = format(end, 'd MMM yyyy', { locale: fr });
+  return `${startLabel} → ${endLabel} · ${nights} nuit${nights > 1 ? 's' : ''}`;
+};
+
+const EVENT_TYPE_LABELS: Record<PlanningEventType, string> = {
+  reservation: 'Réservation',
+  cleaning: 'Ménage',
+  maintenance: 'Maintenance',
+  blocked: 'Blocage',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -216,14 +241,9 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           return (
             <PanelReservationInfo
               event={event}
-              allEvents={allEvents}
-              properties={properties}
               onUpdateReservation={onUpdateReservation}
-              onChangeProperty={onChangeProperty}
-              onCancelReservation={onCancelReservation}
               onUpdateNotes={onUpdateNotes}
               onUpdateGuestInfo={onUpdateGuestInfo}
-              onNavigate={pushView}
             />
           );
         case 'property':
@@ -304,6 +324,11 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
     }
   };
 
+  // Entête maquette : « Réservation · Jean D. » / « Ménage · {label} »
+  const headerTitle = isReservation
+    ? `Réservation · ${formatGuestShort(event.label)}`
+    : `${EVENT_TYPE_LABELS[event.type]} · ${event.label}`;
+
   return (
     <Drawer
       anchor="right"
@@ -315,123 +340,113 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
         position: 'relative',
         zIndex: theme.zIndex.drawer + 1,
         '& .MuiDrawer-paper': {
-          // Largeur responsive : full-screen sur mobile, generale sur tablette,
-          // plus large sur desktop pour exploiter l'espace ecran.
-          // ACTION_PANEL_WIDTH (=380) reste la valeur historique de base (sm).
-          width: {
-            xs: '100vw',
-            sm: ACTION_PANEL_WIDTH,
-            md: 440,
-            lg: 520,
-            xl: 600,
-          },
-          // Empeche le panel de prendre plus de 40% de la largeur sur tres grand ecran
-          maxWidth: { xs: '100vw', sm: '90vw', md: '50vw', lg: '40vw' },
+          // Maquette Signature : drawer droite ~480px, full-screen sur mobile.
+          width: { xs: '100vw', sm: 480 },
+          maxWidth: '100vw',
           position: 'fixed',
-          borderLeft: '1px solid',
-          borderColor: 'divider',
-          backgroundColor: 'background.paper',
-          boxShadow: theme.palette.mode === 'dark'
-            ? '-8px 0 24px rgba(0,0,0,0.3)'
-            : '-8px 0 24px rgba(0,0,0,0.08)',
+          borderLeft: '1px solid var(--line)',
+          // Filet accent en haut du drawer (2px).
+          borderTop: '2px solid var(--accent)',
+          backgroundColor: 'var(--card)',
+          backgroundImage: 'none',
+          boxShadow: 'var(--shadow-drawer)',
         },
       }}
     >
-      {/* Header */}
+      {/* ─── Entête : titre display + sous-titre séjour + ✕ pastille ──── */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          px: 1.5,
-          py: 1,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          backgroundColor: hexToRgba(event.color, 0.06),
+          gap: 1,
+          px: 2,
+          py: 1.5,
+          borderBottom: '1px solid var(--line)',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
           <Box
+            component="span"
             sx={{
-              width: 3,
-              height: 24,
-              borderRadius: 1.5,
-              backgroundColor: event.color,
-              flexShrink: 0,
+              display: 'block',
+              fontFamily: 'var(--font-display)',
+              fontSize: '0.9375rem',
+              fontWeight: 700,
+              color: 'var(--ink)',
+              lineHeight: 1.25,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
-          />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                fontSize: '0.75rem',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {event.label}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.5625rem' }}>
-              {isReservation ? 'Reservation' : event.type === 'cleaning' ? 'Ménage' : 'Maintenance'}
-              {' · '}
-              {event.startDate} → {event.endDate}
-            </Typography>
+          >
+            {headerTitle}
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              display: 'block',
+              fontSize: '0.75rem',
+              color: 'var(--muted)',
+              mt: '2px',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {formatStayRange(event.startDate, event.endDate)}
           </Box>
         </Box>
         <IconButton
           size="small"
           onClick={onClose}
           aria-label="Fermer"
-          sx={{ flexShrink: 0, width: 22, height: 22 }}
+          sx={{
+            flexShrink: 0,
+            width: 30,
+            height: 30,
+            border: '1px solid var(--line-2)',
+            borderRadius: '50%',
+            color: 'var(--muted)',
+            transition: 'color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out)',
+            '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' },
+          }}
         >
           <Close size={14} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
-      {/* Tabs or Sub-view Header */}
+      {/* ─── Onglets niveau 1 (soulignés accent, style PageTabs) ──────── */}
       {isSubView ? (
         <PanelSubViewHeader title={getSubViewTitle(currentView)} onBack={popView} />
       ) : (
-        <Tabs
-          value={activeTab}
-          onChange={(_, value) => onTabChange(value)}
-          variant="fullWidth"
-          sx={{
-            minHeight: 32,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            '& .MuiTab-root': {
-              minHeight: 32,
-              fontSize: '0.5625rem',
-              fontWeight: 600,
-              textTransform: 'none',
-              letterSpacing: '0.01em',
-              py: 0.25,
-            },
-            '& .MuiTab-root .MuiTab-iconWrapper': {
-              marginBottom: 0,
-              marginRight: 0.5,
-            },
-          }}
-        >
-          {tabConfig.map((tab) => (
-            <Tab
-              key={tab.value}
-              value={tab.value}
-              label={tab.label}
-              icon={tab.icon}
-              iconPosition="start"
-            />
-          ))}
-        </Tabs>
+        <Box sx={{ px: 1 }}>
+          <PageTabs<PanelTab>
+            options={tabConfig.map((tab) => ({ value: tab.value, label: tab.label, icon: tab.icon }))}
+            value={activeTab}
+            onChange={onTabChange}
+            size="compact"
+            paper={false}
+            mb={0}
+            ariaLabel="Onglets du détail"
+          />
+        </Box>
       )}
 
       {/* Content */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 1.5, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+      <Box sx={{ flex: 1, overflow: 'auto', p: 2, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
         {isSubView ? renderSubView() : renderTabContent()}
       </Box>
+
+      {/* ─── Pied sticky : actions réservation (grille 2×2) ───────────── */}
+      {isReservation && !isSubView && (
+        <PanelFooterActions
+          event={event}
+          allEvents={allEvents}
+          properties={properties}
+          onChangeProperty={onChangeProperty}
+          onCancelReservation={onCancelReservation}
+          onUpdateGuestInfo={onUpdateGuestInfo}
+        />
+      )}
     </Drawer>
   );
 };
