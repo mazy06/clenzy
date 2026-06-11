@@ -4,6 +4,7 @@ import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.model.OwnerPayoutConfig;
 import com.clenzy.model.PayoutMethod;
+import com.clenzy.payment.StripeAmounts;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.payment.payout.PayoutExecutor;
 import com.clenzy.payment.payout.PayoutNotifier;
@@ -14,8 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 
 /**
@@ -91,10 +90,7 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
     }
 
     private TransferCreateParams buildTransferParams(OwnerPayout payout, OwnerPayoutConfig config) {
-        long amountInCents = payout.getNetAmount()
-            .multiply(BigDecimal.valueOf(100))
-            .setScale(0, RoundingMode.HALF_UP)
-            .longValueExact();
+        long amountInCents = StripeAmounts.toMinorUnits(payout.getNetAmount());
 
         String description = "Payout #" + payout.getId()
             + " - " + payout.getPeriodStart() + " to " + payout.getPeriodEnd();

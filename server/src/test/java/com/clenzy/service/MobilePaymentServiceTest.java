@@ -4,6 +4,7 @@ import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.User;
+import com.clenzy.model.UserRole;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
@@ -84,6 +85,8 @@ class MobilePaymentServiceTest {
         u.setForfait(forfait);
         u.setStripeCustomerId(stripeCustomerId);
         u.setStripeSubscriptionId(subscriptionId);
+        u.setRole(UserRole.HOST);     // host d'org 1 par defaut (ownership intervention)
+        u.setOrganizationId(1L);
         return u;
     }
 
@@ -107,10 +110,13 @@ class MobilePaymentServiceTest {
         @DisplayName("intervention type — happy path returns paymentIntent + ephemeral key")
         void whenInterventionType_thenReturnsClientSecret() throws StripeException {
             User user = buildUser(1L, "essentiel", null, null);
+            user.setRole(UserRole.HOST);
+            user.setOrganizationId(1L);
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
 
             Intervention inter = new Intervention();
             inter.setId(99L);
+            inter.setOrganizationId(1L); // meme org que le user (ownership ok)
             inter.setEstimatedCost(new BigDecimal("80"));
             when(interventionRepository.findById(99L)).thenReturn(Optional.of(inter));
 
@@ -184,12 +190,15 @@ class MobilePaymentServiceTest {
         }
 
         @Test
-        @DisplayName("intervention type — zero amount throws")
+        @DisplayName("intervention type — estimatedCost absent throws")
         void whenZeroAmount_thenThrows() throws StripeException {
             User user = buildUser(1L, "essentiel", "cus_existing", null);
+            user.setRole(UserRole.HOST);
+            user.setOrganizationId(1L);
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
             Intervention inter = new Intervention();
             inter.setId(99L);
+            inter.setOrganizationId(1L);
             inter.setEstimatedCost(null);
             when(interventionRepository.findById(99L)).thenReturn(Optional.of(inter));
 
@@ -203,7 +212,68 @@ class MobilePaymentServiceTest {
 
             assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, 99L, null))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Montant invalide");
+                    .hasMessageContaining("indisponible");
+        }
+
+        @Test
+        @DisplayName("intervention type — client-supplied amount différent du coût serveur est REJETÉ (Z3-SEC-01)")
+        void whenClientAmountDiffersFromServerCost_thenRejected() throws StripeException {
+            // Avant le fix : le montant client (amountCents) etait facture tel quel.
+            // Apres : le serveur recalcule depuis estimatedCost, le montant client n'est
+            // qu'un cross-check -> un montant arbitraire est rejete (400), aucun PaymentIntent cree.
+            User user = buildUser(1L, "essentiel", "cus_existing", null);
+            user.setRole(UserRole.HOST);
+            user.setOrganizationId(1L);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+
+            Intervention inter = new Intervention();
+            inter.setId(99L);
+            inter.setOrganizationId(1L);
+            inter.setEstimatedCost(new BigDecimal("80")); // cout serveur reel = 8000 cts
+            when(interventionRepository.findById(99L)).thenReturn(Optional.of(inter));
+
+            Customer existingCust = mock(Customer.class);
+            when(existingCust.getDeleted()).thenReturn(false);
+            EphemeralKey ek = mock(EphemeralKey.class);
+            when(ek.getSecret()).thenReturn("eks");
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+
+            // Le client tente de payer 1 centime pour une intervention a 80€.
+            assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, 99L, 1L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("ne correspond pas");
+
+            // Aucun PaymentIntent ne doit avoir ete cree au montant arbitraire.
+            verify(stripeGateway, never()).createPaymentIntent(any(PaymentIntentCreateParams.class));
+            verify(interventionRepository, never()).save(any(Intervention.class));
+        }
+
+        @Test
+        @DisplayName("intervention type — intervention d'une autre org est REJETÉE (IDOR)")
+        void whenInterventionFromAnotherOrg_thenAccessDenied() throws StripeException {
+            User user = buildUser(1L, "essentiel", "cus_existing", null);
+            user.setRole(UserRole.HOST);
+            user.setOrganizationId(1L);
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+
+            Intervention inter = new Intervention();
+            inter.setId(99L);
+            inter.setOrganizationId(2L); // autre organisation
+            inter.setEstimatedCost(new BigDecimal("80"));
+            when(interventionRepository.findById(99L)).thenReturn(Optional.of(inter));
+
+            Customer existingCust = mock(Customer.class);
+            when(existingCust.getDeleted()).thenReturn(false);
+            EphemeralKey ek = mock(EphemeralKey.class);
+            when(ek.getSecret()).thenReturn("eks");
+            when(stripeGateway.retrieveCustomer("cus_existing")).thenReturn(existingCust);
+            when(stripeGateway.createEphemeralKey(any(EphemeralKeyCreateParams.class))).thenReturn(ek);
+
+            assertThatThrownBy(() -> service.createPaymentSheet("kc-1", "intervention", null, 99L, 8000L))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            verify(stripeGateway, never()).createPaymentIntent(any(PaymentIntentCreateParams.class));
+            verify(interventionRepository, never()).save(any(Intervention.class));
         }
 
         @Test
@@ -361,6 +431,7 @@ class MobilePaymentServiceTest {
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
             Intervention inter = new Intervention();
             inter.setId(50L);
+            inter.setOrganizationId(1L);
             inter.setEstimatedCost(new BigDecimal("100"));
             when(interventionRepository.findById(50L)).thenReturn(Optional.of(inter));
 
@@ -389,6 +460,7 @@ class MobilePaymentServiceTest {
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
             Intervention inter = new Intervention();
             inter.setId(50L);
+            inter.setOrganizationId(1L);
             inter.setEstimatedCost(new BigDecimal("100"));
             when(interventionRepository.findById(50L)).thenReturn(Optional.of(inter));
 
@@ -419,6 +491,7 @@ class MobilePaymentServiceTest {
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
             Intervention inter = new Intervention();
             inter.setId(50L);
+            inter.setOrganizationId(1L);
             inter.setEstimatedCost(new BigDecimal("100"));
             when(interventionRepository.findById(50L)).thenReturn(Optional.of(inter));
 
