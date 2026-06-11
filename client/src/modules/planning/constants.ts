@@ -24,11 +24,11 @@ export const ROW_CONFIG: Record<DensityMode, {
   interventionTop: number;
   barPadding: number;
 }> = {
-  // Bar de reservation = 2 lignes (nuits + nom). Hauteur calee pour
-  // accommoder 11px label + 13px nom + padding vertical + breathing room.
+  // Bar de reservation = 2 lignes (nuits + nom). Hauteur 44px = spec
+  // exacte .s-brick de la maquette Signature (signature.css).
   normal: {
     rowHeight: 88,
-    reservationBarHeight: 48,
+    reservationBarHeight: 44,
     interventionBarHeight: 24,
     interventionTop: 56,
     barPadding: 4,
