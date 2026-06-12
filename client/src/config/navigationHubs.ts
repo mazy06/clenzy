@@ -235,19 +235,66 @@ export interface HubScreenContext {
 }
 
 /**
- * Contexte du switcher d'écran quand pathname est une page-RACINE de hub
- * (match EXACT de la route d'un onglet ou d'un de ses préfixes — PAS une
- * sous-route de détail comme /properties/123) ET qu'au moins 2 onglets sont
- * accessibles. Sinon null (pages de détail / hors hub → header classique).
- *
- * Consommé par PageHeader pour basculer en mode « switcher intégré » (Direction A).
+ * Écrans-MENU autonomes (hors hub) — Tableau de bord, Planning, Assistant,
+ * Rapports, Paramètres, Rôles, Monitoring. Pour la cohérence visuelle, ils
+ * affichent leur identité dans la MÊME signature que les hubs : une pastille +
+ * une pilule unique (switcher à un seul écran). `iconKey` = route, résolue en
+ * icône côté HubScreenSwitcher.
  */
-export function getHubScreenContext(pathname: string, access: HubAccess): HubScreenContext | null {
+export interface StandaloneScreen {
+  path: string;
+  translationKey: string;
+  fallbackLabel: string;
+}
+
+export const STANDALONE_SCREENS: StandaloneScreen[] = [
+  { path: '/planning', translationKey: 'navigation.planning', fallbackLabel: 'Planning' },
+  { path: '/dashboard', translationKey: 'navigation.dashboard', fallbackLabel: 'Tableau de bord' },
+  { path: '/assistant', translationKey: 'navigation.assistant', fallbackLabel: 'Assistant' },
+  { path: '/reports', translationKey: 'navigation.reports', fallbackLabel: 'Rapports' },
+  { path: '/settings', translationKey: 'navigation.settings', fallbackLabel: 'Paramètres' },
+  { path: '/permissions-test', translationKey: 'navigation.rolesPermissions', fallbackLabel: 'Rôles & permissions' },
+  { path: '/admin/monitoring', translationKey: 'navigation.monitoring', fallbackLabel: 'Monitoring' },
+];
+
+/**
+ * Identité d'écran rendue par PageHeader, dans une signature unique :
+ *   - `switcher` : page-racine d'un hub avec ≥2 écrans accessibles → pilules multiples.
+ *   - `single`   : écran autonome OU hub à 1 seul écran accessible → pilule unique.
+ * `null` = page de détail (/properties/123…) ou route inconnue → titre classique.
+ */
+export type ScreenIdentity =
+  | ({ kind: 'switcher' } & HubScreenContext)
+  | { kind: 'single'; iconKey: string; translationKey: string; fallbackLabel: string };
+
+/**
+ * Résout l'identité d'écran pour PageHeader. Le match d'un hub se fait sur la
+ * RACINE EXACTE d'un onglet (pas une sous-route de détail comme /properties/123),
+ * sinon on retombe sur les écrans autonomes, sinon null (titre classique).
+ */
+export function getScreenIdentity(pathname: string, access: HubAccess): ScreenIdentity | null {
   const hub = findHubForPath(pathname);
-  if (!hub) return null;
-  const tabs = accessibleHubTabs(hub, access);
-  if (tabs.length < 2) return null;
-  const active = tabs.find((tab) => tabRoutePrefixes(tab).some((prefix) => prefix === pathname));
-  if (!active) return null;
-  return { hub, tabs, activeTabPath: active.path };
+  if (hub) {
+    const tabs = accessibleHubTabs(hub, access);
+    const active = tabs.find((tab) => tabRoutePrefixes(tab).some((prefix) => prefix === pathname));
+    if (active) {
+      if (tabs.length >= 2) return { kind: 'switcher', hub, tabs, activeTabPath: active.path };
+      return {
+        kind: 'single',
+        iconKey: active.path,
+        translationKey: active.translationKey,
+        fallbackLabel: active.fallbackLabel,
+      };
+    }
+  }
+  const screen = STANDALONE_SCREENS.find((s) => s.path === pathname);
+  if (screen) {
+    return {
+      kind: 'single',
+      iconKey: screen.path,
+      translationKey: screen.translationKey,
+      fallbackLabel: screen.fallbackLabel,
+    };
+  }
+  return null;
 }

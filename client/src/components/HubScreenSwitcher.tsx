@@ -21,10 +21,17 @@ import {
   CurrencyExchange,
   Storage,
   LocalOffer,
+  Dashboard,
+  Assessment,
+  Settings,
+  Security,
+  AdminPanelSettings,
+  CalendarViewWeek,
 } from '../icons';
-import { tabRoutePrefixes, type HubScreenContext } from '../config/navigationHubs';
+import BaitlyMarkLogo from './BaitlyMarkLogo';
+import { tabRoutePrefixes, type ScreenIdentity } from '../config/navigationHubs';
 
-/** Icône d'identité du hub (pastille à gauche du switcher). */
+/** Icône d'identité du hub (pastille à gauche du switcher multi-écrans). */
 const HUB_ICON: Record<string, React.ReactNode> = {
   exploitation: <Home />,
   contacts: <Contacts />,
@@ -34,8 +41,8 @@ const HUB_ICON: Record<string, React.ReactNode> = {
   'platform-tools': <Build />,
 };
 
-/** Icône par écran (onglet du switcher), clé = route canonique. */
-const TAB_ICON: Record<string, React.ReactNode> = {
+/** Icône par écran (onglet ou écran autonome), clé = route canonique. */
+const SCREEN_ICON: Record<string, React.ReactNode> = {
   '/properties': <Home />,
   '/reservations': <EventNote />,
   '/interventions': <Build />,
@@ -53,6 +60,14 @@ const TAB_ICON: Record<string, React.ReactNode> = {
   '/admin/exchange-rates': <CurrencyExchange />,
   '/admin/database': <Storage />,
   '/admin/promo-codes': <LocalOffer />,
+  // Écrans autonomes
+  '/planning': <CalendarViewWeek />,
+  '/dashboard': <Dashboard />,
+  '/assistant': <BaitlyMarkLogo variant="mark" disableAnimation />,
+  '/reports': <Assessment />,
+  '/settings': <Settings />,
+  '/permissions-test': <AdminPanelSettings />,
+  '/admin/monitoring': <Security />,
 };
 
 function sizedIcon(node: React.ReactNode, size: number): React.ReactNode {
@@ -64,31 +79,63 @@ function sizedIcon(node: React.ReactNode, size: number): React.ReactNode {
     : node;
 }
 
+const SEG_CONTAINER_SX = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '2px',
+  p: '3px',
+  borderRadius: '11px',
+  bgcolor: 'var(--field)',
+  border: '1px solid var(--line-2)',
+  minWidth: 0,
+  overflowX: 'auto',
+  '&::-webkit-scrollbar': { display: 'none' },
+  scrollbarWidth: 'none',
+} as const;
+
+const PILL_BASE_SX = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  flexShrink: 0,
+  border: 0,
+  fontFamily: 'inherit',
+  fontSize: '12.5px',
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+  px: '13px',
+  py: '6px',
+  borderRadius: '8px',
+} as const;
+
 interface HubScreenSwitcherProps {
-  context: HubScreenContext;
+  identity: ScreenIdentity;
 }
 
 /**
- * Switcher d'écran « Direction A » (Signature) : pastille d'identité du hub +
- * contrôle segmenté (`.s-seg`) des écrans frères. C'est le niveau 1 de
- * navigation — visuellement DISTINCT des sous-onglets soulignés (niveau 2),
- * ce qui supprime le doublon de barres à soulignement.
- *
- * Le segment actif (route courante) tient lieu de titre de page : pas de titre
- * répété, header dense. Rendu par PageHeader sur les pages-racines de hub.
+ * Barre d'identité d'écran « Direction A » (Signature). Signature visuelle
+ * UNIQUE sur tous les menus : pastille d'icône + conteneur segmenté (`.s-seg`).
+ *   - `switcher` : plusieurs écrans frères d'un hub, cliquables (niveau 1 de nav).
+ *   - `single`   : écran autonome (ou hub à 1 écran), une pilule active non
+ *      interactive — l'écran courant tient lieu de titre.
+ * Visuellement DISTINCT des sous-onglets soulignés (niveau 2).
  */
-export default function HubScreenSwitcher({ context }: HubScreenSwitcherProps) {
-  const { hub, tabs, activeTabPath } = context;
+export default function HubScreenSwitcher({ identity }: HubScreenSwitcherProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
   const badgeSize = useIconSize('badge');
 
-  const isActive = (tabPath: string) => tabPath === activeTabPath;
+  const badgeIcon =
+    identity.kind === 'switcher' ? HUB_ICON[identity.hub.id] : SCREEN_ICON[identity.iconKey];
+  const badgeLabel =
+    identity.kind === 'switcher'
+      ? t(identity.hub.translationKey, identity.hub.fallbackLabel)
+      : t(identity.translationKey, identity.fallbackLabel);
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-      <Tooltip title={t(hub.translationKey, hub.fallbackLabel)} arrow placement="bottom-start">
+      <Tooltip title={badgeLabel} arrow placement="bottom-start">
         <Box
           aria-hidden
           sx={{
@@ -97,76 +144,64 @@ export default function HubScreenSwitcher({ context }: HubScreenSwitcherProps) {
             bgcolor: 'var(--accent-soft)', color: 'var(--accent)', flexShrink: 0,
           }}
         >
-          {sizedIcon(HUB_ICON[hub.id], badgeSize)}
+          {sizedIcon(badgeIcon, badgeSize)}
         </Box>
       </Tooltip>
 
-      <Box
-        role="tablist"
-        aria-label={t(hub.translationKey, hub.fallbackLabel)}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '2px',
-          p: '3px',
-          borderRadius: '11px',
-          bgcolor: 'var(--field)',
-          border: '1px solid var(--line-2)',
-          minWidth: 0,
-          overflowX: 'auto',
-          '&::-webkit-scrollbar': { display: 'none' },
-          scrollbarWidth: 'none',
-        }}
-      >
-        {tabs.map((tab) => {
-          const active = isActive(tab.path);
-          // Préserve les query (?tab=…) si on reclique l'écran déjà actif : on ne
-          // navigue que vers un AUTRE écran (sinon no-op, on garde le sous-onglet).
-          const handleClick = () => {
-            const onSamePath = tabRoutePrefixes(tab).some((p) => p === location.pathname);
-            if (!onSamePath) navigate(tab.path);
-          };
-          return (
-            <Box
-              key={tab.path}
-              component="button"
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={handleClick}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                flexShrink: 0,
-                border: 0,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                px: '13px',
-                py: '6px',
-                borderRadius: '8px',
-                color: active ? 'var(--ink)' : 'var(--muted)',
-                bgcolor: active ? 'var(--card)' : 'transparent',
-                boxShadow: active ? '0 1px 3px color-mix(in srgb, var(--ink) 12%, transparent)' : 'none',
-                transition: 'background .14s var(--ease-out), color .14s var(--ease-out)',
-                '&:hover': { color: active ? 'var(--ink)' : 'var(--body)' },
-                '&:active': { transform: 'scale(.97)' },
-                '@media (prefers-reduced-motion: reduce)': {
-                  transition: 'none',
-                  '&:active': { transform: 'none' },
-                },
-                '& > svg': { color: active ? 'var(--accent)' : 'var(--faint)', flexShrink: 0 },
-              }}
-            >
-              {sizedIcon(TAB_ICON[tab.path], 14)}
-              {t(tab.translationKey, tab.fallbackLabel)}
-            </Box>
-          );
-        })}
-      </Box>
+      {identity.kind === 'single' ? (
+        <Box sx={SEG_CONTAINER_SX}>
+          <Box
+            component="span"
+            aria-current="page"
+            sx={{
+              ...PILL_BASE_SX,
+              color: 'var(--ink)',
+              bgcolor: 'var(--card)',
+              boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 12%, transparent)',
+            }}
+          >
+            {t(identity.translationKey, identity.fallbackLabel)}
+          </Box>
+        </Box>
+      ) : (
+        <Box role="tablist" aria-label={badgeLabel} sx={SEG_CONTAINER_SX}>
+          {identity.tabs.map((tab) => {
+            const active = tab.path === identity.activeTabPath;
+            const handleClick = () => {
+              const onSamePath = tabRoutePrefixes(tab).some((p) => p === location.pathname);
+              if (!onSamePath) navigate(tab.path);
+            };
+            return (
+              <Box
+                key={tab.path}
+                component="button"
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={handleClick}
+                sx={{
+                  ...PILL_BASE_SX,
+                  cursor: 'pointer',
+                  color: active ? 'var(--ink)' : 'var(--muted)',
+                  bgcolor: active ? 'var(--card)' : 'transparent',
+                  boxShadow: active ? '0 1px 3px color-mix(in srgb, var(--ink) 12%, transparent)' : 'none',
+                  transition: 'background .14s var(--ease-out), color .14s var(--ease-out)',
+                  '&:hover': { color: active ? 'var(--ink)' : 'var(--body)' },
+                  '&:active': { transform: 'scale(.97)' },
+                  '@media (prefers-reduced-motion: reduce)': {
+                    transition: 'none',
+                    '&:active': { transform: 'none' },
+                  },
+                  '& > svg': { color: active ? 'var(--accent)' : 'var(--faint)', flexShrink: 0 },
+                }}
+              >
+                {sizedIcon(SCREEN_ICON[tab.path], 14)}
+                {t(tab.translationKey, tab.fallbackLabel)}
+              </Box>
+            );
+          })}
+        </Box>
+      )}
     </Box>
   );
 }
