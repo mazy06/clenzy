@@ -57,7 +57,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
         variant="body2"
         sx={{
           fontFamily: 'var(--font-display)',
-          fontSize: '0.5625rem',
+          fontSize: '11.5px',
           fontWeight: 600,
           color: 'var(--ink)',
           fontVariantNumeric: 'tabular-nums',
@@ -86,7 +86,7 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
       <Typography
         variant="caption"
         sx={{
-          fontSize: '0.5625rem',
+          fontSize: '10.5px',
           color: 'var(--muted)',
           fontVariantNumeric: 'tabular-nums',
           ml: 1,

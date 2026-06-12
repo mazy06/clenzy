@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, ListItemButton, Tooltip } from '@mui/material';
+import { Box, ListItemButton, Tooltip, useTheme } from '@mui/material';
 import type { MenuItem } from '../hooks/useNavigationMenu';
 
 interface SidebarNavItemProps {
@@ -28,6 +28,8 @@ const BADGE_BG: Record<NonNullable<MenuItem['badgeColor']>, string> = {
  * compteur .ct (18px, var(--warn)) → point 8px en mode réduit.
  */
 function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItemProps) {
+  // Sidebar ancrée à droite en RTL → le tooltip s'ouvre vers l'intérieur.
+  const isRtl = useTheme().direction === 'rtl';
   const hasBadge = item.badge != null && item.badge > 0;
   const badgeBg = isActive
     ? 'rgba(255,255,255,.25)'
@@ -52,7 +54,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
         borderRadius: '9px',
         justifyContent: isCollapsed ? 'center' : 'flex-start',
         whiteSpace: 'nowrap',
-        color: isActive ? '#fff' : 'var(--nav-txt)',
+        color: isActive ? 'var(--on-accent)' : 'var(--nav-txt)',
         fontWeight: isActive ? 600 : 500,
         fontSize: '13px',
         backgroundColor: isActive ? 'var(--accent)' : 'transparent',
@@ -64,13 +66,22 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
           width: 17,
           height: 17,
           flexShrink: 0,
-          color: isActive ? '#fff' : 'var(--nav-faint)',
+          color: isActive ? 'var(--on-accent)' : 'var(--nav-faint)',
           transition: 'color .14s',
         },
         '&:hover': {
           backgroundColor: isActive ? 'var(--accent)' : 'var(--nav-hover)',
-          color: isActive ? '#fff' : 'var(--nav-strong)',
-          '& > svg': { color: isActive ? '#fff' : 'var(--nav-strong)' },
+          color: isActive ? 'var(--on-accent)' : 'var(--nav-strong)',
+          '& > svg': { color: isActive ? 'var(--on-accent)' : 'var(--nav-strong)' },
+        },
+        '&.Mui-focusVisible': {
+          outline: '2px solid var(--accent)',
+          outlineOffset: '2px',
+          backgroundColor: isActive ? 'var(--accent)' : 'var(--nav-hover)',
+        },
+        '@media (prefers-reduced-motion: reduce)': {
+          transition: 'none',
+          '& > svg': { transition: 'none' },
         },
       }}
     >
@@ -132,7 +143,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
 
   if (isCollapsed) {
     return (
-      <Tooltip title={item.text} placement="right" arrow>
+      <Tooltip title={item.text} placement={isRtl ? 'left' : 'right'} arrow>
         {content}
       </Tooltip>
     );

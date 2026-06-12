@@ -9,7 +9,6 @@ import {
   Button,
   CircularProgress,
   Alert,
-  useTheme,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -50,9 +49,6 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
   amount,
   interventionTitle,
 }) => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -159,8 +155,8 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
       maxWidth="sm"
       fullWidth
       PaperProps={{
+        // r18 + hairline + ombre profonde : peau modale du thème global
         sx: {
-          borderRadius: 3,
           overflow: 'hidden',
           maxHeight: '90vh',
         },
@@ -184,23 +180,29 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               component="span"
               sx={{
                 display: 'inline-flex',
-                color: '#4A9B8E',
-                filter: 'drop-shadow(0 2px 8px rgba(74, 155, 142, 0.3))',
+                color: 'var(--ok)',
               }}
             >
               <CheckCircleIcon size={64} strokeWidth={1.5} />
             </Box>
             <Typography
               variant="h5"
-              sx={{ fontWeight: 700, fontSize: '1.25rem', textAlign: 'center' }}
+              sx={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 600,
+                fontSize: 20,
+                letterSpacing: '-.01em',
+                color: 'var(--ink)',
+                textAlign: 'center',
+              }}
             >
               Paiement reussi !
             </Typography>
             <Typography
               variant="body2"
               sx={{
-                color: 'text.secondary',
-                fontSize: '0.875rem',
+                color: 'var(--muted)',
+                fontSize: '13px',
                 textAlign: 'center',
                 maxWidth: 360,
               }}
@@ -210,18 +212,9 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             </Typography>
             <Button
               variant="contained"
+              color="success"
               onClick={onClose}
-              sx={{
-                mt: 2,
-                px: 4,
-                py: 1,
-                fontSize: '0.875rem',
-                textTransform: 'none',
-                fontWeight: 600,
-                borderRadius: 2,
-                backgroundColor: '#4A9B8E',
-                '&:hover': { backgroundColor: '#3d8577' },
-              }}
+              sx={{ mt: 2, minWidth: 120 }}
             >
               Fermer
             </Button>
@@ -235,21 +228,19 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              pb: 1,
-              pt: 2,
-              px: 3,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
+              gap: 1.5,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <LockIcon size={20} strokeWidth={1.75} color={theme.palette.primary.main} />
-              <Box>
-                <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 700 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+                <LockIcon size={18} strokeWidth={1.75} />
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Box component="span" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   Paiement securise
-                </Typography>
+                </Box>
                 {interventionTitle && (
-                  <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                  <Typography variant="body2" sx={{ fontFamily: 'var(--font-sans)', fontSize: '11.5px', fontWeight: 400, color: 'var(--muted)' }}>
                     {interventionTitle}
                   </Typography>
                 )}
@@ -259,19 +250,32 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               <Typography
                 variant="h6"
                 sx={{
+                  fontFamily: 'var(--font-display)',
                   fontSize: '1.125rem',
-                  fontWeight: 700,
-                  color: theme.palette.primary.main,
+                  fontWeight: 600,
+                  fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--accent)',
                 }}
               >
                 {convertAndFormat(amount, 'EUR')}
               </Typography>
+              {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
               <IconButton
-                size="small"
                 onClick={onClose}
-                sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+                aria-label="Fermer"
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: '10px',
+                  border: '1px solid var(--line-2)',
+                  backgroundColor: 'var(--card)',
+                  color: 'var(--muted)',
+                  flexShrink: 0,
+                  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
+                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+                }}
               >
-                <CloseIcon size={20} strokeWidth={1.75} />
+                <CloseIcon size={16} strokeWidth={1.75} />
               </IconButton>
             </Box>
           </DialogTitle>
@@ -290,8 +294,8 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                   gap: 2,
                 }}
               >
-                <CircularProgress size={36} sx={{ color: theme.palette.primary.main }} />
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem' }}>
+                <CircularProgress size={32} thickness={3.5} sx={{ color: 'var(--accent)' }} />
+                <Typography variant="body2" sx={{ color: 'var(--muted)', fontSize: '12.5px' }}>
                   Chargement du formulaire de paiement...
                 </Typography>
               </Box>
@@ -302,7 +306,15 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
               <Box sx={{ p: 3 }}>
                 <Alert
                   severity="error"
-                  sx={{ borderRadius: 2, fontSize: '0.8125rem' }}
+                  sx={{
+                    // Alerte -soft hairline (pattern .rm-conflict)
+                    bgcolor: 'var(--err-soft)',
+                    border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
+                    borderRadius: '12px',
+                    color: 'var(--body)',
+                    fontSize: '12.5px',
+                    '& .MuiAlert-icon': { color: 'var(--err)' },
+                  }}
                   onClose={() => setError(null)}
                 >
                   {error}
@@ -336,13 +348,12 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 0.5,
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+                  borderTop: '1px solid var(--line)',
+                  bgcolor: 'var(--surface-2)',
                 }}
               >
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><LockIcon size={12} strokeWidth={1.75} /></Box>
-                <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6875rem' }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><LockIcon size={12} strokeWidth={1.75} /></Box>
+                <Typography variant="caption" sx={{ color: 'var(--faint)', fontSize: '11.5px' }}>
                   Paiement securise par Stripe. Vos donnees sont chiffrees.
                 </Typography>
               </Box>

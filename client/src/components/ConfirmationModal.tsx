@@ -8,7 +8,7 @@ import {
   Typography,
   Box,
   IconButton,
-  Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   Warning as WarningIcon,
@@ -52,33 +52,21 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmIcon,
   confirmColor,
 }) => {
-  const getSeverityColor = () => {
-    switch (severity) {
-      case 'error':
-        return 'error';
-      case 'warning':
-        return 'warning';
-      case 'info':
-        return 'info';
-      default:
-        return 'warning';
-    }
-  };
+  // Token sémantique de la sévérité (désaturé — baseline §1)
+  const severityToken = severity === 'error' ? 'err' : severity === 'info' ? 'info' : 'warn';
 
   const getIcon = () => {
     if (icon) return icon;
-    const wrap = (color: string, child: React.ReactNode) => (
-      <Box component="span" sx={{ display: 'inline-flex', color }}>{child}</Box>
+    const wrap = (cssVar: string, child: React.ReactNode) => (
+      <Box component="span" sx={{ display: 'inline-flex', color: cssVar }}>{child}</Box>
     );
     switch (severity) {
       case 'error':
-        return wrap('error.main', <DeleteIcon size={22} strokeWidth={1.75} />);
-      case 'warning':
-        return wrap('warning.main', <WarningIcon size={22} strokeWidth={1.75} />);
+        return wrap('var(--err)', <DeleteIcon size={18} strokeWidth={1.75} />);
       case 'info':
-        return wrap('info.main', <WarningIcon size={22} strokeWidth={1.75} />);
+        return wrap('var(--info)', <WarningIcon size={18} strokeWidth={1.75} />);
       default:
-        return wrap('warning.main', <WarningIcon size={22} strokeWidth={1.75} />);
+        return wrap('var(--warn)', <WarningIcon size={18} strokeWidth={1.75} />);
     }
   };
 
@@ -88,58 +76,57 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-        },
-      }}
+      // Peau modale (r18, hairline, ombre profonde, animation) : thème global
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <DialogTitle sx={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        pb: 1,
-        borderBottom: '1px solid',
-        borderColor: 'divider'
+        gap: 1.5,
       }}>
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
           {getIcon()}
-          <Typography variant="h6" component="div">
+          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {title}
-          </Typography>
+          </Box>
         </Box>
+        {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
         <IconButton
           onClick={onClose}
-          size="small"
-          sx={{ color: 'text.secondary' }}
+          aria-label="Fermer"
+          sx={{
+            width: 34,
+            height: 34,
+            borderRadius: '10px',
+            border: '1px solid var(--line-2)',
+            backgroundColor: 'var(--card)',
+            color: 'var(--muted)',
+            flexShrink: 0,
+            '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
+            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+          }}
         >
-          <CloseIcon size={20} strokeWidth={1.75} />
+          <CloseIcon size={16} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ pt: 3, pb: 2 }}>
-        <Alert 
-          severity={getSeverityColor()} 
-          sx={{ 
-            mb: 2,
-            '& .MuiAlert-message': {
-              width: '100%'
-            }
+      <DialogContent sx={{ pt: '22px !important' }}>
+        {/* Alerte pleine largeur — pattern .rm-conflict : -soft + border color-mix 30% */}
+        <Box
+          sx={{
+            backgroundColor: `var(--${severityToken}-soft)`,
+            border: `1px solid color-mix(in srgb, var(--${severityToken}) 30%, transparent)`,
+            borderRadius: '12px',
+            padding: '13px 16px',
           }}
         >
-          <Typography variant="body1">
+          <Typography sx={{ fontSize: '13px', color: 'var(--body)' }}>
             {message}
           </Typography>
-        </Alert>
+        </Box>
       </DialogContent>
 
-      <DialogActions sx={{ 
-        px: 3, 
-        pb: 3, 
-        gap: 1,
-        justifyContent: 'flex-end'
-      }}>
+      <DialogActions>
         <Button
           onClick={onClose}
           variant="outlined"
@@ -155,10 +142,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           disabled={loading}
           startIcon={
             loading
-              ? undefined
+              ? <CircularProgress size={13} thickness={4} color="inherit" />
               : confirmIcon === null
                 ? undefined
-                : confirmIcon ?? <DeleteIcon size={18} strokeWidth={1.75} />
+                : confirmIcon ?? <DeleteIcon size={13} strokeWidth={1.75} />
           }
           sx={{ minWidth: 100 }}
         >

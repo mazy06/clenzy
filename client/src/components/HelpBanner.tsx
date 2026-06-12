@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Box, Typography, IconButton, alpha, useTheme } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
 import { Close as CloseIcon } from '../icons';
-import { semanticToHex } from '../utils/statusUtils';
 import { useUserPreference } from '../hooks/useUserPreference';
 
 /**
@@ -38,6 +37,17 @@ interface HelpBannerProps {
 /** Auto-cycle palette when the caller doesn't pass an explicit accent per step. */
 const DEFAULT_ACCENT_CYCLE: HelpStepAccent[] = ['info', 'success', 'warning', 'primary', 'secondary'];
 
+/** Tokens sémantiques Signature par accent (couleur + fond -soft assorti). */
+const ACCENT_TOKENS: Record<HelpStepAccent, { color: string; soft: string }> = {
+  info: { color: 'var(--info)', soft: 'var(--info-soft)' },
+  success: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
+  warning: { color: 'var(--warn)', soft: 'var(--warn-soft)' },
+  error: { color: 'var(--err)', soft: 'var(--err-soft)' },
+  primary: { color: 'var(--accent)', soft: 'var(--accent-soft)' },
+  secondary: { color: 'var(--accent)', soft: 'var(--accent-soft)' },
+  default: { color: 'var(--muted)', soft: 'var(--hover)' },
+};
+
 /**
  * Inline informational banner — used on admin / accounting / sync pages to teach the
  * user what a complex feature does. Dismissable per `storageKey` via backend prefs
@@ -68,7 +78,6 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
   steps,
   dismissLabel = 'Ne plus afficher',
 }) => {
-  const theme = useTheme();
   // Nettoyer le prefixe legacy `clenzy_` et le suffixe `_dismissed` pour
   // produire une cle backend lisible (ex: `clenzy_payouts_help_dismissed`
   // -> `help.payouts`). Backward-compat : on accepte les anciennes cles
@@ -117,31 +126,25 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
 
   if (dismissed) return null;
 
-  const primary = theme.palette.primary.main;
-
   return (
     <Box
       role="region"
       aria-label={title}
       sx={{
         position: 'relative',
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
+        borderRadius: '14px',
+        border: '1px solid var(--line)',
         mb: 1.5,
         p: { xs: 1.75, sm: 2.25 },
         overflow: 'hidden',
-        // Brand-wash background — radial gradient anchored top-left, very subtle.
-        // No glassmorphism, no neon, no AI-slop cyan.
-        backgroundImage: `radial-gradient(circle at top left, ${alpha(primary, 0.05)}, transparent 55%)`,
-        bgcolor: 'background.paper',
-        // Single allowed filet — 1 px top accent in primary.
+        bgcolor: 'var(--card)',
+        // Single allowed filet — 1 px top accent (≤1px : pas un side-stripe).
         '&::before': {
           content: '""',
           position: 'absolute',
           top: 0, left: 0, right: 0,
           height: '1px',
-          bgcolor: primary,
+          bgcolor: 'var(--accent)',
           opacity: 0.5,
         },
       }}
@@ -157,19 +160,19 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
       >
         <Box
           sx={{
-            fontSize: '0.5625rem',
+            fontSize: '10.5px',
             fontWeight: 700,
-            letterSpacing: '0.08em',
+            letterSpacing: '.06em',
             textTransform: 'uppercase',
-            color: primary,
-            bgcolor: alpha(primary, 0.1),
-            border: `1px solid ${alpha(primary, 0.25)}`,
-            borderRadius: 0.75,
+            color: 'var(--accent)',
+            bgcolor: 'var(--accent-soft)',
+            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+            borderRadius: '8px',
             px: 0.75,
             py: 0.25,
-            mt: 0.375,
+            mt: 0.25,
             flexShrink: 0,
-            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1.2,
           }}
           aria-hidden
         >
@@ -177,11 +180,12 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
         </Box>
         <Typography
           sx={{
-            fontSize: '0.9375rem',
-            fontWeight: 700,
-            color: 'text.primary',
+            fontFamily: 'var(--font-display)',
+            fontSize: 15,
+            fontWeight: 600,
+            color: 'var(--ink)',
             lineHeight: 1.3,
-            letterSpacing: '-0.005em',
+            letterSpacing: '-.01em',
             flex: 1,
             textWrap: 'balance',
           }}
@@ -193,12 +197,10 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
           onClick={handleDismiss}
           aria-label={dismissLabel}
           sx={{
-            color: 'text.disabled',
+            color: 'var(--faint)',
             p: 0.5,
             flexShrink: 0,
-            transition: 'color 150ms ease, background-color 150ms ease',
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            '&:hover': { color: 'text.secondary', bgcolor: alpha(primary, 0.06) },
+            '&:hover': { color: 'var(--ink)', bgcolor: 'var(--hover)' },
           }}
         >
           <CloseIcon size={16} strokeWidth={1.75} />
@@ -208,8 +210,8 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
       {/* Description */}
       <Typography
         sx={{
-          fontSize: '0.8125rem',
-          color: 'text.secondary',
+          fontSize: '12.5px',
+          color: 'var(--muted)',
           lineHeight: 1.55,
           mb: steps.length > 0 ? 2 : 0,
           maxWidth: '80ch',
@@ -234,7 +236,7 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
           {steps.map((step, i) => {
             const accentKey: HelpStepAccent
               = step.accent ?? DEFAULT_ACCENT_CYCLE[i % DEFAULT_ACCENT_CYCLE.length];
-            const accentHex = semanticToHex(accentKey);
+            const accent = ACCENT_TOKENS[accentKey];
             return (
               <Box
                 key={i}
@@ -250,12 +252,12 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
                   sx={{
                     width: 28,
                     height: 28,
-                    borderRadius: 0.75,
+                    borderRadius: '8px',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: alpha(accentHex, 0.14),
-                    color: accentHex,
+                    bgcolor: accent.soft,
+                    color: accent.color,
                     flexShrink: 0,
                     mt: 0.125,
                   }}
@@ -266,15 +268,15 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
                 <Box sx={{ minWidth: 0 }}>
                   <Typography
                     sx={{
-                      fontSize: '0.8125rem',
+                      fontSize: '12.5px',
                       fontWeight: 700,
-                      color: 'text.primary',
+                      color: 'var(--ink)',
                       lineHeight: 1.25,
                       mb: 0.25,
                       textWrap: 'balance',
                       // Thin colored underline keeps each step's identity without a side-stripe.
                       display: 'inline-block',
-                      borderBottom: `2px solid ${alpha(accentHex, 0.45)}`,
+                      borderBottom: `2px solid color-mix(in srgb, ${accent.color} 45%, transparent)`,
                       pb: 0.125,
                     }}
                   >
@@ -282,8 +284,8 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
                   </Typography>
                   <Typography
                     sx={{
-                      fontSize: '0.75rem',
-                      color: 'text.secondary',
+                      fontSize: '11.5px',
+                      color: 'var(--muted)',
                       lineHeight: 1.45,
                       mt: 0.25,
                     }}

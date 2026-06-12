@@ -18,6 +18,33 @@ import type { ThemeOptions } from '@mui/material/styles';
 const FONT_SANS = "'Plus Jakarta Sans', system-ui, sans-serif";
 const FONT_DISPLAY = "'Space Grotesk', system-ui, sans-serif";
 
+/**
+ * Peau sémantique d'alerte (baseline §2 modales : alerte fond `-soft` +
+ * texte couleur + hairline `color-mix` 30%) — appliquée à toutes les
+ * variantes MUI (standard/outlined/filled) pour une seule peau validée.
+ */
+const alertSeverity = (token: 'ok' | 'warn' | 'err' | 'info') => ({
+  backgroundColor: `var(--${token}-soft)`,
+  color: `var(--${token})`,
+  border: `1px solid color-mix(in srgb, var(--${token}) 30%, transparent)`,
+  '& .MuiAlert-icon': { color: `var(--${token})` },
+});
+
+/**
+ * Sélecteurs binaires (Checkbox/Radio) : `--faint` au repos, `--accent`
+ * coché, ring focus-visible accent-soft (baseline §3), désactivé .45.
+ */
+const SELECTION_CONTROL_STYLES = {
+  color: 'var(--faint)',
+  transition: 'color .14s',
+  '&:hover': { backgroundColor: 'var(--hover)' },
+  '&.Mui-checked': { color: 'var(--accent)' },
+  '&.Mui-focusVisible': { boxShadow: '0 0 0 3px var(--accent-soft)' },
+  '&.Mui-disabled': { color: 'var(--faint)', opacity: 0.45 },
+  '&.Mui-disabled.Mui-checked': { color: 'var(--accent)' },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+};
+
 /** Palette Signature par mode — valeurs issues de tokens.css (source de vérité). */
 const SIGNATURE_PALETTE = {
   light: {
@@ -283,6 +310,127 @@ export function signatureOverrides(isDark: boolean): ThemeOptions {
               borderWidth: 1,
             },
           },
+          // Compacts : rayon 9 (échelle des rayons — 9px compacts/segments)
+          sizeSmall: { borderRadius: 9 },
+        },
+      },
+      // Tailles small de champs : 12px (aligné contrôles small — .s-btn small)
+      MuiInputBase: {
+        styleOverrides: {
+          sizeSmall: { fontSize: '12px' },
+        },
+      },
+      // Label de champ : secondaire muted, focus accent, erreur err, disabled .45
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            color: 'var(--muted)',
+            '&.Mui-focused': { color: 'var(--accent)' },
+            '&.Mui-error': { color: 'var(--err)' },
+            '&.Mui-disabled': { color: 'var(--muted)', opacity: 0.45 },
+          },
+        },
+      },
+      // Flèche de Select : icône muted (convention icon-buttons)
+      MuiSelect: {
+        styleOverrides: {
+          icon: { color: 'var(--muted)' },
+        },
+      },
+      // Options de menus/Select : 12.5px, hover --hover, sélection accent-soft + accent
+      MuiMenuItem: {
+        styleOverrides: {
+          root: {
+            fontSize: '12.5px',
+            '&:hover': { backgroundColor: 'var(--hover)' },
+            '&.Mui-focusVisible': { backgroundColor: 'var(--hover)' },
+            '&.Mui-selected': {
+              backgroundColor: 'var(--accent-soft)',
+              color: 'var(--accent)',
+              '&:hover': { backgroundColor: 'var(--accent-soft)' },
+              '&.Mui-focusVisible': { backgroundColor: 'var(--accent-soft)' },
+            },
+          },
+        },
+      },
+      // Autocomplete : papier aligné Menus/Popovers (hairline r12 + shadow-pop),
+      // options harmonisées avec les MenuItem (les options vivent sous le slot
+      // listbox dans MUI v5 — un slot `option` théme n'est pas résolu).
+      MuiAutocomplete: {
+        styleOverrides: {
+          paper: {
+            border: '1px solid var(--line)',
+            borderRadius: 12,
+            boxShadow: 'var(--shadow-pop)',
+          },
+          listbox: {
+            '& .MuiAutocomplete-option': {
+              fontSize: '12.5px',
+              '&.Mui-focused': { backgroundColor: 'var(--hover)' },
+              '&.Mui-focusVisible': { backgroundColor: 'var(--hover)' },
+              '&[aria-selected="true"]': {
+                backgroundColor: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                '&.Mui-focused': { backgroundColor: 'var(--accent-soft)' },
+                '&.Mui-focusVisible': { backgroundColor: 'var(--accent-soft)' },
+              },
+            },
+          },
+        },
+      },
+      // Cases à cocher / radios : accent cochés, faint sinon, ring accent-soft
+      MuiCheckbox: {
+        styleOverrides: {
+          root: {
+            ...SELECTION_CONTROL_STYLES,
+            '&.MuiCheckbox-indeterminate': { color: 'var(--accent)' },
+          },
+        },
+      },
+      MuiRadio: {
+        styleOverrides: {
+          root: SELECTION_CONTROL_STYLES,
+        },
+      },
+      // Toggle global — pattern .rm-toggle promu (baseline §2) : track 42×24
+      // r99 --line-2→--accent, pouce 20 blanc (--on-accent), disabled .45.
+      // Dimensions nichées sous root pour primer sur la variante small MUI :
+      // toutes les tailles sont normalisées sur l'unique pattern validé.
+      MuiSwitch: {
+        defaultProps: { disableRipple: true },
+        styleOverrides: {
+          root: {
+            width: 42,
+            height: 24,
+            padding: 0,
+            '& .MuiSwitch-switchBase': {
+              padding: 2,
+              transition: 'transform .14s',
+              '&:hover': { backgroundColor: 'transparent' },
+              '&.Mui-checked': {
+                transform: 'translateX(18px)',
+                '& + .MuiSwitch-track': { backgroundColor: 'var(--accent)', opacity: 1 },
+              },
+              '&.Mui-focusVisible + .MuiSwitch-track': {
+                boxShadow: '0 0 0 3px var(--accent-soft)',
+              },
+              '&.Mui-disabled': { opacity: 0.45 },
+              '&.Mui-disabled + .MuiSwitch-track': { opacity: 0.45 },
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            },
+            '& .MuiSwitch-thumb': {
+              width: 20,
+              height: 20,
+              backgroundColor: 'var(--on-accent)',
+            },
+            '& .MuiSwitch-track': {
+              borderRadius: 99,
+              backgroundColor: 'var(--line-2)',
+              opacity: 1,
+              transition: 'background-color .14s',
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            },
+          },
         },
       },
       // Tableaux : entêtes en overline, lignes hairline, hover doux
@@ -307,6 +455,20 @@ export function signatureOverrides(isDark: boolean): ThemeOptions {
           },
         },
       },
+      // Pagination de table : 12px, chiffres tabular-nums, icônes 28px r8
+      MuiTablePagination: {
+        styleOverrides: {
+          root: {
+            fontSize: '12px',
+            '& .MuiTablePagination-select': { fontSize: '12px' },
+          },
+          selectLabel: { fontSize: '12px' },
+          displayedRows: { fontSize: '12px', fontVariantNumeric: 'tabular-nums' },
+          actions: {
+            '& .MuiIconButton-root': { width: 28, height: 28, padding: 0, borderRadius: 8 },
+          },
+        },
+      },
       // Tooltips : encre sur fond — s'inversent avec le thème (handoff §3)
       MuiTooltip: {
         styleOverrides: {
@@ -319,6 +481,135 @@ export function signatureOverrides(isDark: boolean): ThemeOptions {
             padding: '5px 10px',
           },
           arrow: { color: 'var(--ink)' },
+        },
+      },
+      // Alertes : sémantiques fond -soft + texte couleur + icône assortie,
+      // r11, hairline color-mix 30% (toutes variantes ramenées à la peau unique)
+      MuiAlert: {
+        styleOverrides: {
+          root: {
+            borderRadius: 11,
+            '&.MuiAlert-standardSuccess, &.MuiAlert-outlinedSuccess, &.MuiAlert-filledSuccess':
+              alertSeverity('ok'),
+            '&.MuiAlert-standardWarning, &.MuiAlert-outlinedWarning, &.MuiAlert-filledWarning':
+              alertSeverity('warn'),
+            '&.MuiAlert-standardError, &.MuiAlert-outlinedError, &.MuiAlert-filledError':
+              alertSeverity('err'),
+            '&.MuiAlert-standardInfo, &.MuiAlert-outlinedInfo, &.MuiAlert-filledInfo':
+              alertSeverity('info'),
+          },
+        },
+      },
+      // Toast neutre (Snackbar sans Alert) : panneau flottant r11
+      // (hairline --line + --shadow-pop — pattern Menus/Popovers)
+      MuiSnackbarContent: {
+        styleOverrides: {
+          root: {
+            borderRadius: 11,
+            backgroundColor: 'var(--card)',
+            color: 'var(--body)',
+            border: '1px solid var(--line)',
+            boxShadow: 'var(--shadow-pop)',
+          },
+        },
+      },
+      // Skeletons : fond --hover, vague par défaut (à privilégier vs spinner)
+      MuiSkeleton: {
+        defaultProps: { animation: 'wave' },
+        styleOverrides: {
+          root: {
+            backgroundColor: 'var(--hover)',
+            '@media (prefers-reduced-motion: reduce)': {
+              animation: 'none',
+              '&::after': { animation: 'none' },
+            },
+          },
+        },
+      },
+      // Barres de progression : piste --field, barre --accent, pilule
+      MuiLinearProgress: {
+        styleOverrides: {
+          root: { borderRadius: 99 },
+          colorPrimary: { backgroundColor: 'var(--field)' },
+          bar: { borderRadius: 99 },
+          barColorPrimary: { backgroundColor: 'var(--accent)' },
+        },
+      },
+      MuiCircularProgress: {
+        styleOverrides: {
+          colorPrimary: { color: 'var(--accent)' },
+        },
+      },
+      // Séparateurs : hairline --line (y compris variante avec libellé)
+      MuiDivider: {
+        styleOverrides: {
+          root: {
+            borderColor: 'var(--line)',
+            '&::before, &::after': { borderColor: 'var(--line)' },
+          },
+        },
+      },
+      // Onglets BRUTS (hors primitive PageTabs — fallback aligné .s-tab) :
+      // souligné 2px accent, labels fw600 muted→accent, pas d'uppercase
+      MuiTabs: {
+        styleOverrides: {
+          indicator: { height: 2, backgroundColor: 'var(--accent)' },
+        },
+      },
+      MuiTab: {
+        styleOverrides: {
+          root: {
+            textTransform: 'none' as const,
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            color: 'var(--muted)',
+            transition: 'color .14s',
+            '&:hover': { color: 'var(--body)' },
+            '&.Mui-selected': { color: 'var(--accent)' },
+            '&.Mui-disabled': { opacity: 0.45 },
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+          },
+        },
+      },
+      // Segmented control (.s-seg — valeurs du PlanningToolbar finalisé) :
+      // conteneur --field hairline r10 p3, segments r7, actif carte + accent
+      // + ombre 0 1px 3px ink-teintée. Les classes first/middle/lastButton de
+      // MUI (rayons mis à 0 par défaut) sont re-arrondies au même niveau.
+      MuiToggleButtonGroup: {
+        styleOverrides: {
+          root: {
+            backgroundColor: 'var(--field)',
+            border: '1px solid var(--field-line)',
+            borderRadius: 10,
+            padding: 3,
+            gap: 2,
+            '& .MuiToggleButtonGroup-grouped': { border: 0, margin: 0, borderRadius: 7 },
+            '& .MuiToggleButtonGroup-firstButton, & .MuiToggleButtonGroup-middleButton, & .MuiToggleButtonGroup-lastButton':
+              { borderRadius: 7, marginLeft: 0, borderLeft: 0 },
+          },
+        },
+      },
+      MuiToggleButton: {
+        styleOverrides: {
+          root: {
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            lineHeight: 1,
+            padding: '6px 13px',
+            textTransform: 'none' as const,
+            letterSpacing: '0.01em',
+            color: 'var(--muted)',
+            transition: 'background-color 140ms, color 140ms',
+            '&:hover': { backgroundColor: 'transparent', color: 'var(--body)' },
+            '&.Mui-selected': {
+              backgroundColor: 'var(--card)',
+              color: 'var(--accent)',
+              boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)',
+              '&:hover': { backgroundColor: 'var(--card)' },
+            },
+            '&.Mui-disabled': { opacity: 0.45, border: 0 },
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+          },
         },
       },
     },

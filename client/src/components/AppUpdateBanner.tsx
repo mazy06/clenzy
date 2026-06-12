@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Snackbar, Alert, Button, Box, Typography, useTheme, alpha } from '@mui/material';
+import { Snackbar, Alert, Button, Box, Typography } from '@mui/material';
 // Module virtuel injecte par vite-plugin-pwa au build. Types resolus via
 // /// <reference types="vite-plugin-pwa/react" /> dans vite-env.d.ts.
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -36,7 +36,6 @@ import { useTranslation } from '../hooks/useTranslation';
  */
 export default function AppUpdateBanner() {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   const {
     needRefresh: [needRefresh, setNeedRefresh],
@@ -105,52 +104,39 @@ export default function AppUpdateBanner() {
     >
       <Alert
         severity="info"
-        variant="filled"
         sx={{
-          // Style brand Baitly : pas le bleu MUI defaut, le primary du theme
-          bgcolor: theme.palette.primary.main,
-          color: theme.palette.primary.contrastText,
-          '& .MuiAlert-icon': { color: theme.palette.primary.contrastText },
+          // Alerte -soft hairline flottante : fond opaque (card) + couche
+          // info-soft plate, border color-mix 30%, ombre pop teintée encre
+          bgcolor: 'var(--card)',
+          backgroundImage: 'linear-gradient(var(--info-soft), var(--info-soft))',
+          border: '1px solid color-mix(in srgb, var(--info) 30%, transparent)',
+          color: 'var(--body)',
+          '& .MuiAlert-icon': { color: 'var(--info)' },
           minWidth: 320,
-          boxShadow: `0 8px 24px ${alpha(theme.palette.common.black, 0.18)}`,
-          borderRadius: 2,
+          boxShadow: 'var(--shadow-pop)',
+          borderRadius: '12px',
           alignItems: 'center',
         }}
         action={
           <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
             <Button
               size="small"
+              variant="text"
               onClick={handleLater}
-              sx={{
-                color: alpha(theme.palette.primary.contrastText, 0.85),
-                '&:hover': { bgcolor: alpha(theme.palette.common.white, 0.08) },
-                textTransform: 'none',
-                fontWeight: 500,
-              }}
             >
               {t('appUpdate.later', 'Plus tard')}
             </Button>
             <Button
               size="small"
-              variant="outlined"
+              variant="contained"
               onClick={handleReload}
-              sx={{
-                color: theme.palette.primary.contrastText,
-                borderColor: alpha(theme.palette.primary.contrastText, 0.6),
-                '&:hover': {
-                  borderColor: theme.palette.primary.contrastText,
-                  bgcolor: alpha(theme.palette.common.white, 0.12),
-                },
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
             >
               {t('appUpdate.reload', 'Recharger maintenant')}
             </Button>
           </Box>
         }
       >
-        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        <Typography variant="body2" sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)' }}>
           {t('appUpdate.message', 'Une nouvelle version est disponible.')}
         </Typography>
       </Alert>
