@@ -65,24 +65,101 @@ export function signatureOverrides(isDark: boolean): ThemeOptions {
     },
 
     components: {
-      // Boutons : plats, rayon 11, press tactile à .97, jamais de MAJUSCULES
+      // Boutons — référence « états des icônes de boutons » (.s-btn) :
+      // base h38 r11 12.5px fw600 gap 8 icône 15, press .97 ;
+      // PRIMAIRE = CONTOUR accent (jamais d'aplat) ; danger/ok/warn = contour
+      // + fond soft assorti ; text = fantôme ; disabled opacity .45.
       MuiButton: {
         defaultProps: { disableElevation: true },
         styleOverrides: {
           root: {
+            height: 38,
+            paddingInline: 17,
             borderRadius: 11,
+            fontSize: '12.5px',
+            fontWeight: 600,
+            gap: 8,
             textTransform: 'none' as const,
-            transition: 'transform .12s, background-color .14s, border-color .14s',
+            whiteSpace: 'nowrap' as const,
+            transition: 'transform .12s, background-color .14s, border-color .14s, color .14s',
             '&:active': { transform: 'scale(.97)' },
+            '& svg': { width: 15, height: 15, flexShrink: 0 },
+            '&.Mui-disabled': { opacity: 0.45 },
+            '&.Mui-disabled:active': { transform: 'none' },
             '@media (prefers-reduced-motion: reduce)': {
               transition: 'none',
               '&:active': { transform: 'none' },
             },
           },
+          sizeSmall: {
+            height: 32,
+            paddingInline: 12,
+            fontSize: '12px',
+            borderRadius: 9,
+            '& svg': { width: 13, height: 13 },
+          },
+          sizeLarge: { height: 44, paddingInline: 22, fontSize: '13.5px' },
+          // .s-btn--p : contour accent, hover accent-soft
+          containedPrimary: {
+            backgroundColor: 'transparent',
+            border: '1px solid var(--accent)',
+            color: 'var(--accent)',
+            boxShadow: 'none',
+            '&:hover': { backgroundColor: 'var(--accent-soft)', boxShadow: 'none' },
+          },
+          // .s-btn--danger / sémantiques : contour + soft assorti
+          containedError: {
+            backgroundColor: 'transparent',
+            border: '1px solid var(--err)',
+            color: 'var(--err)',
+            '&:hover': { backgroundColor: 'var(--err-soft)' },
+          },
+          containedSuccess: {
+            backgroundColor: 'transparent',
+            border: '1px solid var(--ok)',
+            color: 'var(--ok)',
+            '&:hover': { backgroundColor: 'var(--ok-soft)' },
+          },
+          containedWarning: {
+            backgroundColor: 'transparent',
+            border: '1px solid var(--warn)',
+            color: 'var(--warn)',
+            '&:hover': { backgroundColor: 'var(--warn-soft)' },
+          },
+          // .s-btn--g : secondaire neutre (carte hairline)
           outlined: {
+            backgroundColor: 'var(--card)',
             borderColor: 'var(--line-2)',
             color: 'var(--body)',
-            '&:hover': { borderColor: 'var(--faint)', backgroundColor: 'transparent' },
+            '&:hover': { borderColor: 'var(--faint)', backgroundColor: 'var(--card)' },
+          },
+          outlinedError: {
+            backgroundColor: 'transparent',
+            borderColor: 'var(--err)',
+            color: 'var(--err)',
+            '&:hover': { backgroundColor: 'var(--err-soft)', borderColor: 'var(--err)' },
+          },
+          // .s-btn--ghost : fantôme
+          text: {
+            color: 'var(--body)',
+            '&:hover': { backgroundColor: 'var(--hover)' },
+          },
+          textError: {
+            color: 'var(--err)',
+            '&:hover': { backgroundColor: 'var(--err-soft)' },
+          },
+        },
+      },
+      // Icône seule (.s-btn--icon adapté aux densités MUI) : carré arrondi,
+      // muted → hover surface + ink.
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 9,
+            color: 'var(--muted)',
+            transition: 'background-color .14s, color .14s',
+            '&:hover': { backgroundColor: 'var(--hover)', color: 'var(--ink)' },
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
           },
         },
       },
