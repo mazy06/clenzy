@@ -7,6 +7,7 @@ import { useSidebarState } from '../../hooks/useSidebarState';
 import { useFormsStats } from '../../hooks/useReceivedForms';
 import { useAuth } from '../../hooks/useAuth';
 import Sidebar from '../../components/Sidebar';
+import HubTabsBar from '../../components/HubTabsBar';
 import { LoadingStates } from '../../components/LoadingStates';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -143,6 +144,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             overflow: 'auto',
           }}
         >
+          {/* Onglets de niveau 1 des hubs (Exploitation, Contacts, Finances…) —
+              visibles uniquement quand la route appartient à un hub. */}
+          <HubTabsBar />
           {children}
         </Box>
       </Box>
