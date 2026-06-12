@@ -22,13 +22,11 @@ import {
  * portail bancaire et revenir cocher "Marquer comme paye".</p>
  *
  * <h2>Design</h2>
- * <p>Pattern PlanningPropertyColumn : {@code background.paper} en clair,
- * surface sombre en dark, bordure {@code divider}, boxShadow theme-aware.
- * Aligne sur {@link ServiceTooltip} pour rester coherent avec le reste du
- * PMS.</p>
+ * <p>Tooltip riche = pattern Menus/Popovers Signature (baseline §2) :
+ * surface {@code var(--card)}, hairline {@code var(--line)}, r12,
+ * {@code var(--shadow-pop)}. Pastilles d'etapes en accent
+ * ({@code var(--accent)} / {@code var(--accent-soft)}).</p>
  */
-
-const ACCENT = '#4A9B8E';
 
 interface ProcedureStep {
   index: number;
@@ -90,7 +88,7 @@ export default function SepaTransferProcedureTooltip({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.75 }}>
             <Typography
               component="span"
-              sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'inherit' }}
+              sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--ink)' }}
             >
               Virement SEPA — Procédure
             </Typography>
@@ -141,8 +139,8 @@ export default function SepaTransferProcedureTooltip({
                     width: 18,
                     height: 18,
                     borderRadius: '50%',
-                    backgroundColor: `${ACCENT}1F`,
-                    color: ACCENT,
+                    backgroundColor: 'var(--accent-soft)',
+                    color: 'var(--accent)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -166,7 +164,7 @@ export default function SepaTransferProcedureTooltip({
                     </Box>
                     <Typography
                       component="span"
-                      sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'inherit' }}
+                      sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--ink)' }}
                     >
                       {step.title}
                     </Typography>
@@ -198,7 +196,7 @@ export default function SepaTransferProcedureTooltip({
               mt: 1.25,
               pt: 1,
               borderTop: '1px solid',
-              borderColor: 'divider',
+              borderColor: 'var(--line)',
               opacity: 0.78,
             }}
           >
@@ -214,32 +212,27 @@ export default function SepaTransferProcedureTooltip({
           </Box>
         </Box>
       }
-      // Pattern PlanningPropertyColumn : background.paper + text.primary
-      // -> blanc en clair, surface sombre en dark mode.
+      // Tooltip riche = pattern Menus/Popovers Signature : surface --card,
+      // hairline --line, r12, --shadow-pop (tokens → dark auto).
       slotProps={{
         tooltip: {
-          sx: (theme) => ({
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 2,
+          sx: {
+            bgcolor: 'var(--card)',
+            color: 'var(--body)',
+            border: '1px solid var(--line)',
+            borderRadius: '12px',
             maxWidth: 380,
             p: 1.5,
             fontSize: '0.75rem',
-            boxShadow:
-              theme.palette.mode === 'dark'
-                ? '0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)'
-                : '0 12px 32px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.08)',
+            boxShadow: 'var(--shadow-pop)',
             '& .MuiTooltip-arrow': {
-              color: theme.palette.background.paper,
+              color: 'var(--card)',
               '&::before': {
-                border: '1px solid',
-                borderColor: theme.palette.divider,
-                backgroundColor: theme.palette.background.paper,
+                border: '1px solid var(--line)',
+                backgroundColor: 'var(--card)',
               },
             },
-          }),
+          },
         },
       }}
     >

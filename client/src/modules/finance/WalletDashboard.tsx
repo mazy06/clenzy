@@ -4,6 +4,7 @@ import {
   Typography,
   Paper,
   Grid,
+  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -12,8 +13,7 @@ import {
   TableRow,
   TablePagination,
   Chip,
-  CircularProgress,
-  Alert,
+  alpha,
 } from '@mui/material';
 import {
   AccountBalanceWallet,
@@ -26,14 +26,17 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/currencyUtils';
 import type { WalletDto, LedgerEntryDto } from '../../types/payment';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 
+// Accents = palette Clenzy validée (ESCROW : mauve désaturé validé planning #9A7FA3)
 const WALLET_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  PLATFORM: { label: 'Plateforme', icon: <Business />, color: '#6B8A9A' },
-  OWNER: { label: 'Propriétaire', icon: <TrendingUp />, color: '#4A9B8E' },
-  CONCIERGE: { label: 'Conciergerie', icon: <AccountBalanceWallet />, color: '#D4A574' },
-  ESCROW: { label: 'Séquestre', icon: <Lock />, color: '#9c27b0' },
+  PLATFORM: { label: 'Plateforme', icon: <Business size={16} strokeWidth={1.75} />, color: '#6B8A9A' },
+  OWNER: { label: 'Propriétaire', icon: <TrendingUp size={16} strokeWidth={1.75} />, color: '#4A9B8E' },
+  CONCIERGE: { label: 'Conciergerie', icon: <AccountBalanceWallet size={16} strokeWidth={1.75} />, color: '#D4A574' },
+  ESCROW: { label: 'Séquestre', icon: <Lock size={16} strokeWidth={1.75} />, color: '#9A7FA3' },
 };
 
+// Neutre (ADJUSTMENT) : pas de token sémantique dédié — repli var(--muted)
 const REF_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   PAYMENT: { label: 'Paiement', color: '#6B8A9A' },
   SPLIT: { label: 'Répartition', color: '#7BA3C2' },
@@ -41,24 +44,25 @@ const REF_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   ESCROW_RELEASE: { label: 'Libération', color: '#4A9B8E' },
   REFUND: { label: 'Remboursement', color: '#C97A7A' },
   PAYOUT: { label: 'Versement', color: '#4A9B8E' },
-  ADJUSTMENT: { label: 'Ajustement', color: '#757575' },
+  ADJUSTMENT: { label: 'Ajustement', color: 'var(--muted)' },
 };
 
-/** Soft-tinted chip styling — unified across Facturation tabs. */
-const softChipSx = (hex: string) => ({
-  backgroundColor: `${hex}18`,
-  color: hex,
-  border: `1px solid ${hex}40`,
-  borderRadius: '6px',
-  fontWeight: 700,
-  fontSize: '0.625rem',
-  height: 22,
-  '& .MuiChip-label': { px: 0.75 },
+/** Chip -soft : texte couleur + fond soft (pilule/typo via thème global MuiChip).
+ *  color-mix accepte hex ET var(--token). */
+const softChipSx = (c: string) => ({
+  backgroundColor: `color-mix(in srgb, ${c} 12%, transparent)`,
+  color: c,
 });
 
-const ENTRY_TYPE_COLORS: Record<string, string> = {
-  CREDIT: '#4A9B8E',
-  DEBIT: '#C97A7A',
+/** Montants : display tabular-nums (jamais proportional) */
+const moneySx = {
+  fontFamily: 'var(--font-display)',
+  fontVariantNumeric: 'tabular-nums',
+};
+
+const ENTRY_TYPE_TOKENS: Record<string, string> = {
+  CREDIT: 'var(--ok)',
+  DEBIT: 'var(--err)',
 };
 
 interface WalletDashboardProps {
@@ -124,9 +128,35 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
   };
 
   if (loading) {
+    // Skeletons : 4 tuiles + panneau historique (cartes hairline plates)
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress />
+      <Box>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Paper
+                variant="outlined"
+                sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Skeleton variant="rounded" width={26} height={26} />
+                  <Skeleton variant="text" width="50%" height={16} />
+                </Box>
+                <Skeleton variant="text" width="60%" height={28} />
+                <Skeleton variant="text" width="30%" height={14} />
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+        <Paper
+          variant="outlined"
+          sx={{ mt: 3, p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}
+        >
+          <Skeleton variant="text" width="25%" height={20} sx={{ mb: 1.5 }} />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1, mb: 1 }} />
+          ))}
+        </Paper>
       </Box>
     );
   }
@@ -138,9 +168,13 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
       )}
 
       {wallets.length === 0 ? (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          Aucun portefeuille trouvé. Les portefeuilles seront créés automatiquement lors du premier paiement.
-        </Alert>
+        <Box sx={{ mt: 2 }}>
+          <EmptyState
+            icon={<AccountBalanceWallet />}
+            title="Aucun portefeuille trouvé"
+            description="Les portefeuilles seront créés automatiquement lors du premier paiement."
+          />
+        </Box>
       ) : (
         <>
           {/* Wallet summary cards */}
@@ -151,28 +185,65 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
 
               return (
                 <Grid item xs={12} sm={6} md={3} key={wallet.id}>
+                  {/* Tuile sélectionnable : carte hairline plate, sélection = bordure accent + ring accent-soft */}
                   <Paper
-                    variant={isSelected ? 'elevation' : 'outlined'}
-                    elevation={isSelected ? 3 : 0}
+                    variant="outlined"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') { setSelectedWallet(wallet); setPage(0); }
+                    }}
                     sx={{
                       p: 2,
                       cursor: 'pointer',
-                      borderColor: isSelected ? typeInfo.color : undefined,
-                      borderWidth: isSelected ? 2 : 1,
-                      '&:hover': { borderColor: typeInfo.color },
+                      borderRadius: 'var(--radius-lg)',
+                      bgcolor: 'var(--card)',
+                      boxShadow: isSelected ? '0 0 0 3px var(--accent-soft)' : 'none',
+                      borderColor: isSelected ? 'var(--accent)' : 'var(--line)',
+                      transition: 'border-color .14s, box-shadow .14s',
+                      '&:hover': { borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)' },
+                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                     }}
                     onClick={() => { setSelectedWallet(wallet); setPage(0); }}
                   >
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Box sx={{ color: typeInfo.color }}>{typeInfo.icon}</Box>
-                      <Typography variant="subtitle2" color="text.secondary">
+                      <Box
+                        sx={{
+                          width: 26, height: 26, borderRadius: 1,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: typeInfo.color,
+                          bgcolor: alpha(typeInfo.color, 0.12),
+                          flexShrink: 0,
+                        }}
+                      >
+                        {typeInfo.icon}
+                      </Box>
+                      <Typography
+                        sx={{
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          color: 'var(--faint)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}
+                      >
                         {typeInfo.label}
                       </Typography>
                     </Box>
-                    <Typography variant="h5" fontWeight={700}>
+                    <Typography
+                      sx={{
+                        ...moneySx,
+                        fontSize: '1.1875rem',
+                        fontWeight: 600,
+                        letterSpacing: '-0.025em',
+                        color: 'var(--ink)',
+                        lineHeight: 1.1,
+                      }}
+                    >
                       {formatCurrency(wallet.balance, wallet.currency)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
                       {wallet.currency}
                     </Typography>
                   </Paper>
@@ -183,22 +254,37 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
 
           {/* Ledger entries table */}
           {selectedWallet && (
-            <Paper variant="outlined" sx={{ mt: 3 }}>
+            <Paper
+              variant="outlined"
+              sx={{ mt: 3, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none', overflow: 'hidden' }}
+            >
               <Box p={2} display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6">
+                <Typography
+                  sx={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    letterSpacing: '-0.01em',
+                    color: 'var(--ink)',
+                  }}
+                >
                   Historique — {WALLET_TYPE_LABELS[selectedWallet.walletType]?.label}
                 </Typography>
               </Box>
 
               {entriesLoading ? (
-                <Box display="flex" justifyContent="center" p={4}>
-                  <CircularProgress size={24} />
+                <Box sx={{ px: 2, pb: 2 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} variant="rectangular" height={32} sx={{ borderRadius: 1, mb: 1 }} />
+                  ))}
                 </Box>
               ) : entries.length === 0 ? (
-                <Box p={3}>
-                  <Typography color="text.secondary" align="center">
-                    Aucune transaction
-                  </Typography>
+                <Box sx={{ px: 2, pb: 2 }}>
+                  <EmptyState
+                    icon={<AccountBalanceWallet />}
+                    title="Aucune transaction"
+                    variant="transparent"
+                  />
                 </Box>
               ) : (
                 <>
@@ -217,7 +303,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                       <TableBody>
                         {entries.map((entry) => (
                           <TableRow key={entry.id}>
-                            <TableCell>
+                            <TableCell sx={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                               {new Date(entry.createdAt).toLocaleDateString('fr-FR', {
                                 day: '2-digit', month: '2-digit', year: 'numeric',
                                 hour: '2-digit', minute: '2-digit',
@@ -228,26 +314,31 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                               <Chip
                                 label={entry.entryType}
                                 size="small"
-                                sx={softChipSx(ENTRY_TYPE_COLORS[entry.entryType] ?? '#757575')}
+                                sx={softChipSx(ENTRY_TYPE_TOKENS[entry.entryType] ?? 'var(--muted)')}
                               />
                             </TableCell>
                             <TableCell>
                               <Chip
                                 label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType}
                                 size="small"
-                                sx={softChipSx(REF_TYPE_LABELS[entry.referenceType]?.color ?? '#757575')}
+                                sx={softChipSx(REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--muted)')}
                               />
                             </TableCell>
                             <TableCell align="right">
+                              {/* Montant signé : display tabular-nums, ok/err */}
                               <Typography
-                                fontWeight={600}
-                                color={entry.entryType === 'CREDIT' ? 'success.main' : 'error.main'}
+                                sx={{
+                                  ...moneySx,
+                                  fontWeight: 600,
+                                  fontSize: '12.5px',
+                                  color: entry.entryType === 'CREDIT' ? 'var(--ok)' : 'var(--err)',
+                                }}
                               >
                                 {entry.entryType === 'CREDIT' ? '+' : '-'}
                                 {formatCurrency(entry.amount, entry.currency)}
                               </Typography>
                             </TableCell>
-                            <TableCell align="right">
+                            <TableCell align="right" sx={{ ...moneySx, color: 'var(--ink)' }}>
                               {formatCurrency(entry.balanceAfter, entry.currency)}
                             </TableCell>
                           </TableRow>
@@ -265,6 +356,13 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                     labelDisplayedRows={({ from, to, count }) =>
                       `${from}-${to} sur ${count}`
                     }
+                    sx={{
+                      borderTop: '1px solid var(--line)',
+                      '& .MuiTablePagination-displayedRows': {
+                        fontSize: '12.5px',
+                        color: 'var(--muted)',
+                      },
+                    }}
                   />
                 </>
               )}

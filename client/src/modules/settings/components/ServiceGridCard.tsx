@@ -15,9 +15,9 @@ import type { ServiceTooltipData } from '../../../services/integrations/serviceT
  * Présentationnel : aucune logique métier. Le parent fournit l'état (status/selected) et l'action.
  */
 
-const ACCENT = '#4A9B8E';
-const NEUTRAL = '#8A8378';
-const WARM = '#D4A574';
+const ACCENT = 'var(--ok)';
+const NEUTRAL = 'var(--muted)';
+const WARM = 'var(--warn)';
 
 export const buildStatusChipSx = (color: string) => ({
   height: 22,
@@ -26,9 +26,9 @@ export const buildStatusChipSx = (color: string) => ({
   letterSpacing: '0.01em',
   borderRadius: '6px',
   px: 0.25,
-  backgroundColor: `${color}14`,
+  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
   color,
-  border: `1px solid ${color}33`,
+  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
   '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
   '& .MuiChip-label': { px: 0.875 },
 });
@@ -122,8 +122,8 @@ export default function ServiceGridCard({
       sx={{
         borderRadius: '12px',
         border: '1px solid',
-        borderColor: selected ? ACCENT : 'divider',
-        backgroundColor: selected ? `${ACCENT}0A` : 'background.paper',
+        borderColor: selected ? 'var(--accent)' : 'divider',
+        backgroundColor: selected ? 'var(--accent-soft)' : 'background.paper',
         boxShadow: 'none',
         overflow: 'hidden',
         outline: 'none',
@@ -133,10 +133,10 @@ export default function ServiceGridCard({
           ? {}
           : {
               '&:hover': {
-                borderColor: `${ACCENT}40`,
-                boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+                borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
+                boxShadow: 'var(--shadow-card)',
               },
-              '&:focus-visible': { borderColor: ACCENT, boxShadow: `0 0 0 3px ${ACCENT}33` },
+              '&:focus-visible': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' },
             }),
       }}
     >

@@ -161,7 +161,7 @@ export default function MyPayoutSettings() {
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <AccountBalance size={20} strokeWidth={1.75} color='#A6C0CE' />
+        <AccountBalance size={20} strokeWidth={1.75} color='var(--info)' />
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           {t('settings.myPayout.title', 'Mes coordonnees de reversement')}
         </Typography>
@@ -221,8 +221,8 @@ export default function MyPayoutSettings() {
           p: 2,
           mb: 2.5,
           borderRadius: 2,
-          backgroundColor: '#4A9B8E08',
-          borderColor: '#4A9B8E33',
+          backgroundColor: 'var(--accent-soft)',
+          borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -231,7 +231,7 @@ export default function MyPayoutSettings() {
         }}
       >
         <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#4A9B8E', mb: 0.25 }}>
+          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent)', mb: 0.25 }}>
             {t('settings.myPayout.advancedTitle', 'Méthodes avancées disponibles')}
           </Typography>
           <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', lineHeight: 1.45 }}>
@@ -251,9 +251,9 @@ export default function MyPayoutSettings() {
             fontWeight: 600,
             fontSize: '0.78rem',
             borderRadius: '8px',
-            borderColor: '#4A9B8E66',
-            color: '#4A9B8E',
-            '&:hover': { borderColor: '#4A9B8E', backgroundColor: '#4A9B8E0F' },
+            borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+            color: 'var(--accent)',
+            '&:hover': { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
           }}
         >
           {t('settings.myPayout.changeMethodBtn', 'Choisir une autre méthode')}
@@ -263,7 +263,7 @@ export default function MyPayoutSettings() {
       {/* ── Section SEPA ── */}
       <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5, borderRadius: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <AccountBalance size={18} strokeWidth={1.75} color='#1976d2' />
+          <AccountBalance size={18} strokeWidth={1.75} color='var(--info)' />
           <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
             {t('settings.myPayout.sepaSection', 'Virement bancaire (SEPA)')}
           </Typography>

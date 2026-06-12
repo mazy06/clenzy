@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Paper,
   ToggleButtonGroup,
   ToggleButton,
 } from '@mui/material';
@@ -41,22 +40,49 @@ const ReportsExportsTab: React.FC = () => {
 
   return (
     <Box>
-      <Paper sx={{ p: 1.5, mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
-        <ToggleButtonGroup
-          value={view}
-          exclusive
-          onChange={(_e, v) => v && setView(v)}
-          size="small"
-          sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontSize: '0.8125rem', px: 3 } }}
-        >
-          <ToggleButton value="fiscal">
-            {t('billing.tabs.fiscalReport', 'Rapport fiscal')}
-          </ToggleButton>
-          <ToggleButton value="exports">
-            {t('billing.tabs.exports', 'Exports comptables')}
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Paper>
+      {/* Segmented (bascule de vue) : conteneur --field r10 p3, actif = fond --card + texte accent */}
+      <ToggleButtonGroup
+        value={view}
+        exclusive
+        onChange={(_e, v) => v && setView(v)}
+        size="small"
+        sx={{
+          mb: 2,
+          p: '3px',
+          gap: '3px',
+          bgcolor: 'var(--field)',
+          border: '1px solid var(--field-line)',
+          borderRadius: '10px',
+          '& .MuiToggleButtonGroup-grouped': {
+            border: 0,
+            '&:not(:first-of-type), &:first-of-type': { borderRadius: '8px' },
+          },
+          '& .MuiToggleButton-root': {
+            textTransform: 'none',
+            fontSize: '12.5px',
+            fontWeight: 600,
+            color: 'var(--muted)',
+            px: 2,
+            height: 32,
+            transition: 'background-color .14s, color .14s',
+            '&:hover': { bgcolor: 'var(--hover)' },
+            '&.Mui-selected': {
+              bgcolor: 'var(--card)',
+              color: 'var(--accent)',
+              boxShadow: '0 1px 3px rgba(21,36,45,.10)',
+              '&:hover': { bgcolor: 'var(--card)' },
+            },
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+          },
+        }}
+      >
+        <ToggleButton value="fiscal">
+          {t('billing.tabs.fiscalReport', 'Rapport fiscal')}
+        </ToggleButton>
+        <ToggleButton value="exports">
+          {t('billing.tabs.exports', 'Exports comptables')}
+        </ToggleButton>
+      </ToggleButtonGroup>
 
       {view === 'fiscal' && <FiscalReportSection />}
       {view === 'exports' && <ExportsTab />}

@@ -29,9 +29,9 @@ interface AmenityIconPickerProps {
   onReset: () => void;
 }
 
-const ACCENT = '#0F766E';
-const PRIMARY = '#6B8A9A';
-const NEUTRAL = '#8A8378';
+const ACCENT = 'var(--accent)';
+const PRIMARY = 'var(--accent)';
+const NEUTRAL = 'var(--muted)';
 
 /**
  * Dialog de selection d'icone pour une commodite.
@@ -152,7 +152,7 @@ export default function AmenityIconPicker({
       onClose={handleClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 1.5, boxShadow: '0 8px 32px rgba(15,23,42,0.12)' } }}
+      PaperProps={{ sx: { boxShadow: 'var(--shadow-pop)' } }}
     >
       <DialogTitle sx={{ pb: 1, pr: 6 }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -166,7 +166,7 @@ export default function AmenityIconPicker({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: `${ACCENT}14`,
+                bgcolor: 'var(--accent-soft)',
                 color: ACCENT,
                 flexShrink: 0,
               }}
@@ -294,7 +294,7 @@ export default function AmenityIconPicker({
                                 borderRadius: 1,
                                 border: '1px solid',
                                 borderColor: isSelected ? ACCENT : 'divider',
-                                backgroundColor: isSelected ? `${ACCENT}14` : 'background.paper',
+                                backgroundColor: isSelected ? 'var(--accent-soft)' : 'background.paper',
                                 color: isSelected ? ACCENT : 'text.secondary',
                                 cursor: 'pointer',
                                 transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',

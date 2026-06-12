@@ -26,7 +26,7 @@ import {
  * horizontal logo+texte+chip, minHeight 56px.</p>
  */
 
-const ACCENT = '#4A9B8E';
+const ACCENT = 'var(--ok)';
 
 interface OtaShowcaseSectionProps {
   /**
@@ -107,7 +107,7 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
               px: 1.25,
               borderColor: 'divider',
               color: 'text.primary',
-              '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+              '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
             }}
           >
             Voir dans Channels
@@ -160,7 +160,7 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
                         sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                       />
                     ) : (
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>
+                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--on-accent)', letterSpacing: '-0.02em' }}>
                         {ota.name.slice(0, 2).toUpperCase()}
                       </Typography>
                     )}

@@ -55,11 +55,11 @@ const PAYOUT_METHOD_LABELS: Record<PayoutMethod, string> = {
 
 // Palette Baitly tintée pour les chips de méthode
 const PAYOUT_METHOD_COLORS: Record<PayoutMethod, string> = {
-  MANUAL: '#8A8378',
+  MANUAL: 'var(--muted)',
   STRIPE_CONNECT: '#635BFF', // brand Stripe (preserved for recognizability)
-  SEPA_TRANSFER: '#7BA3C2',
+  SEPA_TRANSFER: 'var(--info)',
   WISE: '#00B9FF',           // brand Wise teal — préservé pour reconnaissance
-  OPEN_BANKING: '#4A9B8E',   // brand Baitly accent (Open Banking = approche maison)
+  OPEN_BANKING: 'var(--accent)', // accent Baitly (Open Banking = approche maison)
 };
 
 const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
@@ -280,9 +280,9 @@ export default function OwnerPayoutSettings() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: '#4A9B8E14',
-                color: '#4A9B8E',
-                border: '1px solid #4A9B8E33',
+                bgcolor: 'var(--ok-soft)',
+                color: 'var(--ok)',
+                border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
               }}
             >
               <AccountBalance size={22} strokeWidth={1.75} />
@@ -325,9 +325,9 @@ export default function OwnerPayoutSettings() {
                             fontSize: '0.6875rem',
                             fontWeight: 600,
                             letterSpacing: '0.01em',
-                            backgroundColor: `${methodColor}14`,
+                            backgroundColor: `color-mix(in srgb, ${methodColor} 8%, transparent)`,
                             color: methodColor,
-                            border: `1px solid ${methodColor}33`,
+                            border: `1px solid color-mix(in srgb, ${methodColor} 20%, transparent)`,
                             borderRadius: '6px',
                             '& .MuiChip-label': { px: 0.875 },
                           }}
@@ -372,13 +372,13 @@ export default function OwnerPayoutSettings() {
                               fontSize: '0.6875rem',
                               fontWeight: 600,
                               letterSpacing: '0.01em',
-                              backgroundColor: '#4A9B8E14',
-                              color: '#4A9B8E',
-                              border: '1px solid #4A9B8E33',
+                              backgroundColor: 'var(--ok-soft)',
+                              color: 'var(--ok)',
+                              border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
                               borderRadius: '6px',
                               px: 0.25,
                               '& .MuiChip-icon': {
-                                color: '#4A9B8E !important',
+                                color: 'var(--ok) !important',
                                 ml: '6px',
                                 mr: '-2px',
                               },
@@ -395,13 +395,13 @@ export default function OwnerPayoutSettings() {
                               fontSize: '0.6875rem',
                               fontWeight: 600,
                               letterSpacing: '0.01em',
-                              backgroundColor: '#D4A57414',
-                              color: '#D4A574',
-                              border: '1px solid #D4A57433',
+                              backgroundColor: 'var(--warn-soft)',
+                              color: 'var(--warn)',
+                              border: '1px solid color-mix(in srgb, var(--warn) 20%, transparent)',
                               borderRadius: '6px',
                               px: 0.25,
                               '& .MuiChip-icon': {
-                                color: '#D4A574 !important',
+                                color: 'var(--warn) !important',
                                 ml: '6px',
                                 mr: '-2px',
                               },
@@ -427,11 +427,11 @@ export default function OwnerPayoutSettings() {
                                 transition:
                                   'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
                                 '&:hover': {
-                                  color: '#4A9B8E',
-                                  borderColor: '#4A9B8E66',
-                                  backgroundColor: '#4A9B8E0F',
+                                  color: 'var(--accent)',
+                                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                                  backgroundColor: 'var(--accent-soft)',
                                 },
-                                '&:focus-visible': { outline: '2px solid #4A9B8E', outlineOffset: 2 },
+                                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
                               }}
                             >
                               <SettingsIcon size={13} strokeWidth={1.75} />
@@ -453,11 +453,11 @@ export default function OwnerPayoutSettings() {
                                   transition:
                                     'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
                                   '&:hover': {
-                                    color: '#6B8A9A',
-                                    borderColor: '#6B8A9A66',
-                                    backgroundColor: '#6B8A9A0F',
+                                    color: 'var(--accent)',
+                                    borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                                    backgroundColor: 'var(--accent-soft)',
                                   },
-                                  '&:focus-visible': { outline: '2px solid #6B8A9A', outlineOffset: 2 },
+                                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
                                 }}
                               >
                                 <EditIcon size={13} strokeWidth={1.75} />
@@ -481,11 +481,11 @@ export default function OwnerPayoutSettings() {
                                   transition:
                                     'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
                                   '&:hover': {
-                                    color: '#4A9B8E',
-                                    borderColor: '#4A9B8E66',
-                                    backgroundColor: '#4A9B8E0F',
+                                    color: 'var(--accent)',
+                                    borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                                    backgroundColor: 'var(--accent-soft)',
                                   },
-                                  '&:focus-visible': { outline: '2px solid #4A9B8E', outlineOffset: 2 },
+                                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
                                 }}
                               >
                                 <CheckCircle size={13} strokeWidth={1.75} />
@@ -624,20 +624,7 @@ export default function OwnerPayoutSettings() {
                 <Save size={14} strokeWidth={1.75} />
               )
             }
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              letterSpacing: '0.01em',
-              borderRadius: '8px',
-              py: 0.625,
-              px: 1.5,
-              bgcolor: '#6B8A9A',
-              boxShadow: 'none',
-              '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.94)', boxShadow: 'none' },
-              '&.Mui-disabled': { bgcolor: 'rgba(107, 138, 154, 0.32)', color: '#fff' },
-            }}
-          >
+>
             {t('common.save', 'Enregistrer')}
           </Button>
         </DialogActions>

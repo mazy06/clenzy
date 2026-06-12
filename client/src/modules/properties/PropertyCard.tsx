@@ -42,12 +42,11 @@ import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
 import { formatDate } from '../../utils/formatUtils';
 import {
   getPropertyStatusLabel,
-  getPropertyStatusHex,
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
   getCleaningFrequencyHex,
-  getAmenityHex,
 } from '../../utils/statusUtils';
+import { propertyStatusChipSx, softDataChipSx, FIELD_CHIP_SX } from './propertiesListConstants';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import MissingContractChip from './MissingContractChip';
 import ThemedTooltip from '../../components/ThemedTooltip';
@@ -114,18 +113,24 @@ const typeGradients: Record<string, string> = {
   studio: 'linear-gradient(135deg, #7BA3C2 0%, #9BB8D1 100%)',
 };
 
+// Styles alignés sur DESIGN_BASELINE + référence maquette .pr-card (screen-properties).
 const styles = {
-  // ── Card ──
+  // ── Card ── (.pr-card : hairline r14 du thème, hover border --line-2 + shadow-card)
   cardRoot: {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
     cursor: 'pointer',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'border-color .14s, box-shadow .14s, transform .14s',
     '&:hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: '0 12px 28px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08)',
+      borderColor: 'var(--line-2)',
+      boxShadow: 'var(--shadow-card)',
+      transform: 'translateY(-2px)',
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'none',
+      '&:hover': { transform: 'none' },
     },
   },
   bannerBox: {
@@ -142,25 +147,20 @@ const styles = {
     justifyContent: 'space-between',
     px: 1.5,
     py: 0.75,
-    bgcolor: 'grey.50',
-    borderBottom: '1px solid',
-    borderColor: 'grey.100',
+    bgcolor: 'var(--surface-2)',
+    borderBottom: '1px solid var(--line)',
     gap: 0.75,
     minHeight: 34,
   },
+  // Géométrie pilule héritée du thème global MuiChip (r999, 10.5px, fw700, h22).
   statusChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
+    '& .MuiChip-label': { px: 1 },
   },
   priceChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
+    color: 'var(--body)',
+    borderColor: 'var(--line-2)',
+    bgcolor: 'var(--card)',
+    '& .MuiChip-label': { px: 1 },
   },
   dateBox: {
     display: 'flex',
@@ -169,56 +169,67 @@ const styles = {
     flexShrink: 0,
   },
   dateText: {
-    color: 'text.secondary',
+    color: 'var(--muted)',
     fontWeight: 600,
-    fontSize: '0.68rem',
+    fontSize: '11px',
     lineHeight: 1,
+    fontVariantNumeric: 'tabular-nums',
   },
   infoContent: {
     flexGrow: 1,
     p: 1.75,
     pb: '12px !important',
   },
+  // .pr-nm — nom d'entité en display
   nameText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    fontSize: '0.95rem',
+    fontFamily: 'var(--font-display)',
+    fontSize: '15px',
+    fontWeight: 600,
+    letterSpacing: '-.01em',
     mb: 0.5,
-    color: 'text.primary',
+    color: 'var(--ink)',
   },
   addressText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     flex: 1,
-    fontSize: '0.7rem',
+    fontSize: '11.5px',
+    color: 'var(--muted)',
   },
-  metricsRow: {
+  // .pr-stats — bande de stats hairline (valeurs display tabular-nums)
+  statsBand: {
     display: 'flex',
-    gap: 0.75,
+    borderTop: '1px solid var(--line)',
+    borderBottom: '1px solid var(--line)',
     mb: 1.25,
-    flexWrap: 'wrap',
   },
-  metricBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.4,
-    bgcolor: 'grey.100',
-    borderRadius: 1,
-    px: 0.75,
-    py: 0.35,
+  statCell: {
+    flex: 1,
+    py: '9px',
+    textAlign: 'center',
+    borderRight: '1px solid var(--line)',
+    minWidth: 0,
+    '&:last-child': { borderRight: 0 },
   },
-  metricIconBox: {
-    color: 'text.secondary',
-    display: 'flex',
-    alignItems: 'center',
+  statValue: {
+    fontFamily: 'var(--font-display)',
+    fontSize: '15px',
+    fontWeight: 600,
+    color: 'var(--ink)',
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1.2,
   },
-  amenityOverflow: {
-    fontSize: '0.62rem',
-    height: 20,
-    bgcolor: 'grey.100',
-    color: 'text.secondary',
+  statLabel: {
+    fontSize: '9.5px',
+    fontWeight: 700,
+    letterSpacing: '.04em',
+    textTransform: 'uppercase',
+    color: 'var(--faint)',
+    mt: '1px',
   },
   actionBar: {
     px: 1.75,
@@ -227,19 +238,8 @@ const styles = {
     display: 'flex',
     gap: 0.75,
   },
-  detailsButton: {
-    fontSize: '0.72rem',
-    py: 0.5,
-    borderColor: 'grey.300',
-    color: 'text.secondary',
-    '&:hover': {
-      borderColor: 'primary.main',
-      color: 'primary.main',
-      bgcolor: 'rgba(107, 138, 154, 0.04)',
-    },
-  },
 
-  // ── Dialog ──
+  // ── Dialog ── (skin global MuiDialog ; surfaces internes en tokens)
   dialogTitleBox: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -248,7 +248,7 @@ const styles = {
   dialogIconBox: {
     width: 40,
     height: 40,
-    borderRadius: 1,
+    borderRadius: '11px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -262,13 +262,20 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 1,
-    bgcolor: 'grey.50',
-    border: '1px solid',
-    borderColor: 'grey.200',
-    borderRadius: 1.5,
+    bgcolor: 'var(--field)',
+    border: '1px solid var(--field-line)',
+    borderRadius: '11px',
     px: 1.5,
     py: 1,
     minWidth: 120,
+  },
+  dialogSectionTitle: {
+    fontSize: '10.5px',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '.06em',
+    color: 'var(--faint)',
+    mb: 0.75,
   },
   dialogDescription: {
     overflow: 'hidden',
@@ -447,13 +454,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         <Box sx={styles.badgeBar}>
           {/* Gauche : statut + prix nuit (si renseigné) */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-            {(() => { const c = getPropertyStatusHex(property.status); return (
-              <Chip
-                label={getPropertyStatusLabel(property.status, t)}
-                size="small"
-                sx={{ ...styles.statusChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
-              />
-            ); })()}
+            <Chip
+              label={getPropertyStatusLabel(property.status, t)}
+              size="small"
+              sx={{ ...styles.statusChip, ...propertyStatusChipSx(property.status) }}
+            />
             {property.nightlyPrice > 0 && (
               <Chip
                 label={`${property.nightlyPrice}€/nuit`}
@@ -480,9 +485,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   icon={<Payments size={12} strokeWidth={1.75} />}
                   label={`${cleaningPrice}€ estimé / ménage`}
                   size="small"
-                  color="primary"
-                  variant="outlined"
-                  sx={{ ...styles.priceChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
+                  sx={{ color: 'var(--accent)', bgcolor: 'var(--accent-soft)', border: 'none', '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: 'var(--accent)' }, '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
                 />
               </ThemedTooltip>
             )}
@@ -500,9 +503,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   icon={<Timer size={12} strokeWidth={1.75} />}
                   label={`~${formatDuration(cleaningDuration)}`}
                   size="small"
-                  color="info"
-                  variant="outlined"
-                  sx={{ ...styles.priceChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
+                  sx={{ color: 'var(--info)', bgcolor: 'var(--info-soft)', border: 'none', '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: 'var(--info)' }, '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
                 />
               </ThemedTooltip>
             )}
@@ -524,7 +525,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   label={`${property.defaultCheckOutTime || '—'} – ${property.defaultCheckInTime || '—'}`}
                   size="small"
                   variant="outlined"
-                  sx={{ ...styles.priceChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
+                  sx={{ ...styles.priceChip, fontVariantNumeric: 'tabular-nums', '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: 'var(--muted)' }, cursor: 'default' }}
                 />
               </ThemedTooltip>
             )}
@@ -589,99 +590,60 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             </Typography>
           </Box>
 
-          {/* Métriques + Commodités — deux colonnes */}
-          <Box sx={{ display: 'flex', gap: 1, mb: 1.25 }}>
-            {/* Colonne gauche : métriques */}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, flex: 1, minWidth: 0 }}>
-              {[
-                { icon: <BedIcon size={13} strokeWidth={1.75} />, value: property.bedrooms, label: 'ch.' },
-                { icon: <BathroomIcon size={13} strokeWidth={1.75} />, value: property.bathrooms, label: 'sdb' },
-                { icon: <SquareFoot size={13} strokeWidth={1.75} />, value: property.surfaceArea, label: 'm²' },
-                { icon: <PersonIcon size={13} strokeWidth={1.75} />, value: property.maxGuests, label: 'voy.' },
-              ].map((metric, idx) => (
-                <Chip
-                  key={idx}
-                  icon={metric.icon}
-                  label={`${metric.value} ${metric.label}`}
-                  size="small"
-                  variant="outlined"
-                  sx={{
-                    height: 22,
-                    fontSize: '0.62rem',
-                    fontWeight: 600,
-                    borderWidth: 1.5,
-                    borderColor: 'grey.300',
-                    '& .MuiChip-icon': { fontSize: 13, ml: 0.5 },
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
-                />
-              ))}
-            </Box>
-
-            {/* Colonne droite : commodités */}
-            {property.amenities && property.amenities.length > 0 && (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
-                {property.amenities.slice(0, 3).map((amenity, index) => {
-                  const c = getAmenityHex(amenity);
-                  return (
-                  <Chip
-                    key={index}
-                    label={t(`properties.amenities.items.${amenity}`)}
-                    size="small"
-                    sx={{
-                      backgroundColor: `${c}18`,
-                      color: c,
-                      border: `1px solid ${c}40`,
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      fontSize: '0.62rem',
-                      height: 22,
-                      '& .MuiChip-label': { px: 0.75 },
-                    }}
-                  />
-                  );
-                })}
-                {property.amenities.length > 3 && (
-                  <ThemedTooltip
-                    title={
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {property.amenities.map((a, i) => {
-                          const c = getAmenityHex(a);
-                          return (
-                          <Chip
-                            key={i}
-                            label={t(`properties.amenities.items.${a}`)}
-                            size="small"
-                            sx={{
-                              backgroundColor: `${c}18`,
-                              color: c,
-                              border: `1px solid ${c}40`,
-                              borderRadius: '6px',
-                              fontWeight: 600,
-                              fontSize: '0.6rem',
-                              height: 20,
-                              '& .MuiChip-label': { px: 0.75 },
-                            }}
-                          />
-                          );
-                        })}
-                      </Box>
-                    }
-                    arrow
-                    placement="top"
-                  >
-                    <Chip
-                      label={`+${property.amenities.length - 3}`}
-                      size="small"
-                      sx={{ fontSize: '0.62rem', height: 22, fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
-                    />
-                  </ThemedTooltip>
-                )}
+          {/* Bande de stats (.pr-stats) — chiffres display tabular-nums */}
+          <Box sx={styles.statsBand}>
+            {[
+              { value: property.bedrooms, label: 'ch.' },
+              { value: property.bathrooms, label: 'sdb' },
+              { value: `${property.surfaceArea}`, label: 'm²' },
+              { value: property.maxGuests, label: 'voy.' },
+            ].map((metric, idx) => (
+              <Box key={idx} sx={styles.statCell}>
+                <Typography sx={styles.statValue}>{metric.value}</Typography>
+                <Typography sx={styles.statLabel}>{metric.label}</Typography>
               </Box>
-            )}
+            ))}
           </Box>
 
-          {/* Fréquence de nettoyage */}
+          {/* Commodités — chips neutres « champ » (.fr-chip) */}
+          {property.amenities && property.amenities.length > 0 && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.25, minWidth: 0 }}>
+              {property.amenities.slice(0, 3).map((amenity, index) => (
+                <Chip
+                  key={index}
+                  label={t(`properties.amenities.items.${amenity}`)}
+                  size="small"
+                  sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
+                />
+              ))}
+              {property.amenities.length > 3 && (
+                <ThemedTooltip
+                  title={
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {property.amenities.map((a, i) => (
+                        <Chip
+                          key={i}
+                          label={t(`properties.amenities.items.${a}`)}
+                          size="small"
+                          sx={{ ...FIELD_CHIP_SX, height: 20, '& .MuiChip-label': { px: 1 } }}
+                        />
+                      ))}
+                    </Box>
+                  }
+                  arrow
+                  placement="top"
+                >
+                  <Chip
+                    label={`+${property.amenities.length - 3}`}
+                    size="small"
+                    sx={{ color: 'var(--muted)', bgcolor: 'var(--hover)', border: 'none', '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
+                  />
+                </ThemedTooltip>
+              )}
+            </Box>
+          )}
+
+          {/* Fréquence de nettoyage — chip -soft dérivé de la couleur de donnée */}
           {(() => { const c = getCleaningFrequencyHex(property.cleaningFrequency); return (
             <Chip
               icon={<AutoAwesome size={12} strokeWidth={1.75} color={c} />}
@@ -689,15 +651,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               size="small"
               sx={{
                 alignSelf: 'flex-start',
-                height: 24,
-                fontSize: '0.62rem',
-                fontWeight: 600,
-                backgroundColor: `${c}18`,
-                color: c,
-                border: `1px solid ${c}40`,
-                borderRadius: '6px',
-                '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
-                '& .MuiChip-label': { px: 0.75 },
+                ...softDataChipSx(c),
+                '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: c },
+                '& .MuiChip-label': { px: 1 },
               }}
             />
           ); })()}
@@ -711,7 +667,6 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             startIcon={<Visibility size={15} strokeWidth={1.75} />}
             onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
             variant="outlined"
-            sx={styles.detailsButton}
           >
             Détails
           </Button>
@@ -721,9 +676,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               size="small"
               startIcon={<Edit size={15} strokeWidth={1.75} />}
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              variant="outlined"
-              color="primary"
-              sx={{ fontSize: '0.72rem', py: 0.5 }}
+              variant="contained"
             >
               Modifier
             </Button>
@@ -769,7 +722,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           <Grid container spacing={2}>
             {/* Adresse */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.75, color: 'primary.main' }}>
+              <Typography sx={styles.dialogSectionTitle}>
                 Adresse
               </Typography>
               <Typography variant="body2">
@@ -783,7 +736,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
             {/* Caractéristiques */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'primary.main' }}>
+              <Typography sx={{ ...styles.dialogSectionTitle, mb: 1 }}>
                 Caractéristiques
               </Typography>
               <Box sx={styles.dialogCharacteristicsRow}>
@@ -797,10 +750,10 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                     key={idx}
                     sx={styles.dialogMetricBox}
                   >
-                    <Box sx={{ color: 'primary.main', display: 'flex' }}>{item.icon}</Box>
+                    <Box sx={{ color: 'var(--accent)', display: 'flex' }}>{item.icon}</Box>
                     <Box>
-                      <Typography variant="body2" fontWeight={600}>{item.value}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{item.label}</Typography>
+                      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{item.value}</Typography>
+                      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--faint)' }}>{item.label}</Typography>
                     </Box>
                   </Box>
                 ))}
@@ -813,11 +766,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
             {/* Estimation ménage + prix nuit */}
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.75, color: 'primary.main' }}>
+              <Typography sx={styles.dialogSectionTitle}>
                 {t('properties.cleaningEstimate')}
               </Typography>
               {cleaningPrice != null ? (
-                <Typography variant="h5" fontWeight={700} color="primary.main">
+                <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em' }}>
                   {cleaningPrice}€ <Typography component="span" variant="caption" color="text.secondary">{t('properties.priceEstimation.perIntervention')}</Typography>
                 </Typography>
               ) : (
@@ -830,7 +783,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               )}
             </Grid>
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.75, color: 'primary.main' }}>
+              <Typography sx={styles.dialogSectionTitle}>
                 Nettoyage
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -846,30 +799,18 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   <Divider />
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'primary.main' }}>
+                  <Typography sx={{ ...styles.dialogSectionTitle, mb: 1 }}>
                     Commodités
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                    {property.amenities.map((amenity, index) => {
-                      const c = getAmenityHex(amenity);
-                      return (
+                    {property.amenities.map((amenity, index) => (
                       <Chip
                         key={index}
                         label={t(`properties.amenities.items.${amenity}`)}
                         size="small"
-                        sx={{
-                          backgroundColor: `${c}18`,
-                          color: c,
-                          border: `1px solid ${c}40`,
-                          borderRadius: '6px',
-                          fontWeight: 600,
-                          fontSize: '0.72rem',
-                          height: 24,
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
+                        sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
                       />
-                      );
-                    })}
+                    ))}
                   </Box>
                 </Grid>
               </>
@@ -880,7 +821,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <Divider />
             </Grid>
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.75, color: 'primary.main' }}>
+              <Typography sx={styles.dialogSectionTitle}>
                 Contact
               </Typography>
               <Typography variant="body2" sx={{ mb: 0.25 }}>
@@ -894,7 +835,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             {/* Description */}
             {property.description && (
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.75, color: 'primary.main' }}>
+                <Typography sx={styles.dialogSectionTitle}>
                   Description
                 </Typography>
                 <Typography

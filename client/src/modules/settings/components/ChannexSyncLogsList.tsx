@@ -49,9 +49,9 @@ interface ChannexSyncLogsListProps {
 }
 
 const STATUS_META: Record<ChannexSyncLogStatus, { color: string; Icon: typeof CheckCircle2; label: string }> = {
-  SUCCESS: { color: '#059669', Icon: CheckCircle2, label: 'OK' },
-  FAIL:    { color: '#EF4444', Icon: XCircle,      label: 'Echec' },
-  SKIPPED: { color: '#6B7280', Icon: MinusCircle,  label: 'Skip' },
+  SUCCESS: { color: 'var(--ok)', Icon: CheckCircle2, label: 'OK' },
+  FAIL:    { color: 'var(--err)', Icon: XCircle,      label: 'Echec' },
+  SKIPPED: { color: 'var(--muted)', Icon: MinusCircle,  label: 'Skip' },
 };
 
 const TYPE_LABELS: Record<ChannexSyncLogType, { label: string; Icon: typeof Upload }> = {
@@ -103,7 +103,7 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-          <TypeIcon size={11} strokeWidth={2} color="#6B7280" />
+          <TypeIcon size={11} strokeWidth={2} color="var(--muted)" />
           <Typography variant="caption" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '0.72rem' }}>
             {typeMeta.label}
           </Typography>
@@ -115,8 +115,8 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
                 height: 16,
                 fontSize: '0.6rem',
                 fontWeight: 600,
-                bgcolor: 'rgba(107, 138, 154, 0.12)',
-                color: '#6B8A9A',
+                bgcolor: 'var(--accent-soft)',
+                color: 'var(--accent)',
                 '& .MuiChip-label': { px: 0.6 },
               }}
             />
@@ -132,7 +132,7 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
               display: 'block',
               mt: 0.3,
               fontSize: '0.66rem',
-              color: '#EF4444',
+              color: 'var(--err)',
               fontFamily: 'monospace',
               lineHeight: 1.35,
               wordBreak: 'break-word',
@@ -200,10 +200,10 @@ export default function ChannexSyncLogsList({
           py: 1,
           cursor: 'pointer',
           userSelect: 'none',
-          '&:hover': { bgcolor: 'rgba(0,0,0,0.025)' },
+          '&:hover': { bgcolor: 'var(--hover)' },
         }}
       >
-        <History size={14} color="#6B8A9A" strokeWidth={2.2} />
+        <History size={14} color="var(--accent)" strokeWidth={2.2} />
         <Typography variant="caption" fontWeight={600} sx={{ flex: 1 }}>
           Historique de sync
           {logs.length > 0 && (
@@ -221,14 +221,14 @@ export default function ChannexSyncLogsList({
                 onClick={(e) => { e.stopPropagation(); void fetchLogs(); }}
                 sx={{ width: 22, height: 22 }}
               >
-                <RefreshCw size={11} strokeWidth={2.2} color="#6B8A9A" />
+                <RefreshCw size={11} strokeWidth={2.2} color="var(--accent)" />
               </IconButton>
             </span>
           </Tooltip>
         )}
         {collapsed
-          ? <ChevronDown size={14} color="#6B8A9A" />
-          : <ChevronUp size={14} color="#6B8A9A" />}
+          ? <ChevronDown size={14} color="var(--accent)" />
+          : <ChevronUp size={14} color="var(--accent)" />}
       </Box>
 
       <Collapse in={!collapsed}>

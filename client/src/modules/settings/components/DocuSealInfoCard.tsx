@@ -45,11 +45,11 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>DocuSeal</Typography>
             {active ? (
-              <Chip label="Provider actif" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: '#4A9B8E', backgroundColor: '#4A9B8E14', border: '1px solid #4A9B8E40' }} />
+              <Chip label="Provider actif" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)' }} />
             ) : available ? (
-              <Chip label="Instance connectée — non activé" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: '#4A9B8E', backgroundColor: '#4A9B8E14', border: '1px solid #4A9B8E40' }} />
+              <Chip label="Instance connectée — non activé" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)' }} />
             ) : (
-              <Chip label="Prêt — à brancher" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: '#D4A574', backgroundColor: '#D4A57414', border: '1px solid #D4A57440' }} />
+              <Chip label="Prêt — à brancher" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--warn)', backgroundColor: 'var(--warn-soft)', border: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)' }} />
             )}
           </Box>
           <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
@@ -77,7 +77,7 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
                   width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '0.65rem', fontWeight: 700,
-                  bgcolor: 'rgba(107,138,154,0.10)', color: '#6B8A9A',
+                  bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
                 }}
               >
                 {i + 1}
@@ -91,7 +91,7 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: '#4A9B8E' }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}>
             <CheckCircle size={13} strokeWidth={2} />
           </Box>
           <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>

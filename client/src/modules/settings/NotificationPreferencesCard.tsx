@@ -54,7 +54,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'intervention',
     label: 'Interventions',
     icon: <Build fontSize="small" />,
-    color: '#6B8A9A',
+    color: 'var(--accent)',
     keys: [
       { key: 'INTERVENTION_CREATED', title: 'Intervention creee', description: 'Quand une nouvelle intervention est creee' },
       { key: 'INTERVENTION_UPDATED', title: 'Intervention mise a jour', description: 'Quand une intervention est modifiee' },
@@ -80,7 +80,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'service_request',
     label: 'Demandes de service',
     icon: <Description fontSize="small" />,
-    color: '#A6C0CE',
+    color: 'var(--info)',
     keys: [
       { key: 'SERVICE_REQUEST_CREATED', title: 'Demande creee', description: 'Quand une nouvelle demande de service est soumise' },
       { key: 'SERVICE_REQUEST_UPDATED', title: 'Demande mise a jour', description: 'Quand une demande de service est modifiee' },
@@ -96,7 +96,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'payment',
     label: 'Paiements',
     icon: <Payment fontSize="small" />,
-    color: '#4A9B8E',
+    color: 'var(--ok)',
     keys: [
       { key: 'PAYMENT_SESSION_CREATED', title: 'Session de paiement creee', description: 'Quand une session de paiement est initiee' },
       { key: 'PAYMENT_CONFIRMED', title: 'Paiement confirme', description: 'Quand un paiement est confirme avec succes' },
@@ -114,7 +114,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'team',
     label: 'Equipes',
     icon: <Groups fontSize="small" />,
-    color: '#D4A574',
+    color: 'var(--warn)',
     keys: [
       { key: 'TEAM_CREATED', title: 'Equipe creee', description: 'Quand une nouvelle equipe est creee' },
       { key: 'TEAM_UPDATED', title: 'Equipe modifiee', description: 'Quand une equipe est mise a jour' },
@@ -130,7 +130,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'ical',
     label: 'Import iCal',
     icon: <CalendarMonth fontSize="small" />,
-    color: '#7BA3C2',
+    color: 'var(--info)',
     keys: [
       { key: 'ICAL_IMPORT_SUCCESS', title: 'Import reussi', description: 'Quand un import iCal se termine avec succes' },
       { key: 'ICAL_IMPORT_PARTIAL', title: 'Import partiel', description: 'Quand un import iCal est partiellement reussi' },
@@ -144,7 +144,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'portfolio',
     label: 'Portefeuilles',
     icon: <Business fontSize="small" />,
-    color: '#8B9AAB',
+    color: 'var(--muted)',
     keys: [
       { key: 'PORTFOLIO_CREATED', title: 'Portefeuille cree', description: 'Quand un nouveau portefeuille est cree' },
       { key: 'PORTFOLIO_CLIENT_ADDED', title: 'Client ajoute', description: 'Quand un client est ajoute a un portefeuille' },
@@ -158,7 +158,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'user',
     label: 'Utilisateurs',
     icon: <Person fontSize="small" />,
-    color: '#C97A7A',
+    color: 'var(--err)',
     keys: [
       { key: 'USER_CREATED', title: 'Utilisateur cree', description: 'Quand un nouvel utilisateur est cree' },
       { key: 'USER_UPDATED', title: 'Profil modifie', description: 'Quand un profil utilisateur est modifie' },
@@ -171,7 +171,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'gdpr',
     label: 'RGPD',
     icon: <Shield fontSize="small" />,
-    color: '#6B8A9A',
+    color: 'var(--accent)',
     keys: [
       { key: 'GDPR_DATA_EXPORTED', title: 'Donnees exportees', description: 'Quand un export RGPD est genere' },
       { key: 'GDPR_USER_ANONYMIZED', title: 'Utilisateur anonymise', description: 'Quand les donnees d\'un utilisateur sont anonymisees' },
@@ -182,7 +182,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'permission',
     label: 'Permissions',
     icon: <Shield fontSize="small" />,
-    color: '#A6C0CE',
+    color: 'var(--info)',
     keys: [
       { key: 'PERMISSION_ROLE_UPDATED', title: 'Permissions modifiees', description: 'Quand les permissions d\'un role changent' },
       { key: 'PERMISSION_CACHE_INVALIDATED', title: 'Cache invalide', description: 'Quand le cache des permissions est reinitialise' },
@@ -192,7 +192,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'property',
     label: 'Proprietes',
     icon: <Home fontSize="small" />,
-    color: '#4A9B8E',
+    color: 'var(--ok)',
     keys: [
       { key: 'PROPERTY_CREATED', title: 'Propriete creee', description: 'Quand une nouvelle propriete est ajoutee' },
       { key: 'PROPERTY_UPDATED', title: 'Propriete modifiee', description: 'Quand une propriete est mise a jour' },
@@ -204,7 +204,7 @@ const CATEGORIES: CategoryGroup[] = [
     id: 'contact',
     label: 'Contact & Messagerie',
     icon: <Email fontSize="small" />,
-    color: '#e91e63',
+    color: 'var(--info)',
     keys: [
       { key: 'CONTACT_MESSAGE_RECEIVED', title: 'Message recu', description: 'Quand vous recevez un nouveau message' },
       { key: 'CONTACT_MESSAGE_SENT', title: 'Message envoye', description: 'Confirmation quand un message est envoye' },
@@ -217,8 +217,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'document',
     label: 'Documents',
-    icon: <Description color='#f57c00' />,
-    color: '#f57c00',
+    icon: <Description fontSize="small" />,
+    color: 'var(--warn)',
     keys: [
       { key: 'DOCUMENT_GENERATED', title: 'Document genere', description: 'Quand un document PDF est genere avec succes' },
       { key: 'DOCUMENT_GENERATION_FAILED', title: 'Echec de generation', description: 'Quand la generation d\'un document echoue' },

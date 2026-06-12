@@ -24,9 +24,9 @@ import CleaningPriceEstimator from './CleaningPriceEstimator';
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
 const FORM_PAPER_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 1.5,
+  border: '1px solid var(--line)',
+  bgcolor: 'var(--card)',
+  borderRadius: '14px',
   boxShadow: 'none',
   p: 2.5,
 } as const;

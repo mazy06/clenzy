@@ -51,10 +51,10 @@ import type {
  * propriétaire (endpoints {@code /{ownerId}/*}).</p>
  */
 
-const ACCENT = '#4A9B8E';
-const PRIMARY = '#6B8A9A';
-const NEUTRAL = '#8A8378';
-const WARM = '#D4A574';
+const ACCENT = 'var(--ok)';
+const PRIMARY = 'var(--accent)';
+const NEUTRAL = 'var(--muted)';
+const WARM = 'var(--warn)';
 
 const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
@@ -417,14 +417,14 @@ export default function PayoutMethodEditDialog({
                 key={opt.value}
                 sx={{
                   border: '1px solid',
-                  borderColor: selectedMethod === opt.value ? ACCENT : 'divider',
-                  backgroundColor: selectedMethod === opt.value ? `${ACCENT}08` : 'transparent',
+                  borderColor: selectedMethod === opt.value ? 'var(--accent)' : 'divider',
+                  backgroundColor: selectedMethod === opt.value ? 'var(--accent-soft)' : 'transparent',
                   borderRadius: '8px',
                   px: 1.5,
                   py: 1,
                   cursor: 'pointer',
                   transition: 'border-color 150ms, background-color 150ms',
-                  '&:hover': { borderColor: `${ACCENT}88`, backgroundColor: `${ACCENT}05` },
+                  '&:hover': { borderColor: 'color-mix(in srgb, var(--accent) 53%, transparent)', backgroundColor: 'color-mix(in srgb, var(--accent) 4%, transparent)' },
                 }}
                 onClick={() => setSelectedMethod(opt.value)}
               >
@@ -639,16 +639,7 @@ export default function PayoutMethodEditDialog({
           startIcon={
             saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />
           }
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            borderRadius: '8px',
-            bgcolor: ACCENT,
-            color: '#fff',
-            boxShadow: 'none',
-            '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
-          }}
+          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
           {selectedMethod === 'OPEN_BANKING'
             ? 'Connecter ma banque'

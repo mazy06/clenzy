@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import {
   Box, Paper, Typography, Button, Chip, IconButton, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert,
+  MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert, Skeleton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Tabs, Tab, Card, CardContent, Grid,
 } from '@mui/material';
@@ -34,6 +34,7 @@ import {
 } from '../../icons';
 import FilterChipRow from '../../components/FilterChipRow';
 import HelpBanner from '../../components/HelpBanner';
+import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
@@ -71,28 +72,50 @@ const PAYOUT_STATUS_VALUES: (PayoutStatus | '')[] = [
   '', 'PENDING', 'APPROVED', 'PROCESSING', 'PAID', 'FAILED', 'CANCELLED',
 ];
 
+// Carte/panneau : hairline --line, r14 (baseline §2 Cartes), aucune ombre.
 const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
+  border: '1px solid var(--line)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: 'var(--radius-lg)',
+  bgcolor: 'var(--card)',
 } as const;
 
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
+// Tableaux : entêtes overline / lignes hairline via le thème global Signature.
+const CELL_SX = { fontSize: '12.5px', py: 1.25, fontVariantNumeric: 'tabular-nums' } as const;
+const HEAD_CELL_SX = { py: 1 } as const;
 
 const TAB_SX = { textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, minHeight: 40 } as const;
 
-/** Soft-tinted chip styling — unified across Facturation tabs (6px radius, no pills). */
+// Label overline des tuiles KPI (pattern StatTile).
+const KPI_LABEL_SX = {
+  display: 'block',
+  fontSize: '10.5px',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: 'var(--faint)',
+  mb: 0.5,
+} as const;
+
+// Valeur KPI : display tabular-nums (pattern StatTile).
+const KPI_VALUE_SX = {
+  fontFamily: 'var(--font-display)',
+  fontSize: '1.125rem',
+  fontWeight: 600,
+  letterSpacing: '-0.025em',
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--ink)',
+} as const;
+
+/** Chip statut — pattern baseline §2 : pilule r999, 10.5px fw700 h22, texte couleur + fond soft. */
 const softChipSx = (hex: string) => ({
   backgroundColor: `${hex}18`,
   color: hex,
-  border: `1px solid ${hex}40`,
-  borderRadius: '6px',
+  borderRadius: 999,
   fontWeight: 700,
-  fontSize: '0.625rem',
+  fontSize: '10.5px',
   height: 22,
-  '& .MuiChip-label': { px: 0.75 },
+  '& .MuiChip-label': { px: 1.25 },
 });
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -312,29 +335,26 @@ export const PayoutsTab: React.FC = () => {
 
       {/* ── Table ── */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={32} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: 'var(--radius-sm)' }} />
+          ))}
         </Box>
       ) : isError ? (
         <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
           {t('accounting.error', 'Erreur lors du chargement des payouts')}
         </Alert>
       ) : payouts.length === 0 ? (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountIcon size={48} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
-            {t('accounting.payouts.emptyTitle', 'Aucun payout trouve')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 2, maxWidth: 400, mx: 'auto' }}>
-            {t(
-              'accounting.payouts.emptyDescription',
-              'Generez votre premier payout pour calculer le reversement du a un proprietaire.',
-            )}
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', maxWidth: 400, mx: 'auto' }}>
-            {t('accounting.payouts.emptyAutoHint', 'Les payouts sont generes automatiquement selon la planification configuree dans les parametres.')}
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<AccountIcon />}
+          title={t('accounting.payouts.emptyTitle', 'Aucun payout trouve')}
+          description={t(
+            'accounting.payouts.emptyDescription',
+            'Generez votre premier payout pour calculer le reversement du a un proprietaire.',
+          )}
+          tip={t('accounting.payouts.emptyAutoHint', 'Les payouts sont generes automatiquement selon la planification configuree dans les parametres.')}
+          variant="plain"
+        />
       ) : (
         <TableContainer component={Paper} sx={CARD_SX}>
           <Table size="small">
@@ -498,9 +518,8 @@ export const PayoutsTab: React.FC = () => {
         onClose={() => setPayOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+        <DialogTitle>
           {t('accounting.payTitle', 'Marquer comme paye')}
         </DialogTitle>
         <DialogContent sx={{ pt: '16px !important' }}>
@@ -545,17 +564,16 @@ export const PayoutsTab: React.FC = () => {
         onClose={() => setDetailOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountIcon size={'1.25rem'} strokeWidth={1.75} /></Box>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AccountIcon size={'1.25rem'} strokeWidth={1.75} /></Box>
           {t('accounting.payoutDetail', 'Détail du reversement')}
         </DialogTitle>
         {detailPayout && (() => {
           const config = configByOwnerId.get(detailPayout.ownerId);
           return (
             <DialogContent sx={{ pt: '8px !important' }}>
-              <Table size="small" sx={{ '& td, & th': { fontSize: '0.8125rem', py: 0.75, border: 'none' } }}>
+              <Table size="small" sx={{ '& td, & th': { fontSize: '12.5px', py: 0.75, border: 'none', fontVariantNumeric: 'tabular-nums' } }}>
                 <TableBody>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary', width: 160 }}>Bénéficiaire</TableCell>
@@ -575,11 +593,11 @@ export const PayoutsTab: React.FC = () => {
                       <Chip
                         label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'}
                         size="small"
-                        sx={softChipSx('#6B8A9A')}
+                        sx={softChipSx('#7BA3C2') /* = --info (tokens.css) — hex requis par softChipSx */}
                       />
                     </TableCell>
                   </TableRow>
-                  <TableRow><TableCell colSpan={2} sx={{ pt: '12px !important' }}><Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} sx={{ pt: '12px !important' }}><Box sx={{ borderBottom: '1px solid', borderColor: 'var(--line)' }} /></TableCell></TableRow>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Période</TableCell>
                     <TableCell>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
@@ -590,18 +608,18 @@ export const PayoutsTab: React.FC = () => {
                   </TableRow>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Commission ({(detailPayout.commissionRate * 100).toFixed(1)}%)</TableCell>
-                    <TableCell sx={{ color: 'error.main' }}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
+                    <TableCell sx={{ color: 'var(--err)' }}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Dépenses</TableCell>
-                    <TableCell sx={{ color: detailPayout.expenses > 0 ? 'error.main' : 'text.secondary' }}>
+                    <TableCell sx={{ color: detailPayout.expenses > 0 ? 'var(--err)' : 'var(--muted)' }}>
                       {detailPayout.expenses > 0 ? `- ${fmtCurrency(detailPayout.expenses)}` : fmtCurrency(0)}
                     </TableCell>
                   </TableRow>
-                  <TableRow><TableCell colSpan={2}><Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2}><Box sx={{ borderBottom: '1px solid', borderColor: 'var(--line)' }} /></TableCell></TableRow>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Net à virer</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'success.main' }}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', fontFamily: 'var(--font-display)', color: 'var(--ok)' }}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
                   </TableRow>
                   {detailPayout.paymentReference && (
                     <TableRow>
@@ -811,29 +829,29 @@ export const ExpensesTab: React.FC = () => {
         onChange={handleReceiptFileChange}
       />
 
-      {/* ── Stats ── */}
+      {/* ── Stats — pattern StatTile : label overline + valeur display tabular-nums ── */}
       <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5 }}>
-        <Paper sx={{ ...CARD_SX, p: 2, flex: 1, textAlign: 'center' }}>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 0.5 }}>
+        <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
+          <Typography sx={KPI_LABEL_SX}>
             {t('accounting.expenses.totalExpenses', 'Total depenses')}
           </Typography>
-          <Typography sx={{ fontSize: '1.125rem', fontWeight: 700 }}>
+          <Typography sx={KPI_VALUE_SX}>
             {fmtCurrency(stats.total)}
           </Typography>
         </Paper>
-        <Paper sx={{ ...CARD_SX, p: 2, flex: 1, textAlign: 'center' }}>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 0.5 }}>
+        <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
+          <Typography sx={KPI_LABEL_SX}>
             {t('accounting.expenses.pendingCount', 'En attente')}
           </Typography>
-          <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, color: EXPENSE_STATUS_COLORS.DRAFT }}>
+          <Typography sx={{ ...KPI_VALUE_SX, color: EXPENSE_STATUS_COLORS.DRAFT }}>
             {stats.pending}
           </Typography>
         </Paper>
-        <Paper sx={{ ...CARD_SX, p: 2, flex: 1, textAlign: 'center' }}>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 0.5 }}>
+        <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
+          <Typography sx={KPI_LABEL_SX}>
             {t('accounting.expenses.approvedCount', 'Approuvees')}
           </Typography>
-          <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, color: EXPENSE_STATUS_COLORS.APPROVED }}>
+          <Typography sx={{ ...KPI_VALUE_SX, color: EXPENSE_STATUS_COLORS.APPROVED }}>
             {stats.approved}
           </Typography>
         </Paper>
@@ -902,20 +920,21 @@ export const ExpensesTab: React.FC = () => {
 
       {/* ── Table ── */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={32} />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: 'var(--radius-sm)' }} />
+          ))}
         </Box>
       ) : isError ? (
         <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
           {t('accounting.expenses.error', 'Erreur lors du chargement des depenses')}
         </Alert>
       ) : expenses.length === 0 ? (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountIcon size={48} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-            {t('accounting.expenses.empty', 'Aucune depense prestataire')}
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<AccountIcon />}
+          title={t('accounting.expenses.empty', 'Aucune depense prestataire')}
+          variant="plain"
+        />
       ) : (
         <TableContainer component={Paper} sx={CARD_SX}>
           <Table size="small">
@@ -1057,9 +1076,8 @@ export const ExpensesTab: React.FC = () => {
         onClose={() => setCreateOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+        <DialogTitle>
           {t('accounting.expenses.create', 'Nouvelle depense')}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
@@ -1207,9 +1225,8 @@ export const ExpensesTab: React.FC = () => {
         onClose={() => setPayOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+        <DialogTitle>
           {t('accounting.expenses.markPaid', 'Marquer comme paye')}
         </DialogTitle>
         <DialogContent sx={{ pt: '16px !important' }}>
@@ -1268,7 +1285,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'fec',
     titleKey: 'accounting.exports.fec',
     descKey: 'accounting.exports.fecDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AccountIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'txt',
     download: (from, to) => accountingExportApi.downloadFec(from, to),
     preview: (from, to) => accountingExportApi.previewFec(from, to),
@@ -1277,7 +1294,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'reservations',
     titleKey: 'accounting.exports.reservationsCsv',
     descKey: 'accounting.exports.reservationsCsvDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><ListAltIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><ListAltIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadReservationsCsv(from, to),
     preview: (from, to) => accountingExportApi.previewReservationsCsv(from, to),
@@ -1286,7 +1303,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'payouts',
     titleKey: 'accounting.exports.payoutsCsv',
     descKey: 'accounting.exports.payoutsCsvDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><AttachMoneyIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><AttachMoneyIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadPayoutsCsv(from, to),
     preview: (from, to) => accountingExportApi.previewPayoutsCsv(from, to),
@@ -1295,7 +1312,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'expenses',
     titleKey: 'accounting.exports.expensesCsv',
     descKey: 'accounting.exports.expensesCsvDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><BuildIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><BuildIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadExpensesCsv(from, to),
     preview: (from, to) => accountingExportApi.previewExpensesCsv(from, to),
@@ -1304,7 +1321,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'invoices',
     titleKey: 'accounting.exports.invoicesCsv',
     descKey: 'accounting.exports.invoicesCsvDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><ArticleIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><ArticleIcon size={32} strokeWidth={1.75} /></Box>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadInvoicesCsv(from, to),
     preview: (from, to) => accountingExportApi.previewInvoicesCsv(from, to),
@@ -1379,7 +1396,7 @@ export const ExportsTab: React.FC = () => {
 
       {/* Period selector */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, fontSize: '0.875rem' }}>
+        <Typography sx={{ mb: 1.5, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)' }}>
           {t('accounting.exports.period', 'Periode d\'export')}
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1414,22 +1431,15 @@ export const ExportsTab: React.FC = () => {
       <Grid container spacing={2}>
         {EXPORT_CARDS.map((card) => (
           <Grid item xs={12} sm={6} md={4} key={card.key}>
-            <Card
-              sx={{
-                ...CARD_SX,
-                height: '100%',
-                '&:hover': { borderColor: 'primary.main', boxShadow: 1 },
-                transition: 'all 0.2s ease-in-out',
-              }}
-            >
+            <Card sx={{ ...CARD_SX, height: '100%' }}>
               <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
                   {card.icon}
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                  <Typography sx={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
                     {t(card.titleKey)}
                   </Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 2, flex: 1 }}>
+                <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mb: 2, flex: 1 }}>
                   {t(card.descKey)}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
@@ -1439,17 +1449,17 @@ export const ExportsTab: React.FC = () => {
                     startIcon={<VisibilityIcon />}
                     disabled={!from || !to || loadingKey !== null}
                     onClick={() => handlePreview(card)}
-                    sx={{ textTransform: 'none', fontSize: '0.8125rem', flex: 1 }}
+                    sx={{ flex: 1 }}
                   >
                     {t('common.view')}
                   </Button>
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={loadingKey === card.key ? <CircularProgress size={16} /> : <DownloadIcon />}
+                    startIcon={loadingKey === card.key ? <CircularProgress size={14} /> : <DownloadIcon />}
                     disabled={!from || !to || loadingKey !== null}
                     onClick={() => handleDownload(card)}
-                    sx={{ textTransform: 'none', fontSize: '0.8125rem', flex: 1 }}
+                    sx={{ flex: 1 }}
                   >
                     {loadingKey === card.key
                       ? t('accounting.exports.downloading', 'Telechargement...')

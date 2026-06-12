@@ -25,10 +25,10 @@ import {
 import type { MarketingTogglesPayload } from '../../../services/api/marketingIntegrationApi';
 
 const BREVO_GREEN = '#0B996E';
-const ACCENT = '#4A9B8E';
-const DANGER = '#C97A7A';
-const WARM = '#D4A574';
-const NEUTRAL = '#8A8378';
+const ACCENT = 'var(--ok)';
+const DANGER = 'var(--err)';
+const WARM = 'var(--warn)';
+const NEUTRAL = 'var(--muted)';
 
 const labelSx = {
   fontSize: '0.72rem',
@@ -43,9 +43,9 @@ const chipSx = (color: string) => ({
   fontSize: '0.6875rem',
   fontWeight: 600,
   borderRadius: '6px',
-  backgroundColor: `${color}14`,
+  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
   color,
-  border: `1px solid ${color}33`,
+  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
   '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
   '& .MuiChip-label': { px: 0.875 },
 });
@@ -211,13 +211,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
               disableElevation
               onClick={saveKey}
               disabled={!keyInput.trim() || setApiKey.isPending}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                bgcolor: BREVO_GREEN,
-                '&:hover': { bgcolor: BREVO_GREEN, filter: 'brightness(0.94)' },
-              }}
+              sx={{ textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
             >
               {setApiKey.isPending ? <CircularProgress size={16} color="inherit" /> : 'Enregistrer'}
             </Button>
