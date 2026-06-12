@@ -152,10 +152,11 @@ export default function MessagingHubPage() {
         backPath="/dashboard"
         showBackButton={false}
         actions={
+          // Réf .s-btn--p : contour accent (signatureTheme containedPrimary).
           <Button
-            variant="outlined"
-            size="small"
-            startIcon={<EditIcon size={14} strokeWidth={1.75} />}
+            variant="contained"
+            color="primary"
+            startIcon={<EditIcon size={15} strokeWidth={1.75} />}
             onClick={() => navigate('/contact/create')}
           >
             {t('messagingHub.newMessage', 'Nouveau message')}

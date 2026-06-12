@@ -299,7 +299,6 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             <Button
               variant="contained"
               color="primary"
-              size="small"
               startIcon={generateDocumentMutation.isPending
                 ? <CircularProgress size={13} color="inherit" />
                 : <FileTextIcon size={15} strokeWidth={1.75} />}
@@ -314,7 +313,6 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           <Tooltip title={`Renvoyer le devis à ${form.email}`} placement="top" arrow>
             <Button
               variant="outlined"
-              size="small"
               startIcon={<SendIcon size={15} strokeWidth={1.75} />}
               onClick={openResendModal}
               disabled={generateDocumentMutation.isPending}
@@ -326,7 +324,6 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         {form.status !== 'PROCESSED' && form.status !== 'ARCHIVED' && (
           <Button
             variant="outlined"
-            size="small"
             startIcon={<CheckCircleIcon size={15} strokeWidth={1.75} />}
             onClick={() => handleUpdateStatus('PROCESSED')}
             disabled={updateStatusMutation.isPending}
@@ -337,7 +334,6 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         {form.status !== 'ARCHIVED' ? (
           <Button
             variant="text"
-            size="small"
             startIcon={<ArchiveIcon size={15} strokeWidth={1.75} />}
             onClick={() => handleUpdateStatus('ARCHIVED')}
             disabled={updateStatusMutation.isPending}
@@ -351,7 +347,6 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         ) : (
           <Button
             variant="outlined"
-            size="small"
             startIcon={<RestoreIcon size={15} strokeWidth={1.75} />}
             onClick={() => handleUpdateStatus('READ')}
             disabled={updateStatusMutation.isPending}

@@ -348,7 +348,9 @@ export default function ThreadView({
                   handleSend();
                 }
               }}
-              sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', lineHeight: 1.5, py: 0.5, '& textarea': { p: 0 } }}
+              // Réf .mg-cbox textarea : aucun padding propre (la boîte porte le
+              // padding 8/8/8/14), 12.5px lh 1.5, max-height 80.
+              sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', lineHeight: 1.5, py: 0, '& textarea': { p: 0, maxHeight: 80 } }}
             />
             {composeTools}
             <Box
