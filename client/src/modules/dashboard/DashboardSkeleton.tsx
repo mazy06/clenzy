@@ -8,7 +8,7 @@ const KpiCardSkeleton: React.FC = () => (
     variant="outlined"
     sx={{
       height: '100%',
-      borderRadius: '12px',
+      borderRadius: 'var(--radius-lg)',
       boxShadow: 'none',
       border: '1px solid',
       borderColor: 'divider',
@@ -34,7 +34,7 @@ const SectionSkeleton: React.FC<{ height?: number; titleWidth?: string }> = ({
   <Card
     variant="outlined"
     sx={{
-      borderRadius: '12px',
+      borderRadius: 'var(--radius-lg)',
       boxShadow: 'none',
       border: '1px solid',
       borderColor: 'divider',
@@ -58,7 +58,7 @@ const SidebarSkeleton: React.FC = () => (
         key={i}
         variant="outlined"
         sx={{
-          borderRadius: '12px',
+          borderRadius: 'var(--radius-lg)',
           boxShadow: 'none',
           border: '1px solid',
           borderColor: 'divider',
@@ -115,7 +115,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({
             <Card
               variant="outlined"
               sx={{
-                borderRadius: '12px',
+                borderRadius: 'var(--radius-lg)',
                 boxShadow: 'none',
                 border: '1px solid',
                 borderColor: 'divider',
@@ -137,7 +137,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({
           <Card
             variant="outlined"
             sx={{
-              borderRadius: '12px',
+              borderRadius: 'var(--radius-lg)',
               boxShadow: 'none',
               border: '1px solid',
               borderColor: 'divider',
@@ -163,7 +163,7 @@ const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({
           <Card
             variant="outlined"
             sx={{
-              borderRadius: '12px',
+              borderRadius: 'var(--radius-lg)',
               boxShadow: 'none',
               border: '1px solid',
               borderColor: 'divider',

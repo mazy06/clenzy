@@ -136,7 +136,6 @@ export default function Tarification() {
                     startIcon={<Refresh />}
                     onClick={resetConfig}
                     disabled={isSaving}
-                    sx={{ fontSize: '0.8125rem', py: 0.5, borderWidth: 1.5 }}
                     title={t('tarification.reset')}
                   >
                     {t('tarification.reset')}
@@ -147,7 +146,6 @@ export default function Tarification() {
                     startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <Save />}
                     onClick={saveConfig}
                     disabled={isSaving}
-                    sx={{ fontSize: '0.8125rem', py: 0.5 }}
                     title={t('tarification.save')}
                   >
                     {t('tarification.save')}

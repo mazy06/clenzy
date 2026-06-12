@@ -19,6 +19,7 @@ import { Lock, Build } from '../../icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import { planningKeys } from './hooks/usePlanningData';
+import { INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
 import type { PlanningProperty } from './types';
 
 interface BlockPeriodDialogProps {
@@ -106,11 +107,21 @@ const BlockPeriodDialog: React.FC<BlockPeriodDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {blockType === 'MAINTENANCE' ? (
-          <Build fontSize="small" color="warning" />
-        ) : (
-          <Lock fontSize="small" />
-        )}
+        <Box
+          component="span"
+          sx={{
+            display: 'inline-flex',
+            color: blockType === 'MAINTENANCE'
+              ? INTERVENTION_TYPE_TOKEN_COLORS.maintenance
+              : INTERVENTION_TYPE_TOKEN_COLORS.blocked,
+          }}
+        >
+          {blockType === 'MAINTENANCE' ? (
+            <Build size={18} strokeWidth={1.75} />
+          ) : (
+            <Lock size={18} strokeWidth={1.75} />
+          )}
+        </Box>
         Bloquer une periode
       </DialogTitle>
 
@@ -144,13 +155,17 @@ const BlockPeriodDialog: React.FC<BlockPeriodDialogProps> = ({
             >
               <MenuItem value="BLOCKED">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Lock fontSize="small" color='#616161' />
+                  <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.blocked }}>
+                    <Lock size={15} strokeWidth={1.75} />
+                  </Box>
                   Bloque (indisponible)
                 </Box>
               </MenuItem>
               <MenuItem value="MAINTENANCE">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Build fontSize="small" color='#e65100' />
+                  <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+                    <Build size={15} strokeWidth={1.75} />
+                  </Box>
                   Maintenance / Travaux
                 </Box>
               </MenuItem>
@@ -207,7 +222,7 @@ const BlockPeriodDialog: React.FC<BlockPeriodDialogProps> = ({
           onClick={handleSubmit}
           variant="contained"
           disabled={saving || !selectedPropertyId || !from || !to}
-          startIcon={saving ? <CircularProgress size={16} /> : <Lock />}
+          startIcon={saving ? <CircularProgress size={16} /> : <Lock size={15} strokeWidth={1.75} />}
         >
           {saving ? 'Blocage...' : 'Bloquer'}
         </Button>

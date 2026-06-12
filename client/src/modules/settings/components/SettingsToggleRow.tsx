@@ -21,7 +21,7 @@ interface SettingsToggleRowProps {
 
 const SettingsToggleRow: React.FC<SettingsToggleRowProps> = ({
   icon: Icon,
-  iconColor = '#8A8378',
+  iconColor = 'var(--muted)',
   title,
   description,
   control,
@@ -67,8 +67,8 @@ const SettingsToggleRow: React.FC<SettingsToggleRowProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             color: iconColor,
-            backgroundColor: `${iconColor}12`,
-            border: `1px solid ${iconColor}26`,
+            backgroundColor: `color-mix(in srgb, ${iconColor} 7%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${iconColor} 15%, transparent)`,
             flexShrink: 0,
           }}
           aria-hidden="true"

@@ -1,9 +1,10 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
-import { alpha, Box, Typography, useTheme } from '@mui/material';
+import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
+import { Box, Typography } from '@mui/material';
 import PlanningBar from './PlanningBar';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState } from './types';
-import { ROW_CONFIG, BAR_BORDER_RADIUS } from './constants';
+import { ROW_CONFIG, BAR_BORDER_RADIUS, WEEKEND_CELL_BG } from './constants';
 import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
+import { resolveAttachedReservationId, type AttachmentCandidate } from './utils/interventionAttachment';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -47,12 +48,20 @@ interface PlanningRowProps {
   onEmptyClick: (data: QuickCreateData) => void;
   quickCreateOpen: boolean;
   showPrices: boolean;
-  showInterventions: boolean;
+  /** Conservé pour le contrat avec PlanningTimeline — le filtre des events
+   *  est fait en amont (usePlanningFilters), la hauteur de ligne est fixe. */
+  showInterventions?: boolean;
   pricingMap: PricingMap;
   minNightsMap?: MinNightsMap;
   effectiveRowHeight: number;
   /** All events (unfiltered) for conflict detection on range selection */
   allEvents: PlanningEvent[];
+  /** TOUTES les réservations chargées (avant filtres/légende/plage).
+   *  Sert au rattachement intervention → réservation (lien explicite OU
+   *  heuristique date/propriété) : une intervention rattachée à une
+   *  réservation connue n'est JAMAIS rendue en pastille isolée — même si la
+   *  brique hôte est masquée ou hors plage. */
+  loadedReservations: AttachmentCandidate[];
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -75,19 +84,76 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   onEmptyClick,
   quickCreateOpen,
   showPrices,
-  showInterventions,
   pricingMap,
   minNightsMap,
   effectiveRowHeight,
   allEvents,
+  loadedReservations,
 }) => {
-  const theme = useTheme();
   const { convertAndFormat } = useCurrency();
   const config = ROW_CONFIG[density];
-  const isDark = theme.palette.mode === 'dark';
+
+  // ── Interventions rattachées à une réservation (maquette) ────────────────
+  // RÈGLE UNIQUE : une intervention RATTACHÉE (lien explicite
+  // linkedReservationId, heuristique même propriété + date planifiée dans
+  // [checkIn, checkOut] inclusif, OU fenêtre de vacance post-checkout
+  // (ménage à checkout+N avant le check-in suivant) — cf.
+  // resolveAttachedReservationId) est
+  // UNIQUEMENT rendue comme pastille DANS la brique de sa réservation
+  // (pastille blanche 20px — sur brique étroite elle compte dans le « +N »).
+  // Si la brique hôte n'est pas rendue (masquée par les filtres/légende, hors
+  // plage), l'intervention n'est PAS rendue du tout — jamais en pastille
+  // isolée. Seules les interventions véritablement orphelines (aucune
+  // réservation candidate dans les données chargées) restent sur la grille,
+  // rendues en pastille icône seule par PlanningBar. Chaque layout suit UN
+  // seul chemin (absorbé, ignoré ou standalone) : une intervention ne peut
+  // pas être rendue 2 fois.
+  const { visibleLayouts, linkedInterventionsByBarId } = useMemo(() => {
+    const reservationLayoutsById = new Map<number, BarLayout>();
+    for (const l of barLayouts) {
+      if (l.event.type === 'reservation' && l.event.reservation) {
+        reservationLayoutsById.set(l.event.reservation.id, l);
+      }
+    }
+    const linked = new Map<string, PlanningEvent[]>();
+    const visible: BarLayout[] = [];
+    for (const l of barLayouts) {
+      // Seules les vraies interventions sont rattachables — les plages
+      // bloquées (type maintenance sans `intervention`) et les service
+      // requests en attente de paiement restent rendues telles quelles.
+      const isInterventionType = l.event.type === 'cleaning' || l.event.type === 'maintenance';
+      if (isInterventionType && l.event.intervention) {
+        const attachedResId = resolveAttachedReservationId(
+          {
+            propertyId: l.event.propertyId,
+            startDate: l.event.startDate,
+            linkedReservationId: l.event.intervention.linkedReservationId,
+          },
+          loadedReservations,
+        );
+        if (attachedResId != null) {
+          const host = reservationLayoutsById.get(attachedResId);
+          if (host) {
+            const arr = linked.get(host.event.id);
+            if (arr) {
+              arr.push(l.event);
+            } else {
+              linked.set(host.event.id, [l.event]);
+            }
+          }
+          // Rattachée mais brique hôte non rendue : on ne rend rien.
+          continue;
+        }
+      }
+      visible.push(l);
+    }
+    return { visibleLayouts: visible, linkedInterventionsByBarId: linked };
+  }, [barLayouts, loadedReservations]);
   const propertyPricing = showPrices ? pricingMap.get(property.id) : undefined;
   const propertyMinNights = showPrices ? minNightsMap?.get(property.id) : undefined;
-  const activeRowHeight = showInterventions ? config.rowHeight : config.interventionTop + 2;
+  // Hauteur active = rangée entière : les interventions partagent la bande
+  // verticale de la brique (plus de couloir dédié sous la brique).
+  const activeRowHeight = config.rowHeight;
 
   // ── Drag-to-select state ──────────────────────────────────────────────────
   const selectionRef = useRef<{
@@ -219,10 +285,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
 
     const rect = e.currentTarget.getBoundingClientRect();
 
-    // Ignore clicks outside the active grid area (e.g. on the price line)
+    // Ignore clicks outside the active grid area
     const y = e.clientY - rect.top;
-    const activeH = showInterventions ? config.rowHeight : config.interventionTop + 2;
-    if (y > activeH) return;
+    if (y > config.rowHeight) return;
 
     const x = e.clientX - rect.left;
     const dayIndex = Math.floor(x / dayWidthRef.current);
@@ -374,7 +439,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       document.removeEventListener('mousemove', handleDocMouseMove);
       document.removeEventListener('mouseup', handleDocMouseUp);
     };
-  }, [isDragging, showInterventions, config]);
+  }, [isDragging, config]);
 
   // Cleanup document listeners on unmount
   useEffect(() => {
@@ -399,9 +464,15 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         position: 'relative',
         height: effectiveRowHeight,
         width: totalGridWidth,
-        backgroundColor: rowIndex % 2 === 0
-          ? 'transparent'
-          : isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
+        borderBottom: '1px solid var(--line)',
+        // Spec .pl-row / .pl-cell : fond plat (pas de zebra), hairlines
+        // verticales entre les jours — un seul paint via repeating-gradient
+        // plutôt qu'une Box par cellule. Clip 1px avant le bord droit :
+        // spec .pl-cell:last-child sans séparateur.
+        backgroundColor: 'transparent',
+        backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--line) ${dayWidth - 1}px ${dayWidth}px)`,
+        backgroundSize: `${totalGridWidth - 1}px 100%`,
+        backgroundRepeat: 'no-repeat',
       }}
     >
       {/* Day column backgrounds (weekends + today) */}
@@ -418,10 +489,12 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               top: 0,
               width: dayWidth,
               height: effectiveRowHeight,
+              // Aujourd'hui : colonne légèrement teintée accent (maquette).
+              // Week-end : spec .pl-cell.we (constante locale --pl-cell-we).
               backgroundColor: today
-                ? isDark ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.03)'
+                ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                 : weekend
-                  ? isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
+                  ? WEEKEND_CELL_BG
                   : 'transparent',
               pointerEvents: 'none',
             }}
@@ -446,7 +519,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       {/* Selection highlight overlay (drag-to-select) — styled like reservation bars */}
       {selectionRange && (() => {
         const isError = selectionError || selectionBlocked;
-        const selColor = isError ? '#EF4444' : '#26A69A'; // Red on error/blocked, teal otherwise
+        const selColor = isError ? 'var(--err)' : 'var(--ok)'; // Rouge si bloqué, vert sinon
         const nightCount = selectionRange.end - selectionRange.start + 1;
         const offsetPx = selectionRange.startOffsetPx || 0;
         const leftPx = selectionRange.start * dayWidth + offsetPx;
@@ -459,29 +532,29 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               top: config.barPadding,
               width: Math.max(widthPx, 4), // Minimum 4px so the bar is always visible
               height: config.reservationBarHeight,
-              backgroundColor: alpha(selColor, isDark ? 0.35 : 0.25),
-              border: `1.5px solid ${alpha(selColor, 0.6)}`,
-              borderLeft: `3px solid ${selColor}`,
+              backgroundColor: `color-mix(in srgb, ${selColor} 25%, transparent)`,
+              border: `1.5px solid color-mix(in srgb, ${selColor} 60%, transparent)`,
               borderRadius: `${BAR_BORDER_RADIUS}px`,
               zIndex: 4,
               pointerEvents: 'none',
               display: 'flex',
               alignItems: 'center',
               px: 1,
-              boxShadow: `0 2px 8px ${alpha(selColor, 0.25)}`,
+              boxShadow: `0 2px 8px color-mix(in srgb, ${selColor} 25%, transparent)`,
               transition: isError ? 'opacity 0.3s ease' : undefined,
               animation: isError ? 'pulseError 0.4s ease-in-out 2' : undefined,
               '@keyframes pulseError': {
                 '0%, 100%': { opacity: 1 },
                 '50%': { opacity: 0.5 },
               },
+              '@media (prefers-reduced-motion: reduce)': { animation: 'none', transition: 'none' },
             }}
           >
             <Typography
               sx={{
                 fontSize: '0.6875rem',
                 fontWeight: 600,
-                color: isDark ? (isError ? '#FCA5A5' : 'text.primary') : selColor,
+                color: selColor,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -495,7 +568,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       })()}
 
       {/* Event bars */}
-      {barLayouts.map((layout) => {
+      {visibleLayouts.map((layout) => {
         // Check if this bar is being resized → pass live width
         const isBeingResized =
           dragState.activeType === 'resize' &&
@@ -516,6 +589,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             resizeConflict={resizeConflict}
             onClick={onEventClick}
             onHide={onHideEvent}
+            linkedInterventions={linkedInterventionsByBarId.get(layout.event.id)}
           />
         );
       })}
@@ -554,10 +628,11 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               <Box
                 component="span"
                 sx={{
+                  fontFamily: 'var(--font-display)',
                   fontSize: dayWidth < 60 ? '0.625rem' : '0.6875rem',
                   fontWeight: 500,
-                  color: 'text.secondary',
-                  opacity: 0.7,
+                  color: 'var(--muted)',
+                  opacity: 0.8,
                   lineHeight: 1,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -578,7 +653,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 0.125,
-                  color: 'text.secondary',
+                  color: 'var(--faint)',
                   opacity: 0.85,
                 }}
               >

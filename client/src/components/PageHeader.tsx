@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography, Button, Tooltip, useTheme, useMediaQuery } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '../icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useIconSize } from '../hooks/useResponsiveSize';
+import { useAuth } from '../hooks/useAuth';
+import { getScreenIdentity, type HubAccess } from '../config/navigationHubs';
+import HubScreenSwitcher from './HubScreenSwitcher';
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
   /**
-   * Icone optionnelle affichee dans un badge carre arrondi a gauche du titre.
-   * Conserve les memes proportions que les autres badges (32x32, primary bg).
+   * Icone optionnelle affichee dans une pastille arrondie a gauche du titre.
+   * Langage Signature : fond soft (var(--accent-soft)), icone var(--accent).
    */
   iconBadge?: React.ReactNode;
   /** Couleur du badge icone. Default : primary. */
@@ -60,9 +63,23 @@ export default function PageHeader({
   showBackButtonWithActions = false,
 }: PageHeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAdmin, isManager } = useAuth();
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
   const badgeIconSize = useIconSize('badge');
+
+  // Mode « identité » (Direction A) : sur tout écran-MENU (hub multi-écrans OU
+  // écran autonome), le bloc titre est remplacé par la signature pastille +
+  // pilule(s). Les pages de détail (/properties/123…) gardent le titre classique.
+  const screenIdentity = useMemo(() => {
+    const access: HubAccess = {
+      permissions: user?.permissions ?? [],
+      isAdmin: isAdmin(),
+      isManager: isManager(),
+    };
+    return getScreenIdentity(location.pathname, access);
+  }, [location.pathname, user?.permissions, isAdmin, isManager]);
 
   const handleBack = () => {
     if (onBack) {
@@ -87,18 +104,78 @@ export default function PageHeader({
     }
   };
 
+  // Rendu partage du bouton « Retour » (utilise par showBackButton et
+  // showBackButtonWithActions — meme comportement exact qu'avant factorisation).
+  const backButton = (
+    <Tooltip title={isCompact ? backLabel : ''} arrow>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={isCompact ? undefined : <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />}
+        onClick={handleBack}
+        sx={{
+          height: 32,
+          borderRadius: '9px',
+          fontSize: '12.5px',
+          fontWeight: 600,
+          color: 'var(--body)',
+          borderColor: 'var(--line-2)',
+          '&:hover': {
+            borderColor: 'var(--line-2)',
+            bgcolor: 'var(--faint)',
+          },
+          ...(isCompact && { minWidth: 30, px: 0.75 }),
+        }}
+      >
+        {isCompact ? <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} /> : backLabel}
+      </Button>
+    </Tooltip>
+  );
+
   return (
-    <Box mb={1}>
+    <Box mb={1.5}>
       <Box display="flex" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
-        {/* Titre et sous-titre (avec optionally iconBadge) */}
+        {screenIdentity ? (
+          /* Mode identité : pastille + pilule(s) tiennent lieu de titre (Direction A).
+             Hubs multi-écrans → switcher sans sous-titre (densité). Écran autonome →
+             pilule unique + sous-titre conservé s'il porte une info utile
+             (ex : mois synchronisé du Planning). */
+          <Box sx={{ minWidth: 0, flex: 1, mr: 1 }}>
+            <HubScreenSwitcher identity={screenIdentity} />
+            {screenIdentity.kind === 'single' && subtitle && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  mt: 0.5,
+                  ml: '40px',
+                  color: 'var(--muted)',
+                  fontSize: '11.5px',
+                  lineHeight: 1.3,
+                  ...(isCompact && {
+                    ml: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }),
+                }}
+              >
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+        ) : (
+        /* Titre et sous-titre (avec optionally iconBadge) */
         <Box sx={{ minWidth: 0, flex: 1, mr: 1, display: 'flex', alignItems: 'center', gap: 0.875 }}>
           {iconBadge && (
             <Box
               sx={{
-                width: 26, height: 26, borderRadius: 0.75,
+                width: 28, height: 28, borderRadius: '8px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                bgcolor: iconBadgeColor || 'primary.main',
-                color: 'primary.contrastText',
+                bgcolor: iconBadgeColor
+                  ? `color-mix(in srgb, ${iconBadgeColor} 12%, transparent)`
+                  : 'var(--accent-soft)',
+                color: iconBadgeColor || 'var(--accent)',
                 flexShrink: 0,
               }}
             >
@@ -116,8 +193,9 @@ export default function PageHeader({
                 variant="h5"
                 component="h1"
                 sx={{
+                  fontFamily: 'var(--font-display)',
                   letterSpacing: '-0.01em',
-                  color: 'text.primary',
+                  color: 'var(--ink)',
                   lineHeight: 1.2,
                   ...(isCompact && {
                     overflow: 'hidden',
@@ -138,8 +216,9 @@ export default function PageHeader({
               <Typography
                 variant="caption"
                 sx={{
-                  color: 'text.secondary',
+                  color: 'var(--muted)',
                   display: 'block',
+                  fontSize: '11.5px',
                   lineHeight: 1.3,
                   ...(isCompact && {
                     overflow: 'hidden',
@@ -153,6 +232,7 @@ export default function PageHeader({
             )}
           </Box>
         </Box>
+        )}
 
         {/* Filters + Actions a droite */}
         <Box
@@ -161,6 +241,10 @@ export default function PageHeader({
           alignItems="center"
           sx={{
             flexShrink: 0,
+            // Les boutons/icônes des slots héritent du langage Signature GLOBAL
+            // (signatureTheme MuiButton/MuiIconButton — réf « .s-btn ») :
+            // primaire = contour accent, neutre hairline, danger contour err,
+            // ghost, tailles sm/lg, press .97, disabled .45. Rien à dupliquer ici.
             // En mode compact, les boutons avec icone deviennent icon-only + tooltip.
             ...(isCompact && {
               '& .MuiButton-root:has(.MuiButton-startIcon), & .MuiButton-root:has(.MuiButton-endIcon)': {
@@ -175,37 +259,9 @@ export default function PageHeader({
           {filters}
           {actions}
 
-          {showBackButton && (
-            <Tooltip title={isCompact ? backLabel : ''} arrow>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={isCompact ? undefined : <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />}
-                onClick={handleBack}
-                sx={{
-                  ...(isCompact && { minWidth: 30, px: 0.75 }),
-                }}
-              >
-                {isCompact ? <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} /> : backLabel}
-              </Button>
-            </Tooltip>
-          )}
+          {showBackButton && backButton}
 
-          {showBackButtonWithActions && (
-            <Tooltip title={isCompact ? backLabel : ''} arrow>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={isCompact ? undefined : <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />}
-                onClick={handleBack}
-                sx={{
-                  ...(isCompact && { minWidth: 30, px: 0.75 }),
-                }}
-              >
-                {isCompact ? <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} /> : backLabel}
-              </Button>
-            </Tooltip>
-          )}
+          {showBackButtonWithActions && backButton}
         </Box>
       </Box>
     </Box>

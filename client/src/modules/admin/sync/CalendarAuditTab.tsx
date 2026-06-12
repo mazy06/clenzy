@@ -9,26 +9,25 @@ import {
   TableRow,
   Paper,
   Chip,
-  CircularProgress,
+  Skeleton,
   Alert,
   Typography,
   TextField,
   TablePagination,
 } from '@mui/material';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
-import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 
-const commandTypeSemantic = (type: string): string => {
-  switch (type) {
-    case 'BOOK': return 'success';
-    case 'CANCEL': return 'error';
-    case 'BLOCK': return 'warning';
-    case 'UNBLOCK': return 'info';
-    case 'UPDATE_PRICE': return 'secondary';
-    default: return 'default';
-  }
+// Types de commande → tokens sémantiques (chips -soft : texte couleur + fond -soft)
+const COMMAND_TOKEN: Record<string, { fg: string; bg: string }> = {
+  BOOK: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  CANCEL: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  BLOCK: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  UNBLOCK: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  UPDATE_PRICE: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
 };
+
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 
 const CalendarAuditTab: React.FC = () => {
   const [commands, setCommands] = useState<CalendarCommand[]>([]);
@@ -140,12 +139,18 @@ const CalendarAuditTab: React.FC = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+          ))}
         </Box>
       ) : (
         <>
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer
+            component={Paper}
+            variant="outlined"
+            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
+          >
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -163,18 +168,23 @@ const CalendarAuditTab: React.FC = () => {
               <TableBody>
                 {commands.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center">Aucune commande</TableCell>
+                    <TableCell colSpan={9} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                      Aucune commande
+                    </TableCell>
                   </TableRow>
                 ) : (
                   commands.map((cmd) => (
                     <TableRow key={cmd.id}>
-                      <TableCell>{cmd.id}</TableCell>
-                      <TableCell>{cmd.propertyId}</TableCell>
+                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{cmd.id}</TableCell>
+                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{cmd.propertyId}</TableCell>
                       <TableCell>
                         <Chip
                           label={cmd.commandType}
                           size="small"
-                          sx={softChipSx(semanticToHex(commandTypeSemantic(cmd.commandType)))}
+                          sx={(() => {
+                            const tk = COMMAND_TOKEN[cmd.commandType] ?? NEUTRAL_TOKEN;
+                            return { color: tk.fg, backgroundColor: tk.bg };
+                          })()}
                         />
                       </TableCell>
                       <TableCell>

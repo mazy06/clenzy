@@ -32,7 +32,7 @@ import {
  * <p>Borders {@code divider}, focus ACCENT, dropdown {@code background.paper}.</p>
  */
 
-const ACCENT = '#4A9B8E';
+const ACCENT = 'var(--accent)';
 
 interface IntegrationsHeaderProps {
   selectedCategoryId: string | null;
@@ -80,7 +80,7 @@ export default function IntegrationsHeader({
     '& .MuiOutlinedInput-root': { height: 34, fontSize: '0.78rem' },
     '& .MuiOutlinedInput-input': { py: 0 },
     '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
-    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: `${ACCENT}66` },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline, & .Mui-focused .MuiOutlinedInput-notchedOutline': {
       borderColor: ACCENT,
     },
@@ -160,10 +160,7 @@ export default function IntegrationsHeader({
               borderRadius: '10px',
               border: '1px solid',
               borderColor: 'divider',
-              boxShadow: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? '0 8px 24px rgba(0,0,0,0.5)'
-                  : '0 8px 24px rgba(15,23,42,0.12)',
+              boxShadow: 'var(--shadow-pop)',
               mt: 0.5,
               fontSize: '0.78rem',
             },

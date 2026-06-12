@@ -78,37 +78,27 @@ import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
 
 // ─── Style helpers (Baitly palette) ─────────────────────────────────────────
 
-const ACCENT = '#4A9B8E';
-const PRIMARY = '#6B8A9A';
-const DANGER = '#C97A7A';
-const NEUTRAL = '#8A8378';
-const WARM = '#D4A574';
+const ACCENT = 'var(--ok)';
+const PRIMARY = 'var(--accent)';
+const DANGER = 'var(--err)';
+const NEUTRAL = 'var(--muted)';
+const WARM = 'var(--warn)';
 
 // Channex est la seule integration fonctionnelle pour l'instant ; toutes les
 // autres sections affichent l'etat "Bientot disponible" via les utilitaires
 // partages dans disabledIntegration.ts.
 
 const refinedContainedSx = (color: string) => ({
-  textTransform: 'none' as const,
-  fontWeight: 600,
-  fontSize: '0.78rem',
-  letterSpacing: '0.01em',
-  borderRadius: '8px',
-  py: 0.625,
-  px: 1.5,
-  bgcolor: color,
-  color: '#fff',
+  bgcolor: 'transparent',
+  color,
+  border: '1px solid',
+  borderColor: color,
   boxShadow: 'none',
-  transition:
-    'background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
   '&:hover': {
-    bgcolor: color,
-    filter: 'brightness(0.94)',
-    boxShadow: `0 1px 2px rgba(45, 55, 72, 0.06), 0 4px 10px ${color}38`,
-    transform: 'translateY(-1px)',
+    bgcolor: `color-mix(in srgb, ${color} 10%, transparent)`,
+    borderColor: color,
+    boxShadow: 'none',
   },
-  '&:active': { transform: 'translateY(0)', boxShadow: 'none' },
-  '&.Mui-disabled': { bgcolor: `${color}55`, color: '#fff' },
 });
 
 const refinedOutlinedSx = (hoverColor: string) => ({
@@ -124,8 +114,8 @@ const refinedOutlinedSx = (hoverColor: string) => ({
   transition:
     'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
   '&:hover': {
-    borderColor: `${hoverColor}66`,
-    backgroundColor: `${hoverColor}0F`,
+    borderColor: `color-mix(in srgb, ${hoverColor} 40%, transparent)`,
+    backgroundColor: `color-mix(in srgb, ${hoverColor} 10%, transparent)`,
     color: hoverColor,
   },
   '&:focus-visible': { outline: `2px solid ${hoverColor}`, outlineOffset: 2 },
@@ -138,9 +128,9 @@ const buildStatusChipSx = (color: string) => ({
   letterSpacing: '0.01em',
   borderRadius: '6px',
   px: 0.25,
-  backgroundColor: `${color}14`,
+  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
   color,
-  border: `1px solid ${color}33`,
+  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
   '& .MuiChip-icon': {
     color: `${color} !important`,
     ml: '6px',
@@ -633,9 +623,9 @@ export default function IntegrationsSection({
               height: 18,
               fontSize: '0.6rem',
               fontWeight: 700,
-              color: '#D4A574',
-              backgroundColor: '#D4A57414',
-              border: '1px solid #D4A57440',
+              color: 'var(--warn)',
+              backgroundColor: 'var(--warn-soft)',
+              border: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)',
               '& .MuiChip-label': { px: 0.875 },
             }}
           />
@@ -714,7 +704,7 @@ export default function IntegrationsSection({
               fontSize: '0.85rem',
               letterSpacing: '0.04em',
               flexShrink: 0,
-              boxShadow: `0 1px 2px ${PENNYLANE_BRAND}1F`,
+              
             }}
             aria-hidden="true"
           >

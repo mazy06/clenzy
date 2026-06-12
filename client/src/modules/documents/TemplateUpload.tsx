@@ -97,22 +97,24 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Upload zone */}
+          {/* Upload zone — tokens Signature (pas encore de pattern dropzone baseline) */}
           <Box
             sx={{
               border: '2px dashed',
-              borderColor: file ? 'success.main' : 'grey.300',
-              borderRadius: 2,
+              borderColor: file ? 'var(--ok)' : 'var(--line-2)',
+              borderRadius: '12px',
               p: 3,
               textAlign: 'center',
               cursor: 'pointer',
-              bgcolor: file ? 'success.50' : 'grey.50',
-              '&:hover': { borderColor: 'primary.main', bgcolor: 'primary.50' },
+              bgcolor: file ? 'var(--ok-soft)' : 'var(--field)',
+              transition: 'border-color .15s, background-color .15s',
+              '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             }}
             component="label"
           >
             <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label="Sélectionner un fichier template ODT" />
-            <Box component="span" sx={{ display: 'inline-flex', color: file ? 'success.main' : 'grey.400', mb: 1 }}><CloudUpload size={40} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: file ? 'var(--ok)' : 'var(--faint)', mb: 1 }}><CloudUpload size={40} strokeWidth={1.75} /></Box>
             <Typography variant="body1" fontWeight={500}>
               {file ? file.name : 'Cliquez pour sélectionner un fichier .odt'}
             </Typography>

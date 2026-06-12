@@ -109,7 +109,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {/* ── Section 1 : Analyse IA (seule section inline) ─────────────── */}
       {isDesignAiEnabled && (
-        <SectionPaper icon={<AutoFixHighRounded size={20} strokeWidth={1.75} color='#7C4DFF' />} titleKey="bookingEngine.sections.aiDesign">
+        <SectionPaper icon={<AutoFixHighRounded size={20} strokeWidth={1.75} />} titleKey="bookingEngine.sections.aiDesign">
           <AiDesignMatcher
             configId={configId}
             sourceWebsiteUrl={form.sourceWebsiteUrl ?? ''}
@@ -132,7 +132,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pr: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: '#E91E63' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
               <BrushRounded size={20} strokeWidth={1.75} />
             </Box>
             {t('bookingEngine.design.modalTitle', 'Personnaliser le design')}
@@ -190,7 +190,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
             <MenuItem value="custom">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box sx={{ display: 'flex', gap: 0.25 }}>
-                  {[0, 1, 2].map((i) => <Box key={i} sx={{ width: 12, height: 12, borderRadius: '3px', border: '1px dashed', borderColor: 'grey.400' }} />)}
+                  {[0, 1, 2].map((i) => <Box key={i} sx={{ width: 12, height: 12, borderRadius: '3px', border: '1px dashed var(--line-2)' }} />)}
                 </Box>
                 <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>{t('bookingEngine.presets.custom')}</Typography>
               </Box>
@@ -381,7 +381,7 @@ const CodeEditorSection: React.FC<CodeEditorSectionProps> = ({
         bgcolor: 'background.paper',
         color: 'text.primary',
         outline: 'none',
-        '&:focus': { borderColor: 'primary.main' },
+        '&:focus': { borderColor: 'var(--accent)' },
         '&::placeholder': { color: 'text.disabled', opacity: 0.6 },
       }}
     />

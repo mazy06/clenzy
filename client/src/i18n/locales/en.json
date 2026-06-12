@@ -485,7 +485,12 @@
       "main": "Main",
       "management": "Management",
       "admin": "Administration"
-    }
+    },
+    "exploitation": "Operations",
+    "contactsHub": "Contacts",
+    "finances": "Finance",
+    "distribution": "Distribution",
+    "platformTools": "Platform tools"
   },
   "dashboard": {
     "title": "Dashboard",

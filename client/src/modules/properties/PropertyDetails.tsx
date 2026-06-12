@@ -10,8 +10,6 @@ import {
   CardContent,
   Grid,
   Chip,
-  Tabs,
-  Tab,
   Paper,
   Divider,
   Tooltip,
@@ -61,6 +59,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePropertyDetails } from '../../hooks/usePropertyDetails';
 import type { PropertyDetailsData } from '../../hooks/usePropertyDetails';
 import PageHeader from '../../components/PageHeader';
+import PageTabs from '../../components/PageTabs';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDate } from '../../utils/formatUtils';
 import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
@@ -77,14 +76,10 @@ import abritelLogo from '../../assets/logo/abritel-logo-small.svg';
 import expediaLogo from '../../assets/logo/expedia-logo.png';
 import {
   getPropertyStatusLabel,
-  getPropertyStatusHex,
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
-  getInterventionStatusLabel,
-  getInterventionStatusHex,
-  getInterventionTypeLabel,
-  getAmenityHex,
 } from '../../utils/statusUtils';
+import { propertyStatusChipSx, FIELD_CHIP_SX } from './propertiesListConstants';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
@@ -93,73 +88,67 @@ import { useQuery } from '@tanstack/react-query';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const TABS_SX = {
-  minHeight: 36,
-  '& .MuiTab-root': {
-    minHeight: 36,
-    py: 0.5,
-    px: 2,
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    textTransform: 'none',
-    letterSpacing: '0.01em',
-    color: 'text.secondary',
-    '&.Mui-selected': {
-      fontWeight: 700,
-      color: 'primary.main',
-    },
-  },
-  '& .MuiTabs-indicator': {
-    height: 2,
-    borderRadius: 1,
-  },
-} as const;
+// ── Constantes sx alignées DESIGN_BASELINE (réf maquette screen-property .pd-*) ──
 
+// .pd-kpi — tuile KPI centrée : icône accent-soft, valeur display tabular-nums, label overline.
 const METRIC_CARD_SX = {
-  p: 1.5,
+  p: '14px 12px',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   textAlign: 'center',
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 1.5,
+  bgcolor: 'var(--card)',
+  border: '1px solid var(--line)',
+  borderRadius: '13px',
   boxShadow: 'none',
   minHeight: 72,
   justifyContent: 'center',
+  transition: 'border-color .14s',
+  '&:hover': { borderColor: 'var(--line-2)' },
 } as const;
 
-const METRIC_ICON_SX = {
-  fontSize: 18,
-  color: 'primary.main',
-  mb: 0.25,
+const METRIC_ICON_BADGE_SX = {
+  width: 32,
+  height: 32,
+  borderRadius: '10px',
+  bgcolor: 'var(--accent-soft)',
+  color: 'var(--accent)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  mb: '8px',
 } as const;
 
 const METRIC_VALUE_SX = {
-  fontSize: '0.9375rem',
-  fontWeight: 700,
-  color: 'text.primary',
+  fontFamily: 'var(--font-display)',
+  fontSize: '18px',
+  fontWeight: 600,
+  color: 'var(--ink)',
   lineHeight: 1.2,
+  fontVariantNumeric: 'tabular-nums',
+  letterSpacing: '-.01em',
 } as const;
 
 const METRIC_LABEL_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 500,
-  color: 'text.secondary',
+  fontSize: '10px',
+  fontWeight: 700,
+  color: 'var(--faint)',
   textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  mt: 0.25,
+  letterSpacing: '.04em',
+  mt: '3px',
 } as const;
 
+// .fr-sec / .pd-sec — overline de section.
 const SECTION_TITLE_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
+  letterSpacing: '.06em',
+  color: 'var(--faint)',
   mb: 1,
 } as const;
 
+// .pd-kv — bloc label/valeur (icône accent, label muted 11, valeur ink 13 fw600).
 const INFO_ROW_SX = {
   display: 'flex',
   alignItems: 'center',
@@ -168,54 +157,25 @@ const INFO_ROW_SX = {
 } as const;
 
 const INFO_LABEL_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '11px',
   fontWeight: 500,
-  color: 'text.secondary',
+  color: 'var(--muted)',
 } as const;
 
 const INFO_VALUE_SX = {
-  fontSize: '0.8125rem',
-  fontWeight: 500,
-  color: 'text.primary',
-} as const;
-
-const STATUS_CHIP_SX = {
-  height: 22,
-  fontSize: '0.625rem',
+  fontSize: '13px',
   fontWeight: 600,
-  borderWidth: 1.5,
-  '& .MuiChip-label': { px: 0.75 },
+  color: 'var(--ink)',
+  mt: '1px',
 } as const;
 
-const INTERVENTION_CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 1.5,
-  boxShadow: 'none',
-  transition: 'border-color 0.15s ease',
-  cursor: 'pointer',
-  '&:hover': {
-    borderColor: 'primary.main',
-  },
-} as const;
-
-const EDIT_BUTTON_SX = {
-  textTransform: 'none',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  height: 28,
-  px: 1.5,
-  '& .MuiButton-startIcon': { mr: 0.5 },
-  '& .MuiSvgIcon-root': { fontSize: 14 },
-} as const;
-
+// .pd-card — carte hairline r14 plate.
 const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
+  border: '1px solid var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
-  p: 1.5,
+  borderRadius: '14px',
+  p: '16px 18px',
 } as const;
 
 // ─── Cleaning price estimation (mirrored from CleaningPriceEstimator) ───────
@@ -278,13 +238,6 @@ function computeCleaningEstimate(
 export type { PropertyDetailsData };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function a11yProps(index: number) {
-  return {
-    id: `property-tab-${index}`,
-    'aria-controls': `property-tabpanel-${index}`,
-  };
-}
 
 function formatTime(time: string | undefined): string {
   if (!time) return '—';
@@ -374,23 +327,23 @@ const PropertyDetails: React.FC = () => {
   // ─── Feature chips (active options) ─────────────────────────────────────
   const featureChips = useMemo(() => {
     if (!property) return [];
-    const chips: { label: string; hex: string }[] = [];
+    const chips: { label: string }[] = [];
 
-    if (property.hasExterior) chips.push({ label: t('properties.hasExterior'), hex: '#4A9B8E' });
-    if (property.hasLaundry) chips.push({ label: t('properties.hasLaundry'), hex: '#0288d1' });
+    if (property.hasExterior) chips.push({ label: t('properties.hasExterior') });
+    if (property.hasLaundry) chips.push({ label: t('properties.hasLaundry') });
     if ((property.windowCount ?? 0) > 0 || (property.frenchDoorCount ?? 0) > 0 || (property.slidingDoorCount ?? 0) > 0) {
       const parts = [
         (property.windowCount ?? 0) > 0 && `${property.windowCount} ${t('properties.addOnServices.windowCountShort')}`,
         (property.frenchDoorCount ?? 0) > 0 && `${property.frenchDoorCount} ${t('properties.addOnServices.frenchDoorCountShort')}`,
         (property.slidingDoorCount ?? 0) > 0 && `${property.slidingDoorCount} ${t('properties.addOnServices.slidingDoorCountShort')}`,
       ].filter(Boolean).join(', ');
-      chips.push({ label: `${t('properties.addOnServices.windows')}: ${parts}`, hex: '#757575' });
+      chips.push({ label: `${t('properties.addOnServices.windows')}: ${parts}` });
     }
-    if (property.hasIroning) chips.push({ label: t('properties.addOnServices.hasIroning'), hex: '#ED6C02' });
-    if (property.hasDeepKitchen) chips.push({ label: t('properties.addOnServices.hasDeepKitchen'), hex: '#ED6C02' });
-    if (property.hasDisinfection) chips.push({ label: t('properties.addOnServices.hasDisinfection'), hex: '#7B61FF' });
+    if (property.hasIroning) chips.push({ label: t('properties.addOnServices.hasIroning') });
+    if (property.hasDeepKitchen) chips.push({ label: t('properties.addOnServices.hasDeepKitchen') });
+    if (property.hasDisinfection) chips.push({ label: t('properties.addOnServices.hasDisinfection') });
     if (property.numberOfFloors != null && property.numberOfFloors > 1) {
-      chips.push({ label: `${property.numberOfFloors} ${t('properties.numberOfFloors').toLowerCase()}`, hex: '#757575' });
+      chips.push({ label: `${property.numberOfFloors} ${t('properties.numberOfFloors').toLowerCase()}` });
     }
 
     return chips;
@@ -437,11 +390,10 @@ const PropertyDetails: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               {canEdit && (
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   startIcon={<Edit size={16} strokeWidth={1.75} />}
                   onClick={() => navigate(`/properties/${id}/edit`)}
                   size="small"
-                  sx={EDIT_BUTTON_SX}
                   title={t('properties.modify')}
                 >
                   {t('properties.modify')}
@@ -452,52 +404,23 @@ const PropertyDetails: React.FC = () => {
         />
       </Box>
 
-      {/* ─── Tabs ────────────────────────────────────────────────────────── */}
-      <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0, boxShadow: 'none' }}>
-        <Tabs
+      {/* ─── Tabs (primitive PageTabs — onglets niveau 1 soulignés accent) ── */}
+      <Box sx={{ flexShrink: 0 }}>
+        <PageTabs
+          ariaLabel={t('properties.details')}
+          mb={0}
+          options={[
+            { key: 'overview', label: t('properties.tabs.overview'), icon: <Info /> },
+            { key: 'interventions', label: `${t('properties.tabs.interventions')} (${interventions.length})`, icon: <Build /> },
+            { key: 'channels', label: t('channels.title'), icon: <Hub /> },
+            { key: 'check-in', label: t('channels.checkIn.title'), icon: <FlightLand /> },
+            { key: 'photos', label: t('properties.tabs.photos'), icon: <PhotoLibrary /> },
+            { key: 'inventory', label: 'Inventaire', icon: <Inventory2 /> },
+          ]}
           value={tabValue}
-          onChange={(_, v) => setTabValue(v)}
-          aria-label={t('properties.details')}
-          sx={TABS_SX}
-        >
-          <Tab
-            icon={<Info size={16} strokeWidth={1.75} />}
-            iconPosition="start"
-            label={t('properties.tabs.overview')}
-            {...a11yProps(0)}
-          />
-          <Tab
-            icon={<Build size={16} strokeWidth={1.75} />}
-            iconPosition="start"
-            label={`${t('properties.tabs.interventions')} (${interventions.length})`}
-            {...a11yProps(1)}
-          />
-          <Tab
-            icon={<Hub size={16} strokeWidth={1.75} />}
-            iconPosition="start"
-            label={t('channels.title')}
-            {...a11yProps(2)}
-          />
-          <Tab
-            icon={<FlightLand size={16} strokeWidth={1.75} />}
-            iconPosition="start"
-            label={t('channels.checkIn.title')}
-            {...a11yProps(3)}
-          />
-          <Tab
-            icon={<PhotoLibrary size={16} strokeWidth={1.75} />}
-            iconPosition="start"
-            label={t('properties.tabs.photos')}
-            {...a11yProps(4)}
-          />
-          <Tab
-            icon={<Inventory2 size={16} strokeWidth={1.75} />}
-            iconPosition="start"
-            label="Inventaire"
-            {...a11yProps(5)}
-          />
-        </Tabs>
-      </Paper>
+          onChange={setTabValue}
+        />
+      </Box>
 
       {/* ─── Tab 0: Vue d'ensemble ───────────────────────────────────────── */}
       {tabValue === 0 && (
@@ -511,9 +434,9 @@ const PropertyDetails: React.FC = () => {
           <Grid container spacing={1} sx={{ mb: featureChips.length > 0 ? 1 : 1.5 }}>
             <Grid item xs={6} sm={4} md={2}>
               <Tooltip title={t('properties.cleaningEstimateTooltip')} arrow placement="top">
-                <Box sx={{ ...METRIC_CARD_SX, borderColor: 'primary.main', bgcolor: 'primary.50', cursor: 'help' }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mb: 0.25 }}><Payments size={18} strokeWidth={1.75} /></Box>
-                  <Typography sx={{ ...METRIC_VALUE_SX, color: 'primary.main' }}>
+                <Box sx={{ ...METRIC_CARD_SX, cursor: 'help' }}>
+                  <Box sx={METRIC_ICON_BADGE_SX}><Payments size={16} strokeWidth={1.75} /></Box>
+                  <Typography sx={METRIC_VALUE_SX}>
                     {cleaningEstimate ? `${cleaningEstimate.min}€` : '—'}
                   </Typography>
                   <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningEstimate')}</Typography>
@@ -522,36 +445,36 @@ const PropertyDetails: React.FC = () => {
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Bed size={18} strokeWidth={1.75} /></Box>
+                <Box sx={METRIC_ICON_BADGE_SX}><Bed size={16} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>{property.bedrooms}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.bedrooms')}</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Bathroom size={18} strokeWidth={1.75} /></Box>
+                <Box sx={METRIC_ICON_BADGE_SX}><Bathroom size={16} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>{property.bathrooms}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.bathroomCount')}</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><SquareFoot size={18} strokeWidth={1.75} /></Box>
+                <Box sx={METRIC_ICON_BADGE_SX}><SquareFoot size={16} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>{property.surfaceArea} m²</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.surface')}</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Group size={18} strokeWidth={1.75} /></Box>
+                <Box sx={METRIC_ICON_BADGE_SX}><Group size={16} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>{property.maxGuests}</Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.maxCapacity')}</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><CleaningServices size={18} strokeWidth={1.75} /></Box>
-                <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
+                <Box sx={METRIC_ICON_BADGE_SX}><CleaningServices size={16} strokeWidth={1.75} /></Box>
+                <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12.5px' }}>
                   {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
                 </Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
@@ -562,7 +485,7 @@ const PropertyDetails: React.FC = () => {
           {/* ── Prestations à la carte chips ──────────────────────────── */}
           {featureChips.length > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
-              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mr: 0.5 }}>
+              <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
                 {t('properties.addOnServices.title')}
               </Typography>
               {featureChips.map((chip, i) => (
@@ -570,16 +493,7 @@ const PropertyDetails: React.FC = () => {
                   key={i}
                   label={chip.label}
                   size="small"
-                  sx={{
-                    backgroundColor: `${chip.hex}18`,
-                    color: chip.hex,
-                    border: `1px solid ${chip.hex}40`,
-                    borderRadius: '6px',
-                    fontWeight: 600,
-                    fontSize: '0.6875rem',
-                    height: 24,
-                    '& .MuiChip-label': { px: 1 },
-                  }}
+                  sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
                 />
               ))}
             </Box>
@@ -588,29 +502,17 @@ const PropertyDetails: React.FC = () => {
           {/* ── Équipements chips ──────────────────────────────────── */}
           {property.amenities && property.amenities.length > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
-              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em', mr: 0.5 }}>
+              <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
                 {t('properties.amenities.title')}
               </Typography>
-              {property.amenities.map((amenity, index) => {
-                const c = getAmenityHex(amenity);
-                return (
-                  <Chip
-                    key={index}
-                    label={t(`properties.amenities.items.${amenity}`)}
-                    size="small"
-                    sx={{
-                      backgroundColor: `${c}18`,
-                      color: c,
-                      border: `1px solid ${c}40`,
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      fontSize: '0.6875rem',
-                      height: 24,
-                      '& .MuiChip-label': { px: 1 },
-                    }}
-                  />
-                );
-              })}
+              {property.amenities.map((amenity, index) => (
+                <Chip
+                  key={index}
+                  label={t(`properties.amenities.items.${amenity}`)}
+                  size="small"
+                  sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
+                />
+              ))}
             </Box>
           )}
 
@@ -639,7 +541,7 @@ const PropertyDetails: React.FC = () => {
                   {t('properties.informationsGeneral')}
                 </Typography>
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.address')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>
@@ -651,7 +553,7 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Flag size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Flag size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.country}</Typography>
@@ -661,7 +563,7 @@ const PropertyDetails: React.FC = () => {
                 )}
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Home size={16} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.type')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{getPropertyTypeLabel(property.propertyType, t)}</Typography>
@@ -671,7 +573,7 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.createdAt')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDate(property.createdAt)}</Typography>
@@ -686,16 +588,16 @@ const PropertyDetails: React.FC = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                   {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Payments size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payments size={16} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
-                        <Typography sx={{ ...INFO_VALUE_SX, fontWeight: 700, color: 'primary.main' }}>{property.cleaningBasePrice}€</Typography>
+                        <Typography sx={{ ...INFO_VALUE_SX, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>{property.cleaningBasePrice}€</Typography>
                       </Box>
                     </Box>
                   )}
                   {property.cleaningDurationMinutes != null && property.cleaningDurationMinutes > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Timer size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={16} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningDuration')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>
@@ -708,7 +610,7 @@ const PropertyDetails: React.FC = () => {
                   )}
                   {property.numberOfFloors != null && property.numberOfFloors > 0 && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Stairs size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Stairs size={16} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.numberOfFloors')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.numberOfFloors}</Typography>
@@ -717,13 +619,13 @@ const PropertyDetails: React.FC = () => {
                   )}
                   {property.hasExterior && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Deck size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Deck size={16} strokeWidth={1.75} /></Box>
                       <Typography sx={INFO_VALUE_SX}>{t('properties.hasExterior')}</Typography>
                     </Box>
                   )}
                   {property.hasLaundry && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocalLaundryService size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocalLaundryService size={16} strokeWidth={1.75} /></Box>
                       <Typography sx={INFO_VALUE_SX}>{t('properties.hasLaundry')}</Typography>
                     </Box>
                   )}
@@ -740,17 +642,15 @@ const PropertyDetails: React.FC = () => {
                 <Box sx={INFO_ROW_SX}>
                   <Box>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.status')}</Typography>
-                    {(() => { const c = getPropertyStatusHex(property.status); return (
-                      <Chip label={getPropertyStatusLabel(property.status, t)} size="small"
-                        sx={{ ...STATUS_CHIP_SX, mt: 0.5, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }} />
-                    ); })()}
+                    <Chip label={getPropertyStatusLabel(property.status, t)} size="small"
+                      sx={{ mt: 0.5, ...propertyStatusChipSx(property.status), '& .MuiChip-label': { px: 1 } }} />
                   </Box>
                 </Box>
                 {property.ownerName && (
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.owner')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{property.ownerName}</Typography>
@@ -764,7 +664,7 @@ const PropertyDetails: React.FC = () => {
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                       {property.defaultCheckInTime && (
                         <Box sx={INFO_ROW_SX}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Login size={16} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Login size={16} strokeWidth={1.75} /></Box>
                           <Box>
                             <Typography sx={INFO_LABEL_SX}>{t('properties.checkInTime')}</Typography>
                             <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckInTime)}</Typography>
@@ -773,7 +673,7 @@ const PropertyDetails: React.FC = () => {
                       )}
                       {property.defaultCheckOutTime && (
                         <Box sx={INFO_ROW_SX}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Logout size={16} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Logout size={16} strokeWidth={1.75} /></Box>
                           <Box>
                             <Typography sx={INFO_LABEL_SX}>{t('properties.checkOutTime')}</Typography>
                             <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckOutTime)}</Typography>
@@ -785,7 +685,7 @@ const PropertyDetails: React.FC = () => {
                 )}
                 <Divider sx={{ my: 0.5 }} />
                 <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={16} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CleaningServices size={16} strokeWidth={1.75} /></Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
                     <Typography sx={INFO_VALUE_SX}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
@@ -795,7 +695,7 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.lastCleaning')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDate(property.lastCleaning)}</Typography>
@@ -848,14 +748,14 @@ const PropertyDetails: React.FC = () => {
               if (!hasAnyField) return null;
 
               const fields: { icon: React.ReactNode; label: string; value: string | null }[] = [
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><VpnKey size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocalParking size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Login size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Logout size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Gavel size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Phone size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><VpnKey size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocalParking size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Login size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Logout size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Gavel size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
+                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Phone size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
               ];
 
               // Split: first 4 fields in 2-col grid, rest full-width
@@ -875,7 +775,8 @@ const PropertyDetails: React.FC = () => {
                         size="small"
                         endIcon={<OpenInNew size={12} strokeWidth={1.75} />}
                         onClick={() => setTabValue(3)}
-                        sx={{ fontSize: '0.625rem', textTransform: 'none', fontWeight: 600, minWidth: 0, px: 1, py: 0.25 }}
+                        variant="text"
+                        sx={{ minWidth: 0, px: 1, py: 0.25, height: 26, fontSize: '11.5px' }}
                       >
                         {t('properties.modify')}
                       </Button>
@@ -941,18 +842,18 @@ const PropertyDetails: React.FC = () => {
             {/* Airbnb — with real status */}
             <Paper sx={CARD_SX}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Box component="img" src={airbnbLogoSmall} alt="Airbnb" sx={{ width: 28, height: 28, borderRadius: '6px', objectFit: 'contain' }} />
+                <Box component="img" src={airbnbLogoSmall} alt="Airbnb" sx={{ width: 21, height: 21, borderRadius: '7px', objectFit: 'contain' }} />
                 <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>Airbnb</Typography>
                 <Chip
                   label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')}
                   size="small"
-                  sx={{ ml: 'auto', fontSize: '0.625rem', height: 20, backgroundColor: channelStatus?.airbnb?.linked ? '#4A9B8E18' : '#9e9e9e18', color: channelStatus?.airbnb?.linked ? '#4A9B8E' : '#9e9e9e', border: `1px solid ${channelStatus?.airbnb?.linked ? '#4A9B8E40' : '#9e9e9e40'}`, borderRadius: '6px' }}
+                  sx={{ ml: 'auto', height: 20, bgcolor: channelStatus?.airbnb?.linked ? 'var(--ok-soft)' : 'var(--hover)', color: channelStatus?.airbnb?.linked ? 'var(--ok)' : 'var(--muted)', border: 'none', '& .MuiChip-label': { px: 1 } }}
                 />
               </Box>
               {channelStatus?.airbnb?.linked ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Box sx={INFO_ROW_SX}>
-                    <Sync size={16} strokeWidth={1.75} color={channelStatus.airbnb.syncEnabled ? '#4A9B8E' : '#9e9e9e'} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: channelStatus.airbnb.syncEnabled ? 'var(--ok)' : 'var(--muted)' }}><Sync size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.title')}</Typography>
                       <Typography sx={INFO_VALUE_SX}>
@@ -962,7 +863,7 @@ const PropertyDetails: React.FC = () => {
                   </Box>
                   {channelStatus.airbnb.lastSyncAt && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.lastSync')}</Typography>
                         <Typography sx={INFO_VALUE_SX}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</Typography>
@@ -971,7 +872,7 @@ const PropertyDetails: React.FC = () => {
                   )}
                 </Box>
               ) : (
-                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
                   {t('channels.listings.linkProperty')}
                 </Button>
               )}
@@ -988,15 +889,15 @@ const PropertyDetails: React.FC = () => {
             ].map((ch) => (
               <Paper key={ch.name} sx={CARD_SX}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Box component="img" src={ch.logo} alt={ch.name} sx={{ width: 28, height: 28, borderRadius: '6px', objectFit: 'contain' }} />
+                  <Box component="img" src={ch.logo} alt={ch.name} sx={{ width: 21, height: 21, borderRadius: '7px', objectFit: 'contain' }} />
                   <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>{ch.name}</Typography>
                   <Chip
                     label={t('channels.notConnected')}
                     size="small"
-                    sx={{ ml: 'auto', fontSize: '0.625rem', height: 20, backgroundColor: '#9e9e9e18', color: '#9e9e9e', border: '1px solid #9e9e9e40', borderRadius: '6px' }}
+                    sx={{ ml: 'auto', height: 20, bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none', '& .MuiChip-label': { px: 1 } }}
                   />
                 </Box>
-                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
                   {t('channels.listings.linkProperty')}
                 </Button>
               </Paper>

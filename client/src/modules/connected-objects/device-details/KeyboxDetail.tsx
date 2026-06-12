@@ -3,16 +3,34 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Paper, Typography, Tabs, Tab, Button, TextField, Chip, IconButton, Tooltip,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer, CircularProgress,
-  Snackbar, Alert,
+  Skeleton, Snackbar, Alert,
 } from '@mui/material';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
-import { softChipSx } from '../../../utils/statusUtils';
 import type { ConnectedDevice } from '../types';
 
-const CODE_STATUS_COLOR: Record<string, string> = {
-  ACTIVE: '#4A9B8E', USED: '#7BA3C2', EXPIRED: '#8A8378', CANCELLED: '#C97A7A',
+// Statuts de code : tokens sémantiques désaturés (texte couleur + fond `-soft`) —
+// actif = --ok, utilisé = --info, expiré = neutre, annulé = --err.
+const CODE_STATUS_TOKENS: Record<string, { color: string; soft: string }> = {
+  ACTIVE: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
+  USED: { color: 'var(--info)', soft: 'var(--info-soft)' },
+  EXPIRED: { color: 'var(--muted)', soft: 'var(--hover)' },
+  CANCELLED: { color: 'var(--err)', soft: 'var(--err-soft)' },
+};
+/** Pilule soft : fond doux + texte couleur (pattern chips statut baseline §2). */
+const codeStatusPillSx = (status: string) => {
+  const { color, soft } = CODE_STATUS_TOKENS[status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
+  return {
+    height: 22,
+    fontSize: '0.6875rem',
+    fontWeight: 600,
+    backgroundColor: soft,
+    color,
+    border: 'none',
+    borderRadius: 'var(--radius-pill)',
+    '& .MuiChip-label': { px: 1 },
+  } as const;
 };
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -79,7 +97,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Infos du point */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <LocationOn size={15} strokeWidth={1.75} /> Point de remise
         </Typography>
@@ -120,7 +138,6 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                   startIcon={generate.isPending ? <CircularProgress size={14} color="inherit" /> : <Add size={16} strokeWidth={2} />}
                   onClick={() => generate.mutate()}
                   disabled={generate.isPending}
-                  sx={{ textTransform: 'none' }}
                 >
                   Générer un code
                 </Button>
@@ -128,11 +145,11 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
 
               {/* Liste */}
               {codesQuery.isLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress size={24} /></Box>
+                <Skeleton variant="rounded" height={140} sx={{ borderRadius: 'var(--radius-lg)' }} />
               ) : codes.length === 0 ? (
                 <EmptyState icon={<VpnKey />} title="Aucun code actif" description="Générez un code de remise pour un voyageur." />
               ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)' }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
@@ -145,10 +162,29 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                     <TableBody>
                       {codes.map((c) => (
                         <TableRow key={c.id}>
-                          <TableCell sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{c.code}</TableCell>
+                          <TableCell>
+                            {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
+                            <Box
+                              component="span"
+                              sx={{
+                                fontFamily: 'var(--font-display)',
+                                fontVariantNumeric: 'tabular-nums',
+                                fontWeight: 600,
+                                letterSpacing: '0.06em',
+                                color: 'var(--ink)',
+                                bgcolor: 'var(--field)',
+                                borderRadius: '9px',
+                                px: 1,
+                                py: 0.375,
+                                display: 'inline-block',
+                              }}
+                            >
+                              {c.code}
+                            </Box>
+                          </TableCell>
                           <TableCell>{c.guestName || '—'}</TableCell>
                           <TableCell>
-                            <Chip size="small" label={c.status} sx={softChipSx(CODE_STATUS_COLOR[c.status] ?? '#8A8378')} />
+                            <Chip size="small" label={c.status} sx={codeStatusPillSx(c.status)} />
                           </TableCell>
                           <TableCell align="right">
                             {c.status === 'ACTIVE' && (
@@ -170,11 +206,11 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
 
           {subTab === 1 && (
             eventsQuery.isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress size={24} /></Box>
+              <Skeleton variant="rounded" height={140} sx={{ borderRadius: 'var(--radius-lg)' }} />
             ) : (eventsQuery.data?.content.length ?? 0) === 0 ? (
               <EmptyState icon={<History />} title="Aucun mouvement" description="Les remises et collectes de clés de ce logement apparaîtront ici." />
             ) : (
-              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1.5 }}>
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>

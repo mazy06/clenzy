@@ -332,7 +332,7 @@ const UpsellsAdmin: React.FC = () => {
               title={t('upsells.commissions.title', 'Commissions activités')}
               actions={
                 <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#4A9B8E', lineHeight: 1.15 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--ok)', lineHeight: 1.15 }}>
                     {commissionSummary.totalHostShare.toFixed(2)} {commissionSummary.currency}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
@@ -422,7 +422,7 @@ const UpsellsAdmin: React.FC = () => {
                 {o.imageUrl ? (
                   <Box component="img" src={o.imageUrl} alt="" sx={{ width: 40, height: 40, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
-                  <Box sx={{ width: 40, height: 40, borderRadius: 1.5, bgcolor: 'action.hover', color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Box sx={{ width: 40, height: 40, borderRadius: 1.5, bgcolor: 'var(--accent-soft)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Tag size={18} strokeWidth={1.75} />
                   </Box>
                 )}
@@ -473,7 +473,7 @@ const UpsellsAdmin: React.FC = () => {
               <Card key={i} variant="outlined" sx={{ flexShrink: 0, width: 224 }}>
                 <CardContent sx={{ '&:last-child': { pb: 1.5 }, display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                    <Box sx={{ flexShrink: 0, width: 34, height: 34, borderRadius: 1.5, bgcolor: 'action.hover', color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Box sx={{ flexShrink: 0, width: 34, height: 34, borderRadius: 1.5, bgcolor: 'var(--accent-soft)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon size={18} strokeWidth={1.75} />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{s.title}</Typography>

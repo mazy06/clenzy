@@ -105,7 +105,7 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
         borderColor: 'divider',
         borderRadius: 1,
         p: 1.5,
-        bgcolor: 'rgba(0,0,0,0.015)',
+        bgcolor: 'var(--surface-2)',
       }}
     >
       <Stack spacing={0.85}>
@@ -151,7 +151,7 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
               variant="body2"
               sx={{
                 fontSize: '0.78rem',
-                color: '#EF4444',
+                color: 'var(--err)',
                 fontFamily: 'monospace',
                 wordBreak: 'break-word',
                 lineHeight: 1.45,
@@ -185,8 +185,8 @@ function ActionButton({
         p: 1.25,
         borderRadius: 1,
         border: '1px solid',
-        borderColor: isPrimary ? '#6B8A9A40' : 'divider',
-        bgcolor: isPrimary ? 'rgba(107, 138, 154, 0.04)' : 'transparent',
+        borderColor: isPrimary ? 'color-mix(in srgb, var(--accent) 25%, transparent)' : 'divider',
+        bgcolor: isPrimary ? 'var(--accent-soft)' : 'transparent',
         alignItems: 'flex-start',
       }}
     >
@@ -195,8 +195,8 @@ function ActionButton({
           width: 32,
           height: 32,
           borderRadius: 0.75,
-          bgcolor: isPrimary ? '#6B8A9A1A' : 'rgba(107, 114, 128, 0.1)',
-          color: isPrimary ? '#6B8A9A' : '#6B7280',
+          bgcolor: isPrimary ? 'var(--accent-soft)' : 'var(--hover)',
+          color: isPrimary ? 'var(--accent)' : 'var(--muted)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -218,14 +218,7 @@ function ActionButton({
           startIcon={busy ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Icon size={14} />}
           disabled={busy}
           onClick={onClick}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.78rem',
-            ...(isPrimary && {
-              backgroundColor: '#6B8A9A',
-              '&:hover': { backgroundColor: '#5A7585' },
-            }),
-          }}
+          sx={{ textTransform: 'none', fontSize: '0.78rem' }}
         >
           {busy ? 'En cours…' : action.label}
         </Button>
@@ -318,7 +311,7 @@ export default function ChannexDiagnoseDialog({
   const StatusIcon = report ? STATUS_ICONS[report.sync.status] : Stethoscope;
   const accent = report
     ? CHANNEX_STATUS_META[report.sync.status].color
-    : '#6B8A9A';
+    : 'var(--accent)';
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -402,8 +395,7 @@ export default function ChannexDiagnoseDialog({
             <Box>
               <Typography
                 variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', mb: 0.85, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}
+                sx={{ display: 'block', mb: 0.85, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}
               >
                 Actions recommandees
               </Typography>

@@ -24,9 +24,9 @@ interface StatTileProps {
  *
  * Caracteristiques :
  *  - Badge icone carre colore (l'accent vit dans l'icone, pas dans un liseré)
- *  - Valeur en 1.0-1.2rem bold, tabular-nums pour comparaison verticale
- *  - Label en caption uppercase
- *  - Hover : bordure prend la couleur d'accent + lift de 1px (si onClick)
+ *  - Valeur en font display (Space Grotesk) tabular-nums pour comparaison verticale
+ *  - Label en overline 10.5px var(--faint)
+ *  - Hover : bordure var(--line-2) + lift de 1px (si onClick), carte plate au repos
  *  - Loading : Skeleton à la place de la valeur
  *
  * Decision de design : pas de side-stripe coloré (anti-pattern Impeccable
@@ -61,16 +61,17 @@ export default function StatTile({
       onClick={onClick}
       sx={{
         p: 1.25,
-        borderRadius: 1.5,
-        borderColor: 'divider',
+        borderRadius: 'var(--radius-lg)',
+        bgcolor: 'var(--card)',
+        borderColor: 'var(--line)',
         position: 'relative',
         cursor: onClick ? 'pointer' : 'default',
         transition: 'border-color 200ms, transform 200ms, box-shadow 200ms',
         ...(onClick && {
           '&:hover': {
-            borderColor: color,
+            borderColor: 'var(--line-2)',
             transform: 'translateY(-1px)',
-            boxShadow: `0 1px 3px ${alpha(color, 0.18)}`,
+            boxShadow: 'var(--shadow-card)',
           },
           '&:active': {
             transform: 'translateY(0)',
@@ -78,7 +79,7 @@ export default function StatTile({
         }),
         ...(!onClick && {
           '&:hover': {
-            borderColor: color,
+            borderColor: 'var(--line-2)',
           },
         }),
       }}
@@ -105,8 +106,9 @@ export default function StatTile({
       <Typography
         variant="caption"
         sx={{
+          fontSize: '10.5px',
           fontWeight: 700,
-          color: 'text.secondary',
+          color: 'var(--faint)',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
           display: 'block',
@@ -121,10 +123,13 @@ export default function StatTile({
       ) : (
         <Typography
           sx={{
+            fontFamily: 'var(--font-display)',
+            fontVariantNumeric: 'tabular-nums',
             fontSize: { xs: '0.9375rem', md: '1.0625rem', xl: '1.1875rem' },
-            fontWeight: 700,
+            fontWeight: 600,
+            letterSpacing: '-0.025em',
             lineHeight: 1.1,
-            color: 'text.primary',
+            color: 'var(--ink)',
           }}
         >
           {value}
@@ -134,7 +139,7 @@ export default function StatTile({
       {hint && !loading && (
         <Typography
           variant="caption"
-          sx={{ color: 'text.disabled', display: 'block', mt: 0.25 }}
+          sx={{ color: 'var(--muted)', display: 'block', mt: 0.25 }}
         >
           {hint}
         </Typography>

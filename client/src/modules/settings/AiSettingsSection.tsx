@@ -84,7 +84,7 @@ const PROVIDERS: Record<string, ProviderBrand> = {
 
 function OpenAILogo({ size = 28, color }: { size?: number; color?: string }) {
   const theme = useTheme();
-  const fill = color ?? (theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000');
+  const fill = color ?? theme.palette.text.primary;
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill={fill} xmlns="http://www.w3.org/2000/svg">
       <path d="M14.949 6.547a3.94 3.94 0 0 0-.348-3.273 4.11 4.11 0 0 0-4.4-1.934A4.1 4.1 0 0 0 8.423.2 4.15 4.15 0 0 0 6.305.086a4.1 4.1 0 0 0-1.891.948 4.04 4.04 0 0 0-1.158 1.753 4.1 4.1 0 0 0-1.563.679A4 4 0 0 0 .554 4.72a3.99 3.99 0 0 0 .502 4.731 3.94 3.94 0 0 0 .346 3.274 4.11 4.11 0 0 0 4.402 1.933c.382.425.852.764 1.377.995.526.231 1.095.35 1.67.346 1.78.002 3.358-1.132 3.901-2.804a4.1 4.1 0 0 0 1.563-.68 4 4 0 0 0 1.14-1.253 3.99 3.99 0 0 0-.506-4.716m-6.097 8.406a3.05 3.05 0 0 1-1.945-.694l.096-.054 3.23-1.838a.53.53 0 0 0 .265-.455v-4.49l1.366.778q.02.011.025.035v3.722c-.003 1.653-1.361 2.992-3.037 2.996m-6.53-2.75a2.95 2.95 0 0 1-.36-2.01l.095.057L5.29 12.09a.53.53 0 0 0 .527 0l3.949-2.246v1.555a.05.05 0 0 1-.022.041L6.473 13.3c-1.454.826-3.311.335-4.15-1.098m-.85-6.94A3.02 3.02 0 0 1 3.07 3.949v3.785a.51.51 0 0 0 .262.451l3.93 2.237-1.366.779a.05.05 0 0 1-.048 0L2.585 9.342a2.98 2.98 0 0 1-1.113-4.094zm11.216 2.571L8.747 5.576l1.362-.776a.05.05 0 0 1 .048 0l3.265 1.86a3 3 0 0 1 1.173 1.207 2.96 2.96 0 0 1-.27 3.2 3.05 3.05 0 0 1-1.36.997V8.279a.52.52 0 0 0-.276-.445m1.36-2.015-.097-.057-3.226-1.855a.53.53 0 0 0-.53 0L6.249 6.153V4.598a.04.04 0 0 1 .019-.04L9.533 2.7a3.07 3.07 0 0 1 3.257.139c.474.325.843.778 1.066 1.303.223.526.289 1.103.191 1.664zM5.503 8.575 4.139 7.8a.05.05 0 0 1-.026-.037V4.049c0-.57.166-1.127.476-1.607s.752-.864 1.275-1.105a3.08 3.08 0 0 1 3.234.41l-.096.054-3.23 1.838a.53.53 0 0 0-.265.455zm.742-1.577 1.758-1 1.762 1v2l-1.755 1-1.762-1z" />
@@ -137,16 +137,6 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
         },
       }}
     >
-      {/* ── Top accent bar ── */}
-      <Box
-        sx={{
-          height: 3,
-          background: isOrgKey
-            ? accent
-            : `linear-gradient(90deg, ${alpha(accent, 0.3)}, ${alpha(accent, 0.08)})`,
-        }}
-      />
-
       <Box sx={{ p: 2.5 }}>
         {/* ── Header: logo + name + status chip ── */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -390,15 +380,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          overflow: 'hidden',
-        },
-      }}
     >
-      {/* ── Branded dialog header ── */}
-      <Box sx={{ height: 3, bgcolor: accent }} />
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
         <Box
           sx={{
@@ -564,7 +546,7 @@ function FeatureTogglesSection() {
     toggleMutation.mutate({ feature, enabled: !currentEnabled });
   };
 
-  const accentColor = '#4F46E5';
+  const accentColor = 'var(--accent)';
 
   return (
     <Paper
@@ -572,8 +554,8 @@ function FeatureTogglesSection() {
       sx={{
         mb: 3,
         border: '1px solid',
-        borderColor: alpha(accentColor, isDark ? 0.25 : 0.15),
-        borderRadius: 2.5,
+        borderColor: 'divider',
+        borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
       }}
     >
@@ -582,11 +564,9 @@ function FeatureTogglesSection() {
         sx={{
           px: 2.5,
           py: 2,
-          background: isDark
-            ? `linear-gradient(135deg, ${alpha(accentColor, 0.12)}, ${alpha(accentColor, 0.04)})`
-            : `linear-gradient(135deg, ${alpha(accentColor, 0.06)}, ${alpha(accentColor, 0.02)})`,
+          background: 'var(--surface-2)',
           borderBottom: '1px solid',
-          borderColor: alpha(accentColor, isDark ? 0.15 : 0.1),
+          borderColor: 'divider',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -596,10 +576,9 @@ function FeatureTogglesSection() {
               height: 8,
               borderRadius: '50%',
               bgcolor: accentColor,
-              boxShadow: `0 0 6px ${alpha(accentColor, 0.4)}`,
             }}
           />
-          <Typography variant="subtitle1" fontWeight={700} sx={{ color: isDark ? alpha(accentColor, 0.9) : accentColor }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ color: 'var(--ink)' }}>
             {t('bookingEngine.ai.features.title')}
           </Typography>
         </Box>
@@ -681,14 +660,6 @@ function FeatureTogglesSection() {
                   onChange={() => handleToggle(feat.feature, enabled)}
                   disabled={isMutating || !canEdit}
                   size="small"
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: accentColor,
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      bgcolor: accentColor,
-                    },
-                  }}
                 />
               </Box>
             </React.Fragment>

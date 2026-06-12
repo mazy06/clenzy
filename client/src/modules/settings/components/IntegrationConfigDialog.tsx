@@ -50,22 +50,9 @@ export default function IntegrationConfigDialog({
       fullScreen={fullScreen}
       PaperProps={{
         sx: {
-          borderRadius: fullScreen ? 0 : '14px',
-          // On retire l'ombre par defaut MUI Dialog (trop noire) pour une
-          // ombre plus subtile, alignee avec le langage visuel de l'app.
-          boxShadow: fullScreen
-            ? 'none'
-            : '0 8px 32px rgba(45, 55, 72, 0.12), 0 2px 8px rgba(45, 55, 72, 0.08)',
+          // Skin (radius, ombre, backdrop) herite du theme Dialog global Signature.
+          borderRadius: fullScreen ? 0 : undefined,
           overflow: 'visible',
-        },
-      }}
-      // Backdrop legerement teinte (pas du noir pur)
-      slotProps={{
-        backdrop: {
-          sx: {
-            backgroundColor: 'rgba(45, 55, 72, 0.45)',
-            backdropFilter: 'blur(2px)',
-          },
         },
       }}
     >
@@ -82,8 +69,7 @@ export default function IntegrationConfigDialog({
             width: 28,
             height: 28,
             color: 'text.secondary',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(4px)',
+            backgroundColor: 'var(--card)',
             border: '1px solid',
             borderColor: 'divider',
             transition: 'all 150ms cubic-bezier(0.22, 1, 0.36, 1)',

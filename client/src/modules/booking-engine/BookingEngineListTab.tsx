@@ -16,8 +16,6 @@ import {
   Chip,
   Skeleton,
   Alert,
-  alpha,
-  useTheme,
 } from '@mui/material';
 import {
   Edit,
@@ -95,8 +93,9 @@ const ApiKeyChip: React.FC<{ apiKey: string }> = ({ apiKey }) => {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 0.5,
-        bgcolor: 'action.hover',
-        borderRadius: 1,
+        bgcolor: 'var(--field)',
+        border: '1px solid var(--field-line)',
+        borderRadius: '7px',
         px: 0.75,
         py: 0.25,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
@@ -162,7 +161,6 @@ const TemplateRow: React.FC<TemplateCardProps> = ({
   toggleDisabled,
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
   const accent = normalizeColor(config.primaryColor);
   const isActive = config.enabled;
 
@@ -179,7 +177,7 @@ const TemplateRow: React.FC<TemplateCardProps> = ({
         cursor: 'pointer',
         transition: 'background-color 150ms ease',
         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        '&:hover': { bgcolor: 'action.hover' },
+        '&:hover': { bgcolor: 'var(--hover)' },
       }}
     >
       {/* Identité couleur du template : simple pastille (accent), jamais de side-stripe */}
@@ -191,8 +189,7 @@ const TemplateRow: React.FC<TemplateCardProps> = ({
           borderRadius: '50%',
           bgcolor: accent,
           flexShrink: 0,
-          border: '1px solid',
-          borderColor: alpha(theme.palette.divider, 0.5),
+          border: '1px solid var(--line-2)',
         }}
       />
 
@@ -341,7 +338,7 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
     // ── Loading ──────────────────────────────────────────────────────────────
     if (isLoading) {
       return (
-        <Card variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', mt: 1 }}>
+        <Card variant="outlined" sx={{ overflow: 'hidden', mt: 1 }}>
           {[1, 2, 3, 4].map((i) => (
             <React.Fragment key={i}>
               {i > 1 ? <Divider /> : null}
@@ -365,10 +362,10 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
       return (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Box sx={{
-            width: 64, height: 64, borderRadius: '50%', bgcolor: 'primary.50',
+            width: 64, height: 64, borderRadius: '50%', bgcolor: 'var(--accent-soft)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2,
           }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VpnKey size={28} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><VpnKey size={28} strokeWidth={1.75} /></Box>
           </Box>
           <Typography variant="h6" fontWeight={700} gutterBottom>
             {t('bookingEngine.list.empty')}
@@ -397,7 +394,7 @@ const BookingEngineListTab: React.FC<BookingEngineListTabProps> = React.memo(
             {t('bookingEngine.list.noResults', 'Aucun template ne correspond à la recherche.')}
           </Alert>
         ) : (
-          <Card variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', mt: 1 }}>
+          <Card variant="outlined" sx={{ overflow: 'hidden', mt: 1 }}>
             {filteredConfigs.map((config, i) => (
               <React.Fragment key={config.id}>
                 {i > 0 ? <Divider /> : null}

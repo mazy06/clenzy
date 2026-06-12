@@ -530,35 +530,10 @@ export default function Settings() {
 
   // ─── Actions dynamiques selon l'onglet ────────────────────────────────────
 
-  const refinedOutlinedSx = {
-    textTransform: 'none' as const,
-    fontWeight: 600,
-    fontSize: '0.78rem',
-    letterSpacing: '0.01em',
-    borderRadius: '8px',
-    py: 0.625,
-    px: 1.5,
-    borderColor: 'divider',
-    color: 'text.primary',
-    '&:hover': {
-      borderColor: 'rgba(107, 138, 154, 0.5)',
-      backgroundColor: 'rgba(107, 138, 154, 0.06)',
-    },
-  };
-
-  const refinedContainedSx = {
-    textTransform: 'none' as const,
-    fontWeight: 600,
-    fontSize: '0.78rem',
-    letterSpacing: '0.01em',
-    borderRadius: '8px',
-    py: 0.625,
-    px: 1.5,
-    bgcolor: '#6B8A9A',
-    boxShadow: 'none',
-    '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.94)', boxShadow: 'none' },
-    '&.Mui-disabled': { bgcolor: 'rgba(107, 138, 154, 0.4)', color: '#fff' },
-  };
+  // Boutons du header : styles 100 % hérités du thème global Signature
+  // (contained = contour accent, outlined = carte hairline) — aucun override local.
+  const refinedOutlinedSx = undefined;
+  const refinedContainedSx = undefined;
 
   const headerActions = tabValue === tabIdx.general ? (
     <>
@@ -888,7 +863,7 @@ export default function Settings() {
               />
               <SettingsToggleRow
                 icon={Person}
-                iconColor="#6B8A9A"
+                iconColor="var(--accent)"
                 title="Attribution automatique"
                 description="Attribuer automatiquement les interventions"
                 checked={workflowSettings.autoAssignInterventions}
@@ -896,7 +871,7 @@ export default function Settings() {
               />
               <SettingsToggleRow
                 icon={Security}
-                iconColor="#7BA3C2"
+                iconColor="var(--info)"
                 title="Approbation requise"
                 description="Demander approbation pour les modifications"
                 checked={workflowSettings.requireApprovalForChanges}
@@ -904,7 +879,7 @@ export default function Settings() {
               />
               <SettingsToggleRow
                 icon={TrendingUp}
-                iconColor="#4A9B8E"
+                iconColor="var(--ok)"
                 title="Push automatique des prix"
                 description="Pousser automatiquement les prix vers Airbnb (toutes les heures)"
                 checked={autoPushPricingEnabled}
@@ -956,12 +931,12 @@ export default function Settings() {
                       borderColor: 'divider',
                       color: 'text.secondary',
                       '&.Mui-selected': {
-                        bgcolor: '#D4A57418',
-                        color: '#8A5A22',
-                        borderColor: '#D4A57460',
-                        '&:hover': { bgcolor: '#D4A57422' },
+                        bgcolor: 'var(--accent-soft)',
+                        color: 'var(--accent)',
+                        borderColor: 'color-mix(in srgb, var(--accent) 38%, transparent)',
+                        '&:hover': { bgcolor: 'var(--accent-soft)' },
                       },
-                      '&:hover': { bgcolor: 'rgba(212, 165, 116, 0.06)' },
+                      '&:hover': { bgcolor: 'var(--hover)' },
                     },
                   }}
                 >
@@ -981,7 +956,7 @@ export default function Settings() {
               </Box>
               <SettingsToggleRow
                 icon={Storage}
-                iconColor="#8A8378"
+                iconColor="var(--muted)"
                 title="Mode compact"
                 description="Réduire l'espacement des éléments"
                 checked={settings.display.compactMode}
@@ -989,7 +964,7 @@ export default function Settings() {
               />
               <SettingsToggleRow
                 icon={Person}
-                iconColor="#6B8A9A"
+                iconColor="var(--accent)"
                 title="Afficher les avatars"
                 description="Montrer les photos de profil des utilisateurs"
                 checked={settings.display.showAvatars}
@@ -1010,7 +985,7 @@ export default function Settings() {
               >
                 <SettingsToggleRow
                   icon={BugReport}
-                  iconColor="#C97A7A"
+                  iconColor="var(--err)"
                   title="Données de démonstration (Planning)"
                   description="Afficher des réservations et interventions fictives dans le planning"
                   checked={planningMock}
@@ -1022,7 +997,7 @@ export default function Settings() {
                 />
                 <SettingsToggleRow
                   icon={VolumeUp}
-                  iconColor="#7BA3C2"
+                  iconColor="var(--info)"
                   title="Monitoring sonore Minut (démo)"
                   description="Simuler les données de capteurs de bruit dans le dashboard Analytics"
                   checked={noiseMonitoringEnabled}
@@ -1030,7 +1005,7 @@ export default function Settings() {
                 />
                 <SettingsToggleRow
                   icon={BarChart}
-                  iconColor="#4A9B8E"
+                  iconColor="var(--ok)"
                   title="Données de démonstration (Analytics)"
                   description="Afficher des KPIs, graphiques et recommandations avec des données fictives"
                   checked={analyticsMock}

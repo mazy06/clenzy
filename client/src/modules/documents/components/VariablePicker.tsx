@@ -10,26 +10,21 @@ import {
   Typography,
 } from '@mui/material';
 import { Search } from '../../../icons';
-import { softChipSx } from '../../../utils/statusUtils';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
 
 /**
- * Sidebar de variables interpolables — chips colorees par categorie (palette Baitly).
- *
- * <p>Aligne sur le style des chips utilisees ailleurs dans le PMS (table
- * MessageTemplatesSection, etc.) via {@link softChipSx} : background hex/12
- * subtle + texte hex foncier + hover hex/22. Coherence visuelle assuree.</p>
+ * Sidebar de variables interpolables — chips tonales par categorie (tokens Signature).
  *
  * <h3>Categorisation</h3>
  * Le groupement par categorie facilite la decouverte quand il y a beaucoup de
- * variables. Chaque categorie a sa couleur Baitly :
+ * variables. Chaque categorie a son ton semantique (pattern TONES/chipSx) :
  * <ul>
- *   <li>IDENTITÉ → soft blue (#7BA3C2)</li>
- *   <li>PROPRIÉTÉ → accent teal (#4A9B8E)</li>
- *   <li>DATES & HEURES → warm (#D4A574)</li>
- *   <li>ACCÈS → primary (#6B8A9A)</li>
- *   <li>INSTRUCTIONS → neutral (#8A8378)</li>
- *   <li>LIENS & CODES → soft danger (#C97A7A)</li>
+ *   <li>IDENTITÉ → info</li>
+ *   <li>PROPRIÉTÉ → ok</li>
+ *   <li>DATES & HEURES → warn</li>
+ *   <li>ACCÈS → accent</li>
+ *   <li>INSTRUCTIONS → muted</li>
+ *   <li>LIENS & CODES → err</li>
  * </ul>
  *
  * <p>Les variables systeme HTML-safe ({@code detailsHtml}, {@code urgencyBanner})
@@ -38,30 +33,36 @@ import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
  * serveur.</p>
  */
 
-// ─── Palette Baitly (alignee sur MessageTemplatesSection) ───────────────────
+// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
 
-const ACCENT_TEAL = '#4A9B8E';
-const WARM = '#D4A574';
-const SOFT_BLUE = '#7BA3C2';
-const PRIMARY = '#6B8A9A';
-const NEUTRAL = '#8A8378';
-const DANGER_SOFT = '#C97A7A';
+interface Tone { c: string; bg: string }
+
+const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
+  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
+  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
+  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
+  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
+  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
+  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
+};
+
+const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
 
 interface CategoryDef {
   id: string;
   label: string;
-  color: string;
+  tone: Tone;
 }
 
 const CATEGORIES: Record<string, CategoryDef> = {
-  guest:        { id: 'guest',        label: 'IDENTITÉ',      color: SOFT_BLUE },
-  property:     { id: 'property',     label: 'PROPRIÉTÉ',     color: ACCENT_TEAL },
-  dates:        { id: 'dates',        label: 'DATES & HEURES', color: WARM },
-  access:       { id: 'access',       label: 'ACCÈS',         color: PRIMARY },
-  instructions: { id: 'instructions', label: 'INSTRUCTIONS',  color: NEUTRAL },
-  links:        { id: 'links',        label: 'LIENS & CODES', color: DANGER_SOFT },
-  other:        { id: 'other',        label: 'AUTRES',        color: NEUTRAL },
-  uncategorized:{ id: 'uncategorized',label: 'AUTRES',        color: NEUTRAL },
+  guest:        { id: 'guest',        label: 'IDENTITÉ',      tone: TONES.info },
+  property:     { id: 'property',     label: 'PROPRIÉTÉ',     tone: TONES.ok },
+  dates:        { id: 'dates',        label: 'DATES & HEURES', tone: TONES.warn },
+  access:       { id: 'access',       label: 'ACCÈS',         tone: TONES.accent },
+  instructions: { id: 'instructions', label: 'INSTRUCTIONS',  tone: TONES.muted },
+  links:        { id: 'links',        label: 'LIENS & CODES', tone: TONES.err },
+  other:        { id: 'other',        label: 'AUTRES',        tone: TONES.muted },
+  uncategorized:{ id: 'uncategorized',label: 'AUTRES',        tone: TONES.muted },
 };
 
 const CATEGORY_ORDER = ['guest', 'property', 'dates', 'access', 'instructions', 'links', 'other', 'uncategorized'];
@@ -140,7 +141,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
             ),
           }}
           sx={{
-            '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', bgcolor: 'background.default' },
+            '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', bgcolor: 'var(--field)' },
           }}
         />
       )}
@@ -148,7 +149,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
       {/* Variables systeme (HTML-safe, non insertables) */}
       {systemVariablesUsed.length > 0 && (
         <Box>
-          <SectionHeading label="VARIABLES SYSTÈME" color={DANGER_SOFT} />
+          <SectionHeading label="VARIABLES SYSTÈME" tone={TONES.err} />
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
             {systemVariablesUsed.map((key) => (
               <Tooltip
@@ -160,7 +161,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                   label={`{${key}}`}
                   size="small"
                   sx={{
-                    ...softChipSx(DANGER_SOFT),
+                    ...chipSx(TONES.err),
                     fontFamily: 'monospace',
                     fontSize: '0.72rem',
                     cursor: 'help',
@@ -180,7 +181,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
       ) : (
         groupedFiltered.map((group) => (
           <Box key={group.category}>
-            <SectionHeading label={group.def.label} color={group.def.color} />
+            <SectionHeading label={group.def.label} tone={group.def.tone} />
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {group.items.map((v) => {
                 const isUsed = usedKeys.has(v.key);
@@ -203,13 +204,13 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                       size="small"
                       onClick={() => onInsert(v.key)}
                       sx={{
-                        ...softChipSx(group.def.color),
+                        ...chipSx(group.def.tone),
                         fontFamily: 'monospace',
                         fontSize: '0.72rem',
                         cursor: 'pointer',
                         opacity: isUsed ? 1 : 0.85,
                         fontWeight: isUsed ? 700 : 500,
-                        outline: isUsed ? `1.5px solid ${group.def.color}` : 'none',
+                        outline: isUsed ? `1.5px solid ${group.def.tone.c}` : 'none',
                         outlineOffset: isUsed ? '-1.5px' : 0,
                         '&:hover': {
                           opacity: 1,
@@ -238,7 +239,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
                   variant="caption"
                   component="span"
                   fontFamily="monospace"
-                  sx={{ color: CATEGORIES[CATEGORY_OF[v.key] ?? 'uncategorized'].color, fontWeight: 600 }}
+                  sx={{ color: CATEGORIES[CATEGORY_OF[v.key] ?? 'uncategorized'].tone.c, fontWeight: 600 }}
                 >
                   {`{${v.key}}`}
                 </Typography>
@@ -258,12 +259,12 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
 
 interface SectionHeadingProps {
   label: string;
-  color: string;
+  tone: Tone;
 }
 
-const SectionHeading: React.FC<SectionHeadingProps> = ({ label, color }) => (
+const SectionHeading: React.FC<SectionHeadingProps> = ({ label, tone }) => (
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-    <Box sx={{ width: 12, height: 2, bgcolor: color, borderRadius: 1 }} />
+    <Box sx={{ width: 12, height: 2, bgcolor: tone.c, borderRadius: 1 }} />
     <Typography
       variant="caption"
       component="div"

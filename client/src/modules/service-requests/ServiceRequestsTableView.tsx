@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Box, Paper, Typography, Chip, Tooltip, IconButton, useTheme,
+  Paper, Typography, Chip, Tooltip, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
 } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
@@ -9,12 +9,10 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { ServiceRequest } from './serviceRequestsUtils';
 import {
   getServiceRequestStatusLabel,
-  getServiceRequestStatusHex,
   getServiceRequestPriorityLabel,
-  getServiceRequestPriorityHex,
 } from '../../utils/statusUtils';
 import { stripPropertySuffix, formatDateShort } from './serviceRequestDisplayMapper';
-import { LIST_PAPER_SX, PAGINATION_SX } from './serviceRequestsListConstants';
+import { LIST_PAPER_SX, PAGINATION_SX, srStatusChipSx, srPriorityChipSx } from './serviceRequestsListConstants';
 
 interface ServiceRequestsTableViewProps {
   serviceRequests: ServiceRequest[];
@@ -34,7 +32,6 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
   containerRef, convertAndFormat, onMenuOpen, navigate,
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   return (
     <Paper ref={containerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -45,9 +42,11 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
               sx={{
                 '& th': {
                   fontWeight: 700,
-                  fontSize: '0.78rem',
-                  color: theme.palette.text.secondary,
-                  borderBottom: `2px solid ${theme.palette.divider}`,
+                  fontSize: '10.5px',
+                  letterSpacing: '.05em',
+                  textTransform: 'uppercase',
+                  color: 'var(--faint)',
+                  borderBottom: '1px solid var(--line)',
                   whiteSpace: 'nowrap',
                 },
               }}
@@ -75,76 +74,54 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                 onClick={() => navigate(`/service-requests/${request.id}`)}
               >
                 <TableCell>
-                  <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
                     {stripPropertySuffix(request.title, request.propertyName)}
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                     {request.propertyName}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                  <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
                     {request.propertyAddress}, {request.propertyCity}
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                     {request.requestorName}
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                     {request.assignedToName || '—'}
                   </Typography>
                 </TableCell>
                 <TableCell align="center">
-                  {(() => { const c = getServiceRequestStatusHex(request.status); return (
-                    <Chip
-                      label={getServiceRequestStatusLabel(request.status, t)}
-                      size="small"
-                      sx={{
-                        backgroundColor: `${c}18`,
-                        color: c,
-                        border: `1px solid ${c}40`,
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        height: 24,
-                        '& .MuiChip-label': { px: 1 },
-                      }}
-                    />
-                  ); })()}
+                  <Chip
+                    label={getServiceRequestStatusLabel(request.status, t)}
+                    size="small"
+                    sx={srStatusChipSx(request.status)}
+                  />
                 </TableCell>
                 <TableCell align="center">
-                  {(() => { const c = getServiceRequestPriorityHex(request.priority); return (
-                    <Chip
-                      label={getServiceRequestPriorityLabel(request.priority, t)}
-                      size="small"
-                      sx={{
-                        backgroundColor: `${c}18`,
-                        color: c,
-                        border: `1px solid ${c}40`,
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        height: 24,
-                        '& .MuiChip-label': { px: 1 },
-                      }}
-                    />
-                  ); })()}
+                  <Chip
+                    label={getServiceRequestPriorityLabel(request.priority, t)}
+                    size="small"
+                    sx={srPriorityChipSx(request.priority)}
+                  />
                 </TableCell>
                 <TableCell align="right">
-                  <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
+                  <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
                     {request.estimatedCost != null ? convertAndFormat(request.estimatedCost, 'EUR') : '—'}
                   </Typography>
                   {request.estimatedDuration > 0 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                    <Typography sx={{ fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                       ~{request.estimatedDuration}h
                     </Typography>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>
                     {formatDateShort(request.dueDate)}
                   </Typography>
                 </TableCell>

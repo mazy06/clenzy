@@ -39,9 +39,9 @@ import { useTeamsList } from './useTeamsList';
 
 // Catégories de filtrage pour la liste des équipes
 const TEAM_FILTER_CATEGORIES = [
-  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={16} strokeWidth={1.75} />, borderColor: 'success.main' },
-  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={16} strokeWidth={1.75} />, borderColor: 'warning.main' },
-  { value: 'OTHER', label: 'Autre', icon: <Category size={16} strokeWidth={1.75} />, borderColor: 'info.main' },
+  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={16} strokeWidth={1.75} />, borderColor: 'var(--ok)' },
+  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={16} strokeWidth={1.75} />, borderColor: 'var(--warn)' },
+  { value: 'OTHER', label: 'Autre', icon: <Category size={16} strokeWidth={1.75} />, borderColor: 'var(--info)' },
 ];
 
 interface TeamsListProps {
@@ -160,16 +160,18 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           <Chip
             label={t('teams.allTypes')}
             onClick={() => setSelectedType('all')}
-            color={selectedType === 'all' ? 'primary' : 'default'}
-            variant={selectedType === 'all' ? 'filled' : 'outlined'}
+            variant="outlined"
             size="small"
+            aria-pressed={selectedType === 'all'}
             sx={{
               cursor: 'pointer',
               fontSize: '0.72rem',
               height: 26,
               fontWeight: 600,
-              borderWidth: 1.5,
-              '&:hover': { transform: 'translateY(-1px)', transition: 'all 0.2s ease-in-out' },
+              ...(selectedType === 'all'
+                ? { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', borderColor: 'var(--accent)' }
+                : { color: 'var(--body)', borderColor: 'var(--line-2)' }),
+              '&:hover': { backgroundColor: 'var(--hover)' },
             }}
           />
           {TEAM_FILTER_CATEGORIES.map((cat) => (
@@ -178,17 +180,18 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
               icon={cat.icon}
               label={cat.label}
               onClick={() => setSelectedType(cat.value)}
-              color={selectedType === cat.value ? 'primary' : 'default'}
-              variant={selectedType === cat.value ? 'filled' : 'outlined'}
+              variant="outlined"
               size="small"
+              aria-pressed={selectedType === cat.value}
               sx={{
                 cursor: 'pointer',
                 fontSize: '0.72rem',
                 height: 26,
                 fontWeight: selectedType === cat.value ? 600 : 400,
-                borderWidth: 1.5,
-                borderColor: selectedType === cat.value ? 'primary.main' : cat.borderColor,
-                '&:hover': { transform: 'translateY(-1px)', transition: 'all 0.2s ease-in-out' },
+                ...(selectedType === cat.value
+                  ? { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', borderColor: 'var(--accent)' }
+                  : { color: 'var(--body)', borderColor: cat.borderColor }),
+                '&:hover': { backgroundColor: 'var(--hover)' },
               }}
             />
           ))}
@@ -273,9 +276,9 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           </MenuItem>
         )}
         {canDeleteTeams && (
-          <MenuItem onClick={handleDelete} sx={{ color: 'error.main', fontSize: '0.85rem', py: 0.75 }}>
+          <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)', fontSize: '0.85rem', py: 0.75 }}>
             <ListItemIcon>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Delete fontSize="small" size={18} strokeWidth={1.75} /></Box>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete fontSize="small" size={18} strokeWidth={1.75} /></Box>
             </ListItemIcon>
             Supprimer
           </MenuItem>

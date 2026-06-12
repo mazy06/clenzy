@@ -30,22 +30,23 @@ import {
 import { systemEmailTemplatesApi, type SystemEmailTemplateGroup } from '../../services/api/systemEmailTemplatesApi';
 import MessageTemplateEditor from '../messaging/MessageTemplateEditor';
 import SystemTemplateEditDialog from './SystemTemplateEditDialog';
-import { softChipSx } from '../../utils/statusUtils';
+import EmptyState from '../../components/EmptyState';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-// Palette Baitly : remplace les couleurs MUI brutes par les accents valides du produit.
-const ACCENT_TEAL = '#4A9B8E';
-const WARM = '#D4A574';
-const SOFT_BLUE = '#7BA3C2';
-const NEUTRAL = '#8A8378';
-const DANGER_SOFT = '#C97A7A';
+/** Tons sémantiques (tokens Signature) pour les chips -soft. */
+const TONE = {
+  ok:    { color: 'var(--ok)',    bgcolor: 'var(--ok-soft)' },
+  warn:  { color: 'var(--warn)',  bgcolor: 'var(--warn-soft)' },
+  info:  { color: 'var(--info)',  bgcolor: 'var(--info-soft)' },
+  muted: { color: 'var(--muted)', bgcolor: 'var(--hover)' },
+} as const;
 
-const TYPE_HEX: Record<string, string> = {
-  CHECK_IN: ACCENT_TEAL,
-  CHECK_OUT: WARM,
-  WELCOME: SOFT_BLUE,
-  CUSTOM: NEUTRAL,
+const TYPE_TONE: Record<string, { color: string; bgcolor: string }> = {
+  CHECK_IN: TONE.ok,
+  CHECK_OUT: TONE.warn,
+  WELCOME: TONE.info,
+  CUSTOM: TONE.muted,
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -182,28 +183,24 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
       )}
 
       {rows.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}>
-            <Email size={40} strokeWidth={1.5} />
-          </Box>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {t('messaging.templates.empty')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('messaging.templates.emptyDesc')}
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add size={14} strokeWidth={1.75} />}
-            size="small"
-            onClick={() => {
-              setEditingTemplate(null);
-              setEditorOpen(true);
-            }}
-          >
-            {t('messaging.templates.createFirst')}
-          </Button>
-        </Paper>
+        <EmptyState
+          icon={<Email />}
+          title={t('messaging.templates.empty')}
+          description={t('messaging.templates.emptyDesc')}
+          action={(
+            <Button
+              variant="contained"
+              startIcon={<Add size={14} strokeWidth={1.75} />}
+              size="small"
+              onClick={() => {
+                setEditingTemplate(null);
+                setEditorOpen(true);
+              }}
+            >
+              {t('messaging.templates.createFirst')}
+            </Button>
+          )}
+        />
       ) : (
         <TableContainer component={Paper}>
           <Table>
@@ -277,11 +274,11 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
     <TableRow hover>
       <TableCell>
         <Stack0Spaced>
-          <Typography variant="body2" fontWeight={600}>{template.name}</Typography>
+          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>{template.name}</Typography>
           <Chip
             label={TYPE_LABELS[template.type] || template.type}
             size="small"
-            sx={softChipSx(TYPE_HEX[template.type] ?? NEUTRAL)}
+            sx={TYPE_TONE[template.type] ?? TONE.muted}
           />
         </Stack0Spaced>
       </TableCell>
@@ -289,7 +286,7 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
         <Chip
           label={t('messaging.templates.originUser')}
           size="small"
-          sx={softChipSx(NEUTRAL)}
+          sx={TONE.muted}
         />
       </TableCell>
       <TableCell>
@@ -298,13 +295,13 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
         </Typography>
       </TableCell>
       <TableCell>
-        <Chip label={template.language?.toUpperCase()} size="small" sx={softChipSx(NEUTRAL)} />
+        <Chip label={template.language?.toUpperCase()} size="small" sx={TONE.muted} />
       </TableCell>
       <TableCell align="center">
         <Chip
           label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')}
           size="small"
-          sx={softChipSx(template.isActive ? ACCENT_TEAL : NEUTRAL)}
+          sx={template.isActive ? TONE.ok : TONE.muted}
         />
       </TableCell>
       <TableCell align="center">
@@ -321,7 +318,7 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
             size="small"
             onClick={() => onEdit(template)}
             aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: ACCENT_TEAL } }}
+            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
           >
             <Edit size={16} strokeWidth={1.75} />
           </IconButton>
@@ -333,8 +330,8 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
             aria-label={t('common.delete')}
             sx={{
               cursor: 'pointer',
-              color: 'text.secondary',
-              '&:hover': { color: DANGER_SOFT, backgroundColor: `${DANGER_SOFT}14` },
+              color: 'var(--muted)',
+              '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
             }}
           >
             <Delete size={16} strokeWidth={1.75} />
@@ -362,13 +359,13 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
     <TableRow hover>
       <TableCell>
         <Stack0Spaced>
-          <Typography variant="body2" fontWeight={600}>
+          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>
             {t(`systemEmailTemplates.keys.${group.templateKey}`)}
           </Typography>
           <Chip
             label={t(`systemEmailTemplates.recipientShort.${group.recipientType}`)}
             size="small"
-            sx={softChipSx(group.recipientType === 'GUEST' ? SOFT_BLUE : group.recipientType === 'OWNER' ? ACCENT_TEAL : NEUTRAL)}
+            sx={group.recipientType === 'GUEST' ? TONE.info : group.recipientType === 'OWNER' ? TONE.ok : TONE.muted}
           />
         </Stack0Spaced>
       </TableCell>
@@ -378,8 +375,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
             ? t('messaging.templates.originCustomized')
             : t('messaging.templates.originSystem')}
           size="small"
-          sx={softChipSx(group.isCustomized ? ACCENT_TEAL : NEUTRAL)}
-          variant={group.isCustomized ? 'filled' : 'outlined'}
+          sx={group.isCustomized ? TONE.ok : TONE.muted}
         />
       </TableCell>
       <TableCell>
@@ -393,7 +389,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
         <Chip
           label={Object.keys(group.languages)[0]?.toUpperCase() ?? '—'}
           size="small"
-          sx={softChipSx(NEUTRAL)}
+          sx={TONE.muted}
         />
       </TableCell>
       <TableCell align="center">
@@ -401,7 +397,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
         <Chip
           label={t('messaging.templates.active')}
           size="small"
-          sx={softChipSx(ACCENT_TEAL)}
+          sx={TONE.ok}
         />
       </TableCell>
       <TableCell align="center">
@@ -418,7 +414,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
             size="small"
             onClick={() => onEdit(group.templateKey)}
             aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: ACCENT_TEAL } }}
+            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
           >
             <Edit size={16} strokeWidth={1.75} />
           </IconButton>

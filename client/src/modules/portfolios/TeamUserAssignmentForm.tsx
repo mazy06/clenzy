@@ -122,7 +122,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                 {managers.map((manager) => (
                   <MenuItem key={manager.id} value={manager.id}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', bgcolor: 'primary.main' }}>
+                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                         {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
                       </Avatar>
                       <Typography sx={{ fontSize: '0.85rem' }}>
@@ -155,11 +155,11 @@ const TeamUserAssignmentForm: React.FC = () => {
                       cursor: 'pointer',
                       borderRadius: 2,
                       border: selectedTeams.includes(team.id) ? 2 : 1,
-                      borderColor: selectedTeams.includes(team.id) ? 'primary.main' : 'divider',
-                      transition: 'all 0.2s ease-in-out',
+                      borderColor: selectedTeams.includes(team.id) ? 'var(--accent)' : 'var(--line)',
+                      transition: 'border-color 0.2s ease',
+                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                       '&:hover': {
-                        borderColor: 'primary.main',
-                        transform: 'translateY(-1px)',
+                        borderColor: 'var(--accent)',
                       },
                     }}
                     onClick={() => handleTeamToggle(team.id)}
@@ -172,7 +172,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                           size="small"
                           sx={{ p: 0.25, mr: 0.75 }}
                         />
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 0.75 }}><Group size={18} strokeWidth={1.75} /></Box>
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mr: 0.75 }}><Group size={18} strokeWidth={1.75} /></Box>
                         <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
                           {team.name}
                         </Typography>
@@ -258,11 +258,11 @@ const TeamUserAssignmentForm: React.FC = () => {
                         cursor: 'pointer',
                         borderRadius: 2,
                         border: selectedUsers.includes(userItem.id) ? 2 : 1,
-                        borderColor: selectedUsers.includes(userItem.id) ? 'primary.main' : 'divider',
-                        transition: 'all 0.2s ease-in-out',
+                        borderColor: selectedUsers.includes(userItem.id) ? 'var(--accent)' : 'var(--line)',
+                        transition: 'border-color 0.2s ease',
+                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                         '&:hover': {
-                          borderColor: 'primary.main',
-                          transform: 'translateY(-1px)',
+                          borderColor: 'var(--accent)',
                         },
                       }}
                       onClick={() => handleUserToggle(userItem.id)}
@@ -281,7 +281,10 @@ const TeamUserAssignmentForm: React.FC = () => {
                               height: 24,
                               fontSize: '0.55rem',
                               fontWeight: 600,
-                              bgcolor: `${getRoleColor(userItem.role)}.main`,
+                              bgcolor: 'var(--accent)',
+                              color: 'var(--on-accent)',
+                              fontFamily: 'var(--font-display)',
+                              borderRadius: '8px',
                               mr: 0.75,
                             }}
                           >
@@ -333,7 +336,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                 {t('portfolios.fields.selectedManager')}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                <Avatar sx={{ width: 28, height: 28, fontSize: '0.6rem', bgcolor: 'primary.main' }}>
+                <Avatar sx={{ width: 28, height: 28, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                   {selectedManagerData?.firstName?.charAt(0)}{selectedManagerData?.lastName?.charAt(0)}
                 </Avatar>
                 <Box>
@@ -359,7 +362,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                       {selectedTeamsData.map((team) => (
                         <ListItem key={team.id} disableGutters sx={{ py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 28 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                           </ListItemIcon>
                           <ListItemText
                             primary={<Typography sx={{ fontSize: '0.82rem' }}>{team.name}</Typography>}
@@ -391,7 +394,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                       {selectedUsersData.map((userItem) => (
                         <ListItem key={userItem.id} disableGutters sx={{ py: 0.5 }}>
                           <ListItemIcon sx={{ minWidth: 28 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                           </ListItemIcon>
                           <ListItemText
                             primary={<Typography sx={{ fontSize: '0.82rem' }}>{userItem.firstName} {userItem.lastName}</Typography>}

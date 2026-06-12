@@ -100,7 +100,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 {managers.map((manager) => (
                   <MenuItem key={manager.id} value={manager.id}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', bgcolor: 'primary.main' }}>
+                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                         {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
                       </Avatar>
                       <Typography sx={{ fontSize: '0.85rem' }}>
@@ -153,7 +153,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                   <MenuItem key={client.id} value={client.id}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Checkbox checked={selectedClients.includes(client.id)} size="small" />
-                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', bgcolor: 'primary.main' }}>
+                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                         {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                       </Avatar>
                       <Typography sx={{ fontSize: '0.85rem' }}>
@@ -215,11 +215,11 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                         cursor: 'pointer',
                         borderRadius: 2,
                         border: selectedProperties.includes(property.id) ? 2 : 1,
-                        borderColor: selectedProperties.includes(property.id) ? 'primary.main' : 'divider',
-                        transition: 'all 0.2s ease-in-out',
+                        borderColor: selectedProperties.includes(property.id) ? 'var(--accent)' : 'var(--line)',
+                        transition: 'border-color 0.2s ease',
+                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                         '&:hover': {
-                          borderColor: 'primary.main',
-                          transform: 'translateY(-1px)',
+                          borderColor: 'var(--accent)',
                         },
                       }}
                       onClick={() => handlePropertyToggle(property.id)}
@@ -232,7 +232,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                             size="small"
                             sx={{ p: 0.25, mr: 0.75 }}
                           />
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'info.main', mr: 0.75 }}><Home size={18} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)', mr: 0.75 }}><Home size={18} strokeWidth={1.75} /></Box>
                           <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }} noWrap>
                             {property.name}
                           </Typography>
@@ -287,7 +287,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               </Typography>
               {selectedManagerData ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                  <Avatar sx={{ width: 28, height: 28, fontSize: '0.6rem', bgcolor: 'primary.main' }}>
+                  <Avatar sx={{ width: 28, height: 28, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
                     {selectedManagerData.firstName.charAt(0)}{selectedManagerData.lastName.charAt(0)}
                   </Avatar>
                   <Box>
@@ -317,7 +317,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                     {selectedClientsData.map((client) => (
                       <ListItem key={client.id} disableGutters sx={{ py: 0.5 }}>
                         <ListItemIcon sx={{ minWidth: 28 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                         </ListItemIcon>
                         <ListItemText
                           primary={<Typography sx={{ fontSize: '0.82rem' }}>{client.firstName} {client.lastName}</Typography>}
@@ -339,7 +339,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                     {selectedPropertiesData.map((property) => (
                       <ListItem key={property.id} disableGutters sx={{ py: 0.5 }}>
                         <ListItemIcon sx={{ minWidth: 28 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                         </ListItemIcon>
                         <ListItemText
                           primary={<Typography sx={{ fontSize: '0.82rem' }}>{property.name}</Typography>}

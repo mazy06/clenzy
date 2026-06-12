@@ -9,7 +9,7 @@ import {
   TableRow,
   Paper,
   Chip,
-  CircularProgress,
+  Skeleton,
   Alert,
   Typography,
   Grid,
@@ -19,27 +19,49 @@ import {
   TablePagination,
 } from '@mui/material';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
-import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
 import FilterChipRow from '../../../components/FilterChipRow';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 
 type ChannelOption = 'AIRBNB' | 'BOOKING' | 'VRBO' | 'ICAL' | 'OTHER';
 
+// Couleurs de canaux : tokens --airbnb/--booking (baseline §1), marque Vrbo conservée
 const CHANNEL_OPTIONS: { value: ChannelOption; label: string; color: string }[] = [
-  { value: 'AIRBNB',  label: 'Airbnb',  color: '#FF5A5F' },
-  { value: 'BOOKING', label: 'Booking', color: '#003580' },
+  { value: 'AIRBNB',  label: 'Airbnb',  color: 'var(--airbnb)' },
+  { value: 'BOOKING', label: 'Booking', color: 'var(--booking)' },
   { value: 'VRBO',    label: 'Vrbo',    color: '#1E88E5' },
-  { value: 'ICAL',    label: 'iCal',    color: '#6B8A9A' },
-  { value: 'OTHER',   label: 'Autre',   color: '#757575' },
+  { value: 'ICAL',    label: 'iCal',    color: 'var(--accent)' },
+  { value: 'OTHER',   label: 'Autre',   color: 'var(--muted)' },
 ];
 
-const directionSemantic = (direction: string | null): string => {
-  switch (direction) {
-    case 'INBOUND': return 'info';
-    case 'OUTBOUND': return 'warning';
-    default: return 'default';
-  }
+/** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
+const chipSx = (fg: string, bg: string) => ({
+  color: fg,
+  backgroundColor: bg,
+  '& .MuiChip-icon': { color: fg },
+});
+
+const DIRECTION_TOKEN: Record<string, { fg: string; bg: string }> = {
+  INBOUND: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  OUTBOUND: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
 };
+
+const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
+  SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  ERROR: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  PENDING: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+};
+
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+
+/** Label overline (pattern entête de tuile/section) */
+const OVERLINE_SX = {
+  fontSize: '10.5px',
+  fontWeight: 700,
+  letterSpacing: '.05em',
+  textTransform: 'uppercase',
+  color: 'var(--faint)',
+} as const;
 
 const EventsTab: React.FC = () => {
   const [events, setEvents] = useState<SyncLog[]>([]);
@@ -136,26 +158,33 @@ const EventsTab: React.FC = () => {
 
   return (
     <Box>
-      {/* Stats Cards */}
+      {/* Stats Cards — label overline, valeurs display tabular-nums */}
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={4}>
             <Card variant="outlined">
               <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Total (24h)</Typography>
-                <Typography variant="h4">{stats.totalLast24h}</Typography>
+                <Typography sx={OVERLINE_SX}>Total (24h)</Typography>
+                <Typography
+                  variant="h4"
+                  sx={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {stats.totalLast24h}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={4}>
             <Card variant="outlined">
               <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Par Channel</Typography>
+                <Typography sx={{ ...OVERLINE_SX, mb: 0.5 }}>Par Channel</Typography>
                 {Object.entries(stats.byChannel).map(([ch, count]) => (
-                  <Typography key={ch} variant="body2">{ch}: {count}</Typography>
+                  <Typography key={ch} variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {ch}: {count}
+                  </Typography>
                 ))}
                 {Object.keys(stats.byChannel).length === 0 && (
-                  <Typography variant="body2" color="text.secondary">Aucune donnee</Typography>
+                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
                 )}
               </CardContent>
             </Card>
@@ -163,12 +192,14 @@ const EventsTab: React.FC = () => {
           <Grid item xs={12} sm={4}>
             <Card variant="outlined">
               <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Par Status</Typography>
+                <Typography sx={{ ...OVERLINE_SX, mb: 0.5 }}>Par Status</Typography>
                 {Object.entries(stats.byStatus).map(([s, count]) => (
-                  <Typography key={s} variant="body2">{s}: {count}</Typography>
+                  <Typography key={s} variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {s}: {count}
+                  </Typography>
                 ))}
                 {Object.keys(stats.byStatus).length === 0 && (
-                  <Typography variant="body2" color="text.secondary">Aucune donnee</Typography>
+                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
                 )}
               </CardContent>
             </Card>
@@ -179,12 +210,18 @@ const EventsTab: React.FC = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+          ))}
         </Box>
       ) : (
         <>
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer
+            component={Paper}
+            variant="outlined"
+            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
+          >
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -213,12 +250,26 @@ const EventsTab: React.FC = () => {
                           <Chip
                             label={evt.direction}
                             size="small"
-                            sx={softChipSx(semanticToHex(directionSemantic(evt.direction)))}
+                            sx={(() => {
+                              const tk = DIRECTION_TOKEN[evt.direction] ?? NEUTRAL_TOKEN;
+                              return chipSx(tk.fg, tk.bg);
+                            })()}
                           />
                         ) : '—'}
                       </TableCell>
                       <TableCell>{evt.eventType}</TableCell>
-                      <TableCell>{evt.status}</TableCell>
+                      <TableCell>
+                        {evt.status ? (
+                          <Chip
+                            label={evt.status}
+                            size="small"
+                            sx={(() => {
+                              const tk = STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN;
+                              return chipSx(tk.fg, tk.bg);
+                            })()}
+                          />
+                        ) : '—'}
+                      </TableCell>
                       <TableCell>
                         <Typography
                           variant="body2"

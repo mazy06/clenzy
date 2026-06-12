@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
+import { Box, Typography } from '@mui/material';
 import type { ToolCallExecuted } from '../../../hooks/useAgent';
 import { KpiSummaryWidget } from './KpiSummaryWidget';
 import { DataTableWidget } from './DataTableWidget';
@@ -44,8 +43,6 @@ interface ToolResultWidgetProps {
  * reste visible).</p>
  */
 export const ToolResultWidget: React.FC<ToolResultWidgetProps> = ({ call }) => {
-  const theme = useTheme();
-
   const parsed = useMemo(() => {
     if (!call.toolResult || call.toolError) return null;
     try {
@@ -104,7 +101,7 @@ export const ToolResultWidget: React.FC<ToolResultWidgetProps> = ({ call }) => {
     default:
       // Hint inconnu : on tente de rendre une representation minimale
       // (le LLM expliquera dans son texte, donc on reste discret ici)
-      return <UnknownPayloadFallback payload={parsed} theme={theme} />;
+      return <UnknownPayloadFallback payload={parsed} />;
   }
 };
 
@@ -115,8 +112,7 @@ export const ToolResultWidget: React.FC<ToolResultWidgetProps> = ({ call }) => {
  */
 const UnknownPayloadFallback: React.FC<{
   payload: Record<string, unknown>;
-  theme: Theme;
-}> = ({ payload, theme }) => {
+}> = ({ payload }) => {
   // Limit to non-object keys, max 6 entries
   const entries = Object.entries(payload)
     .filter(([, v]) => typeof v !== 'object' || v === null)
@@ -129,21 +125,20 @@ const UnknownPayloadFallback: React.FC<{
       sx={{
         mt: 1, mb: 1.5,
         p: 1.5,
-        borderRadius: 2,
-        bgcolor: alpha(theme.palette.text.primary, 0.03),
+        borderRadius: '10px',
+        border: '1px solid var(--line)',
+        bgcolor: 'var(--card)',
       }}
     >
       {entries.map(([k, v]) => (
         <Box key={k} sx={{ display: 'flex', gap: 1, py: 0.25 }}>
           <Typography
-            variant="caption"
-            sx={{ minWidth: 100, color: theme.palette.text.secondary, fontSize: '0.72rem' }}
+            sx={{ minWidth: 100, color: 'var(--muted)', fontSize: '11.5px', lineHeight: 1.6 }}
           >
             {k}
           </Typography>
           <Typography
-            variant="body2"
-            sx={{ fontSize: '0.8125rem', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}
+            sx={{ fontSize: '12.5px', color: 'var(--body)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}
           >
             {String(v)}
           </Typography>

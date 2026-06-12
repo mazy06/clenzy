@@ -121,7 +121,6 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
           maxHeight: '80vh',
         },
       }}
@@ -138,7 +137,7 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><SwapHoriz size={22} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><SwapHoriz size={20} strokeWidth={1.75} /></Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
             Changer de logement
           </Typography>
@@ -153,16 +152,17 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
         <Box
           sx={{
             p: 1.5,
-            borderRadius: 1.5,
-            backgroundColor: 'action.hover',
+            borderRadius: '10px',
+            backgroundColor: 'var(--surface-2)',
+            border: '1px solid var(--line)',
             mb: 2,
           }}
         >
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)' }}>
             Reservation actuelle
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Person size={16} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
               {reservation.guestName}
             </Typography>
@@ -174,13 +174,13 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
             />
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Home size={16} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Home size={16} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
               {reservation.propertyName}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
             <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
               {reservation.checkIn} &rarr; {reservation.checkOut}
             </Typography>
@@ -197,8 +197,13 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
           <Chip
             label={`${compatibleProperties.length} disponible${compatibleProperties.length > 1 ? 's' : ''}`}
             size="small"
-            color={compatibleProperties.length > 0 ? 'success' : 'default'}
-            sx={{ fontSize: '0.625rem', height: 20 }}
+            sx={{
+              fontSize: '0.625rem',
+              height: 20,
+              fontWeight: 700,
+              backgroundColor: compatibleProperties.length > 0 ? 'var(--ok-soft)' : 'var(--hover)',
+              color: compatibleProperties.length > 0 ? 'var(--ok)' : 'var(--muted)',
+            }}
           />
         </Box>
 
@@ -220,27 +225,28 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                   onClick={() => setSelectedPropertyId(property.id)}
                   sx={{
                     p: 1.5,
-                    borderRadius: 1.5,
-                    border: '2px solid',
-                    borderColor: isSelected ? 'primary.main' : 'divider',
-                    backgroundColor: isSelected ? 'action.selected' : 'transparent',
+                    borderRadius: '10px',
+                    border: '1px solid',
+                    borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
+                    backgroundColor: isSelected ? 'var(--accent-soft)' : 'var(--card)',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'border-color 0.15s ease, background-color 0.15s ease',
                     '&:hover': {
-                      borderColor: isSelected ? 'primary.main' : 'primary.light',
-                      backgroundColor: isSelected ? 'action.selected' : 'action.hover',
+                      borderColor: isSelected ? 'var(--accent)' : 'var(--faint)',
+                      backgroundColor: isSelected ? 'var(--accent-soft)' : 'var(--hover)',
                     },
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'primary.main' : 'text.secondary' }}><Home size={18} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'var(--accent)' : 'var(--muted)' }}><Home size={18} strokeWidth={1.75} /></Box>
                       <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
                         {property.name}
                       </Typography>
                     </Box>
                     {isSelected && (
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
                     )}
                   </Box>
                   <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, ml: 3.5 }}>

@@ -9,10 +9,9 @@ import type { PropertyFormValues } from '../../schemas';
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
 const CONTAINER_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 1.5,
-  bgcolor: 'background.paper',
+  border: '1px solid var(--line)',
+  borderRadius: '14px',
+  bgcolor: 'var(--card)',
   mb: 2,
   px: 2.5,
   py: 2,
@@ -33,15 +32,15 @@ const TITLE_ROW_SX = {
 
 const ICON_SX = {
   fontSize: 20,
-  color: 'primary.main',
+  color: 'var(--accent)',
 } as const;
 
 const TITLE_SX = {
-  fontSize: '0.75rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
+  letterSpacing: '.06em',
+  color: 'var(--faint)',
   whiteSpace: 'nowrap',
 } as const;
 
@@ -51,6 +50,7 @@ const CARDS_ROW_SX = {
   gap: 2,
 } as const;
 
+// Carte option sélectionnable : tuile hairline, sélection accent-soft + bordure accent.
 const PRICE_CARD_SX = {
   position: 'relative',
   display: 'flex',
@@ -60,26 +60,23 @@ const PRICE_CARD_SX = {
   gap: 1,
   py: 2.5,
   px: 2,
-  borderRadius: 1.5,
-  border: '1px solid',
-  borderColor: 'divider',
-  bgcolor: 'grey.50',
+  borderRadius: '13px',
+  border: '1px solid var(--line)',
+  bgcolor: 'var(--card)',
   cursor: 'pointer',
-  transition: 'border-color 0.15s, background-color 0.15s, transform 0.15s',
+  transition: 'border-color .14s, background-color .14s',
   '&:hover': {
-    borderColor: 'primary.light',
-    transform: 'translateY(-1px)',
+    borderColor: 'var(--line-2)',
   },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
 } as const;
 
 const PRICE_CARD_SELECTED_SX = {
   ...PRICE_CARD_SX,
-  borderColor: 'primary.main',
-  borderWidth: 2,
-  bgcolor: 'primary.50',
+  borderColor: 'var(--accent)',
+  bgcolor: 'var(--accent-soft)',
   '&:hover': {
-    borderColor: 'primary.main',
-    transform: 'translateY(-1px)',
+    borderColor: 'var(--accent)',
   },
 } as const;
 
@@ -88,41 +85,39 @@ const SELECTED_BADGE_SX = {
   top: 6,
   right: 6,
   fontSize: 18,
-  color: 'primary.main',
+  color: 'var(--accent)',
 } as const;
 
 const CHIP_SX = {
-  height: 24,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  borderRadius: 1,
   '& .MuiChip-label': { px: 1.25 },
 } as const;
 
 const PRICE_RANGE_SX = {
-  fontSize: '1.375rem',
-  fontWeight: 700,
-  color: 'primary.main',
+  fontFamily: 'var(--font-display)',
+  fontSize: '20px',
+  fontWeight: 600,
+  color: 'var(--accent)',
   whiteSpace: 'nowrap',
   lineHeight: 1.2,
+  fontVariantNumeric: 'tabular-nums',
+  letterSpacing: '-.01em',
 } as const;
 
 const PRICE_RANGE_SECONDARY_SX = {
   ...PRICE_RANGE_SX,
-  fontSize: '1.25rem',
-  color: 'text.primary',
-  fontWeight: 600,
+  fontSize: '18px',
+  color: 'var(--ink)',
 } as const;
 
 const PER_LABEL_SX = {
-  fontSize: '0.6875rem',
-  color: 'text.disabled',
+  fontSize: '11px',
+  color: 'var(--muted)',
   lineHeight: 1,
 } as const;
 
 const HINT_SX = {
-  fontSize: '0.75rem',
-  color: 'text.disabled',
+  fontSize: '12.5px',
+  color: 'var(--muted)',
   fontStyle: 'italic',
   textAlign: 'center',
   py: 3,
@@ -134,6 +129,7 @@ const BADGE_SX = {
   gap: 0.5,
 } as const;
 
+// Bandeau durée : pattern alerte -soft pleine largeur (accent).
 const DURATION_BANNER_SX = {
   display: 'flex',
   alignItems: 'center',
@@ -142,23 +138,24 @@ const DURATION_BANNER_SX = {
   py: 1.25,
   px: 2,
   mb: 2,
-  borderRadius: 1.5,
-  border: '1px solid',
-  borderColor: 'primary.main',
-  bgcolor: 'primary.50',
+  borderRadius: '11px',
+  border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
+  bgcolor: 'var(--accent-soft)',
 } as const;
 
 const DURATION_VALUE_SX = {
-  fontSize: '1.125rem',
-  fontWeight: 700,
-  color: 'primary.main',
+  fontFamily: 'var(--font-display)',
+  fontSize: '17px',
+  fontWeight: 600,
+  color: 'var(--accent)',
   lineHeight: 1.2,
+  fontVariantNumeric: 'tabular-nums',
 } as const;
 
 const DURATION_LABEL_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '11.5px',
   fontWeight: 500,
-  color: 'text.secondary',
+  color: 'var(--body)',
 } as const;
 
 // ─── Price calculation coefficients ─────────────────────────────────────────
@@ -436,7 +433,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {/* Header */}
       <Box sx={HEADER_SX}>
         <Box sx={TITLE_ROW_SX}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CleaningServices size={20} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CleaningServices size={20} strokeWidth={1.75} /></Box>
           <Typography sx={TITLE_SX}>
             {t('properties.priceEstimation.title')}
           </Typography>
@@ -444,7 +441,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
 
         {estimates && (
           <Box sx={BADGE_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><TrendingUp size={13} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><TrendingUp size={13} strokeWidth={1.75} /></Box>
             <Typography sx={PER_LABEL_SX}>
               {t('properties.priceEstimation.basedOn')}
             </Typography>
@@ -455,7 +452,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {/* Duration banner */}
       {estimatedDuration != null && (
         <Box sx={DURATION_BANNER_SX}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Timer size={20} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={20} strokeWidth={1.75} /></Box>
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
             <Typography sx={DURATION_VALUE_SX}>
               {formatDuration(estimatedDuration)}
@@ -464,7 +461,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
               {t('properties.durationEstimation.title')}
             </Typography>
           </Box>
-          <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', fontStyle: 'italic', ml: 'auto' }}>
+          <Typography sx={{ fontSize: '10.5px', color: 'var(--muted)', fontStyle: 'italic', ml: 'auto' }}>
             {t('properties.durationEstimation.computed')}
           </Typography>
         </Box>
@@ -490,13 +487,16 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                 }}
                 sx={isSelected ? PRICE_CARD_SELECTED_SX : PRICE_CARD_SX}
               >
-                {isSelected && <Box component="span" sx={{ position: 'absolute', top: 6, right: 6, display: 'inline-flex', color: 'primary.main' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>}
+                {isSelected && <Box component="span" sx={{ position: 'absolute', top: 6, right: 6, display: 'inline-flex', color: 'var(--accent)' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>}
                 <Chip
                   label={t(`properties.priceEstimation.cleaningTypes.${type}`)}
                   size="small"
-                  variant={isSelected ? 'filled' : 'outlined'}
-                  color={isSelected ? 'primary' : 'default'}
-                  sx={CHIP_SX}
+                  sx={{
+                    ...CHIP_SX,
+                    ...(isSelected
+                      ? { color: 'var(--accent)', bgcolor: 'var(--card)', border: '1px solid var(--accent)' }
+                      : { color: 'var(--muted)', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }),
+                  }}
                 />
                 <Typography sx={isSelected ? PRICE_RANGE_SX : PRICE_RANGE_SECONDARY_SX}>
                   {min === max ? `${min}€` : `${min}€ – ${max}€`}

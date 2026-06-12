@@ -59,6 +59,7 @@ import {
 } from '../../../icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanningEvent } from '../types';
+import { INTERVENTION_TYPE_TOKEN_COLORS } from '../constants';
 import type { PlanningIntervention } from '../../../services/api';
 import { managersApi } from '../../../services/api';
 import type { PortfolioTeam, OperationalUser } from '../../../services/api';
@@ -70,6 +71,7 @@ import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
 import { useAuth } from '../../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import CreateServiceRequestDialog from './CreateServiceRequestDialog';
+import MessagingAutomationStatus from './MessagingAutomationStatus';
 
 // ── Assignee option (user or team) ──────────────────────────────────────────
 interface AssigneeOption {
@@ -79,10 +81,53 @@ interface AssigneeOption {
   sublabel?: string;    // Role or intervention type
 }
 
-const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; label: string; color: string }[] = [
-  { value: 'normale', label: 'Normale', color: '#6B7280' },
-  { value: 'haute', label: 'Haute', color: '#F59E0B' },
-  { value: 'urgente', label: 'Urgente', color: '#EF4444' },
+type SoftTokens = { color: string; bg: string };
+
+const OK_TOKENS: SoftTokens = { color: 'var(--ok)', bg: 'var(--ok-soft)' };
+const WARN_TOKENS: SoftTokens = { color: 'var(--warn)', bg: 'var(--warn-soft)' };
+const ERR_TOKENS: SoftTokens = { color: 'var(--err)', bg: 'var(--err-soft)' };
+const INFO_TOKENS: SoftTokens = { color: 'var(--info)', bg: 'var(--info-soft)' };
+const NEUTRAL_TOKENS: SoftTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
+
+const OVERLINE_SX = {
+  fontSize: '0.625rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--faint)',
+};
+
+/** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
+const CLOSE_BTN_SX = {
+  width: 34,
+  height: 34,
+  borderRadius: '10px',
+  border: '1px solid var(--line-2)',
+  backgroundColor: 'var(--card)',
+  color: 'var(--muted)',
+  transition: 'color .14s, border-color .14s',
+  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+};
+
+/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
+const chipSx = (bg: string, color: string) => ({
+  height: 20,
+  fontSize: '0.625rem',
+  fontWeight: 600,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  '& .MuiChip-label': { px: 0.75 },
+  '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
+});
+
+const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; label: string; tokens: SoftTokens }[] = [
+  { value: 'normale', label: 'Normale', tokens: NEUTRAL_TOKENS },
+  { value: 'haute', label: 'Haute', tokens: WARN_TOKENS },
+  { value: 'urgente', label: 'Urgente', tokens: ERR_TOKENS },
 ];
 
 const DEFAULT_CHECKLIST = [
@@ -93,15 +138,16 @@ const DEFAULT_CHECKLIST = [
   'Photo de controle',
 ];
 
-// ── Service request status colors ────────────────────────────────────────────
-const SR_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "En attente d'assignation", color: '#F59E0B' },
-  ASSIGNED: { label: 'Assignée', color: '#8B5CF6' },
-  AWAITING_PAYMENT: { label: 'En attente de paiement', color: '#F59E0B' },
-  IN_PROGRESS: { label: 'En cours', color: '#1976d2' },
-  COMPLETED: { label: 'Terminée', color: '#4A9B8E' },
-  CANCELLED: { label: 'Annulée', color: '#9e9e9e' },
-  REJECTED: { label: 'Rejetée', color: '#d32f2f' },
+// ── Service request status tokens (attente = warn, en cours/assignée = info,
+//    succès = ok, échec = err, annulée = neutre) ──────────────────────────────
+const SR_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
+  PENDING: { label: "En attente d'assignation", tokens: WARN_TOKENS },
+  ASSIGNED: { label: 'Assignée', tokens: INFO_TOKENS },
+  AWAITING_PAYMENT: { label: 'En attente de paiement', tokens: WARN_TOKENS },
+  IN_PROGRESS: { label: 'En cours', tokens: INFO_TOKENS },
+  COMPLETED: { label: 'Terminée', tokens: OK_TOKENS },
+  CANCELLED: { label: 'Annulée', tokens: NEUTRAL_TOKENS },
+  REJECTED: { label: 'Rejetée', tokens: ERR_TOKENS },
 };
 
 // ── Service type labels ─────────────────────────────────────────────────────
@@ -118,23 +164,23 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
 };
 
 // ── Intervention payment status config ────────────────────────────────────────
-const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  PAID: { label: 'Payé', color: '#4A9B8E' },
-  PENDING: { label: 'En attente', color: '#ED6C02' },
-  PROCESSING: { label: 'En cours', color: '#0288d1' },
-  FAILED: { label: 'Échoué', color: '#d32f2f' },
-  REFUNDED: { label: 'Remboursé', color: '#d32f2f' },
-  CANCELLED: { label: 'Annulé', color: '#9e9e9e' },
+const PAYMENT_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
+  PAID: { label: 'Payé', tokens: OK_TOKENS },
+  PENDING: { label: 'En attente', tokens: WARN_TOKENS },
+  PROCESSING: { label: 'En cours', tokens: INFO_TOKENS },
+  FAILED: { label: 'Échoué', tokens: ERR_TOKENS },
+  REFUNDED: { label: 'Remboursé', tokens: ERR_TOKENS },
+  CANCELLED: { label: 'Annulé', tokens: NEUTRAL_TOKENS },
 };
 
 // ── Intervention status labels ───────────────────────────────────────────────
-const INTERVENTION_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  scheduled: { label: 'Planifiée', color: '#0288d1' },
-  in_progress: { label: 'En cours', color: '#1976d2' },
-  completed: { label: 'Terminée', color: '#4A9B8E' },
-  cancelled: { label: 'Annulée', color: '#9e9e9e' },
-  awaiting_validation: { label: 'Validation', color: '#F59E0B' },
-  awaiting_payment: { label: 'Attente paiement', color: '#ED6C02' },
+const INTERVENTION_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
+  scheduled: { label: 'Planifiée', tokens: INFO_TOKENS },
+  in_progress: { label: 'En cours', tokens: INFO_TOKENS },
+  completed: { label: 'Terminée', tokens: OK_TOKENS },
+  cancelled: { label: 'Annulée', tokens: NEUTRAL_TOKENS },
+  awaiting_validation: { label: 'Validation', tokens: WARN_TOKENS },
+  awaiting_payment: { label: 'Attente paiement', tokens: WARN_TOKENS },
 };
 
 interface PanelOperationsProps {
@@ -773,11 +819,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 size="small"
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                sx={{ p: 0.25, color: 'success.main' }}
+                sx={{ p: 0.25, color: 'var(--ok)' }}
               >
                 {saving ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
               </IconButton>
-              <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'error.main' }}>
+              <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'var(--err)' }}>
                 <Close size={16} strokeWidth={1.75} />
               </IconButton>
             </Box>
@@ -886,7 +932,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             )}
 
             {hasChanges && intv.linkedReservationId && !validationError && (
-              <Typography variant="caption" color="warning.main" sx={{ fontSize: '0.625rem' }}>
+              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'var(--warn)' }}>
                 L'intervention sera deliee de sa reservation si les dates sont modifiees.
               </Typography>
             )}
@@ -902,22 +948,28 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       {intervention && (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            {intervention.type === 'cleaning' ? (
-              <AutoAwesome size={20} strokeWidth={1.75} color='#9B7FC4' />
-            ) : (
-              <Handyman size={20} strokeWidth={1.75} color='#7EBAD0' />
-            )}
+            <Box component="span" sx={{ display: 'inline-flex', color: intervention.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+              {intervention.type === 'cleaning' ? (
+                <AutoAwesome size={20} strokeWidth={1.75} />
+              ) : (
+                <Handyman size={20} strokeWidth={1.75} />
+              )}
+            </Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               {intervention.title}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-            {(() => { const c = intervention.status === 'completed' ? '#4A9B8E' : intervention.status === 'in_progress' ? '#1976d2' : intervention.status === 'cancelled' ? '#d32f2f' : '#ED6C02'; return (
-            <Chip label={intervention.status} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
-            ); })()}
-            <Chip label={intervention.assigneeName} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
+            {(() => {
+              const t = INTERVENTION_STATUS_CONFIG[intervention.status]?.tokens
+                || (intervention.status === 'cancelled' ? ERR_TOKENS : WARN_TOKENS);
+              return (
+                <Chip label={intervention.status} size="small" sx={chipSx(t.bg, t.color)} />
+              );
+            })()}
+            <Chip label={intervention.assigneeName} size="small" sx={chipSx('var(--hover)', 'var(--muted)')} />
             {intervention.estimatedDurationHours && (
-              <Chip label={`${intervention.estimatedDurationHours}h`} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
+              <Chip label={`${intervention.estimatedDurationHours}h`} size="small" sx={{ ...chipSx(INFO_TOKENS.bg, INFO_TOKENS.color), fontVariantNumeric: 'tabular-nums' }} />
             )}
           </Box>
           {intervention.notes && (
@@ -935,7 +987,18 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         <>
           {/* Service request creation buttons */}
           <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+            <Typography
+              component="span"
+              sx={{
+                display: 'block',
+                fontSize: '0.625rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--faint)',
+                mb: 1,
+              }}
+            >
               Demandes de service
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -977,11 +1040,22 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             <>
               <Divider />
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
-                  Demandes liees ({serviceRequests.length})
+                <Typography
+                  component="span"
+                  sx={{
+                    display: 'block',
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'var(--faint)',
+                    mb: 0.75,
+                  }}
+                >
+                  Demandes liees · {serviceRequests.length}
                 </Typography>
                 {serviceRequests.map((sr) => {
-                  const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, color: '#757575' };
+                  const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, tokens: NEUTRAL_TOKENS };
                   const typeLabel = SERVICE_TYPE_LABELS[sr.serviceType] || sr.serviceType;
                   const isReadyForPayment = sr.status === 'AWAITING_PAYMENT';
                   const isPending = sr.status === 'PENDING';
@@ -1029,8 +1103,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: '#75757518', color: '#757575',
-                            border: '1px solid #75757540', borderRadius: '6px',
+                            backgroundColor: NEUTRAL_TOKENS.bg, color: NEUTRAL_TOKENS.color,
+                            borderRadius: '6px',
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
@@ -1039,21 +1113,21 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: `${statusCfg.color}18`, color: statusCfg.color,
-                            border: `1px solid ${statusCfg.color}40`, borderRadius: '6px',
+                            backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
+                            borderRadius: '6px',
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
                         {assigneeName && (
                           <Chip
-                            icon={<Groups size={10} strokeWidth={1.75} color="#0288d1" />}
+                            icon={<Groups size={10} strokeWidth={1.75} />}
                             label={assigneeName}
                             size="small"
                             sx={{
                               fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                              backgroundColor: '#0288d118', color: '#0288d1',
-                              border: '1px solid #0288d140', borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
+                              backgroundColor: INFO_TOKENS.bg, color: INFO_TOKENS.color,
+                              borderRadius: '6px',
+                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: INFO_TOKENS.color },
                               '& .MuiChip-label': { px: 0.5 },
                             }}
                           />
@@ -1091,7 +1165,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                               </>
                             )}
                             {sr.autoAssignStatus === 'exhausted' && (
-                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'warning.main', fontStyle: 'italic' }}>
+                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'var(--warn)', fontStyle: 'italic' }}>
                                 Aucune equipe disponible — assignation manuelle requise
                               </Typography>
                             )}
@@ -1163,7 +1237,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                               setDeleteSrTarget(sr);
                               setDeleteSrDialogOpen(true);
                             }}
-                            sx={{ color: 'error.main', ml: 'auto', p: 0.5 }}
+                            sx={{ color: 'var(--err)', ml: 'auto', p: 0.5 }}
                           >
                             <DeleteOutline size={16} strokeWidth={1.75} />
                           </IconButton>
@@ -1181,8 +1255,19 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             <>
               <Divider />
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
-                  Interventions ({linkedInterventions.length})
+                <Typography
+                  component="span"
+                  sx={{
+                    display: 'block',
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'var(--faint)',
+                    mb: 0.75,
+                  }}
+                >
+                  Interventions · {linkedInterventions.length}
                 </Typography>
                 {linkedInterventions.map((li) => {
                   const isAssigned = !!li.assigneeName;
@@ -1190,9 +1275,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   const isPaid = li.paymentStatus === 'PAID';
                   const noCost = cost <= 0;
                   const isOnPlanning = isAssigned && (isPaid || noCost);
-                  const statusCfg = INTERVENTION_STATUS_CONFIG[li.status] || { label: li.status, color: '#757575' };
+                  const statusCfg = INTERVENTION_STATUS_CONFIG[li.status] || { label: li.status, tokens: NEUTRAL_TOKENS };
                   const payStatusCfg = li.paymentStatus
-                    ? (PAYMENT_STATUS_CONFIG[li.paymentStatus] || { label: li.paymentStatus, color: '#757575' })
+                    ? (PAYMENT_STATUS_CONFIG[li.paymentStatus] || { label: li.paymentStatus, tokens: NEUTRAL_TOKENS })
                     : null;
 
                   const steps = new Set((li.completedSteps || '').split(',').filter(Boolean));
@@ -1210,8 +1295,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         p: 1,
                         borderRadius: 1.5,
                         border: '1px solid',
-                        borderColor: isOnPlanning ? '#4A9B8E40' : 'divider',
-                        backgroundColor: isOnPlanning ? '#4A9B8E06' : 'transparent',
+                        borderColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'divider',
+                        backgroundColor: isOnPlanning ? 'var(--ok-soft)' : 'transparent',
                         transition: 'all 0.15s ease',
                       }}
                     >
@@ -1224,11 +1309,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           '&:hover .drill-arrow': { opacity: 1, transform: 'translateX(2px)' },
                         }}
                       >
-                        {li.type === 'cleaning' ? (
-                          <AutoAwesome size={14} strokeWidth={1.75} color='#9B7FC4' />
-                        ) : (
-                          <Handyman size={14} strokeWidth={1.75} color='#7EBAD0' />
-                        )}
+                        <Box component="span" sx={{ display: 'inline-flex', color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+                          {li.type === 'cleaning' ? (
+                            <AutoAwesome size={14} strokeWidth={1.75} />
+                          ) : (
+                            <Handyman size={14} strokeWidth={1.75} />
+                          )}
+                        </Box>
                         <Typography variant="caption" sx={{ flex: 1, fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {li.title}
                         </Typography>
@@ -1248,39 +1335,39 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: `${statusCfg.color}18`, color: statusCfg.color,
-                            border: `1px solid ${statusCfg.color}40`, borderRadius: '6px',
+                            backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
+                            borderRadius: '6px',
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
                         {/* Assignment status */}
                         <Chip
                           icon={isAssigned
-                            ? <CheckCircle size={10} strokeWidth={1.75} color="#4A9B8E" />
-                            : <HourglassEmpty size={10} strokeWidth={1.75} color="#ED6C02" />}
+                            ? <CheckCircle size={10} strokeWidth={1.75} />
+                            : <HourglassEmpty size={10} strokeWidth={1.75} />}
                           label={isAssigned ? li.assigneeName : 'Non assigne'}
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: isAssigned ? '#4A9B8E18' : '#ED6C0218',
-                            color: isAssigned ? '#4A9B8E' : '#ED6C02',
-                            border: `1px solid ${isAssigned ? '#4A9B8E40' : '#ED6C0240'}`,
+                            backgroundColor: isAssigned ? OK_TOKENS.bg : WARN_TOKENS.bg,
+                            color: isAssigned ? OK_TOKENS.color : WARN_TOKENS.color,
                             borderRadius: '6px',
-                            '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
+                            '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: isAssigned ? OK_TOKENS.color : WARN_TOKENS.color },
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
                         {/* Payment status (only if cost > 0) */}
                         {cost > 0 && payStatusCfg && (
                           <Chip
-                            icon={<Payment size={10} strokeWidth={1.75} color={payStatusCfg.color} />}
+                            icon={<Payment size={10} strokeWidth={1.75} />}
                             label={`${payStatusCfg.label} (${cost.toFixed(0)}€)`}
                             size="small"
                             sx={{
                               fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                              backgroundColor: `${payStatusCfg.color}18`, color: payStatusCfg.color,
-                              border: `1px solid ${payStatusCfg.color}40`, borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
+                              backgroundColor: payStatusCfg.tokens.bg, color: payStatusCfg.tokens.color,
+                              borderRadius: '6px',
+                              fontVariantNumeric: 'tabular-nums',
+                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: payStatusCfg.tokens.color },
                               '& .MuiChip-label': { px: 0.5 },
                             }}
                           />
@@ -1289,17 +1376,16 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         <Tooltip title={isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}>
                           <Chip
                             icon={isOnPlanning
-                              ? <Visibility size={10} strokeWidth={1.75} color="#4A9B8E" />
-                              : <VisibilityOff size={10} strokeWidth={1.75} color="#9e9e9e" />}
+                              ? <Visibility size={10} strokeWidth={1.75} />
+                              : <VisibilityOff size={10} strokeWidth={1.75} />}
                             label={isOnPlanning ? 'Planning' : 'Masque'}
                             size="small"
                             sx={{
                               fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                              backgroundColor: isOnPlanning ? '#4A9B8E18' : '#9e9e9e18',
-                              color: isOnPlanning ? '#4A9B8E' : '#9e9e9e',
-                              border: `1px solid ${isOnPlanning ? '#4A9B8E40' : '#9e9e9e40'}`,
+                              backgroundColor: isOnPlanning ? OK_TOKENS.bg : NEUTRAL_TOKENS.bg,
+                              color: isOnPlanning ? OK_TOKENS.color : NEUTRAL_TOKENS.color,
                               borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
+                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: isOnPlanning ? OK_TOKENS.color : NEUTRAL_TOKENS.color },
                               '& .MuiChip-label': { px: 0.5 },
                             }}
                           />
@@ -1313,10 +1399,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             variant="determinate"
                             value={progress}
                             sx={{
-                              height: 4, borderRadius: 2, backgroundColor: 'action.hover',
+                              height: 4, borderRadius: 2, backgroundColor: 'var(--hover)',
                               '& .MuiLinearProgress-bar': {
                                 borderRadius: 2,
-                                backgroundColor: progress === 100 ? 'success.main' : 'primary.main',
+                                backgroundColor: progress === 100 ? 'var(--ok)' : 'var(--accent)',
                               },
                             }}
                           />
@@ -1354,6 +1440,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               Aucune demande de service ou intervention pour cette reservation. Utilisez les boutons ci-dessus pour creer une demande.
             </Alert>
           )}
+
+          {/* Messagerie automatique (maquette : section dédiée de l'onglet Opérations) */}
+          <Divider />
+          <MessagingAutomationStatus
+            guestEmail={reservation?.guestEmail}
+            source={reservation?.source}
+          />
         </>
       )}
 
@@ -1482,8 +1575,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {assignMode === 'service_request'
-              ? <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><PersonAdd size={20} strokeWidth={1.75} /></Box>
-              : <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={20} strokeWidth={1.75} /></Box>}
+              ? <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><PersonAdd size={20} strokeWidth={1.75} /></Box>
+              : <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={20} strokeWidth={1.75} /></Box>}
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               {assignMode === 'service_request' ? 'Assigner la demande' : 'Assigner intervention'}
             </Typography>
@@ -1516,13 +1609,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 mb: 1.5,
                 borderRadius: 1.5,
                 border: '1px solid',
-                borderColor: assignAutoMode ? 'primary.main' : 'divider',
-                backgroundColor: assignAutoMode ? 'primary.50' : 'transparent',
+                borderColor: assignAutoMode ? 'var(--accent)' : 'divider',
+                backgroundColor: assignAutoMode ? 'var(--accent-soft)' : 'transparent',
                 transition: 'all 0.2s ease',
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: assignAutoMode ? 'primary.main' : 'text.secondary' }}><AutoFixHigh size={18} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: assignAutoMode ? 'var(--accent)' : 'var(--muted)' }}><AutoFixHigh size={18} strokeWidth={1.75} /></Box>
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.2 }}>
                     Assignation automatique
@@ -1603,7 +1696,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               .map((opt) => (
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={16} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
                         {opt.label}
@@ -1694,11 +1787,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           py: 0.75,
                           borderBottom: idx < teamMembers.length - 1 ? '1px solid' : 'none',
                           borderColor: 'divider',
-                          backgroundColor: member.available ? 'transparent' : 'action.hover',
+                          backgroundColor: member.available ? 'transparent' : 'var(--hover)',
                         }}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'success.main' : 'text.disabled' }}><Person size={15} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--faint)' }}><Person size={15} strokeWidth={1.75} /></Box>
                           <Box>
                             <Typography
                               variant="body2"
@@ -1775,7 +1868,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><PriorityHigh size={20} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><PriorityHigh size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Definir la priorite
             </Typography>
@@ -1802,12 +1895,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   fontSize: '0.8125rem',
                   textTransform: 'none',
                   justifyContent: 'flex-start',
-                  borderColor: opt.color,
-                  color: priorityValue === opt.value ? '#fff' : opt.color,
-                  backgroundColor: priorityValue === opt.value ? opt.color : 'transparent',
+                  borderColor: opt.tokens.color,
+                  color: opt.tokens.color,
+                  backgroundColor: priorityValue === opt.value ? opt.tokens.bg : 'transparent',
                   '&:hover': {
-                    backgroundColor: priorityValue === opt.value ? opt.color : `${opt.color}14`,
-                    borderColor: opt.color,
+                    backgroundColor: opt.tokens.bg,
+                    borderColor: opt.tokens.color,
                   },
                 }}
               >
@@ -1848,7 +1941,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={20} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircleOutline size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Checklist operationnelle
             </Typography>
@@ -1914,7 +2007,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><NotificationsActive size={20} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><NotificationsActive size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Ajouter un rappel
             </Typography>

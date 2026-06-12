@@ -9,7 +9,6 @@ import {
   MenuItem,
   FormHelperText,
   Chip,
-  alpha,
 } from '@mui/material';
 import { Person, Group, BlockOutlined } from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
@@ -47,33 +46,21 @@ export interface ServiceRequestFormAssignmentProps {
   eligibleTeamIds?: number[];
 }
 
-// ─── Assignment type chip config ─────────────────────────────────────────────
+// ─── Assignment type chip config (tokens — actif = texte couleur + fond -soft) ──
 
 interface AssignmentTypeDef {
   value: '' | 'user' | 'team';
   label: string;
   icon: React.ReactElement;
-  color: string;
+  fg: string;
+  bg: string;
 }
 
 const ASSIGNMENT_TYPES: AssignmentTypeDef[] = [
-  { value: '', label: 'Aucune', icon: <BlockOutlined size={14} strokeWidth={1.75} />, color: '#94A3B8' },
-  { value: 'user', label: 'Individuel', icon: <Person size={14} strokeWidth={1.75} />, color: '#6B8A9A' },
-  { value: 'team', label: 'Équipe', icon: <Group size={14} strokeWidth={1.75} />, color: '#6B8A9A' },
+  { value: '', label: 'Aucune', icon: <BlockOutlined size={14} strokeWidth={1.75} />, fg: 'var(--muted)', bg: 'var(--hover)' },
+  { value: 'user', label: 'Individuel', icon: <Person size={14} strokeWidth={1.75} />, fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+  { value: 'team', label: 'Équipe', icon: <Group size={14} strokeWidth={1.75} />, fg: 'var(--accent)', bg: 'var(--accent-soft)' },
 ];
-
-/** Shared Select sx for consistent styling */
-const SELECT_SX = {
-  '& .MuiOutlinedInput-notchedOutline': {
-    borderColor: 'grey.200',
-  },
-  '&:hover .MuiOutlinedInput-notchedOutline': {
-    borderColor: 'primary.light',
-  },
-  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-    borderColor: 'primary.main',
-  },
-} as const;
 
 /** Determine the service category from a service type value */
 function getServiceCategory(serviceType: string): 'cleaning' | 'maintenance' | 'specialized' | 'other' {
@@ -157,7 +144,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
         {/* Type d'assignation - Chips */}
         {canAssignForProperty && (
           <Box sx={{ mb: 2 }}>
-            <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary', mb: 0.75 }}>
+            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.75 }}>
               {t('serviceRequests.fields.assignmentType')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
@@ -170,29 +157,29 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                     label={at.label}
                     onClick={disabled ? undefined : () => handleAssignmentTypeClick(at.value)}
                     disabled={disabled}
-                    variant={isSelected ? 'filled' : 'outlined'}
                     size="small"
+                    aria-pressed={isSelected}
                     sx={{
                       height: 30,
-                      fontSize: '0.75rem',
+                      fontSize: '11.5px',
                       fontWeight: isSelected ? 600 : 500,
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? at.color : 'grey.200',
-                      bgcolor: isSelected ? alpha(at.color, 0.12) : 'transparent',
-                      color: isSelected ? at.color : 'text.secondary',
+                      border: '1px solid',
+                      borderColor: isSelected ? at.fg : 'var(--line-2)',
+                      bgcolor: isSelected ? at.bg : 'var(--card)',
+                      color: isSelected ? at.fg : 'var(--body)',
                       '& .MuiChip-icon': {
                         fontSize: 14,
                         ml: 0.5,
-                        color: isSelected ? at.color : 'primary.main',
+                        color: isSelected ? at.fg : 'var(--muted)',
                       },
                       '& .MuiChip-label': { px: 0.75 },
                       '&:hover': disabled ? {} : {
-                        bgcolor: alpha(at.color, 0.06),
-                        borderColor: at.color,
+                        bgcolor: isSelected ? at.bg : 'var(--hover)',
+                        borderColor: at.fg,
                       },
                       cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.5 : 1,
-                      transition: 'all 0.15s ease',
+                      opacity: disabled ? 0.45 : 1,
+                      transition: 'background-color .15s, border-color .15s, color .15s',
                     }}
                   />
                 );
@@ -205,14 +192,14 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                 const cat = getServiceCategory(watchedServiceType);
                 if (cat === 'cleaning') {
                   return (
-                    <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', fontStyle: 'italic', mt: 0.5 }}>
+                    <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', mt: 0.5 }}>
                       Type nettoyage → assignation équipe pré-sélectionnée
                     </Typography>
                   );
                 }
                 if (cat === 'maintenance') {
                   return (
-                    <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', fontStyle: 'italic', mt: 0.5 }}>
+                    <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', mt: 0.5 }}>
                       Type maintenance → assignation équipe pré-sélectionnée
                     </Typography>
                   );
@@ -237,7 +224,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
 
                 return (
                   <FormControl fullWidth disabled={disabled}>
-                    <InputLabel shrink sx={{ color: 'text.secondary' }}>
+                    <InputLabel shrink>
                       {watchedAssignedToType === 'user'
                         ? t('serviceRequests.fields.assignedToUser')
                         : t('serviceRequests.fields.assignedToTeam')}
@@ -257,15 +244,14 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                       disabled={disabled}
                       displayEmpty
                       notched
-                      sx={SELECT_SX}
                       renderValue={() => (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           {watchedAssignedToType === 'user' ? (
-                            <Box component="span" sx={{ display: "inline-flex", color: hasValue ? "primary.main" : "grey.400" }}><Person size={16} strokeWidth={1.75} /></Box>
+                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Person size={16} strokeWidth={1.75} /></Box>
                           ) : (
-                            <Box component="span" sx={{ display: "inline-flex", color: hasValue ? "primary.main" : "grey.400" }}><Group size={16} strokeWidth={1.75} /></Box>
+                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Group size={16} strokeWidth={1.75} /></Box>
                           )}
-                          <Typography sx={{ fontSize: '0.8125rem', color: hasValue ? 'text.secondary' : 'grey.400' }}>
+                          <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
                             {hasValue
                               ? watchedAssignedToType === 'user'
                                 ? `${(selectedItem as typeof users[number]).firstName} ${(selectedItem as typeof users[number]).lastName}`
@@ -279,12 +265,12 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                         ? getAssignableUsers().map((user) => (
                             <MenuItem key={user.id} value={user.id}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Person size={16} strokeWidth={1.75} /></Box>
+                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
                                 <Box>
-                                  <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                                     {user.firstName} {user.lastName}
                                   </Typography>
-                                  <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled' }}>
+                                  <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)' }}>
                                     {user.role} • {user.email}
                                   </Typography>
                                 </Box>
@@ -294,12 +280,12 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                         : filteredTeams.map((team) => (
                             <MenuItem key={team.id} value={team.id}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Group size={16} strokeWidth={1.75} /></Box>
+                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Group size={16} strokeWidth={1.75} /></Box>
                                 <Box>
-                                  <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', fontWeight: 500 }}>
+                                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', fontWeight: 500 }}>
                                     {team.name}
                                   </Typography>
-                                  <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled' }}>
+                                  <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)' }}>
                                     {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
                                   </Typography>
                                 </Box>

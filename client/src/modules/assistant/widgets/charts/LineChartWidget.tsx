@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import {
   ResponsiveContainer,
   LineChart,
@@ -38,7 +38,6 @@ interface LineChartWidgetProps {
  * numeriques de la premiere ligne, sauf {@code name}).</p>
  */
 export const LineChartWidget: React.FC<LineChartWidgetProps> = ({ data }) => {
-  const theme = useTheme();
   const items = data.items ?? [];
   const series = data.series ?? deriveSeries(items);
 
@@ -54,10 +53,10 @@ export const LineChartWidget: React.FC<LineChartWidgetProps> = ({ data }) => {
   return (
     <Box sx={{ mt: 1, mb: 1.5 }}>
       {data.title && (
-        <Typography variant="caption" sx={{
-          display: 'block', mb: 1, fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          display: 'block', mb: 1, fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title}
         </Typography>
@@ -65,8 +64,8 @@ export const LineChartWidget: React.FC<LineChartWidgetProps> = ({ data }) => {
 
       <Box sx={{
         p: 1.5,
-        borderRadius: 2,
-        bgcolor: alpha(theme.palette.text.primary, 0.025),
+        borderRadius: '12px',
+        bgcolor: 'var(--field)',
         height: CHART_HEIGHT + 30,
       }}>
         <ResponsiveContainer width="100%" height="100%">

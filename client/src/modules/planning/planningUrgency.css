@@ -1,0 +1,84 @@
+/* ─── Tokens locaux de la grille Planning (planning-grid-reference.css) ─────
+ *
+ * Week-end : valeurs exactes clair/sombre de la référence (--day-we /
+ * --cell-we). Consommées via les constantes WEEKEND_HEADER_BG /
+ * WEEKEND_CELL_BG (constants.ts). Pas de token global : périmètre planning.
+ */
+:root {
+  --pl-day-we: #F2F6F7;  /* entête week-end */
+  --pl-cell-we: #F8FAFB; /* cellule week-end */
+}
+[data-theme="dark"] {
+  --pl-day-we: #121A21;
+  --pl-cell-we: #131C23;
+}
+
+/* ─── Animations d'urgence « wizz » (galerie Signature 09/09b) ──────────────
+ *
+ * Appliquées aux briques de réservation avec paiement en attente OU info
+ * voyageur manquante. La brique porte la classe .pl-urgent ; le TYPE de
+ * mouvement est sélectionné par l'attribut racine [data-wizz="…"] posé sur
+ * <html> (useUrgencyAnimation) — le CSS fait le reste :
+ *   - .pl-urgent seul = anneau pulsé permanent (plRingWave) ;
+ *   - [data-wizz="shake|wobble|pop|tada"] = mouvement + anneau ;
+ *   - [data-wizz="none"] = anneau seul (règle de base).
+ * La couleur de l'anneau est portée par la custom property `--bc`, posée
+ * inline sur la brique (= sa couleur de statut).
+ */
+
+@keyframes plWizzShake {
+  0%, 12%, 100% { transform: translateX(0); }
+  2% { transform: translateX(-3px); }
+  4% { transform: translateX(3px); }
+  6% { transform: translateX(-2px); }
+  8% { transform: translateX(2px); }
+  10% { transform: translateX(-1px); }
+}
+
+@keyframes plWizzWobble {
+  0%, 16%, 100% { transform: rotate(0); }
+  2% { transform: rotate(-1.6deg); }
+  5% { transform: rotate(1.6deg); }
+  8% { transform: rotate(-1deg); }
+  11% { transform: rotate(.7deg); }
+  14% { transform: rotate(0); }
+}
+
+@keyframes plWizzPop {
+  0%, 14%, 100% { transform: scale(1); }
+  3% { transform: scale(1.06); }
+  7% { transform: scale(.97); }
+  10% { transform: scale(1.02); }
+}
+
+@keyframes plWizzTada {
+  0%, 14%, 100% { transform: scale(1) rotate(0); }
+  2% { transform: scale(1.05) rotate(-2.5deg); }
+  4% { transform: scale(1.05) rotate(2.5deg); }
+  6% { transform: rotate(-2deg); }
+  8% { transform: rotate(2deg); }
+  10% { transform: rotate(-1.5deg); }
+  12% { transform: scale(1) rotate(0); }
+}
+
+@keyframes plRingWave {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bc) 60%, transparent); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Anneau seul par défaut ; le mouvement est ajouté par l'attribut racine. */
+.pl-urgent { animation: plRingWave 2.4s ease-out infinite; }
+[data-wizz="shake"] .pl-urgent { animation: plWizzShake 3.6s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
+[data-wizz="wobble"] .pl-urgent { animation: plWizzWobble 4s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
+[data-wizz="pop"] .pl-urgent { animation: plWizzPop 3.8s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
+[data-wizz="tada"] .pl-urgent { animation: plWizzTada 4.2s ease-in-out infinite, plRingWave 2.4s ease-out infinite; }
+
+/* prefers-reduced-motion : pas d'animation périodique, anneau STATIQUE
+ * conservé à 55 % d'alpha (l'info d'urgence reste visible sans mouvement). */
+@media (prefers-reduced-motion: reduce) {
+  .pl-urgent {
+    animation: none !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bc) 55%, transparent);
+  }
+}

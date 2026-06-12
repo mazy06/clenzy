@@ -44,8 +44,8 @@ import {
  * composant avec une categorie differente, donc UI strictement uniforme.</p>
  */
 
-const ACCENT = '#4A9B8E';
-const NEUTRAL = '#8A8378';
+const ACCENT = 'var(--ok)';
+const NEUTRAL = 'var(--muted)';
 
 interface ServiceCatalogSectionProps {
   category: ServiceCategory;
@@ -206,9 +206,9 @@ export default function ServiceCatalogSection({
                         height: 18,
                         fontSize: '0.62rem',
                         fontWeight: 600,
-                        bgcolor: `${ACCENT}14`,
+                        bgcolor: 'var(--ok-soft)',
                         color: ACCENT,
-                        border: `1px solid ${ACCENT}33`,
+                        border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
                         '& .MuiChip-label': { px: 0.625 },
                       }}
                     />
@@ -230,9 +230,9 @@ export default function ServiceCatalogSection({
                     letterSpacing: '0.01em',
                     borderRadius: '6px',
                     px: 0.25,
-                    backgroundColor: `${NEUTRAL}14`,
+                    backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
                     color: NEUTRAL,
-                    border: `1px solid ${NEUTRAL}33`,
+                    border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)`,
                     '& .MuiChip-icon': { color: `${NEUTRAL} !important`, ml: '6px', mr: '-2px' },
                     '& .MuiChip-label': { px: 0.875 },
                   }}
@@ -273,7 +273,7 @@ export default function ServiceCatalogSection({
                         borderRadius: '8px',
                         borderColor: 'divider',
                         color: 'text.primary',
-                        '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+                        '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
                       }}
                     >
                       En savoir plus
@@ -303,16 +303,7 @@ export default function ServiceCatalogSection({
                       : <ExternalLinkIcon size={14} strokeWidth={2} />
                   }
                   onClick={() => handleAction(openService)}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    borderRadius: '8px',
-                    bgcolor: ACCENT,
-                    color: '#fff',
-                    boxShadow: 'none',
-                    '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
-                  }}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
                   {openService.internalRoute
                     ? `Configurer ${openService.name}`
@@ -336,7 +327,7 @@ export default function ServiceCatalogSection({
                       borderRadius: '8px',
                       borderColor: 'divider',
                       color: 'text.primary',
-                      '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+                      '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
                     }}
                   >
                     En savoir plus

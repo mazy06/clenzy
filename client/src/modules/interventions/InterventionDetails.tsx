@@ -35,14 +35,15 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useInterventionDetails } from './useInterventionDetails';
 import {
   getStatusLabel,
-  getStatusHex,
   getPriorityLabel,
-  getPriorityHex,
   getTypeLabel,
-  getTypeHex,
+  getStatusTokens,
+  getPriorityTokens,
+  getTypeTokens,
   formatDate,
   formatDuration,
   formatCurrency,
+  type SoftTokens,
 } from './interventionUtils';
 import InterventionProgressSteps from './InterventionProgressSteps';
 import { NotesDialog, PhotosDialog } from './InterventionDialogs';
@@ -55,19 +56,19 @@ const getStatusIcon = (status: string) => {
   );
   const props = { size: 18, strokeWidth: 1.75 };
   switch (status) {
-    case 'PENDING':    return wrap('warning.main', <WarningIcon {...props} />);
+    case 'PENDING':    return wrap('var(--warn)', <WarningIcon {...props} />);
     case 'IN_PROGRESS': return (
-      <Box component="span" sx={{ display: 'inline-flex', color: 'info.main', animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }}>
+      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)', animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } }, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
         <AutorenewIcon {...props} />
       </Box>
     );
-    case 'COMPLETED':  return wrap('success.main', <CheckCircleIcon {...props} />);
-    case 'CANCELLED':  return wrap('error.main', <ErrorIcon {...props} />);
-    default:           return wrap('info.main', <InfoIcon {...props} />);
+    case 'COMPLETED':  return wrap('var(--ok)', <CheckCircleIcon {...props} />);
+    case 'CANCELLED':  return wrap('var(--err)', <ErrorIcon {...props} />);
+    default:           return wrap('var(--info)', <InfoIcon {...props} />);
   }
 };
 
-const StatusChip: React.FC<{ label: string; hex: string; icon?: React.ReactElement }> = ({ label, hex, icon }) => (
+const StatusChip: React.FC<{ label: string; tokens: SoftTokens; icon?: React.ReactElement }> = ({ label, tokens, icon }) => (
   <Chip
     icon={icon}
     label={label}
@@ -76,11 +77,10 @@ const StatusChip: React.FC<{ label: string; hex: string; icon?: React.ReactEleme
       height: 26,
       fontSize: '0.75rem',
       fontWeight: 600,
-      backgroundColor: `${hex}14`,
-      color: hex,
-      border: `1px solid ${hex}30`,
+      backgroundColor: tokens.bg,
+      color: tokens.color,
       borderRadius: '6px',
-      '& .MuiChip-icon': { color: hex, ml: 0.5 },
+      '& .MuiChip-icon': { color: tokens.color, ml: 0.5 },
       '& .MuiChip-label': { px: 1 },
     }}
   />
@@ -99,10 +99,10 @@ const InfoCard: React.FC<{
     alignItems: 'flex-start',
     gap: 1.5,
     p: 1.5,
-    borderRadius: 2,
-    bgcolor: 'grey.50',
+    borderRadius: '10px',
+    bgcolor: 'var(--surface-2)',
     border: '1px solid',
-    borderColor: 'grey.100',
+    borderColor: 'var(--line)',
     minHeight: 64,
   }}>
     <Box sx={{
@@ -113,10 +113,10 @@ const InfoCard: React.FC<{
       {icon}
     </Box>
     <Box sx={{ minWidth: 0, flex: 1 }}>
-      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2, display: 'block', mb: 0.25 }}>
+      <Typography variant="caption" sx={{ lineHeight: 1.2, display: 'block', mb: 0.25, fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--faint)' }}>
         {label}
       </Typography>
-      <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+      <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Typography>
       {sub && (
@@ -133,10 +133,10 @@ const TimelineItem: React.FC<{ icon: React.ReactElement; label: string; value: s
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
     {icon}
     <Box>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      <Typography variant="caption" sx={{ display: 'block', lineHeight: 1, fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--faint)' }}>
         {label}
       </Typography>
-      <Typography variant="body2" fontWeight={500} sx={{ lineHeight: 1.3, fontSize: '0.8125rem' }}>
+      <Typography variant="body2" fontWeight={500} sx={{ lineHeight: 1.3, fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Typography>
     </Box>
@@ -235,15 +235,15 @@ export default function InterventionDetailsPage() {
       {error && <Alert severity="error" sx={{ mb: 2, py: 1 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {intervention && !loading && (
-        <Card sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <Card sx={{ overflow: 'hidden' }}>
 
           {/* ── Status banner ────────────────────────────────────────── */}
           <Box sx={{
             px: { xs: 2, sm: 3 },
             py: 1.5,
-            bgcolor: `${getStatusHex(intervention.status)}08`,
+            bgcolor: 'var(--surface-2)',
             borderBottom: '1px solid',
-            borderColor: `${getStatusHex(intervention.status)}20`,
+            borderColor: 'var(--line)',
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
@@ -254,17 +254,17 @@ export default function InterventionDetailsPage() {
               <StatusChip
                 icon={getStatusIcon(intervention.status)}
                 label={getStatusLabel(intervention.status, t)}
-                hex={getStatusHex(intervention.status)}
+                tokens={getStatusTokens(intervention.status)}
               />
               <StatusChip
                 icon={<BuildIcon size={14} strokeWidth={1.75} />}
                 label={getTypeLabel(intervention.type, t)}
-                hex={getTypeHex(intervention.type)}
+                tokens={getTypeTokens(intervention.type)}
               />
               <StatusChip
                 icon={<PriorityHighIcon size={14} strokeWidth={1.75} />}
                 label={getPriorityLabel(intervention.priority, t)}
-                hex={getPriorityHex(intervention.priority)}
+                tokens={getPriorityTokens(intervention.priority)}
               />
               {/* Inline progress bar */}
               {(() => {
@@ -273,15 +273,13 @@ export default function InterventionDetailsPage() {
                 return (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 0.5 }}>
                     <LinearProgress variant="determinate" value={progress}
-                      color={isComplete ? 'success' : 'primary'}
                       sx={{
-                        width: 80, height: 5, borderRadius: 3, bgcolor: 'grey.200',
-                        '& .MuiLinearProgress-bar': { borderRadius: 3 },
+                        width: 80, height: 5, borderRadius: 3, bgcolor: 'var(--hover)',
+                        '& .MuiLinearProgress-bar': { borderRadius: 3, backgroundColor: isComplete ? 'var(--ok)' : 'var(--accent)' },
                       }}
                     />
                     <Typography variant="caption" fontWeight={700}
-                      color={isComplete ? 'success.main' : 'primary.main'}
-                      sx={{ fontSize: '0.7rem', lineHeight: 1 }}>
+                      sx={{ fontSize: '0.7rem', lineHeight: 1, color: isComplete ? 'var(--ok)' : 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
                       {progress}%
                     </Typography>
                   </Box>
@@ -298,14 +296,14 @@ export default function InterventionDetailsPage() {
               />
               {intervention.startTime && (
                 <TimelineItem
-                  icon={<PlayCircleOutlineIcon size={16} strokeWidth={1.75} color="var(--mui-palette-success-main, #2e7d32)" />}
+                  icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><PlayCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>}
                   label={t('interventions.detail.start')}
                   value={formatDate(intervention.startTime)}
                 />
               )}
               {intervention.endTime && (
                 <TimelineItem
-                  icon={<StopCircleIcon size={16} strokeWidth={1.75} color="var(--mui-palette-error-main, #d32f2f)" />}
+                  icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><StopCircleIcon size={16} strokeWidth={1.75} /></Box>}
                   label={t('interventions.detail.end')}
                   value={formatDate(intervention.endTime)}
                 />
@@ -330,24 +328,27 @@ export default function InterventionDetailsPage() {
               mb: 2,
             }}>
               <InfoCard
-                icon={<LocationIcon size={18} strokeWidth={1.75} color="var(--mui-palette-primary-main, #1976d2)" />}
-                iconBg="rgba(25, 118, 210, 0.1)"
+                icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocationIcon size={18} strokeWidth={1.75} /></Box>}
+                iconBg="var(--accent-soft)"
                 label={t('interventions.detail.property')}
                 value={intervention.propertyName}
                 sub={`${intervention.propertyAddress}${intervention.propertyCity ? `, ${intervention.propertyCity}` : ''}`}
               />
               <InfoCard
-                icon={<PersonIcon size={18} strokeWidth={1.75} color="#2e7d32" />}
-                iconBg="rgba(46, 125, 50, 0.1)"
+                icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><PersonIcon size={18} strokeWidth={1.75} /></Box>}
+                iconBg="var(--ok-soft)"
                 label={t('interventions.detail.requestor')}
                 value={intervention.requestorName}
               />
               <InfoCard
-                icon={intervention.assignedToType === 'team'
-                  ? <GroupIcon size={18} strokeWidth={1.75} color="#7b1fa2" />
-                  : <PersonIcon size={18} strokeWidth={1.75} color="#7b1fa2" />
+                icon={
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}>
+                    {intervention.assignedToType === 'team'
+                      ? <GroupIcon size={18} strokeWidth={1.75} />
+                      : <PersonIcon size={18} strokeWidth={1.75} />}
+                  </Box>
                 }
-                iconBg="rgba(123, 31, 162, 0.1)"
+                iconBg="var(--info-soft)"
                 label={t('interventions.detail.assignedTo')}
                 value={intervention.assignedToName}
                 extra={
@@ -364,8 +365,8 @@ export default function InterventionDetailsPage() {
                 }
               />
               <InfoCard
-                icon={<AccessTimeIcon size={18} strokeWidth={1.75} color="#ed6c02" />}
-                iconBg="rgba(237, 108, 2, 0.1)"
+                icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><AccessTimeIcon size={18} strokeWidth={1.75} /></Box>}
+                iconBg="var(--warn-soft)"
                 label={t('interventions.detail.estimatedDuration')}
                 value={formatDuration(intervention.estimatedDurationHours)}
                 sub={intervention.estimatedCost != null ? t('interventions.detail.costLabel', { cost: formatCurrency(intervention.estimatedCost) }) : undefined}

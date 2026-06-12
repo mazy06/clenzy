@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import {
   ResponsiveContainer,
   PieChart,
@@ -43,7 +43,6 @@ interface PieChartWidgetProps {
  * tooltip custom, legend pourcentage + barre de progression.</p>
  */
 export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
-  const theme = useTheme();
   const items = (data.items ?? []).map((it, idx) => ({
     ...it,
     color: it.color || CHART_SERIES_COLORS[idx % CHART_SERIES_COLORS.length],
@@ -58,15 +57,14 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
     <Box sx={{ mt: 1, mb: 1.5 }}>
       {data.title && (
         <Typography
-          variant="caption"
           sx={{
             display: 'block',
             mb: 1,
-            fontSize: '0.7rem',
+            fontSize: '10.5px',
             fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: theme.palette.text.secondary,
+            letterSpacing: '.05em',
+            color: 'var(--faint)',
           }}
         >
           {data.title}
@@ -80,8 +78,8 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
           gap: 2,
           alignItems: 'center',
           p: 1.5,
-          borderRadius: 2,
-          bgcolor: alpha(theme.palette.text.primary, 0.025),
+          borderRadius: '12px',
+          bgcolor: 'var(--field)',
         }}
       >
         {/* Donut */}
@@ -128,27 +126,28 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data }) => {
                     bgcolor: entry.color, flexShrink: 0,
                   }}
                 />
-                <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', flex: 1, lineHeight: 1.2 }}>
+                <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', flex: 1, lineHeight: 1.2 }}>
                   {humanizeStatus(entry.name)}
                 </Typography>
                 <Typography sx={{
-                  fontSize: '0.7rem', fontWeight: 700, color: 'text.primary',
+                  fontSize: '11.5px', fontWeight: 700, color: 'var(--ink)',
                   minWidth: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums',
                 }}>
                   {entry.value}
                 </Typography>
                 <Box sx={{
-                  width: 40, height: 4, bgcolor: alpha(theme.palette.text.primary, 0.06),
+                  width: 40, height: 4, bgcolor: 'var(--hover)',
                   borderRadius: 2, overflow: 'hidden', flexShrink: 0,
                 }}>
                   <Box sx={{
                     height: '100%', width: `${pct}%`,
                     bgcolor: entry.color, borderRadius: 2,
                     transition: 'width 0.4s ease',
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                   }} />
                 </Box>
                 <Typography sx={{
-                  fontSize: '0.625rem', color: 'text.disabled',
+                  fontSize: '10.5px', color: 'var(--faint)',
                   minWidth: 28, textAlign: 'right', fontVariantNumeric: 'tabular-nums',
                 }}>
                   {pct.toFixed(0)}%
@@ -191,11 +190,12 @@ const PieCustomTooltip: React.FC<{ active?: boolean; payload?: PieTooltipPayload
   return (
     <Box
       sx={{
-        bgcolor: 'background.paper',
-        borderRadius: 1.5,
+        bgcolor: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: '12px',
         px: 1.25,
         py: 0.75,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.10)',
+        boxShadow: 'var(--shadow-pop)',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -204,10 +204,10 @@ const PieCustomTooltip: React.FC<{ active?: boolean; payload?: PieTooltipPayload
           bgcolor: entry.payload.color || CHART_PRIMARY, flexShrink: 0,
         }} />
         <Box>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, lineHeight: 1.2 }}>
+          <Typography sx={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>
             {humanizeStatus(entry.name)}
           </Typography>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+          <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
             {entry.value}
           </Typography>
         </Box>

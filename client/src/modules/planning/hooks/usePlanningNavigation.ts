@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { addDays, subDays } from 'date-fns';
+import { addDays, subDays, addMonths, subMonths } from 'date-fns';
 import { useUserPreference } from '../../../hooks/useUserPreference';
 import type { ZoomLevel, DensityMode } from '../types';
 import { ZOOM_CONFIGS } from '../constants';
@@ -17,9 +17,11 @@ interface PersistedNav {
   density: DensityMode;
 }
 
-const DEFAULT_NAV: PersistedNav = { zoom: 'week', density: 'normal' };
+// Quinzaine par défaut (maquette). Une valeur persistée inconnue (ex: l'ancien
+// zoom 'day', supprimé) est migrée vers le défaut par sanitize().
+const DEFAULT_NAV: PersistedNav = { zoom: 'fortnight', density: 'normal' };
 
-const VALID_ZOOMS: ZoomLevel[] = ['day', 'week', 'month'];
+const VALID_ZOOMS: ZoomLevel[] = ['week', 'fortnight', 'month'];
 const VALID_DENSITIES: DensityMode[] = ['normal', 'compact'];
 
 function sanitize(raw: unknown): PersistedNav {
@@ -71,13 +73,19 @@ export function usePlanningNavigation(): UsePlanningNavigationReturn {
     setCurrentDate(new Date());
   }, []);
 
+  // ‹ › avancent d'une vue : 7 jours (semaine), 14 jours (quinzaine),
+  // un mois calendaire (mois).
   const goPrev = useCallback(() => {
-    setCurrentDate((prev) => subDays(prev, config.navStep));
-  }, [config.navStep]);
+    setCurrentDate((prev) =>
+      safe.zoom === 'month' ? subMonths(prev, 1) : subDays(prev, config.visibleDays),
+    );
+  }, [safe.zoom, config.visibleDays]);
 
   const goNext = useCallback(() => {
-    setCurrentDate((prev) => addDays(prev, config.navStep));
-  }, [config.navStep]);
+    setCurrentDate((prev) =>
+      safe.zoom === 'month' ? addMonths(prev, 1) : addDays(prev, config.visibleDays),
+    );
+  }, [safe.zoom, config.visibleDays]);
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);

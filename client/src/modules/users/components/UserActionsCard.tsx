@@ -22,14 +22,14 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
   return (
     <Box sx={{
       border: '1px solid',
-      borderColor: lockoutStatus.isLocked ? 'error.main' : 'warning.main',
-      borderRadius: 2,
+      borderColor: lockoutStatus.isLocked ? 'var(--err)' : 'var(--warn)',
+      borderRadius: '12px',
       p: 2,
-      bgcolor: lockoutStatus.isLocked ? 'error.50' : 'warning.50',
+      bgcolor: lockoutStatus.isLocked ? 'var(--err-soft)' : 'var(--warn-soft)',
     }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: lockoutStatus.isLocked ? 'error.main' : 'warning.main' }}><Lock size={20} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: lockoutStatus.isLocked ? 'var(--err)' : 'var(--warn)' }}><Lock size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="body2" fontWeight={600}>
                 {lockoutStatus.isLocked

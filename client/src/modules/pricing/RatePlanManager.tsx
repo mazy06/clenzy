@@ -26,9 +26,10 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 
 const CARD_SX = {
   border: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: '14px',
   p: 1.5,
 } as const;
 
@@ -87,8 +88,8 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
 
   return (
     <Paper sx={CARD_SX}>
-      {/* Header */}
-      <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.8125rem', mb: 1 }}>
+      {/* Header — overline de section (pattern pcard) */}
+      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
         {t('dynamicPricing.ratePlan.title')}
       </Typography>
 
@@ -151,8 +152,8 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
               )}
             </Box>
 
-            {/* Price */}
-            <Typography variant="body2" fontWeight={700} sx={{ minWidth: 60, textAlign: 'right', fontSize: '0.8125rem' }}>
+            {/* Price — display tabular-nums */}
+            <Typography variant="body2" fontWeight={600} sx={{ minWidth: 60, textAlign: 'right', fontSize: '0.8125rem', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ink)' }}>
               {convertAndFormat(plan.nightlyPrice, plan.currency || 'EUR')}
             </Typography>
 

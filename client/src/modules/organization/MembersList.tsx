@@ -163,12 +163,13 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                         sx={{
                           width: 32,
                           height: 32,
+                          borderRadius: '10px',
                           fontSize: '0.78rem',
+                          fontFamily: 'var(--font-display)',
                           fontWeight: 600,
                           letterSpacing: '0.02em',
                           bgcolor: `${roleColor}1F`,
                           color: roleColor,
-                          border: `1px solid ${roleColor}33`,
                           flexShrink: 0,
                         }}
                       >
@@ -213,21 +214,9 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                       label={getOrgRoleLabel(member.roleInOrg)}
                       size="small"
                       sx={{
-                        height: 22,
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        letterSpacing: '0.01em',
-                        backgroundColor: `${roleColor}14`,
+                        backgroundColor: `${roleColor}18`,
                         color: roleColor,
-                        border: `1px solid ${roleColor}33`,
-                        borderRadius: '6px',
-                        px: 0.25,
-                        '& .MuiChip-icon': {
-                          color: `${roleColor} !important`,
-                          ml: '6px',
-                          mr: '-2px',
-                        },
-                        '& .MuiChip-label': { px: 0.875 },
+                        '& .MuiChip-icon': { color: roleColor, ml: '6px', mr: '-2px' },
                       }}
                     />
                   </TableCell>
@@ -261,20 +250,19 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                                 width: 28,
                                 height: 28,
                                 borderRadius: '7px',
-                                color: 'text.secondary',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                backgroundColor: 'background.paper',
+                                color: 'var(--muted)',
+                                border: '1px solid var(--line-2)',
+                                backgroundColor: 'var(--card)',
                                 transition:
-                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                                 '&:hover': {
-                                  color: '#6B8A9A',
-                                  borderColor: '#6B8A9A66',
-                                  backgroundColor: '#6B8A9A0F',
-                                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04)',
+                                  color: 'var(--accent)',
+                                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                                  backgroundColor: 'var(--accent-soft)',
                                 },
                                 '&:focus-visible': {
-                                  outline: '2px solid #6B8A9A',
+                                  outline: '2px solid var(--accent)',
                                   outlineOffset: 2,
                                 },
                               }}
@@ -291,20 +279,19 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                                 width: 28,
                                 height: 28,
                                 borderRadius: '7px',
-                                color: 'text.secondary',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                backgroundColor: 'background.paper',
+                                color: 'var(--muted)',
+                                border: '1px solid var(--line-2)',
+                                backgroundColor: 'var(--card)',
                                 transition:
-                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                                 '&:hover': {
-                                  color: '#C97A7A',
-                                  borderColor: '#C97A7A66',
-                                  backgroundColor: '#C97A7A0F',
-                                  boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04)',
+                                  color: 'var(--err)',
+                                  borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)',
+                                  backgroundColor: 'var(--err-soft)',
                                 },
                                 '&:focus-visible': {
-                                  outline: '2px solid #C97A7A',
+                                  outline: '2px solid var(--err)',
                                   outlineOffset: 2,
                                 },
                               }}

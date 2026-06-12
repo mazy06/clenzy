@@ -26,8 +26,12 @@ const MissingContractsDashboardAlert: React.FC = () => {
         severity="warning"
         sx={{
           mb: 2,
-          borderRadius: '10px',
+          borderRadius: 'var(--radius-md)',
           fontSize: '0.8125rem',
+          bgcolor: 'var(--warn-soft)',
+          color: 'var(--body)',
+          border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
+          '& .MuiAlert-icon': { color: 'var(--warn)' },
           '& .MuiAlert-message': { fontSize: '0.8125rem' },
         }}
         action={

@@ -19,7 +19,7 @@ interface Props {
   onStatusChange?: (connected: boolean) => void;
 }
 
-const ACCENT = '#4A9B8E';
+const ACCENT = 'var(--ok)';
 
 const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
   const meta = PROVIDER_META[provider];
@@ -37,8 +37,8 @@ const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
           fontWeight: 700,
           letterSpacing: '0.02em',
           color: ACCENT,
-          backgroundColor: `${ACCENT}14`,
-          border: `1px solid ${ACCENT}33`,
+          backgroundColor: `color-mix(in srgb, ${ACCENT} 8%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${ACCENT} 20%, transparent)`,
           borderRadius: '4px',
           px: 0.5,
           py: 0.125,

@@ -5,7 +5,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  CircularProgress,
+  Skeleton,
   Alert,
   Box,
   Typography,
@@ -71,21 +71,24 @@ function parseCsv(content: string, separator: string): { headers: string[]; rows
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
+// Entêtes overline / lignes hairline — pattern Tableaux (baseline §2).
 const HEADER_CELL_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
+  letterSpacing: '0.05em',
+  color: 'var(--faint)',
   whiteSpace: 'nowrap' as const,
   py: 0.75,
   px: 1,
-  borderBottom: '2px solid',
-  borderColor: 'divider',
+  borderBottom: '1px solid',
+  borderColor: 'var(--line)',
+  bgcolor: 'var(--card)',
 } as const;
 
 const BODY_CELL_SX = {
-  fontSize: '0.75rem',
+  fontSize: '12px',
+  fontVariantNumeric: 'tabular-nums',
   py: 0.5,
   px: 1,
   whiteSpace: 'nowrap' as const,
@@ -128,8 +131,8 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
       fullWidth
       PaperProps={{ sx: { height: '85vh', display: 'flex', flexDirection: 'column' } }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5, px: 2 }}>
-        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>{title}</Typography>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</Box>
         <IconButton size="small" onClick={onClose} sx={{ ml: 1 }}>
           <CloseIcon size={18} strokeWidth={1.75} />
         </IconButton>
@@ -137,8 +140,10 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
       <DialogContent sx={{ p: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-            <CircularProgress size={32} />
+          <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} variant="rounded" height={28} sx={{ borderRadius: 'var(--radius-sm)' }} />
+            ))}
           </Box>
         )}
 
@@ -150,8 +155,8 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
         {!loading && !error && parsed?.type === 'table' && (
           <>
-            <Box sx={{ px: 2, py: 0.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}>
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+            <Box sx={{ px: 2, py: 0.75, borderBottom: '1px solid', borderColor: 'var(--line)', bgcolor: 'var(--surface-2)' }}>
+              <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                 {parsed.rows.length} {t('common.lines')} · {parsed.headers.length} {t('common.columns')}
               </Typography>
             </Box>
@@ -166,7 +171,7 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
                 </TableHead>
                 <TableBody>
                   {parsed.rows.map((row, ri) => (
-                    <TableRow key={ri} hover sx={{ '&:nth-of-type(even)': { bgcolor: 'action.hover' } }}>
+                    <TableRow key={ri} hover sx={{ '&:nth-of-type(even)': { bgcolor: 'var(--hover)' } }}>
                       {row.map((cell, ci) => (
                         <TableCell key={ci} sx={BODY_CELL_SX} title={cell}>{cell}</TableCell>
                       ))}
@@ -180,7 +185,7 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
         {!loading && !error && parsed?.type === 'xml' && (
           <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-            <pre style={{ margin: 0, fontSize: '0.75rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            <pre style={{ margin: 0, fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--body)' }}>
               {parsed.text}
             </pre>
           </Box>
@@ -188,15 +193,15 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
         {!loading && !error && !parsed && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-            <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
               {t('common.noData')}
             </Typography>
           </Box>
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 2, py: 1 }}>
-        <Button onClick={onClose} size="small" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>
+      <DialogActions>
+        <Button onClick={onClose} size="small">
           {t('common.close')}
         </Button>
       </DialogActions>

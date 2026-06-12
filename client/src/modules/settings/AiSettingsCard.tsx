@@ -62,7 +62,7 @@ export default function AiSettingsCard({
           ? alpha(theme.palette.divider, 0.5)
           : theme.palette.divider,
         bgcolor: 'background.paper',
-        boxShadow: isDark ? 'none' : `0 1px 2px ${alpha('#1F2937', 0.04)}`,
+        boxShadow: 'none',
         transition: 'border-color 200ms ease',
         '&:hover': {
           borderColor: isDark

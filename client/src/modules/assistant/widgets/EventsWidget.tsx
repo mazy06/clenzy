@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha, Chip } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
+import { Box, Typography, Chip } from '@mui/material';
 
 interface EventItem {
   id?: string;
@@ -32,21 +31,21 @@ interface EventsWidgetProps {
  * d'evenements locaux retournes par {@code get_local_events}.
  *
  * <p>Chaque event = ligne compacte : date + chip type + titre + description.
- * Borderless, bg tonal, design aligne aux autres widgets.</p>
+ * Pattern « Signature » : tokens var(--…), date en display tabular-nums,
+ * chips statut texte couleur + fond {@code -soft}.</p>
  */
 export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
-  const theme = useTheme();
   const items = data.items ?? [];
 
   if (items.length === 0) {
     return (
       <Box sx={{ mt: 1, mb: 1.5 }}>
         <Box sx={{
-          p: 2, borderRadius: 2,
-          bgcolor: alpha(theme.palette.text.primary, 0.04),
+          p: 2, borderRadius: '12px',
+          bgcolor: 'var(--field)',
           textAlign: 'center',
         }}>
-          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
             Aucun evenement detecte sur cette periode{data.city ? ` a ${data.city}` : ''}.
           </Typography>
         </Box>
@@ -57,10 +56,10 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
   return (
     <Box sx={{ mt: 1, mb: 1.5 }}>
       {data.title && (
-        <Typography variant="caption" sx={{
-          display: 'block', mb: 0.75, fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          display: 'block', mb: 0.75, fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title}
         </Typography>
@@ -73,9 +72,10 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
       </Box>
 
       {data.truncated && (
-        <Typography variant="caption" sx={{
-          display: 'block', mt: 0.75, fontSize: '0.7rem',
-          color: theme.palette.text.disabled, textAlign: 'right',
+        <Typography sx={{
+          display: 'block', mt: 0.75, fontSize: '11.5px',
+          color: 'var(--faint)', textAlign: 'right',
+          fontVariantNumeric: 'tabular-nums',
         }}>
           {items.length}/{data.totalElements} affiches — affine les dates pour voir le reste
         </Typography>
@@ -85,15 +85,15 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
 };
 
 const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
-  const theme = useTheme();
-  const typeColor = typeToColor(item.type, theme);
+  const [typeColor, typeSoft] = typeToColors(item.type);
 
   return (
     <Box
       sx={{
         px: 1.25, py: 1,
-        borderRadius: 1.5,
-        bgcolor: alpha(theme.palette.text.primary, 0.035),
+        borderRadius: '10px',
+        bgcolor: 'var(--card)',
+        border: '1px solid var(--line)',
         display: 'flex',
         gap: 1,
         alignItems: 'flex-start',
@@ -109,18 +109,20 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
         }}
       >
         <Typography sx={{
-          fontSize: '1rem', fontWeight: 700,
+          fontFamily: 'var(--font-display)',
+          fontSize: '1rem', fontWeight: 600,
           lineHeight: 1.1,
-          color: theme.palette.text.primary,
+          color: 'var(--ink)',
           fontVariantNumeric: 'tabular-nums',
         }}>
           {formatDay(item.date)}
         </Typography>
-        <Typography variant="caption" sx={{
-          fontSize: '0.65rem',
+        <Typography sx={{
+          fontSize: '10.5px',
+          fontWeight: 700,
           textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: theme.palette.text.secondary,
+          letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {formatMonth(item.date)}
         </Typography>
@@ -129,8 +131,8 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25, flexWrap: 'wrap' }}>
           <Typography sx={{
-            fontSize: '0.8125rem', fontWeight: 600,
-            color: theme.palette.text.primary,
+            fontSize: '13.5px', fontWeight: 600,
+            color: 'var(--ink)',
           }}>
             {item.title}
           </Typography>
@@ -139,25 +141,27 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
               label={typeLabel(item.type)}
               size="small"
               sx={{
-                height: 18, fontSize: '0.65rem', fontWeight: 600,
-                bgcolor: alpha(typeColor, 0.14),
+                height: 18, fontSize: '10.5px', fontWeight: 700,
+                letterSpacing: '.04em', textTransform: 'uppercase',
+                bgcolor: typeSoft,
                 color: typeColor,
+                border: 'none',
                 '& .MuiChip-label': { px: 0.75 },
               }}
             />
           )}
           {item.city && item.city !== '*' && (
-            <Typography variant="caption" sx={{
-              fontSize: '0.7rem', color: theme.palette.text.disabled,
+            <Typography sx={{
+              fontSize: '11.5px', color: 'var(--faint)',
             }}>
               {item.city}
             </Typography>
           )}
         </Box>
         {item.description && (
-          <Typography variant="caption" sx={{
-            display: 'block', fontSize: '0.72rem',
-            color: theme.palette.text.secondary,
+          <Typography sx={{
+            display: 'block', fontSize: '11.5px',
+            color: 'var(--muted)',
             lineHeight: 1.4,
           }}>
             {item.description}
@@ -170,13 +174,18 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function typeToColor(type: string | undefined, theme: Theme): string {
+/**
+ * Couleur du chip type → paires sémantiques [texte, fond soft].
+ * FESTIVAL = warn (ambre désaturé) ; neutre = --muted/--hover (pas de token
+ * « chip neutre » dédié — voir baseline §7).
+ */
+function typeToColors(type: string | undefined): [string, string] {
   switch (type?.toUpperCase()) {
-    case 'PUBLIC_HOLIDAY': return theme.palette.error.main;
-    case 'FESTIVAL':       return '#D4A574'; // ambre Baitly
-    case 'SPORT':          return theme.palette.success.main;
-    case 'FAIR':           return theme.palette.info.main;
-    default:               return theme.palette.text.secondary;
+    case 'PUBLIC_HOLIDAY': return ['var(--err)', 'var(--err-soft)'];
+    case 'FESTIVAL':       return ['var(--warn)', 'var(--warn-soft)'];
+    case 'SPORT':          return ['var(--ok)', 'var(--ok-soft)'];
+    case 'FAIR':           return ['var(--info)', 'var(--info-soft)'];
+    default:               return ['var(--muted)', 'var(--hover)'];
   }
 }
 

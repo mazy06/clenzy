@@ -83,11 +83,11 @@ function computeSteps(p: ChannexImportProgressStepperProps): Step[] {
   ];
 }
 
-const ACCENT = '#6B8A9A';
+const ACCENT = 'var(--accent)';
 const STATUS_COLOR: Record<StepStatus, string> = {
-  COMPLETE: '#059669',
+  COMPLETE: 'var(--ok)',
   ACTIVE:   ACCENT,
-  UPCOMING: '#9CA3AF',
+  UPCOMING: 'var(--faint)',
 };
 
 function StepBubble({ step }: { step: Step }) {
@@ -100,7 +100,7 @@ function StepBubble({ step }: { step: Step }) {
           width: 32,
           height: 32,
           borderRadius: '50%',
-          bgcolor: step.status === 'UPCOMING' ? 'transparent' : `${color}1A`,
+          bgcolor: step.status === 'UPCOMING' ? 'transparent' : `color-mix(in srgb, ${color} 10%, transparent)`,
           border: `2px solid ${color}`,
           color: color,
           display: 'flex',
@@ -111,7 +111,7 @@ function StepBubble({ step }: { step: Step }) {
           fontWeight: 700,
           fontSize: '0.75rem',
           ...(step.status === 'ACTIVE' && {
-            boxShadow: `0 0 0 4px ${color}1A`,
+            boxShadow: `0 0 0 4px color-mix(in srgb, ${color} 10%, transparent)`,
           }),
         }}
       >
@@ -152,7 +152,7 @@ function StepBubble({ step }: { step: Step }) {
 }
 
 function Connector({ next }: { next: StepStatus }) {
-  const color = next === 'UPCOMING' ? '#E5E7EB' : STATUS_COLOR[next];
+  const color = next === 'UPCOMING' ? 'var(--line)' : STATUS_COLOR[next];
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', color, flexShrink: 0, mt: 1 }}>
       <ArrowRight size={14} strokeWidth={2.2} />

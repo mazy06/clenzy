@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Box, Typography, Chip, Tooltip, IconButton, LinearProgress, useTheme,
+  Box, Typography, Chip, Tooltip, IconButton, LinearProgress,
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
 } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
@@ -9,12 +9,10 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { Intervention } from './useInterventionsList';
 import {
   getInterventionStatusLabel,
-  getInterventionStatusHex,
   getInterventionPriorityLabel,
-  getInterventionPriorityHex,
   getInterventionTypeLabel,
-  getInterventionTypeHex,
 } from '../../utils/statusUtils';
+import { getStatusTokens, getPriorityTokens, getTypeTokens } from './interventionUtils';
 import { LIST_PAPER_SX, PAGINATION_SX, stripPropertySuffix, formatDateShort, getProgress } from './interventionsListConstants';
 
 interface InterventionsTableViewProps {
@@ -33,7 +31,6 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
   interventions, totalCount, page, rowsPerPage, onPageChange, onMenuOpen, containerRef, navigate,
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   return (
     <Paper ref={containerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -44,9 +41,11 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
               sx={{
                 '& th': {
                   fontWeight: 700,
-                  fontSize: '0.78rem',
-                  color: theme.palette.text.secondary,
-                  borderBottom: `2px solid ${theme.palette.divider}`,
+                  fontSize: '0.65625rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'var(--faint)',
+                  borderBottom: '1px solid var(--line)',
                   whiteSpace: 'nowrap',
                 },
               }}
@@ -84,14 +83,13 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    {(() => { const c = getInterventionTypeHex(intervention.type); return (
+                    {(() => { const tk = getTypeTokens(intervention.type); return (
                     <Chip
                       label={getInterventionTypeLabel(intervention.type, t)}
                       size="small"
                       sx={{
-                        backgroundColor: `${c}18`,
-                        color: c,
-                        border: `1px solid ${c}40`,
+                        backgroundColor: tk.bg,
+                        color: tk.color,
                         borderRadius: '6px',
                         fontWeight: 600,
                         fontSize: '0.62rem',
@@ -120,14 +118,13 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                     )}
                   </TableCell>
                   <TableCell align="center">
-                    {(() => { const c = getInterventionStatusHex(intervention.status); return (
+                    {(() => { const tk = getStatusTokens(intervention.status); return (
                       <Chip
                         label={getInterventionStatusLabel(intervention.status, t)}
                         size="small"
                         sx={{
-                          backgroundColor: `${c}18`,
-                          color: c,
-                          border: `1px solid ${c}40`,
+                          backgroundColor: tk.bg,
+                          color: tk.color,
                           borderRadius: '6px',
                           fontWeight: 600,
                           fontSize: '0.75rem',
@@ -138,14 +135,13 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                     ); })()}
                   </TableCell>
                   <TableCell align="center">
-                    {(() => { const c = getInterventionPriorityHex(intervention.priority); return (
+                    {(() => { const tk = getPriorityTokens(intervention.priority); return (
                       <Chip
                         label={getInterventionPriorityLabel(intervention.priority, t)}
                         size="small"
                         sx={{
-                          backgroundColor: `${c}18`,
-                          color: c,
-                          border: `1px solid ${c}40`,
+                          backgroundColor: tk.bg,
+                          color: tk.color,
                           borderRadius: '6px',
                           fontWeight: 600,
                           fontSize: '0.75rem',
@@ -164,15 +160,15 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                           flex: 1,
                           height: 6,
                           borderRadius: 3,
-                          bgcolor: 'grey.200',
+                          bgcolor: 'var(--hover)',
                           '& .MuiLinearProgress-bar': {
                             borderRadius: 3,
-                            bgcolor: getProgress(intervention) === 100 ? 'success.main'
-                              : getProgress(intervention) >= 50 ? 'info.main' : 'warning.main',
+                            bgcolor: getProgress(intervention) === 100 ? 'var(--ok)'
+                              : getProgress(intervention) >= 50 ? 'var(--info)' : 'var(--warn)',
                           },
                         }}
                       />
-                      <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 28 }}>
+                      <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 28, fontVariantNumeric: 'tabular-nums' }}>
                         {getProgress(intervention)}%
                       </Typography>
                     </Box>

@@ -38,13 +38,13 @@ interface DeleteConfirmDialogProps {
 export function DeleteConfirmDialog({ open, onClose, onConfirm, requestTitle, t }: DeleteConfirmDialogProps) {
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogTitle sx={{ pb: 1 }}>{t('serviceRequests.confirmDelete')}</DialogTitle>
-      <DialogContent sx={{ pt: 1.5 }}>
+      <DialogTitle>{t('serviceRequests.confirmDelete')}</DialogTitle>
+      <DialogContent>
         <Typography variant="body2">
           {t('serviceRequests.confirmDeleteMessage', { title: requestTitle })}
         </Typography>
       </DialogContent>
-      <DialogActions sx={{ px: 2, pb: 1.5 }}>
+      <DialogActions>
         <Button onClick={onClose} size="small">{t('common.cancel')}</Button>
         <Button onClick={onConfirm} color="error" variant="contained" size="small">
           {t('serviceRequests.delete')}
@@ -81,8 +81,8 @@ export function StatusChangeDialog({
 }: StatusChangeDialogProps) {
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogTitle sx={{ pb: 1 }}>{t('serviceRequests.changeStatus')}</DialogTitle>
-      <DialogContent sx={{ pt: 1.5 }}>
+      <DialogTitle>{t('serviceRequests.changeStatus')}</DialogTitle>
+      <DialogContent>
         <Typography variant="caption" sx={{ mb: 1.5, fontSize: '0.75rem' }}>
           {t('serviceRequests.changeStatusMessage', { title: requestTitle })}
         </Typography>
@@ -104,7 +104,7 @@ export function StatusChangeDialog({
           </Select>
         </FormControl>
       </DialogContent>
-      <DialogActions sx={{ px: 2, pb: 1.5 }}>
+      <DialogActions>
         <Button onClick={onClose} size="small">{t('common.cancel')}</Button>
         <Button onClick={onConfirm} variant="contained" size="small">
           {t('common.confirm')}
@@ -298,7 +298,7 @@ export function ValidateConfirmDialog({
               {t('serviceRequests.validateAndCreateInterventionDescription')}
             </Typography>
             {selectedRequest.assignedToName && (
-              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '9px' }}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                   {selectedRequest.assignedToType === 'team' ? t('serviceRequests.fields.team') : t('serviceRequests.fields.assignedToUser')}
                 </Typography>
@@ -310,7 +310,7 @@ export function ValidateConfirmDialog({
           </Box>
         )}
       </DialogContent>
-      <DialogActions sx={{ px: 2, pb: 1.5 }}>
+      <DialogActions>
         <Button
           onClick={onClose}
           disabled={validating}
@@ -361,7 +361,7 @@ export function ErrorDialog({ open, onClose, message, t }: ErrorDialogProps) {
           {message}
         </Typography>
       </DialogContent>
-      <DialogActions sx={{ px: 2, pb: 1.5 }}>
+      <DialogActions>
         <Button
           onClick={onClose}
           variant="contained"
@@ -403,7 +403,7 @@ export function SuccessDialog({ open, onClose, message, t }: SuccessDialogProps)
           {message}
         </Typography>
       </DialogContent>
-      <DialogActions sx={{ px: 2, pb: 1.5 }}>
+      <DialogActions>
         <Button
           onClick={onClose}
           variant="contained"

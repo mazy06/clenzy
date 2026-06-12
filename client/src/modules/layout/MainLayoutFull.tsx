@@ -143,6 +143,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             overflow: 'auto',
           }}
         >
+          {/* Navigation de niveau 1 des hubs : le switcher segmenté (Direction A)
+              est rendu DANS le PageHeader de chaque page-racine de hub
+              (cf. HubScreenSwitcher), pas comme un bandeau séparé. */}
           {children}
         </Box>
       </Box>

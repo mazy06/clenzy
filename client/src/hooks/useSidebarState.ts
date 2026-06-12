@@ -12,7 +12,7 @@ function getSavedCollapsed(): boolean {
 }
 
 export const SIDEBAR_WIDTH_EXPANDED = 240;
-export const SIDEBAR_WIDTH_COLLAPSED = 64;
+export const SIDEBAR_WIDTH_COLLAPSED = 68;
 
 export function useSidebarState() {
   const theme = useTheme();

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, CircularProgress, Alert, Typography } from '@mui/material';
-import { CalendarMonth } from '../../icons';
+import { Box, CircularProgress, Alert, Typography, TextField, InputAdornment, Chip, Button, Tooltip } from '@mui/material';
+import { CalendarMonth, Search, CalendarToday as CalendarTodayIcon, Add } from '../../icons';
 import EmptyState from '../../components/EmptyState';
+import PageHeader from '../../components/PageHeader';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
@@ -24,8 +25,12 @@ import { usePlanningPricing } from './hooks/usePlanningPricing';
 import { usePlanningMinNights } from './hooks/usePlanningMinNights';
 import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
-import { ACTION_PANEL_WIDTH } from './constants';
+import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
+import { ACTION_PANEL_WIDTH, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
+import { formatMonthYear, toDateStr, addDays } from './utils/dateUtils';
+import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent } from './types';
+import type { ReservationStatus } from '../../services/api';
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -43,6 +48,9 @@ const PlanningPage: React.FC = () => {
   // par l'utilisateur (persiste dans localStorage).
   const { width: propertyColWidth, setWidth: setPropertyColWidth } = useResizablePropertyColWidth();
 
+  // Variante d'animation d'urgence des briques (per-device, localStorage)
+  const [urgencyAnimation, setUrgencyAnimation] = useUrgencyAnimation();
+
   // Infinite horizontal timeline (buffer, days, scroll)
   const timeline = useInfiniteTimeline({
     anchorDate: nav.currentDate,
@@ -52,10 +60,15 @@ const PlanningPage: React.FC = () => {
   });
 
   // Data fetching (chunked by 30-day aligned windows)
-  const { properties, events, interventions, loading, error } = usePlanningData(
+  const { properties, events, reservations, interventions, loading, error } = usePlanningData(
     timeline.bufferStart,
     timeline.bufferEnd,
   );
+
+  // TOUTES les réservations chargées (avant filtres/légende) : servent à
+  // PlanningRow pour rattacher chaque intervention à sa réservation (lien
+  // explicite OU heuristique date/propriété) et ne JAMAIS la rendre en
+  // pastille isolée quand la brique hôte est masquée ou hors plage.
 
   // Filters
   const {
@@ -69,6 +82,52 @@ const PlanningPage: React.FC = () => {
     filteredEvents,
     filteredProperties,
   } = usePlanningFilters(events, properties);
+
+  // ── Filtres légende (rangées Canaux / Statuts de la toolbar) ──────────────
+  // État session-scoped, non persisté : tout est sélectionné par défaut, un
+  // clic sur une chip masque les briques du canal / statut correspondant.
+  const [activeChannels, setActiveChannels] = useState<Set<PlanningChannelKey>>(
+    () => new Set(PLANNING_CHANNEL_KEYS),
+  );
+  const [activeStatuses, setActiveStatuses] = useState<Set<ReservationStatus>>(
+    () => new Set(PLANNING_STATUS_KEYS),
+  );
+
+  const toggleChannel = useCallback((key: PlanningChannelKey) => {
+    setActiveChannels((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleStatus = useCallback((status: ReservationStatus) => {
+    setActiveStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  }, []);
+
+  // Masquage client-side des briques réservation selon les toggles légende.
+  // S'applique APRÈS usePlanningFilters (hooks de données inchangés) et AVANT
+  // le layout/rendu de la grille. Seul l'affichage est filtré : sélection,
+  // drag et validations de conflit continuent de voir l'ensemble complet.
+  // Les sources hors légende (ex: 'other') restent toujours visibles.
+  const visibleEvents = useMemo(() => {
+    const allSelected =
+      activeChannels.size === PLANNING_CHANNEL_KEYS.length
+      && activeStatuses.size === PLANNING_STATUS_KEYS.length;
+    if (allSelected) return filteredEvents;
+    return filteredEvents.filter((e) => {
+      if (e.type !== 'reservation') return true;
+      const source = e.reservation?.source;
+      if (source && source !== 'other' && !activeChannels.has(source)) return false;
+      return activeStatuses.has(e.status as ReservationStatus);
+    });
+  }, [filteredEvents, activeChannels, activeStatuses]);
 
   // Pagination (dynamic page size based on viewport height)
   const pagination = usePlanningPagination({
@@ -102,9 +161,9 @@ const PlanningPage: React.FC = () => {
     true,
   );
 
-  // Layout (bar positions)
+  // Layout (bar positions) — sur les events visibles (toggles Canaux/Statuts)
   const { getBarLayouts, totalGridWidth } = usePlanningLayout(
-    filteredEvents,
+    visibleEvents,
     timeline.days,
     nav.dayWidth,
     nav.density,
@@ -122,32 +181,26 @@ const PlanningPage: React.FC = () => {
     closeQuickCreate,
   } = usePlanningSelection(filteredEvents);
 
-  // Click on property name → open panel on "Logement" tab
-  // Priorite : reservation checked_in > confirmed > pending > any reservation > any event
-  const handlePropertyClick = useCallback((propertyId: number) => {
-    const propertyEvents = filteredEvents.filter((e) => e.propertyId === propertyId);
-    if (propertyEvents.length === 0) return;
-
-    const statusPriority: Record<string, number> = {
-      checked_in: 0,
-      confirmed: 1,
-      pending: 2,
-    };
-
-    // Prefer reservations, sorted by status priority
-    const reservations = propertyEvents
-      .filter((e) => e.type === 'reservation')
-      .sort((a, b) => {
-        const pa = statusPriority[a.status] ?? 99;
-        const pb = statusPriority[b.status] ?? 99;
-        return pa - pb;
-      });
-
-    const event = reservations.length > 0 ? reservations[0] : propertyEvents[0];
-    selectEvent(event);
-    // Switch to property tab after selection (selectEvent defaults to 'info')
-    setTimeout(() => setPanelTab('property'), 0);
-  }, [filteredEvents, selectEvent, setPanelTab]);
+  // « + Réservation » (header) : réutilise le flux quick-create existant
+  // (PlanningQuickCreateDialog). Le dialog est lié à UNE propriété (pas de
+  // sélecteur interne) : on préselectionne le premier logement visible avec
+  // un séjour aujourd'hui → demain ; les dates restent modifiables dans le dialog.
+  const handleCreateReservation = useCallback(() => {
+    const prop = filteredProperties[0] ?? properties[0];
+    if (!prop) return;
+    const today = new Date();
+    openQuickCreate({
+      propertyId: prop.id,
+      propertyName: prop.name,
+      startDate: toDateStr(today),
+      endDate: toDateStr(addDays(today, 1)),
+      nightlyPrice: prop.nightlyPrice ?? 0,
+      defaultCheckInTime: prop.defaultCheckInTime,
+      defaultCheckOutTime: prop.defaultCheckOutTime,
+      cleaningFrequency: prop.cleaningFrequency,
+      cleaningBasePrice: prop.cleaningBasePrice,
+    });
+  }, [filteredProperties, properties, openQuickCreate]);
 
   // Handle event click: SR blocks redirect to linked reservation's Paiement tab
   const handleEventClick = useCallback((event: PlanningEvent) => {
@@ -297,6 +350,50 @@ const PlanningPage: React.FC = () => {
     density: nav.density,
   });
 
+  // ── Libellé mois de la toolbar synchronisé sur le scroll horizontal ──────
+  // Le libellé « ‹ Mois Année › » suit le jour situé au tiers gauche du
+  // viewport de la grille (plus stable visuellement que le premier jour
+  // visible). State séparé de nav.currentDate : on ne touche ni à l'ancre,
+  // ni au buffer, ni au chargement de données.
+  const [visibleMonthDate, setVisibleMonthDate] = useState<Date>(() => nav.currentDate);
+  const monthSyncRaf = useRef<number | null>(null);
+  // Anti-boucle : quand ‹ › / « Aujourd'hui » changent l'ancre, le buffer se
+  // recentre et le scrollLeft est repositionné programmatiquement — on ignore
+  // les événements scroll pendant cette fenêtre pour ne pas réécrire un mois
+  // transitoire par-dessus celui de l'ancre.
+  const programmaticScrollUntil = useRef(0);
+
+  useEffect(() => {
+    programmaticScrollUntil.current = Date.now() + 300;
+    setVisibleMonthDate(nav.currentDate);
+  }, [nav.currentDate]);
+
+  // Throttle rAF : un seul calcul par frame, depuis scrollLeft / dayWidth.
+  const handleTimelineScroll = useCallback(() => {
+    timeline.handleScroll();
+    if (Date.now() < programmaticScrollUntil.current) return;
+    if (monthSyncRaf.current !== null) return;
+    monthSyncRaf.current = requestAnimationFrame(() => {
+      monthSyncRaf.current = null;
+      const el = timeline.scrollRef.current;
+      if (!el || timeline.days.length === 0) return;
+      // Jour 0 de la grille à x = scrollLeft (la colonne logements est sticky) ;
+      // sonde au tiers gauche de la zone de jours visible.
+      const gridViewportWidth = Math.max(0, el.clientWidth - propertyColWidth);
+      const probeIndex = Math.floor((el.scrollLeft + gridViewportWidth / 3) / nav.dayWidth);
+      const day = timeline.days[Math.min(timeline.days.length - 1, Math.max(0, probeIndex))];
+      setVisibleMonthDate((prev) =>
+        prev.getMonth() === day.getMonth() && prev.getFullYear() === day.getFullYear()
+          ? prev
+          : day,
+      );
+    });
+  }, [timeline.handleScroll, timeline.scrollRef, timeline.days, propertyColWidth, nav.dayWidth]);
+
+  useEffect(() => () => {
+    if (monthSyncRaf.current !== null) cancelAnimationFrame(monthSyncRaf.current);
+  }, []);
+
   // ── Initial scroll to today when timeline first becomes visible ──────────
   const hasInitialScrolled = useRef(false);
   useEffect(() => {
@@ -320,6 +417,10 @@ const PlanningPage: React.FC = () => {
     });
   }, [selectedEvent?.id, selection.panelOpen, timeline]);
 
+  // Sous-titre du header : mois visible (synchronisé au scroll), capitalisé.
+  const visibleMonthLabel = formatMonthYear(visibleMonthDate);
+  const headerSubtitle = `Réservations & interventions · ${visibleMonthLabel.charAt(0).toUpperCase()}${visibleMonthLabel.slice(1)}`;
+
   return (
     <Box
       sx={{
@@ -336,14 +437,110 @@ const PlanningPage: React.FC = () => {
           bottom: 0,
           m: 0,
           zIndex: 1300,
-          backgroundColor: 'background.default',
+          backgroundColor: 'var(--bg)',
         }),
       }}
     >
+      {/* Page header — masqué en plein écran (le fullscreen masque déjà le
+          chrome ; la toolbar garde les actions critiques) */}
+      {!nav.isFullscreen && (
+        <Box sx={{ flexShrink: 0, px: { xs: 1.5, md: 2 }, pt: { xs: 1.5, md: 2 } }}>
+          <PageHeader
+            title="Planning"
+            subtitle={headerSubtitle}
+            showBackButton={false}
+            filters={
+              <TextField
+                size="small"
+                placeholder="Rechercher..."
+                value={filters.searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><Search size={14} strokeWidth={1.75} /></Box>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  width: 180,
+                  '& .MuiOutlinedInput-root': {
+                    height: 28,
+                    fontSize: '0.6875rem',
+                    borderRadius: '9px',
+                    backgroundColor: 'var(--field)',
+                    color: 'var(--body)',
+                    '& fieldset': { borderColor: 'var(--field-line)' },
+                    '&:hover fieldset': { borderColor: 'var(--faint)' },
+                    '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: 1 },
+                    '&.Mui-focused': { boxShadow: '0 0 0 3px var(--accent-soft)' },
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    py: 0.25,
+                    '&::placeholder': { color: 'var(--faint)', opacity: 1 },
+                  },
+                }}
+              />
+            }
+            actions={
+              <>
+                <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
+                  <Chip
+                    icon={<CalendarTodayIcon size={14} strokeWidth={1.75} />}
+                    label="Import iCal"
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setIcalModalOpen(true)}
+                    sx={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      height: 28,
+                      borderRadius: '9px',
+                      cursor: 'pointer',
+                      backgroundColor: 'var(--card)',
+                      borderColor: 'var(--line-2)',
+                      color: 'var(--body)',
+                      '& .MuiChip-icon': { fontSize: 14, color: 'var(--muted)' },
+                      '&:hover': {
+                        backgroundColor: 'var(--hover)',
+                        borderColor: 'var(--faint)',
+                      },
+                    }}
+                  />
+                </Tooltip>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Add size={14} strokeWidth={1.75} />}
+                  onClick={handleCreateReservation}
+                  disabled={properties.length === 0}
+                  sx={{
+                    height: 28,
+                    borderRadius: '9px',
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    px: 1.25,
+                    color: 'var(--accent)',
+                    borderColor: 'var(--accent)',
+                    '&:hover': {
+                      backgroundColor: 'var(--accent-soft)',
+                      borderColor: 'var(--accent)',
+                    },
+                  }}
+                >
+                  Réservation
+                </Button>
+              </>
+            }
+          />
+        </Box>
+      )}
+
       {/* Toolbar */}
       <Box sx={{ flexShrink: 0, mb: 1 }}>
         <PlanningToolbar
-          currentDate={nav.currentDate}
+          currentDate={visibleMonthDate}
           zoom={nav.zoom}
           density={nav.density}
           isFullscreen={nav.isFullscreen}
@@ -358,11 +555,15 @@ const PlanningPage: React.FC = () => {
           onShowInterventionsChange={setShowInterventions}
           onShowPricesChange={setShowPrices}
           onStatusFilter={setStatusFilter}
-          onSearchChange={setSearchQuery}
           onClearFilters={clearFilters}
-          onImportICal={() => setIcalModalOpen(true)}
+          activeChannels={activeChannels}
+          onToggleChannel={toggleChannel}
+          activeStatuses={activeStatuses}
+          onToggleStatus={toggleStatus}
           onBlockPeriod={() => setBlockDialogOpen(true)}
           leftOffset={propertyColWidth}
+          urgencyAnimation={urgencyAnimation}
+          onUrgencyAnimationChange={setUrgencyAnimation}
         />
       </Box>
 
@@ -412,14 +613,15 @@ const PlanningPage: React.FC = () => {
             getBarLayouts={getBarLayouts}
             totalGridWidth={totalGridWidth}
             selectedEventId={selection.selectedEventId}
-            events={filteredEvents}
+            events={visibleEvents}
+            loadedReservations={reservations}
             drag={drag}
             onEventClick={handleEventClick}
             onHideEvent={handleHideEvent}
             onEmptyClick={openQuickCreate}
             quickCreateOpen={!!quickCreateData}
             scrollRef={timeline.scrollRef}
-            onScroll={timeline.handleScroll}
+            onScroll={handleTimelineScroll}
             propertyColWidth={propertyColWidth}
             onPropertyColWidthChange={setPropertyColWidth}
             showPrices={filters.showPrices}
@@ -428,7 +630,6 @@ const PlanningPage: React.FC = () => {
             minNightsMap={minNightsMap}
             channelSyncMap={channelSyncMap}
             pageSize={pagination.pageSize}
-            onPropertyClick={handlePropertyClick}
           />
 
           {/* Pagination — pinned to bottom, full width (compensate parent px) */}

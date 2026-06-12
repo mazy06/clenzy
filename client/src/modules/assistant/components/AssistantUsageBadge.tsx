@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tooltip, Typography, alpha, useTheme } from '@mui/material';
+import { Box, Tooltip, Typography } from '@mui/material';
 import type { AssistantUsage } from '../../../services/api/assistantApi';
 
 interface AssistantUsageBadgeProps {
@@ -27,7 +27,6 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
   loading,
   error,
 }) => {
-  const theme = useTheme();
   if (error) return null; // silent fail — pas d'erreur visible pour un nice-to-have
 
   const costLabel = loading ? '—' : formatCost(usage?.costUsd ?? 0);
@@ -47,24 +46,25 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
           alignItems: 'center',
           gap: 0.75,
           px: 1.25,
-          py: 0.5,
+          height: 28,
           borderRadius: 999,
-          fontSize: '0.75rem',
-          fontWeight: 500,
-          color: theme.palette.text.secondary,
-          bgcolor: alpha(theme.palette.text.primary, 0.04),
+          fontSize: '11.5px',
+          fontWeight: 600,
+          color: 'var(--muted)',
+          bgcolor: 'var(--card)',
+          border: '1px solid var(--line)',
           cursor: 'help',
-          transition: 'background-color 150ms ease-out',
+          transition: 'border-color .15s',
           fontVariantNumeric: 'tabular-nums',
           userSelect: 'none',
           '&:hover': {
-            bgcolor: alpha(theme.palette.text.primary, 0.08),
+            borderColor: 'var(--line-2)',
           },
         }}
         aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}
       >
-        <span style={{ fontWeight: 600 }}>{costLabel}</span>
-        <Box component="span" sx={{ color: alpha(theme.palette.text.secondary, 0.5) }}>
+        <Box component="span" sx={{ fontWeight: 600, color: 'var(--body)' }}>{costLabel}</Box>
+        <Box component="span" sx={{ color: 'var(--faint)' }}>
           · {tokensLabel} tokens
         </Box>
       </Box>
@@ -134,7 +134,8 @@ const UsageTooltipContent: React.FC<{
         <>
           <Box
             sx={{
-              borderTop: (t) => `1px solid ${alpha(t.palette.common.white, 0.2)}`,
+              // Le tooltip global a un fond --ink (inverse) : filet teinte --bg.
+              borderTop: '1px solid color-mix(in srgb, var(--bg) 25%, transparent)',
               mt: 1,
               pt: 0.75,
             }}

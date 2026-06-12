@@ -5,7 +5,6 @@ import {
   TextField,
   Grid,
   Chip,
-  alpha,
   Table,
   TableBody,
   TableCell,
@@ -82,7 +81,6 @@ interface ForfaitAccordionSectionProps {
 const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.memo(
   ({ forfait, teams, canEdit, onChange, availablePrestations, availableSurcharges, onAddPrestation, onAddSurcharge, currencySymbol }) => {
     const { t } = useTranslation();
-    const primaryColor = '#6B8A9A';
 
     // ─── Add prestation dialog ─────────────────────────────────────────
     const [addPrestationOpen, setAddPrestationOpen] = useState(false);
@@ -241,17 +239,17 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                   size="small"
                   sx={{
                     ...CHIP_SX,
-                    borderColor: isSelected ? primaryColor : 'grey.200',
-                    bgcolor: isSelected ? alpha(primaryColor, 0.12) : 'transparent',
-                    color: isSelected ? primaryColor : 'text.secondary',
+                    borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
+                    bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
+                    color: isSelected ? 'var(--accent)' : 'text.secondary',
                     '& .MuiChip-icon': {
                       fontSize: 14,
                       ml: 0.5,
-                      color: isSelected ? primaryColor : 'primary.main',
+                      color: isSelected ? 'var(--accent)' : 'primary.main',
                     },
                     '&:hover': canEdit ? {
-                      bgcolor: alpha(primaryColor, 0.06),
-                      borderColor: primaryColor,
+                      bgcolor: 'var(--hover)',
+                      borderColor: 'var(--accent)',
                     } : {},
                     cursor: canEdit ? 'pointer' : 'default',
                     opacity: canEdit ? 1 : 0.6,
@@ -283,9 +281,9 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                       size="small"
                       sx={{
                         ...CHIP_SX,
-                        borderColor: isIncluded ? 'success.main' : 'grey.200',
-                        bgcolor: isIncluded ? alpha('#4caf50', 0.12) : 'transparent',
-                        color: isIncluded ? 'success.main' : 'text.disabled',
+                        borderColor: isIncluded ? 'var(--ok)' : 'var(--line-2)',
+                        bgcolor: isIncluded ? 'var(--ok-soft)' : 'transparent',
+                        color: isIncluded ? 'var(--ok)' : 'text.disabled',
                         cursor: canEdit ? 'pointer' : 'default',
                         opacity: canEdit ? 1 : 0.6,
                       }}
@@ -311,9 +309,9 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                       size="small"
                       sx={{
                         ...CHIP_SX,
-                        borderColor: isExtra ? 'warning.main' : 'grey.200',
-                        bgcolor: isExtra ? alpha('#ff9800', 0.12) : 'transparent',
-                        color: isExtra ? 'warning.main' : 'text.disabled',
+                        borderColor: isExtra ? 'var(--warn)' : 'var(--line-2)',
+                        bgcolor: isExtra ? 'var(--warn-soft)' : 'transparent',
+                        color: isExtra ? 'var(--warn)' : 'text.disabled',
                         cursor: canEdit ? 'pointer' : 'default',
                         opacity: canEdit ? 1 : 0.6,
                       }}
@@ -365,17 +363,17 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                     size="small"
                     sx={{
                       ...CHIP_SX,
-                      borderColor: isSelected ? primaryColor : 'grey.200',
-                      bgcolor: isSelected ? alpha(primaryColor, 0.12) : 'transparent',
-                      color: isSelected ? primaryColor : 'text.secondary',
+                      borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
+                      bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
+                      color: isSelected ? 'var(--accent)' : 'text.secondary',
                       '& .MuiChip-icon': {
                         fontSize: 14,
                         ml: 0.5,
-                        color: isSelected ? primaryColor : 'primary.main',
+                        color: isSelected ? 'var(--accent)' : 'primary.main',
                       },
                       '&:hover': canEdit ? {
-                        bgcolor: alpha(primaryColor, 0.06),
-                        borderColor: primaryColor,
+                        bgcolor: 'var(--hover)',
+                        borderColor: 'var(--accent)',
                       } : {},
                       cursor: canEdit ? 'pointer' : 'default',
                       opacity: canEdit ? 1 : 0.6,

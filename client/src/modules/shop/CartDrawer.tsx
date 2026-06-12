@@ -20,9 +20,6 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { SHOP_PRODUCTS } from './shopProducts';
 import ProductHero from './ProductHero';
 
-const ACCENT = '#4A9B8E';
-const PRIMARY = '#6B8A9A';
-
 interface CartDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -79,7 +76,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
+            <Typography variant="h6" fontWeight={600} sx={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', letterSpacing: '-0.01em', color: 'var(--ink)' }}>
               {t('shop.cart')}
             </Typography>
             {totalItems > 0 && (
@@ -90,8 +87,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   px: 0.875,
                   py: 0.125,
                   borderRadius: '5px',
-                  backgroundColor: `${ACCENT}14`,
-                  color: ACCENT,
+                  backgroundColor: 'var(--accent-soft)',
+                  color: 'var(--accent)',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '0.02em',
                 }}
@@ -127,8 +124,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: `${PRIMARY}0F`,
-                  color: PRIMARY,
+                  backgroundColor: 'var(--accent-soft)',
+                  color: 'var(--accent)',
                 }}
               >
                 <ShoppingCartOutlined size={28} strokeWidth={1.5} />
@@ -160,8 +157,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                     borderRadius: '10px',
                     border: '1px solid',
                     borderColor: 'divider',
-                    transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                    '&:hover': { borderColor: `${PRIMARY}66` },
+                    transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
+                    '&:hover': { borderColor: 'var(--line-2)' },
                   }}
                 >
                   {/* Thumbnail */}
@@ -216,7 +213,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                         sx={{
                           color: 'text.disabled',
                           p: 0.25,
-                          '&:hover': { color: '#C97A7A', backgroundColor: '#C97A7A0F' },
+                          '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
                         }}
                       >
                         <Delete size={14} strokeWidth={1.75} />
@@ -245,7 +242,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                             borderColor: 'divider',
                             borderRadius: '6px',
                             color: 'text.primary',
-                            '&:hover': { borderColor: `${PRIMARY}66`, backgroundColor: `${PRIMARY}0A` },
+                            '&:hover': { borderColor: 'var(--faint)', backgroundColor: 'var(--hover)' },
                           }}
                         >
                           <Remove size={12} strokeWidth={2} />
@@ -273,7 +270,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                             borderColor: 'divider',
                             borderRadius: '6px',
                             color: 'text.primary',
-                            '&:hover': { borderColor: `${PRIMARY}66`, backgroundColor: `${PRIMARY}0A` },
+                            '&:hover': { borderColor: 'var(--faint)', backgroundColor: 'var(--hover)' },
                           }}
                         >
                           <Add size={12} strokeWidth={2} />
@@ -328,7 +325,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.25 }}>
-              <Box sx={{ color: ACCENT, display: 'inline-flex' }}>
+              <Box sx={{ color: 'var(--ok)', display: 'inline-flex' }}>
                 <CheckCircleOutline size={12} strokeWidth={2} />
               </Box>
               <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
@@ -354,10 +351,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                 {t('shop.total')}
               </Typography>
               <Typography
-                fontWeight={700}
+                fontWeight={600}
                 sx={{
+                  fontFamily: 'var(--font-display)',
                   fontSize: '1.15rem',
-                  color: ACCENT,
+                  color: 'var(--ink)',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.01em',
                 }}
@@ -369,23 +367,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
             <Button
               variant="contained"
               fullWidth
-              disableElevation
+              size="large"
               onClick={onCheckout}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                letterSpacing: '0.01em',
-                borderRadius: '8px',
-                py: 1.1,
-                bgcolor: ACCENT,
-                boxShadow: 'none',
-                '&:hover': {
-                  bgcolor: ACCENT,
-                  filter: 'brightness(0.94)',
-                  boxShadow: 'none',
-                },
-              }}
             >
               {t('shop.checkout')}
             </Button>

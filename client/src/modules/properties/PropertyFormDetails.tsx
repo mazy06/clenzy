@@ -88,7 +88,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
                   InputProps={{
-                    startAdornment: <Bed size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "rgba(0,0,0,0.6)" }} />,
+                    startAdornment: <Bed size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
                   }}
                 />
               )}
@@ -111,7 +111,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
                   InputProps={{
-                    startAdornment: <Bathroom size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "rgba(0,0,0,0.6)" }} />,
+                    startAdornment: <Bathroom size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
                   }}
                 />
               )}
@@ -134,7 +134,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
                   InputProps={{
-                    startAdornment: <SquareFoot size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "rgba(0,0,0,0.6)" }} />,
+                    startAdornment: <SquareFoot size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
                   }}
                 />
               )}
@@ -157,7 +157,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
                   InputProps={{
-                    startAdornment: <Group size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "rgba(0,0,0,0.6)" }} />,
+                    startAdornment: <Group size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
                   }}
                 />
               )}
@@ -179,7 +179,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
                   InputProps={{
-                    startAdornment: <Euro size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "rgba(0,0,0,0.6)" }} />,
+                    startAdornment: <Euro size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
                   }}
                   placeholder={t('properties.nightlyPricePlaceholder')}
                   inputProps={{ step: '0.01', min: '0' }}
@@ -203,7 +203,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
                   InputProps={{
-                    startAdornment: <NightsStay size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "rgba(0,0,0,0.6)" }} />,
+                    startAdornment: <NightsStay size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
                   }}
                   placeholder="1"
                   inputProps={{ step: '1', min: '1' }}

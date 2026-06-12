@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Box, Paper, Typography, MenuItem, TextField, CircularProgress, Alert,
+  Box, Paper, Typography, MenuItem, TextField, Skeleton, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import {
   AccountBalance,
@@ -11,6 +10,8 @@ import {
   DateRange as StepPeriodIcon,
 } from '../../icons';
 import HelpBanner from '../../components/HelpBanner';
+import EmptyState from '../../components/EmptyState';
+import PeriodSegmented from './PeriodSegmented';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useMonthlyVatSummary, useQuarterlyVatSummary, useAnnualVatSummary } from '../../hooks/useFiscalReporting';
 import { formatCurrency, formatTaxRate } from '../../utils/currencyUtils';
@@ -20,8 +21,23 @@ import type { VatSummary } from '../../services/api/fiscalReportingApi';
 
 type PeriodMode = 'monthly' | 'quarterly' | 'annual';
 
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
+// Tableaux : entêtes overline / valeurs 12.5px via le thème global Signature.
+const CELL_SX = { fontSize: '12.5px', py: 1.25, fontVariantNumeric: 'tabular-nums' } as const;
+const HEAD_CELL_SX = { py: 1 } as const;
+
+// Carte/panneau : hairline --line, r14 (baseline §2 Cartes), aucune ombre.
+const PANEL_SX = {
+  border: '1px solid var(--line)',
+  boxShadow: 'none',
+  borderRadius: 'var(--radius-lg)',
+  bgcolor: 'var(--card)',
+} as const;
+
+const PERIOD_MODE_OPTIONS: { value: PeriodMode; label: string }[] = [
+  { value: 'monthly', label: 'Mensuel' },
+  { value: 'quarterly', label: 'Trimestriel' },
+  { value: 'annual', label: 'Annuel' },
+];
 
 const MONTHS = [
   'Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -76,19 +92,14 @@ const FiscalReportSection: React.FC = () => {
       />
 
       {/* Period selector */}
-      <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
+      <Paper sx={{ ...PANEL_SX, p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <ToggleButtonGroup
+          <PeriodSegmented<PeriodMode>
             value={mode}
-            exclusive
-            onChange={(_e, v) => v && setMode(v)}
-            size="small"
-            sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontSize: '0.8125rem', px: 2 } }}
-          >
-            <ToggleButton value="monthly">Mensuel</ToggleButton>
-            <ToggleButton value="quarterly">Trimestriel</ToggleButton>
-            <ToggleButton value="annual">Annuel</ToggleButton>
-          </ToggleButtonGroup>
+            onChange={setMode}
+            options={PERIOD_MODE_OPTIONS}
+            ariaLabel="Granularité de la période"
+          />
 
           <TextField
             select
@@ -138,20 +149,21 @@ const FiscalReportSection: React.FC = () => {
 
       {/* Loading / Error */}
       {activeQuery.isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Skeleton variant="rounded" height={76} sx={{ borderRadius: 'var(--radius-lg)' }} />
+          <Skeleton variant="rounded" height={200} sx={{ borderRadius: 'var(--radius-lg)' }} />
         </Box>
       ) : activeQuery.error ? (
         <Alert severity="error" sx={{ mb: 2 }}>
           Erreur lors du chargement du rapport fiscal
         </Alert>
       ) : !summary ? (
-        <Paper sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountBalance size={48} strokeWidth={1.75} /></Box>
-          <Typography color="text.secondary">
-            Aucune donnee fiscale pour cette periode
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<AccountBalance />}
+          title="Aucune donnée fiscale"
+          description="Aucune facture sur cette période — ajustez la granularité ou la période sélectionnée."
+          variant="plain"
+        />
       ) : (
         <>
           {/* Summary cards */}
@@ -166,18 +178,27 @@ const FiscalReportSection: React.FC = () => {
               <Paper
                 key={card.label}
                 sx={{
+                  ...PANEL_SX,
                   p: 1.5, flex: 1, minWidth: 130,
-                  border: '1px solid', borderColor: card.primary ? 'primary.main' : 'divider',
-                  boxShadow: 'none', borderRadius: 1.5, textAlign: 'center',
-                  bgcolor: card.primary ? 'primary.50' : undefined,
+                  // KPI accentué (Total TTC) : fond accent-soft + hairline accent 30 %
+                  ...(card.primary && {
+                    bgcolor: 'var(--accent-soft)',
+                    borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
+                  }),
                 }}
               >
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                <Typography sx={{ display: 'block', fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)', mb: 0.25 }}>
                   {card.label}
                 </Typography>
                 <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, fontSize: card.isText ? '0.9rem' : '1.1rem', color: card.primary ? 'primary.main' : 'text.primary' }}
+                  sx={{
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 600,
+                    letterSpacing: '-0.025em',
+                    fontVariantNumeric: 'tabular-nums',
+                    fontSize: card.isText ? '0.9rem' : '1.1rem',
+                    color: card.primary ? 'var(--accent)' : 'var(--ink)',
+                  }}
                 >
                   {card.value}
                 </Typography>
@@ -187,7 +208,7 @@ const FiscalReportSection: React.FC = () => {
 
           {/* Breakdown table */}
           {summary.breakdown?.length > 0 && (
-            <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
+            <TableContainer component={Paper} sx={PANEL_SX}>
               <Table size="small">
                 <TableHead>
                   <TableRow>

@@ -116,16 +116,17 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
   };
 
   const getRoleHex = (role: string): string => {
+    // Palette Baitly validee (alignee UsersList / orgRoleLabels)
     const roleHexMap: Record<string, string> = {
       housekeeper: '#4A9B8E',
-      technician: '#1976d2',
-      supervisor: '#ED6C02',
-      manager: '#d32f2f',
-      laundry: '#757575',
-      exterior_tech: '#1976d2',
-      leader: '#7B61FF',
+      technician: '#6B8A9A',
+      supervisor: '#7BA3C2',
+      manager: '#D4A574',
+      laundry: '#8A8378',
+      exterior_tech: '#6B8A9A',
+      leader: '#7B68A8',
     };
-    return roleHexMap[role?.toLowerCase()] || '#757575';
+    return roleHexMap[role?.toLowerCase()] || '#8A8378';
   };
 
   const getRoleColor = (role: string): ChipColor => {
@@ -145,7 +146,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
     <Card>
       <CardContent sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ color: 'var(--ink)', fontWeight: 600 }}>
             {t('teams.members.title')} ({members.length})
           </Typography>
           <ToggleButtonGroup value={sortBy} exclusive onChange={handleSortChange} size="small">
@@ -181,7 +182,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                     }
                   >
                     <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36 }}>
+                      <Avatar sx={{ bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px', width: 36, height: 36 }}>
                         {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
                       </Avatar>
                     </ListItemAvatar>
@@ -195,14 +196,14 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                             <Chip
                               label={getRoleLabel(member.roleInTeam || member.role)}
                               size="small"
-                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, '& .MuiChip-label': { px: 0.75 } }}
                             />
                           ); })()}
-                          {(() => { const c = isAvailable ? '#4A9B8E' : '#ED6C02'; return (
+                          {(() => { const c = isAvailable ? '#4A9B8E' : '#D4A574'; return (
                             <Chip
                               label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')}
                               size="small"
-                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, '& .MuiChip-label': { px: 0.75 } }}
                             />
                           ); })()}
                         </Box>

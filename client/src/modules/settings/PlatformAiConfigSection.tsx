@@ -249,9 +249,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
     >
-      <Box sx={{ height: 3, bgcolor: accent }} />
       <DialogTitle sx={{ pb: 1 }}>
         <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
           {editModel
@@ -571,7 +569,7 @@ function UsageBreakdownTooltip({
             color: 'text.primary',
             border: '1px solid',
             borderColor: 'divider',
-            boxShadow: 4,
+            boxShadow: 'var(--shadow-pop)',
             p: 0,
             maxWidth: 360,
             fontFamily: 'inherit',
@@ -786,7 +784,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
       {(() => {
         const pct = budget > 0 ? Math.min((used / budget) * 100, 100) : 0;
         const isOver = used >= budget;
-        const barColor = isOver ? '#DC2626' : pct > 75 ? '#D97706' : feature.color;
+        const barColor = isOver ? 'var(--err)' : pct > 75 ? 'var(--warn)' : feature.color;
         const totalCost = usageBreakdown.reduce((sum, m) => sum + (m.costUsd ?? 0), 0);
         return (
           <UsageBreakdownTooltip breakdown={usageBreakdown} totalCost={totalCost} feature={feature}>
@@ -809,7 +807,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
                     top: 0,
                     bottom: 0,
                     width: `${pct}%`,
-                    bgcolor: alpha(barColor, 0.15),
+                    bgcolor: `color-mix(in srgb, ${barColor} 15%, transparent)`,
                     transition: 'width 0.3s ease, background-color 0.3s ease',
                   }}
                 />

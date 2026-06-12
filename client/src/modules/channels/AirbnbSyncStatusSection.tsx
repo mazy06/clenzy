@@ -1,5 +1,4 @@
 import React from 'react';
-import { alpha } from '@mui/material/styles';
 import { Box, Paper, Typography, Chip } from '@mui/material';
 import {
   Sync as SyncIcon,
@@ -64,16 +63,17 @@ function SyncStatusCard({
 }) {
   const syncOk = listing.syncEnabled && listing.lastSyncAt;
   const StatusIcon = syncOk ? CheckCircleIcon : listing.syncEnabled ? WarningIcon : ErrorIcon;
-  const statusColor = syncOk ? '#4A9B8E' : listing.syncEnabled ? '#D4A574' : '#9e9e9e';
+  const statusColor = syncOk ? 'var(--ok)' : listing.syncEnabled ? 'var(--warn)' : 'var(--muted)';
+  const statusSoft = syncOk ? 'var(--ok-soft)' : listing.syncEnabled ? 'var(--warn-soft)' : 'var(--field)';
 
   return (
     <Box
       sx={{
         border: '1px solid',
-        borderColor: alpha(statusColor, 0.35),
-        borderRadius: 1,
+        borderColor: `color-mix(in srgb, ${statusColor} 30%, transparent)`,
+        borderRadius: '10px',
         p: 1.25,
-        bgcolor: alpha(statusColor, 0.04),
+        bgcolor: statusSoft,
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>

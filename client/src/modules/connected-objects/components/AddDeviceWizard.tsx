@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem,
-  Box, Typography, Paper, Alert, CircularProgress, alpha, useTheme,
+  Box, Typography, Paper, Alert, CircularProgress, alpha,
 } from '@mui/material';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
@@ -60,7 +60,6 @@ const PROVIDERS: Record<DeviceKind, { value: string; label: string }[]> = {
 };
 
 export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropertyId, defaultKind }: AddDeviceWizardProps) {
-  const theme = useTheme();
   const { t } = useTranslation();
   const [step, setStep] = useState(defaultKind ? 1 : 0);
   const [kind, setKind] = useState<DeviceKind | null>(defaultKind ?? null);
@@ -122,7 +121,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 0.5 }}>Ajouter un objet connecté</DialogTitle>
+      <DialogTitle>Ajouter un objet connecté</DialogTitle>
       <DialogContent>
         {/* Étape 1 — Type */}
         {step === 0 && (
@@ -136,7 +135,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                   variant="outlined"
                   onClick={() => { setKind(k); setProvider(''); }}
                   sx={{
-                    p: 1.5, borderRadius: 1.5, cursor: 'pointer', textAlign: 'center',
+                    p: 1.5, borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'center',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75,
                     borderColor: selected ? meta.color : 'divider',
                     bgcolor: selected ? alpha(meta.color, 0.08) : 'transparent',
@@ -237,7 +236,7 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
           </Box>
         )}
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions>
         <Button onClick={handleClose} color="inherit">Annuler</Button>
         {step > 0 && <Button onClick={() => setStep((s) => s - 1)} disabled={submitting}>Retour</Button>}
         {step < 2 ? (

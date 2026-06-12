@@ -263,7 +263,9 @@ const TemplateDetails: React.FC = () => {
 
   const error = actionError;
 
-  const statusColor = template.active ? '#4A9B8E' : '#757575';
+  const statusTone = template.active
+    ? { color: 'var(--ok)', bgcolor: 'var(--ok-soft)' }
+    : { color: 'var(--muted)', bgcolor: 'var(--hover)' };
   const replacePending = replaceFileMutation.isPending;
   const reparsePending = reparseMutation.isPending;
 
@@ -279,16 +281,7 @@ const TemplateDetails: React.FC = () => {
           <Chip
             label={template.active ? 'Actif' : 'Inactif'}
             size="small"
-            sx={{
-              backgroundColor: `${statusColor}18`,
-              color: statusColor,
-              border: `1px solid ${statusColor}40`,
-              borderRadius: '6px',
-              fontWeight: 600,
-              fontSize: '0.7rem',
-              height: 22,
-              '& .MuiChip-label': { px: 1 },
-            }}
+            sx={statusTone}
           />
         }
         actions={
@@ -333,13 +326,12 @@ const TemplateDetails: React.FC = () => {
                 sx={{
                   width: 30,
                   height: 30,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
+                  border: '1px solid var(--line-2)',
+                  borderRadius: '9px',
                   cursor: 'pointer',
                   '&:hover': {
-                    borderColor: 'text.secondary',
-                    backgroundColor: 'action.hover',
+                    borderColor: 'var(--faint)',
+                    backgroundColor: 'var(--hover)',
                   },
                 }}
               >
@@ -364,8 +356,10 @@ const TemplateDetails: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Informations */}
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, boxShadow: 'none' }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Informations</Typography>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
+              <Typography sx={{ mb: 2, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+                Informations
+              </Typography>
 
               {editing ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -393,10 +387,12 @@ const TemplateDetails: React.FC = () => {
             </Paper>
 
             {/* Apercu PDF — affiche systematiquement sous les Informations */}
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, boxShadow: 'none' }}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                 <Box>
-                  <Typography variant="h6">Aperçu</Typography>
+                  <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+                    Aperçu
+                  </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Prévisualisation générée avec des données factices.
                   </Typography>
@@ -440,10 +436,10 @@ const TemplateDetails: React.FC = () => {
                   position: 'relative',
                   width: '100%',
                   height: { xs: 520, sm: 640, md: 780, lg: 880 },
-                  backgroundColor: 'rgba(0,0,0,0.04)',
+                  backgroundColor: 'var(--field)',
                   border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
+                  borderColor: 'var(--line)',
+                  borderRadius: '12px',
                   overflow: 'hidden',
                 }}
               >
@@ -456,9 +452,7 @@ const TemplateDetails: React.FC = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 1.5,
-                    backgroundColor: (th) => th.palette.mode === 'dark'
-                      ? 'rgba(0,0,0,0.4)'
-                      : 'rgba(255,255,255,0.6)',
+                    backgroundColor: 'color-mix(in srgb, var(--card) 60%, transparent)',
                     zIndex: 1,
                   }}>
                     <CircularProgress size={28} />
@@ -507,7 +501,7 @@ const TemplateDetails: React.FC = () => {
         onClose={handleMenuClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { minWidth: 240, borderRadius: 1.5, mt: 0.5 } } }}
+        slotProps={{ paper: { sx: { minWidth: 240, mt: 0.5 } } }}
       >
         <MenuItem onClick={runFromMenu(handleDownloadOriginal)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
           <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
@@ -546,9 +540,9 @@ const TemplateDetails: React.FC = () => {
         <MenuItem
           onClick={runFromMenu(handleDelete)}
           disabled={deleteMutation.isPending}
-          sx={{ fontSize: '0.85rem', py: 0.75, color: 'error.main' }}
+          sx={{ fontSize: '0.85rem', py: 0.75, color: 'var(--err)' }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'error.main' }}>
+          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--err)' }}>
             <Delete size={18} strokeWidth={1.75} />
           </Box>
           Supprimer

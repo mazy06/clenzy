@@ -17,11 +17,11 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
 
-// Palette Baitly partagee avec VouchersPage.
-const ACCENT_TEAL = '#4A9B8E';
-const WARM = '#D4A574';
-const SOFT_BLUE = '#7BA3C2';
-const NEUTRAL = '#8A8378';
+// Tokens Signature : l'accent des KPI passe par la couleur de valeur, pas par un liseré.
+const TOKEN_OK = 'var(--ok)';
+const TOKEN_WARN = 'var(--warn)';
+const TOKEN_INFO = 'var(--info)';
+const TOKEN_MUTED = 'var(--muted)';
 
 /**
  * Panneau analytics affiche en haut de VouchersPage.
@@ -67,7 +67,7 @@ export default function VoucherAnalyticsPanel() {
   // Si pas d'usages historiques, on simplifie : juste le compteur d'actifs.
   if (data.totalUsages === 0) {
     return (
-      <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}>
         <Typography variant="body2" color="text.secondary">
           {t('vouchers.analytics.noUsageYet', { active: data.activeVouchersCount })}
         </Typography>
@@ -87,7 +87,7 @@ export default function VoucherAnalyticsPanel() {
   return (
     <Box sx={{ mb: 3 }}>
       <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1 }}>
-        <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 0.6, fontSize: '0.6875rem' }}>
+        <Typography variant="overline" sx={{ letterSpacing: '0.06em', fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)' }}>
           {t('vouchers.analytics.title')}
         </Typography>
         <Typography variant="caption" color="text.secondary">
@@ -100,30 +100,30 @@ export default function VoucherAnalyticsPanel() {
         <KpiCard
           label={t('vouchers.analytics.totalUsages')}
           value={data.totalUsages.toString()}
-          color={ACCENT_TEAL}
+          color={TOKEN_OK}
         />
         <KpiCard
           label={t('vouchers.analytics.totalGross')}
           value={fmt(data.totalGross)}
-          color={SOFT_BLUE}
+          color={TOKEN_INFO}
         />
         <KpiCard
           label={t('vouchers.analytics.totalDiscount')}
           value={`−${fmt(data.totalDiscount)}`}
-          color={WARM}
+          color={TOKEN_WARN}
         />
         <KpiCard
           label={t('vouchers.analytics.totalNet')}
           value={fmt(data.totalNet)}
-          color={ACCENT_TEAL}
+          color={TOKEN_OK}
           emphasis
         />
       </Grid>
 
       {/* Top vouchers */}
       {data.topVouchers.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 1.5 }}>
-          <Typography variant="overline" color="text.secondary" sx={{ fontSize: '0.6875rem', letterSpacing: 0.5 }}>
+        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}>
+          <Typography variant="overline" sx={{ fontSize: '10.5px', letterSpacing: '0.06em', fontWeight: 700, color: 'var(--faint)' }}>
             {t('vouchers.analytics.topVouchersTitle')}
           </Typography>
           <Table size="small" sx={{ mt: 0.5 }}>
@@ -148,7 +148,12 @@ export default function VoucherAnalyticsPanel() {
                   </TableCell>
                   <TableCell>
                     {v.voucherCode ? (
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                      <Typography variant="body2" component="span" sx={{
+                        display: 'inline-block', fontFamily: 'var(--font-display)', fontSize: '11.5px',
+                        letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums', color: 'var(--body)',
+                        bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '6px',
+                        px: '8px', py: '3px',
+                      }}>
                         {v.voucherCode}
                       </Typography>
                     ) : (
@@ -163,13 +168,13 @@ export default function VoucherAnalyticsPanel() {
                   <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                     {fmt(v.totalGross)}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: WARM }}>
+                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: TOKEN_WARN }}>
                     −{fmt(v.totalDiscount)}
                   </TableCell>
                   <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
                     {fmt(v.totalNet)}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: NEUTRAL }}>
+                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: TOKEN_MUTED }}>
                     {v.avgDiscountPct}%
                   </TableCell>
                 </TableRow>
@@ -195,23 +200,34 @@ const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
       variant="outlined"
       sx={{
         p: 1.5,
-        borderLeft: `3px solid ${color}`,
-        bgcolor: emphasis ? `${color}08` : 'transparent',
+        borderRadius: '14px',
+        borderColor: 'var(--line)',
+        bgcolor: 'var(--card)',
+        boxShadow: 'none',
+        transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
+        '&:hover': { borderColor: 'var(--line-2)' },
       }}
     >
       <Typography
-        variant="overline"
-        color="text.secondary"
-        sx={{ fontSize: '0.6875rem', letterSpacing: 0.5, lineHeight: 1.2, display: 'block' }}
+        sx={{
+          fontSize: '10.5px',
+          fontWeight: 700,
+          color: 'var(--faint)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          lineHeight: 1.2,
+          display: 'block',
+        }}
       >
         {label}
       </Typography>
       <Typography
         variant="h6"
         sx={{
+          fontFamily: 'var(--font-display)',
           fontVariantNumeric: 'tabular-nums',
-          fontWeight: emphasis ? 700 : 600,
-          color: emphasis ? color : 'text.primary',
+          fontWeight: 600,
+          color: emphasis ? color : 'var(--ink)',
           mt: 0.5,
         }}
       >

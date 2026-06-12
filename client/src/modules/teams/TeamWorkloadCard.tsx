@@ -76,14 +76,15 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
 
   const activeRatio = total > 0 ? (activeInterventions.length / total) * 100 : 0;
   const getWorkloadColor = () => {
-    if (activeRatio > 80) return 'error.main';
-    if (activeRatio > 50) return 'warning.main';
-    return 'success.main';
+    if (activeRatio > 80) return 'var(--err)';
+    if (activeRatio > 50) return 'var(--warn)';
+    return 'var(--ok)';
   };
 
+  // Equivalents hex de la palette validee (concat -soft `${hex}18`)
   const getWorkloadHex = () => {
-    if (activeRatio > 80) return '#d32f2f';
-    if (activeRatio > 50) return '#ED6C02';
+    if (activeRatio > 80) return '#C97A7A';
+    if (activeRatio > 50) return '#D4A574';
     return '#4A9B8E';
   };
 
@@ -108,39 +109,40 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     CANCELLED: t('interventions.statuses.CANCELLED'),
   };
 
+  // Couleurs data par statut — palette Baitly desaturee
   const statusColors: Record<string, string> = {
-    PENDING: '#FF9800',
-    AWAITING_VALIDATION: '#9C27B0',
-    AWAITING_PAYMENT: '#E91E63',
-    IN_PROGRESS: '#2196F3',
-    COMPLETED: '#4CAF50',
-    CANCELLED: '#9E9E9E',
+    PENDING: '#D4A574',
+    AWAITING_VALIDATION: '#7B68A8',
+    AWAITING_PAYMENT: '#C97A7A',
+    IN_PROGRESS: '#7BA3C2',
+    COMPLETED: '#4A9B8E',
+    CANCELLED: '#8A8378',
   };
 
   const chartData = Object.entries(statusCounts).map(([status, count]) => ({
     name: statusLabels[status] || status,
     value: count,
-    color: statusColors[status] || '#666',
+    color: statusColors[status] || '#8A8378',
   }));
 
   const metrics = [
     {
       label: t('teams.workload.active'),
       value: activeInterventions.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Assignment size={24} strokeWidth={1.75} /></Box>,
-      color: 'primary.main',
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Assignment size={24} strokeWidth={1.75} /></Box>,
+      color: 'var(--accent)',
     },
     {
       label: t('teams.workload.completedThisMonth'),
       value: completedThisMonth.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={24} strokeWidth={1.75} /></Box>,
-      color: 'success.main',
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={24} strokeWidth={1.75} /></Box>,
+      color: 'var(--ok)',
     },
     {
       label: t('teams.workload.pending'),
       value: pendingInterventions.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><HourglassEmpty size={24} strokeWidth={1.75} /></Box>,
-      color: 'warning.main',
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><HourglassEmpty size={24} strokeWidth={1.75} /></Box>,
+      color: 'var(--warn)',
     },
   ];
 
@@ -148,11 +150,11 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ color: 'var(--ink)', fontWeight: 600 }}>
             {t('teams.workload.title')}
           </Typography>
           {(() => { const c = getWorkloadHex(); return (
-            <Box sx={{ px: 1.5, py: 0.5, borderRadius: '6px', backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40` }}>
+            <Box sx={{ px: 1.5, py: 0.5, borderRadius: '999px', backgroundColor: `${c}18`, color: c }}>
               <Typography variant="caption" fontWeight={600}>{getWorkloadLabel()}</Typography>
             </Box>
           ); })()}
@@ -161,9 +163,9 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {metrics.map((metric, index) => (
             <Grid item xs={4} key={index}>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 1, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: '12px', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }}>
                 {metric.icon}
-                <Typography variant="h5" fontWeight={700} sx={{ color: metric.color, mt: 0.5 }}>
+                <Typography variant="h5" sx={{ color: metric.color, mt: 0.5, fontFamily: 'var(--font-display)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                   {metric.value}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
@@ -177,7 +179,7 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
             <Typography variant="body2" fontWeight={500}>{t('teams.workload.capacity')}</Typography>
-            <Typography variant="body2" fontWeight={600} color={getWorkloadColor()}>{capacityPercent}%</Typography>
+            <Typography variant="body2" fontWeight={600} sx={{ color: getWorkloadColor(), fontVariantNumeric: 'tabular-nums' }}>{capacityPercent}%</Typography>
           </Box>
           <LinearProgress
             variant="determinate"
@@ -185,7 +187,7 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
             sx={{
               height: 8,
               borderRadius: 4,
-              bgcolor: 'grey.200',
+              bgcolor: 'var(--hover)',
               '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: getWorkloadColor() },
             }}
           />

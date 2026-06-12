@@ -76,65 +76,90 @@ const PAPER_SX = {
   p: 1,
   mb: 1,
   boxShadow: 'none',
-  border: '1px solid',
-  borderColor: 'divider',
+  border: '1px solid var(--line)',
+  borderRadius: '14px',
+  bgcolor: 'var(--card)',
 } as const;
 
+// Recherche — pattern .mg-search (messagerie) : h38, fond --field, r11, 12.5px
 const SEARCH_SX = {
   minWidth: '200px',
   flex: '0 0 auto',
   '& .MuiOutlinedInput-root': {
-    fontSize: '0.8125rem',
-    height: 34,
+    fontSize: '12.5px',
+    height: 38,
+    color: 'var(--body)',
   },
   '& .MuiInputBase-input': {
-    fontSize: '0.8125rem',
+    fontSize: '12.5px',
     py: 0.5,
   },
   '& .MuiInputBase-input::placeholder': {
-    fontSize: '0.8125rem',
+    fontSize: '12.5px',
+    color: 'var(--faint)',
+    opacity: 1,
   },
 } as const;
 
 const FILTER_SX = {
   minWidth: '160px',
   '& .MuiOutlinedInput-root': {
-    fontSize: '0.8125rem',
-    height: 34,
+    fontSize: '12.5px',
+    height: 38,
   },
   '& .MuiInputLabel-root': {
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    letterSpacing: '0.01em',
+    fontSize: '11.5px',
+    fontWeight: 600,
+    color: 'var(--muted)',
   },
   '& .MuiInputLabel-shrink': {
-    fontSize: '0.75rem',
+    fontSize: '11.5px',
   },
   '& .MuiSelect-select': {
-    fontSize: '0.8125rem',
-    py: '6px !important',
+    fontSize: '12.5px',
+    py: '8px !important',
   },
 } as const;
 
 const MENU_ITEM_SX = {
-  fontSize: '0.8125rem',
+  fontSize: '12.5px',
   py: 0.5,
   minHeight: 32,
 } as const;
 
 const COUNTER_SX = {
-  fontSize: '0.75rem',
+  fontSize: '11.5px',
   fontWeight: 600,
-  color: 'primary.main',
+  color: 'var(--muted)',
   whiteSpace: 'nowrap',
-  letterSpacing: '0.01em',
+  fontVariantNumeric: 'tabular-nums',
 } as const;
 
-const VIEW_TOGGLE_BUTTON_SX = {
-  p: 0.5,
-  borderRadius: 1,
-  '& .MuiSvgIcon-root': { fontSize: 18 },
+// Segmented (bascule de vue) — pattern .s-seg (PlanningToolbar) : conteneur
+// --field r10 p3, bouton actif fond --card + texte accent + ombre 0 1px 3px
+const VIEW_TOGGLE_GROUP_SX = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '2px',
+  backgroundColor: 'var(--field)',
+  border: '1px solid var(--field-line)',
+  borderRadius: '10px',
+  p: '3px',
 } as const;
+
+const viewToggleButtonSx = (active: boolean) => ({
+  p: 0.5,
+  borderRadius: '7px',
+  color: active ? 'var(--accent)' : 'var(--muted)',
+  backgroundColor: active ? 'var(--card)' : 'transparent',
+  boxShadow: active ? '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)' : 'none',
+  transition: 'background-color 140ms, color 140ms',
+  '&:hover': {
+    backgroundColor: active ? 'var(--card)' : 'transparent',
+    color: active ? 'var(--accent)' : 'var(--body)',
+  },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+});
 
 export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   searchTerm,
@@ -218,7 +243,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <Search size={16} color="currentColor" style={{ color: 'rgba(0,0,0,0.6)' }} />
+              <Search size={15} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
             </InputAdornment>
           ),
         }}
@@ -233,17 +258,15 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
               label={`${af.label}: ${af.displayValue}`}
               size="small"
               onDelete={af.onClear}
-              deleteIcon={<CloseIcon size={14} />}
+              deleteIcon={<CloseIcon size={13} strokeWidth={1.75} />}
               sx={{
-                height: 24,
-                fontSize: '0.6875rem',
-                fontWeight: 500,
-                bgcolor: 'rgba(107,138,154,0.08)',
-                color: 'text.primary',
+                // Filtre actif — pattern FilterChipRow : accent-soft / accent
+                bgcolor: 'var(--accent-soft)',
+                color: 'var(--accent)',
                 flexShrink: 0,
                 '& .MuiChip-deleteIcon': {
-                  color: 'text.secondary',
-                  '&:hover': { color: 'error.main' },
+                  color: 'var(--accent)',
+                  '&:hover': { color: 'var(--err)' },
                 },
               }}
             />
@@ -259,47 +282,24 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
 
         {viewToggle ? (() => {
           const shownModes = viewToggle.modes ?? ['grid', 'list', 'map'];
+          const modeIcons: Record<'grid' | 'list' | 'map', React.ReactNode> = {
+            grid: <GridView size={16} strokeWidth={viewToggle.mode === 'grid' ? 2 : 1.75} />,
+            list: <ViewList size={16} strokeWidth={viewToggle.mode === 'list' ? 2 : 1.75} />,
+            map: <MapIcon size={16} strokeWidth={viewToggle.mode === 'map' ? 2 : 1.75} />,
+          };
           return (
-            <Box sx={{ display: 'flex', gap: 0.25 }}>
-              {shownModes.includes('grid') ? (
+            <Box sx={VIEW_TOGGLE_GROUP_SX}>
+              {shownModes.map((mode) => (
                 <IconButton
+                  key={mode}
                   size="small"
-                  onClick={() => viewToggle.onChange('grid')}
-                  sx={{
-                    ...VIEW_TOGGLE_BUTTON_SX,
-                    color: viewToggle.mode === 'grid' ? 'primary.main' : 'text.disabled',
-                    bgcolor: viewToggle.mode === 'grid' ? 'rgba(107,138,154,0.08)' : 'transparent',
-                  }}
+                  onClick={() => viewToggle.onChange(mode)}
+                  aria-pressed={viewToggle.mode === mode}
+                  sx={viewToggleButtonSx(viewToggle.mode === mode)}
                 >
-                  <GridView size={18} strokeWidth={1.75} />
+                  {modeIcons[mode]}
                 </IconButton>
-              ) : null}
-              {shownModes.includes('list') ? (
-                <IconButton
-                  size="small"
-                  onClick={() => viewToggle.onChange('list')}
-                  sx={{
-                    ...VIEW_TOGGLE_BUTTON_SX,
-                    color: viewToggle.mode === 'list' ? 'primary.main' : 'text.disabled',
-                    bgcolor: viewToggle.mode === 'list' ? 'rgba(107,138,154,0.08)' : 'transparent',
-                  }}
-                >
-                  <ViewList size={18} strokeWidth={1.75} />
-                </IconButton>
-              ) : null}
-              {shownModes.includes('map') ? (
-                <IconButton
-                  size="small"
-                  onClick={() => viewToggle.onChange('map')}
-                  sx={{
-                    ...VIEW_TOGGLE_BUTTON_SX,
-                    color: viewToggle.mode === 'map' ? 'primary.main' : 'text.disabled',
-                    bgcolor: viewToggle.mode === 'map' ? 'rgba(107,138,154,0.08)' : 'transparent',
-                  }}
-                >
-                  <MapIcon size={18} strokeWidth={1.75} />
-                </IconButton>
-              ) : null}
+              ))}
             </Box>
           );
         })() : null}
@@ -308,26 +308,34 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
         <IconButton
           size="small"
           onClick={(e) => setFilterAnchor(e.currentTarget)}
+          aria-label="Filtres"
           sx={{
-            ...VIEW_TOGGLE_BUTTON_SX,
-            color: filterOpen || activeFilterCount > 0 ? 'primary.main' : 'text.secondary',
-            bgcolor: filterOpen || activeFilterCount > 0 ? 'rgba(107,138,154,0.08)' : 'transparent',
+            p: 0.5,
+            borderRadius: '9px',
+            color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--muted)',
+            bgcolor: filterOpen || activeFilterCount > 0 ? 'var(--accent-soft)' : 'transparent',
             border: '1px solid',
-            borderColor: filterOpen || activeFilterCount > 0 ? 'primary.main' : 'divider',
+            borderColor: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--line-2)',
+            '&:hover': {
+              bgcolor: filterOpen || activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--hover)',
+              color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--ink)',
+            },
           }}
         >
           <Badge
             badgeContent={activeFilterCount}
-            color="primary"
             sx={{
               '& .MuiBadge-badge': {
-                fontSize: '0.625rem',
+                fontSize: '10.5px',
+                fontWeight: 700,
                 height: 16,
                 minWidth: 16,
+                bgcolor: 'var(--accent)',
+                color: 'var(--on-accent)',
               },
             }}
           >
-            <FilterListIcon size={18} strokeWidth={1.75} />
+            <FilterListIcon size={16} strokeWidth={1.75} />
           </Badge>
         </IconButton>
 
@@ -340,19 +348,27 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           slotProps={{
             paper: {
+              // r12 + hairline + --shadow-pop hérités du thème global (MuiPopover)
               sx: {
                 mt: 1,
                 p: 2,
                 minWidth: 280,
                 maxWidth: 340,
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
               },
             },
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontSize: '10.5px',
+                fontWeight: 700,
+                letterSpacing: '.06em',
+                textTransform: 'uppercase',
+                color: 'var(--faint)',
+              }}
+            >
               Filtres
             </Typography>
             <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25 }}>
@@ -365,14 +381,14 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
             )}
           </Box>
           {activeFilterCount > 0 && (
-            <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid var(--line)' }}>
               <Typography
                 variant="caption"
                 sx={{
-                  color: 'primary.main',
+                  color: 'var(--accent)',
                   cursor: 'pointer',
                   fontWeight: 600,
-                  fontSize: '0.75rem',
+                  fontSize: '12px',
                   '&:hover': { textDecoration: 'underline' },
                 }}
                 onClick={() => {

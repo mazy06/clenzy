@@ -33,17 +33,18 @@ import type { Property } from '../../services/api/propertiesApi';
 
 const CARD_SX = {
   border: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: '14px',
   p: 2,
 } as const;
 
 const RATING_COLORS: Record<string, string> = {
-  excellent: '#4A9B8E',
-  good: '#6B8A9A',
-  average: '#D4A574',
-  poor: '#d32f2f',
+  excellent: 'var(--ok)',
+  good: 'var(--accent)',
+  average: 'var(--warn)',
+  poor: 'var(--err)',
 };
 
 function getRatingCategory(rating: number): string {
@@ -131,28 +132,28 @@ const ReviewsPage: React.FC = () => {
       {/* Stats bar */}
       <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
         <Paper sx={{ ...CARD_SX, flex: 1, minWidth: 120, textAlign: 'center', p: 1.5 }}>
-          <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', textTransform: 'uppercase', fontWeight: 500 }}>
+          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
             {t('channels.reviews.avgRating')}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-            <StarIcon size={'1.25rem'} strokeWidth={1.75} color='#D4A574' />
-            <Typography sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
+            <StarIcon size={'1.25rem'} strokeWidth={1.75} color='var(--warn)' />
+            <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.375rem', fontWeight: 600, color: 'var(--ink)' }}>
               {avgRating > 0 ? avgRating.toFixed(1) : '—'}
             </Typography>
           </Box>
         </Paper>
         <Paper sx={{ ...CARD_SX, flex: 1, minWidth: 120, textAlign: 'center', p: 1.5 }}>
-          <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', textTransform: 'uppercase', fontWeight: 500 }}>
+          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
             {t('channels.reviews.totalReviews')}
           </Typography>
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, mt: 0.5 }}>{reviews.length}</Typography>
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.375rem', fontWeight: 600, mt: 0.5, color: 'var(--ink)' }}>{reviews.length}</Typography>
         </Paper>
         {Object.entries(reviewsByRating).map(([cat, count]) => (
           <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5 }}>
-            <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', textTransform: 'uppercase', fontWeight: 500 }}>
+            <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
               {t(`channels.reviews.${cat}`)}
             </Typography>
-            <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, mt: 0.5, color: RATING_COLORS[cat] }}>{count}</Typography>
+            <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.25rem', fontWeight: 600, mt: 0.5, color: RATING_COLORS[cat] }}>{count}</Typography>
           </Paper>
         ))}
       </Box>
@@ -234,7 +235,7 @@ function ReviewCard({
   const color = RATING_COLORS[category];
 
   return (
-    <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 1.5 }}>
+    <Paper sx={{ ...CARD_SX, p: 1.5 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
@@ -260,8 +261,8 @@ function ReviewCard({
 
       {/* Host reply */}
       {review.hostReply && (
-        <Box sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1, mb: 0.75 }}>
-          <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 600, mb: 0.25, textTransform: 'uppercase' }}>
+        <Box sx={{ bgcolor: 'var(--field)', borderRadius: '8px', p: 1, mb: 0.75 }}>
+          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', fontWeight: 700, mb: 0.25, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {t('channels.reviews.yourReply')}
           </Typography>
           <Typography sx={{ fontSize: '0.75rem' }}>{review.hostReply}</Typography>

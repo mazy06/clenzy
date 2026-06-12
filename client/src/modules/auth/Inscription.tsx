@@ -218,9 +218,9 @@ function CustomStepIcon(props: StepIconProps) {
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: completed
-          ? '#6B8A9A'
+          ? 'primary.main'
           : active
-            ? '#5A7684'
+            ? 'primary.dark'
             : 'grey.300',
         color: '#fff',
         transition: 'all 0.3s ease',
@@ -454,7 +454,7 @@ export default function Inscription() {
               sx={{
                 cursor: activeStep > index && activeStep !== 1 ? 'pointer' : 'default',
                 '&:hover .MuiStepLabel-label': activeStep > index && activeStep !== 1
-                  ? { color: '#5A7684' }
+                  ? { color: 'primary.dark' }
                   : {},
               }}
               onClick={() => {
@@ -815,18 +815,20 @@ export default function Inscription() {
             {/* Colonne gauche : Recapitulatif de la commande */}
             <Box sx={{ flex: '0 0 320px', minWidth: 0 }}>
               <Card sx={{
-                borderLeft: '4px solid #A6C0CE',
+                border: '1px solid',
+                borderColor: 'divider',
                 borderRadius: 2,
-                boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+                boxShadow: 'none',
               }}>
                 <CardContent sx={{ p: 2.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <Box sx={{
                       width: 36, height: 36, borderRadius: '50%',
                       bgcolor: 'rgba(166,192,206,0.15)',
+                      color: 'primary.main',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <CartIcon size={18} strokeWidth={1.75} color='#6B8A9A' />
+                      <CartIcon size={18} strokeWidth={1.75} color='currentColor' />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       {t('auth.inscription.summary', 'Recapitulatif')}
@@ -873,7 +875,7 @@ export default function Inscription() {
                           ? t('auth.inscription.summarySubscriptionWithSync', 'Abonnement plateforme + Synchro auto')
                           : t('auth.inscription.summarySubscription', 'Abonnement plateforme')}
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#6B8A9A' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
                         {getPmsDisplayPrice(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -892,7 +894,7 @@ export default function Inscription() {
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {t('auth.inscription.summaryTotal', 'Total a payer')}
                         </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 700, color: '#5A7684' }}>
+                        <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.dark' }}>
                           {getPmsFirstPayment(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
                         </Typography>
                       </Box>
@@ -912,9 +914,10 @@ export default function Inscription() {
             {/* Colonne droite : Stripe Embedded Checkout */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Card sx={{
-                borderLeft: '4px solid #6B8A9A',
+                border: '1px solid',
+                borderColor: 'divider',
                 borderRadius: 2,
-                boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+                boxShadow: 'none',
                 overflow: 'hidden',
               }}>
                 <CardContent sx={{ p: 2.5 }}>
@@ -924,7 +927,7 @@ export default function Inscription() {
                       bgcolor: 'rgba(107,138,154,0.12)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <CreditCardIcon size={18} strokeWidth={1.75} color='#6B8A9A' />
+                      <CreditCardIcon size={18} strokeWidth={1.75} color='currentColor' />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       {t('auth.inscription.paymentTitle', 'Paiement')}

@@ -117,7 +117,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 1: Colors ──────────────────────────────────────── */}
       <Accordion defaultExpanded>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><PaletteRounded  /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><PaletteRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.colors')}</Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -138,7 +138,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 2: Typography ──────────────────────────────────── */}
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><TextFieldsRounded  /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><TextFieldsRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.typography')}</Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -160,7 +160,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 3: Spacing & Borders ──────────────────────────── */}
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><SpaceBarRounded  /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><SpaceBarRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.spacing')}</Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -176,7 +176,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 4: Shadows ─────────────────────────────────────── */}
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><FilterDramaRounded  /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><FilterDramaRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.shadows')}</Typography>
         </AccordionSummary>
         <AccordionDetails>
@@ -200,7 +200,7 @@ export default function DesignTokenEditor({
       {/* ─── Section 5: Buttons ─────────────────────────────────────── */}
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mr: 1 }}><SmartButtonRounded  /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><SmartButtonRounded  /></Box>
           <Typography fontWeight={600}>{t('bookingEngine.designTokens.buttons')}</Typography>
         </AccordionSummary>
         <AccordionDetails>

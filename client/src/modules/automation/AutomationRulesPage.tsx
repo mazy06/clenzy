@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import {
-  Box, Paper, Typography, Button, Chip, Switch, IconButton, Tooltip,
+  Box, Typography, Button, Chip, Switch, IconButton, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Card, CardContent, Grid, TablePagination,
+  Card, CardContent, Grid, Skeleton, TablePagination,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -17,6 +17,7 @@ import {
   WhatsApp as WhatsAppIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import ConditionsEditor from './ConditionsEditor';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -36,7 +37,7 @@ import type {
   AutomationAction,
   MessageChannelType,
 } from '../../services/api/automationRulesApi';
-import { TRIGGER_LABELS, CHANNEL_TYPE_COLORS } from '../../services/api/automationRulesApi';
+import { TRIGGER_LABELS } from '../../services/api/automationRulesApi';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessageTemplate } from '../../services/api/guestMessagingApi';
 import { useQuery } from '@tanstack/react-query';
@@ -65,15 +66,36 @@ const ACTION_OPTIONS: { value: AutomationAction; label: string }[] = [
   { value: 'SEND_CHECKIN_LINK', label: 'Envoyer le lien de check-in' },
 ];
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  boxShadow: 'none',
-  borderRadius: 1.5,
-} as const;
+const CELL_SX = { py: 1.25 } as const;
 
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
+// ─── Chips soft (pilule fond -soft + texte couleur — pattern baseline §2) ────
+
+const pillSx = (bg: string, color: string) => ({
+  height: 22,
+  fontSize: '0.6875rem',
+  fontWeight: 600,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  '& .MuiChip-icon': { color },
+  '& .MuiChip-label': { px: 1 },
+});
+
+// Canaux : constantes locales VALIDÉES messagerie (baseline §1 — WhatsApp /
+// Email / SMS) ; fond soft dérivé du même hex (texte couleur + fond -soft).
+const CHANNEL_HEX: Record<MessageChannelType, string> = {
+  WHATSAPP: '#25A36F',
+  EMAIL: '#7BA3C2',
+  SMS: '#C28A52',
+};
+
+// Statuts d'exécution : tokens sémantiques désaturés.
+const EXEC_STATUS_TOKENS: Record<string, { color: string; soft: string }> = {
+  SUCCESS: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
+  FAILED: { color: 'var(--err)', soft: 'var(--err-soft)' },
+  SKIPPED: { color: 'var(--warn)', soft: 'var(--warn-soft)' },
+};
 
 const EMPTY_FORM: CreateAutomationRuleData = {
   name: '',
@@ -182,9 +204,8 @@ const AutomationRulesPage: React.FC = () => {
           <Button
             size="small"
             variant="contained"
-            startIcon={<AddIcon />}
+            startIcon={<AddIcon size={16} strokeWidth={2} />}
             onClick={handleOpenCreate}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
             {t('automation.create', 'Nouvelle regle')}
           </Button>
@@ -193,83 +214,81 @@ const AutomationRulesPage: React.FC = () => {
 
       {/* ── Rules list ── */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={32} />
-        </Box>
+        <Grid container spacing={1.5}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Grid item xs={12} md={6} key={i}>
+              <Skeleton variant="rounded" height={150} sx={{ borderRadius: 'var(--radius-lg)' }} />
+            </Grid>
+          ))}
+        </Grid>
       ) : isError ? (
         <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
           {t('automation.error', 'Erreur lors du chargement des regles')}
         </Alert>
       ) : sortedRules.length === 0 ? (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AutomationIcon size={48} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-            {t('automation.empty', 'Aucune regle d\'automatisation configuree')}
-          </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreate}
-            sx={{ mt: 1.5, textTransform: 'none', fontSize: '0.75rem' }}
-          >
-            {t('automation.create', 'Nouvelle regle')}
-          </Button>
-        </Paper>
+        <EmptyState
+          icon={<AutomationIcon />}
+          title={t('automation.empty', 'Aucune regle d\'automatisation configuree')}
+          description="Automatisez les messages voyageurs : confirmation, instructions d'arrivée, livret d'accueil, demande d'avis…"
+          action={
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddIcon size={16} strokeWidth={1.75} />}
+              onClick={handleOpenCreate}
+            >
+              {t('automation.create', 'Nouvelle regle')}
+            </Button>
+          }
+        />
       ) : (
         <Grid container spacing={1.5}>
           {sortedRules.map((rule) => (
             <Grid item xs={12} md={6} key={rule.id}>
-              <Card sx={{ ...CARD_SX, p: 0 }}>
+              {/* Carte règle : peau MuiCard du thème (hairline r14, pas d'ombre) */}
+              <Card>
                 <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  {/* Header row */}
+                  {/* Header row : nom + toggle (Switch thème, nu) */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, flex: 1 }}>
+                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)', flex: 1 }}>
                       {rule.name}
                     </Typography>
                     <Switch
-                      size="small"
                       checked={rule.enabled}
                       onChange={() => handleToggle(rule.id)}
                       disabled={toggleMutation.isPending}
                     />
                   </Box>
 
-                  {/* Info row */}
+                  {/* Conditions / actions : chips -soft (déclencheur = accent) */}
                   <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
                     <Chip
                       label={TRIGGER_LABELS[rule.triggerType] ?? rule.triggerType}
                       size="small"
-                      sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600 }}
+                      sx={pillSx('var(--accent-soft)', 'var(--accent)')}
                     />
                     {rule.triggerOffsetDays !== 0 && (
                       <Chip
                         label={`${rule.triggerOffsetDays > 0 ? '+' : ''}${rule.triggerOffsetDays}j`}
                         size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.625rem', height: 22 }}
+                        sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
                       />
                     )}
                     {rule.triggerTime && (
                       <Chip
                         label={rule.triggerTime}
                         size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.625rem', height: 22 }}
+                        sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
                       />
                     )}
                     <Chip
                       icon={channelIcon(rule.deliveryChannel) as React.ReactElement}
                       label={rule.deliveryChannel}
                       size="small"
-                      sx={{
-                        fontSize: '0.625rem',
-                        height: 22,
-                        fontWeight: 700,
-                        backgroundColor: CHANNEL_TYPE_COLORS[rule.deliveryChannel] ?? '#666',
-                        color: '#fff',
-                        '& .MuiChip-icon': { color: '#fff' },
-                      }}
+                      sx={pillSx(
+                        `${CHANNEL_HEX[rule.deliveryChannel] ?? '#67757C'}1F`,
+                        CHANNEL_HEX[rule.deliveryChannel] ?? 'var(--muted)',
+                      )}
                     />
                   </Box>
 
@@ -308,14 +327,9 @@ const AutomationRulesPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════════
           Create / Edit Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+      <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="sm" fullWidth>
+        {/* Peau modale + tailles de champs : portées par le thème global */}
+        <DialogTitle>
           {editingRule
             ? t('automation.editTitle', 'Modifier la regle')
             : t('automation.createTitle', 'Nouvelle regle d\'automatisation')}
@@ -327,20 +341,17 @@ const AutomationRulesPage: React.FC = () => {
             fullWidth
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
           />
 
           <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('automation.form.trigger', 'Declencheur')}</InputLabel>
+            <InputLabel>{t('automation.form.trigger', 'Declencheur')}</InputLabel>
             <Select
               value={formData.triggerType}
               onChange={(e) => setFormData({ ...formData, triggerType: e.target.value as AutomationTrigger })}
               label={t('automation.form.trigger', 'Declencheur')}
-              sx={{ fontSize: '0.8125rem' }}
             >
               {TRIGGER_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value} sx={{ fontSize: '0.8125rem' }}>
+                <MenuItem key={o.value} value={o.value}>
                   {o.label}
                 </MenuItem>
               ))}
@@ -348,15 +359,14 @@ const AutomationRulesPage: React.FC = () => {
           </FormControl>
 
           <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('automation.form.action', 'Action')}</InputLabel>
+            <InputLabel>{t('automation.form.action', 'Action')}</InputLabel>
             <Select
               value={formData.actionType}
               onChange={(e) => setFormData({ ...formData, actionType: e.target.value as AutomationAction })}
               label={t('automation.form.action', 'Action')}
-              sx={{ fontSize: '0.8125rem' }}
             >
               {ACTION_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value} sx={{ fontSize: '0.8125rem' }}>
+                <MenuItem key={o.value} value={o.value}>
                   {o.label}
                 </MenuItem>
               ))}
@@ -372,8 +382,6 @@ const AutomationRulesPage: React.FC = () => {
               value={formData.triggerOffsetDays}
               onChange={(e) => setFormData({ ...formData, triggerOffsetDays: Number(e.target.value) })}
               inputProps={{ min: -30, max: 30, step: 1 }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-              InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
             />
             <TextField
               label={t('automation.form.time', 'Heure')}
@@ -382,21 +390,19 @@ const AutomationRulesPage: React.FC = () => {
               fullWidth
               value={formData.triggerTime ?? '09:00'}
               onChange={(e) => setFormData({ ...formData, triggerTime: e.target.value })}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
+              InputLabelProps={{ shrink: true }}
             />
           </Box>
 
           <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('automation.form.channel', 'Canal d\'envoi')}</InputLabel>
+            <InputLabel>{t('automation.form.channel', 'Canal d\'envoi')}</InputLabel>
             <Select
               value={formData.deliveryChannel ?? 'EMAIL'}
               onChange={(e) => setFormData({ ...formData, deliveryChannel: e.target.value as MessageChannelType })}
               label={t('automation.form.channel', 'Canal d\'envoi')}
-              sx={{ fontSize: '0.8125rem' }}
             >
               {CHANNEL_OPTIONS.map((c) => (
-                <MenuItem key={c.value} value={c.value} sx={{ fontSize: '0.8125rem' }}>
+                <MenuItem key={c.value} value={c.value}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {c.icon}
                     {c.label}
@@ -407,18 +413,17 @@ const AutomationRulesPage: React.FC = () => {
           </FormControl>
 
           <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('automation.form.template', 'Template')}</InputLabel>
+            <InputLabel>{t('automation.form.template', 'Template')}</InputLabel>
             <Select
               value={formData.templateId ?? ''}
               onChange={(e) => setFormData({ ...formData, templateId: e.target.value ? Number(e.target.value) : undefined })}
               label={t('automation.form.template', 'Template')}
-              sx={{ fontSize: '0.8125rem' }}
             >
               <MenuItem value="">
                 <em>{t('common.none', 'Aucun')}</em>
               </MenuItem>
               {templates.map((tmpl: MessageTemplate) => (
-                <MenuItem key={tmpl.id} value={tmpl.id} sx={{ fontSize: '0.8125rem' }}>
+                <MenuItem key={tmpl.id} value={tmpl.id}>
                   {tmpl.name}
                 </MenuItem>
               ))}
@@ -430,8 +435,8 @@ const AutomationRulesPage: React.FC = () => {
             onChange={(conditions) => setFormData({ ...formData, conditions })}
           />
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setFormOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+        <DialogActions>
+          <Button onClick={() => setFormOpen(false)} size="small">
             {t('common.cancel', 'Annuler')}
           </Button>
           <Button
@@ -439,7 +444,6 @@ const AutomationRulesPage: React.FC = () => {
             size="small"
             onClick={handleSubmit}
             disabled={isMutating || !formData.name.trim()}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
             {isMutating ? <CircularProgress size={16} /> : editingRule ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
           </Button>
@@ -486,31 +490,14 @@ const ExecutionsDialog: React.FC<{
 
   const fmtDate = (d: string) => new Date(d).toLocaleString('fr-FR');
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'SUCCESS': return '#4A9B8E';
-      case 'FAILED': return '#ef5350';
-      case 'SKIPPED': return '#D4A574';
-      default: return '#9e9e9e';
-    }
-  };
-
   return (
-    <Dialog
-      open={ruleId !== null}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { borderRadius: 2 } }}
-    >
-      <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+    <Dialog open={ruleId !== null} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>
         {t('automation.executionsTitle', 'Historique des executions')}
       </DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ pt: '16px !important' }}>
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress size={28} />
-          </Box>
+          <Skeleton variant="rounded" height={220} sx={{ borderRadius: 'var(--radius-lg)' }} />
         ) : executions.length === 0 ? (
           <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', textAlign: 'center', py: 3 }}>
             {t('automation.noExecutions', 'Aucune execution trouvee')}
@@ -518,40 +505,34 @@ const ExecutionsDialog: React.FC<{
         ) : (
           <>
             <TableContainer>
+              {/* Entêtes overline + hairlines : portées par le thème global */}
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={HEAD_CELL_SX}>{t('automation.exec.date', 'Date')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('automation.exec.guest', 'Client')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('automation.exec.reservation', 'Reservation')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="center">{t('automation.exec.status', 'Status')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('automation.exec.error', 'Erreur')}</TableCell>
+                    <TableCell>{t('automation.exec.date', 'Date')}</TableCell>
+                    <TableCell>{t('automation.exec.guest', 'Client')}</TableCell>
+                    <TableCell>{t('automation.exec.reservation', 'Reservation')}</TableCell>
+                    <TableCell align="center">{t('automation.exec.status', 'Status')}</TableCell>
+                    <TableCell>{t('automation.exec.error', 'Erreur')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {executions.map((exec) => (
-                    <TableRow key={exec.id} hover>
-                      <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>{fmtDate(exec.createdAt)}</TableCell>
-                      <TableCell sx={CELL_SX}>{exec.guestName}</TableCell>
-                      <TableCell sx={CELL_SX}>#{exec.reservationId}</TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={exec.status}
-                          size="small"
-                          sx={{
-                            fontSize: '0.625rem',
-                            height: 20,
-                            fontWeight: 700,
-                            backgroundColor: statusColor(exec.status),
-                            color: '#fff',
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem', color: 'error.main' }}>
-                        {exec.errorMessage ?? '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {executions.map((exec) => {
+                    const tokens = EXEC_STATUS_TOKENS[exec.status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
+                    return (
+                      <TableRow key={exec.id} hover>
+                        <TableCell sx={{ ...CELL_SX, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(exec.createdAt)}</TableCell>
+                        <TableCell sx={CELL_SX}>{exec.guestName}</TableCell>
+                        <TableCell sx={{ ...CELL_SX, fontVariantNumeric: 'tabular-nums' }}>#{exec.reservationId}</TableCell>
+                        <TableCell align="center">
+                          <Chip label={exec.status} size="small" sx={pillSx(tokens.soft, tokens.color)} />
+                        </TableCell>
+                        <TableCell sx={{ ...CELL_SX, color: exec.errorMessage ? 'var(--err)' : 'var(--faint)' }}>
+                          {exec.errorMessage ?? '—'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -562,13 +543,12 @@ const ExecutionsDialog: React.FC<{
               onPageChange={(_, p) => onPageChange(p)}
               rowsPerPage={20}
               rowsPerPageOptions={[20]}
-              sx={{ fontSize: '0.75rem' }}
             />
           </>
         )}
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+      <DialogActions>
+        <Button onClick={onClose} size="small">
           {t('common.close', 'Fermer')}
         </Button>
       </DialogActions>

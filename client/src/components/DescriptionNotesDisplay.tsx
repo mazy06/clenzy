@@ -30,27 +30,28 @@ interface VariantConfig {
   accentColor: string;
 }
 
+// Tuiles sémantiques Signature : fond -soft + hairline color-mix + texte couleur
 const VARIANT_CONFIG: Record<ConsigneVariant, VariantConfig> = {
   cleaning: {
     title: 'Consignes de ménage',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>,
-    bgColor: 'primary.50',
-    borderColor: 'primary.100',
-    accentColor: 'primary.main',
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>,
+    bgColor: 'var(--accent-soft)',
+    borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
+    accentColor: 'var(--accent)',
   },
   maintenance: {
     title: 'Consignes de travaux',
-    icon: <Box component="span" sx={{ display: 'inline-flex', mt: 0.125, flexShrink: 0 }}><Build size={16} strokeWidth={1.75} color="#ff9800" /></Box>,
-    bgColor: 'rgba(255,152,0,0.05)',
-    borderColor: 'rgba(255,152,0,0.2)',
-    accentColor: '#ff9800',
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)', mt: 0.125, flexShrink: 0 }}><Build size={16} strokeWidth={1.75} /></Box>,
+    bgColor: 'var(--warn-soft)',
+    borderColor: 'color-mix(in srgb, var(--warn) 25%, transparent)',
+    accentColor: 'var(--warn)',
   },
   other: {
     title: 'Consignes diverses',
-    icon: <Box component="span" sx={{ display: 'inline-flex', mt: 0.125, flexShrink: 0 }}><MoreHoriz size={16} strokeWidth={1.75} color="#78909c" /></Box>,
-    bgColor: 'grey.50',
-    borderColor: 'grey.200',
-    accentColor: '#78909c',
+    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', mt: 0.125, flexShrink: 0 }}><MoreHoriz size={16} strokeWidth={1.75} /></Box>,
+    bgColor: 'var(--surface-2)',
+    borderColor: 'var(--line)',
+    accentColor: 'var(--muted)',
   },
 };
 
@@ -85,22 +86,22 @@ const BOX_BASE_SX = {
   gap: 1,
   py: 1.25,
   px: 1.5,
-  borderRadius: 1.5,
+  borderRadius: '12px',
   border: '1px solid',
   minHeight: 80,
 } as const;
 
 const TITLE_SX = {
-  fontSize: '0.625rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
+  letterSpacing: '.06em',
   mb: 0.5,
 } as const;
 
 const TEXT_SX = {
-  fontSize: '0.75rem',
-  color: 'text.secondary',
+  fontSize: '11.5px',
+  color: 'var(--muted)',
   lineHeight: 1.4,
   whiteSpace: 'pre-line',
 } as const;
@@ -120,12 +121,12 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
         {/* Description du logement */}
         <Box sx={{
           ...BOX_BASE_SX,
-          bgcolor: 'grey.50',
-          borderColor: 'grey.200',
+          bgcolor: 'var(--surface-2)',
+          borderColor: 'var(--line)',
         }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mt: 0.125, flexShrink: 0 }}><Description size={16} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mt: 0.125, flexShrink: 0 }}><Description size={16} strokeWidth={1.75} /></Box>
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ ...TITLE_SX, color: 'text.disabled' }}>
+            <Typography sx={{ ...TITLE_SX, color: 'var(--faint)' }}>
               Description du logement
             </Typography>
             {hasDescription ? (
@@ -133,7 +134,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
                 {description}
               </Typography>
             ) : (
-              <Typography sx={{ ...TEXT_SX, fontStyle: 'italic', color: 'text.disabled' }}>
+              <Typography sx={{ ...TEXT_SX, fontStyle: 'italic', color: 'var(--faint)' }}>
                 Aucune description renseignée
               </Typography>
             )}
@@ -160,9 +161,9 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
                       <Typography
                         key={i}
                         sx={{
-                          fontSize: '0.6875rem',
+                          fontSize: '11.5px',
                           fontWeight: 700,
-                          color: 'text.secondary',
+                          color: 'var(--body)',
                           mt: i > 0 ? 0.75 : 0,
                           mb: 0.25,
                         }}
@@ -189,13 +190,13 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
                         sx={{
                           p: 0.25,
                           mt: -0.125,
-                          color: 'grey.300',
+                          color: 'var(--line-2)',
                         }}
                       />
                       <Typography
                         sx={{
-                          fontSize: '0.7rem',
-                          color: 'text.secondary',
+                          fontSize: '11.5px',
+                          color: 'var(--muted)',
                           lineHeight: 1.4,
                           flex: 1,
                           pt: 0.25,
@@ -208,7 +209,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
                 })}
               </Box>
             ) : (
-              <Typography sx={{ ...TEXT_SX, fontStyle: 'italic', color: 'text.disabled' }}>
+              <Typography sx={{ ...TEXT_SX, fontStyle: 'italic', color: 'var(--faint)' }}>
                 Aucune consigne renseignée
               </Typography>
             )}

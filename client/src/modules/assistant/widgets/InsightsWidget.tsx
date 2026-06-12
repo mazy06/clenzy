@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha, Chip } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
+import { Box, Typography, Chip } from '@mui/material';
 import {
   TrendingUp as TrendIcon,
   Warning as WarningIcon,
@@ -46,18 +45,17 @@ interface InsightsWidgetProps {
  * <p>Design borderless avec bg tonal — aligne avec la directive design du chat.</p>
  */
 export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
-  const theme = useTheme();
   const items = data.items ?? [];
 
   if (items.length === 0) {
     return (
       <Box sx={{ mt: 1, mb: 1.5 }}>
         <Box sx={{
-          p: 3, borderRadius: 2,
-          bgcolor: alpha(theme.palette.success.main, 0.08),
+          p: 3, borderRadius: '12px',
+          bgcolor: 'var(--ok-soft)',
           textAlign: 'center',
         }}>
-          <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.success.dark }}>
+          <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ok)' }}>
             Aucun insight detecte — tout va bien sur cette propriete.
           </Typography>
         </Box>
@@ -68,10 +66,10 @@ export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
   return (
     <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
       {data.title && (
-        <Typography variant="caption" sx={{
-          display: 'block', mb: 0.5, fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          display: 'block', mb: 0.5, fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title}
         </Typography>
@@ -87,16 +85,16 @@ export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
 // ─── InsightCard ──────────────────────────────────────────────────────────
 
 const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
-  const theme = useTheme();
-  const sevColor = severityColor(item.severity, theme);
+  const [sevColor, sevSoft] = severityColors(item.severity);
   const TypeIcon = typeIcon(item.type);
 
   return (
     <Box
       sx={{
         p: 1.5,
-        borderRadius: 2,
-        bgcolor: alpha(sevColor, 0.06),
+        borderRadius: '12px',
+        border: '1px solid var(--line)',
+        bgcolor: 'var(--card)',
       }}
     >
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 0.75 }}>
@@ -104,8 +102,8 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
           sx={{
             width: 28,
             height: 28,
-            borderRadius: 1,
-            bgcolor: alpha(sevColor, 0.18),
+            borderRadius: '9px',
+            bgcolor: sevSoft,
             color: sevColor,
             display: 'flex',
             alignItems: 'center',
@@ -120,7 +118,7 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25, flexWrap: 'wrap' }}>
             <Typography sx={{
-              fontSize: '0.875rem', fontWeight: 600, color: theme.palette.text.primary,
+              fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)',
               lineHeight: 1.3,
             }}>
               {item.title}
@@ -130,21 +128,21 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
               size="small"
               sx={{
                 height: 18,
-                fontSize: '0.625rem',
+                fontSize: '10.5px',
                 fontWeight: 700,
-                letterSpacing: '0.04em',
+                letterSpacing: '.04em',
                 textTransform: 'uppercase',
-                bgcolor: alpha(sevColor, 0.18),
+                bgcolor: sevSoft,
                 color: sevColor,
                 border: 'none',
                 '& .MuiChip-label': { px: 0.75 },
               }}
             />
           </Box>
-          <Typography variant="body2" sx={{
-            fontSize: '0.8125rem',
+          <Typography sx={{
+            fontSize: '12.5px',
             lineHeight: 1.5,
-            color: theme.palette.text.secondary,
+            color: 'var(--muted)',
           }}>
             {item.description}
           </Typography>
@@ -157,24 +155,24 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
           ml: 4.5, // align avec le texte (icone 28px + gap 1)
           mt: 0.75,
           px: 1.25, py: 0.75,
-          borderRadius: 1.25,
-          bgcolor: alpha(theme.palette.text.primary, 0.045),
+          borderRadius: '9px',
+          bgcolor: 'var(--field)',
         }}>
-          <Typography variant="caption" sx={{
+          <Typography sx={{
             display: 'block',
-            fontSize: '0.65rem',
+            fontSize: '10.5px',
             fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: theme.palette.text.secondary,
+            letterSpacing: '.05em',
+            color: 'var(--faint)',
             mb: 0.25,
           }}>
             Action recommandee
           </Typography>
-          <Typography variant="body2" sx={{
-            fontSize: '0.8125rem',
+          <Typography sx={{
+            fontSize: '12.5px',
             lineHeight: 1.45,
-            color: theme.palette.text.primary,
+            color: 'var(--body)',
           }}>
             {item.recommendation}
           </Typography>
@@ -201,14 +199,14 @@ function typeIcon(type: string): LucideIconComponent {
   }
 }
 
-function severityColor(severity: string, theme: Theme): string {
+function severityColors(severity: string): [string, string] {
   switch (severity?.toUpperCase()) {
-    case 'CRITICAL': return theme.palette.error.main;
-    case 'HIGH': return theme.palette.error.light;
-    case 'MEDIUM': return theme.palette.warning.main;
+    case 'CRITICAL': return ['var(--err)', 'var(--err-soft)'];
+    case 'HIGH': return ['var(--err)', 'var(--err-soft)'];
+    case 'MEDIUM': return ['var(--warn)', 'var(--warn-soft)'];
     case 'LOW':
     default:
-      return theme.palette.info.main;
+      return ['var(--info)', 'var(--info-soft)'];
   }
 }
 

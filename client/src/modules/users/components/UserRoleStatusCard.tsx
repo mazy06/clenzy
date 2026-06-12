@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Chip, Typography, alpha, useTheme } from '@mui/material';
 import { Business, AdminPanelSettings } from '../../../icons';
-import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
+import { semanticToHex } from '../../../utils/statusUtils';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
 import { getRoleInfo, getStatusInfo } from './userDetailsTypes';
 import DetailField from './DetailField';
@@ -91,7 +91,7 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
             }
             label={roleInfo.label}
             size="small"
-            sx={{ ...softChipSx(roleHex), mb: 0.75 }}
+            sx={{ backgroundColor: `${roleHex}18`, color: roleHex, '& .MuiChip-icon': { color: roleHex }, mb: 0.75 }}
           />
           <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.5 }}>
             {ROLE_DESCRIPTIONS[user.role] || ''}
@@ -117,7 +117,7 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
           <Chip
             label={statusInfo.label}
             size="small"
-            sx={{ ...softChipSx(statusHex), mb: 0.75 }}
+            sx={{ backgroundColor: `${statusHex}18`, color: statusHex, mb: 0.75 }}
           />
           <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.5 }}>
             {STATUS_DESCRIPTIONS[user.status] || ''}

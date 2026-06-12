@@ -96,13 +96,14 @@ const roomChipSx = (validated: boolean) => ({
   transition: 'all 0.15s ease',
   ...(!validated && {
     cursor: 'pointer',
-    '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' },
+    '&:hover': { transform: 'translateY(-1px)', boxShadow: 'var(--shadow-card)' },
+    '@media (prefers-reduced-motion: reduce)': { transition: 'none', '&:hover': { transform: 'none' } },
   }),
 });
 
 const noteBoxSx = {
-  p: 1.5, bgcolor: 'grey.50', borderRadius: 1.5,
-  border: '1px solid', borderColor: 'grey.200',
+  p: 1.5, bgcolor: 'var(--surface-2)', borderRadius: 1.5,
+  border: '1px solid', borderColor: 'var(--line)',
 };
 
 const actionBtnSx = { textTransform: 'none', fontSize: '0.8125rem', borderRadius: 1.5 };
@@ -135,7 +136,7 @@ const StepperHeader: React.FC<{
           {idx > 0 && (
             <Box sx={{
               flex: 1, height: 2, mt: 1.75,
-              bgcolor: step.completed ? 'success.main' : 'grey.200',
+              bgcolor: step.completed ? 'var(--ok)' : 'var(--line-2)',
               transition: 'background-color 0.3s',
             }} />
           )}
@@ -152,12 +153,12 @@ const StepperHeader: React.FC<{
             <Box sx={{
               width: 28, height: 28, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              bgcolor: step.completed ? 'success.main' : isActive ? 'primary.main' : 'grey.200',
-              color: step.completed || isActive ? 'white' : 'text.secondary',
+              bgcolor: step.completed ? 'var(--ok)' : isActive ? 'var(--accent)' : 'var(--hover)',
+              color: step.completed || isActive ? 'var(--on-accent)' : 'var(--muted)',
               transition: 'all 0.2s',
               mb: 0.5,
               ...(isActive && !step.completed && {
-                boxShadow: '0 0 0 3px rgba(25, 118, 210, 0.2)',
+                boxShadow: '0 0 0 3px var(--accent-soft)',
               }),
             }}>
               {step.completed ? (
@@ -173,8 +174,7 @@ const StepperHeader: React.FC<{
             <Typography
               variant="caption"
               fontWeight={isActive ? 700 : 500}
-              color={isActive ? 'primary.main' : step.completed ? 'success.main' : 'text.secondary'}
-              sx={{ fontSize: '0.7rem', textAlign: 'center', lineHeight: 1.2, px: 0.25 }}
+              sx={{ fontSize: '0.7rem', textAlign: 'center', lineHeight: 1.2, px: 0.25, color: isActive ? 'var(--accent)' : step.completed ? 'var(--ok)' : 'var(--muted)' }}
             >
               {step.label}
             </Typography>
@@ -316,7 +316,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {beforePhotos.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <CheckCircleOutlineIcon size={16} strokeWidth={1.75} color={inspectionComplete ? "var(--mui-palette-success-main, #2e7d32)" : "rgba(0,0,0,0.6)"} />
+            <Box component="span" sx={{ display: 'inline-flex', color: inspectionComplete ? 'var(--ok)' : 'var(--muted)' }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
             {t('interventions.progressSteps.beforePhotosCount', { count: beforePhotos.length })}
           </Typography>
           <PhotoGallery
@@ -354,6 +354,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             ...actionBtnSx,
             animation: 'pulse 2s infinite',
             '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.7 } },
+            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
           }}
           onClick={() => {
             setInspectionComplete(true);
@@ -435,7 +436,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {afterPhotos.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
             {t('interventions.progressSteps.afterPhotosCount', { count: afterPhotos.length })}
           </Typography>
           <PhotoGallery
@@ -474,13 +475,13 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
   const recapCardSx = {
     p: 2.5,
-    borderRadius: 2.5,
-    bgcolor: 'background.paper',
+    borderRadius: '14px',
+    bgcolor: 'var(--card)',
     border: '1px solid',
-    borderColor: 'rgba(46, 125, 50, 0.2)',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-    transition: 'box-shadow 0.2s',
-    '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
+    borderColor: 'color-mix(in srgb, var(--ok) 30%, transparent)',
+    transition: 'border-color 0.2s',
+    '&:hover': { borderColor: 'var(--line-2)' },
+    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
   };
 
   const docCardSx = {
@@ -490,18 +491,17 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
     justifyContent: 'space-between',
     gap: { xs: 1.5, sm: 1 },
     p: 2,
-    borderRadius: 2,
-    bgcolor: 'background.paper',
+    borderRadius: '14px',
+    bgcolor: 'var(--card)',
     border: '1px solid',
-    borderColor: 'grey.200',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+    borderColor: 'var(--line)',
     cursor: 'pointer',
-    transition: 'all 0.2s',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
     '&:hover': {
-      borderColor: 'primary.light',
-      boxShadow: '0 2px 8px rgba(25, 118, 210, 0.1)',
-      bgcolor: 'rgba(25, 118, 210, 0.02)',
+      borderColor: 'var(--line-2)',
+      boxShadow: 'var(--shadow-card)',
     },
+    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
   };
 
   const renderRecap = () => (
@@ -514,7 +514,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Inspection */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapInspection')}</Typography>
           </Box>
           {beforePhotos.length > 0 && (
@@ -537,7 +537,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Rooms */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</Typography>
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -558,7 +558,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Photos */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapAfterPhotos')}</Typography>
           </Box>
           {afterPhotos.length > 0 && (
@@ -581,7 +581,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {documents.length > 0 && (
         <Box sx={{ mt: 3 }}>
           <Box display="flex" alignItems="center" gap={0.75} mb={2}>
-            <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><DescriptionIcon size={18} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)" }}><DescriptionIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={600}>
               {t('interventions.progressSteps.documents', { count: documents.length })}
             </Typography>
@@ -594,10 +594,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
                     <Box sx={{
                       width: 40, height: 40, borderRadius: 1.5,
-                      bgcolor: 'rgba(25, 118, 210, 0.08)',
+                      bgcolor: 'var(--accent-soft)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><DescriptionIcon size={22} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)" }}><DescriptionIcon size={22} strokeWidth={1.75} /></Box>
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
                       <Typography variant="body2" fontWeight={600} noWrap sx={{ mb: 0.5 }}>
@@ -605,7 +605,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                         <Chip label={doc.documentType.replace(/_/g, ' ')} size="small"
-                          sx={{ height: 22, fontSize: '0.675rem', fontWeight: 500, bgcolor: 'grey.100' }} />
+                          sx={{ height: 22, fontSize: '0.675rem', fontWeight: 500, bgcolor: 'var(--hover)', color: 'var(--muted)' }} />
                         {doc.emailStatus === 'SENT' && (
                           <Chip icon={<EmailSentIcon size={14} strokeWidth={1.75} />}
                             label={doc.emailTo} size="small" color="info" variant="outlined"
@@ -655,10 +655,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             sx={{
               py: 1.25, px: 4, textTransform: 'none', fontWeight: 600,
               fontSize: '0.875rem', borderRadius: 2,
-              boxShadow: '0 2px 8px rgba(46, 125, 50, 0.3)',
               ...(areAllStepsCompleted && !completing ? {
                 animation: 'pulse 2s infinite',
                 '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.7 } },
+                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
               } : {}),
             }}>
             {completing ? t('interventions.progressSteps.completing') : t('interventions.progressSteps.complete')}
@@ -686,9 +686,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           <StepperHeader steps={steps} activeStep={activeStep} onStepClick={(id) => setActiveStep(id)} />
 
           <Box sx={{
-            p: 2.5, borderRadius: 2,
-            border: '1px solid', borderColor: 'grey.200',
-            bgcolor: 'background.paper',
+            p: 2.5, borderRadius: '14px',
+            border: '1px solid', borderColor: 'var(--line)',
+            bgcolor: 'var(--card)',
             minHeight: 120,
           }}>
             {renderStepContent()}
@@ -699,14 +699,17 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {/* ── Start CTA ────────────────────────────────────────────── */}
       {(canStartIntervention || (isBeforeScheduledDate && intervention?.status === 'PENDING')) && (
         <Box sx={{
-          mt: 2, p: 2.5, borderRadius: 2,
-          bgcolor: isBeforeScheduledDate ? 'rgba(237, 108, 2, 0.04)' : 'rgba(25, 118, 210, 0.04)',
-          border: '1px solid', borderColor: isBeforeScheduledDate ? 'rgba(237, 108, 2, 0.15)' : 'rgba(25, 118, 210, 0.15)',
+          mt: 2, p: 2.5, borderRadius: '14px',
+          bgcolor: isBeforeScheduledDate ? 'var(--warn-soft)' : 'var(--accent-soft)',
+          border: '1px solid',
+          borderColor: isBeforeScheduledDate
+            ? 'color-mix(in srgb, var(--warn) 30%, transparent)'
+            : 'color-mix(in srgb, var(--accent) 30%, transparent)',
           textAlign: 'center',
         }}>
           {isBeforeScheduledDate && intervention?.scheduledDate && (
             <>
-              <Typography variant="body2" color="warning.main" fontWeight={600} sx={{ mb: 1 }}>
+              <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: 'var(--warn)' }}>
                 Planifiee pour le{' '}
                 {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR', {
                   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -720,7 +723,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           )}
           {!isBeforeScheduledDate && (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 1 }}><RocketIcon size={32} strokeWidth={1.5} /></Box>
+              <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)", mb: 1 }}><RocketIcon size={32} strokeWidth={1.5} /></Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {t('interventions.progressSteps.startDescription')}
               </Typography>
@@ -731,7 +734,6 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             sx={{
               py: 1.25, px: 4, textTransform: 'none', fontWeight: 600,
               fontSize: '0.875rem', borderRadius: 2,
-              boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
             }}>
             {starting ? t('interventions.progressSteps.starting') : t('interventions.progressSteps.startIntervention')}
           </Button>
@@ -742,18 +744,18 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {intervention?.status === 'COMPLETED' && canStartOrUpdateIntervention && (
         <>
           <Box sx={{
-            mt: 2.5, p: 2.5, borderRadius: 2.5,
-            bgcolor: 'rgba(237, 108, 2, 0.04)',
-            border: '1px solid', borderColor: 'rgba(237, 108, 2, 0.15)',
+            mt: 2.5, p: 2.5, borderRadius: '14px',
+            bgcolor: 'var(--warn-soft)',
+            border: '1px solid', borderColor: 'color-mix(in srgb, var(--warn) 30%, transparent)',
             display: 'flex', flexDirection: { xs: 'column', sm: 'row' },
             alignItems: { xs: 'stretch', sm: 'center' }, gap: 2,
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
               <Box sx={{
-                width: 36, height: 36, borderRadius: '50%', bgcolor: 'success.main',
+                width: 36, height: 36, borderRadius: '50%', bgcolor: 'var(--ok-soft)', color: 'var(--ok)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                <CheckCircleIcon size={20} strokeWidth={1.75} color="#fff" />
+                <CheckCircleIcon size={20} strokeWidth={1.75} />
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
                 {t('interventions.progressSteps.completedMessage')}

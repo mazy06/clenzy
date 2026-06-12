@@ -61,9 +61,9 @@ const RESOLUTION_LABEL: Record<ChannexPriceDriftResolution, string> = {
 };
 
 const RESOLUTION_COLOR: Record<ChannexPriceDriftResolution, string> = {
-  KEEP_CLENZY: '#6B8A9A',
-  KEEP_OTA: '#D97706',
-  DISMISSED: '#6B7280',
+  KEEP_CLENZY: 'var(--accent)',
+  KEEP_OTA: 'var(--warn)',
+  DISMISSED: 'var(--muted)',
 };
 
 function formatPct(pct: number): string {
@@ -96,7 +96,7 @@ function DriftRow({
 }) {
   const clenzyHigher = drift.clenzyPrice > drift.otaPrice;
   const TrendIcon = clenzyHigher ? TrendingUp : TrendingDown;
-  const trendColor = clenzyHigher ? '#10B981' : '#EF4444';
+  const trendColor = clenzyHigher ? 'var(--ok)' : 'var(--err)';
   return (
     <Box
       sx={{
@@ -104,7 +104,7 @@ function DriftRow({
         borderColor: 'divider',
         borderRadius: 1,
         p: 1.25,
-        bgcolor: 'rgba(0,0,0,0.015)',
+        bgcolor: 'var(--surface-2)',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
@@ -130,8 +130,8 @@ function DriftRow({
               sx={{
                 height: 22,
                 fontSize: '0.72rem',
-                bgcolor: 'rgba(107, 138, 154, 0.12)',
-                color: '#6B8A9A',
+                bgcolor: 'var(--accent-soft)',
+                color: 'var(--accent)',
                 fontWeight: 600,
               }}
             />
@@ -142,8 +142,8 @@ function DriftRow({
               sx={{
                 height: 22,
                 fontSize: '0.72rem',
-                bgcolor: 'rgba(217, 119, 6, 0.12)',
-                color: '#D97706',
+                bgcolor: 'var(--warn-soft)',
+                color: 'var(--warn)',
                 fontWeight: 600,
               }}
             />
@@ -188,13 +188,12 @@ function DriftRow({
                 textTransform: 'none',
                 fontSize: '0.72rem',
                 flex: 1,
+                borderColor: RESOLUTION_COLOR[r],
+                color: RESOLUTION_COLOR[r],
                 ...(r === 'KEEP_CLENZY' && {
-                  backgroundColor: RESOLUTION_COLOR[r],
-                  '&:hover': { backgroundColor: '#5A7585' },
-                }),
-                ...(r !== 'KEEP_CLENZY' && {
-                  borderColor: RESOLUTION_COLOR[r],
-                  color: RESOLUTION_COLOR[r],
+                  bgcolor: 'transparent',
+                  border: '1px solid',
+                  '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: RESOLUTION_COLOR[r] },
                 }),
               }}
             >
@@ -290,8 +289,8 @@ export default function ChannexPriceDriftsDialog({
             width: 36,
             height: 36,
             borderRadius: 1,
-            bgcolor: 'rgba(217, 119, 6, 0.1)',
-            color: '#D97706',
+            bgcolor: 'var(--warn-soft)',
+            color: 'var(--warn)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -343,7 +342,7 @@ export default function ChannexPriceDriftsDialog({
 
         {!loading && drifts.length === 0 && !error && (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <CheckCircle2 size={36} color="#10B981" strokeWidth={2} />
+            <CheckCircle2 size={36} color="var(--ok)" strokeWidth={2} />
             <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>
               Tous les prix sont alignes entre Baitly et Channex.
             </Typography>

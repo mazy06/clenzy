@@ -29,14 +29,14 @@ const CATEGORY_LABELS: Record<TaxCategoryType, string> = {
 };
 
 const CATEGORY_STYLE: Record<TaxCategoryType, { Icon: LucideIcon; color: string }> = {
-  ACCOMMODATION: { Icon: Hotel, color: '#4A9B8E' },
-  STANDARD: { Icon: Percent, color: '#6B8A9A' },
-  CLEANING: { Icon: CleaningServices, color: '#7BA3C2' },
-  FOOD: { Icon: Restaurant, color: '#D4A574' },
-  TOURIST_TAX: { Icon: LocationCity, color: '#8A6E8A' },
+  ACCOMMODATION: { Icon: Hotel, color: 'var(--ok)' },
+  STANDARD: { Icon: Percent, color: 'var(--accent)' },
+  CLEANING: { Icon: CleaningServices, color: 'var(--info)' },
+  FOOD: { Icon: Restaurant, color: 'var(--warn)' },
+  TOURIST_TAX: { Icon: LocationCity, color: 'var(--muted)' },
 };
 
-const DEFAULT_CATEGORY_STYLE = { Icon: Percent, color: '#8A8378' };
+const DEFAULT_CATEGORY_STYLE = { Icon: Percent, color: 'var(--muted)' };
 
 const EMPTY_FORM: TaxRuleRequest = {
   countryCode: 'FR',
@@ -231,19 +231,7 @@ const TaxRulesSection: React.FC = () => {
                 startIcon={<Add size={14} strokeWidth={2} />}
                 onClick={openCreateDialog}
                 size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.78rem',
-                  letterSpacing: '0.01em',
-                  borderRadius: '8px',
-                  py: 0.625,
-                  px: 1.5,
-                  bgcolor: '#6B8A9A',
-                  boxShadow: 'none',
-                  '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.94)', boxShadow: 'none' },
-                }}
-              >
+>
                 {t('fiscal.taxRules.add')}
               </Button>
             )}
@@ -286,9 +274,9 @@ const TaxRulesSection: React.FC = () => {
                           fontSize: '0.6875rem',
                           fontWeight: 600,
                           letterSpacing: '0.01em',
-                          backgroundColor: `${categoryColor}14`,
+                          backgroundColor: `color-mix(in srgb, ${categoryColor} 8%, transparent)`,
                           color: categoryColor,
-                          border: `1px solid ${categoryColor}33`,
+                          border: `1px solid color-mix(in srgb, ${categoryColor} 20%, transparent)`,
                           borderRadius: '6px',
                           px: 0.25,
                           '& .MuiChip-icon': {
@@ -330,9 +318,9 @@ const TaxRulesSection: React.FC = () => {
                                 borderColor: 'divider',
                                 transition: 'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
                                 '&:hover': {
-                                  color: '#6B8A9A',
-                                  borderColor: '#6B8A9A66',
-                                  backgroundColor: '#6B8A9A0F',
+                                  color: 'var(--accent)',
+                                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                                  backgroundColor: 'var(--accent-soft)',
                                 },
                               }}
                             >
@@ -353,9 +341,9 @@ const TaxRulesSection: React.FC = () => {
                                 borderColor: 'divider',
                                 transition: 'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
                                 '&:hover': {
-                                  color: '#C97A7A',
-                                  borderColor: '#C97A7A66',
-                                  backgroundColor: '#C97A7A0F',
+                                  color: 'var(--err)',
+                                  borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)',
+                                  backgroundColor: 'var(--err-soft)',
                                 },
                               }}
                             >

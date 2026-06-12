@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tabs, Tab, CircularProgress } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { Inventory2, LocalLaundryService, Receipt } from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { usePropertyInventory } from '../../hooks/usePropertyInventory';
@@ -35,42 +35,51 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
     );
   }
 
+  // Sous-onglets niveau 2 — pattern pilules .s-subtab (fond --field, actif accent-soft/accent).
+  const subtabs = [
+    { label: 'Inventaire du logement', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
+    { label: 'Linge de maison', icon: <LocalLaundryService size={15} strokeWidth={1.75} /> },
+    { label: 'Devis / Factures', icon: <Receipt size={15} strokeWidth={1.75} /> },
+  ];
+
   return (
     <Box>
-      <Tabs
-        value={subTab}
-        onChange={(_, v) => setSubTab(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{
-          minHeight: 40,
-          mb: 2,
-          borderBottom: 1,
-          borderColor: 'divider',
-          '& .MuiTab-root': {
-            minHeight: 40,
-            py: 0.5,
-            fontSize: '0.84rem',
-            textTransform: 'none',
-          },
-        }}
-      >
-        <Tab
-          icon={<Inventory2 size={17} strokeWidth={1.75} />}
-          iconPosition="start"
-          label="Inventaire du logement"
-        />
-        <Tab
-          icon={<LocalLaundryService size={17} strokeWidth={1.75} />}
-          iconPosition="start"
-          label="Linge de maison"
-        />
-        <Tab
-          icon={<Receipt size={17} strokeWidth={1.75} />}
-          iconPosition="start"
-          label="Devis / Factures"
-        />
-      </Tabs>
+      <Box role="tablist" sx={{ display: 'flex', gap: '6px', mb: 2, flexWrap: 'wrap' }}>
+        {subtabs.map((st, i) => {
+          const active = subTab === i;
+          return (
+            <Box
+              key={st.label}
+              component="button"
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setSubTab(i)}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                height: 30,
+                px: '13px',
+                borderRadius: 999,
+                border: '1px solid transparent',
+                bgcolor: active ? 'var(--accent-soft)' : 'var(--field)',
+                color: active ? 'var(--accent)' : 'var(--muted)',
+                fontSize: '12px',
+                fontWeight: 600,
+                fontFamily: 'var(--font-sans)',
+                cursor: 'pointer',
+                transition: 'background-color .14s, color .14s',
+                '&:hover': { color: active ? 'var(--accent)' : 'var(--body)' },
+                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+              }}
+            >
+              {st.icon}
+              {st.label}
+            </Box>
+          );
+        })}
+      </Box>
 
       {subTab === 0 && (
         <InventoryItemsSection

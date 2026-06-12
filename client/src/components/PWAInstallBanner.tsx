@@ -76,7 +76,7 @@ export default function PWAInstallBanner() {
   return (
     <Slide direction="up" in={visible} mountOnEnter unmountOnExit>
       <Paper
-        elevation={6}
+        elevation={0}
         sx={{
           position: 'fixed',
           bottom: 16,
@@ -87,19 +87,31 @@ export default function PWAInstallBanner() {
           display: 'flex',
           alignItems: 'center',
           gap: 2,
-          borderRadius: 2,
-          backgroundColor: '#6B8A9A',
-          color: 'white',
+          // Panneau flottant : hairline + ombre pop (jamais d'aplat accent)
+          borderRadius: '14px',
+          border: '1px solid var(--line)',
+          backgroundColor: 'var(--card)',
+          boxShadow: 'var(--shadow-pop)',
           maxWidth: 600,
           mx: 'auto',
         }}
       >
-        <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><GetAppIcon size={32} strokeWidth={1.75} /></Box>
+        <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0, color: 'var(--accent)' }}>
+          <GetAppIcon size={26} strokeWidth={1.75} />
+        </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="subtitle1" fontWeight={600} noWrap>
+          <Typography
+            noWrap
+            sx={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              color: 'var(--ink)',
+            }}
+          >
             Installer Baitly PMS
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+          <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>
             Installez l'application sur votre appareil pour un acc&egrave;s rapide.
           </Typography>
         </Box>
@@ -107,26 +119,17 @@ export default function PWAInstallBanner() {
           variant="contained"
           size="small"
           onClick={handleInstall}
-          sx={{
-            backgroundColor: 'white',
-            color: '#6B8A9A',
-            fontWeight: 600,
-            textTransform: 'none',
-            flexShrink: 0,
-            '&:hover': {
-              backgroundColor: 'rgba(255,255,255,0.9)',
-            },
-          }}
+          sx={{ flexShrink: 0 }}
         >
           Installer
         </Button>
         <IconButton
           size="small"
           onClick={handleDismiss}
-          sx={{ color: 'white', flexShrink: 0 }}
+          sx={{ flexShrink: 0 }}
           aria-label="Fermer"
         >
-          <CloseIcon size={20} strokeWidth={1.75} />
+          <CloseIcon size={16} strokeWidth={1.75} />
         </IconButton>
       </Paper>
     </Slide>

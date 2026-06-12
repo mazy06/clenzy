@@ -417,7 +417,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
     }
   };
 
-  const ACCENT = '#0F766E'; // teal Channex
+  const ACCENT = 'var(--accent)';
 
   return (
     <>
@@ -492,7 +492,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                     sx={{
                       textTransform: 'none',
                       fontSize: '0.78rem',
-                      color: '#D97706',
+                      color: 'var(--warn)',
                     }}
                   >
                     Voir les conflits de prix Baitly ↔ OTA ({activeDriftsCount})
@@ -792,8 +792,8 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                 sx={{
                                   height: 18,
                                   fontSize: '0.65rem',
-                                  bgcolor: '#10B98115',
-                                  color: '#059669',
+                                  bgcolor: 'var(--ok-soft)',
+                                  color: 'var(--ok)',
                                 }}
                               />
                             ) : ota.hasOauthToken ? (
@@ -803,8 +803,8 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                 sx={{
                                   height: 18,
                                   fontSize: '0.65rem',
-                                  bgcolor: '#F59E0B15',
-                                  color: '#B45309',
+                                  bgcolor: 'var(--warn-soft)',
+                                  color: 'var(--warn)',
                                 }}
                               />
                             ) : (
@@ -814,8 +814,8 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                 sx={{
                                   height: 18,
                                   fontSize: '0.65rem',
-                                  bgcolor: '#EF444415',
-                                  color: '#B91C1C',
+                                  bgcolor: 'var(--err-soft)',
+                                  color: 'var(--err)',
                                 }}
                               />
                             )}
@@ -828,7 +828,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                           <IconButton
                             size="small"
                             onClick={() => setDisconnectOtaConfirm(ota)}
-                            sx={{ color: '#EF4444' }}
+                            sx={{ color: 'var(--err)' }}
                           >
                             <Trash2 size={16} />
                           </IconButton>
@@ -886,7 +886,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                           <Typography
                             sx={{
                               fontSize: '0.7rem',
-                              color: '#EF4444',
+                              color: 'var(--err)',
                               mt: 0.5,
                               fontStyle: 'italic',
                               maxWidth: 360,
@@ -909,12 +909,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                           startIcon={<Plus size={14} />}
                           disabled={isBusy}
                           onClick={() => handleConnectClick(property)}
-                          sx={{
-                            backgroundColor: ACCENT,
-                            '&:hover': { backgroundColor: '#0d645e' },
-                            textTransform: 'none',
-                            fontSize: '0.75rem',
-                          }}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
                         >
                           Connecter
                         </Button>
@@ -974,8 +969,8 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                               height: '100%',
                                               borderRadius: 0.5,
                                               objectFit: 'contain',
-                                              bgcolor: '#FFFFFF',
-                                              border: '1px solid rgba(0,0,0,0.08)',
+                                              bgcolor: 'var(--card)',
+                                              border: '1px solid var(--line)',
                                               p: '2px',
                                             }}
                                           />
@@ -989,13 +984,12 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                               width: 11,
                                               height: 11,
                                               borderRadius: '50%',
-                                              bgcolor: '#10B981',
-                                              color: '#FFFFFF',
+                                              bgcolor: 'var(--ok)',
+                                              color: 'var(--on-accent)',
                                               display: 'flex',
                                               alignItems: 'center',
                                               justifyContent: 'center',
-                                              border: '2px solid #FFFFFF',
-                                              boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                                              border: '2px solid var(--card)',
                                             }}
                                           >
                                             <CheckCircle2 size={7} strokeWidth={4} />
@@ -1010,8 +1004,8 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                               width: 9,
                                               height: 9,
                                               borderRadius: '50%',
-                                              bgcolor: '#F59E0B',
-                                              border: '2px solid #FFFFFF',
+                                              bgcolor: 'var(--warn)',
+                                              border: '2px solid var(--card)',
                                             }}
                                           />
                                         )}
@@ -1052,7 +1046,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                 size="small"
                                 disabled={isBusy}
                                 onClick={() => handlePullBookings(property)}
-                                sx={{ color: '#3B82F6' }}
+                                sx={{ color: 'var(--info)' }}
                               >
                                 <Download size={14} />
                               </IconButton>
@@ -1064,7 +1058,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                 size="small"
                                 disabled={isBusy}
                                 onClick={() => handlePushPricingSettings(property)}
-                                sx={{ color: '#10B981' }}
+                                sx={{ color: 'var(--ok)' }}
                               >
                                 <SettingsIcon size={14} />
                               </IconButton>
@@ -1076,7 +1070,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                                 size="small"
                                 disabled={isBusy}
                                 onClick={() => handleDisconnect(property)}
-                                sx={{ color: '#EF4444' }}
+                                sx={{ color: 'var(--err)' }}
                               >
                                 <Trash2 size={14} />
                               </IconButton>
@@ -1273,13 +1267,9 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
               onClick={handleConnectSubmit}
               disabled={connectForm.submitting}
               startIcon={
-                connectForm.submitting ? <CircularProgress size={12} sx={{ color: 'white' }} /> : null
+                connectForm.submitting ? <CircularProgress size={12} color="inherit" /> : null
               }
-              sx={{
-                backgroundColor: ACCENT,
-                '&:hover': { backgroundColor: '#0d645e' },
-                textTransform: 'none',
-              }}
+              sx={{ textTransform: 'none' }}
             >
               {connectForm.submitting ? 'Connexion...' : 'Connecter'}
             </Button>
@@ -1429,8 +1419,8 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
               width: 32,
               height: 32,
               borderRadius: 1,
-              bgcolor: 'rgba(239, 68, 68, 0.1)',
-              color: '#EF4444',
+              bgcolor: 'var(--err-soft)',
+              color: 'var(--err)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1465,11 +1455,8 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
             onClick={handleDisconnectOta}
             size="small"
             variant="contained"
-            sx={{
-              backgroundColor: '#EF4444',
-              '&:hover': { backgroundColor: '#DC2626' },
-              textTransform: 'none',
-            }}
+            color="error"
+            sx={{ textTransform: 'none' }}
           >
             Deconnecter
           </Button>

@@ -33,25 +33,31 @@ import { useIsAiFeatureEnabled } from '../../hooks/useAi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
+// Sous-onglets niveau 2 — pattern Signature .s-subtab : pilules, actif accent-soft/accent.
 const TABS_SX = {
-  minHeight: 36,
+  minHeight: 32,
   mb: 1.5,
+  '& .MuiTabs-flexContainer': { gap: 0.75 },
   '& .MuiTab-root': {
-    minHeight: 36,
+    minHeight: 32,
     py: 0.5,
-    px: 2,
-    fontSize: '0.75rem',
+    px: 1.75,
+    fontSize: '0.78125rem',
     fontWeight: 600,
     textTransform: 'none',
-    color: 'text.secondary',
+    color: 'var(--muted)',
+    bgcolor: 'var(--field)',
+    borderRadius: '9999px',
+    transition: 'background-color 0.15s, color 0.15s',
+    '&:hover': { color: 'var(--body)' },
     '&.Mui-selected': {
       fontWeight: 700,
-      color: 'primary.main',
+      color: 'var(--accent)',
+      bgcolor: 'var(--accent-soft)',
     },
   },
   '& .MuiTabs-indicator': {
-    height: 2,
-    borderRadius: 1,
+    display: 'none',
   },
 } as const;
 
@@ -268,7 +274,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
         onClick={handlePushPricing}
         disabled={pushLoading}
         color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}
-        sx={{ textTransform: 'none', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+        sx={{ whiteSpace: 'nowrap' }}
       >
         {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
       </Button>
