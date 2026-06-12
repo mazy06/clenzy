@@ -71,9 +71,9 @@ const StepOptions: React.FC<StepOptionsProps> = ({ configId: _configId }) => {
       )}
 
       {categories.map(cat => (
-        <Box key={cat.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+        <Box key={cat.id} sx={{ border: '1px solid var(--line)', borderRadius: '12px', overflow: 'hidden', bgcolor: 'var(--card)' }}>
           {/* Category header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1.5, bgcolor: 'action.hover', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1.5, bgcolor: 'var(--surface-2)', borderBottom: '1px solid var(--line)', gap: 1 }}>
             <IconButton size="small" onClick={() => toggle(cat.id)}>
               {expanded[cat.id] ? <ExpandLess size={18} strokeWidth={1.75} /> : <ExpandMore size={18} strokeWidth={1.75} />}
             </IconButton>

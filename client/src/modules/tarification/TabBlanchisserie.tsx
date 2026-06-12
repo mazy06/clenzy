@@ -81,7 +81,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
   return (
     <Box sx={{ pt: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <LocalLaundryService size={20} strokeWidth={1.75} color='#6B8A9A' />
+        <LocalLaundryService size={20} strokeWidth={1.75} color='var(--accent)' />
         <Typography variant="subtitle1" fontWeight={600}>
           {t('tarification.blanchisserie.title')}
         </Typography>

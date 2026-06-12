@@ -13,9 +13,8 @@ import {
   TextField,
   MenuItem,
   Chip,
-  CircularProgress,
+  Skeleton,
   Alert,
-  alpha,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -25,16 +24,41 @@ import { guestsApi } from '../../services/api';
 import type { GuestListDto } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { SPACING } from '../../theme/spacing';
 import { useCurrency } from '../../hooks/useCurrency';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
+// Carte hairline plate (pattern .pd-card — tokens, r14, aucune ombre au repos).
 const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
+  border: '1px solid var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: '14px',
+} as const;
+
+// Entêtes de table : overline 10.5 --faint uppercase (pattern baseline tableaux).
+const TABLE_HEAD_SX = {
+  '& th': {
+    fontWeight: 700,
+    fontSize: '10.5px',
+    letterSpacing: '.05em',
+    textTransform: 'uppercase',
+    color: 'var(--faint)',
+    borderBottom: '1px solid var(--line)',
+    whiteSpace: 'nowrap',
+  },
+} as const;
+
+const PAGINATION_SX = {
+  borderTop: '1px solid var(--line)',
+  '& .MuiTablePagination-displayedRows, & .MuiTablePagination-selectLabel': {
+    fontSize: '11.5px',
+    fontWeight: 600,
+    color: 'var(--muted)',
+    fontVariantNumeric: 'tabular-nums',
+  },
 } as const;
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
@@ -50,14 +74,18 @@ const CHANNEL_LABELS: Record<string, string> = {
   OTHER: 'Autre',
 };
 
-const CHANNEL_COLORS: Record<string, 'default' | 'primary' | 'error' | 'warning' | 'info' | 'success' | 'secondary'> = {
-  DIRECT: 'primary',
-  AIRBNB: 'error',
-  BOOKING: 'info',
-  VRBO: 'secondary',
-  ICAL: 'warning',
-  OTHER: 'default',
+// Canaux → tokens (--airbnb/--booking/--direct) ; repli sémantique pour les autres.
+const CHANNEL_TOKEN: Record<string, { fg: string; bg: string }> = {
+  DIRECT: { fg: 'var(--direct-ink)', bg: 'var(--direct-soft)' },
+  AIRBNB: { fg: 'var(--airbnb-ink)', bg: 'var(--airbnb-soft)' },
+  BOOKING: { fg: 'var(--booking-ink)', bg: 'var(--booking-soft)' },
+  VRBO: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  ICAL: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  OTHER: { fg: 'var(--muted)', bg: 'var(--hover)' },
 };
+
+// Palette avatar déterministe (pattern validé messagerie — copie locale du pattern).
+const AVATAR_COLORS = ['#5F7E8C', '#C28A52', '#7BA3C2', '#4A9B8E', '#9A7FA3', '#4A6B9A'];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -65,6 +93,17 @@ function formatDate(dateStr?: string): string {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function avatarColor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
+function initialsOf(name: string): string {
+  const parts = name.split(/\s+/).filter(Boolean);
+  return (parts.map((w) => w[0]).slice(0, 2).join('') || '?').toUpperCase();
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -175,11 +214,20 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
         </Box>
       </Paper>
 
-      {/* Loading / Error */}
+      {/* Loading skeletons */}
       {isLoading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
+        <Paper sx={{ ...CARD_SX, p: 2 }}>
+          {[...Array(6)].map((_, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
+              <Skeleton variant="rounded" width={34} height={34} sx={{ borderRadius: '13px' }} />
+              <Box sx={{ flex: 1 }}>
+                <Skeleton variant="text" width="32%" height={18} />
+                <Skeleton variant="text" width="48%" height={14} />
+              </Box>
+              <Skeleton variant="rounded" width={64} height={22} sx={{ borderRadius: 999 }} />
+            </Box>
+          ))}
+        </Paper>
       )}
 
       {isError && (
@@ -188,110 +236,130 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
         </Alert>
       )}
 
+      {/* Empty state */}
+      {!isLoading && !isError && filteredGuests.length === 0 && (
+        <EmptyState
+          icon={<PeopleIcon />}
+          title={searchQuery || channelFilter ? 'Aucun voyageur ne correspond aux filtres' : 'Aucun voyageur enregistre'}
+          description={searchQuery || channelFilter
+            ? 'Essayez d\'élargir la recherche ou de retirer le filtre canal.'
+            : 'Les voyageurs apparaissent ici dès leur première réservation.'}
+        />
+      )}
+
       {/* Table */}
-      {!isLoading && !isError && (
+      {!isLoading && !isError && filteredGuests.length > 0 && (
         <Paper sx={CARD_SX}>
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }}>Nom</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }}>Telephone</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }}>Canal</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }} align="center">Sejours</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }} align="right">Depense</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }}>Cree le</TableCell>
+                <TableRow sx={TABLE_HEAD_SX}>
+                  <TableCell>Nom</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Telephone</TableCell>
+                  <TableCell>Canal</TableCell>
+                  <TableCell align="center">Sejours</TableCell>
+                  <TableCell align="right">Depense</TableCell>
+                  <TableCell>Cree le</TableCell>
                   {isSuperAdmin && (
-                    <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }}>Organisation</TableCell>
+                    <TableCell>Organisation</TableCell>
                   )}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedGuests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={isSuperAdmin ? 8 : 7} align="center" sx={{ py: 4 }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PeopleIcon size={40} strokeWidth={1.75} /></Box>
-                        <Typography color="text.secondary" variant="body2">
-                          {searchQuery || channelFilter
-                            ? 'Aucun voyageur ne correspond aux filtres'
-                            : 'Aucun voyageur enregistre'}
+                {paginatedGuests.map((guest) => (
+                  <TableRow
+                    key={guest.id}
+                    hover
+                    sx={{ '&:last-child td': { borderBottom: 0 } }}
+                  >
+                    <TableCell>
+                      {/* Avatar initiales display r13 (densité table → 34) + nom */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                        <Box
+                          sx={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: '13px',
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontFamily: 'var(--font-display)',
+                            fontWeight: 600,
+                            fontSize: 12.5,
+                            color: '#fff',
+                            bgcolor: avatarColor(guest.fullName || '?'),
+                          }}
+                        >
+                          {initialsOf(guest.fullName || '?')}
+                        </Box>
+                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                          {guest.fullName}
                         </Typography>
                       </Box>
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedGuests.map((guest) => (
-                    <TableRow
-                      key={guest.id}
-                      hover
-                      sx={{ '&:last-child td': { borderBottom: 0 } }}
-                    >
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.82rem' }}>
-                          {guest.fullName}
+                    <TableCell>
+                      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+                        {guest.email || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                        {guest.phone || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {guest.channel ? (
+                        (() => {
+                          const tk = CHANNEL_TOKEN[guest.channel] ?? CHANNEL_TOKEN.OTHER;
+                          return (
+                            <Chip
+                              label={CHANNEL_LABELS[guest.channel] || guest.channel}
+                              size="small"
+                              sx={{ color: tk.fg, bgcolor: tk.bg, border: 'none' }}
+                            />
+                          );
+                        })()
+                      ) : (
+                        <Typography sx={{ fontSize: '12.5px', color: 'var(--faint)' }}>
+                          -
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                          {guest.email || '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                          {guest.phone || '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {guest.channel ? (
-                          <Chip
-                            label={CHANNEL_LABELS[guest.channel] || guest.channel}
-                            color={CHANNEL_COLORS[guest.channel] || 'default'}
-                            size="small"
-                            variant="outlined"
-                            sx={{ fontSize: '0.68rem', fontWeight: 600, height: 22 }}
-                          />
-                        ) : (
-                          <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.8rem' }}>
-                            -
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={guest.totalStays ?? 0}
-                          size="small"
-                          sx={(theme) => ({
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            height: 22,
-                            minWidth: 28,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            color: 'primary.main',
-                          })}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                          {guest.totalSpent ? convertAndFormat(guest.totalSpent, 'EUR') : '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-                          {formatDate(guest.createdAt)}
-                        </Typography>
-                      </TableCell>
-                      {isSuperAdmin && (
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-                            {guest.organizationName || '-'}
-                          </Typography>
-                        </TableCell>
                       )}
-                    </TableRow>
-                  ))
-                )}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={guest.totalStays ?? 0}
+                        size="small"
+                        sx={{
+                          minWidth: 28,
+                          color: 'var(--accent)',
+                          bgcolor: 'var(--accent-soft)',
+                          border: 'none',
+                          fontFamily: 'var(--font-display)',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+                        {guest.totalSpent ? convertAndFormat(guest.totalSpent, 'EUR') : '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatDate(guest.createdAt)}
+                      </Typography>
+                    </TableCell>
+                    {isSuperAdmin && (
+                      <TableCell>
+                        <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>
+                          {guest.organizationName || '-'}
+                        </Typography>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
@@ -308,6 +376,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
             rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
             labelRowsPerPage="Par page"
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+            sx={PAGINATION_SX}
           />
         </Paper>
       )}

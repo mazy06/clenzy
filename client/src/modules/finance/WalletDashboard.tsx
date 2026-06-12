@@ -356,13 +356,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                     labelDisplayedRows={({ from, to, count }) =>
                       `${from}-${to} sur ${count}`
                     }
-                    sx={{
-                      borderTop: '1px solid var(--line)',
-                      '& .MuiTablePagination-displayedRows': {
-                        fontSize: '12.5px',
-                        color: 'var(--muted)',
-                      },
-                    }}
+                    sx={{ borderTop: '1px solid var(--line)' }}
                   />
                 </>
               )}

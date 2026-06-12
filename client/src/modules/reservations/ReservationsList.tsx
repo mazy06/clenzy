@@ -19,7 +19,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,10 +45,9 @@ import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 // ─── Style Constants ────────────────────────────────────────────────────────
 
 const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
+  border: '1px solid var(--line)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: 'var(--radius-lg)',
 } as const;
 
 const STATUS_OPTIONS: ReservationStatus[] = [
@@ -80,7 +78,6 @@ function formatDate(dateStr: string): string {
 const ReservationsList: React.FC = () => {
   const { t } = useTranslation();
   const { notify } = useNotification();
-  const theme = useTheme();
   const { convertAndFormat } = useCurrency();
 
   const formatPrice = (price: number | undefined, currency = 'EUR'): string => {
@@ -202,28 +199,15 @@ const ReservationsList: React.FC = () => {
     ...SOURCE_OPTIONS.map((s) => ({ value: s, label: t(`reservations.source.${s}`) })),
   ], [t]);
 
-  const iconButtonSx = {
-    p: 0.5,
-    borderRadius: 1,
-    border: '1px solid',
-    borderColor: 'divider',
-    color: 'text.secondary',
-    '&:hover': { bgcolor: 'rgba(107,138,154,0.08)', borderColor: 'primary.main', color: 'primary.main' },
-    '& .MuiSvgIcon-root': { fontSize: 18 },
-  } as const;
-
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-      <Tooltip title={t('reservations.create')}>
-        <IconButton
-          size="small"
-          onClick={handleCreate}
-          sx={{ ...iconButtonSx, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
-        >
-          <AddIcon />
-        </IconButton>
-      </Tooltip>
-    </Box>
+    <Button
+      variant="contained"
+      size="small"
+      startIcon={<AddIcon size={16} strokeWidth={2} />}
+      onClick={handleCreate}
+    >
+      {t('reservations.create')}
+    </Button>
   );
 
   const filterBar = (
@@ -299,17 +283,8 @@ const ReservationsList: React.FC = () => {
           <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
             <Table size="small">
               <TableHead>
-                <TableRow
-                  sx={{
-                    '& th': {
-                      fontWeight: 700,
-                      fontSize: '0.78rem',
-                      color: theme.palette.text.secondary,
-                      borderBottom: `2px solid ${theme.palette.divider}`,
-                      whiteSpace: 'nowrap',
-                    },
-                  }}
-                >
+                {/* Entêtes overline portées par le thème global (10.5px faint uppercase) */}
+                <TableRow sx={{ '& th': { whiteSpace: 'nowrap' } }}>
                   <TableCell>{t('reservations.fields.property')}</TableCell>
                   <TableCell>{t('reservations.fields.guestName')}</TableCell>
                   <TableCell>{t('reservations.fields.checkIn')}</TableCell>
@@ -338,7 +313,7 @@ const ReservationsList: React.FC = () => {
                         sx={{
                           fontSize: '0.82rem',
                           cursor: 'pointer',
-                          '&:hover': { color: 'primary.main', textDecoration: 'underline' },
+                          '&:hover': { color: 'var(--accent)', textDecoration: 'underline' },
                         }}
                         onClick={() => {
                           setSelectedGuestId(r.id);
@@ -352,21 +327,21 @@ const ReservationsList: React.FC = () => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.82rem', fontVariantNumeric: 'tabular-nums' }}>
                         {formatDate(r.checkIn)}
                       </Typography>
                       {r.checkInTime && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                           {r.checkInTime}
                         </Typography>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.82rem', fontVariantNumeric: 'tabular-nums' }}>
                         {formatDate(r.checkOut)}
                       </Typography>
                       {r.checkOutTime && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                           {r.checkOutTime}
                         </Typography>
                       )}
@@ -378,7 +353,17 @@ const ReservationsList: React.FC = () => {
                       <ReservationSourceBadge source={r.source} />
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
+                      {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-display)',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: 'var(--ink)',
+                        }}
+                      >
                         {formatPrice(r.totalPrice)}
                       </Typography>
                     </TableCell>
@@ -442,18 +427,19 @@ const ReservationsList: React.FC = () => {
 
       {/* Cancel confirmation dialog */}
       <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)}>
-        <DialogTitle sx={{ pb: 1 }}>{t('reservations.cancel')}</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
+        {/* Peau modale portée par le thème global (titre display + filets + pied surface-2) */}
+        <DialogTitle>{t('reservations.cancel')}</DialogTitle>
+        <DialogContent>
           <Typography variant="body2">
             {t('reservations.cancelConfirm')}
           </Typography>
           {cancelTarget && (
-            <Typography variant="body2" sx={{ mt: 1, fontWeight: 500 }}>
-              {cancelTarget.guestName} - {cancelTarget.propertyName}
+            <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+              {cancelTarget.guestName} · {cancelTarget.propertyName}
             </Typography>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+        <DialogActions>
           <Button
             onClick={() => setCancelDialogOpen(false)}
             size="small"

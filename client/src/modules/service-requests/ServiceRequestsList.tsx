@@ -237,14 +237,16 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
   ], []);
 
-  const iconButtonSx = {
+  // Icon-button d'action principale : contour accent + fond accent-soft au survol
+  // (pattern boutons baseline — jamais d'aplat plein).
+  const createButtonSx = {
     p: 0.5,
-    borderRadius: 1,
-    border: '1px solid',
-    borderColor: 'divider',
-    color: 'text.secondary',
-    '&:hover': { bgcolor: 'rgba(107,138,154,0.08)', borderColor: 'primary.main', color: 'primary.main' },
-    '& .MuiSvgIcon-root': { fontSize: 18 },
+    borderRadius: '9px',
+    border: '1px solid var(--accent)',
+    color: 'var(--accent)',
+    bgcolor: 'transparent',
+    transition: 'background-color .14s, border-color .14s, color .14s',
+    '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent-deep)', color: 'var(--accent-deep)' },
   } as const;
 
   const actionButtons = (
@@ -259,7 +261,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         <IconButton
           size="small"
           onClick={() => navigate('/service-requests/new')}
-          sx={{ ...iconButtonSx, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
+          sx={createButtonSx}
         >
           <Add size={20} strokeWidth={1.75} />
         </IconButton>

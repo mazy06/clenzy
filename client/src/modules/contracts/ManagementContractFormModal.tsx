@@ -137,7 +137,6 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
       onClose={saving ? undefined : onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3 } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, pt: 2.5, pb: 2 }}>
         <Box
@@ -145,25 +144,34 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
           sx={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
-            bgcolor: 'rgba(107,138,154,0.12)', color: '#6B8A9A',
+            bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
           }}
         >
           <Handshake size={18} strokeWidth={1.75} />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1.25, textWrap: 'balance' }}>
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, lineHeight: 1.25, textWrap: 'balance', color: 'var(--ink)' }}>
             {isEdit
               ? t('contracts.editTitle', 'Modifier le contrat')
               : t('contracts.createTitle', 'Créer un contrat de gestion')}
           </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', mt: 0.25 }}>
+          <Typography sx={{ fontSize: '0.78rem', color: 'var(--muted)', mt: 0.25 }}>
             {isEdit && contract
               ? contract.contractNumber
               : t('contracts.modalSubtitle', "L'encaissement et la commission pilotent la répartition automatique des revenus.")}
           </Typography>
         </Box>
         <Tooltip title={t('contracts.cancel', 'Annuler')}>
-          <IconButton size="small" onClick={onClose} disabled={saving} sx={{ color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}>
+          <IconButton
+            size="small"
+            onClick={onClose}
+            disabled={saving}
+            sx={{
+              width: 34, height: 34, borderRadius: '10px',
+              border: '1px solid var(--line)', color: 'var(--muted)',
+              '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', bgcolor: 'transparent' },
+            }}
+          >
             <Close size={18} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
@@ -192,7 +200,7 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-        <Button onClick={onClose} disabled={saving} sx={{ textTransform: 'none', color: 'text.secondary' }}>
+        <Button onClick={onClose} disabled={saving}>
           {t('contracts.cancel', 'Annuler')}
         </Button>
         <Button
@@ -200,7 +208,6 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
           onClick={handleSubmit}
           disabled={!formValid || saving}
           startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Check size={16} strokeWidth={2} />}
-          sx={{ textTransform: 'none', fontWeight: 600, px: 2.5 }}
         >
           {saving
             ? t('contracts.required.saving', 'Enregistrement…')

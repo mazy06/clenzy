@@ -103,16 +103,6 @@ interface PropertyCardProps {
   onMissingContractClick?: () => void;
 }
 
-// Gradient par type de propriété
-const typeGradients: Record<string, string> = {
-  apartment: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-  appartement: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-  house: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
-  maison: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
-  villa: 'linear-gradient(135deg, #D4A574 0%, #E8C19A 100%)',
-  studio: 'linear-gradient(135deg, #7BA3C2 0%, #9BB8D1 100%)',
-};
-
 // Styles alignés sur DESIGN_BASELINE + référence maquette .pr-card (screen-properties).
 const styles = {
   // ── Card ── (.pr-card : hairline r14 du thème, hover border --line-2 + shadow-card)
@@ -401,7 +391,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
   // Obtenir l'icône du type de propriété
   const getPropertyTypeIcon = (type: string, size: number = 48) => {
-    const iconProps = { size, color: 'rgba(255,255,255,0.35)', strokeWidth: 1.5 };
+    const iconProps = { size, color: 'var(--accent)', strokeWidth: 1.75 };
     switch (type.toLowerCase()) {
       case 'appartement':
       case 'apartment':
@@ -416,11 +406,6 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
       default:
         return <Home {...iconProps} />;
     }
-  };
-
-  // Obtenir le gradient basé sur le type
-  const getGradient = (type: string): string => {
-    return typeGradients[type.toLowerCase()] || typeGradients.apartment;
   };
 
   const handleViewDetails = () => {
@@ -442,7 +427,6 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         <Box
           sx={{
             ...styles.bannerBox,
-            background: getGradient(property.propertyType),
             backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.35)), url(${getPropertyTypeBannerUrl(property.propertyType)})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
@@ -698,7 +682,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <Box
                 sx={{
                   ...styles.dialogIconBox,
-                  background: getGradient(property.propertyType),
+                  bgcolor: 'var(--accent-soft)',
                 }}
               >
                 {getPropertyTypeIcon(property.propertyType, 22)}

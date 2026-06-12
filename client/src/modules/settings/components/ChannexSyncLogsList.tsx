@@ -92,9 +92,10 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
         gap: 1,
         py: 0.65,
         px: 0.85,
-        borderLeft: `3px solid ${statusMeta.color}`,
-        bgcolor: `${statusMeta.color}06`,
-        borderRadius: '0 4px 4px 0',
+        // Pattern -soft baseline (pas de side-stripe — interdit absolu) ;
+        // color-mix compatible var() ET hex.
+        bgcolor: `color-mix(in srgb, ${statusMeta.color} 10%, transparent)`,
+        borderRadius: '8px',
         alignItems: 'flex-start',
       }}
     >

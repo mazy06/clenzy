@@ -511,18 +511,7 @@ export default function OwnerPayoutSettings() {
               }}
               rowsPerPageOptions={[rowsPerPage]}
               labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-              sx={{
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                mt: 1,
-                '& .MuiTablePagination-toolbar': { minHeight: 40, px: 0 },
-                '& .MuiTablePagination-displayedRows': {
-                  fontSize: '0.72rem',
-                  color: 'text.secondary',
-                  fontVariantNumeric: 'tabular-nums',
-                },
-                '& .MuiTablePagination-actions': { ml: 1 },
-              }}
+              sx={{ borderTop: '1px solid', borderColor: 'divider', mt: 1 }}
             />
           </TableContainer>
         )}

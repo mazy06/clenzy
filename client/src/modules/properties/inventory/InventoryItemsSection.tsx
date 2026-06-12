@@ -125,12 +125,12 @@ const FieldLabel = ({ icon, children }: { icon: React.ReactNode; children: React
       display: 'flex',
       alignItems: 'center',
       gap: 0.5,
-      fontWeight: 600,
-      color: 'text.secondary',
+      fontWeight: 700,
+      color: 'var(--faint)',
       mb: 0.5,
       textTransform: 'uppercase',
-      letterSpacing: 0.4,
-      fontSize: '0.625rem',
+      letterSpacing: '.06em',
+      fontSize: '10.5px',
     }}
   >
     {icon}
@@ -489,7 +489,14 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
   const renderCategoryChip = (categoryValue: string) => {
     const cat = CATEGORY_BY_VALUE[categoryValue];
     if (!cat) {
-      return <Chip label={categoryValue} size="small" variant="outlined" />;
+      // Pilule -soft neutre (pattern baseline §2 : texte couleur + fond soft)
+      return (
+        <Chip
+          label={categoryValue}
+          size="small"
+          sx={{ bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none' }}
+        />
+      );
     }
     return (
       <Chip

@@ -113,7 +113,11 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
                 <Alert severity="error" sx={{ py: 0, px: 1, fontSize: '0.6875rem' }}>Erreur</Alert>
               )}
               {configStatus.isSaved && (
-                <Chip label="Sauvegardé" size="small" color="success" variant="outlined" sx={{ fontSize: '0.6875rem', height: 22 }} />
+                <Chip
+                  label="Sauvegardé"
+                  size="small"
+                  sx={{ fontSize: '0.6875rem', height: 22, fontWeight: 600, bgcolor: 'var(--ok-soft)', color: 'var(--ok)', borderRadius: 'var(--radius-pill)' }}
+                />
               )}
               <Button
                 variant="contained"
@@ -121,7 +125,6 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
                 startIcon={<Save size={14} strokeWidth={1.75} />}
                 onClick={() => configRef.current?.save()}
                 disabled={!configStatus.canSave || configStatus.isSaving}
-                sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
               >
                 {configStatus.isSaving ? 'Sauvegarde…' : 'Sauvegarder'}
               </Button>

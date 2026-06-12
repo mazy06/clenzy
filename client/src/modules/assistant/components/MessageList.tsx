@@ -41,7 +41,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, emptyState }
   }, [messages]);
 
   if (messages.length === 0 && emptyState) {
-    return <Box sx={{ flex: 1, overflow: 'auto' }}>{emptyState}</Box>;
+    return <Box sx={{ flex: 1, overflow: 'auto', bgcolor: 'var(--bg)' }}>{emptyState}</Box>;
   }
 
   return (
@@ -50,11 +50,13 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, emptyState }
       sx={{
         flex: 1,
         overflow: 'auto',
+        // Fond du fil (réf .mg-thread) : --bg pour faire ressortir les bulles carte.
+        bgcolor: 'var(--bg)',
         // Smooth scrollbar styling
         scrollbarWidth: 'thin',
         '&::-webkit-scrollbar': { width: 8 },
         '&::-webkit-scrollbar-thumb': {
-          backgroundColor: 'rgba(0,0,0,0.15)',
+          backgroundColor: 'var(--line-2)',
           borderRadius: 4,
         },
       }}

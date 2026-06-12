@@ -12,12 +12,11 @@ import {
   Button,
   Checkbox,
   CircularProgress,
+  Skeleton,
   Alert,
   Tooltip,
   Typography,
   Grid,
-  Card,
-  CardContent,
   TextField,
   TablePagination,
 } from '@mui/material';
@@ -29,9 +28,9 @@ import {
   ErrorOutline,
 } from '../../../icons';
 import { syncAdminApi, OutboxEvent, OutboxStats } from '../../../services/api/syncAdminApi';
-import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
 import FilterChipRow from '../../../components/FilterChipRow';
 import HelpBanner from '../../../components/HelpBanner';
+import StatTile from '../../../components/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 
 // ─── Tooltip copy ────────────────────────────────────────────────────────────
@@ -63,7 +62,7 @@ const renderStatusTooltip = (status: string) => {
     <Box sx={{ p: 0.5, maxWidth: 300 }}>
       <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>{help.title}</Typography>
       <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, mb: 0.5 }}>{help.what}</Typography>
-      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, fontStyle: 'italic', color: 'rgba(255,255,255,0.85)' }}>
+      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, fontStyle: 'italic', color: 'var(--bg)', opacity: 0.85 }}>
         → {help.todo}
       </Typography>
     </Box>
@@ -96,19 +95,19 @@ const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) 
 type OutboxStatus = 'PENDING' | 'SENT' | 'FAILED';
 
 const STATUS_OPTIONS: { value: OutboxStatus; label: string; color: string }[] = [
-  { value: 'PENDING', label: 'Pending', color: semanticToHex('info') },
-  { value: 'SENT',    label: 'Sent',    color: semanticToHex('success') },
-  { value: 'FAILED',  label: 'Failed',  color: semanticToHex('error') },
+  { value: 'PENDING', label: 'Pending', color: 'var(--info)' },
+  { value: 'SENT',    label: 'Sent',    color: 'var(--ok)' },
+  { value: 'FAILED',  label: 'Failed',  color: 'var(--err)' },
 ];
 
-const statusSemantic = (status: string): string => {
-  switch (status) {
-    case 'PENDING': return 'info';
-    case 'SENT': return 'success';
-    case 'FAILED': return 'error';
-    default: return 'default';
-  }
+// Statuts outbox → tokens sémantiques (chips -soft : texte couleur + fond -soft)
+const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
+  PENDING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  SENT: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
 };
+
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 
 const OutboxTab: React.FC = () => {
   const [events, setEvents] = useState<OutboxEvent[]>([]);
@@ -240,7 +239,7 @@ const OutboxTab: React.FC = () => {
           title="Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot d'événements après avoir corrigé la cause (topic créé, broker remonté, etc.)."
         >
           <span>
-            <Button size="small" variant="outlined" onClick={handleSelectAllFailed} sx={{ textTransform: 'none' }}>
+            <Button size="small" variant="outlined" onClick={handleSelectAllFailed}>
               Select All Failed
             </Button>
           </span>
@@ -261,7 +260,6 @@ const OutboxTab: React.FC = () => {
               startIcon={retrying ? <CircularProgress size={16} /> : <Replay />}
               onClick={handleRetry}
               disabled={selectedIds.size === 0 || retrying}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
             >
               Retry Selected ({selectedIds.size})
             </Button>
@@ -317,47 +315,35 @@ const OutboxTab: React.FC = () => {
         ]}
       />
 
-      {/* Stats Cards */}
+      {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={3}>
             <Tooltip arrow title="Events qui attendent d'être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.">
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary">Pending</Typography>
-                  <Typography variant="h4" color="info.main">{stats.pending}</Typography>
-                </CardContent>
-              </Card>
+              <Box>
+                <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} color="#7BA3C2" />
+              </Box>
             </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Tooltip arrow title="Events publiés avec succès dans Kafka. Aucune action requise.">
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary">Sent</Typography>
-                  <Typography variant="h4" color="success.main">{stats.sent}</Typography>
-                </CardContent>
-              </Card>
+              <Box>
+                <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} color="#4A9B8E" />
+              </Box>
             </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Tooltip arrow title="Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).">
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary">Failed</Typography>
-                  <Typography variant="h4" color="error.main">{stats.failed}</Typography>
-                </CardContent>
-              </Card>
+              <Box>
+                <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} color="#C97A7A" />
+              </Box>
             </Tooltip>
           </Grid>
           <Grid item xs={6} sm={3}>
             <Tooltip arrow title="Total cumulé d'events écrits dans l'outbox depuis sa création.">
-              <Card variant="outlined">
-                <CardContent>
-                  <Typography variant="subtitle2" color="text.secondary">Total</Typography>
-                  <Typography variant="h4">{stats.total}</Typography>
-                </CardContent>
-              </Card>
+              <Box>
+                <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} color="#6B8A9A" />
+              </Box>
             </Tooltip>
           </Grid>
         </Grid>
@@ -367,12 +353,18 @@ const OutboxTab: React.FC = () => {
       {retryMessage && <Alert severity="info" sx={{ mb: 2 }}>{retryMessage}</Alert>}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+          ))}
         </Box>
       ) : (
         <>
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer
+            component={Paper}
+            variant="outlined"
+            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
+          >
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -433,7 +425,9 @@ const OutboxTab: React.FC = () => {
               <TableBody>
                 {events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center">Aucun event</TableCell>
+                    <TableCell colSpan={10} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                      Aucun event
+                    </TableCell>
                   </TableRow>
                 ) : (
                   events.map((evt) => (
@@ -455,10 +449,10 @@ const OutboxTab: React.FC = () => {
                           <Chip
                             label={evt.status}
                             size="small"
-                            sx={{
-                              ...softChipSx(semanticToHex(statusSemantic(evt.status))),
-                              cursor: 'help',
-                            }}
+                            sx={(() => {
+                              const tk = STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN;
+                              return { color: tk.fg, backgroundColor: tk.bg, cursor: 'help' };
+                            })()}
                           />
                         </Tooltip>
                       </TableCell>

@@ -91,7 +91,6 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
       maxWidth="md"
       fullWidth
       disableEscapeKeyDown
-      PaperProps={{ sx: { borderRadius: 3 } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
         <Box
@@ -99,17 +98,17 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
           sx={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             width: 28, height: 28, borderRadius: '8px',
-            bgcolor: 'primary.main', color: '#fff',
+            bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
           }}
         >
           <Handshake size={16} strokeWidth={2} />
         </Box>
         <Box>
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, lineHeight: 1.2 }}>
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)' }}>
             {t('contracts.required.title', 'Contrat de gestion requis')}
           </Typography>
           {property && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
               {property.name}
             </Typography>
           )}
@@ -117,7 +116,7 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
       </DialogTitle>
 
       <DialogContent dividers sx={{ px: 3, py: 3 }}>
-        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 3 }}>
+        <Typography sx={{ fontSize: '0.8125rem', color: 'var(--muted)', mb: 3 }}>
           {t(
             'contracts.required.intro',
             "Avant d'exploiter ce logement, définissez le contrat de gestion : il fixe le modèle d'encaissement (taxonomie OTA) et la commission qui pilotent la répartition des paiements. Choisissez un modèle pour préremplir, puis ajustez les détails.",
@@ -145,7 +144,6 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
           onClick={handleSubmit}
           disabled={!formValid || saving}
           startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Check size={16} strokeWidth={2} />}
-          sx={{ textTransform: 'none' }}
         >
           {saving
             ? t('contracts.required.saving', 'Enregistrement…')

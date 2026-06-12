@@ -75,7 +75,7 @@ const ComponentVisibilityConfig: React.FC<ComponentVisibilityConfigProps> = Reac
                 py: 0.5,
                 px: 1,
                 borderRadius: 1,
-                '&:hover': { bgcolor: 'action.hover' },
+                '&:hover': { bgcolor: 'var(--hover)' },
                 transition: 'background-color 0.15s ease',
               }}
             >

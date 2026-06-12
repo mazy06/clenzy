@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, useTheme, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, Snackbar, Alert } from '@mui/material';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -42,7 +42,6 @@ export default function ConnectedObjectsHub({
   actionsContainer,
 }: ConnectedObjectsHubProps = {}) {
   const navigate = useNavigate();
-  const theme = useTheme();
   const { groups, devices, kpis, providers, loading, act, actingUid, refetch } = useConnectedObjects();
   const [kindFilter, setKindFilter] = useState<DeviceKind | ''>('');
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -115,28 +114,31 @@ export default function ConnectedObjectsHub({
       {embedded && actionsContainer ? createPortal(headerAction, actionsContainer) : null}
 
       {/* Bandeau de connexion — pont vers les Settings */}
-      <Paper variant="outlined" sx={{ p: 1, mb: 1.5, borderRadius: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mr: 0.5 }}>
+      <Paper variant="outlined" sx={{ p: 1, mb: 1.5, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Typography variant="caption" sx={{ color: 'var(--faint)', fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.06em', mr: 0.5 }}>
           Services reliés
         </Typography>
         {visibleProviders.length === 0 && !loading ? (
           <Typography variant="caption" sx={{ color: 'text.disabled' }}>Aucun service relié pour l'instant.</Typography>
         ) : (
           visibleProviders.map((p) => {
-            const c = p.connected ? theme.palette.success.main : theme.palette.warning.main;
+            // Statut -soft : connecté = --ok, à reconnecter = --warn (tokens thémables)
+            const tokens = p.connected
+              ? { color: 'var(--ok)', soft: 'var(--ok-soft)' }
+              : { color: 'var(--warn)', soft: 'var(--warn-soft)' };
             return (
               <Tooltip key={p.provider} title={p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'} arrow>
                 <Chip
                   size="small"
                   label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`}
-                  sx={{ height: 24, bgcolor: alpha(c, 0.1), color: c, fontWeight: 600, border: '1px solid', borderColor: alpha(c, 0.25) }}
+                  sx={{ height: 24, bgcolor: tokens.soft, color: tokens.color, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
                 />
               </Tooltip>
             );
           })
         )}
         {!netatmoConnected && (
-          <Button variant="contained" size="small" onClick={() => { void connectNetatmo(); }} sx={{ ml: 'auto', textTransform: 'none' }}>
+          <Button variant="contained" size="small" onClick={() => { void connectNetatmo(); }} sx={{ ml: 'auto' }}>
             Connecter Netatmo
           </Button>
         )}
@@ -177,7 +179,7 @@ export default function ConnectedObjectsHub({
       {loading ? (
         <Box sx={GRID}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 1.5 }} />
+            <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)' }} />
           ))}
         </Box>
       ) : filteredGroups.length === 0 ? (
@@ -201,7 +203,7 @@ export default function ConnectedObjectsHub({
                 display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875,
                 cursor: group.propertyId != null ? 'pointer' : 'default',
                 width: 'fit-content',
-                '&:hover .co-prop-name': { color: group.propertyId != null ? 'primary.main' : 'text.primary' },
+                '&:hover .co-prop-name': { color: group.propertyId != null ? 'var(--accent)' : 'text.primary' },
               }}
             >
               <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}>
@@ -227,7 +229,7 @@ export default function ConnectedObjectsHub({
       {/* Types à venir (caméras, thermostats) — place réservée */}
       {comingSoon.length > 0 && (
         <Box sx={{ mt: 1 }}>
-          <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', mb: 0.75 }}>
+          <Typography variant="caption" sx={{ color: 'var(--faint)', fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 0.75 }}>
             Bientôt disponible
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -240,7 +242,7 @@ export default function ConnectedObjectsHub({
                     variant="outlined"
                     onClick={previewRoute ? () => navigate(previewRoute) : undefined}
                     sx={{
-                      px: 1.25, py: 0.875, borderRadius: 1.5, borderStyle: 'dashed',
+                      px: 1.25, py: 0.875, borderRadius: 'var(--radius-md)', borderStyle: 'dashed',
                       display: 'inline-flex', alignItems: 'center', gap: 0.875,
                       opacity: previewRoute ? 1 : 0.7,
                       cursor: previewRoute ? 'pointer' : 'default',

@@ -236,7 +236,6 @@ const ChannelsPage: React.FC = () => {
               variant="outlined"
               startIcon={<StarIcon size={16} strokeWidth={1.75} />}
               onClick={() => navigate('/channels/reviews')}
-              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
             >
               {t('channels.reviews.title')}
             </Button>
@@ -245,7 +244,6 @@ const ChannelsPage: React.FC = () => {
               variant="outlined"
               startIcon={<RefreshIcon />}
               onClick={() => { refetchStatus(); refetchListings(); }}
-              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
             >
               {t('common.refresh')}
             </Button>

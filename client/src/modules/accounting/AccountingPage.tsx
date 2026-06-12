@@ -107,10 +107,10 @@ const KPI_VALUE_SX = {
   color: 'var(--ink)',
 } as const;
 
-/** Chip statut — pattern baseline §2 : pilule r999, 10.5px fw700 h22, texte couleur + fond soft. */
-const softChipSx = (hex: string) => ({
-  backgroundColor: `${hex}18`,
-  color: hex,
+/** Chip statut — pattern baseline §2 : pilule r999, 10.5px fw700 h22, texte couleur + fond soft (hex ou var(--…)). */
+const softChipSx = (color: string) => ({
+  backgroundColor: `color-mix(in srgb, ${color} 9%, transparent)`,
+  color,
   borderRadius: 999,
   fontWeight: 700,
   fontSize: '10.5px',
@@ -394,7 +394,7 @@ export const PayoutsTab: React.FC = () => {
                     <Chip
                       label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)}
                       size="small"
-                      sx={softChipSx(PAYOUT_STATUS_COLORS[payout.status] ?? '#9e9e9e')}
+                      sx={softChipSx(PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--muted)')}
                     />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
@@ -593,7 +593,7 @@ export const PayoutsTab: React.FC = () => {
                       <Chip
                         label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'}
                         size="small"
-                        sx={softChipSx('#7BA3C2') /* = --info (tokens.css) — hex requis par softChipSx */}
+                        sx={softChipSx('var(--info)')}
                       />
                     </TableCell>
                   </TableRow>
@@ -633,7 +633,7 @@ export const PayoutsTab: React.FC = () => {
                       <Chip
                         label={detailPayout.status}
                         size="small"
-                        sx={softChipSx(PAYOUT_STATUS_COLORS[detailPayout.status] ?? '#9e9e9e')}
+                        sx={softChipSx(PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--muted)')}
                       />
                     </TableCell>
                   </TableRow>
@@ -865,7 +865,7 @@ export const ExpensesTab: React.FC = () => {
             .map((opt) => ({
               value: opt.value as ExpenseStatus,
               label: t(opt.labelKey, opt.label),
-              color: EXPENSE_STATUS_COLORS[opt.value as ExpenseStatus] ?? '#6B7280',
+              color: EXPENSE_STATUS_COLORS[opt.value as ExpenseStatus] ?? 'var(--muted)',
             }))}
           value={filterStatus}
           onChange={(v) => setFilterStatus(v as ExpenseStatus | '')}
@@ -975,7 +975,7 @@ export const ExpensesTab: React.FC = () => {
                     <Chip
                       label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)}
                       size="small"
-                      sx={softChipSx(EXPENSE_STATUS_COLORS[expense.status] ?? '#9e9e9e')}
+                      sx={softChipSx(EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--muted)')}
                     />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>

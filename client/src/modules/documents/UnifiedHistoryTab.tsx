@@ -6,13 +6,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TablePagination,
   TextField,
   Typography,
@@ -29,11 +22,13 @@ import {
   Fingerprint,
   VerifiedUser,
   Email as EmailIcon,
-  Description as DocIcon,
+  Forum as ForumIcon,
+  ChatBubbleOutline as SmsIcon,
   History,
-  Visibility,
   Edit as EditIcon,
   Replay,
+  Warning as AlertTriangleIcon,
+  ArrowForward as ArrowRightIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { guestMessagingApi, type GuestMessageLog } from '../../services/api/guestMessagingApi';
@@ -41,12 +36,24 @@ import { guestsApi } from '../../services/api/guestsApi';
 import { documentsApi, type DocumentGeneration } from '../../services/api/documentsApi';
 import { useGenerations, useVerifyDocumentIntegrity } from './hooks/useDocuments';
 import GenerateDialog from './GenerateDialog';
-import { softChipSx } from '../../utils/statusUtils';
+import FilterChipRow from '../../components/FilterChipRow';
+import EmptyState from '../../components/EmptyState';
 import { renderServerEmailPreview } from '../../utils/emailMarkdown';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type HistoryFilter = 'all' | 'messages' | 'documents';
+
+/** Ton sémantique (tokens Signature) pour les chips de statut -soft. */
+interface Tone { c: string; bg: string }
+
+const TONES: Record<'ok' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
+  ok:    { c: 'var(--ok)',    bg: 'var(--ok-soft)' },
+  warn:  { c: 'var(--warn)',  bg: 'var(--warn-soft)' },
+  err:   { c: 'var(--err)',   bg: 'var(--err-soft)' },
+  info:  { c: 'var(--info)',  bg: 'var(--info-soft)' },
+  muted: { c: 'var(--muted)', bg: 'var(--hover)' },
+};
 
 interface UnifiedRow {
   id: string;
@@ -57,7 +64,7 @@ interface UnifiedRow {
   recipient: string;
   channel: string;
   status: string;
-  statusHex: string;
+  statusTone: Tone;
   errorMessage?: string;
   // Message-specific
   messageLog?: GuestMessageLog;
@@ -70,39 +77,37 @@ interface UnifiedRow {
   correctsId?: number;
 }
 
-// ─── Status Configs ─────────────────────────────────────────────────────────
+// ─── Status Configs (tokens Signature) ──────────────────────────────────────
 
-// Palette Baitly : remplace les couleurs MUI (#d32f2f, #ED6C02, #0288d1)
-// par les accents valides du produit.
-const ACCENT_TEAL = '#4A9B8E';
-const WARM = '#D4A574';
-const SOFT_BLUE = '#7BA3C2';
-const NEUTRAL = '#8A8378';
-const DANGER_SOFT = '#C97A7A';
-const PRIMARY = '#6B8A9A';
-
-const MSG_STATUS: Record<string, { hex: string; label: string }> = {
-  SENT: { hex: ACCENT_TEAL, label: 'Envoye' },
-  DELIVERED: { hex: ACCENT_TEAL, label: 'Delivre' },
-  PENDING: { hex: WARM, label: 'En attente' },
-  FAILED: { hex: DANGER_SOFT, label: 'Echoue' },
-  BOUNCED: { hex: DANGER_SOFT, label: 'Rebondi' },
+const MSG_STATUS: Record<string, { tone: Tone; label: string }> = {
+  SENT: { tone: TONES.ok, label: 'Envoye' },
+  DELIVERED: { tone: TONES.ok, label: 'Delivre' },
+  PENDING: { tone: TONES.warn, label: 'En attente' },
+  FAILED: { tone: TONES.err, label: 'Echoue' },
+  BOUNCED: { tone: TONES.err, label: 'Rebondi' },
 };
 
-const DOC_STATUS: Record<string, { hex: string; label: string }> = {
-  PENDING: { hex: NEUTRAL, label: 'En attente' },
-  GENERATING: { hex: SOFT_BLUE, label: 'En cours' },
-  COMPLETED: { hex: ACCENT_TEAL, label: 'Termine' },
-  FAILED: { hex: DANGER_SOFT, label: 'Echoue' },
-  SENT: { hex: ACCENT_TEAL, label: 'Envoye' },
-  LOCKED: { hex: WARM, label: 'Verrouille' },
-  ARCHIVED: { hex: NEUTRAL, label: 'Archive' },
+const DOC_STATUS: Record<string, { tone: Tone; label: string }> = {
+  PENDING: { tone: TONES.muted, label: 'En attente' },
+  GENERATING: { tone: TONES.info, label: 'En cours' },
+  COMPLETED: { tone: TONES.ok, label: 'Termine' },
+  FAILED: { tone: TONES.err, label: 'Echoue' },
+  SENT: { tone: TONES.ok, label: 'Envoye' },
+  LOCKED: { tone: TONES.warn, label: 'Verrouille' },
+  ARCHIVED: { tone: TONES.muted, label: 'Archive' },
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
   EMAIL: 'Email',
   WHATSAPP: 'WhatsApp',
   SMS: 'SMS',
+};
+
+/** Couleur de pastille par canal — constantes messagerie validées + token info. */
+const CHANNEL_PASTILLE: Record<string, { bg: string; icon: React.ReactNode }> = {
+  EMAIL: { bg: 'var(--info)', icon: <EmailIcon size={15} strokeWidth={1.75} /> },
+  WHATSAPP: { bg: '#25A36F', icon: <ForumIcon size={15} strokeWidth={1.75} /> },
+  SMS: { bg: '#C28A52', icon: <SmsIcon size={15} strokeWidth={1.75} /> },
 };
 
 // ─── Ref Interface ──────────────────────────────────────────────────────────
@@ -177,7 +182,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
     if (filter !== 'documents') {
       for (const log of messageLogs) {
-        const statusConfig = MSG_STATUS[log.status] || { hex: '#757575', label: log.status };
+        const statusConfig = MSG_STATUS[log.status] || { tone: TONES.muted, label: log.status };
         const dateStr = log.sentAt || log.createdAt;
         rows.push({
           id: `msg-${log.id}`,
@@ -188,7 +193,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           recipient: log.guestName || log.recipient || '—',
           channel: CHANNEL_LABELS[log.channel] || log.channel,
           status: statusConfig.label,
-          statusHex: statusConfig.hex,
+          statusTone: statusConfig.tone,
           errorMessage: log.errorMessage || undefined,
           messageLog: log,
         });
@@ -197,7 +202,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
     if (filter !== 'messages') {
       for (const gen of generations) {
-        const statusConfig = DOC_STATUS[gen.status] || { hex: '#757575', label: gen.status };
+        const statusConfig = DOC_STATUS[gen.status] || { tone: TONES.muted, label: gen.status };
         rows.push({
           id: `doc-${gen.id}`,
           kind: 'document',
@@ -207,7 +212,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           recipient: gen.emailTo || '—',
           channel: 'Document',
           status: statusConfig.label,
-          statusHex: statusConfig.hex,
+          statusTone: statusConfig.tone,
           errorMessage: gen.errorMessage || undefined,
           documentGeneration: gen,
           legalNumber: gen.legalNumber ?? undefined,
@@ -317,12 +322,6 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
   const isLoading = messagesLoading || docsLoading;
 
-  const FILTER_OPTIONS: { key: HistoryFilter; label: string }[] = [
-    { key: 'all', label: t('documents.history.filterAll') },
-    { key: 'messages', label: t('documents.history.filterMessages') },
-    { key: 'documents', label: t('documents.history.filterDocuments') },
-  ];
-
   return (
     <Box>
       {actionError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{actionError}</Alert>}
@@ -336,25 +335,19 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         </Alert>
       )}
 
-      {/* Filter chips — Baitly soft palette, active = PRIMARY tinted, inactif = NEUTRAL */}
-      <Box sx={{ display: 'flex', gap: 0.75, mb: 2 }}>
-        {FILTER_OPTIONS.map((opt) => {
-          const active = filter === opt.key;
-          return (
-            <Chip
-              key={opt.key}
-              label={opt.label}
-              onClick={() => setFilter(opt.key)}
-              sx={{
-                ...softChipSx(active ? PRIMARY : NEUTRAL),
-                cursor: 'pointer',
-                opacity: active ? 1 : 0.7,
-                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': { opacity: 1, backgroundColor: active ? `${PRIMARY}24` : `${NEUTRAL}24` },
-              }}
-            />
-          );
-        })}
+      {/* Filtres — primitive partagée FilterChipRow ('' = Tous) */}
+      <Box sx={{ mb: 2 }}>
+        <FilterChipRow
+          options={[
+            { value: 'messages', label: t('documents.history.filterMessages'), color: '#7BA3C2', count: messageLogs.length },
+            { value: 'documents', label: t('documents.history.filterDocuments'), color: '#6B8A9A', count: docTotalElements },
+          ]}
+          value={filter === 'all' ? '' : filter}
+          onChange={(v) => setFilter((v === '' ? 'all' : v) as HistoryFilter)}
+          allLabel={t('documents.history.filterAll')}
+          allCount={messageLogs.length + docTotalElements}
+          size="compact"
+        />
       </Box>
 
       {isLoading ? (
@@ -362,193 +355,204 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           <CircularProgress />
         </Box>
       ) : unifiedRows.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><History size={48} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {t('documents.history.empty')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('documents.history.emptyDesc')}
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<History />}
+          title={t('documents.history.empty')}
+          description={t('documents.history.emptyDesc')}
+        />
       ) : (
         <>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ width: 40 }}></TableCell>
-                  <TableCell>{t('documents.history.colDate')}</TableCell>
-                  <TableCell>{t('documents.history.colName')}</TableCell>
-                  <TableCell>{t('documents.history.colRecipient')}</TableCell>
-                  <TableCell>{t('documents.history.colChannel')}</TableCell>
-                  <TableCell align="center">{t('documents.history.colStatus')}</TableCell>
-                  <TableCell align="right">{t('common.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {unifiedRows.map((row) => (
-                  <TableRow key={row.id} hover>
-                    {/* Type icon (Baitly palette : message = SOFT_BLUE, document = VIOLET) */}
-                    <TableCell sx={{ pr: 0 }}>
-                      <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')} arrow>
-                        {row.kind === 'message'
-                          ? <Box component="span" sx={{ display: 'inline-flex', color: SOFT_BLUE }}><EmailIcon size={18} strokeWidth={1.75} /></Box>
-                          : <Box component="span" sx={{ display: 'inline-flex', color: '#8b5cf6' }}><DocIcon size={18} strokeWidth={1.75} /></Box>
-                        }
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" noWrap>{formatDate(row.dateStr)}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" fontWeight={500} noWrap sx={{ maxWidth: 200 }}>
-                          {row.name}
-                        </Typography>
-                        {row.legalNumber && (() => {
-                          const hex = row.locked ? WARM : NEUTRAL;
-                          return (
-                            <Chip
-                              icon={row.locked ? <Lock size={12} strokeWidth={1.75} color={hex} /> : undefined}
-                              label={row.legalNumber}
+          {/* ── Lignes .fr-doc : pastille type + nom fw600 + méta muted + statut -soft + actions ── */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {unifiedRows.map((row) => {
+              const isFailed = row.statusTone === TONES.err && (row.status === 'Echoue' || row.status === 'Rebondi');
+              const pastille = row.kind === 'document'
+                ? { bg: 'var(--err)', icon: null }
+                : CHANNEL_PASTILLE[(row.messageLog?.channel ?? 'EMAIL')] ?? CHANNEL_PASTILLE.EMAIL;
+              const meta = [
+                formatDate(row.dateStr),
+                row.recipient !== '—' ? row.recipient : '',
+                row.channel,
+                row.fileSize ? formatFileSize(row.fileSize) : '',
+              ].filter(Boolean).join(' · ');
+
+              return (
+                <Box
+                  key={row.id}
+                  sx={{
+                    display: 'flex', alignItems: 'center', gap: '12px', p: '13px 15px',
+                    border: '1px solid', borderColor: isFailed ? 'var(--err)' : 'var(--line)',
+                    borderRadius: '12px', bgcolor: isFailed ? 'var(--err-soft)' : 'var(--card)',
+                    transition: 'border-color .14s, box-shadow .14s',
+                    ...(isFailed ? {} : {
+                      '&:hover': { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
+                    }),
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                  }}
+                >
+                  {/* Pastille type 34 r9 — PDF = --err, canaux mappés sémantiquement */}
+                  <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')} arrow>
+                    <Box sx={{
+                      width: 34, height: 34, borderRadius: '9px',
+                      bgcolor: isFailed ? 'var(--err)' : pastille.bg, color: 'var(--on-accent)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      fontSize: '9px', fontWeight: 800,
+                    }}>
+                      {isFailed
+                        ? <AlertTriangleIcon size={15} strokeWidth={1.75} />
+                        : row.kind === 'document' ? 'PDF' : pastille.icon}
+                    </Box>
+                  </Tooltip>
+
+                  {/* Nom + méta */}
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                      <Typography noWrap sx={{ fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)' }}>
+                        {row.name}
+                      </Typography>
+                      {row.legalNumber && (
+                        <Chip
+                          icon={row.locked ? <Lock size={12} strokeWidth={1.75} /> : undefined}
+                          label={row.legalNumber}
+                          size="small"
+                          sx={{
+                            color: row.locked ? 'var(--warn)' : 'var(--muted)',
+                            bgcolor: row.locked ? 'var(--warn-soft)' : 'var(--hover)',
+                            fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+                            '& .MuiChip-icon': { color: row.locked ? 'var(--warn)' : 'var(--muted)' },
+                          }}
+                        />
+                      )}
+                    </Box>
+                    <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: '1px' }}>
+                      {isFailed && row.errorMessage ? `${row.errorMessage} · ${meta}` : meta}
+                    </Typography>
+                  </Box>
+
+                  {/* Statut -soft + actions */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+                    <Tooltip title={row.errorMessage || ''} arrow>
+                      <Chip label={row.status} size="small" sx={{ color: row.statusTone.c, bgcolor: row.statusTone.bg }} />
+                    </Tooltip>
+
+                    {/* ── Message : « Aperçu → » accent + actions d'échec ── */}
+                    {row.kind === 'message' && row.messageLog && (
+                      <>
+                        {row.messageLog.status === 'FAILED' && row.messageLog.guestId && (
+                          <Tooltip title="Modifier l'email et renvoyer" arrow>
+                            <IconButton
                               size="small"
-                              sx={{
-                                ...softChipSx(hex),
-                                fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+                              onClick={() => {
+                                setEditEmailLog(row.messageLog!);
+                                setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
                               }}
-                            />
+                              aria-label="Modifier l'email"
+                              sx={{ cursor: 'pointer', color: 'var(--muted)', '&:hover': { color: 'var(--warn)', backgroundColor: 'var(--warn-soft)' } }}
+                            >
+                              <EditIcon size={16} strokeWidth={1.75} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {row.messageLog.status === 'FAILED' && !row.messageLog.guestId && (
+                          <Tooltip title="Réservation anonymisée (iCal Airbnb/Booking) — l'email du voyageur n'est pas exposé par le canal. Crée un guest manuel pour pouvoir envoyer le message.">
+                            <span>
+                              <IconButton size="small" disabled>
+                                <EditIcon size={16} strokeWidth={1.75} />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
+                        {row.messageLog.status === 'FAILED' && row.messageLog.templateId && (() => {
+                          const canResend = hasRecipient(row.messageLog!);
+                          const tip = canResend
+                            ? "Renvoyer le message"
+                            : "Pas de destinataire — ajoute un email guest avant de renvoyer";
+                          return (
+                            <Tooltip title={tip} arrow>
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  disabled={!canResend || resendingId === row.messageLog!.id}
+                                  onClick={() => canResend && handleResend(row.messageLog!)}
+                                  aria-label="Renvoyer"
+                                  sx={{
+                                    cursor: canResend ? 'pointer' : 'not-allowed',
+                                    color: canResend ? 'var(--ok)' : 'var(--faint)',
+                                    '&:hover': canResend ? { color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' } : {},
+                                  }}
+                                >
+                                  {resendingId === row.messageLog!.id
+                                    ? <CircularProgress size={16} />
+                                    : <Replay size={16} strokeWidth={1.75} />}
+                                </IconButton>
+                              </span>
+                            </Tooltip>
                           );
                         })()}
-                      </Box>
-                      {row.fileSize ? (
-                        <Typography variant="caption" color="text.secondary">
-                          {formatFileSize(row.fileSize)}
-                        </Typography>
-                      ) : null}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 180 }}>
-                        {row.recipient}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={row.channel} size="small" sx={softChipSx(SOFT_BLUE)} />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title={row.errorMessage || ''} arrow>
-                        <Chip label={row.status} size="small" sx={softChipSx(row.statusHex)} />
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                        {/* ── Message actions ── */}
-                        {row.kind === 'message' && row.messageLog && (
-                          <>
-                            <Tooltip title="Voir les details" arrow>
-                              <IconButton
-                                size="small"
-                                onClick={() => setDetailLog(row.messageLog!)}
-                                aria-label="Voir les details"
-                                sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: SOFT_BLUE, backgroundColor: `${SOFT_BLUE}14` } }}
-                              >
-                                <Visibility size={16} strokeWidth={1.75} />
-                              </IconButton>
-                            </Tooltip>
-                            {row.messageLog.status === 'FAILED' && row.messageLog.guestId && (
-                              <Tooltip title="Modifier l'email et renvoyer" arrow>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => {
-                                    setEditEmailLog(row.messageLog!);
-                                    setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
-                                  }}
-                                  aria-label="Modifier l'email"
-                                  sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: WARM, backgroundColor: `${WARM}14` } }}
-                                >
-                                  <EditIcon size={16} strokeWidth={1.75} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {row.messageLog.status === 'FAILED' && !row.messageLog.guestId && (
-                              <Tooltip title="Réservation anonymisée (iCal Airbnb/Booking) — l'email du voyageur n'est pas exposé par le canal. Crée un guest manuel pour pouvoir envoyer le message.">
-                                <span>
-                                  <IconButton size="small" disabled>
-                                    <EditIcon size={16} strokeWidth={1.75} />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                            )}
-                            {row.messageLog.status === 'FAILED' && row.messageLog.templateId && (() => {
-                              const canResend = hasRecipient(row.messageLog!);
-                              const tip = canResend
-                                ? "Renvoyer le message"
-                                : "Pas de destinataire — ajoute un email guest avant de renvoyer";
-                              return (
-                                <Tooltip title={tip} arrow>
-                                  <span>
-                                    <IconButton
-                                      size="small"
-                                      disabled={!canResend || resendingId === row.messageLog!.id}
-                                      onClick={() => canResend && handleResend(row.messageLog!)}
-                                      aria-label="Renvoyer"
-                                      sx={{
-                                        cursor: canResend ? 'pointer' : 'not-allowed',
-                                        color: canResend ? ACCENT_TEAL : 'text.disabled',
-                                        '&:hover': canResend ? { backgroundColor: `${ACCENT_TEAL}14` } : {},
-                                      }}
-                                    >
-                                      {resendingId === row.messageLog!.id
-                                        ? <CircularProgress size={16} />
-                                        : <Replay size={16} strokeWidth={1.75} />}
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
-                              );
-                            })()}
-                          </>
+                        <Box
+                          component="button"
+                          type="button"
+                          onClick={() => setDetailLog(row.messageLog!)}
+                          aria-label="Voir les details"
+                          sx={{
+                            all: 'unset', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)',
+                            whiteSpace: 'nowrap', cursor: 'pointer',
+                            '&:hover': { color: 'var(--accent-deep)' },
+                            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2, borderRadius: '6px' },
+                          }}
+                        >
+                          Aperçu
+                          <ArrowRightIcon size={14} strokeWidth={1.75} />
+                        </Box>
+                      </>
+                    )}
+
+                    {/* ── Document : actions intégrité + « Télécharger → » accent ── */}
+                    {row.kind === 'document' && row.documentGeneration && (
+                      <>
+                        {row.locked && row.documentHash && (
+                          <Tooltip title="Verifier l'integrite" arrow>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleVerify(row.documentGeneration!)}
+                              aria-label="Verifier l'integrite"
+                              sx={{ cursor: 'pointer', color: 'var(--muted)', '&:hover': { color: 'var(--info)', backgroundColor: 'var(--info-soft)' } }}
+                            >
+                              <Fingerprint size={16} strokeWidth={1.75} />
+                            </IconButton>
+                          </Tooltip>
                         )}
-                        {/* ── Document actions ── */}
-                        {row.kind === 'document' && row.documentGeneration && (
-                          <>
-                            {['COMPLETED', 'SENT', 'LOCKED'].includes(row.documentGeneration.status) && (
-                              <Tooltip title="Telecharger" arrow>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleDownload(row.documentGeneration!)}
-                                  aria-label="Telecharger"
-                                  sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}14` } }}
-                                >
-                                  <Download size={16} strokeWidth={1.75} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {row.locked && row.documentHash && (
-                              <Tooltip title="Verifier l'integrite" arrow>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleVerify(row.documentGeneration!)}
-                                  aria-label="Verifier l'integrite"
-                                  sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: SOFT_BLUE, backgroundColor: `${SOFT_BLUE}14` } }}
-                                >
-                                  <Fingerprint size={16} strokeWidth={1.75} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {row.correctsId && (
-                              <Tooltip title={`Correction du document #${row.correctsId}`}>
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.5 }}><VerifiedUser size={16} strokeWidth={1.75} /></Box>
-                              </Tooltip>
-                            )}
-                          </>
+                        {row.correctsId && (
+                          <Tooltip title={`Correction du document #${row.correctsId}`}>
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><VerifiedUser size={16} strokeWidth={1.75} /></Box>
+                          </Tooltip>
                         )}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                        {['COMPLETED', 'SENT', 'LOCKED'].includes(row.documentGeneration.status) && (
+                          <Box
+                            component="button"
+                            type="button"
+                            onClick={() => handleDownload(row.documentGeneration!)}
+                            aria-label="Telecharger"
+                            sx={{
+                              all: 'unset', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)',
+                              whiteSpace: 'nowrap', cursor: 'pointer',
+                              '&:hover': { color: 'var(--accent-deep)' },
+                              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2, borderRadius: '6px' },
+                            }}
+                          >
+                            <Download size={14} strokeWidth={1.75} />
+                            Télécharger
+                          </Box>
+                        )}
+                      </>
+                    )}
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
 
           {/* Pagination only for documents view */}
           {filter !== 'messages' && docTotalElements > docSize && (

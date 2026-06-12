@@ -60,10 +60,10 @@ export default AirbnbConnectionDetails;
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <Box>
-      <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </Typography>
-      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Typography>
     </Box>

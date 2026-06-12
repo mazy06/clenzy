@@ -144,17 +144,17 @@ const FormSection: React.FC<FormSectionProps> = ({ label, hint, children }) => (
     <Box>
       <Typography
         sx={{
-          fontSize: '0.6875rem',
+          fontSize: '10.5px',
           fontWeight: 700,
           textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'text.secondary',
+          letterSpacing: '0.06em',
+          color: 'var(--faint)',
         }}
       >
         {label}
       </Typography>
       {hint && (
-        <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 0.25 }}>
+        <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)', mt: 0.25 }}>
           {hint}
         </Typography>
       )}
@@ -224,13 +224,14 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                   position: 'relative',
                   cursor: 'pointer',
                   px: 1.5, py: 1.25,
-                  borderRadius: 2,
+                  borderRadius: '12px',
                   border: '1px solid',
-                  borderColor: active ? '#6B8A9A' : 'divider',
-                  bgcolor: active ? 'rgba(107,138,154,0.08)' : 'transparent',
-                  transition: 'background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  '&:hover': { borderColor: '#6B8A9A', bgcolor: 'rgba(107,138,154,0.05)' },
-                  '&:focus-visible': { outline: '2px solid #6B8A9A', outlineOffset: 1 },
+                  borderColor: active ? 'var(--accent)' : 'var(--line)',
+                  bgcolor: active ? 'var(--accent-soft)' : 'transparent',
+                  transition: 'background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  '&:hover': { borderColor: 'var(--accent)', bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)' },
+                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+                  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                 }}
               >
                 {active && (
@@ -240,16 +241,16 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                       position: 'absolute', top: 8, right: 8,
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       width: 16, height: 16, borderRadius: '50%',
-                      bgcolor: '#6B8A9A', color: '#fff',
+                      bgcolor: 'var(--accent)', color: 'var(--on-accent)',
                     }}
                   >
                     <Check size={10} strokeWidth={2.5} />
                   </Box>
                 )}
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1.3, pr: active ? 2.5 : 0 }}>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1.3, pr: active ? 2.5 : 0, color: 'var(--ink)' }}>
                   {preset.label}
                 </Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.45, mt: 0.5 }}>
+                <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.45, mt: 0.5 }}>
                   {preset.description}
                 </Typography>
               </Box>
@@ -448,12 +449,12 @@ export const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate
             height: 8,
             borderRadius: 0.75,
             border: '1px dashed',
-            borderColor: 'divider',
+            borderColor: 'var(--line-2)',
             bgcolor: 'transparent',
           }}
           aria-label="Aucune commission définie"
         />
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', fontStyle: 'italic' }}>
+        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--faint)', fontStyle: 'italic' }}>
           Saisissez un taux de commission pour voir la répartition appliquée à ce contrat.
         </Typography>
       </Box>
@@ -469,9 +470,9 @@ export const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate
   const platformPct = commissionPct * platformRatio;
   const conciergePct = commissionPct * conciergeRatio;
 
-  const OWNER_COLOR = '#6B8A9A';
-  const PLATFORM_COLOR = '#D4A574';
-  const CONCIERGE_COLOR = '#10b981';
+  const OWNER_COLOR = 'var(--accent)';
+  const PLATFORM_COLOR = 'var(--warn)';
+  const CONCIERGE_COLOR = 'var(--ok)';
 
   const segments = [
     { label: 'Propriétaire', pct: ownerPct, color: OWNER_COLOR },
@@ -489,8 +490,8 @@ export const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate
           borderRadius: 0.75,
           overflow: 'hidden',
           border: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.default',
+          borderColor: 'var(--line)',
+          bgcolor: 'var(--field)',
         }}
         role="img"
         aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}
@@ -517,10 +518,10 @@ export const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate
                 bgcolor: seg.color,
               }}
             />
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 500 }}>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontWeight: 500 }}>
               {seg.label}
             </Typography>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.primary', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'var(--ink)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
               {seg.pct.toFixed(seg.pct >= 10 ? 0 : 1)} %
             </Typography>
           </Box>

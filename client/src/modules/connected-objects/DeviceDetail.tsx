@@ -38,8 +38,8 @@ export default function DeviceDetail() {
   if (loading && !device) {
     return (
       <Box>
-        <Skeleton variant="rounded" height={64} sx={{ mb: 2, borderRadius: 1.5 }} />
-        <Skeleton variant="rounded" height={360} sx={{ borderRadius: 1.5 }} />
+        <Skeleton variant="rounded" height={64} sx={{ mb: 2, borderRadius: 'var(--radius-lg)' }} />
+        <Skeleton variant="rounded" height={360} sx={{ borderRadius: 'var(--radius-lg)' }} />
       </Box>
     );
   }

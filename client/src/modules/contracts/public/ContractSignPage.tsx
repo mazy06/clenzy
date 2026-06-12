@@ -32,7 +32,9 @@ interface SignView {
 
 type PageState = 'loading' | 'ready' | 'notfound' | 'error';
 
-const BRAND = '#6B8A9A';
+// Page publique : on consomme les tokens Signature (tokens.css importé global).
+// Défaut visiteur = thème clair, accent émeraude.
+const BRAND = 'var(--accent)';
 
 async function fetchView(token: string): Promise<SignView | null> {
   const response = await fetch(`${API_BASE}/public/contract-signature/${token}`, {
@@ -140,7 +142,7 @@ const ContractSignPage: React.FC = () => {
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
       sx={{
         minHeight: '100vh',
-        bgcolor: '#f6f8f9',
+        bgcolor: 'var(--bg)',
         py: { xs: 3, md: 6 },
         px: 2,
         display: 'flex',
@@ -155,25 +157,25 @@ const ContractSignPage: React.FC = () => {
             sx={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: 36, height: 36, borderRadius: '10px',
-              bgcolor: BRAND, color: '#fff', flexShrink: 0,
+              bgcolor: BRAND, color: 'var(--on-accent)', flexShrink: 0,
             }}
           >
             <Handshake size={20} strokeWidth={1.75} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1.2, color: '#2c3e46' }}>
+            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)' }}>
               Clenzy
             </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
               {L.brandTagline}
             </Typography>
           </Box>
         </Box>
 
         {state === 'loading' && (
-          <Paper variant="outlined" sx={{ borderRadius: 3, p: 6, textAlign: 'center' }}>
+          <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: 6, textAlign: 'center' }}>
             <CircularProgress size={28} sx={{ color: BRAND }} />
-            <Typography sx={{ mt: 2, fontSize: '0.875rem', color: 'text.secondary' }}>
+            <Typography sx={{ mt: 2, fontSize: '0.875rem', color: 'var(--muted)' }}>
               {L.loadingText}
             </Typography>
           </Paper>
@@ -182,7 +184,8 @@ const ContractSignPage: React.FC = () => {
         {(state === 'notfound' || state === 'error') && (
           <StatusCard
             icon={<Warning size={28} strokeWidth={1.75} />}
-            iconColor="#D4A574"
+            iconColor="var(--warn)"
+            iconSoft="var(--warn-soft)"
             title={state === 'notfound' ? L.notFoundTitle : L.errorTitle}
             text={state === 'notfound' ? L.notFoundText : L.errorText}
           />
@@ -192,17 +195,18 @@ const ContractSignPage: React.FC = () => {
           <>
             {/* ── Bandeau d'état (expiré / annulé / signé / succès) ── */}
             {view.status === 'EXPIRED' && (
-              <StatusCard icon={<Warning size={28} strokeWidth={1.75} />} iconColor="#D4A574"
+              <StatusCard icon={<Warning size={28} strokeWidth={1.75} />} iconColor="var(--warn)" iconSoft="var(--warn-soft)"
                 title={L.expiredTitle} text={L.expiredText} />
             )}
             {view.status === 'CANCELLED' && (
-              <StatusCard icon={<Warning size={28} strokeWidth={1.75} />} iconColor="#C97A7A"
+              <StatusCard icon={<Warning size={28} strokeWidth={1.75} />} iconColor="var(--err)" iconSoft="var(--err-soft)"
                 title={L.cancelledTitle} text={L.cancelledText} />
             )}
             {view.status === 'SIGNED' && (
               <StatusCard
                 icon={<CheckCircle size={28} strokeWidth={1.75} />}
-                iconColor="#4A9B8E"
+                iconColor="var(--ok)"
+                iconSoft="var(--ok-soft)"
                 title={justSigned ? L.successTitle : L.signedTitle}
                 text={justSigned
                   ? L.successText
@@ -214,17 +218,17 @@ const ContractSignPage: React.FC = () => {
 
             {/* ── Titre + récapitulatif (toujours visibles si contrat lisible) ── */}
             <Box>
-              <Typography sx={{ fontSize: '1.375rem', fontWeight: 700, color: '#2c3e46', textWrap: 'balance' }}>
+              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.375rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>
                 {L.title} <Box component="span" sx={{ fontFamily: 'monospace', fontSize: '1.05rem', color: BRAND }}>{view.contractNumber}</Box>
               </Typography>
               {view.status === 'PENDING' && (
-                <Typography sx={{ mt: 0.5, fontSize: '0.875rem', color: 'text.secondary' }}>
+                <Typography sx={{ mt: 0.5, fontSize: '0.875rem', color: 'var(--muted)' }}>
                   {L.subtitle}
                 </Typography>
               )}
             </Box>
 
-            <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 3 } }}>
+            <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
               <SectionLabel>{L.summaryTitle}</SectionLabel>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: 3 }}>
                 <SummaryRow label={L.property} value={view.propertyName || '—'} />
@@ -252,7 +256,7 @@ const ContractSignPage: React.FC = () => {
 
             {/* ── Document ── */}
             {(view.status === 'PENDING' || view.status === 'SIGNED') && (
-              <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 3 } }}>
+              <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                   <SectionLabel sx={{ mb: 0 }}>{L.documentTitle}</SectionLabel>
                   {pdfUrl && (
@@ -277,9 +281,9 @@ const ContractSignPage: React.FC = () => {
                       width: '100%',
                       height: { xs: 380, md: 520 },
                       border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      bgcolor: '#fff',
+                      borderColor: 'var(--line-2)',
+                      borderRadius: '12px',
+                      bgcolor: 'var(--card)',
                     }}
                   />
                 ) : view.documentAvailable ? (
@@ -292,7 +296,7 @@ const ContractSignPage: React.FC = () => {
                   </Alert>
                 )}
                 {view.status === 'PENDING' && (
-                  <Typography sx={{ mt: 1, fontSize: '0.75rem', color: 'text.disabled' }}>
+                  <Typography sx={{ mt: 1, fontSize: '0.75rem', color: 'var(--faint)' }}>
                     {L.documentHint}
                   </Typography>
                 )}
@@ -301,7 +305,7 @@ const ContractSignPage: React.FC = () => {
 
             {/* ── Bloc signature ── */}
             {view.status === 'PENDING' && (
-              <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 3 }, borderColor: BRAND }}>
+              <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', p: { xs: 2, md: 3 }, borderColor: BRAND }}>
                 <SectionLabel>{L.signTitle}</SectionLabel>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <TextField
@@ -322,7 +326,7 @@ const ContractSignPage: React.FC = () => {
                       />
                     }
                     label={
-                      <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', lineHeight: 1.55 }}>
+                      <Typography sx={{ fontSize: '0.78rem', color: 'var(--muted)', lineHeight: 1.55 }}>
                         {view.consentText}
                       </Typography>
                     }
@@ -342,11 +346,13 @@ const ContractSignPage: React.FC = () => {
                       ? <CircularProgress size={16} color="inherit" />
                       : <CheckCircle size={18} strokeWidth={1.75} />}
                     sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
+                      // Exception page publique : CTA de signature en aplat accent
+                      // (langage propre aux pages publiques, cf. send messagerie).
                       py: 1.1,
                       bgcolor: BRAND,
-                      '&:hover': { bgcolor: '#5a7888' },
+                      color: 'var(--on-accent)',
+                      borderColor: BRAND,
+                      '&:hover': { bgcolor: 'var(--accent-deep)', borderColor: 'var(--accent-deep)', color: 'var(--on-accent)' },
                       alignSelf: { sm: 'flex-start' },
                       px: 4,
                     }}
@@ -360,7 +366,7 @@ const ContractSignPage: React.FC = () => {
         )}
 
         {/* ── Pied de page légal ── */}
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', textAlign: 'center', pb: 2 }}>
+        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--faint)', textAlign: 'center', pb: 2 }}>
           {L.footer}
         </Typography>
       </Box>
@@ -373,11 +379,11 @@ const ContractSignPage: React.FC = () => {
 const SectionLabel: React.FC<{ children: React.ReactNode; sx?: object }> = ({ children, sx }) => (
   <Typography
     sx={{
-      fontSize: '0.6875rem',
+      fontSize: '10.5px',
       fontWeight: 700,
       textTransform: 'uppercase',
-      letterSpacing: '0.08em',
-      color: 'text.secondary',
+      letterSpacing: '0.06em',
+      color: 'var(--faint)',
       mb: 1.5,
       ...sx,
     }}
@@ -387,31 +393,31 @@ const SectionLabel: React.FC<{ children: React.ReactNode; sx?: object }> = ({ ch
 );
 
 const SummaryRow: React.FC<{ label: string; value: string; tabular?: boolean }> = ({ label, value, tabular }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.875, borderBottom: '1px solid', borderColor: 'rgba(107,138,154,0.12)' }}>
-    <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', flexShrink: 0 }}>{label}</Typography>
-    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: '#2c3e46', textAlign: 'end', ...(tabular ? { fontVariantNumeric: 'tabular-nums' } : {}) }}>
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.875, borderBottom: '1px solid', borderColor: 'var(--line)' }}>
+    <Typography sx={{ fontSize: '0.8125rem', color: 'var(--muted)', flexShrink: 0 }}>{label}</Typography>
+    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', ...(tabular ? { fontVariantNumeric: 'tabular-nums' } : {}) }}>
       {value}
     </Typography>
   </Box>
 );
 
-const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; title: string; text: string }> = ({
-  icon, iconColor, title, text,
+const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft: string; title: string; text: string }> = ({
+  icon, iconColor, iconSoft, title, text,
 }) => (
-  <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2.5, md: 3 }, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+  <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2.5, md: 3 }, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
     <Box
       component="span"
       sx={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         width: 44, height: 44, borderRadius: '12px', flexShrink: 0,
-        bgcolor: `${iconColor}1A`, color: iconColor,
+        bgcolor: iconSoft, color: iconColor,
       }}
     >
       {icon}
     </Box>
     <Box>
-      <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#2c3e46', textWrap: 'balance' }}>{title}</Typography>
-      <Typography sx={{ mt: 0.5, fontSize: '0.85rem', color: 'text.secondary', lineHeight: 1.55 }}>{text}</Typography>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>{title}</Typography>
+      <Typography sx={{ mt: 0.5, fontSize: '0.85rem', color: 'var(--muted)', lineHeight: 1.55 }}>{text}</Typography>
     </Box>
   </Paper>
 );

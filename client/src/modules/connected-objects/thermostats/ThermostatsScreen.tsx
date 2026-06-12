@@ -86,7 +86,7 @@ export default function ThermostatsScreen() {
 
       {isLoading ? (
         <Box sx={GRID}>
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={170} sx={{ borderRadius: 1.5 }} />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={170} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
         </Box>
       ) : thermostats.length === 0 ? (
         <EmptyState

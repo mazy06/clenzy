@@ -12,6 +12,7 @@ import {
   Button,
   Typography,
   CircularProgress,
+  Skeleton,
   TextField,
   MenuItem,
   Chip,
@@ -21,10 +22,11 @@ import {
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
+import StatTile from '../../components/StatTile';
 import { exchangeRateApi, type ExchangeRateHistoryParams } from '../../services/api/exchangeRateApi';
 import { useCurrency } from '../../hooks/useCurrency';
-import { semanticToHex, softChipSx } from '../../utils/statusUtils';
 
+// Palette catégorielle devises (accents Baitly — pattern catégoriel à arbitrer, cf. baseline §7)
 const CURRENCY_COLORS: Record<string, string> = {
   EUR: '#4A9B8E',
   MAD: '#D4A574',
@@ -33,7 +35,17 @@ const CURRENCY_COLORS: Record<string, string> = {
   GBP: '#C97A7A',
 };
 
-const currencyHex = (code: string): string => CURRENCY_COLORS[code] ?? semanticToHex('default');
+const currencyHex = (code: string): string => CURRENCY_COLORS[code] ?? '#757575';
+
+/** Chip -soft : texte couleur + fond soft (pilule/typo via thème global MuiChip) */
+const chipSx = (fg: string, bg: string) => ({
+  color: fg,
+  backgroundColor: bg,
+  '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
+});
+
+/** Variante hex (devises) : fond soft dérivé de l'accent catégoriel */
+const hexChipSx = (hex: string) => chipSx(hex, `${hex}18`);
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -174,27 +186,21 @@ export default function ExchangeRateHistoryPage() {
               rate = matrix.rates[p.target] / matrix.rates[p.base];
             }
             return rate ? (
-              <Paper key={p.label} sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CurrencyExchange size={18} strokeWidth={1.75} /></Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    {p.label}
-                  </Typography>
-                </Box>
-                <Typography variant="h5" fontWeight={700}>
-                  {formatRate(rate)}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Au {rateDate ?? matrix.date}
-                </Typography>
-              </Paper>
+              <StatTile
+                key={p.label}
+                icon={<CurrencyExchange />}
+                label={p.label}
+                value={formatRate(rate)}
+                color={currencyHex(p.base)}
+                hint={`Au ${rateDate ?? matrix.date}`}
+              />
             ) : null;
           })}
         </Box>
       )}
 
       {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: '14px', borderColor: 'var(--line)' }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             select
@@ -241,17 +247,17 @@ export default function ExchangeRateHistoryPage() {
           {stats && (
             <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
               <Tooltip title="Minimum sur la periode">
-                <Chip label={`Min: ${formatRate(stats.min)}`} size="small" sx={softChipSx(semanticToHex('info'))} />
+                <Chip label={`Min: ${formatRate(stats.min)}`} size="small" sx={chipSx('var(--info)', 'var(--info-soft)')} />
               </Tooltip>
               <Tooltip title="Maximum sur la periode">
-                <Chip label={`Max: ${formatRate(stats.max)}`} size="small" sx={softChipSx(semanticToHex('warning'))} />
+                <Chip label={`Max: ${formatRate(stats.max)}`} size="small" sx={chipSx('var(--warn)', 'var(--warn-soft)')} />
               </Tooltip>
               <Tooltip title="Moyenne sur la periode">
                 <Chip
                   icon={<TrendingUp size={14} strokeWidth={1.75} />}
                   label={`Moy: ${formatRate(stats.avg)}`}
                   size="small"
-                  sx={softChipSx(semanticToHex('primary'))}
+                  sx={chipSx('var(--accent)', 'var(--accent-soft)')}
                 />
               </Tooltip>
             </Box>
@@ -272,10 +278,12 @@ export default function ExchangeRateHistoryPage() {
       )}
 
       {/* Table */}
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}>
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2 }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            ))}
           </Box>
         ) : (
           <>
@@ -303,16 +311,16 @@ export default function ExchangeRateHistoryPage() {
                   <TableRow key={rate.id} hover>
                     <TableCell>{formatDate(rate.rateDate)}</TableCell>
                     <TableCell>
-                      <Chip label={rate.baseCurrency} size="small" sx={softChipSx(currencyHex(rate.baseCurrency))} />
+                      <Chip label={rate.baseCurrency} size="small" sx={hexChipSx(currencyHex(rate.baseCurrency))} />
                     </TableCell>
                     <TableCell>
-                      <Chip label={rate.targetCurrency} size="small" sx={softChipSx(currencyHex(rate.targetCurrency))} />
+                      <Chip label={rate.targetCurrency} size="small" sx={hexChipSx(currencyHex(rate.targetCurrency))} />
                     </TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
+                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
                       {formatRate(rate.rate)}
                     </TableCell>
                     <TableCell>
-                      <Chip label={rate.source} size="small" sx={softChipSx(semanticToHex('default'))} />
+                      <Chip label={rate.source} size="small" sx={chipSx('var(--muted)', 'var(--hover)')} />
                     </TableCell>
                   </TableRow>
                 ))}

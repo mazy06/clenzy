@@ -41,11 +41,11 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
   return (
     <Box
       sx={{
-        borderRadius: 1.5, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper',
+        borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', bgcolor: 'var(--card)',
         p: 1.25, display: 'flex', flexDirection: 'column', gap: 1,
         opacity: online ? 1 : 0.62,
         transition: 'border-color 200ms',
-        '&:hover': { borderColor: alpha(ACCENT, 0.5) },
+        '&:hover': { borderColor: 'var(--line-2)' },
       }}
     >
       {/* En-tête : badge + nom + état réseau + supprimer */}
@@ -65,7 +65,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
         {onDelete && (
           <Tooltip title="Supprimer" arrow>
             <span>
-              <IconButton size="small" disabled={acting} onClick={() => onDelete(id)} sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: '#C97A7A' } }}>
+              <IconButton size="small" disabled={acting} onClick={() => onDelete(id)} sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'var(--err)' } }}>
                 <Delete size={14} strokeWidth={1.75} />
               </IconButton>
             </span>
@@ -73,11 +73,11 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
         )}
       </Box>
 
-      {/* Températures : mesurée → consigne */}
+      {/* Températures : mesurée → consigne — chiffres en display (Space Grotesk) */}
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
-        <Typography sx={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{fmt(currentTempC)}°</Typography>
+        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, lineHeight: 1, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{fmt(currentTempC)}°</Typography>
         <Typography sx={{ fontSize: '0.95rem', color: 'text.disabled' }}>→</Typography>
-        <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: ACCENT, fontVariantNumeric: 'tabular-nums' }}>{fmt(targetTempC)}°</Typography>
+        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 600, color: ACCENT, fontVariantNumeric: 'tabular-nums' }}>{fmt(targetTempC)}°</Typography>
       </Box>
 
       {/* Mode + humidité */}

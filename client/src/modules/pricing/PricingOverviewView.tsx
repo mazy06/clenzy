@@ -26,9 +26,10 @@ import { dynamicPricingKeys } from '../../hooks/useDynamicPricing';
 
 const CARD_SX = {
   border: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: '14px',
   p: 1.5,
 } as const;
 
@@ -105,9 +106,9 @@ const PropertyRow: React.FC<{
           position: 'sticky',
           left: 0,
           zIndex: 1,
-          bgcolor: 'background.paper',
+          bgcolor: 'var(--card)',
           borderRight: '1px solid',
-          borderColor: 'divider',
+          borderColor: 'var(--line)',
           minWidth: 150,
         }}
       >
@@ -145,7 +146,7 @@ const PropertyRow: React.FC<{
                 <Typography
                   variant="caption"
                   fontWeight={600}
-                  sx={{ color: sourceColor, cursor: 'default' }}
+                  sx={{ color: sourceColor, cursor: 'default', fontVariantNumeric: 'tabular-nums' }}
                 >
                   {entry.nightlyPrice}
                 </Typography>
@@ -234,19 +235,19 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
                     position: 'sticky',
                     left: 0,
                     zIndex: 3,
-                    bgcolor: 'background.paper',
+                    bgcolor: 'var(--card)',
                     borderRight: '1px solid',
-                    borderColor: 'divider',
+                    borderColor: 'var(--line)',
                     minWidth: 150,
                   }}
                 >
-                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6875rem' }}>
+                  <Typography variant="caption" sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {t('common.name')}
                   </Typography>
                 </TableCell>
                 {days.map((day) => (
                   <TableCell key={day} sx={{ textAlign: 'center', px: 0.5, minWidth: 40 }}>
-                    <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                    <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6875rem', color: 'var(--faint)', fontVariantNumeric: 'tabular-nums' }}>
                       {day}
                     </Typography>
                   </TableCell>

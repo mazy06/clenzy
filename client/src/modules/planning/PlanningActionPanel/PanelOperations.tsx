@@ -59,6 +59,7 @@ import {
 } from '../../../icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanningEvent } from '../types';
+import { INTERVENTION_TYPE_TOKEN_COLORS } from '../constants';
 import type { PlanningIntervention } from '../../../services/api';
 import { managersApi } from '../../../services/api';
 import type { PortfolioTeam, OperationalUser } from '../../../services/api';
@@ -80,10 +81,53 @@ interface AssigneeOption {
   sublabel?: string;    // Role or intervention type
 }
 
-const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; label: string; color: string }[] = [
-  { value: 'normale', label: 'Normale', color: '#6B7280' },
-  { value: 'haute', label: 'Haute', color: '#F59E0B' },
-  { value: 'urgente', label: 'Urgente', color: '#EF4444' },
+type SoftTokens = { color: string; bg: string };
+
+const OK_TOKENS: SoftTokens = { color: 'var(--ok)', bg: 'var(--ok-soft)' };
+const WARN_TOKENS: SoftTokens = { color: 'var(--warn)', bg: 'var(--warn-soft)' };
+const ERR_TOKENS: SoftTokens = { color: 'var(--err)', bg: 'var(--err-soft)' };
+const INFO_TOKENS: SoftTokens = { color: 'var(--info)', bg: 'var(--info-soft)' };
+const NEUTRAL_TOKENS: SoftTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
+
+const OVERLINE_SX = {
+  fontSize: '0.625rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--faint)',
+};
+
+/** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
+const CLOSE_BTN_SX = {
+  width: 34,
+  height: 34,
+  borderRadius: '10px',
+  border: '1px solid var(--line-2)',
+  backgroundColor: 'var(--card)',
+  color: 'var(--muted)',
+  transition: 'color .14s, border-color .14s',
+  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+};
+
+/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
+const chipSx = (bg: string, color: string) => ({
+  height: 20,
+  fontSize: '0.625rem',
+  fontWeight: 600,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  '& .MuiChip-label': { px: 0.75 },
+  '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
+});
+
+const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; label: string; tokens: SoftTokens }[] = [
+  { value: 'normale', label: 'Normale', tokens: NEUTRAL_TOKENS },
+  { value: 'haute', label: 'Haute', tokens: WARN_TOKENS },
+  { value: 'urgente', label: 'Urgente', tokens: ERR_TOKENS },
 ];
 
 const DEFAULT_CHECKLIST = [
@@ -94,15 +138,16 @@ const DEFAULT_CHECKLIST = [
   'Photo de controle',
 ];
 
-// ── Service request status colors ────────────────────────────────────────────
-const SR_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "En attente d'assignation", color: '#F59E0B' },
-  ASSIGNED: { label: 'Assignée', color: '#8B5CF6' },
-  AWAITING_PAYMENT: { label: 'En attente de paiement', color: '#F59E0B' },
-  IN_PROGRESS: { label: 'En cours', color: '#1976d2' },
-  COMPLETED: { label: 'Terminée', color: '#4A9B8E' },
-  CANCELLED: { label: 'Annulée', color: '#9e9e9e' },
-  REJECTED: { label: 'Rejetée', color: '#d32f2f' },
+// ── Service request status tokens (attente = warn, en cours/assignée = info,
+//    succès = ok, échec = err, annulée = neutre) ──────────────────────────────
+const SR_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
+  PENDING: { label: "En attente d'assignation", tokens: WARN_TOKENS },
+  ASSIGNED: { label: 'Assignée', tokens: INFO_TOKENS },
+  AWAITING_PAYMENT: { label: 'En attente de paiement', tokens: WARN_TOKENS },
+  IN_PROGRESS: { label: 'En cours', tokens: INFO_TOKENS },
+  COMPLETED: { label: 'Terminée', tokens: OK_TOKENS },
+  CANCELLED: { label: 'Annulée', tokens: NEUTRAL_TOKENS },
+  REJECTED: { label: 'Rejetée', tokens: ERR_TOKENS },
 };
 
 // ── Service type labels ─────────────────────────────────────────────────────
@@ -119,23 +164,23 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
 };
 
 // ── Intervention payment status config ────────────────────────────────────────
-const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  PAID: { label: 'Payé', color: '#4A9B8E' },
-  PENDING: { label: 'En attente', color: '#ED6C02' },
-  PROCESSING: { label: 'En cours', color: '#0288d1' },
-  FAILED: { label: 'Échoué', color: '#d32f2f' },
-  REFUNDED: { label: 'Remboursé', color: '#d32f2f' },
-  CANCELLED: { label: 'Annulé', color: '#9e9e9e' },
+const PAYMENT_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
+  PAID: { label: 'Payé', tokens: OK_TOKENS },
+  PENDING: { label: 'En attente', tokens: WARN_TOKENS },
+  PROCESSING: { label: 'En cours', tokens: INFO_TOKENS },
+  FAILED: { label: 'Échoué', tokens: ERR_TOKENS },
+  REFUNDED: { label: 'Remboursé', tokens: ERR_TOKENS },
+  CANCELLED: { label: 'Annulé', tokens: NEUTRAL_TOKENS },
 };
 
 // ── Intervention status labels ───────────────────────────────────────────────
-const INTERVENTION_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  scheduled: { label: 'Planifiée', color: '#0288d1' },
-  in_progress: { label: 'En cours', color: '#1976d2' },
-  completed: { label: 'Terminée', color: '#4A9B8E' },
-  cancelled: { label: 'Annulée', color: '#9e9e9e' },
-  awaiting_validation: { label: 'Validation', color: '#F59E0B' },
-  awaiting_payment: { label: 'Attente paiement', color: '#ED6C02' },
+const INTERVENTION_STATUS_CONFIG: Record<string, { label: string; tokens: SoftTokens }> = {
+  scheduled: { label: 'Planifiée', tokens: INFO_TOKENS },
+  in_progress: { label: 'En cours', tokens: INFO_TOKENS },
+  completed: { label: 'Terminée', tokens: OK_TOKENS },
+  cancelled: { label: 'Annulée', tokens: NEUTRAL_TOKENS },
+  awaiting_validation: { label: 'Validation', tokens: WARN_TOKENS },
+  awaiting_payment: { label: 'Attente paiement', tokens: WARN_TOKENS },
 };
 
 interface PanelOperationsProps {
@@ -903,22 +948,28 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       {intervention && (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            {intervention.type === 'cleaning' ? (
-              <AutoAwesome size={20} strokeWidth={1.75} color='#9B7FC4' />
-            ) : (
-              <Handyman size={20} strokeWidth={1.75} color='#7EBAD0' />
-            )}
+            <Box component="span" sx={{ display: 'inline-flex', color: intervention.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+              {intervention.type === 'cleaning' ? (
+                <AutoAwesome size={20} strokeWidth={1.75} />
+              ) : (
+                <Handyman size={20} strokeWidth={1.75} />
+              )}
+            </Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               {intervention.title}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-            {(() => { const c = intervention.status === 'completed' ? '#4A9B8E' : intervention.status === 'in_progress' ? '#1976d2' : intervention.status === 'cancelled' ? '#d32f2f' : '#ED6C02'; return (
-            <Chip label={intervention.status} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
-            ); })()}
-            <Chip label={intervention.assigneeName} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
+            {(() => {
+              const t = INTERVENTION_STATUS_CONFIG[intervention.status]?.tokens
+                || (intervention.status === 'cancelled' ? ERR_TOKENS : WARN_TOKENS);
+              return (
+                <Chip label={intervention.status} size="small" sx={chipSx(t.bg, t.color)} />
+              );
+            })()}
+            <Chip label={intervention.assigneeName} size="small" sx={chipSx('var(--hover)', 'var(--muted)')} />
             {intervention.estimatedDurationHours && (
-              <Chip label={`${intervention.estimatedDurationHours}h`} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
+              <Chip label={`${intervention.estimatedDurationHours}h`} size="small" sx={{ ...chipSx(INFO_TOKENS.bg, INFO_TOKENS.color), fontVariantNumeric: 'tabular-nums' }} />
             )}
           </Box>
           {intervention.notes && (
@@ -1004,7 +1055,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   Demandes liees · {serviceRequests.length}
                 </Typography>
                 {serviceRequests.map((sr) => {
-                  const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, color: '#757575' };
+                  const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, tokens: NEUTRAL_TOKENS };
                   const typeLabel = SERVICE_TYPE_LABELS[sr.serviceType] || sr.serviceType;
                   const isReadyForPayment = sr.status === 'AWAITING_PAYMENT';
                   const isPending = sr.status === 'PENDING';
@@ -1062,8 +1113,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: `${statusCfg.color}18`, color: statusCfg.color,
-                            border: `1px solid ${statusCfg.color}40`, borderRadius: '6px',
+                            backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
+                            borderRadius: '6px',
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
@@ -1282,8 +1333,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: `${statusCfg.color}18`, color: statusCfg.color,
-                            border: `1px solid ${statusCfg.color}40`, borderRadius: '6px',
+                            backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
+                            borderRadius: '6px',
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
@@ -1307,13 +1358,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         {/* Payment status (only if cost > 0) */}
                         {cost > 0 && payStatusCfg && (
                           <Chip
-                            icon={<Payment size={10} strokeWidth={1.75} color={payStatusCfg.color} />}
+                            icon={<Payment size={10} strokeWidth={1.75} color={payStatusCfg.tokens.color} />}
                             label={`${payStatusCfg.label} (${cost.toFixed(0)}€)`}
                             size="small"
                             sx={{
                               fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                              backgroundColor: `${payStatusCfg.color}18`, color: payStatusCfg.color,
-                              border: `1px solid ${payStatusCfg.color}40`, borderRadius: '6px',
+                              backgroundColor: payStatusCfg.tokens.bg, color: payStatusCfg.tokens.color,
+                              borderRadius: '6px',
                               '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
                               '& .MuiChip-label': { px: 0.5 },
                             }}
@@ -1843,12 +1894,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   fontSize: '0.8125rem',
                   textTransform: 'none',
                   justifyContent: 'flex-start',
-                  borderColor: opt.color,
-                  color: priorityValue === opt.value ? '#fff' : opt.color,
-                  backgroundColor: priorityValue === opt.value ? opt.color : 'transparent',
+                  borderColor: opt.tokens.color,
+                  color: opt.tokens.color,
+                  backgroundColor: priorityValue === opt.value ? opt.tokens.bg : 'transparent',
                   '&:hover': {
-                    backgroundColor: priorityValue === opt.value ? opt.color : `${opt.color}14`,
-                    borderColor: opt.color,
+                    backgroundColor: opt.tokens.bg,
+                    borderColor: opt.tokens.color,
                   },
                 }}
               >

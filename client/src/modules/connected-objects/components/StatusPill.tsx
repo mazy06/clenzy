@@ -1,5 +1,5 @@
-import { Box, Typography, alpha } from '@mui/material';
-import { STATUS_COLORS } from '../deviceRegistry';
+import { Box, Typography } from '@mui/material';
+import { STATUS_TOKENS } from '../deviceRegistry';
 import type { DeviceStatusLevel } from '../types';
 
 interface StatusPillProps {
@@ -10,11 +10,12 @@ interface StatusPillProps {
 }
 
 /**
- * Pastille d'état normalisée : point coloré + libellé. La couleur (et elle seule)
- * porte le sens : vert=ok, ambre=attention, rouge=alerte, gris=hors ligne.
+ * Pastille d'état normalisée : point coloré + libellé sur fond `-soft`.
+ * Tokens sémantiques Signature : --ok en ligne, --warn attention, --err alerte,
+ * neutre --muted/--hover hors ligne — suivent le thème clair/sombre.
  */
 export default function StatusPill({ level, label, pulse = false }: StatusPillProps) {
-  const color = STATUS_COLORS[level];
+  const { color, soft } = STATUS_TOKENS[level];
   return (
     <Box
       sx={{
@@ -23,8 +24,8 @@ export default function StatusPill({ level, label, pulse = false }: StatusPillPr
         gap: 0.625,
         px: 0.875,
         py: 0.25,
-        borderRadius: 5,
-        bgcolor: alpha(color, 0.12),
+        borderRadius: 'var(--radius-pill)',
+        bgcolor: soft,
         maxWidth: '100%',
       }}
     >
@@ -37,13 +38,14 @@ export default function StatusPill({ level, label, pulse = false }: StatusPillPr
           bgcolor: color,
           flexShrink: 0,
           ...(pulse && level === 'ok' && {
-            boxShadow: `0 0 0 0 ${alpha(color, 0.6)}`,
+            boxShadow: `0 0 0 0 color-mix(in srgb, ${color} 60%, transparent)`,
             animation: 'clz-pulse-dot 2s infinite',
             '@keyframes clz-pulse-dot': {
-              '0%': { boxShadow: `0 0 0 0 ${alpha(color, 0.5)}` },
-              '70%': { boxShadow: `0 0 0 5px ${alpha(color, 0)}` },
-              '100%': { boxShadow: `0 0 0 0 ${alpha(color, 0)}` },
+              '0%': { boxShadow: `0 0 0 0 color-mix(in srgb, ${color} 50%, transparent)` },
+              '70%': { boxShadow: `0 0 0 5px color-mix(in srgb, ${color} 0%, transparent)` },
+              '100%': { boxShadow: `0 0 0 0 color-mix(in srgb, ${color} 0%, transparent)` },
             },
+            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
           }),
         }}
       />

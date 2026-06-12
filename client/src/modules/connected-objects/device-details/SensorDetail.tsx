@@ -66,7 +66,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>État du capteur</Typography>
           <Button
@@ -75,7 +75,6 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
             startIcon={refresh.isPending ? <CircularProgress size={13} color="inherit" /> : <Refresh size={15} strokeWidth={1.75} />}
             onClick={() => refresh.mutate()}
             disabled={refresh.isPending}
-            sx={{ textTransform: 'none' }}
           >
             Rafraîchir
           </Button>
@@ -103,7 +102,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
         )}
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Identité</Typography>
         <InfoRow label="Pièce" value={device.roomName || '—'} />
         <InfoRow label="Fournisseur" value={sensor.brand || '—'} />
