@@ -35,9 +35,11 @@ import {
   Settings,
   Visibility,
   Add,
+  CorporateFare,
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
+import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import { organizationsApi } from '../../services/api';
 import type { OrganizationDto } from '../../services/api';
@@ -239,10 +241,48 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
     </Button>
   ) : null;
 
+  const filtersBar = (
+    <FilterSearchBar
+      bare={Boolean(filtersContainer)}
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder="Rechercher une organisation..."
+      filters={{
+        type: {
+          value: selectedType,
+          options: [
+            { value: 'all', label: 'Tous les types' },
+            ...orgTypes.map(t => ({ value: t.value, label: t.label })),
+          ],
+          onChange: setSelectedType,
+          label: 'Type',
+        },
+      }}
+      counter={{
+        label: 'organisation',
+        count: filteredOrgs.length,
+        singular: '',
+        plural: 's',
+      }}
+    />
+  );
+
   return (
     <Box>
       {/* Portal des actions dans le header parent */}
       {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
+
+      {/* Header standalone (hors Annuaire multi-tabs) */}
+      {!embedded && (
+        <PageHeader
+          title="Organisations"
+          subtitle="Organisations clientes (multi-tenant) : informations légales, branding et configuration."
+          iconBadge={<CorporateFare />}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {/* Statistiques */}
       <Box sx={{ mb: 2 }}>
@@ -281,33 +321,10 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         </Grid>
       </Box>
 
-      {/* Portal filters into parent's PageHeader */}
-      {filtersContainer && createPortal(
-        <FilterSearchBar
-          bare
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder="Rechercher une organisation..."
-          filters={{
-            type: {
-              value: selectedType,
-              options: [
-                { value: 'all', label: 'Tous les types' },
-                ...orgTypes.map(t => ({ value: t.value, label: t.label })),
-              ],
-              onChange: setSelectedType,
-              label: 'Type',
-            },
-          }}
-          counter={{
-            label: 'organisation',
-            count: filteredOrgs.length,
-            singular: '',
-            plural: 's',
-          }}
-        />,
-        filtersContainer,
-      )}
+      {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
+      {filtersContainer
+        ? createPortal(filtersBar, filtersContainer)
+        : !embedded && <Box sx={{ mb: 2 }}>{filtersBar}</Box>}
 
       {/* Liste des organisations */}
       <Grid container spacing={2}>

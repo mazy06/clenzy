@@ -41,10 +41,12 @@ import {
   Language,
   LinkedIn,
   CloudUpload,
+  TrendingUp,
 } from '../../icons';
 import { useProspects, useUpdateProspect } from '../../hooks/useProspects';
 import type { ProspectDto } from '../../services/api/prospectsApi';
 import ProspectImportModal from './ProspectImportModal';
+import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -198,6 +200,18 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
   return (
     <Box>
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {/* ── Header standalone (hors Annuaire multi-tabs) ── */}
+      {!embedded && (
+        <PageHeader
+          title="Prospection"
+          subtitle="Pipeline commercial : imports CSV, enrichissement et suivi des prospects qualifiés."
+          iconBadge={<TrendingUp />}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {/* ── Import Modal ── */}
       <ProspectImportModal open={importOpen} onClose={() => setImportOpen(false)} />

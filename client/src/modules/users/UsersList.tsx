@@ -46,10 +46,12 @@ import {
   Home,
   Add,
   Sync,
+  ManageAccounts,
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
+import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import ExportButton from '../../components/ExportButton';
 import { usersApi, type UserFormData } from '../../services/api';
@@ -385,10 +387,57 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
     </Box>
   );
 
+  const filtersBar = (
+    <FilterSearchBar
+      bare={Boolean(filtersContainer)}
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder="Rechercher un utilisateur..."
+      filters={{
+        type: {
+          value: selectedRole,
+          options: [
+            { value: 'all', label: 'Tous les rôles' },
+            ...userRoles.map(role => ({ value: role.value, label: role.label }))
+          ],
+          onChange: setSelectedRole,
+          label: "Rôle"
+        },
+        status: {
+          value: selectedStatus,
+          options: [
+            { value: 'all', label: 'Tous les statuts' },
+            ...userStatuses.map(status => ({ value: status.value, label: status.label }))
+          ],
+          onChange: setSelectedStatus,
+          label: "Statut"
+        }
+      }}
+      counter={{
+        label: "utilisateur",
+        count: filteredUsers.length,
+        singular: "",
+        plural: "s"
+      }}
+    />
+  );
+
   return (
     <Box>
       {/* Portal des actions dans le header parent */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {/* Header standalone (hors Annuaire multi-tabs) */}
+      {!embedded && (
+        <PageHeader
+          title="Utilisateurs"
+          subtitle="Comptes utilisateurs de la plateforme : rôles, permissions, activation et réinitialisation d'accès."
+          iconBadge={<ManageAccounts />}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {/* Statistiques */}
       <Box sx={{ mb: 2 }}>
@@ -444,42 +493,10 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         </Grid>
       </Box>
 
-      {/* Portal filters into parent's PageHeader */}
-      {filtersContainer && createPortal(
-        <FilterSearchBar
-          bare
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder="Rechercher un utilisateur..."
-          filters={{
-            type: {
-              value: selectedRole,
-              options: [
-                { value: 'all', label: 'Tous les rôles' },
-                ...userRoles.map(role => ({ value: role.value, label: role.label }))
-              ],
-              onChange: setSelectedRole,
-              label: "Rôle"
-            },
-            status: {
-              value: selectedStatus,
-              options: [
-                { value: 'all', label: 'Tous les statuts' },
-                ...userStatuses.map(status => ({ value: status.value, label: status.label }))
-              ],
-              onChange: setSelectedStatus,
-              label: "Statut"
-            }
-          }}
-          counter={{
-            label: "utilisateur",
-            count: filteredUsers.length,
-            singular: "",
-            plural: "s"
-          }}
-        />,
-        filtersContainer,
-      )}
+      {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
+      {filtersContainer
+        ? createPortal(filtersBar, filtersContainer)
+        : !embedded && <Box sx={{ mb: 2 }}>{filtersBar}</Box>}
 
       {/* Liste des utilisateurs */}
       <Grid container spacing={2}>

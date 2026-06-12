@@ -5,12 +5,8 @@ import {
   Grid,
   Button,
   Alert,
-  CircularProgress,
-  IconButton
+  CircularProgress
 } from '@mui/material';
-import {
-  ArrowBack
-} from "../../icons";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +21,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../../providers/PostHogProvider';
 import { interventionsKeys } from './useInterventionsList';
+import PageHeader from '../../components/PageHeader';
 import InterventionFormMainInfo from './InterventionFormMainInfo';
 import InterventionFormPropertyRequestor from './InterventionFormPropertyRequestor';
 import InterventionFormAssignment from './InterventionFormAssignment';
@@ -369,22 +366,15 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
 
   return (
     <Box>
-      {/* Header avec bouton retour et titre */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <IconButton
-          onClick={() => isEditMode && interventionId ? navigate(`/interventions/${interventionId}`) : navigate('/interventions')}
-          sx={{ mr: 1.5 }}
-          size="small"
-        >
-          <ArrowBack size={20} strokeWidth={1.75} />
-        </IconButton>
-        <Typography variant="h6" fontWeight={600}>
-          {isEditMode
-            ? (t('interventions.editTitle') || `Modifier l'intervention #${interventionId}`)
-            : t('interventions.createTitle')
-          }
-        </Typography>
-      </Box>
+      {/* Header standalone (page /interventions/new). En mode edit, le
+          PageHeader est fourni par le parent InterventionEdit. */}
+      {!isEditMode && (
+        <PageHeader
+          title={t('interventions.createTitle')}
+          subtitle={t('interventions.subtitle')}
+          backPath="/interventions"
+        />
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, py: 1 }}>
