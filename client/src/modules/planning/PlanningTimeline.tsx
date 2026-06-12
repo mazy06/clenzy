@@ -6,7 +6,12 @@ import PlanningPropertyColumn from './PlanningPropertyColumn';
 import PlanningRow from './PlanningRow';
 import PlanningTodayLine from './PlanningTodayLine';
 import PlanningBarGhost from './PlanningBarGhost';
+// Tokens locaux de la grille (week-end clair/sombre) + animations d'urgence :
+// importé ici pour garantir la présence des custom properties --pl-*-we dès
+// le rendu des entêtes/cellules.
+import './planningUrgency.css';
 import type { PlanningProperty, PlanningEvent, BarLayout, DensityMode, ZoomLevel, QuickCreateData } from './types';
+import type { AttachmentCandidate } from './utils/interventionAttachment';
 import type { UsePlanningDragReturn } from './hooks/usePlanningDrag';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
@@ -25,6 +30,8 @@ interface PlanningTimelineProps {
   totalGridWidth: number;
   selectedEventId: string | null;
   events: PlanningEvent[];
+  /** Toutes les réservations chargées (non filtrées) — cf. PlanningRow. */
+  loadedReservations: AttachmentCandidate[];
   drag: UsePlanningDragReturn;
   onEventClick: (event: PlanningEvent) => void;
   onHideEvent?: (event: PlanningEvent) => void;
@@ -40,7 +47,6 @@ interface PlanningTimelineProps {
   minNightsMap?: MinNightsMap;
   channelSyncMap?: ChannelSyncMap;
   pageSize?: number;
-  onPropertyClick?: (propertyId: number) => void;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
@@ -53,6 +59,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   totalGridWidth,
   selectedEventId,
   events,
+  loadedReservations,
   drag,
   onEventClick,
   onHideEvent,
@@ -68,16 +75,15 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   minNightsMap,
   channelSyncMap,
   pageSize,
-  onPropertyClick,
 }) => {
   const config = ROW_CONFIG[density];
   // Plus de price line dediee : les prix sont desormais affiches dans
   // chaque cellule de jour, centres et masques sous les bars.
-  // When interventions are hidden, shrink the row to only reservation bar + padding
-  const baseRowHeight = showInterventions
-    ? config.rowHeight
-    : config.interventionTop + 2; // reservation bar area + small bottom padding
-  const effectiveRowHeight = baseRowHeight;
+  // Hauteur de ligne CONSTANTE (maquette) : les interventions partagent la
+  // bande verticale de la brique (plus de couloir dedie en dessous), masquer
+  // les interventions ne change donc plus la hauteur (le filtre des events
+  // est fait dans usePlanningFilters).
+  const effectiveRowHeight = config.rowHeight;
   // Fill remaining space with empty rows
   const emptyRowCount = pageSize ? Math.max(0, pageSize - properties.length) : 0;
   const totalDisplayRows = properties.length + emptyRowCount;
@@ -119,7 +125,10 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 1,
+        // Carte Signature : hairline + radius lg (maquette .pl-grid)
+        backgroundColor: 'var(--card)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
       }}
     >
@@ -167,7 +176,6 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 onColWidthChange={onPropertyColWidthChange}
                 effectiveRowHeight={effectiveRowHeight}
                 emptyRowCount={emptyRowCount}
-                onPropertyClick={onPropertyClick}
                 reservationCountByProperty={reservationCountByProperty}
                 channelSyncMap={channelSyncMap}
               />
@@ -207,19 +215,19 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     minNightsMap={minNightsMap}
                     effectiveRowHeight={effectiveRowHeight}
                     allEvents={events}
+                    loadedReservations={loadedReservations}
                   />
                 ))}
 
-                {/* Empty filler rows to fill remaining space */}
+                {/* Empty filler rows to fill remaining space — fond plat
+                    (spec : pas de zebra) */}
                 {Array.from({ length: emptyRowCount }, (_, i) => (
                   <Box
                     key={`empty-grid-${i}`}
                     sx={{
                       height: effectiveRowHeight,
                       width: totalGridWidth,
-                      backgroundColor: (properties.length + i) % 2 === 0
-                        ? 'transparent'
-                        : 'rgba(255,255,255,0.015)',
+                      backgroundColor: 'transparent',
                     }}
                   />
                 ))}

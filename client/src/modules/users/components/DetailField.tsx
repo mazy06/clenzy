@@ -99,7 +99,7 @@ const DetailField: React.FC<DetailFieldProps> = ({
             transition: 'color 150ms ease',
             '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             ...(href && !isEmpty && {
-              '&:hover': { color: 'primary.main', textDecoration: 'underline' },
+              '&:hover': { color: 'var(--accent)', textDecoration: 'underline' },
             }),
           }}
         >
@@ -110,7 +110,7 @@ const DetailField: React.FC<DetailFieldProps> = ({
             <IconButton
               size="small"
               onClick={handleCopy}
-              sx={{ p: 0.25, color: copied ? 'success.main' : 'text.disabled' }}
+              sx={{ p: 0.25, color: copied ? 'var(--ok)' : 'text.disabled' }}
               aria-label={copied ? 'Copié' : `Copier ${label}`}
             >
               {copied ? (

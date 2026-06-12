@@ -267,11 +267,11 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
 
   const iconButtonSx = {
     p: 0.5,
-    borderRadius: 1,
+    borderRadius: '9px',
     border: '1px solid',
-    borderColor: 'divider',
-    color: 'text.secondary',
-    '&:hover': { bgcolor: 'rgba(107,138,154,0.08)', borderColor: 'primary.main', color: 'primary.main' },
+    borderColor: 'var(--line-2)',
+    color: 'var(--muted)',
+    '&:hover': { bgcolor: 'var(--hover)', borderColor: 'var(--faint)', color: 'var(--ink)' },
     '& .MuiSvgIcon-root': { fontSize: 18 },
   } as const;
 
@@ -299,7 +299,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
           <IconButton
             size="small"
             onClick={() => navigate('/interventions/new')}
-            sx={{ ...iconButtonSx, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
+            sx={{ ...iconButtonSx, color: 'var(--accent)', borderColor: 'var(--accent)', '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' } }}
           >
             <AddIcon size={20} strokeWidth={1.75} />
           </IconButton>
@@ -429,7 +429,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
         </MenuItem>
         {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
           <MenuItem onClick={handleOpenAssignDialog} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <Box component="span" sx={{ display: "inline-flex", mr: 1, color: "info.main" }}><AssignmentIcon size={18} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: "inline-flex", mr: 1, color: "var(--info)" }}><AssignmentIcon size={18} strokeWidth={1.75} /></Box>
             Assigner
           </MenuItem>
         )}

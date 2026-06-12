@@ -12,6 +12,66 @@ export {
 export type { ChipColor } from '../../types';
 export { formatDateTime as formatDate, formatDuration } from '../../utils/formatUtils';
 
+// ─── Tokens Signature (reskin Baitly) ────────────────────────────────────────
+// Chips -soft : texte couleur sémantique + fond `-soft` (baseline §2 chips).
+// Même système que PanelOperations (SoftTokens) — ne pas en créer un 2e.
+
+export type SoftTokens = { color: string; bg: string };
+
+export const OK_TOKENS: SoftTokens = { color: 'var(--ok)', bg: 'var(--ok-soft)' };
+export const WARN_TOKENS: SoftTokens = { color: 'var(--warn)', bg: 'var(--warn-soft)' };
+export const ERR_TOKENS: SoftTokens = { color: 'var(--err)', bg: 'var(--err-soft)' };
+export const INFO_TOKENS: SoftTokens = { color: 'var(--info)', bg: 'var(--info-soft)' };
+export const NEUTRAL_TOKENS: SoftTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
+
+const STATUS_TOKENS: Record<string, SoftTokens> = {
+  PENDING: WARN_TOKENS,
+  AWAITING_VALIDATION: WARN_TOKENS,
+  AWAITING_PAYMENT: WARN_TOKENS,
+  SCHEDULED: INFO_TOKENS,
+  IN_PROGRESS: INFO_TOKENS,
+  ON_HOLD: WARN_TOKENS,
+  COMPLETED: OK_TOKENS,
+  CANCELLED: ERR_TOKENS,
+};
+
+export function getStatusTokens(status: string): SoftTokens {
+  return STATUS_TOKENS[status?.toUpperCase()] ?? NEUTRAL_TOKENS;
+}
+
+const PRIORITY_TOKENS: Record<string, SoftTokens> = {
+  LOW: OK_TOKENS,
+  NORMAL: INFO_TOKENS,
+  HIGH: WARN_TOKENS,
+  URGENT: ERR_TOKENS,
+  CRITICAL: ERR_TOKENS,
+};
+
+export function getPriorityTokens(priority: string): SoftTokens {
+  return PRIORITY_TOKENS[priority?.toUpperCase()] ?? NEUTRAL_TOKENS;
+}
+
+// Couleurs data validées planning (constants.ts INTERVENTION_TYPE_TOKEN_COLORS) :
+// ménage #2F9E8D (--menage) · maintenance/réparation #4F86C6 (--maintenance).
+export const CLEANING_TYPE_COLOR = '#2F9E8D';
+export const MAINTENANCE_TYPE_COLOR = '#4F86C6';
+
+const CLEANING_TYPES = new Set([
+  'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
+  'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
+  'EXTERIOR_CLEANING', 'DISINFECTION',
+]);
+
+export function isCleaningType(type: string): boolean {
+  return CLEANING_TYPES.has(type?.toUpperCase());
+}
+
+/** Couleur data du type (ménage vs maintenance) + fond soft dérivé color-mix. */
+export function getTypeTokens(type: string): SoftTokens {
+  const color = isCleaningType(type) ? CLEANING_TYPE_COLOR : MAINTENANCE_TYPE_COLOR;
+  return { color, bg: `color-mix(in srgb, ${color} 12%, transparent)` };
+}
+
 // Types
 export interface InterventionDetailsData {
   id: number;

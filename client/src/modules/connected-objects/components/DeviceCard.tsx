@@ -68,13 +68,13 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
       variant="outlined"
       sx={{
         p: 1.25,
-        borderRadius: 1.5,
-        borderColor: 'divider',
+        borderRadius: 'var(--radius-lg)',
+        borderColor: 'var(--line)',
         display: 'flex',
         flexDirection: 'column',
         gap: 0.875,
         transition: 'border-color 200ms, box-shadow 200ms',
-        '&:hover': { borderColor: meta.color },
+        '&:hover': { borderColor: 'var(--line-2)' },
       }}
     >
       {/* En-tête : badge type + nom (+ pièce) | indicateur en ligne */}
@@ -117,7 +117,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography
             onClick={() => onAction?.(device.uid, 'view')}
-            sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
+            sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', '&:hover': { color: 'var(--accent)' } }}
           >
             {device.name}
           </Typography>

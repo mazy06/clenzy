@@ -104,7 +104,7 @@ export default function IoTServicesSection() {
         onClick={() => setConfigOpen(true)}
         aria-label="Configurer le projet Tuya"
         sx={{
-          color: tuyaConfigured ? 'text.secondary' : '#D4A574',
+          color: tuyaConfigured ? 'text.secondary' : 'var(--warn)',
           '&:hover': { bgcolor: 'action.hover' },
           cursor: 'pointer',
         }}
@@ -125,7 +125,7 @@ export default function IoTServicesSection() {
         onClick={() => setNetatmoConfigOpen(true)}
         aria-label="Configurer l'app Netatmo"
         sx={{
-          color: netatmoConfigured ? 'text.secondary' : '#D4A574',
+          color: netatmoConfigured ? 'text.secondary' : 'var(--warn)',
           '&:hover': { bgcolor: 'action.hover' },
           cursor: 'pointer',
         }}

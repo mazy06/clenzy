@@ -44,18 +44,30 @@ describe('computeBarLayout', () => {
   });
 
   it('computes correct left position', () => {
-    // Event starts March 3, visible starts March 1 → 2 day offset
+    // Event starts March 3, visible starts March 1 → 2 day offset,
+    // décalé à l'heure de check-in par défaut (15h → 15/24 de jour)
     const event = makeEvent({ startDate: '2026-03-03', endDate: '2026-03-07' });
     const layout = computeBarLayout(event, days, dayWidth, density);
-    expect(layout!.left).toBe(2 * dayWidth); // no hour offset at 80px width
+    expect(layout!.left).toBeCloseTo((2 + 15 / 24) * dayWidth, 5);
   });
 
   it('computes correct width for 4-night stay', () => {
-    // March 3 to March 7 = 4 days + checkout overlap
+    // March 3 (15h défaut) → March 7 (11h défaut) = 4 nuits − 4h
     const event = makeEvent({ startDate: '2026-03-03', endDate: '2026-03-07' });
     const layout = computeBarLayout(event, days, dayWidth, density);
-    // 4 days * 80px + 40% checkout overlap = 320 + 32 = 352
-    expect(layout!.width).toBe(4 * dayWidth + dayWidth * 0.4);
+    expect(layout!.width).toBeCloseTo((4 + 11 / 24 - 15 / 24) * dayWidth, 5);
+  });
+
+  it('uses explicit check-in/check-out times when present', () => {
+    const event = makeEvent({
+      startDate: '2026-03-03',
+      endDate: '2026-03-07',
+      startTime: '18:00',
+      endTime: '10:00',
+    });
+    const layout = computeBarLayout(event, days, dayWidth, density);
+    expect(layout!.left).toBeCloseTo((2 + 18 / 24) * dayWidth, 5);
+    expect(layout!.width).toBeCloseTo((4 + 10 / 24 - 18 / 24) * dayWidth, 5);
   });
 
   it('clamps start to 0 for event starting before visible range', () => {

@@ -8,13 +8,28 @@ interface SectionPaperProps {
   children: React.ReactNode;
 }
 
+/**
+ * Carte de section de configuration — pattern « Signature » : carte hairline
+ * r14 + en-tête overline (icône inline discrète `--faint`).
+ */
 const SectionPaper: React.FC<SectionPaperProps> = React.memo(({ icon, titleKey, children }) => {
   const { t } = useTranslation();
   return (
-    <Paper variant="outlined" sx={{ p: 2.5, height: '100%', borderRadius: 2.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+    <Paper
+      variant="outlined"
+      sx={{ p: 2.5, height: '100%', borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, color: 'var(--faint)' }}>
         {icon}
-        <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
+        <Typography
+          sx={{
+            fontSize: '10.5px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '.06em',
+            color: 'var(--faint)',
+          }}
+        >
           {t(titleKey)}
         </Typography>
       </Box>

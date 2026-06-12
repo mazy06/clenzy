@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowForward as ArrowRightIcon,
@@ -39,7 +39,6 @@ interface NavigationCardWidgetProps {
  * (cursor pointer + hover).</p>
  */
 export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data }) => {
-  const theme = useTheme();
   const navigate = useNavigate();
 
   if (!data.path || !data.label) return null;
@@ -52,12 +51,16 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
       sx={{
         mt: 1, mb: 1.5,
         p: 1.5,
-        borderRadius: 2,
-        bgcolor: alpha(theme.palette.primary.main, 0.08),
+        borderRadius: '12px',
+        bgcolor: 'var(--accent-soft)',
         cursor: 'pointer',
-        transition: 'background-color 180ms ease-out',
+        transition: 'background-color .15s',
         '&:hover': {
-          bgcolor: alpha(theme.palette.primary.main, 0.14),
+          bgcolor: 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)',
+        },
+        '&:focus-visible': {
+          outline: '2px solid var(--accent)',
+          outlineOffset: 2,
         },
         '@media (prefers-reduced-motion: reduce)': {
           transition: 'none',
@@ -80,9 +83,9 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
           sx={{
             width: 36,
             height: 36,
-            borderRadius: 1.25,
-            bgcolor: alpha(theme.palette.primary.main, 0.18),
-            color: theme.palette.primary.dark,
+            borderRadius: '9px',
+            bgcolor: 'var(--card)',
+            color: 'var(--accent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -95,18 +98,18 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
         {/* Contenu */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{
-            fontSize: '0.875rem',
+            fontSize: '13.5px',
             fontWeight: 600,
-            color: theme.palette.text.primary,
+            color: 'var(--ink)',
             lineHeight: 1.3,
           }}>
             {data.label}
           </Typography>
           {data.reason && (
-            <Typography variant="caption" sx={{
+            <Typography sx={{
               display: 'block',
-              fontSize: '0.75rem',
-              color: theme.palette.text.secondary,
+              fontSize: '11.5px',
+              color: 'var(--muted)',
               lineHeight: 1.4,
               mt: 0.125,
             }}>
@@ -122,7 +125,7 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
           onClick={(e) => { e.stopPropagation(); handleClick(); }}
           sx={{
             minWidth: 'auto',
-            color: theme.palette.primary.dark,
+            color: 'var(--accent)',
             cursor: 'pointer',
             '&:hover': { bgcolor: 'transparent' },
           }}

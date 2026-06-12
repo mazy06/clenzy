@@ -22,19 +22,19 @@ import EmptyState from '../../components/EmptyState';
 import { CONTRACT_TYPE_LABELS, type PropertyOption } from './ManagementContractForm';
 import ManagementContractFormModal from './ManagementContractFormModal';
 
-// ─── Status palette (PMS soft-filled, identical aux autres pages) ───────────
+// ─── Status palette (tokens Signature : chips -soft sémantiques) ────────────
 
-interface StatusMeta { label: string; color: string }
+interface StatusMeta { label: string; color: string; soft: string }
 
 const STATUS_META: Record<ContractStatus, StatusMeta> = {
-  ACTIVE:     { label: 'Actif',     color: '#10b981' },
-  DRAFT:      { label: 'Brouillon', color: '#6B7280' },
-  SUSPENDED:  { label: 'Suspendu',  color: '#f59e0b' },
-  TERMINATED: { label: 'Résilié',   color: '#d32f2f' },
-  EXPIRED:    { label: 'Expiré',    color: '#9333ea' },
+  ACTIVE:     { label: 'Actif',     color: 'var(--ok)',    soft: 'var(--ok-soft)' },
+  DRAFT:      { label: 'Brouillon', color: 'var(--muted)', soft: 'var(--hover)' },
+  SUSPENDED:  { label: 'Suspendu',  color: 'var(--warn)',  soft: 'var(--warn-soft)' },
+  TERMINATED: { label: 'Résilié',   color: 'var(--err)',   soft: 'var(--err-soft)' },
+  EXPIRED:    { label: 'Expiré',    color: 'var(--err)',   soft: 'var(--err-soft)' },
 };
 
-const FILTER_ALL_COLOR = '#6B8A9A';
+const FILTER_ALL_COLOR = 'var(--accent)';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -254,12 +254,10 @@ const ManagementContractsPage: React.FC = () => {
               onClick={openCreateModal}
               sx={{
                 p: 0.5,
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'primary.main',
-                color: 'primary.main',
-                bgcolor: 'rgba(107,138,154,0.06)',
-                '&:hover': { bgcolor: 'rgba(107,138,154,0.12)' },
+                borderRadius: '9px',
+                border: '1px solid var(--accent)',
+                color: 'var(--accent)',
+                '&:hover': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
               }}
             >
               <Add size={20} strokeWidth={1.75} />
@@ -296,7 +294,8 @@ const ManagementContractsPage: React.FC = () => {
           {activeContracts.length > 0 && (
             <ContractsTableSection
               title="Contrats en vigueur"
-              accentColor="#10b981"
+              accentColor="var(--ok)"
+              accentSoft="var(--ok-soft)"
               contracts={activeContracts}
               terminatingId={terminatingId}
               terminateReason={terminateReason}
@@ -316,7 +315,8 @@ const ManagementContractsPage: React.FC = () => {
           {inactiveContracts.length > 0 && (
             <ContractsTableSection
               title="Contrats archivés"
-              accentColor="#6B7280"
+              accentColor="var(--muted)"
+              accentSoft="var(--hover)"
               contracts={inactiveContracts}
               terminatingId={terminatingId}
               terminateReason={terminateReason}
@@ -364,6 +364,7 @@ const ManagementContractsPage: React.FC = () => {
 interface ContractsTableSectionProps {
   title: string;
   accentColor: string;
+  accentSoft: string;
   contracts: ManagementContract[];
   terminatingId: number | null;
   terminateReason: string;
@@ -383,7 +384,7 @@ interface ContractsTableSectionProps {
 }
 
 const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
-  title, accentColor, contracts,
+  title, accentColor, accentSoft, contracts,
   terminatingId, terminateReason, setTerminateReason,
   getPropertyName, getOwnerName,
   onActivate, onSuspend, onEdit, onViewMandate, onResendSignature,
@@ -395,56 +396,56 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box sx={{ width: 3, height: 16, borderRadius: 1, bgcolor: accentColor }} />
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'text.secondary' }}>
+        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
           {title}
         </Typography>
         <Box
           component="span"
           sx={{
-            fontSize: '0.625rem',
+            fontSize: '10.5px',
             fontWeight: 700,
             px: 0.75,
-            py: 0.1,
-            borderRadius: 0.75,
-            bgcolor: `${accentColor}18`,
+            py: '1px',
+            borderRadius: '999px',
+            bgcolor: accentSoft,
             color: accentColor,
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {contracts.length}
         </Box>
       </Box>
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, opacity: muted ? 0.85 : 1 }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', opacity: muted ? 0.85 : 1 }}>
         <Table size="small">
           <TableHead>
-            <TableRow sx={{ bgcolor: 'action.hover' }}>
-              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.contractNumber')}</TableCell>
-              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.property')}</TableCell>
-              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.owner')}</TableCell>
-              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.type')}</TableCell>
-              <TableCell align="center" sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.commission')}</TableCell>
-              <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.period')}</TableCell>
-              <TableCell align="center" sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.status')}</TableCell>
-              <TableCell align="right" sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'text.secondary' }}>{t('contracts.actions')}</TableCell>
+            <TableRow sx={{ bgcolor: 'var(--surface-2)' }}>
+              <TableCell>{t('contracts.contractNumber')}</TableCell>
+              <TableCell>{t('contracts.property')}</TableCell>
+              <TableCell>{t('contracts.owner')}</TableCell>
+              <TableCell>{t('contracts.type')}</TableCell>
+              <TableCell align="center">{t('contracts.commission')}</TableCell>
+              <TableCell>{t('contracts.period')}</TableCell>
+              <TableCell align="center">{t('contracts.status')}</TableCell>
+              <TableCell align="right">{t('contracts.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {contracts.map(c => {
-              const meta = STATUS_META[c.status] ?? { label: c.status, color: '#6B7280' };
+              const meta = STATUS_META[c.status] ?? { label: c.status, color: 'var(--muted)', soft: 'var(--hover)' };
               const isTerminating = terminatingId === c.id;
 
               if (isTerminating) {
                 return (
                   <TableRow key={c.id}>
-                    <TableCell colSpan={8} sx={{ p: 2, bgcolor: 'error.main', color: 'error.contrastText' }}>
+                    <TableCell colSpan={8} sx={{ p: 2, bgcolor: 'var(--err-soft)' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--err)' }}>
                           <Cancel size={18} strokeWidth={2} />
-                          <Typography variant="subtitle2" fontWeight={700}>
+                          <Typography variant="subtitle2" fontWeight={700} sx={{ color: 'var(--err)' }}>
                             Résilier le contrat {c.contractNumber} ?
                           </Typography>
                         </Box>
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
                           {t('contracts.terminateWarning')}
                         </Typography>
                         <TextField
@@ -455,36 +456,22 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                           rows={2}
                           fullWidth
                           size="small"
-                          sx={{
-                            bgcolor: 'background.paper',
-                            borderRadius: 1,
-                            '& .MuiInputBase-input': { fontSize: '0.8125rem' },
-                          }}
+                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--card)' } }}
                         />
                         <Stack direction="row" spacing={1} justifyContent="flex-end">
                           <Button
                             size="small"
                             variant="outlined"
                             onClick={onTerminateCancel}
-                            sx={{
-                              textTransform: 'none',
-                              color: 'common.white',
-                              borderColor: 'rgba(255,255,255,0.6)',
-                              '&:hover': { borderColor: 'common.white', bgcolor: 'rgba(255,255,255,0.1)' },
-                            }}
                           >
                             {t('contracts.cancel')}
                           </Button>
                           <Button
                             size="small"
                             variant="contained"
+                            color="error"
                             onClick={onTerminateConfirm}
                             startIcon={<Cancel size={14} strokeWidth={1.75} />}
-                            sx={{
-                              textTransform: 'none', fontWeight: 600,
-                              bgcolor: 'common.white', color: 'error.main',
-                              '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' },
-                            }}
                           >
                             {t('contracts.confirmTerminate')}
                           </Button>
@@ -498,13 +485,13 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
               return (
                 <TableRow key={c.id} hover>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
+                    <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--ink)' }}>
                       {c.contractNumber}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
                         <Home size={14} strokeWidth={1.75} />
                       </Box>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{getPropertyName(c.propertyId)}</Typography>
@@ -512,7 +499,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
                         <Person size={14} strokeWidth={1.75} />
                       </Box>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{getOwnerName(c.ownerId)}</Typography>
@@ -526,17 +513,14 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                       label={`${(c.commissionRate * 100).toFixed(0)}%`}
                       size="small"
                       sx={{
-                        bgcolor: '#6B8A9A20',
-                        color: '#6B8A9A',
-                        fontWeight: 700,
-                        fontSize: '0.75rem',
-                        height: 22,
-                        borderRadius: '6px',
+                        bgcolor: 'var(--accent-soft)',
+                        color: 'var(--accent)',
+                        fontVariantNumeric: 'tabular-nums',
                       }}
                     />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                       {c.startDate}{c.endDate ? ` → ${c.endDate}` : ' → ∞'}
                     </Typography>
                   </TableCell>
@@ -545,24 +529,15 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                       <Chip
                         label={meta.label}
                         size="small"
-                        sx={{
-                          bgcolor: `${meta.color}18`,
-                          color: meta.color,
-                          border: `1px solid ${meta.color}40`,
-                          fontWeight: 600,
-                          fontSize: '0.6875rem',
-                          height: 22,
-                          borderRadius: '6px',
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
+                        sx={{ bgcolor: meta.soft, color: meta.color }}
                       />
                       {c.status === 'DRAFT' && c.signatureStatus === 'PENDING' && (
-                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: '#D4A574' }}>
+                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--warn)' }}>
                           {t('contracts.signature.pending', 'En attente de signature')}
                         </Typography>
                       )}
                       {c.status === 'DRAFT' && c.signatureStatus === 'EXPIRED' && (
-                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: '#C97A7A' }}>
+                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--err)' }}>
                           {t('contracts.signature.expired', 'Lien de signature expiré')}
                         </Typography>
                       )}
@@ -577,7 +552,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                       </Tooltip>
                       {c.status === 'DRAFT' && (
                         <Tooltip title={t('contracts.signature.resend', 'Renvoyer le lien de signature')}>
-                          <IconButton size="small" sx={{ color: '#D4A574' }} onClick={() => onResendSignature(c.id)}>
+                          <IconButton size="small" sx={{ color: 'var(--warn)', '&:hover': { color: 'var(--warn)', bgcolor: 'var(--warn-soft)' } }} onClick={() => onResendSignature(c.id)}>
                             <Send size={16} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>

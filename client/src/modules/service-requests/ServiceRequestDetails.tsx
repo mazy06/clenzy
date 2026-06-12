@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  CircularProgress,
+  Skeleton,
   Alert,
   Button,
   Grid,
@@ -10,7 +10,6 @@ import {
   Paper,
   Divider,
   LinearProgress,
-  alpha,
 } from '@mui/material';
 import {
   Edit,
@@ -87,25 +86,28 @@ const ICAL_SOURCE_LOGOS: Record<string, string> = {
   direct: clenzyLogo,
 };
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable sx constants (tokens DESIGN_BASELINE) ───────────────────────────
 
+// Carte hairline plate (.pd-card) — r14, aucune ombre au repos.
 const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
+  border: '1px solid var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: '14px',
   p: 2,
 } as const;
 
+// Section overline 10.5 --faint.
 const SECTION_TITLE_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
+  letterSpacing: '.05em',
+  color: 'var(--faint)',
   mb: 1.5,
 } as const;
 
+// .pd-kv — bloc label/valeur (label muted 11, valeur ink 13 fw600).
 const INFO_ROW_SX = {
   display: 'flex',
   alignItems: 'center',
@@ -114,26 +116,28 @@ const INFO_ROW_SX = {
 } as const;
 
 const INFO_LABEL_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '11px',
   fontWeight: 500,
-  color: 'text.secondary',
+  color: 'var(--muted)',
 } as const;
 
 const INFO_VALUE_SX = {
-  fontSize: '0.8125rem',
-  fontWeight: 500,
-  color: 'text.primary',
+  fontSize: '13px',
+  fontWeight: 600,
+  color: 'var(--ink)',
+  mt: '1px',
 } as const;
 
+// Tuile métrique : carte plate hairline, valeur display tabular-nums, label overline.
 const METRIC_CARD_SX = {
   p: 1.5,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   textAlign: 'center',
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 1.5,
+  border: '1px solid var(--line)',
+  bgcolor: 'var(--card)',
+  borderRadius: '14px',
   boxShadow: 'none',
   minHeight: 72,
   justifyContent: 'center',
@@ -141,43 +145,46 @@ const METRIC_CARD_SX = {
 
 const METRIC_ICON_SX = {
   fontSize: 18,
-  color: 'primary.main',
+  color: 'var(--accent)',
   mb: 0.25,
 } as const;
 
 const METRIC_VALUE_SX = {
-  fontSize: '0.9375rem',
-  fontWeight: 700,
-  color: 'text.primary',
+  fontSize: '15px',
+  fontWeight: 600,
+  color: 'var(--ink)',
   lineHeight: 1.2,
+  fontFamily: 'var(--font-display)',
+  fontVariantNumeric: 'tabular-nums',
 } as const;
 
 const METRIC_LABEL_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 500,
-  color: 'text.secondary',
+  fontSize: '10.5px',
+  fontWeight: 700,
+  color: 'var(--faint)',
   textTransform: 'uppercase',
-  letterSpacing: '0.04em',
+  letterSpacing: '.05em',
   mt: 0.25,
 } as const;
 
+// Chip neutre « champ » (.fr-chip) : fond --field, icône accent.
 const PROPERTY_TAG_SX = {
   height: 26,
-  fontSize: '0.6875rem',
+  fontSize: '11px',
   fontWeight: 500,
-  color: 'text.secondary',
-  borderWidth: 1.5,
-  borderColor: 'grey.200',
-  '& .MuiChip-icon': { fontSize: 13, ml: 0.5, color: 'primary.main' },
+  color: 'var(--body)',
+  bgcolor: 'var(--field)',
+  border: '1px solid var(--field-line)',
+  '& .MuiChip-icon': { fontSize: 13, ml: 0.5, color: 'var(--accent)' },
   '& .MuiChip-label': { px: 0.75 },
 } as const;
 
-const ICON_SX = { fontSize: 16, color: 'text.secondary' };
+const ICON_SX = { fontSize: 16, color: 'var(--muted)' };
 
 // ─── Type icon helper ────────────────────────────────────────────────────────
 
 function getTypeIcon(type: string) {
-  const iconProps = { size: 18, color: "var(--mui-palette-primary-main, #1976d2)", strokeWidth: 1.75 };
+  const iconProps = { size: 18, color: 'var(--accent)', strokeWidth: 1.75 };
   const upper = type?.toUpperCase() || '';
 
   const cleaningTypes = [
@@ -268,9 +275,19 @@ const ServiceRequestDetails: React.FC = () => {
   }, [hasPermissionAsync]);
 
   if (isLoading) {
+    // Skeletons calqués sur la structure (barre de progression + tuiles + 2 colonnes).
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={28} />
+      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <Skeleton variant="rounded" height={64} sx={{ borderRadius: '14px' }} />
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: '14px', flex: 1 }} />
+          ))}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px', flex: 7 }} />
+          <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px', flex: 5 }} />
+        </Box>
       </Box>
     );
   }
@@ -361,10 +378,10 @@ const ServiceRequestDetails: React.FC = () => {
         {/* ── Status progress bar ──────────────────────────────────────── */}
         <Paper sx={{ ...CARD_SX, p: 1.5, mb: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>
               {t('serviceRequests.details.progression')}
             </Typography>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: `${statusProgressColor}.main` }}>
+            <Typography sx={{ fontSize: '12px', fontWeight: 700, color: `${statusProgressColor}.main` }}>
               {getServiceRequestStatusLabel(sr.status, t)}
             </Typography>
           </Box>
@@ -372,11 +389,11 @@ const ServiceRequestDetails: React.FC = () => {
             variant="determinate"
             value={statusProgress}
             color={statusProgressColor}
-            sx={{ height: 6, borderRadius: 3, bgcolor: 'grey.100' }}
+            sx={{ height: 6, borderRadius: 3, bgcolor: 'var(--field)' }}
           />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
             {progressSteps.map((label, i) => (
-              <Typography key={label} sx={{ fontSize: '0.5625rem', color: statusProgress >= progressValues[i] ? `${statusProgressColor}.main` : 'text.disabled', fontWeight: statusProgress >= progressValues[i] ? 600 : 400 }}>
+              <Typography key={label} sx={{ fontSize: '10px', color: statusProgress >= progressValues[i] ? `${statusProgressColor}.main` : 'var(--faint)', fontWeight: statusProgress >= progressValues[i] ? 600 : 400 }}>
                 {label}
               </Typography>
             ))}
@@ -386,9 +403,9 @@ const ServiceRequestDetails: React.FC = () => {
         {/* ── Key metrics grid ─────────────────────────────────────────── */}
         <Grid container spacing={1} sx={{ mb: 1.5 }}>
           <Grid item xs={6} sm={4} md={2}>
-            <Box sx={{ ...METRIC_CARD_SX, borderColor: 'primary.main', bgcolor: 'primary.50' }}>
+            <Box sx={METRIC_CARD_SX}>
               {getTypeIcon(sr.type)}
-              <Typography sx={{ ...METRIC_VALUE_SX, color: 'primary.main', fontSize: '0.75rem' }}>
+              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
                 {getInterventionTypeLabel(sr.type, t)}
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('common.type')}</Typography>
@@ -396,7 +413,7 @@ const ServiceRequestDetails: React.FC = () => {
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><AccessTime size={18} strokeWidth={1.75} /></Box>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><AccessTime size={18} strokeWidth={1.75} /></Box>
               <Typography sx={METRIC_VALUE_SX}>
                 {formatDuration(sr.estimatedDuration)}
               </Typography>
@@ -405,8 +422,8 @@ const ServiceRequestDetails: React.FC = () => {
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><CalendarToday size={18} strokeWidth={1.75} /></Box>
-              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><CalendarToday size={18} strokeWidth={1.75} /></Box>
+              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
                 {formatDateTime(sr.dueDate) || '—'}
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.dueDateShort')}</Typography>
@@ -415,7 +432,7 @@ const ServiceRequestDetails: React.FC = () => {
           {sr.estimatedCost != null && (
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Euro size={18} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><Euro size={18} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>
                   {convertAndFormat(sr.estimatedCost, 'EUR')}
                 </Typography>
@@ -425,9 +442,9 @@ const ServiceRequestDetails: React.FC = () => {
           )}
           {sr.actualCost != null && (
             <Grid item xs={6} sm={4} md={2}>
-              <Box sx={{ ...METRIC_CARD_SX, borderColor: 'success.main', bgcolor: 'success.50' }}>
-                <Box component="span" sx={{ display: "inline-flex", color: "success.main", mb: 0.25 }}><AttachMoney size={18} strokeWidth={1.75} /></Box>
-                <Typography sx={{ ...METRIC_VALUE_SX, color: 'success.main' }}>
+              <Box sx={METRIC_CARD_SX}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', mb: 0.25 }}><AttachMoney size={18} strokeWidth={1.75} /></Box>
+                <Typography sx={{ ...METRIC_VALUE_SX, color: 'var(--ok)' }}>
                   {convertAndFormat(sr.actualCost, 'EUR')}
                 </Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.actualCost')}</Typography>
@@ -436,8 +453,8 @@ const ServiceRequestDetails: React.FC = () => {
           )}
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Schedule size={18} strokeWidth={1.75} /></Box>
-              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><Schedule size={18} strokeWidth={1.75} /></Box>
+              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12px' }}>
                 {formatDateTime(sr.createdAt)}
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.createdDateShort')}</Typography>
@@ -467,8 +484,8 @@ const ServiceRequestDetails: React.FC = () => {
                         minWidth: 22,
                         borderRadius: '50%',
                         border: '1.5px solid',
-                        borderColor: 'divider',
-                        backgroundColor: '#fff',
+                        borderColor: 'var(--line)',
+                        backgroundColor: '#fff', // pastille logo OTA fond blanc (pattern planning validé)
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -485,7 +502,7 @@ const ServiceRequestDetails: React.FC = () => {
                       />
                     </Box>
                   )}
-                  <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                  <Typography sx={{ fontSize: '13px', color: 'var(--body)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
                     {sr.description}
                   </Typography>
                 </Box>
@@ -509,7 +526,7 @@ const ServiceRequestDetails: React.FC = () => {
               </Box>
 
               <Box sx={INFO_ROW_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><LocationOn size={16} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.propertyNameLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>{sr.propertyName}</Typography>
@@ -519,7 +536,7 @@ const ServiceRequestDetails: React.FC = () => {
               <Divider sx={{ my: 0.5 }} />
 
               <Box sx={INFO_ROW_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><LocationOn size={16} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fullAddressLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>
@@ -533,7 +550,7 @@ const ServiceRequestDetails: React.FC = () => {
                 <>
                   <Divider sx={{ my: 0.5 }} />
                   <Box sx={INFO_ROW_SX}>
-                    <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Flag size={16} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Flag size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
                       <Typography sx={INFO_VALUE_SX}>{sr.propertyCountry}</Typography>
@@ -579,23 +596,23 @@ const ServiceRequestDetails: React.FC = () => {
               {/* Instructions spéciales */}
               {sr.specialInstructions && (
                 <Box sx={{ mt: 1.5 }}>
-                  <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
+                  <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', mb: 0.5 }}>
                     {t('serviceRequests.details.specialInstructions')}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', lineHeight: 1.5, whiteSpace: 'pre-line', bgcolor: 'grey.50', p: 1.25, borderRadius: 1, border: '1px solid', borderColor: 'grey.100' }}>
+                  <Typography sx={{ fontSize: '13px', color: 'var(--body)', lineHeight: 1.5, whiteSpace: 'pre-line', bgcolor: 'var(--field)', p: 1.25, borderRadius: '9px', border: '1px solid var(--field-line)' }}>
                     {sr.specialInstructions}
                   </Typography>
                 </Box>
               )}
 
-              {/* Notes d'accès */}
+              {/* Notes d'accès — alerte douce -soft (pattern .rm-alert) */}
               {sr.accessNotes && (
                 <Box sx={{ mt: 1.5 }}>
-                  <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
+                  <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', mb: 0.5 }}>
                     <VpnKey size={12} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: "middle" }} />
                     {t('serviceRequests.details.accessNotes')}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', lineHeight: 1.5, whiteSpace: 'pre-line', bgcolor: 'warning.50', p: 1.25, borderRadius: 1, border: '1px solid', borderColor: 'warning.100' }}>
+                  <Typography sx={{ fontSize: '13px', color: 'var(--body)', lineHeight: 1.5, whiteSpace: 'pre-line', bgcolor: 'var(--warn-soft)', p: 1.25, borderRadius: '9px', border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)' }}>
                     {sr.accessNotes}
                   </Typography>
                 </Box>
@@ -614,7 +631,7 @@ const ServiceRequestDetails: React.FC = () => {
 
               {/* Demandeur */}
               <Box sx={INFO_ROW_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Person size={16} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Person size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fields.requestor')}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -629,7 +646,7 @@ const ServiceRequestDetails: React.FC = () => {
                     )}
                   </Box>
                   {sr.requestorEmail && (
-                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                    <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
                       {sr.requestorEmail}
                     </Typography>
                   )}
@@ -641,9 +658,9 @@ const ServiceRequestDetails: React.FC = () => {
               {/* Assignation */}
               <Box sx={INFO_ROW_SX}>
                 {sr.assignedToType === 'team' ? (
-                  <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Group size={16} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Group size={16} strokeWidth={1.75} /></Box>
                 ) : (
-                  <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Assignment size={16} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Assignment size={16} strokeWidth={1.75} /></Box>
                 )}
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.assignedTo')}</Typography>
@@ -661,12 +678,12 @@ const ServiceRequestDetails: React.FC = () => {
                       )}
                     </Box>
                   ) : (
-                    <Typography sx={{ ...INFO_VALUE_SX, color: 'text.disabled', fontStyle: 'italic' }}>
+                    <Typography sx={{ ...INFO_VALUE_SX, color: 'var(--faint)', fontStyle: 'italic' }}>
                       {t('serviceRequests.fields.noAssignment')}
                     </Typography>
                   )}
                   {sr.assignedToEmail && sr.assignedToType === 'user' && (
-                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                    <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
                       {sr.assignedToEmail}
                     </Typography>
                   )}
@@ -682,7 +699,7 @@ const ServiceRequestDetails: React.FC = () => {
               </Typography>
 
               <Box sx={INFO_ROW_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><CalendarToday size={16} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><CalendarToday size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.dueDateLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.dueDate) || '—'}</Typography>
@@ -692,7 +709,7 @@ const ServiceRequestDetails: React.FC = () => {
               <Divider sx={{ my: 0.5 }} />
 
               <Box sx={INFO_ROW_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Schedule size={16} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>{formatDuration(sr.estimatedDuration)}</Typography>
@@ -703,7 +720,7 @@ const ServiceRequestDetails: React.FC = () => {
                 <>
                   <Divider sx={{ my: 0.5 }} />
                   <Box sx={INFO_ROW_SX}>
-                    <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Schedule size={16} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={INFO_LABEL_SX}>Durée ménage (propriété)</Typography>
                       <Typography sx={INFO_VALUE_SX}>
@@ -721,7 +738,7 @@ const ServiceRequestDetails: React.FC = () => {
                   <Divider sx={{ my: 0.5 }} />
                   {sr.guestCheckoutTime && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Logout size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Logout size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>Départ voyageur</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.guestCheckoutTime)}</Typography>
@@ -730,7 +747,7 @@ const ServiceRequestDetails: React.FC = () => {
                   )}
                   {sr.guestCheckinTime && (
                     <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Login size={16} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Login size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>Arrivée voyageur</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.guestCheckinTime)}</Typography>
@@ -742,7 +759,7 @@ const ServiceRequestDetails: React.FC = () => {
 
               <Divider sx={{ my: 0.5 }} />
               <Box sx={INFO_ROW_SX}>
-                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.createdDateLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.createdAt)}</Typography>
@@ -764,22 +781,20 @@ const ServiceRequestDetails: React.FC = () => {
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <span>{p.label}</span>
-                          <Typography component="span" sx={{ fontSize: '0.5625rem', color: 'primary.main', fontWeight: 500 }}>
+                          <Typography component="span" sx={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
                             +{p.extraMins} min
                           </Typography>
                         </Box>
                       }
                       size="small"
-                      variant="outlined"
                       sx={{
                         height: 28,
-                        fontSize: '0.6875rem',
+                        fontSize: '11px',
                         fontWeight: 500,
-                        borderWidth: 1.5,
-                        borderColor: 'primary.main',
-                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-                        color: 'primary.main',
-                        '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'primary.main' },
+                        border: 'none',
+                        bgcolor: 'var(--accent-soft)',
+                        color: 'var(--accent)',
+                        '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'var(--accent)' },
                         '& .MuiChip-label': { px: 0.75 },
                       }}
                     />

@@ -5,12 +5,12 @@ import type { LucideIcon } from 'lucide-react';
 export type SettingsSectionAccent = 'primary' | 'accent' | 'info' | 'warm' | 'danger' | 'neutral';
 
 const ACCENT_HEX: Record<SettingsSectionAccent, string> = {
-  primary: '#6B8A9A',
-  accent: '#4A9B8E',
-  info: '#7BA3C2',
-  warm: '#D4A574',
-  danger: '#C97A7A',
-  neutral: '#8A8378',
+  primary: 'var(--accent)',
+  accent: 'var(--ok)',
+  info: 'var(--info)',
+  warm: 'var(--warn)',
+  danger: 'var(--err)',
+  neutral: 'var(--muted)',
 };
 
 interface SettingsSectionProps {
@@ -51,18 +51,16 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
       elevation={0}
       sx={{
         height: '100%',
-        borderRadius: '12px',
+        borderRadius: 'var(--radius-lg)',
         border: '1px solid',
         borderColor: 'divider',
         boxShadow: 'none',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        transition:
-          'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: 'border-color 200ms cubic-bezier(0.16, 1, 0.3, 1)',
         '&:hover': {
-          borderColor: `${color}66`,
-          boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+          borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
         },
       }}
     >
@@ -88,9 +86,9 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
                 height: 32,
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                bgcolor: `${color}14`,
+                bgcolor: `color-mix(in srgb, ${color} 8%, transparent)`,
                 color,
-                border: `1px solid ${color}33`,
+                border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
                 flexShrink: 0,
               }}
             >
@@ -105,9 +103,9 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: `${color}14`,
+                bgcolor: `color-mix(in srgb, ${color} 8%, transparent)`,
                 color,
-                border: `1px solid ${color}33`,
+                border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
                 flexShrink: 0,
               }}
               aria-hidden="true"

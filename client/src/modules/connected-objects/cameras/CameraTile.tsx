@@ -54,9 +54,9 @@ function CameraTile({ camera, active, onToggle, onDelete, acting = false }: Came
   return (
     <Box
       sx={{
-        borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: 'divider',
-        bgcolor: 'background.paper', transition: 'border-color 200ms',
-        '&:hover': { borderColor: alpha(ACCENT, 0.5) },
+        borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--line)',
+        bgcolor: 'var(--card)', transition: 'border-color 200ms',
+        '&:hover': { borderColor: 'var(--line-2)' },
       }}
     >
       {/* ── Zone feed 16:9 ── */}

@@ -58,9 +58,9 @@ interface User {
 
 // Catégories de services — une équipe est spécialisée par catégorie (pas par sous-type)
 const teamServiceCategories = [
-  { value: 'CLEANING', label: 'Nettoyage', description: 'Nettoyage, entretien ménager, désinfection', roles: ['HOUSEKEEPER', 'LAUNDRY', 'SUPERVISOR'], color: '#5B9BD5', gradient: 'linear-gradient(135deg, #1a3a5c 0%, #234b73 50%, #1e3d63 100%)' },
-  { value: 'MAINTENANCE', label: 'Maintenance', description: 'Réparations, maintenance préventive, travaux', roles: ['TECHNICIAN', 'EXTERIOR_TECH', 'SUPERVISOR'], color: '#E8A838', gradient: 'linear-gradient(135deg, #3d2e10 0%, #5c4520 50%, #4a3818 100%)' },
-  { value: 'OTHER', label: 'Autre', description: 'Services divers, jardinage, remise en état', roles: ['HOUSEKEEPER', 'TECHNICIAN', 'LAUNDRY', 'EXTERIOR_TECH', 'SUPERVISOR', 'SUPER_MANAGER'], color: '#6B8A9A', gradient: 'linear-gradient(135deg, #1e2a35 0%, #2a3a4a 50%, #243242 100%)' },
+  { value: 'CLEANING', label: 'Nettoyage', description: 'Nettoyage, entretien ménager, désinfection', roles: ['HOUSEKEEPER', 'LAUNDRY', 'SUPERVISOR'], color: '#7BA3C2' },
+  { value: 'MAINTENANCE', label: 'Maintenance', description: 'Réparations, maintenance préventive, travaux', roles: ['TECHNICIAN', 'EXTERIOR_TECH', 'SUPERVISOR'], color: '#D4A574' },
+  { value: 'OTHER', label: 'Autre', description: 'Services divers, jardinage, remise en état', roles: ['HOUSEKEEPER', 'TECHNICIAN', 'LAUNDRY', 'EXTERIOR_TECH', 'SUPERVISOR', 'SUPER_MANAGER'], color: '#6B8A9A' },
 ];
 
 const getCategoryIcon = (value: string, size: number = 20) => {
@@ -370,51 +370,39 @@ const TeamForm: React.FC = () => {
           <Grid item xs={12} md={4}>
             <Card>
               <CardContent sx={{ p: 0 }}>
-                {/* Mini banner gradient (style TeamCard) */}
+                {/* Bandeau catégorie : panneau plat -soft (badge icône + libellés) */}
                 {selectedCategory && (
                   <Box
                     sx={{
-                      position: 'relative',
-                      height: 72,
-                      background: selectedCategory.gradient,
                       display: 'flex',
                       alignItems: 'center',
-                      overflow: 'hidden',
-                      borderRadius: '8px 8px 0 0',
+                      gap: 1.25,
+                      px: 1.5,
+                      py: 1.25,
+                      backgroundColor: `${selectedCategory.color}18`,
+                      borderBottom: '1px solid var(--line)',
                     }}
                   >
-                    {/* Dot pattern */}
                     <Box
                       sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundImage: `radial-gradient(circle, ${selectedCategory.color} 1.5px, transparent 1.5px)`,
-                        backgroundSize: '24px 24px',
-                        opacity: 0.15,
+                        width: 36,
+                        height: 36,
+                        borderRadius: '10px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'var(--card)',
+                        color: selectedCategory.color,
+                        flexShrink: 0,
                       }}
-                    />
-                    {/* Glow */}
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: `radial-gradient(ellipse at 30% 50%, ${selectedCategory.color}30 0%, transparent 70%)`,
-                        opacity: 0.7,
-                      }}
-                    />
-                    {/* Background icon */}
-                    <Box sx={{ position: 'absolute', right: 12, bottom: 6, opacity: 1 }}>
-                      {getCategoryIcon(selectedCategory.value, 40)}
-                      <Box sx={{ position: 'absolute', inset: 0, color: 'rgba(255,255,255,0.18)' }}>
-                        {getCategoryIcon(selectedCategory.value, 40)}
-                      </Box>
+                    >
+                      {getCategoryIcon(selectedCategory.value, 20)}
                     </Box>
-                    {/* Label */}
-                    <Box sx={{ position: 'relative', px: 1.5, py: 1 }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="caption" sx={{ color: 'var(--ink)', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.5px', textTransform: 'uppercase', display: 'block' }}>
                         {selectedCategory.label}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.65rem', display: 'block', mt: 0.25 }}>
+                      <Typography variant="caption" sx={{ color: 'var(--muted)', fontSize: '0.65rem', display: 'block', mt: 0.25 }}>
                         {selectedCategory.description}
                       </Typography>
                     </Box>
@@ -423,7 +411,7 @@ const TeamForm: React.FC = () => {
 
                 <Box sx={{ p: 1.5 }}>
                   {/* Rôles autorisés */}
-                  <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1, display: 'block' }}>
+                  <Typography variant="caption" sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)', mb: 1, display: 'block' }}>
                     {t('teams.fields.authorizedRoles')}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
@@ -442,7 +430,7 @@ const TeamForm: React.FC = () => {
 
                   {/* Compteur utilisateurs */}
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: filteredUsers.length > 0 ? 'primary.main' : 'text.disabled' }}><GroupIcon size={16} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: filteredUsers.length > 0 ? 'var(--accent)' : 'text.disabled' }}><GroupIcon size={16} strokeWidth={1.75} /></Box>
                     <Typography variant="caption" sx={{ fontSize: '0.72rem', color: filteredUsers.length > 0 ? 'text.primary' : 'text.disabled', fontWeight: 500 }}>
                       {filteredUsers.length} {t('teams.fields.usersAvailable')}
                     </Typography>
@@ -463,14 +451,13 @@ const TeamForm: React.FC = () => {
               <CardContent sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                   <Typography variant="subtitle1" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><MapIcon size={18} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><MapIcon size={18} strokeWidth={1.75} /></Box>
                     {t('teams.coverageZones')}
                     {zoneFields.length > 0 && (
                       <Chip
                         label={zoneFields.length}
                         size="small"
-                        color="primary"
-                        sx={{ ml: 0.5, height: 20, fontSize: '0.65rem', fontWeight: 700, '& .MuiChip-label': { px: 0.75 } }}
+                        sx={{ ml: 0.5, height: 20, fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
                       />
                     )}
                   </Typography>
@@ -488,10 +475,9 @@ const TeamForm: React.FC = () => {
                   <Box sx={{
                     textAlign: 'center',
                     py: 3,
-                    border: '2px dashed',
-                    borderColor: 'grey.200',
-                    borderRadius: 1.5,
-                    bgcolor: 'grey.50',
+                    border: '1px dashed var(--line-2)',
+                    borderRadius: '12px',
+                    bgcolor: 'var(--field)',
                   }}>
                     <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 0.5 }}><MapIcon size={32} strokeWidth={1.75} /></Box>
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
@@ -517,11 +503,11 @@ const TeamForm: React.FC = () => {
                             alignItems: 'center',
                             gap: 1.5,
                             p: 1.25,
-                            border: '1px solid',
-                            borderColor: 'grey.200',
-                            borderRadius: 1.5,
-                            transition: 'all 0.2s ease',
-                            '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(107, 138, 154, 0.03)' },
+                            border: '1px solid var(--line)',
+                            borderRadius: '12px',
+                            transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                            '&:hover': { borderColor: 'var(--line-2)', bgcolor: 'var(--hover)' },
                           }}
                         >
                           <Box sx={{ flex: '0 0 180px', minWidth: 0 }}>
@@ -638,7 +624,7 @@ const TeamForm: React.FC = () => {
                           <IconButton
                             onClick={() => removeZone(index)}
                             size="small"
-                            sx={{ p: 0.5, color: 'grey.400', flexShrink: 0, '&:hover': { color: 'error.main', bgcolor: 'error.50' } }}
+                            sx={{ p: 0.5, color: 'var(--faint)', flexShrink: 0, '&:hover': { color: 'var(--err)', bgcolor: 'var(--err-soft)' } }}
                           >
                             <DeleteOutlined size={18} strokeWidth={1.75} />
                           </IconButton>
@@ -662,8 +648,7 @@ const TeamForm: React.FC = () => {
                       <Chip
                         label={fields.length}
                         size="small"
-                        color="primary"
-                        sx={{ ml: 1, height: 20, fontSize: '0.65rem', fontWeight: 700, '& .MuiChip-label': { px: 0.75 } }}
+                        sx={{ ml: 1, height: 20, fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
                       />
                     )}
                   </Typography>
@@ -683,10 +668,9 @@ const TeamForm: React.FC = () => {
                   <Box sx={{
                     textAlign: 'center',
                     py: 4,
-                    border: '2px dashed',
-                    borderColor: 'grey.200',
-                    borderRadius: 1.5,
-                    bgcolor: 'grey.50',
+                    border: '1px dashed var(--line-2)',
+                    borderRadius: '12px',
+                    bgcolor: 'var(--field)',
                   }}>
                     <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><GroupIcon size={36} strokeWidth={1.75} /></Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.8125rem' }}>
@@ -714,13 +698,14 @@ const TeamForm: React.FC = () => {
                           p: 1.25,
                           mb: 1,
                           border: '1px solid',
-                          borderColor: field.userId ? 'grey.200' : 'warning.light',
-                          borderRadius: 1.5,
-                          bgcolor: field.userId ? 'transparent' : 'rgba(255, 167, 38, 0.04)',
-                          transition: 'all 0.2s ease',
+                          borderColor: field.userId ? 'var(--line)' : 'var(--warn)',
+                          borderRadius: '12px',
+                          bgcolor: field.userId ? 'transparent' : 'var(--warn-soft)',
+                          transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                           '&:hover': {
-                            borderColor: 'primary.main',
-                            bgcolor: 'rgba(107, 138, 154, 0.03)',
+                            borderColor: 'var(--line-2)',
+                            bgcolor: 'var(--hover)',
                           },
                         }}
                       >
@@ -729,8 +714,12 @@ const TeamForm: React.FC = () => {
                           sx={{
                             width: 32,
                             height: 32,
+                            borderRadius: '10px',
                             fontSize: '0.7rem',
-                            bgcolor: field.userId ? 'primary.main' : 'grey.300',
+                            fontFamily: 'var(--font-display)',
+                            fontWeight: 600,
+                            color: 'var(--on-accent)',
+                            bgcolor: field.userId ? 'var(--accent)' : 'var(--faint)',
                             flexShrink: 0,
                           }}
                         >
@@ -763,7 +752,7 @@ const TeamForm: React.FC = () => {
                                 renderOption={(props, user) => (
                                   <li {...props}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', bgcolor: 'primary.main' }}>
+                                      <Avatar sx={{ width: 24, height: 24, borderRadius: '8px', fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--on-accent)', bgcolor: 'var(--accent)' }}>
                                         {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                                       </Avatar>
                                       <Box>
@@ -803,9 +792,9 @@ const TeamForm: React.FC = () => {
                           size="small"
                           sx={{
                             p: 0.5,
-                            color: 'grey.400',
+                            color: 'var(--faint)',
                             flexShrink: 0,
-                            '&:hover': { color: 'error.main', bgcolor: 'error.50' },
+                            '&:hover': { color: 'var(--err)', bgcolor: 'var(--err-soft)' },
                           }}
                         >
                           <Delete size={18} strokeWidth={1.75} />

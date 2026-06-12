@@ -41,20 +41,26 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
     (conditions.propertyIds ?? []).includes(Number(p.id)),
   );
 
-  const labelSx = { sx: { fontSize: '0.8125rem' } };
-
   return (
     <Box
       sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1.5,
+        border: '1px solid var(--line)',
+        borderRadius: '12px',
         p: 1.5,
       }}
     >
+      {/* Section overline (pattern .rm-sec des modales) */}
       <Typography
         variant="caption"
-        sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1.25 }}
+        sx={{
+          color: 'var(--faint)',
+          fontWeight: 700,
+          fontSize: '10.5px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          display: 'block',
+          mb: 1.25,
+        }}
       >
         {t('automation.form.conditionsSection', 'Conditions (optionnel)')}
       </Typography>
@@ -83,7 +89,6 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
               {...params}
               label={t('automation.form.properties', 'Logements concernés')}
               placeholder={t('automation.form.propertiesPlaceholder', 'Tous les logements si vide')}
-              InputLabelProps={labelSx}
             />
           )}
         />
@@ -99,7 +104,6 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
               update({ minNights: e.target.value === '' ? undefined : Number(e.target.value) })
             }
             inputProps={{ min: 1 }}
-            InputLabelProps={labelSx}
           />
           <TextField
             label={t('automation.form.maxNights', 'Nuits max.')}
@@ -111,7 +115,6 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
               update({ maxNights: e.target.value === '' ? undefined : Number(e.target.value) })
             }
             inputProps={{ min: 1 }}
-            InputLabelProps={labelSx}
           />
         </Stack>
 
@@ -124,13 +127,12 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
           onChange={(e) =>
             update({ guestLanguage: (e.target.value || undefined) as GuestLanguage | undefined })
           }
-          InputLabelProps={labelSx}
         >
-          <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>
+          <MenuItem value="">
             {t('automation.form.guestLanguageAny', 'Toutes les langues')}
           </MenuItem>
           {LANGUAGE_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
+            <MenuItem key={opt.value} value={opt.value}>
               {t(opt.key, opt.fallback)}
             </MenuItem>
           ))}

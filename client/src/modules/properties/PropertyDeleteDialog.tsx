@@ -18,26 +18,20 @@ const PropertyDeleteDialog: React.FC<PropertyDeleteDialogProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Dialog open={open} onClose={onClose} PaperProps={{ sx: { borderRadius: 2 } }}>
-      <DialogTitle sx={{ fontSize: '0.875rem', fontWeight: 600, pb: 0.5 }}>
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>
         {t('properties.confirmDelete')}
       </DialogTitle>
       <DialogContent>
-        <Typography sx={{ fontSize: '0.8125rem' }}>
+        <Typography sx={{ fontSize: '13px', color: 'var(--body)' }}>
           {t('properties.confirmDeleteMessage', { name: propertyName })}
         </Typography>
       </DialogContent>
-      <DialogActions sx={{ px: 2, pb: 1.5 }}>
-        <Button onClick={onClose} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+      <DialogActions>
+        <Button onClick={onClose} size="small" variant="text">
           {t('common.cancel')}
         </Button>
-        <Button
-          onClick={onConfirm}
-          color="error"
-          variant="contained"
-          size="small"
-          sx={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'none', height: 28 }}
-        >
+        <Button onClick={onConfirm} color="error" variant="contained" size="small">
           {t('properties.delete')}
         </Button>
       </DialogActions>

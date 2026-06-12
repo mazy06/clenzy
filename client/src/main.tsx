@@ -12,6 +12,8 @@ import posthog from 'posthog-js'
 import App from './modules/App'
 import AppUpdateBanner from './components/AppUpdateBanner'
 import { createBaitlyTheme } from './theme/createBaitlyTheme'
+import './theme/signature/tokens.css'
+import { applyThemeAttributesAtBoot, applyThemeAttribute } from './theme/signature/accent'
 import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
@@ -60,6 +62,12 @@ if (import.meta.env.DEV && 'serviceWorker' in navigator) {
     }
   })();
 }
+
+// ─── Tokens Signature : data-theme / data-accent au boot (anti-FOUC) ─────────
+// Pose les attributs sur <html> AVANT le premier render pour que les tokens
+// CSS (clair/sombre + teinte d'accent) soient corrects dès le premier paint.
+// useThemeMode/AppWithTheme resynchronisent ensuite a chaque changement.
+applyThemeAttributesAtBoot()
 
 // ─── Emotion caches for LTR and RTL ─────────────────────────────────────────
 const ltrCache = createCache({ key: 'mui' })
@@ -148,6 +156,13 @@ function AppWithTheme() {
     document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
     document.documentElement.lang = i18n.language || 'fr';
   }, [isRtl, i18n.language]);
+
+  // Tokens Signature : data-theme suit le mode resolu (clair = defaut :root,
+  // sombre = [data-theme="dark"]). La teinte data-accent est geree par
+  // theme/signature/accent.ts (boot + selecteur de teinte du Sidebar).
+  React.useEffect(() => {
+    applyThemeAttribute(isDark);
+  }, [isDark]);
 
   // Theme principal : factory single source of truth (cf. createBaitlyTheme).
   // Tous les ThemeProvider de l'app (AppWithTheme + AuthLayout +

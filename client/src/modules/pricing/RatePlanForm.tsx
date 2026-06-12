@@ -13,7 +13,6 @@ import {
   Switch,
   CircularProgress,
   IconButton,
-  alpha,
 } from '@mui/material';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -25,9 +24,10 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 
 const CARD_SX = {
   border: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: '14px',
   p: 1.5,
 } as const;
 
@@ -119,7 +119,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
     <Paper sx={CARD_SX}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-        <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.8125rem' }}>
+        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {editingPlan ? t('dynamicPricing.ratePlan.edit') : t('dynamicPricing.ratePlan.create')}
         </Typography>
         {editingPlan && (
@@ -214,27 +214,28 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
                 <Box
                   key={dayValue}
                   onClick={() => toggleDay(dayValue)}
+                  aria-pressed={selected}
                   sx={{
                     flex: 1,
                     textAlign: 'center',
                     py: 0.5,
-                    borderRadius: 1,
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     border: '1px solid',
-                    borderColor: selected ? 'primary.main' : 'divider',
-                    bgcolor: selected ? (theme) => alpha(theme.palette.primary.main, 0.12) : 'transparent',
-                    transition: 'all 0.15s',
+                    borderColor: selected ? 'var(--accent)' : 'var(--field-line)',
+                    bgcolor: selected ? 'var(--accent-soft)' : 'var(--field)',
+                    transition: 'border-color 0.15s, background-color 0.15s',
                     '&:hover': {
-                      borderColor: 'primary.light',
+                      borderColor: selected ? 'var(--accent)' : 'var(--faint)',
                     },
                   }}
                 >
                   <Typography
                     variant="caption"
-                    fontWeight={selected ? 700 : 400}
+                    fontWeight={selected ? 700 : 500}
                     sx={{
                       fontSize: '0.5625rem',
-                      color: selected ? 'primary.main' : 'text.secondary',
+                      color: selected ? 'var(--accent)' : 'var(--muted)',
                     }}
                   >
                     {label}

@@ -20,20 +20,21 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
 import WhatsAppTemplateEditorDialog from './WhatsAppTemplateEditorDialog';
-import { softChipSx } from '../../utils/statusUtils';
 
-// ─── Palette Baitly (alignee sur MessageTemplatesSection) ───────────────────
+// ─── Tons sémantiques (tokens Signature, alignés sur MessageTemplatesSection) ─
 
-const ACCENT_TEAL = '#4A9B8E';
-const WARM = '#D4A574';
-const SOFT_BLUE = '#7BA3C2';
-const NEUTRAL = '#8A8378';
+const TONE = {
+  ok:    { color: 'var(--ok)',    bgcolor: 'var(--ok-soft)' },
+  warn:  { color: 'var(--warn)',  bgcolor: 'var(--warn-soft)' },
+  info:  { color: 'var(--info)',  bgcolor: 'var(--info-soft)' },
+  muted: { color: 'var(--muted)', bgcolor: 'var(--hover)' },
+} as const;
 
-/** Couleur signature par categorie Meta WhatsApp. */
-const CATEGORY_COLOR: Record<string, string> = {
-  UTILITY: ACCENT_TEAL,
-  MARKETING: WARM,
-  AUTHENTICATION: SOFT_BLUE,
+/** Ton par categorie Meta WhatsApp. */
+const CATEGORY_TONE: Record<string, { color: string; bgcolor: string }> = {
+  UTILITY: TONE.ok,
+  MARKETING: TONE.warn,
+  AUTHENTICATION: TONE.info,
 };
 
 /**
@@ -186,7 +187,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
     : '—';
 
   const friendlyName = t(`whatsappTemplates.keys.${group.templateKey}`);
-  const categoryColor = CATEGORY_COLOR[group.category] ?? NEUTRAL;
+  const categoryTone = CATEGORY_TONE[group.category] ?? TONE.muted;
   // Affiche le code court (FR/EN/AR) de la langue d'apercu courante. Les autres
   // langues sont accessibles depuis le dialog d'edition via le selecteur.
   const langChipLabel = previewLangCode.split('_')[0].toUpperCase();
@@ -195,13 +196,13 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
     <TableRow hover>
       <TableCell>
         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="body2" fontWeight={600}>
+          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>
             {friendlyName}
           </Typography>
           <Chip
             label={group.category}
             size="small"
-            sx={softChipSx(categoryColor)}
+            sx={categoryTone}
           />
         </Box>
       </TableCell>
@@ -211,8 +212,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
             ? t('messaging.templates.originCustomized')
             : t('messaging.templates.originSystem')}
           size="small"
-          sx={softChipSx(group.isCustomized ? ACCENT_TEAL : NEUTRAL)}
-          variant={group.isCustomized ? 'filled' : 'outlined'}
+          sx={group.isCustomized ? TONE.ok : TONE.muted}
         />
       </TableCell>
       <TableCell>
@@ -232,7 +232,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
         </Typography>
       </TableCell>
       <TableCell>
-        <Chip label={langChipLabel} size="small" sx={softChipSx(NEUTRAL)} />
+        <Chip label={langChipLabel} size="small" sx={TONE.muted} />
       </TableCell>
       <TableCell align="center">
         {/* Templates WhatsApp toujours actifs cote serveur (pas de notion
@@ -242,7 +242,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
         <Chip
           label={t('messaging.templates.active')}
           size="small"
-          sx={softChipSx(ACCENT_TEAL)}
+          sx={TONE.ok}
         />
       </TableCell>
       <TableCell align="center">
@@ -259,7 +259,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
             size="small"
             onClick={onEdit}
             aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: ACCENT_TEAL } }}
+            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
           >
             <Edit size={16} strokeWidth={1.75} />
           </IconButton>

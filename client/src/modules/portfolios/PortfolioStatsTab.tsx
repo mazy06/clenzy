@@ -30,9 +30,9 @@ import StatTile from '../../components/StatTile';
 
 const STAT_COLORS = {
   portfolios: '#6B8A9A',  // primary — bleu-gris
-  clients:    '#10b981',  // success — vert
-  properties: '#0288d1',  // info — bleu
-  members:    '#f59e0b',  // warning — orange
+  clients:    '#4A9B8E',  // success — vert desature (palette validee)
+  properties: '#7BA3C2',  // info — bleu desature (palette validee)
+  members:    '#D4A574',  // warning — ambre desature (palette validee)
 } as const;
 
 // ─── Main component ──────────────────────────────────────────────────────────
@@ -147,7 +147,9 @@ const PortfolioStatsTab: React.FC = () => {
                           sx={{
                             width: 28,
                             height: 28,
-                            bgcolor: portfolio.isActive ? 'primary.main' : 'grey.400',
+                            bgcolor: portfolio.isActive ? 'var(--accent-soft)' : 'var(--hover)',
+                            color: portfolio.isActive ? 'var(--accent)' : 'var(--muted)',
+                            borderRadius: '8px',
                           }}
                         >
                           <Business size={14} strokeWidth={1.75} />
@@ -205,7 +207,9 @@ const PortfolioStatsTab: React.FC = () => {
                           sx={{
                             width: 28,
                             height: 28,
-                            bgcolor: assignment.type === 'CLIENT' ? 'success.main' : 'info.main',
+                            bgcolor: assignment.type === 'CLIENT' ? 'var(--ok-soft)' : 'var(--info-soft)',
+                            color: assignment.type === 'CLIENT' ? 'var(--ok)' : 'var(--info)',
+                            borderRadius: '8px',
                           }}
                         >
                           {assignment.type === 'CLIENT' ? (

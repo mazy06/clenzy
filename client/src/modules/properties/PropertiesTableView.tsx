@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Box, Paper, Typography, Chip, Tooltip, IconButton, useTheme,
+  Box, Paper, Typography, Chip, Tooltip, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
 } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
-import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS } from './propertiesListConstants';
+import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, softDataChipSx, FIELD_CHIP_SX } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import {
@@ -22,7 +22,6 @@ import {
   getPropertyTypeHex,
   getCleaningFrequencyLabel,
   getCleaningFrequencyHex,
-  getAmenityHex,
 } from '../../utils/statusUtils';
 
 interface PropertiesTableViewProps {
@@ -49,7 +48,6 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
   onToggleStatus, onDelete, navigate,
 }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   return (
     <Paper
@@ -69,9 +67,11 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
               sx={{
                 '& th': {
                   fontWeight: 700,
-                  fontSize: '0.78rem',
-                  color: theme.palette.text.secondary,
-                  borderBottom: `2px solid ${theme.palette.divider}`,
+                  fontSize: '10.5px',
+                  letterSpacing: '.05em',
+                  textTransform: 'uppercase',
+                  color: 'var(--faint)',
+                  borderBottom: '1px solid var(--line)',
                   whiteSpace: 'nowrap',
                 },
               }}
@@ -95,6 +95,8 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   hover
                   sx={{
                     cursor: 'pointer',
+                    '& td': { borderBottom: '1px solid var(--line)', fontSize: '12.5px' },
+                    '&:hover': { bgcolor: 'var(--hover)' },
                     '&:last-child td': { borderBottom: 0 },
                   }}
                   onClick={() => navigate(`/properties/${property.id}`)}
@@ -138,16 +140,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                     <Chip
                       label={getPropertyTypeLabel(property.type, t)}
                       size="small"
-                      sx={{
-                        backgroundColor: `${c}18`,
-                        color: c,
-                        border: `1px solid ${c}40`,
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.68rem',
-                        height: 22,
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
+                      sx={{ ...softDataChipSx(c), '& .MuiChip-label': { px: 1 } }}
                     />
                     ); })()}
                   </TableCell>
@@ -168,25 +161,17 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   <TableCell>
                     {property.amenities && property.amenities.length > 0 ? (
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center', minWidth: 0 }}>
-                        {property.amenities.slice(0, 2).map((amenity, i) => {
-                          const c = getAmenityHex(amenity);
-                          return (
+                        {property.amenities.slice(0, 2).map((amenity, i) => (
                           <Chip
                             key={i}
                             label={t(`properties.amenities.items.${amenity}`)}
                             size="small"
                             sx={{
-                              backgroundColor: `${c}18`,
-                              color: c,
-                              border: `1px solid ${c}40`,
-                              borderRadius: '6px',
-                              fontWeight: 600,
-                              fontSize: '0.62rem',
-                              height: 22,
+                              ...FIELD_CHIP_SX,
                               minWidth: 0,
                               flexShrink: 1,
                               '& .MuiChip-label': {
-                                px: 0.75,
+                                px: 1,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
@@ -194,32 +179,19 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                               },
                             }}
                           />
-                          );
-                        })}
+                        ))}
                         {property.amenities.length > 2 && (
                           <ThemedTooltip
                             title={
                               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                {property.amenities.map((a, i) => {
-                                  const c = getAmenityHex(a);
-                                  return (
+                                {property.amenities.map((a, i) => (
                                   <Chip
                                     key={i}
                                     label={t(`properties.amenities.items.${a}`)}
                                     size="small"
-                                    sx={{
-                                      backgroundColor: `${c}18`,
-                                      color: c,
-                                      border: `1px solid ${c}40`,
-                                      borderRadius: '6px',
-                                      fontWeight: 600,
-                                      fontSize: '0.6rem',
-                                      height: 20,
-                                      '& .MuiChip-label': { px: 0.75 },
-                                    }}
+                                    sx={{ ...FIELD_CHIP_SX, height: 20, '& .MuiChip-label': { px: 1 } }}
                                   />
-                                  );
-                                })}
+                                ))}
                               </Box>
                             }
                             arrow
@@ -228,7 +200,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                             <Chip
                               label={`+${property.amenities.length - 2}`}
                               size="small"
-                              sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', flexShrink: 0, '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
+                              sx={{ color: 'var(--muted)', bgcolor: 'var(--hover)', border: 'none', flexShrink: 0, '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
                             />
                           </ThemedTooltip>
                         )}
@@ -248,7 +220,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       ); })()}
                       {price != null ? (
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem', lineHeight: 1.2 }}>
+                          <Typography variant="body2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13px', lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                             {price}€
                           </Typography>
                           {duration != null && (
@@ -318,7 +290,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
         rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
         labelRowsPerPage="Lignes par page"
         labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-        sx={{ flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}
+        sx={{ flexShrink: 0, borderTop: '1px solid var(--line)', '& .MuiTablePagination-displayedRows': { fontVariantNumeric: 'tabular-nums' } }}
       />
     </Paper>
   );

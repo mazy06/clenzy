@@ -7,7 +7,7 @@ import { Box, Switch, Typography } from '@mui/material';
  * discrète, en-têtes cohérents, états vides compacts.
  */
 
-/** En-tête de section : icône inline discrète + titre + actions à droite. */
+/** En-tête de section : overline « Signature » (10.5px fw700 uppercase --faint) + actions à droite. */
 export const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; actions?: React.ReactNode }> = ({
   icon,
   title,
@@ -15,8 +15,16 @@ export const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; ac
 }) => (
   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.25 }}>
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-      <Box sx={{ flexShrink: 0, display: 'flex', color: 'text.secondary' }}>{icon}</Box>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+      <Box sx={{ flexShrink: 0, display: 'flex', color: 'var(--faint)' }}>{icon}</Box>
+      <Typography
+        sx={{
+          fontSize: '10.5px',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '.06em',
+          color: 'var(--faint)',
+        }}
+      >
         {title}
       </Typography>
     </Box>
@@ -33,14 +41,13 @@ export const EmptyHint: React.FC<{ icon: React.ReactNode; text: string }> = ({ i
       gap: 1.25,
       px: 1.75,
       py: 1.5,
-      borderRadius: 2,
-      border: '1px dashed',
-      borderColor: 'divider',
-      bgcolor: 'action.hover',
+      borderRadius: '10px',
+      border: '1px dashed var(--line-2)',
+      bgcolor: 'var(--hover)',
     }}
   >
-    <Box sx={{ flexShrink: 0, display: 'flex', color: 'text.disabled' }}>{icon}</Box>
-    <Typography variant="body2" color="text.secondary">
+    <Box sx={{ flexShrink: 0, display: 'flex', color: 'var(--faint)' }}>{icon}</Box>
+    <Typography sx={{ fontSize: '12.5px', lineHeight: 1.5, color: 'var(--muted)' }}>
       {text}
     </Typography>
   </Box>

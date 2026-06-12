@@ -7,7 +7,6 @@ import {
   FormHelperText,
   Checkbox,
   IconButton,
-  alpha,
 } from '@mui/material';
 import {
   AutoAwesome,
@@ -37,7 +36,9 @@ interface CategoryDef {
   key: ServiceCategory;
   label: string;
   icon: React.ReactElement;
-  color: string;
+  /** Tokens sémantiques (texte couleur + fond -soft). */
+  fg: string;
+  bg: string;
   /** Catégories interventionTypes.ts correspondantes */
   mappedCategories: string[];
 }
@@ -47,21 +48,24 @@ const CATEGORIES: CategoryDef[] = [
     key: 'cleaning',
     label: 'Nettoyage',
     icon: <AutoAwesome size={16} strokeWidth={1.75} />,
-    color: '#4caf50',
+    fg: 'var(--ok)',
+    bg: 'var(--ok-soft)',
     mappedCategories: ['cleaning'],
   },
   {
     key: 'maintenance',
     label: 'Maintenance / Travaux',
     icon: <Build size={16} strokeWidth={1.75} />,
-    color: '#ff9800',
+    fg: 'var(--warn)',
+    bg: 'var(--warn-soft)',
     mappedCategories: ['maintenance'],
   },
   {
     key: 'other',
     label: 'Autre',
     icon: <MoreHoriz size={16} strokeWidth={1.75} />,
-    color: '#9e9e9e',
+    fg: 'var(--muted)',
+    bg: 'var(--hover)',
     mappedCategories: ['specialized', 'other'],
   },
 ];
@@ -283,7 +287,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
     return (
       <>
         {/* Informations de base */}
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1.5 }}>
+        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
           {t('serviceRequests.sections.basicInfo')}
         </Typography>
 
@@ -296,19 +300,18 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
             gap: 1,
             py: 1.25,
             px: 1.5,
-            borderRadius: 1.5,
-            bgcolor: 'grey.50',
-            border: '1px solid',
-            borderColor: 'grey.200',
+            borderRadius: '9px',
+            bgcolor: 'var(--field)',
+            border: '1px solid var(--field-line)',
             minHeight: 80,
           }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mt: 0.125, flexShrink: 0 }}><Description size={16} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mt: 0.125, flexShrink: 0 }}><Description size={16} strokeWidth={1.75} /></Box>
             <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.disabled', mb: 0.5 }}>
+              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.5 }}>
                 Description du logement
               </Typography>
               {propertyDescription ? (
-                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
+                <Typography sx={{ fontSize: '12px', color: 'var(--muted)', lineHeight: 1.4, whiteSpace: 'pre-line' }}>
                   {propertyDescription}
                 </Typography>
               ) : (
@@ -325,30 +328,29 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                   variant="standard"
                   InputProps={{ disableUnderline: true }}
                   sx={{
-                    '& .MuiInputBase-root': { fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4, p: 0 },
-                    '& .MuiInputBase-input::placeholder': { fontSize: '0.75rem', color: 'text.disabled' },
+                    '& .MuiInputBase-root': { fontSize: '12px', color: 'var(--muted)', lineHeight: 1.4, p: 0 },
+                    '& .MuiInputBase-input::placeholder': { fontSize: '12px', color: 'var(--faint)' },
                   }}
                 />
               )}
             </Box>
           </Box>
 
-          {/* Consignes de ménage — checklist */}
+          {/* Consignes de ménage — checklist (bloc accent-soft) */}
           <Box sx={{
             flex: 1,
             display: 'flex',
             gap: 1,
             py: 1.25,
             px: 1.5,
-            borderRadius: 1.5,
-            bgcolor: 'primary.50',
-            border: '1px solid',
-            borderColor: 'primary.100',
+            borderRadius: '9px',
+            bgcolor: 'var(--accent-soft)',
+            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
             minHeight: 80,
           }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>
             <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.main', mb: 0.5 }}>
+              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--accent)', mb: 0.5 }}>
                 Consignes de ménage
               </Typography>
 
@@ -371,12 +373,12 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                         onChange={() => handleToggleItem(item.id)}
                         disabled={disabled}
                         size="small"
-                        sx={{ p: 0.25, mt: -0.125, color: 'primary.300', '&.Mui-checked': { color: 'primary.main' } }}
+                        sx={{ p: 0.25, mt: -0.125 }}
                       />
                       <Typography
                         sx={{
-                          fontSize: '0.7rem',
-                          color: item.checked ? 'text.disabled' : 'text.secondary',
+                          fontSize: '11.5px',
+                          color: item.checked ? 'var(--faint)' : 'var(--body)',
                           lineHeight: 1.4,
                           textDecoration: item.checked ? 'line-through' : 'none',
                           flex: 1,
@@ -390,7 +392,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                           className="remove-btn"
                           size="small"
                           onClick={() => handleRemoveItem(item.id)}
-                          sx={{ p: 0.25, opacity: 0, transition: 'opacity 0.15s', color: 'text.disabled', '&:hover': { color: 'error.main' } }}
+                          sx={{ p: 0.25, opacity: 0, transition: 'opacity 0.15s', color: 'var(--faint)', '&:hover': { color: 'var(--err)' } }}
                         >
                           <Close size={12} strokeWidth={1.75} />
                         </IconButton>
@@ -403,7 +405,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
               {/* Add new item */}
               {!disabled && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}><Add size={14} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}><Add size={14} strokeWidth={1.75} /></Box>
                   <TextField
                     value={newItemText}
                     onChange={(e) => setNewItemText(e.target.value)}
@@ -414,8 +416,8 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                     variant="standard"
                     InputProps={{ disableUnderline: true }}
                     sx={{
-                      '& .MuiInputBase-root': { fontSize: '0.7rem', color: 'text.secondary', p: 0 },
-                      '& .MuiInputBase-input::placeholder': { fontSize: '0.7rem', color: 'text.disabled' },
+                      '& .MuiInputBase-root': { fontSize: '11.5px', color: 'var(--body)', p: 0 },
+                      '& .MuiInputBase-input::placeholder': { fontSize: '11.5px', color: 'var(--faint)' },
                     }}
                   />
                 </Box>
@@ -423,7 +425,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
 
               {/* Empty state */}
               {checklistItems.length === 0 && disabled && (
-                <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', fontStyle: 'italic' }}>
+                <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)', fontStyle: 'italic' }}>
                   Aucune consigne
                 </Typography>
               )}
@@ -432,7 +434,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
         </Box>
 
         {/* Type de service — Catégories principales */}
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1 }}>
+        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
           {t('serviceRequests.fields.serviceType')} *
         </Typography>
 
@@ -441,7 +443,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
           control={control}
           render={({ fieldState }) => (
             <Box>
-              {/* 3 catégories */}
+              {/* 3 catégories — chips sélecteurs : actif = texte couleur + fond -soft */}
               <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
                 {CATEGORIES.map((cat) => {
                   const isActive = activeCategory === cat.key;
@@ -452,26 +454,26 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                       label={cat.label}
                       onClick={disabled ? undefined : () => handleCategoryClick(cat)}
                       disabled={disabled}
-                      variant={isActive ? 'filled' : 'outlined'}
+                      aria-pressed={isActive}
                       sx={{
                         height: 30,
-                        fontSize: '0.75rem',
+                        fontSize: '11.5px',
                         fontWeight: 600,
-                        borderWidth: 1.5,
-                        borderColor: isActive ? cat.color : 'divider',
-                        bgcolor: isActive ? alpha(cat.color, 0.1) : 'transparent',
-                        color: isActive ? cat.color : 'text.secondary',
+                        border: '1px solid',
+                        borderColor: isActive ? cat.fg : 'var(--line-2)',
+                        bgcolor: isActive ? cat.bg : 'var(--card)',
+                        color: isActive ? cat.fg : 'var(--body)',
                         '& .MuiChip-icon': {
                           fontSize: 16,
-                          color: isActive ? cat.color : 'text.secondary',
+                          color: isActive ? cat.fg : 'var(--muted)',
                         },
                         '&:hover': disabled ? {} : {
-                          bgcolor: alpha(cat.color, 0.08),
-                          borderColor: cat.color,
+                          bgcolor: isActive ? cat.bg : 'var(--hover)',
+                          borderColor: cat.fg,
                         },
                         cursor: disabled ? 'default' : 'pointer',
-                        opacity: disabled ? 0.5 : 1,
-                        transition: 'all 0.15s ease',
+                        opacity: disabled ? 0.45 : 1,
+                        transition: 'background-color .15s, border-color .15s, color .15s',
                       }}
                     />
                   );
@@ -483,7 +485,8 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                 {subTypes.map((option) => {
                   const isSelected = watchedServiceType === option.value;
                   const activeCat = CATEGORIES.find(c => c.key === activeCategory);
-                  const catColor = activeCat?.color || '#6B8A9A';
+                  const catFg = activeCat?.fg || 'var(--accent)';
+                  const catBg = activeCat?.bg || 'var(--accent-soft)';
                   const IconComponent = option.icon;
 
                   return (
@@ -493,29 +496,29 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                       label={option.label}
                       onClick={disabled ? undefined : () => handleSubTypeClick(option)}
                       disabled={disabled}
-                      variant={isSelected ? 'filled' : 'outlined'}
                       size="small"
+                      aria-pressed={isSelected}
                       sx={{
                         height: 30,
-                        fontSize: '0.75rem',
+                        fontSize: '11.5px',
                         fontWeight: isSelected ? 600 : 500,
-                        borderWidth: 1.5,
-                        borderColor: isSelected ? catColor : 'grey.200',
-                        bgcolor: isSelected ? alpha(catColor, 0.12) : 'transparent',
-                        color: isSelected ? catColor : 'text.secondary',
+                        border: '1px solid',
+                        borderColor: isSelected ? catFg : 'var(--line-2)',
+                        bgcolor: isSelected ? catBg : 'var(--card)',
+                        color: isSelected ? catFg : 'var(--body)',
                         '& .MuiChip-icon': {
                           fontSize: 14,
                           ml: 0.5,
-                          color: isSelected ? catColor : 'primary.main',
+                          color: isSelected ? catFg : 'var(--muted)',
                         },
                         '& .MuiChip-label': { px: 0.75 },
                         '&:hover': disabled ? {} : {
-                          bgcolor: alpha(catColor, 0.06),
-                          borderColor: catColor,
+                          bgcolor: isSelected ? catBg : 'var(--hover)',
+                          borderColor: catFg,
                         },
                         cursor: disabled ? 'default' : 'pointer',
-                        opacity: disabled ? 0.5 : 1,
-                        transition: 'all 0.15s ease',
+                        opacity: disabled ? 0.45 : 1,
+                        transition: 'background-color .15s, border-color .15s, color .15s',
                       }}
                     />
                   );
@@ -535,7 +538,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
         {/* ─── Prestations à la carte ─── */}
         {availablePrestations.length > 0 && (
           <Box sx={{ mt: 2 }}>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1 }}>
+            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
               Prestations à la carte
             </Typography>
 
@@ -562,11 +565,11 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <span>{chipLabel}</span>
                         {isIncluded ? (
-                          <Typography component="span" sx={{ fontSize: '0.5rem', color: 'success.main', fontWeight: 700, bgcolor: alpha('#4caf50', 0.12), px: 0.5, py: 0.1, borderRadius: 0.5 }}>
+                          <Typography component="span" sx={{ fontSize: '9.5px', color: 'var(--ok)', fontWeight: 700, bgcolor: 'var(--ok-soft)', px: 0.5, py: 0.1, borderRadius: '4px' }}>
                             Inclus
                           </Typography>
                         ) : (
-                          <Typography component="span" sx={{ fontSize: '0.5625rem', color: isActive ? 'primary.main' : 'text.disabled', fontWeight: 500 }}>
+                          <Typography component="span" sx={{ fontSize: '10px', color: isActive ? 'var(--accent)' : 'var(--faint)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
                             {extraLabel}
                           </Typography>
                         )}
@@ -574,29 +577,29 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                     }
                     onClick={disabled ? undefined : () => handleTogglePrestation(p.key)}
                     disabled={disabled}
-                    variant={isActive ? 'filled' : 'outlined'}
                     size="small"
+                    aria-pressed={isActive}
                     sx={{
                       height: 30,
-                      fontSize: '0.75rem',
+                      fontSize: '11.5px',
                       fontWeight: isActive ? 600 : 500,
-                      borderWidth: 1.5,
-                      borderColor: isActive ? 'primary.main' : 'grey.200',
-                      bgcolor: isActive ? alpha('#6B8A9A', 0.1) : 'transparent',
-                      color: isActive ? 'primary.main' : 'text.secondary',
+                      border: '1px solid',
+                      borderColor: isActive ? 'var(--accent)' : 'var(--line-2)',
+                      bgcolor: isActive ? 'var(--accent-soft)' : 'var(--card)',
+                      color: isActive ? 'var(--accent)' : 'var(--body)',
                       '& .MuiChip-icon': {
                         fontSize: 14,
                         ml: 0.5,
-                        color: isActive ? 'primary.main' : 'grey.400',
+                        color: isActive ? 'var(--accent)' : 'var(--muted)',
                       },
                       '& .MuiChip-label': { px: 0.75 },
                       '&:hover': disabled ? {} : {
-                        bgcolor: alpha('#6B8A9A', 0.06),
-                        borderColor: 'primary.light',
+                        bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)',
+                        borderColor: 'var(--accent)',
                       },
                       cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.5 : 1,
-                      transition: 'all 0.15s ease',
+                      opacity: disabled ? 0.45 : 1,
+                      transition: 'background-color .15s, border-color .15s, color .15s',
                     }}
                   />
                 );

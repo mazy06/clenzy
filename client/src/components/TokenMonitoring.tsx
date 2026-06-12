@@ -10,7 +10,6 @@ import {
   Tooltip,
   Stack,
   LinearProgress,
-  Skeleton,
   CircularProgress,
   Avatar,
 } from '@mui/material';
@@ -37,6 +36,7 @@ import {
   Tooltip as ChartTooltip,
 } from 'recharts';
 import TokenService, { TokenStats, TokenMetrics } from '../services/TokenService';
+import StatTile from './StatTile';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import { useAuth } from '../hooks/useAuth';
 import { userAvatarSrc } from '../services/api/usersApi';
@@ -74,68 +74,6 @@ function getInitials(name: string | undefined): string {
     .join('');
 }
 
-// ─── KPI Card ────────────────────────────────────────────────────────────────
-
-interface KpiCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  color: string;
-  hint?: string;
-  loading?: boolean;
-}
-
-function KpiCard({ icon, label, value, color, hint, loading }: KpiCardProps) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        borderRadius: 2,
-        borderColor: 'divider',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'border-color 200ms, box-shadow 200ms',
-        '&:hover': {
-          borderColor: color,
-          boxShadow: `0 1px 3px ${color}1a`,
-        },
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color,
-            bgcolor: `${color}15`,
-          }}
-        >
-          {icon}
-        </Box>
-      </Box>
-      {loading ? (
-        <Skeleton variant="text" width={60} height={36} />
-      ) : (
-        <Typography sx={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.1, color: 'text.primary' }}>
-          {value}
-        </Typography>
-      )}
-      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 500, mt: 0.5 }}>
-        {label}
-      </Typography>
-      {hint && (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', mt: 0.25 }}>
-          {hint}
-        </Typography>
-      )}
-    </Paper>
-  );
-}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -236,12 +174,12 @@ const TokenMonitoring: React.FC = () => {
   const totalLifetime = Math.max(timeUntilExpiry, 900);
   const remainingPct = totalLifetime > 0 ? Math.round((timeUntilExpiry / totalLifetime) * 100) : 0;
 
-  // Token status (active / expiring / expired)
+  // Token status (active / expiring / expired) — tokens semantiques
   const tokenStatus = useMemo(() => {
-    if (!currentToken.isAuthenticated) return { label: 'Non authentifié', color: '#9e9e9e' };
-    if (timeUntilExpiry <= 0) return { label: 'Expiré', color: '#ef4444' };
-    if (timeUntilExpiry < 300) return { label: 'Expiration proche', color: '#f59e0b' };
-    return { label: 'Authentifié', color: '#10b981' };
+    if (!currentToken.isAuthenticated) return { label: 'Non authentifié', fg: 'var(--muted)', soft: 'var(--hover)' };
+    if (timeUntilExpiry <= 0) return { label: 'Expiré', fg: 'var(--err)', soft: 'var(--err-soft)' };
+    if (timeUntilExpiry < 300) return { label: 'Expiration proche', fg: 'var(--warn)', soft: 'var(--warn-soft)' };
+    return { label: 'Authentifié', fg: 'var(--ok)', soft: 'var(--ok-soft)' };
   }, [currentToken.isAuthenticated, timeUntilExpiry]);
 
   // Donut data
@@ -251,8 +189,8 @@ const TokenMonitoring: React.FC = () => {
     const total = active + expired;
     if (total === 0) return [];
     return [
-      { name: 'Actifs', value: active, color: '#10b981' },
-      { name: 'Expirés', value: expired, color: '#ef4444' },
+      { name: 'Actifs', value: active, color: 'var(--ok)' },
+      { name: 'Expirés', value: expired, color: 'var(--err)' },
     ];
   }, [tokenStats]);
 
@@ -284,14 +222,11 @@ const TokenMonitoring: React.FC = () => {
         variant="outlined"
         sx={{
           p: 3,
-          borderRadius: 2,
-          borderColor: 'divider',
+          borderRadius: '14px',
+          bgcolor: 'var(--card)',
+          borderColor: 'var(--line)',
           position: 'relative',
           overflow: 'hidden',
-          background: (theme) =>
-            theme.palette.mode === 'dark'
-              ? `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${theme.palette.primary.main}0d 100%)`
-              : `linear-gradient(135deg, #fff 0%, ${theme.palette.primary.main}08 100%)`,
         }}
       >
         {currentToken.isAuthenticated ? (
@@ -303,7 +238,7 @@ const TokenMonitoring: React.FC = () => {
                 value={100}
                 size={96}
                 thickness={3}
-                sx={{ color: 'action.hover', position: 'absolute', top: 0, left: 0 }}
+                sx={{ color: 'var(--hover)', position: 'absolute', top: 0, left: 0 }}
               />
               <CircularProgress
                 variant="determinate"
@@ -311,7 +246,7 @@ const TokenMonitoring: React.FC = () => {
                 size={96}
                 thickness={3}
                 sx={{
-                  color: tokenStatus.color,
+                  color: tokenStatus.fg,
                   position: 'absolute',
                   top: 0,
                   left: 0,
@@ -326,9 +261,10 @@ const TokenMonitoring: React.FC = () => {
                   inset: 8,
                   width: 'auto',
                   height: 'auto',
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  fontWeight: 700,
+                  bgcolor: 'var(--accent)',
+                  color: 'var(--on-accent)',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 600,
                   fontSize: '1.5rem',
                   letterSpacing: '0.05em',
                 }}
@@ -347,7 +283,7 @@ const TokenMonitoring: React.FC = () => {
                   size="small"
                   icon={
                     <Box component="span" sx={{ display: 'inline-flex', color: 'inherit', ml: 0.5 }}>
-                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: tokenStatus.color }} />
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: tokenStatus.fg }} />
                     </Box>
                   }
                   label={tokenStatus.label}
@@ -355,10 +291,8 @@ const TokenMonitoring: React.FC = () => {
                     height: 22,
                     fontSize: '0.6875rem',
                     fontWeight: 600,
-                    bgcolor: `${tokenStatus.color}15`,
-                    color: tokenStatus.color,
-                    border: `1px solid ${tokenStatus.color}30`,
-                    borderRadius: '6px',
+                    bgcolor: tokenStatus.soft,
+                    color: tokenStatus.fg,
                     '& .MuiChip-icon': { mr: -0.25 },
                     '& .MuiChip-label': { px: 0.75 },
                   }}
@@ -386,7 +320,7 @@ const TokenMonitoring: React.FC = () => {
                     <Tooltip title={copied ? 'Copié !' : 'Copier l\'ID complet'}>
                       <IconButton size="small" onClick={copyUserId} sx={{ p: 0.25 }}>
                         {copied ? (
-                          <CheckCircle size={12} strokeWidth={2} color="#10b981" />
+                          <CheckCircle size={12} strokeWidth={2} color="var(--ok)" />
                         ) : (
                           <ContentCopy size={12} strokeWidth={1.75} />
                         )}
@@ -408,10 +342,8 @@ const TokenMonitoring: React.FC = () => {
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: 0.3,
-                        borderRadius: '6px',
-                        backgroundColor: 'rgba(107,138,154,0.12)',
-                        border: '1px solid rgba(107,138,154,0.25)',
-                        color: 'primary.main',
+                        backgroundColor: 'var(--accent-soft)',
+                        color: 'var(--accent)',
                         '& .MuiChip-label': { px: 0.75 },
                       }}
                     />
@@ -449,9 +381,10 @@ const TokenMonitoring: React.FC = () => {
               <Typography
                 sx={{
                   fontSize: '1.5rem',
-                  fontWeight: 700,
-                  color: tokenStatus.color,
-                  fontFamily: 'monospace',
+                  fontWeight: 600,
+                  color: tokenStatus.fg,
+                  fontFamily: 'var(--font-display)',
+                  fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.02em',
                   lineHeight: 1.1,
                 }}
@@ -475,9 +408,9 @@ const TokenMonitoring: React.FC = () => {
                   mt: 1,
                   height: 4,
                   borderRadius: 2,
-                  bgcolor: 'action.hover',
+                  bgcolor: 'var(--hover)',
                   '& .MuiLinearProgress-bar': {
-                    bgcolor: tokenStatus.color,
+                    bgcolor: tokenStatus.fg,
                     borderRadius: 2,
                   },
                 }}
@@ -499,18 +432,18 @@ const TokenMonitoring: React.FC = () => {
           gap: 1.5,
         }}
       >
-        <KpiCard
-          icon={<Storage size={18} strokeWidth={1.75} />}
+        <StatTile
+          icon={<Storage />}
           label="Total des tokens"
           value={tokenStats?.totalTokens ?? 0}
           color="#6B8A9A"
           loading={isLoading && !tokenStats}
         />
-        <KpiCard
-          icon={<CheckCircle size={18} strokeWidth={1.75} />}
+        <StatTile
+          icon={<CheckCircle />}
           label="Tokens actifs"
           value={tokenStats?.activeTokens ?? 0}
-          color="#10b981"
+          color="#4A9B8E"
           hint={
             tokenStats?.totalTokens
               ? `${Math.round(((tokenStats.activeTokens ?? 0) / tokenStats.totalTokens) * 100)}% du total`
@@ -518,11 +451,11 @@ const TokenMonitoring: React.FC = () => {
           }
           loading={isLoading && !tokenStats}
         />
-        <KpiCard
-          icon={<Warning size={18} strokeWidth={1.75} />}
+        <StatTile
+          icon={<Warning />}
           label="Tokens expirés"
           value={tokenStats?.expiredTokens ?? 0}
-          color="#ef4444"
+          color="#C97A7A"
           hint={
             tokenStats?.totalTokens
               ? `${Math.round(((tokenStats.expiredTokens ?? 0) / tokenStats.totalTokens) * 100)}% du total`
@@ -530,11 +463,11 @@ const TokenMonitoring: React.FC = () => {
           }
           loading={isLoading && !tokenStats}
         />
-        <KpiCard
-          icon={<TrendingUp size={18} strokeWidth={1.75} />}
+        <StatTile
+          icon={<TrendingUp />}
           label="Taux de succès"
           value={tokenStats?.successRate ?? 'N/A'}
-          color="#8b5cf6"
+          color="#7B68A8"
           loading={isLoading && !tokenStats}
         />
       </Box>
@@ -542,7 +475,7 @@ const TokenMonitoring: React.FC = () => {
       {/* ─── Visualisation + métriques ─────────────────────────────── */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr' }, gap: 2 }}>
         {/* Donut */}
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, borderColor: 'divider' }}>
+        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
           <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 0.25 }}>
             Distribution des tokens
           </Typography>
@@ -589,7 +522,9 @@ const TokenMonitoring: React.FC = () => {
                       contentStyle={{
                         fontSize: 12,
                         borderRadius: 8,
-                        border: '1px solid #e5e7eb',
+                        border: '1px solid var(--line)',
+                        background: 'var(--card)',
+                        color: 'var(--ink)',
                       }}
                     />
                   </PieChart>
@@ -629,7 +564,7 @@ const TokenMonitoring: React.FC = () => {
         </Paper>
 
         {/* Refresh metrics */}
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, borderColor: 'divider' }}>
+        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
           <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 0.25 }}>
             Métriques de rafraîchissement
           </Typography>
@@ -644,7 +579,7 @@ const TokenMonitoring: React.FC = () => {
                 <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                   Fiabilité globale
                 </Typography>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: successRateNum >= 95 ? '#10b981' : '#f59e0b' }}>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: successRateNum >= 95 ? 'var(--ok)' : 'var(--warn)' }}>
                   {successRateNum.toFixed(1)}%
                 </Typography>
               </Box>
@@ -654,9 +589,9 @@ const TokenMonitoring: React.FC = () => {
                 sx={{
                   height: 6,
                   borderRadius: 3,
-                  bgcolor: 'action.hover',
+                  bgcolor: 'var(--hover)',
                   '& .MuiLinearProgress-bar': {
-                    bgcolor: successRateNum >= 95 ? '#10b981' : '#f59e0b',
+                    bgcolor: successRateNum >= 95 ? 'var(--ok)' : 'var(--warn)',
                     borderRadius: 3,
                   },
                 }}
@@ -669,25 +604,29 @@ const TokenMonitoring: React.FC = () => {
               icon={<Refresh size={14} strokeWidth={1.75} />}
               label="Rafraîchissements"
               value={tokenMetrics?.refreshCount ?? 0}
-              color="#0ea5e9"
+              fg="var(--info)"
+              bg="var(--info-soft)"
             />
             <MetricRow
               icon={<ErrorIcon size={14} strokeWidth={1.75} />}
               label="Erreurs"
               value={tokenMetrics?.errorCount ?? 0}
-              color={(tokenMetrics?.errorCount ?? 0) > 0 ? '#ef4444' : '#10b981'}
+              fg={(tokenMetrics?.errorCount ?? 0) > 0 ? 'var(--err)' : 'var(--ok)'}
+              bg={(tokenMetrics?.errorCount ?? 0) > 0 ? 'var(--err-soft)' : 'var(--ok-soft)'}
             />
             <MetricRow
               icon={<AccessTime size={14} strokeWidth={1.75} />}
               label="Dernier refresh"
               value={formatRelativeTime(tokenMetrics?.lastRefresh)}
-              color="#8b5cf6"
+              fg="var(--accent)"
+              bg="var(--accent-soft)"
             />
             <MetricRow
               icon={<Bolt size={14} strokeWidth={1.75} />}
               label="Temps moyen"
               value={`${tokenMetrics?.averageRefreshTime ?? 0}ms`}
-              color="#f59e0b"
+              fg="var(--warn)"
+              bg="var(--warn-soft)"
             />
           </Box>
         </Paper>
@@ -717,12 +656,14 @@ function MetricRow({
   icon,
   label,
   value,
-  color,
+  fg,
+  bg,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string | number;
-  color: string;
+  fg: string;
+  bg: string;
 }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
@@ -734,8 +675,8 @@ function MetricRow({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color,
-          bgcolor: `${color}15`,
+          color: fg,
+          bgcolor: bg,
           flexShrink: 0,
         }}
       >
@@ -745,7 +686,7 @@ function MetricRow({
         <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2 }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, lineHeight: 1.2, mt: 0.25 }}>
+        <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, lineHeight: 1.2, mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
           {value}
         </Typography>
       </Box>

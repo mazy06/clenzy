@@ -57,9 +57,9 @@ import ProviderLogo, { type ProviderId } from './ProviderLogos';
  * </ul>
  */
 
-const ACCENT = '#4A9B8E';
-const DANGER = '#C97A7A';
-const NEUTRAL = '#8A8378';
+const ACCENT = 'var(--ok)';
+const DANGER = 'var(--err)';
+const NEUTRAL = 'var(--muted)';
 
 const statusChipSx = (color: string) => ({
   height: 22,
@@ -68,9 +68,9 @@ const statusChipSx = (color: string) => ({
   letterSpacing: '0.01em',
   borderRadius: '6px',
   px: 0.25,
-  backgroundColor: `${color}14`,
+  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
   color,
-  border: `1px solid ${color}33`,
+  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
   '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
   '& .MuiChip-label': { px: 0.875 },
 });
@@ -301,7 +301,7 @@ export default function ApiKeyConnectionCard<P extends string>({
                 px: 1.5,
                 borderColor: 'divider',
                 color: 'text.primary',
-                '&:hover': { borderColor: `${DANGER}66`, backgroundColor: `${DANGER}0F`, color: DANGER },
+                '&:hover': { borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)', backgroundColor: 'var(--err-soft)', color: DANGER },
               }}
             >
               Déconnecter {meta.label}
@@ -358,19 +358,8 @@ export default function ApiKeyConnectionCard<P extends string>({
                 variant="contained"
                 size="small"
                 disabled={submitting}
-                startIcon={submitting ? <CircularProgress size={12} sx={{ color: '#fff' }} /> : <LinkIcon size={14} strokeWidth={2} />}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.78rem',
-                  borderRadius: '8px',
-                  py: 0.625,
-                  px: 1.5,
-                  bgcolor: ACCENT,
-                  color: '#fff',
-                  boxShadow: 'none',
-                  '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
-                }}
+                startIcon={submitting ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
               >
                 {submitting ? 'Connexion...' : `Connecter ${meta.label}`}
               </Button>

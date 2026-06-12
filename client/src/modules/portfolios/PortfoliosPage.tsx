@@ -73,6 +73,18 @@ function a11yProps(index: number) {
 
 // ─── Section Header ──────────────────────────────────────────────────────────
 
+// Couleur semantique → tokens (chips -soft : texte couleur + fond -soft)
+const SEM_CHIP_TOKEN: Record<string, { fg: string; bg: string }> = {
+  primary: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+  secondary: { fg: '#7B68A8', bg: '#7B68A818' },
+  success: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  warning: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  error: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  info: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  default: { fg: 'var(--muted)', bg: 'var(--hover)' },
+};
+const semChip = (c: string) => SEM_CHIP_TOKEN[c] ?? SEM_CHIP_TOKEN.default;
+
 interface SectionHeaderProps {
   icon: React.ReactNode;
   title: string;
@@ -80,7 +92,7 @@ interface SectionHeaderProps {
   color?: string;
 }
 
-function SectionHeader({ icon, title, count, color = 'primary.main' }: SectionHeaderProps) {
+function SectionHeader({ icon, title, count, color = 'var(--accent)' }: SectionHeaderProps) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
       <Box sx={{ color, display: 'flex', alignItems: 'center' }}>{icon}</Box>
@@ -90,9 +102,7 @@ function SectionHeader({ icon, title, count, color = 'primary.main' }: SectionHe
       <Chip
         label={count}
         size="small"
-        color="primary"
-        variant="outlined"
-        sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600 }}
+        sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums' }}
       />
     </Box>
   );
@@ -116,9 +126,9 @@ function EmptyState({ icon, message, action }: EmptyStateProps) {
         justifyContent: 'center',
         py: 5,
         textAlign: 'center',
-        border: '2px dashed',
-        borderColor: 'grey.200',
-        borderRadius: 2,
+        border: '1px dashed var(--line-2)',
+        bgcolor: 'var(--field)',
+        borderRadius: '12px',
         flex: 1,
       }}
     >
@@ -291,19 +301,19 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                         variant="outlined"
                         sx={{
                           borderRadius: 2,
-                          transition: 'all 0.2s ease-in-out',
-                          '&:hover': {
-                            borderColor: 'primary.main',
-                            transform: 'translateY(-1px)',
-                            boxShadow: '0 2px 8px rgba(107, 138, 154, 0.12)',
-                          },
+                          transition: 'border-color 0.2s ease',
+                          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                          '&:hover': { borderColor: 'var(--line-2)' },
                         }}
                       >
                         <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                           <Box display="flex" alignItems="center">
                             <Avatar
                               sx={{
-                                bgcolor: 'primary.main',
+                                bgcolor: 'var(--accent)',
+                                color: 'var(--on-accent)',
+                                fontFamily: 'var(--font-display)',
+                                borderRadius: '10px',
                                 width: 32,
                                 height: 32,
                                 fontSize: '0.7rem',
@@ -324,15 +334,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             <Box display="flex" alignItems="center" gap={0.5} ml={1}>
                               <Chip
                                 label={getRoleLabel(client.role)}
-                                color={getRoleColor(client.role)}
                                 size="small"
-                                sx={{ height: 22, fontSize: '0.65rem', fontWeight: 600 }}
+                                sx={{ height: 22, fontSize: '0.65rem', fontWeight: 600, color: semChip(getRoleColor(client.role)).fg, backgroundColor: semChip(getRoleColor(client.role)).bg }}
                               />
                               <Tooltip title={t('portfolios.fields.reassignClient')}>
                                 <IconButton
                                   size="small"
                                   onClick={() => setEditingClient(client)}
-                                  sx={{ color: 'primary.main', p: 0.5 }}
+                                  sx={{ color: 'var(--accent)', p: 0.5 }}
                                 >
                                   <EditIcon size={16} strokeWidth={1.75} />
                                 </IconButton>
@@ -341,7 +350,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                 <IconButton
                                   size="small"
                                   onClick={() => handleUnassignClient(client.id)}
-                                  sx={{ color: 'error.main', p: 0.5 }}
+                                  sx={{ color: 'var(--err)', p: 0.5 }}
                                 >
                                   <DeleteIcon size={16} strokeWidth={1.75} />
                                 </IconButton>
@@ -388,7 +397,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   icon={<Home size={20} strokeWidth={1.75} />}
                   title={t('portfolios.sections.propertiesByClient')}
                   count={properties.length}
-                  color="secondary.main"
+                  color="#7B68A8"
                 />
                 {clients.length > 0 ? (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -413,8 +422,11 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                   width: 24,
                                   height: 24,
                                   fontSize: '0.55rem',
+                                  fontFamily: 'var(--font-display)',
                                   fontWeight: 600,
-                                  bgcolor: 'primary.main',
+                                  bgcolor: 'var(--accent)',
+                                  color: 'var(--on-accent)',
+                                  borderRadius: '8px',
                                 }}
                               >
                                 {client.firstName.charAt(0)}{client.lastName.charAt(0)}
@@ -425,12 +437,10 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                               <Chip
                                 label={`${clientProperties.length} ${t('portfolios.fields.properties')}`}
                                 size="small"
-                                color="primary"
-                                variant="outlined"
-                                sx={{ height: 20, fontSize: '0.65rem' }}
+                                sx={{ height: 20, fontSize: '0.65rem', color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums' }}
                               />
                             </Box>
-                            <IconButton size="small" sx={{ color: 'primary.main', p: 0.25 }}>
+                            <IconButton size="small" sx={{ color: 'var(--accent)', p: 0.25 }}>
                               {expandedClients.has(client.id) ? (
                                 <ExpandLessIcon size={18} strokeWidth={1.75} />
                               ) : (
@@ -448,19 +458,18 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                     variant="outlined"
                                     sx={{
                                       borderRadius: 1.5,
-                                      transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
-                                      '&:hover': {
-                                        borderColor: 'primary.main',
-                                        transform: 'translateY(-1px)',
-                                        boxShadow: '0 2px 8px rgba(107, 138, 154, 0.1)',
-                                      },
+                                      transition: 'border-color 0.2s',
+                                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                                      '&:hover': { borderColor: 'var(--line-2)' },
                                     }}
                                   >
                                     <CardContent sx={{ py: 1.25, px: 1.5, '&:last-child': { pb: 1.25 } }}>
                                       <Box display="flex" alignItems="flex-start">
                                         <Avatar
                                           sx={{
-                                            bgcolor: 'secondary.main',
+                                            bgcolor: '#7B68A818',
+                                            color: '#7B68A8',
+                                            borderRadius: '8px',
                                             width: 28,
                                             height: 28,
                                             mr: 1.25,
@@ -490,9 +499,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                               icon={<Group size={13} strokeWidth={1.75} />}
                                               label={propertyTeamMap.get(property.id)!.teamName}
                                               size="small"
-                                              color="success"
                                               onDelete={() => handleRemoveTeamFromProperty(property.id)}
-                                              sx={{ height: 20, fontSize: '0.6rem' }}
+                                              sx={{ height: 20, fontSize: '0.6rem', color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', '& .MuiChip-icon': { color: 'var(--ok)' }, '& .MuiChip-deleteIcon': { color: 'var(--ok)' } }}
                                             />
                                           ) : (
                                             <Chip
@@ -511,7 +519,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                             <IconButton
                                               size="small"
                                               onClick={() => handleUnassignProperty(property.id)}
-                                              sx={{ color: 'error.main', p: 0.25 }}
+                                              sx={{ color: 'var(--err)', p: 0.25 }}
                                             >
                                               <DeleteIcon size={14} strokeWidth={1.75} />
                                             </IconButton>
@@ -559,7 +567,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 icon={<Group size={20} strokeWidth={1.75} />}
                 title={t('teams.title')}
                 count={teams.length}
-                color="success.main"
+                color="var(--ok)"
               />
               {teams.length > 0 ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -569,19 +577,18 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                       variant="outlined"
                       sx={{
                         borderRadius: 2,
-                        transition: 'all 0.2s ease-in-out',
-                        '&:hover': {
-                          borderColor: 'success.main',
-                          transform: 'translateY(-1px)',
-                          boxShadow: '0 2px 8px rgba(76, 175, 80, 0.12)',
-                        },
+                        transition: 'border-color 0.2s ease',
+                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                        '&:hover': { borderColor: 'var(--line-2)' },
                       }}
                     >
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                         <Box display="flex" alignItems="center">
                           <Avatar
                             sx={{
-                              bgcolor: 'success.main',
+                              bgcolor: 'var(--ok-soft)',
+                              color: 'var(--ok)',
+                              borderRadius: '10px',
                               width: 32,
                               height: 32,
                               mr: 1.5,
@@ -601,7 +608,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             <IconButton
                               size="small"
                               onClick={() => handleUnassignTeam(team.id)}
-                              sx={{ color: 'error.main', p: 0.5 }}
+                              sx={{ color: 'var(--err)', p: 0.5 }}
                             >
                               <DeleteIcon size={16} strokeWidth={1.75} />
                             </IconButton>
@@ -644,7 +651,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 icon={<Person size={20} strokeWidth={1.75} />}
                 title={t('users.title')}
                 count={users.length}
-                color="warning.main"
+                color="var(--warn)"
               />
               {users.length > 0 ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -654,19 +661,19 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                       variant="outlined"
                       sx={{
                         borderRadius: 2,
-                        transition: 'all 0.2s ease-in-out',
-                        '&:hover': {
-                          borderColor: 'warning.main',
-                          transform: 'translateY(-1px)',
-                          boxShadow: '0 2px 8px rgba(255, 167, 38, 0.12)',
-                        },
+                        transition: 'border-color 0.2s ease',
+                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                        '&:hover': { borderColor: 'var(--line-2)' },
                       }}
                     >
                       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
                         <Box display="flex" alignItems="center">
                           <Avatar
                             sx={{
-                              bgcolor: 'warning.main',
+                              bgcolor: 'var(--warn-soft)',
+                              color: 'var(--warn)',
+                              fontFamily: 'var(--font-display)',
+                              borderRadius: '10px',
                               width: 32,
                               height: 32,
                               fontSize: '0.7rem',
@@ -687,15 +694,14 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           <Box display="flex" alignItems="center" gap={0.5} ml={1}>
                             <Chip
                               label={getRoleLabel(portfolioUser.role)}
-                              color={getRoleColor(portfolioUser.role)}
                               size="small"
-                              sx={{ height: 22, fontSize: '0.65rem', fontWeight: 600 }}
+                              sx={{ height: 22, fontSize: '0.65rem', fontWeight: 600, color: semChip(getRoleColor(portfolioUser.role)).fg, backgroundColor: semChip(getRoleColor(portfolioUser.role)).bg }}
                             />
                             <Tooltip title={t('portfolios.confirmations.unassignUserTitle')}>
                               <IconButton
                                 size="small"
                                 onClick={() => handleUnassignUser(portfolioUser.id)}
-                                sx={{ color: 'error.main', p: 0.5 }}
+                                sx={{ color: 'var(--err)', p: 0.5 }}
                               >
                                 <DeleteIcon size={16} strokeWidth={1.75} />
                               </IconButton>
@@ -761,7 +767,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
             }}
             sx={{ fontSize: '0.82rem', py: 0.75 }}
           >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mr: 1 }}><Group size={16} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', mr: 1 }}><Group size={16} strokeWidth={1.75} /></Box>
             {team.name}
           </MenuItem>
         )) : (

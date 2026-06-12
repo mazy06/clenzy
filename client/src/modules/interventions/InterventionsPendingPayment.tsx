@@ -17,7 +17,6 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  useTheme,
 } from '@mui/material';
 import {
   Payment as PaymentIcon,
@@ -34,8 +33,14 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
+import StatTile from '../../components/StatTile';
 import { interventionsKeys } from './useInterventionsList';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { getTypeTokens } from './interventionUtils';
+
+// Couleurs sémantiques Signature (hex requis par StatTile/alpha — valeurs tokens.css)
+const WARN_HEX = '#C28A52';
+const ERR_HEX = '#C97A7A';
 
 interface Intervention {
   id: number;
@@ -60,27 +65,6 @@ const InterventionsPendingPayment: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-
-  // ─── Couleurs Baitly (theme-aware) ──────────────────────────────────────────
-  const C = {
-    primary: theme.palette.primary.main,
-    primaryLight: isDark ? theme.palette.primary.light : '#8BA3B3',
-    primaryDark: isDark ? theme.palette.primary.dark : '#5A7684',
-    secondary: theme.palette.secondary.main,
-    success: theme.palette.success.main,
-    warning: theme.palette.warning.main,
-    warningLight: isDark ? theme.palette.warning.light : '#E8C19A',
-    error: theme.palette.error.main,
-    info: theme.palette.info.main,
-    textPrimary: theme.palette.text.primary,
-    textSecondary: theme.palette.text.secondary,
-    gray50: isDark ? theme.palette.grey[100] : '#F8FAFC',
-    gray100: isDark ? theme.palette.grey[200] : '#F1F5F9',
-    gray200: isDark ? theme.palette.grey[300] : '#E2E8F0',
-    white: isDark ? theme.palette.background.paper : '#ffffff',
-  };
 
   const [processingPayment, setProcessingPayment] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -172,7 +156,7 @@ const InterventionsPendingPayment: React.FC = () => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress sx={{ color: C.primary }} />
+        <CircularProgress sx={{ color: 'var(--accent)' }} />
       </Box>
     );
   }
@@ -199,13 +183,7 @@ const InterventionsPendingPayment: React.FC = () => {
             startIcon={<RefreshIcon size={16} strokeWidth={1.75} />}
             onClick={loadInterventions}
             title={t('common.refresh')}
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.8125rem',
-              borderColor: C.gray200,
-              color: C.textSecondary,
-              '&:hover': { borderColor: C.primary, color: C.primary },
-            }}
+            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
             {t('common.refresh')}
           </Button>
@@ -223,50 +201,32 @@ const InterventionsPendingPayment: React.FC = () => {
       )}
 
       {/* ─── Resume en haut ────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
-        <Card sx={{ flex: '1 1 200px', borderLeft: `4px solid ${C.warning}` }}>
-          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-            <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${C.warning}14`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <HourglassIcon size={20} strokeWidth={1.75} color={C.warning} />
-            </Box>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.125rem', color: C.textPrimary, lineHeight: 1.2 }}>
-                {interventions.length}
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: C.textSecondary }}>
-                Interventions en attente
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 200px', borderLeft: `4px solid ${C.error}` }}>
-          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-            <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${C.error}14`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <EuroIcon size={20} strokeWidth={1.75} color={C.error} />
-            </Box>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.125rem', color: C.textPrimary, lineHeight: 1.2 }}>
-                {formatCost(totalDue)}
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: C.textSecondary }}>
-                Total a regler
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(200px, 280px))' }, gap: 1.5, mb: 2 }}>
+        <StatTile
+          icon={<HourglassIcon size={16} strokeWidth={1.75} />}
+          label="Interventions en attente"
+          value={interventions.length}
+          color={WARN_HEX}
+        />
+        <StatTile
+          icon={<EuroIcon size={16} strokeWidth={1.75} />}
+          label="Total a regler"
+          value={formatCost(totalDue)}
+          color={ERR_HEX}
+        />
       </Box>
 
       {/* ─── Tableau ───────────────────────────────────────────────────── */}
       {interventions.length === 0 ? (
-        <Card sx={{ borderRadius: '12px' }}>
+        <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
-            <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: `${C.success}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-              <PaymentIcon size={28} strokeWidth={1.5} color={C.success} />
+            <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'var(--ok-soft)', color: 'var(--ok)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+              <PaymentIcon size={28} strokeWidth={1.5} />
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: C.textPrimary, mb: 0.5 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--ink)', mb: 0.5 }}>
               Aucun paiement en attente
             </Typography>
-            <Typography variant="body2" sx={{ color: C.textSecondary, fontSize: '0.8125rem' }}>
+            <Typography variant="body2" sx={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>
               Toutes vos interventions sont a jour.
             </Typography>
           </CardContent>
@@ -275,24 +235,27 @@ const InterventionsPendingPayment: React.FC = () => {
         <TableContainer
           component={Paper}
           sx={{
-            borderRadius: '12px',
-            boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+            borderRadius: '14px',
+            boxShadow: 'none',
+            border: '1px solid var(--line)',
             '& .MuiTableHead-root': {
-              bgcolor: C.gray50,
+              bgcolor: 'var(--surface-2)',
             },
             '& .MuiTableCell-head': {
-              fontWeight: 600,
-              fontSize: '0.75rem',
-              color: C.textSecondary,
-              borderBottom: `2px solid ${C.gray200}`,
+              fontWeight: 700,
+              fontSize: '0.65625rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: 'var(--faint)',
+              borderBottom: '1px solid var(--line)',
               py: 1.25,
               whiteSpace: 'nowrap',
             },
             '& .MuiTableCell-body': {
               fontSize: '0.8125rem',
-              color: C.textPrimary,
+              color: 'var(--ink)',
               py: 1.25,
-              borderBottom: `1px solid ${C.gray100}`,
+              borderBottom: '1px solid var(--line)',
             },
           }}
         >
@@ -314,20 +277,20 @@ const InterventionsPendingPayment: React.FC = () => {
                   key={intervention.id}
                   sx={{
                     cursor: 'pointer',
-                    borderLeft: `3px solid ${C.warning}`,
                     transition: 'background-color 0.15s ease',
                     '&:hover': {
-                      bgcolor: 'rgba(107,138,154,0.04)',
+                      bgcolor: 'var(--hover)',
                     },
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                   }}
                 >
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: C.textPrimary }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--ink)' }}>
                       {intervention.title}
                     </Typography>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: C.textPrimary }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
                       {intervention.requestorName}
                     </Typography>
                   </TableCell>
@@ -335,24 +298,26 @@ const InterventionsPendingPayment: React.FC = () => {
                     <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
                       {intervention.propertyName}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: C.textSecondary, fontSize: '0.6875rem' }}>
+                    <Typography variant="caption" sx={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>
                       {intervention.propertyAddress}
                     </Typography>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Chip
-                      label={getTypeLabel(intervention.type)}
-                      size="small"
-                      variant="outlined"
-                      color="primary"
-                      sx={{
-                        fontSize: '0.6875rem',
-                        height: 22,
-                        fontWeight: 500,
-                        borderWidth: 1.5,
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
+                    {(() => { const tk = getTypeTokens(intervention.type); return (
+                      <Chip
+                        label={getTypeLabel(intervention.type)}
+                        size="small"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          height: 22,
+                          fontWeight: 600,
+                          backgroundColor: tk.bg,
+                          color: tk.color,
+                          borderRadius: '6px',
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
+                    ); })()}
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
@@ -360,7 +325,7 @@ const InterventionsPendingPayment: React.FC = () => {
                     </Typography>
                   </TableCell>
                   <TableCell align="right" onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.875rem', color: C.warning }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--warn)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
                       {formatCost(intervention.estimatedCost)}
                     </Typography>
                   </TableCell>
@@ -370,7 +335,7 @@ const InterventionsPendingPayment: React.FC = () => {
                         <IconButton
                           size="small"
                           onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                          sx={{ color: C.textSecondary, '&:hover': { color: C.primary } }}
+                          sx={{ color: 'var(--muted)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}
                         >
                           <VisibilityIcon size={18} strokeWidth={1.75} />
                         </IconButton>
@@ -382,17 +347,11 @@ const InterventionsPendingPayment: React.FC = () => {
                         onClick={(e) => { e.stopPropagation(); handlePay(intervention); }}
                         disabled={processingPayment === intervention.id || !intervention.estimatedCost}
                         sx={{
-                          bgcolor: C.primary,
-                          color: C.white,
                           textTransform: 'none',
                           fontWeight: 600,
                           fontSize: '0.75rem',
-                          borderRadius: '6px',
                           px: 1.5,
                           py: 0.5,
-                          boxShadow: '0 1px 3px rgba(107,138,154,0.3)',
-                          '&:hover': { bgcolor: C.primaryDark },
-                          '&:disabled': { bgcolor: C.primaryLight, color: C.white, opacity: 0.6 },
                         }}
                       >
                         {processingPayment === intervention.id ? 'Chargement...' : 'Payer'}

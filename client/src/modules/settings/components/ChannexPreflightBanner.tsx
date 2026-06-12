@@ -59,12 +59,12 @@ interface ChannexPreflightBannerProps {
 
 function SeverityIcon({ severity }: { severity: ChannexPreflightCheck['severity'] }) {
   if (severity === 'OK') {
-    return <CheckCircle2 size={16} color="#059669" strokeWidth={2.2} />;
+    return <CheckCircle2 size={16} color="var(--ok)" strokeWidth={2.2} />;
   }
   if (severity === 'WARNING') {
-    return <AlertTriangle size={16} color="#D97706" strokeWidth={2.2} />;
+    return <AlertTriangle size={16} color="var(--warn)" strokeWidth={2.2} />;
   }
-  return <XCircle size={16} color="#EF4444" strokeWidth={2.2} />;
+  return <XCircle size={16} color="var(--err)" strokeWidth={2.2} />;
 }
 
 function CheckRow({ check }: { check: ChannexPreflightCheck }) {
@@ -80,8 +80,8 @@ function CheckRow({ check }: { check: ChannexPreflightCheck }) {
         alignItems: 'flex-start',
         bgcolor: isIssue
           ? check.severity === 'BLOCKER'
-            ? 'rgba(239, 68, 68, 0.04)'
-            : 'rgba(217, 119, 6, 0.04)'
+            ? 'color-mix(in srgb, var(--err) 5%, transparent)'
+            : 'color-mix(in srgb, var(--warn) 5%, transparent)'
           : 'transparent',
       }}
     >
@@ -110,7 +110,7 @@ function CheckRow({ check }: { check: ChannexPreflightCheck }) {
               display: 'block',
               lineHeight: 1.45,
               mt: 0.4,
-              color: check.severity === 'BLOCKER' ? '#EF4444' : '#D97706',
+              color: check.severity === 'BLOCKER' ? 'var(--err)' : 'var(--warn)',
               fontStyle: 'italic',
             }}
           >
@@ -164,12 +164,12 @@ export default function ChannexPreflightBanner({
 
   // Couleur principale du banner selon le verdict
   const accent = !report
-    ? '#6B8A9A'
+    ? 'var(--accent)'
     : blockerCount > 0
-      ? '#EF4444'
+      ? 'var(--err)'
       : warningCount > 0
-        ? '#D97706'
-        : '#059669';
+        ? 'var(--warn)'
+        : 'var(--ok)';
 
   return (
     <Box

@@ -101,28 +101,16 @@ const TAGS_CONTAINER_SX = {
   mb: 0.5,
 } as const;
 
+// Chip neutre « champ » (.fr-chip) : fond --field, icône accent (géométrie pilule du thème).
 const TAG_SX = {
   height: 30,
-  fontSize: '0.75rem',
+  fontSize: '11.5px',
   fontWeight: 500,
-  color: 'text.secondary',
-  borderWidth: 1.5,
-  borderColor: 'grey.200',
-  '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'primary.main' },
+  color: 'var(--body)',
+  bgcolor: 'var(--field)',
+  border: '1px solid var(--field-line)',
+  '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'var(--accent)' },
   '& .MuiChip-label': { px: 0.75 },
-} as const;
-
-/** Shared Select sx for consistent styling */
-const SELECT_SX = {
-  '& .MuiOutlinedInput-notchedOutline': {
-    borderColor: 'grey.200',
-  },
-  '&:hover .MuiOutlinedInput-notchedOutline': {
-    borderColor: 'primary.light',
-  },
-  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-    borderColor: 'primary.main',
-  },
 } as const;
 
 const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = React.memo(
@@ -258,7 +246,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
             control={control}
             render={({ field, fieldState }) => (
               <FormControl fullWidth error={!!fieldState.error}>
-                <InputLabel shrink sx={{ color: 'text.secondary' }}>
+                <InputLabel shrink>
                   {t('serviceRequests.fields.title')} *
                 </InputLabel>
                 <TextField
@@ -270,17 +258,6 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                   error={!!fieldState.error}
                   InputLabelProps={{ shrink: true }}
                   label={`${t('serviceRequests.fields.title')} *`}
-                  sx={{
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'grey.200',
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.light',
-                    },
-                    '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.main',
-                    },
-                  }}
                 />
                 {fieldState.error && (
                   <FormHelperText>{fieldState.error.message}</FormHelperText>
@@ -291,7 +268,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
         </Box>
 
         {/* Propriete */}
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1.5 }}>
+        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
           {t('serviceRequests.sections.property')}
         </Typography>
 
@@ -306,7 +283,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                 const selectedProp = properties.find(p => p.id === field.value);
                 return (
                   <FormControl fullWidth error={!!fieldState.error}>
-                    <InputLabel shrink sx={{ color: 'text.secondary' }}>
+                    <InputLabel shrink>
                       {t('serviceRequests.fields.property')}
                     </InputLabel>
                     <Select
@@ -317,11 +294,10 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       size="small"
                       displayEmpty
                       notched
-                      sx={SELECT_SX}
                       renderValue={() => (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: selectedProp ? 'primary.main' : 'grey.400' }}><Home size={16} strokeWidth={1.75} /></Box>
-                          <Typography sx={{ fontSize: '0.8125rem', color: selectedProp ? 'text.secondary' : 'grey.400' }}>
+                          <Box component="span" sx={{ display: 'inline-flex', color: selectedProp ? 'var(--accent)' : 'var(--faint)' }}><Home size={16} strokeWidth={1.75} /></Box>
+                          <Typography sx={{ fontSize: '12.5px', color: selectedProp ? 'var(--body)' : 'var(--faint)' }}>
                             {selectedProp
                               ? `${selectedProp.name} - ${selectedProp.address}, ${selectedProp.city}`
                               : t('serviceRequests.fields.selectProperty')}
@@ -332,8 +308,8 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       {properties.map((property) => (
                         <MenuItem key={property.id} value={property.id}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Home size={16} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
+                            <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                               {property.name} - {property.address}, {property.city}
                             </Typography>
                           </Box>
@@ -353,7 +329,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
           <Box sx={{ flex: 5 }}>
             {currentUser ? (
               <Box>
-                <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', mb: 0.5, ml: 0.25 }}>
+                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.5, ml: 0.25 }}>
                   {t('serviceRequests.fields.requestor')}
                 </Typography>
                 <Box sx={{
@@ -362,14 +338,13 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                   gap: 0.75,
                   px: 1.25,
                   py: 0.75,
-                  borderRadius: 1,
-                  bgcolor: 'grey.50',
-                  border: '1px solid',
-                  borderColor: 'grey.200',
+                  borderRadius: '11px',
+                  bgcolor: 'var(--field)',
+                  border: '1px solid var(--field-line)',
                   minHeight: 40,
                 }}>
-                  <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Person size={16} strokeWidth={1.75} /></Box>
-                  <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary', flex: 1 }}>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                  <Typography sx={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)', flex: 1 }}>
                     {currentUser.name}
                   </Typography>
                   {currentUser.roleLabel && (
@@ -378,11 +353,11 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                       size="small"
                       sx={{
                         height: 20,
-                        fontSize: '0.5625rem',
-                        fontWeight: 600,
-                        bgcolor: currentUser.role === 'ADMIN' ? 'error.50' : currentUser.role === 'MANAGER' ? 'warning.50' : 'primary.50',
-                        color: currentUser.role === 'ADMIN' ? 'error.main' : currentUser.role === 'MANAGER' ? 'warning.dark' : 'primary.main',
-                        borderRadius: 0.75,
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        border: 'none',
+                        bgcolor: currentUser.role === 'ADMIN' ? 'var(--err-soft)' : currentUser.role === 'MANAGER' ? 'var(--warn-soft)' : 'var(--accent-soft)',
+                        color: currentUser.role === 'ADMIN' ? 'var(--err)' : currentUser.role === 'MANAGER' ? 'var(--warn)' : 'var(--accent)',
                         '& .MuiChip-label': { px: 0.75 },
                       }}
                     />
@@ -399,7 +374,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                   const hasValue = !!selectedUser;
                   return (
                     <FormControl fullWidth error={!!fieldState.error}>
-                      <InputLabel shrink sx={{ color: 'text.secondary' }}>
+                      <InputLabel shrink>
                         {t('serviceRequests.fields.requestor')}
                       </InputLabel>
                       <Select
@@ -411,11 +386,10 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         size="small"
                         displayEmpty
                         notched
-                        sx={SELECT_SX}
                         renderValue={() => (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Box component="span" sx={{ display: "inline-flex", color: hasValue ? "primary.main" : "grey.400" }}><Person size={16} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '0.8125rem', color: hasValue ? 'text.secondary' : 'grey.400' }}>
+                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                            <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
                               {hasValue
                                 ? `${selectedUser.firstName} ${selectedUser.lastName}`
                                 : t('serviceRequests.fields.selectRequestor')}
@@ -426,8 +400,8 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         {users.map((u) => (
                           <MenuItem key={u.id} value={u.id}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Person size={16} strokeWidth={1.75} /></Box>
-                              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                              <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                                 {u.firstName} {u.lastName}
                               </Typography>
                             </Box>

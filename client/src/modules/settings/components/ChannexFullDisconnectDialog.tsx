@@ -71,27 +71,27 @@ const STEP_LABEL_FR: Record<ChannexFullDisconnectStep['code'], string> = {
 
 function StepIcon({ status }: { status: ChannexFullDisconnectStep['status'] }) {
   if (status === 'SUCCESS') {
-    return <CheckCircle2 size={18} color="#059669" strokeWidth={2.2} />;
+    return <CheckCircle2 size={18} color="var(--ok)" strokeWidth={2.2} />;
   }
   if (status === 'FAILED') {
-    return <XCircle size={18} color="#EF4444" strokeWidth={2.2} />;
+    return <XCircle size={18} color="var(--err)" strokeWidth={2.2} />;
   }
-  return <MinusCircle size={18} color="#6B7280" strokeWidth={2.2} />;
+  return <MinusCircle size={18} color="var(--muted)" strokeWidth={2.2} />;
 }
 
 function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
   const bg =
     step.status === 'SUCCESS'
-      ? 'rgba(5, 150, 105, 0.06)'
+      ? 'color-mix(in srgb, var(--ok) 6%, transparent)'
       : step.status === 'FAILED'
-        ? 'rgba(239, 68, 68, 0.06)'
-        : 'rgba(107, 114, 128, 0.05)';
+        ? 'color-mix(in srgb, var(--err) 6%, transparent)'
+        : 'var(--hover)';
   const borderColor =
     step.status === 'SUCCESS'
-      ? 'rgba(5, 150, 105, 0.18)'
+      ? 'color-mix(in srgb, var(--ok) 20%, transparent)'
       : step.status === 'FAILED'
-        ? 'rgba(239, 68, 68, 0.22)'
-        : 'rgba(107, 114, 128, 0.18)';
+        ? 'color-mix(in srgb, var(--err) 20%, transparent)'
+        : 'var(--line-2)';
   return (
     <Box
       sx={{
@@ -124,7 +124,7 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
                 height: 18,
                 fontSize: '0.65rem',
                 fontFamily: 'monospace',
-                bgcolor: 'rgba(0,0,0,0.05)',
+                bgcolor: 'var(--hover)',
               }}
             />
           )}
@@ -213,8 +213,8 @@ export default function ChannexFullDisconnectDialog({
                 width: 36,
                 height: 36,
                 borderRadius: 1,
-                bgcolor: 'rgba(239, 68, 68, 0.1)',
-                color: '#EF4444',
+                bgcolor: 'var(--err-soft)',
+                color: 'var(--err)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -243,7 +243,7 @@ export default function ChannexFullDisconnectDialog({
               sx={{
                 mb: 2,
                 pl: 2,
-                borderLeft: '2px solid rgba(107, 114, 128, 0.2)',
+                borderLeft: '2px solid var(--line-2)',
               }}
             >
               <Typography variant="body2" color="text.primary">
@@ -265,7 +265,7 @@ export default function ChannexFullDisconnectDialog({
                 <Checkbox
                   checked={deletePivot}
                   onChange={(e) => setDeletePivot(e.target.checked)}
-                  sx={{ py: 0.25, '&.Mui-checked': { color: '#EF4444' } }}
+                  sx={{ py: 0.25, '&.Mui-checked': { color: 'var(--err)' } }}
                 />
               }
               label={
@@ -283,9 +283,9 @@ export default function ChannexFullDisconnectDialog({
                 m: 0,
                 alignItems: 'flex-start',
                 p: 1.25,
-                border: '1px solid rgba(239, 68, 68, 0.2)',
+                border: '1px solid color-mix(in srgb, var(--err) 20%, transparent)',
                 borderRadius: 1,
-                bgcolor: 'rgba(239, 68, 68, 0.03)',
+                bgcolor: 'color-mix(in srgb, var(--err) 4%, transparent)',
               }}
             />
 
@@ -309,11 +309,8 @@ export default function ChannexFullDisconnectDialog({
               size="small"
               variant="contained"
               startIcon={<Sparkles size={16} />}
-              sx={{
-                backgroundColor: '#EF4444',
-                '&:hover': { backgroundColor: '#DC2626' },
-                textTransform: 'none',
-              }}
+              color="error"
+              sx={{ textTransform: 'none' }}
             >
               {deletePivot ? 'Reset complet' : 'Deconnecter'}
             </Button>
@@ -325,7 +322,7 @@ export default function ChannexFullDisconnectDialog({
       {phase === 'RUNNING' && (
         <DialogContent sx={{ py: 5 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <CircularProgress size={42} sx={{ color: '#EF4444' }} />
+            <CircularProgress size={42} sx={{ color: 'var(--err)' }} />
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
                 Deconnexion en cours…
@@ -351,9 +348,9 @@ export default function ChannexFullDisconnectDialog({
                 height: 36,
                 borderRadius: 1,
                 bgcolor: result.overallSuccess
-                  ? 'rgba(5, 150, 105, 0.1)'
-                  : 'rgba(245, 158, 11, 0.1)',
-                color: result.overallSuccess ? '#059669' : '#D97706',
+                  ? 'var(--ok-soft)'
+                  : 'var(--warn-soft)',
+                color: result.overallSuccess ? 'var(--ok)' : 'var(--warn)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -406,13 +403,8 @@ export default function ChannexFullDisconnectDialog({
               onClick={handleClose}
               size="small"
               variant="contained"
-              sx={{
-                backgroundColor: result.overallSuccess ? '#059669' : '#6B7280',
-                '&:hover': {
-                  backgroundColor: result.overallSuccess ? '#047857' : '#4B5563',
-                },
-                textTransform: 'none',
-              }}
+              color={result.overallSuccess ? 'success' : 'inherit'}
+              sx={{ textTransform: 'none' }}
             >
               Fermer
             </Button>

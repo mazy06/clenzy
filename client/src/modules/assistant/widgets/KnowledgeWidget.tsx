@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha, Chip } from '@mui/material';
+import { Box, Typography, Chip } from '@mui/material';
 
 interface KnowledgeItem {
   documentId?: number;
@@ -24,22 +24,22 @@ interface KnowledgeWidgetProps {
  * Widget de rendu pour {@code displayHint="knowledge"} — resultats RAG du tool
  * {@code search_knowledge_base}.
  *
- * <p>Liste de cartes compactes : titre, snippet, source path + chip relevance.
- * Borderless, bg tonal, design aligne aux autres widgets.</p>
+ * <p>Liste de cartes hairline compactes : titre, snippet, source path + chip
+ * relevance fond `-soft` (pattern statut « Signature »).</p>
  */
 export const KnowledgeWidget: React.FC<KnowledgeWidgetProps> = ({ data }) => {
-  const theme = useTheme();
   const items = data.items ?? [];
 
   if (items.length === 0) {
     return (
       <Box sx={{ mt: 1, mb: 1.5 }}>
         <Box sx={{
-          p: 2, borderRadius: 2,
-          bgcolor: alpha(theme.palette.text.primary, 0.04),
+          p: 2, borderRadius: '12px',
+          border: '1px solid var(--line)',
+          bgcolor: 'var(--card)',
           textAlign: 'center',
         }}>
-          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
             Aucun resultat dans la documentation
             {data.query ? ` pour « ${data.query} »` : ''}.
           </Typography>
@@ -51,10 +51,10 @@ export const KnowledgeWidget: React.FC<KnowledgeWidgetProps> = ({ data }) => {
   return (
     <Box sx={{ mt: 1, mb: 1.5 }}>
       {data.title && (
-        <Typography variant="caption" sx={{
-          display: 'block', mb: 0.75, fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          display: 'block', mb: 0.75, fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title}{data.query ? ` · « ${data.query} »` : ''}
         </Typography>
@@ -70,21 +70,21 @@ export const KnowledgeWidget: React.FC<KnowledgeWidgetProps> = ({ data }) => {
 };
 
 const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
-  const theme = useTheme();
   const relevance = item.relevance ?? 0;
   const relevancePct = Math.round(relevance * 100);
-  const relevanceColor = relevance >= 0.8
-    ? theme.palette.success.main
+  const [relevanceColor, relevanceBg] = relevance >= 0.8
+    ? ['var(--ok)', 'var(--ok-soft)']
     : relevance >= 0.6
-      ? theme.palette.info.main
-      : theme.palette.text.disabled;
+      ? ['var(--info)', 'var(--info-soft)']
+      : ['var(--faint)', 'var(--hover)'];
 
   return (
     <Box
       sx={{
         px: 1.25, py: 1,
-        borderRadius: 1.5,
-        bgcolor: alpha(theme.palette.text.primary, 0.035),
+        borderRadius: '10px',
+        border: '1px solid var(--line)',
+        bgcolor: 'var(--card)',
         display: 'flex',
         flexDirection: 'column',
         gap: 0.5,
@@ -92,8 +92,8 @@ const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
     >
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
         <Typography sx={{
-          fontSize: '0.8125rem', fontWeight: 600,
-          color: theme.palette.text.primary,
+          fontSize: '12.5px', fontWeight: 600,
+          color: 'var(--ink)',
         }}>
           {item.title || item.sourcePath || 'Document'}
         </Typography>
@@ -101,8 +101,8 @@ const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
           label={`${relevancePct}%`}
           size="small"
           sx={{
-            height: 18, fontSize: '0.65rem', fontWeight: 600,
-            bgcolor: alpha(relevanceColor, 0.14),
+            height: 18, fontSize: '10.5px', fontWeight: 700,
+            bgcolor: relevanceBg,
             color: relevanceColor,
             fontVariantNumeric: 'tabular-nums',
             '& .MuiChip-label': { px: 0.75 },
@@ -110,18 +110,18 @@ const KbCard: React.FC<{ item: KnowledgeItem }> = ({ item }) => {
         />
       </Box>
       {item.snippet && (
-        <Typography variant="caption" sx={{
-          fontSize: '0.75rem',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          fontSize: '11.5px',
+          color: 'var(--muted)',
           lineHeight: 1.5,
         }}>
           {item.snippet}
         </Typography>
       )}
       {item.sourcePath && (
-        <Typography variant="caption" sx={{
-          fontSize: '0.68rem',
-          color: theme.palette.text.disabled,
+        <Typography sx={{
+          fontSize: '10.5px',
+          color: 'var(--faint)',
           fontStyle: 'italic',
         }}>
           {item.sourcePath}

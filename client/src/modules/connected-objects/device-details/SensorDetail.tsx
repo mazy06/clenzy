@@ -2,10 +2,26 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Box, Paper, Typography, Button, Chip, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
-import { softChipSx } from '../../../utils/statusUtils';
+import { STATUS_TOKENS } from '../deviceRegistry';
 import BatteryIndicator from '../components/BatteryIndicator';
 import { useState, type ReactNode } from 'react';
-import type { ConnectedDevice } from '../types';
+import type { ConnectedDevice, DeviceStatusLevel } from '../types';
+
+// Pilule statut : texte couleur + fond `-soft` (tokens sémantiques Signature,
+// mêmes niveaux que StatusPill — remplace l'ancien helper hex softChipSx).
+const statusPillSx = (level: DeviceStatusLevel) => {
+  const { color, soft } = STATUS_TOKENS[level];
+  return {
+    height: 22,
+    fontSize: '0.6875rem',
+    fontWeight: 600,
+    backgroundColor: soft,
+    color,
+    border: 'none',
+    borderRadius: 'var(--radius-pill)',
+    '& .MuiChip-label': { px: 1 },
+  } as const;
+};
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -45,19 +61,19 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
   const primary = (() => {
     switch (sensor.sensorType) {
       case 'CONTACT': {
-        if (sensor.contactOpen == null) return { label: 'État', node: <Chip size="small" label="Inconnu" sx={softChipSx('#9CA3AF')} /> };
+        if (sensor.contactOpen == null) return { label: 'État', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
         const open = sensor.contactOpen === true;
-        return { label: 'État', node: <Chip size="small" label={open ? 'Ouvert' : 'Fermé'} sx={softChipSx(open ? '#D4A574' : '#4A9B8E')} /> };
+        return { label: 'État', node: <Chip size="small" label={open ? 'Ouvert' : 'Fermé'} sx={statusPillSx(open ? 'warning' : 'ok')} /> };
       }
       case 'MOTION': {
-        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <Chip size="small" label="Inconnu" sx={softChipSx('#9CA3AF')} /> };
+        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
         const m = sensor.motionDetected === true;
-        return { label: 'Mouvement', node: <Chip size="small" label={m ? 'Détecté' : 'Aucun'} sx={softChipSx(m ? '#D4A574' : '#4A9B8E')} /> };
+        return { label: 'Mouvement', node: <Chip size="small" label={m ? 'Détecté' : 'Aucun'} sx={statusPillSx(m ? 'warning' : 'ok')} /> };
       }
       case 'SMOKE': {
-        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <Chip size="small" label="Inconnu" sx={softChipSx('#9CA3AF')} /> };
+        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
         const s = sensor.smokeDetected === true;
-        return { label: 'Fumée / vape', node: <Chip size="small" label={s ? 'Détectée' : 'Aucune'} sx={softChipSx(s ? '#C97A7A' : '#4A9B8E')} /> };
+        return { label: 'Fumée / vape', node: <Chip size="small" label={s ? 'Détectée' : 'Aucune'} sx={statusPillSx(s ? 'critical' : 'ok')} /> };
       }
       default:
         return null; // climate : pas de chip binaire, on montre les mesures
@@ -66,7 +82,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>État du capteur</Typography>
           <Button
@@ -75,7 +91,6 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
             startIcon={refresh.isPending ? <CircularProgress size={13} color="inherit" /> : <Refresh size={15} strokeWidth={1.75} />}
             onClick={() => refresh.mutate()}
             disabled={refresh.isPending}
-            sx={{ textTransform: 'none' }}
           >
             Rafraîchir
           </Button>
@@ -103,7 +118,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
         )}
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Identité</Typography>
         <InfoRow label="Pièce" value={device.roomName || '—'} />
         <InfoRow label="Fournisseur" value={sensor.brand || '—'} />

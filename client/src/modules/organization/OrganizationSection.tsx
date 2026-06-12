@@ -120,39 +120,10 @@ export default function OrganizationSection({ organizationId }: Props) {
   const inviteAction = effectiveOrgId ? (
     <Button
       variant="contained"
-      disableElevation
       size="small"
       startIcon={<PersonAdd size={14} strokeWidth={2} />}
       onClick={() => setDialogOpen(true)}
-      sx={{
-        textTransform: 'none',
-        fontWeight: 600,
-        fontSize: '0.75rem',
-        letterSpacing: '0.01em',
-        borderRadius: '8px',
-        py: 0.625,
-        px: 1.5,
-        bgcolor: '#6B8A9A',
-        color: '#fff',
-        boxShadow: 'none',
-        transition:
-          'background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-        '&:hover': {
-          bgcolor: '#6B8A9A',
-          filter: 'brightness(0.94)',
-          boxShadow: '0 1px 2px rgba(45, 55, 72, 0.06), 0 4px 10px rgba(107, 138, 154, 0.22)',
-          transform: 'translateY(-1px)',
-        },
-        '&:active': {
-          transform: 'translateY(0)',
-          boxShadow: 'none',
-        },
-        '&:focus-visible': {
-          outline: '2px solid #6B8A9A',
-          outlineOffset: 2,
-        },
-        '& .MuiButton-startIcon': { mr: 0.75 },
-      }}
+      sx={{ '& .MuiButton-startIcon': { mr: 0.75 } }}
     >
       Inviter
     </Button>
@@ -212,11 +183,8 @@ export default function OrganizationSection({ organizationId }: Props) {
                         sx={{
                           height: 20,
                           fontSize: '0.65rem',
-                          fontWeight: 600,
-                          backgroundColor: `${c}14`,
+                          backgroundColor: `${c}18`,
                           color: c,
-                          border: `1px solid ${c}33`,
-                          borderRadius: '5px',
                           '& .MuiChip-label': { px: 0.75 },
                         }}
                       />
@@ -256,11 +224,11 @@ export default function OrganizationSection({ organizationId }: Props) {
               <>
                 <Typography
                   sx={{
-                    fontSize: '0.7rem',
+                    fontSize: '10.5px',
                     fontWeight: 700,
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase',
-                    color: 'text.secondary',
+                    color: 'var(--faint)',
                     mb: 1,
                   }}
                 >

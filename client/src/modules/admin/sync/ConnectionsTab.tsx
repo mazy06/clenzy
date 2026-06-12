@@ -11,26 +11,27 @@ import {
   Chip,
   Button,
   CircularProgress,
+  Skeleton,
   Alert,
   Typography,
 } from '@mui/material';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
 
-const statusColor = (status: string): 'success' | 'default' => {
-  switch (status) {
-    case 'ACTIVE': return 'success';
-    default: return 'default';
-  }
-};
+/** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
+const chipSx = (fg: string, bg: string) => ({ color: fg, backgroundColor: bg });
 
-const healthColor = (health: string): 'success' | 'warning' | 'error' | 'default' => {
-  switch (health) {
-    case 'HEALTHY': return 'success';
-    case 'DEGRADED': return 'warning';
-    case 'UNHEALTHY': return 'error';
-    default: return 'default';
-  }
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+
+// Statut connexion → tokens sémantiques (ACTIVE = --ok, sinon neutre)
+const statusToken = (status: string) =>
+  status === 'ACTIVE' ? { fg: 'var(--ok)', bg: 'var(--ok-soft)' } : NEUTRAL_TOKEN;
+
+// Santé → tokens sémantiques (HEALTHY --ok, DEGRADED --warn, UNHEALTHY --err)
+const HEALTH_TOKEN: Record<string, { fg: string; bg: string }> = {
+  HEALTHY: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  DEGRADED: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  UNHEALTHY: { fg: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
 const ConnectionsTab: React.FC = () => {
@@ -74,8 +75,10 @@ const ConnectionsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" p={4}>
-        <CircularProgress />
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+        ))}
       </Box>
     );
   }
@@ -86,11 +89,15 @@ const ConnectionsTab: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
         Connexions Channel
       </Typography>
 
-      <TableContainer component={Paper} variant="outlined">
+      <TableContainer
+        component={Paper}
+        variant="outlined"
+        sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
+      >
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -107,20 +114,23 @@ const ConnectionsTab: React.FC = () => {
           <TableBody>
             {connections.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={8} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
                   Aucune connexion
                 </TableCell>
               </TableRow>
             ) : (
               connections.map((conn) => (
                 <TableRow key={conn.id}>
-                  <TableCell>{conn.id}</TableCell>
+                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.id}</TableCell>
                   <TableCell>{conn.channel}</TableCell>
                   <TableCell>
                     <Chip
                       label={conn.status}
-                      color={statusColor(conn.status)}
                       size="small"
+                      sx={(() => {
+                        const tk = statusToken(conn.status);
+                        return chipSx(tk.fg, tk.bg);
+                      })()}
                     />
                   </TableCell>
                   <TableCell>
@@ -135,12 +145,15 @@ const ConnectionsTab: React.FC = () => {
                       {conn.lastError || '—'}
                     </Typography>
                   </TableCell>
-                  <TableCell>{conn.mappingCount}</TableCell>
+                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.mappingCount}</TableCell>
                   <TableCell>
                     <Chip
                       label={conn.healthStatus}
-                      color={healthColor(conn.healthStatus)}
                       size="small"
+                      sx={(() => {
+                        const tk = HEALTH_TOKEN[conn.healthStatus] ?? NEUTRAL_TOKEN;
+                        return chipSx(tk.fg, tk.bg);
+                      })()}
                     />
                   </TableCell>
                   <TableCell>

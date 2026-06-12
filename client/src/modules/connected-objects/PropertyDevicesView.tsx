@@ -70,7 +70,7 @@ export default function PropertyDevicesView() {
 
       {loading ? (
         <Box sx={GRID}>
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 1.5 }} />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
         </Box>
       ) : propertyDevices.length === 0 ? (
         <EmptyState

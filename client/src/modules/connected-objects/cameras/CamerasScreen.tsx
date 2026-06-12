@@ -91,7 +91,7 @@ export default function CamerasScreen() {
       {/* Bandeau d'aide : lecture à la demande */}
       <Paper
         variant="outlined"
-        sx={{ p: 1.25, mb: 1.5, borderRadius: 1.5, borderStyle: 'dashed', borderColor: alpha(ACCENT, 0.4),
+        sx={{ p: 1.25, mb: 1.5, borderRadius: 'var(--radius-lg)', borderStyle: 'dashed', borderColor: alpha(ACCENT, 0.4),
           bgcolor: alpha(ACCENT, theme.palette.mode === 'dark' ? 0.08 : 0.04), display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
       >
         <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, minWidth: 220 }}>
@@ -102,7 +102,7 @@ export default function CamerasScreen() {
 
       {isLoading ? (
         <Box sx={GRID}>
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} variant="rounded" height={200} sx={{ borderRadius: 1.5 }} />)}
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} variant="rounded" height={200} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
         </Box>
       ) : cameras.length === 0 ? (
         <EmptyState

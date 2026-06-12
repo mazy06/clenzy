@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
-  CircularProgress,
+  Skeleton,
   Alert,
   Typography,
   FormControl,
@@ -14,6 +14,8 @@ import {
   useTheme,
 } from '@mui/material';
 import { FilterAltOff as FilterAltOffIcon, CalendarMonth } from '../../icons';
+import EmptyState from '../../components/EmptyState';
+import './calendarSignature.css';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -35,24 +37,27 @@ import {
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
 
 // ---------------------------------------------------------------------------
-// Color mapping: intervention status -> hex color for FullCalendar events
+// Color mapping: intervention status -> couleur d'évènement FullCalendar.
+// Palette VALIDÉE planning (constantes locales planning-grid-reference.css) :
+// ambre = en attente, bleu = en cours, vert = terminé, mauve = validation.
+// Annulée = fantôme neutre (équivalent de la brique hachurée du planning).
 // ---------------------------------------------------------------------------
 const getStatusColorHex = (status: string): string => {
   switch (status) {
     case 'PENDING':
-      return '#ed6c02';
+      return '#C28A52';
     case 'IN_PROGRESS':
-      return '#0288d1';
+      return '#4F86C6';
     case 'COMPLETED':
-      return '#2e7d32';
+      return '#3E9C80';
     case 'CANCELLED':
-      return '#d32f2f';
+      return 'var(--faint)';
     case 'AWAITING_VALIDATION':
-      return '#9c27b0';
+      return '#9A7FA3';
     case 'AWAITING_PAYMENT':
-      return '#ff9800';
+      return '#C28A52';
     default:
-      return '#757575';
+      return 'var(--muted)';
   }
 };
 
@@ -197,12 +202,74 @@ export default function CalendarPage() {
   // Loading / error states
   // -----------------------------------------------------------------------
   if (!user) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={32} />
-      </Box>
-    );
+    return <Skeleton variant="rounded" height={420} sx={{ borderRadius: 'var(--radius-lg)' }} />;
   }
+
+  // Filtres : portés par le slot `filters` du PageHeader (pattern des écrans
+  // finalisés — pas de Paper de filtres orphelin).
+  const filterBar = (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', width: '100%' }}>
+      <FormControl size="small" sx={{ minWidth: 160 }}>
+        <InputLabel>Statut</InputLabel>
+        <Select
+          value={selectedStatus}
+          label="Statut"
+          onChange={(e) => setSelectedStatus(e.target.value)}
+        >
+          {statusOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 160 }}>
+        <InputLabel>Type</InputLabel>
+        <Select
+          value={selectedType}
+          label="Type"
+          onChange={(e) => setSelectedType(e.target.value)}
+        >
+          {typeOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 160 }}>
+        <InputLabel>Priorite</InputLabel>
+        <Select
+          value={selectedPriority}
+          label="Priorite"
+          onChange={(e) => setSelectedPriority(e.target.value)}
+        >
+          {priorityOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {hasActiveFilters && (
+        <Button size="small" startIcon={<FilterAltOffIcon size={14} strokeWidth={1.75} />} onClick={clearFilters}>
+          Effacer les filtres
+        </Button>
+      )}
+
+      <Box sx={{ ml: 'auto' }}>
+        <Typography
+          variant="body2"
+          sx={{ color: 'var(--muted)', fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}
+        >
+          {events.length} intervention{events.length > 1 ? 's' : ''}
+        </Typography>
+      </Box>
+    </Box>
+  );
 
   return (
     <Box>
@@ -212,6 +279,7 @@ export default function CalendarPage() {
         iconBadge={<CalendarMonth />}
         backPath="/interventions"
         showBackButton={false}
+        filters={filterBar}
       />
 
       {error && (
@@ -220,83 +288,20 @@ export default function CalendarPage() {
         </Alert>
       )}
 
-      {/* Filter bar */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel sx={{ fontSize: '0.875rem' }}>Statut</InputLabel>
-            <Select
-              value={selectedStatus}
-              label="Statut"
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              sx={{ fontSize: '0.875rem' }}
-            >
-              {statusOptions.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.875rem' }}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel sx={{ fontSize: '0.875rem' }}>Type</InputLabel>
-            <Select
-              value={selectedType}
-              label="Type"
-              onChange={(e) => setSelectedType(e.target.value)}
-              sx={{ fontSize: '0.875rem' }}
-            >
-              {typeOptions.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.875rem' }}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel sx={{ fontSize: '0.875rem' }}>Priorite</InputLabel>
-            <Select
-              value={selectedPriority}
-              label="Priorite"
-              onChange={(e) => setSelectedPriority(e.target.value)}
-              sx={{ fontSize: '0.875rem' }}
-            >
-              {priorityOptions.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.875rem' }}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {hasActiveFilters && (
-            <Button
-              size="small"
-              startIcon={<FilterAltOffIcon />}
-              onClick={clearFilters}
-              sx={{ textTransform: 'none', fontSize: '0.875rem' }}
-            >
-              Effacer les filtres
-            </Button>
-          )}
-
-          <Box sx={{ ml: 'auto' }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-              {events.length} intervention{events.length > 1 ? 's' : ''}
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
-
       {/* Calendar */}
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress size={40} />
-        </Box>
+        <Skeleton variant="rounded" height="calc(100vh - 320px)" sx={{ minHeight: 400, borderRadius: 'var(--radius-lg)' }} />
+      ) : !error && interventions.length === 0 ? (
+        <EmptyState
+          icon={<CalendarMonth />}
+          title="Aucune intervention planifiee"
+          description="Les interventions planifiees (menage, maintenance, check-in/out) apparaitront ici dans une vue calendrier."
+        />
       ) : (
-        <Paper sx={{ p: 2 }}>
+        <Paper
+          className="cal-signature"
+          sx={{ p: 2, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)' }}
+        >
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
             initialView={isMobile ? 'listWeek' : 'dayGridMonth'}

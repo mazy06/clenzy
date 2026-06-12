@@ -311,14 +311,14 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
           </Box>
         ) : memberSuccess ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
             <Typography variant="body1" textAlign="center">
               <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> a ete ajoute a l'organisation.
             </Typography>
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
             <Typography variant="body1" textAlign="center">
               L'invitation a ete envoyee a <strong>{result?.invitedEmail}</strong>
             </Typography>

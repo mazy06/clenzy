@@ -22,19 +22,23 @@ export default function OfflineBanner() {
           left: 0,
           right: 0,
           zIndex: 9999,
-          backgroundColor: '#f59e0b',
-          color: '#1e293b',
+          // Alerte -soft hairline : fond opaque (card) + couche warn-soft plate
+          backgroundColor: 'var(--card)',
+          backgroundImage: 'linear-gradient(var(--warn-soft), var(--warn-soft))',
+          borderBottom: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
+          color: 'var(--ink)',
           py: 1,
           px: 2,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 1,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         }}
       >
-        <WifiOffIcon size={20} strokeWidth={1.75} />
-        <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
+        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+          <WifiOffIcon size={17} strokeWidth={1.75} />
+        </Box>
+        <Typography variant="body2" fontWeight={600} sx={{ fontSize: '12.5px' }}>
           {t('offline.banner', 'Vous \u00eates hors ligne. Certaines fonctionnalit\u00e9s peuvent ne pas \u00eatre disponibles.')}
         </Typography>
       </Box>

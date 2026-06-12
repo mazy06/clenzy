@@ -17,6 +17,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Skeleton,
   Tooltip as MuiTooltip,
 } from '@mui/material';
 import {
@@ -42,19 +43,19 @@ import { kpiApi, KpiSnapshot, KpiItem, KpiHistory, KpiStatus } from '../../servi
 import { incidentApi, IncidentDto } from '../../services/api/incidentApi';
 import IncidentDetailDialog from '../dashboard/IncidentDetailDialog';
 import { formatDuration } from '../../utils/durationUtils';
+import {
+  useChartTokens,
+  axisTick,
+  renderChartLegendText,
+} from '../reports/chartTheme';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const STATUS_COLORS: Record<KpiStatus, string> = {
-  OK: '#4caf50',
-  WARNING: '#ff9800',
-  CRITICAL: '#f44336',
-};
-
-const STATUS_BG_COLORS: Record<KpiStatus, string> = {
-  OK: '#e8f5e9',
-  WARNING: '#fff3e0',
-  CRITICAL: '#ffebee',
+// Statuts KPI → tokens sémantiques Signature (texte couleur + fond -soft)
+const STATUS_TOKEN: Record<KpiStatus, { fg: string; bg: string }> = {
+  OK: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  WARNING: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  CRITICAL: { fg: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
 const KPI_TOOLTIPS: Record<string, string> = {
@@ -80,10 +81,11 @@ interface ScoreGaugeProps {
 }
 
 const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
-  const color = criticalFailed ? '#f44336'
-    : score >= 80 ? '#4caf50'
-    : score >= 50 ? '#ff9800'
-    : '#f44336';
+  // Couleur du score → tokens sémantiques (réactifs thème/accent)
+  const color = criticalFailed ? 'var(--err)'
+    : score >= 80 ? 'var(--ok)'
+    : score >= 50 ? 'var(--warn)'
+    : 'var(--err)';
 
   return (
     <Card sx={{ textAlign: 'center', py: 3 }}>
@@ -94,7 +96,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
             value={100}
             size={160}
             thickness={4}
-            sx={{ color: '#e0e0e0', position: 'absolute' }}
+            sx={{ color: 'var(--line)', position: 'absolute' }}
           />
           <CircularProgress
             variant="determinate"
@@ -113,28 +115,30 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
               justifyContent: 'center',
             }}
           >
-            {criticalFailed ? (
-              <Box component="span" sx={{ display: 'inline-flex', mb: 0.5 }}><Warning size={32} strokeWidth={1.75} color='#f44336' /></Box>
-            ) : (
-              <Box component="span" sx={{ display: 'inline-flex', color, mb: 0.5 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color, mb: 0.5 }}>
+              {criticalFailed ? (
+                <Warning size={32} strokeWidth={1.75} />
+              ) : (
                 <Shield size={32} strokeWidth={1.75} />
-              </Box>
-            )}
-            <Typography variant="h3" sx={{ fontWeight: 700, color }}>
+              )}
+            </Box>
+            <Typography
+              variant="h3"
+              sx={{ fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}
+            >
               {criticalFailed ? '0' : Math.round(score)}
             </Typography>
-            <Typography variant="caption" color="text.secondary">/ 100</Typography>
+            <Typography variant="caption" sx={{ color: 'var(--muted)' }}>/ 100</Typography>
           </Box>
         </Box>
-        <Typography variant="h6" sx={{ mt: 2, fontWeight: 600 }}>
+        <Typography variant="h6" sx={{ mt: 2, fontWeight: 600, color: 'var(--ink)' }}>
           Readiness Score
         </Typography>
         {criticalFailed && (
           <Chip
             label="KPI CRITIQUE EN ECHEC"
-            color="error"
             size="small"
-            sx={{ mt: 1 }}
+            sx={{ mt: 1, color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
           />
         )}
       </CardContent>
@@ -165,8 +169,7 @@ function formatKpiValue(rawValue: number, unit: string, fallback: string): strin
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipContent }) => {
-  const chipColor = kpi.status === 'OK' ? 'success'
-    : kpi.status === 'WARNING' ? 'warning' : 'error';
+  const tk = STATUS_TOKEN[kpi.status];
 
   const StatusIcon = kpi.status === 'OK' ? CheckCircle
     : kpi.status === 'WARNING' ? Warning : ErrorIcon;
@@ -178,57 +181,75 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
 
   const cardContent = (
     <CardContent sx={{ pb: '12px !important' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, gap: 0.5 }}>
+        {/* Label en overline (pattern entête de tuile KPI) */}
+        <Typography
+          sx={{
+            fontSize: '10.5px',
+            fontWeight: 700,
+            letterSpacing: '.05em',
+            textTransform: 'uppercase',
+            color: 'var(--faint)',
+          }}
+        >
           {kpi.name}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
           {badgeCount !== undefined && badgeCount > 0 && (
             <Chip
               label={`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}
               size="small"
-              color="error"
-              sx={{ height: 20, fontSize: '0.65rem' }}
+              sx={{ color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
             />
           )}
           {kpi.critical && (
-            <Chip label="Critical" size="small" color="error" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
+            <Chip
+              label="Critical"
+              size="small"
+              sx={{ color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
+            />
           )}
         </Box>
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status], fontVariantNumeric: 'tabular-nums' }}>
+        {/* Valeur display tabular-nums — l'accent statut vit dans la valeur + le chip */}
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 600, color: tk.fg, fontVariantNumeric: 'tabular-nums' }}
+        >
           {displayedValue}
         </Typography>
       </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
           Target: {displayedTarget}
         </Typography>
         <Chip
-          icon={<StatusIcon size={14} strokeWidth={1.75} />}
+          icon={<StatusIcon size={13} strokeWidth={1.75} />}
           label={kpi.status}
-          color={chipColor}
           size="small"
-          sx={{ height: 22, fontSize: '0.7rem' }}
+          sx={{
+            color: tk.fg,
+            backgroundColor: tk.bg,
+            '& .MuiChip-icon': { color: tk.fg, marginLeft: '6px' },
+          }}
         />
       </Box>
     </CardContent>
   );
 
+  // Carte plate hairline (statut porté par valeur + chip, pas par la bordure)
   const card = (
     <Card
       variant="outlined"
       sx={{
         height: '100%',
-        borderColor: STATUS_COLORS[kpi.status],
-        borderWidth: kpi.critical && kpi.status === 'CRITICAL' ? 2 : 1,
-        backgroundColor: STATUS_BG_COLORS[kpi.status] + '40',
-        transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: 3 },
-        ...(onClick && { cursor: 'pointer' }),
+        ...(onClick && {
+          cursor: 'pointer',
+          '&:hover': { borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-card)' },
+        }),
       }}
     >
       {onClick ? (
@@ -271,29 +292,37 @@ interface CustomTooltipProps {
 
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
+  // Pattern tooltip Signature : encre sur fond (--ink / --bg), r8
   return (
-    <Paper sx={{ p: 1.5, boxShadow: 3 }}>
+    <Box
+      sx={{
+        p: '6px 10px',
+        borderRadius: '8px',
+        backgroundColor: 'var(--ink)',
+        color: 'var(--bg)',
+      }}
+    >
       {label && (
-        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: '0.8rem' }}>
+        <Typography sx={{ fontWeight: 700, mb: 0.5, fontSize: '11.5px' }}>
           {new Date(label).toLocaleString()}
         </Typography>
       )}
       {payload.map((entry, index) => (
         <Typography
           key={index}
-          variant="caption"
-          sx={{ display: 'block', color: entry.color, fontSize: '0.75rem' }}
+          sx={{ display: 'block', fontSize: '11.5px', fontWeight: 600 }}
         >
           {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
         </Typography>
       ))}
-    </Paper>
+    </Box>
   );
 };
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 const KpiReadinessPage: React.FC = () => {
+  const chartTokens = useChartTokens();
   const [snapshot, setSnapshot] = useState<KpiSnapshot | null>(null);
   const [history, setHistory] = useState<KpiHistory | null>(null);
   const [loading, setLoading] = useState(true);
@@ -433,8 +462,23 @@ const KpiReadinessPage: React.FC = () => {
       {error && <Alert severity="error" sx={{ mt: 2, mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" p={6}>
-          <CircularProgress />
+        // Skeletons à la silhouette de la page (gauge + panneau + grille KPI)
+        <Box sx={{ mt: 3 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
+            </Grid>
+            <Grid item xs={12} md={8}>
+              <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
+            </Grid>
+          </Grid>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+                <Skeleton variant="rounded" height={120} sx={{ borderRadius: '14px' }} />
+              </Grid>
+            ))}
+          </Grid>
         </Box>
       ) : snapshot ? (
         <>
@@ -444,16 +488,35 @@ const KpiReadinessPage: React.FC = () => {
               <ScoreGauge score={snapshot.readinessScore} criticalFailed={snapshot.criticalFailed} />
             </Grid>
             <Grid item xs={12} md={8}>
-              <Paper sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 3,
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  borderRadius: '14px',
+                  borderColor: 'var(--line)',
+                }}
+              >
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
                   <Box>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      sx={{
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        letterSpacing: '.05em',
+                        textTransform: 'uppercase',
+                        color: 'var(--faint)',
+                      }}
+                    >
                       Derniere capture
                     </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--ink)' }}>
                       {formatTimestamp(snapshot.capturedAt)}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
                       Source: {snapshot.source}
                     </Typography>
                   </Box>
@@ -480,19 +543,18 @@ const KpiReadinessPage: React.FC = () => {
                   </Box>
                 </Box>
 
-                {/* Summary chips */}
+                {/* Summary chips — -soft : texte couleur + fond -soft */}
                 <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
                   {(['OK', 'WARNING', 'CRITICAL'] as KpiStatus[]).map((status) => {
                     const count = snapshot.kpis.filter((k) => k.status === status).length;
                     if (count === 0) return null;
-                    const color = status === 'OK' ? 'success' : status === 'WARNING' ? 'warning' : 'error';
+                    const tk = STATUS_TOKEN[status];
                     return (
                       <Chip
                         key={status}
                         label={`${count} ${status}`}
-                        color={color}
                         size="small"
-                        variant="outlined"
+                        sx={{ color: tk.fg, backgroundColor: tk.bg }}
                       />
                     );
                   })}
@@ -516,9 +578,12 @@ const KpiReadinessPage: React.FC = () => {
           </Grid>
 
           {/* Historical Trend Chart */}
-          <Paper sx={{ mt: 3, p: 3 }}>
+          <Paper
+            variant="outlined"
+            sx={{ mt: 3, p: 3, borderRadius: '14px', borderColor: 'var(--line)' }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--ink)' }}>
                 Tendance historique
               </Typography>
               <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -538,16 +603,16 @@ const KpiReadinessPage: React.FC = () => {
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" tick={{ fontSize: 11 }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTokens.line} />
+                  <XAxis dataKey="time" tick={axisTick(chartTokens)} stroke={chartTokens.line} />
+                  <YAxis domain={[0, 100]} tick={axisTick(chartTokens)} stroke={chartTokens.line} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Legend verticalAlign="bottom" height={36} formatter={renderChartLegendText} />
                   <Line
                     type="monotone"
                     dataKey="readinessScore"
                     name="Readiness Score"
-                    stroke="#2196f3"
+                    stroke={chartTokens.accent}
                     strokeWidth={2}
                     dot={{ r: 3 }}
                     activeDot={{ r: 5 }}
@@ -556,7 +621,7 @@ const KpiReadinessPage: React.FC = () => {
                     type="monotone"
                     dataKey="uptimePct"
                     name="Uptime %"
-                    stroke="#4caf50"
+                    stroke={chartTokens.ok}
                     strokeWidth={1}
                     dot={false}
                     strokeDasharray="5 5"
@@ -565,7 +630,7 @@ const KpiReadinessPage: React.FC = () => {
                     type="monotone"
                     dataKey="inventoryCoherencePct"
                     name="Inventory %"
-                    stroke="#ff9800"
+                    stroke={chartTokens.warn}
                     strokeWidth={1}
                     dot={false}
                     strokeDasharray="5 5"

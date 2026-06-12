@@ -98,7 +98,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
           >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Handshake size={22} strokeWidth={1.75} color='#6B8A9A' />
+              <Handshake size={22} strokeWidth={1.75} color='var(--accent)' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 {t('tarification.monitoring.minut.title')}
               </Typography>
@@ -208,7 +208,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
           >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Memory size={22} strokeWidth={1.75} color='#4A9B8E' />
+              <Memory size={22} strokeWidth={1.75} color='var(--ok)' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 {t('tarification.monitoring.clenzy.title')}
               </Typography>

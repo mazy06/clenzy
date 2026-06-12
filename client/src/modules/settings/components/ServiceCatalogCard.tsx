@@ -59,11 +59,11 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
 
 /** Resout le chip a afficher : prioritise le tag commercial sur le status. */
 function getChipMeta(service: { tag?: 'proprietary' | 'free' | 'partner' | 'external'; available: boolean }): { label: string; color: string } {
-  const ACCENT_LOCAL = '#4A9B8E';
-  const NEUTRAL_LOCAL = '#8A8378';
-  const WARM_LOCAL = '#D4A574';
-  const INFO_LOCAL = '#7BA3C2';
-  const PRIMARY_LOCAL = '#6B8A9A';
+  const ACCENT_LOCAL = 'var(--ok)';
+  const NEUTRAL_LOCAL = 'var(--muted)';
+  const WARM_LOCAL = 'var(--warn)';
+  const INFO_LOCAL = 'var(--info)';
+  const PRIMARY_LOCAL = 'var(--accent)';
 
   if (service.tag === 'proprietary') return { label: 'Propriétaire', color: PRIMARY_LOCAL };
   if (service.tag === 'free') return { label: 'Gratuit', color: ACCENT_LOCAL };

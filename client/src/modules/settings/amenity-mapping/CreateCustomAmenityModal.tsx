@@ -40,7 +40,7 @@ import { useAmenityIconOverrides } from './useAmenityIconOverrides';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTranslation } from '../../../hooks/useTranslation';
 
-const ACCENT = '#0F766E';
+const ACCENT = 'var(--accent)';
 
 const CATEGORY_OPTIONS = [
   { value: 'comfort',      label: 'Confort' },
@@ -280,14 +280,14 @@ export default function CreateCustomAmenityModal({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: `${ACCENT}14`,
+                bgcolor: 'var(--accent-soft)',
                 color: ACCENT,
                 cursor: 'pointer',
                 border: '1px solid',
-                borderColor: `${ACCENT}33`,
+                borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
                 transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': { bgcolor: `${ACCENT}24`, borderColor: ACCENT },
-                '&:focus-visible': { boxShadow: `0 0 0 3px ${ACCENT}33`, outline: 'none' },
+                '&:hover': { bgcolor: 'color-mix(in srgb, var(--accent) 14%, transparent)', borderColor: ACCENT },
+                '&:focus-visible': { boxShadow: '0 0 0 3px var(--accent-soft)', outline: 'none' },
               }}
             >
               <PreviewIcon size={20} strokeWidth={1.75} />
@@ -307,9 +307,9 @@ export default function CreateCustomAmenityModal({
               sx={{
                 textTransform: 'none',
                 fontSize: '0.78rem',
-                borderColor: `${ACCENT}66`,
+                borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
                 color: ACCENT,
-                '&:hover': { borderColor: ACCENT, backgroundColor: `${ACCENT}0A` },
+                '&:hover': { borderColor: ACCENT, backgroundColor: 'var(--accent-soft)' },
               }}
             >
               {t('settings.amenities.changeIcon', "Changer l'icône")}
@@ -372,11 +372,7 @@ export default function CreateCustomAmenityModal({
           size="small"
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}
-          sx={{
-            backgroundColor: ACCENT,
-            '&:hover': { backgroundColor: '#0d645e' },
-            textTransform: 'none',
-          }}
+          sx={{ textTransform: 'none' }}
         >
           {submitting ? 'Création…' : 'Créer la commodité'}
         </Button>

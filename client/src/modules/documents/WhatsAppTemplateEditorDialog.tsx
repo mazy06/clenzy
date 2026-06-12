@@ -236,7 +236,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
                                 width: 6,
                                 height: 6,
                                 borderRadius: '50%',
-                                bgcolor: 'primary.main',
+                                bgcolor: 'var(--accent)',
                                 display: 'inline-block',
                               }}
                             />

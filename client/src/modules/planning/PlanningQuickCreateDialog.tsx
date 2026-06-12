@@ -1,24 +1,15 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
   Box,
   Typography,
-  IconButton,
+  TextField,
   Chip,
   Autocomplete,
   CircularProgress,
   Collapse,
-  ToggleButtonGroup,
-  ToggleButton,
-  Divider,
   Switch,
-  FormControlLabel,
-  alpha,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Close,
@@ -26,7 +17,6 @@ import {
   PersonAdd,
   Person,
   NightsStay,
-  Euro,
   Percent,
   Edit as EditIcon,
   Remove as RemoveIcon,
@@ -34,10 +24,17 @@ import {
   Group as GroupIcon,
   CleaningServices,
   AccessTime,
-  ConfirmationNumber,
-  AccountBalance,
   CheckCircle,
   Schedule,
+  Public as GlobeIcon,
+  Search as SearchIcon,
+  ChevronLeft,
+  ChevronRight,
+  Numbers as HashIcon,
+  Receipt as ReceiptIcon,
+  RemoveCircleOutline as MinusCircleIcon,
+  Check,
+  Warning as WarningIcon,
 } from '../../icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QuickCreateData, PlanningEvent } from './types';
@@ -45,8 +42,15 @@ import type { CreateReservationData } from '../../services/api';
 import { reservationsApi, guestsApi, propertiesApi } from '../../services/api';
 import type { GuestDto, CreateGuestData } from '../../services/api';
 import { planningKeys } from './hooks/usePlanningData';
-import MiniDateRangePicker from '../../components/MiniDateRangePicker';
-import { Warning as WarningIcon } from '../../icons';
+
+// ─── Modale « Nouvelle réservation » (maquette Signature) ────────────────────
+//
+// Reskin fidèle de la référence « Modale Nouvelle Réservation.html » (.s-modal /
+// .rm-*) : carte 980px radius 18 shadow-pop, entête titre + pilule canal +
+// segmented statut + propriété + ✕, corps 2 colonnes (dates/calendrier range/
+// heures/voyageur | tarification/ménage/taxe/code/notes), alerte conflit pleine
+// largeur, pied surface-2. Tokens var(--…) de theme/signature/tokens.css.
+// AUCUNE logique modifiée : états, queries, mutations et validations intacts.
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -60,18 +64,179 @@ interface PlanningQuickCreateDialogProps {
 
 type PricingMode = 'custom' | 'discount_euro' | 'discount_percent';
 
-// ─── Styles constants ───────────────────────────────────────────────────────
+// ─── Styles « Signature » ────────────────────────────────────────────────────
 
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
+/** Overline de section (.rm-sec) */
+const SEC_SX = {
+  fontSize: '10.5px',
   fontWeight: 700,
+  letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
-  mb: 0.75,
+  color: 'var(--faint)',
 } as const;
 
-const FIELD_SX = { '& .MuiInputBase-root': { fontSize: '0.84rem' } } as const;
+/** Champ flottant (.rm-field/.rm-input) — appliqué aux TextField outlined. */
+const FIELD_SX = {
+  '& .MuiOutlinedInput-root': {
+    minHeight: 44,
+    borderRadius: '11px',
+    backgroundColor: 'var(--field)',
+    fontFamily: 'inherit',
+    fontSize: '13.5px',
+    fontWeight: 600,
+    color: 'var(--ink)',
+    transition: 'box-shadow .14s, background-color .14s',
+    '& fieldset': { borderColor: 'var(--field-line)', transition: 'border-color .14s' },
+    '&:hover fieldset': { borderColor: 'var(--field-line)' },
+    '&.Mui-focused': { backgroundColor: 'var(--card)', boxShadow: '0 0 0 3px var(--accent-soft)' },
+    '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: '1px' },
+    '&.MuiInputBase-adornedStart': { paddingLeft: '13px' },
+    '&.Mui-disabled': { backgroundColor: 'var(--field)' },
+  },
+  '& .MuiOutlinedInput-input': { padding: '0 13px', height: 44, boxSizing: 'border-box' },
+  '& .MuiInputBase-adornedStart .MuiOutlinedInput-input': { paddingLeft: '8px' },
+  '& .MuiOutlinedInput-input::placeholder': { color: 'var(--faint)', fontWeight: 500, opacity: 1 },
+  '& .MuiOutlinedInput-input.Mui-disabled': { WebkitTextFillColor: 'var(--body)' },
+  '& .MuiInputLabel-root': {
+    // 14px × scale(0.75) = 10.5px une fois flottant (réf. label .rm-field)
+    fontSize: '14px',
+    fontWeight: 600,
+    color: 'var(--muted)',
+    '&.Mui-focused': { color: 'var(--muted)' },
+    '&.Mui-disabled': { color: 'var(--muted)' },
+  },
+} as const;
+
+/** Variante textarea (.rm-textarea) */
+const TEXTAREA_SX = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '11px',
+    backgroundColor: 'var(--field)',
+    padding: '11px 13px',
+    fontFamily: 'inherit',
+    fontSize: '13px',
+    color: 'var(--body)',
+    lineHeight: 1.5,
+    transition: 'box-shadow .14s, background-color .14s',
+    '& fieldset': { borderColor: 'var(--field-line)', transition: 'border-color .14s' },
+    '&:hover fieldset': { borderColor: 'var(--field-line)' },
+    '&.Mui-focused': { backgroundColor: 'var(--card)', boxShadow: '0 0 0 3px var(--accent-soft)' },
+    '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: '1px' },
+  },
+  '& .MuiOutlinedInput-input': { padding: 0 },
+  '& .MuiOutlinedInput-input::placeholder': { color: 'var(--faint)', fontWeight: 500, opacity: 1 },
+  '& .MuiInputLabel-root': {
+    fontSize: '14px',
+    fontWeight: 600,
+    color: 'var(--muted)',
+    '&.Mui-focused': { color: 'var(--muted)' },
+  },
+} as const;
+
+/** Bouton .s-btn (base) */
+const BTN_BASE_SX = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  height: 38,
+  padding: '0 17px',
+  borderRadius: '11px',
+  fontFamily: 'inherit',
+  fontSize: '12.5px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  border: '1px solid transparent',
+  transition: 'transform .12s, background .14s, border-color .14s, color .14s',
+  '&:active:not(:disabled)': { transform: 'scale(.97)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+} as const;
+
+/** .s-btn--ghost */
+const BTN_GHOST_SX = {
+  ...BTN_BASE_SX,
+  background: 'none',
+  color: 'var(--muted)',
+  '&:hover': { color: 'var(--ink)' },
+} as const;
+
+/** .s-btn--p (contour accent) */
+const BTN_PRIMARY_SX = {
+  ...BTN_BASE_SX,
+  background: 'transparent',
+  borderColor: 'var(--accent)',
+  color: 'var(--accent)',
+  '&:hover:not(:disabled)': { backgroundColor: 'var(--accent-soft)' },
+  '&:disabled': { opacity: 0.45, cursor: 'not-allowed' },
+} as const;
+
+/** Lien accent (.rm-link / .rm-clear) */
+const LINK_SX = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  fontSize: '12.5px',
+  fontWeight: 600,
+  color: 'var(--accent)',
+  cursor: 'pointer',
+  background: 'none',
+  border: 0,
+  padding: 0,
+  fontFamily: 'inherit',
+  alignSelf: 'flex-start',
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+} as const;
+
+/** Segmented (.rm-status / .rm-tariftabs) — conteneur */
+const SEG_WRAP_SX = {
+  display: 'inline-flex',
+  backgroundColor: 'var(--field)',
+  border: '1px solid var(--field-line)',
+  borderRadius: '10px',
+  padding: '3px',
+  gap: '2px',
+} as const;
+
+/** Segmented — bouton */
+const segBtnSx = (on: boolean) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '6px',
+  border: 0,
+  background: on ? 'var(--card)' : 'none',
+  fontFamily: 'inherit',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: on ? 'var(--accent)' : 'var(--muted)',
+  padding: '6px 12px',
+  borderRadius: '7px',
+  cursor: 'pointer',
+  boxShadow: on ? '0 1px 3px rgba(21,36,45,.12)' : 'none',
+  transition: 'background .14s, color .14s',
+  whiteSpace: 'nowrap' as const,
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '1px' },
+});
+
+/** Icône d'adornment (.rm-ic) */
+const AdornIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>{children}</Box>
+);
+
+/** Toggle ménage (.rm-toggle) — Switch MUI redimensionné 42×24, pouce 20. */
+const SWITCH_SX = {
+  width: 42,
+  height: 24,
+  padding: 0,
+  '& .MuiSwitch-switchBase': {
+    padding: '2px',
+    '&.Mui-checked': {
+      transform: 'translateX(18px)',
+      '& + .MuiSwitch-track': { backgroundColor: 'var(--accent)', opacity: 1 },
+    },
+  },
+  '& .MuiSwitch-thumb': { width: 20, height: 20, backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.25)' },
+  '& .MuiSwitch-track': { borderRadius: 99, backgroundColor: 'var(--line-2)', opacity: 1, transition: 'background-color .18s' },
+} as const;
 
 /** Generate a random confirmation code for direct reservations */
 function generateConfirmationCode(): string {
@@ -80,6 +245,349 @@ function generateConfirmationCode(): string {
   for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return `DIR-${code}`;
 }
+
+// ─── Calendrier range « Signature » (.rm-cal) ───────────────────────────────
+// Même comportement que MiniDateRangePicker (sélection début → fin, reset si
+// fin < début, Effacer), look maquette : grille 7 col gap 3, jours aspect 1,
+// in-range accent-soft sans radius, edges accent blanc.
+
+interface CalCell {
+  date: Date;
+  dateStr: string;
+  inMonth: boolean;
+}
+
+function toISO(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function buildCalGrid(month: Date): CalCell[] {
+  const year = month.getFullYear();
+  const m = month.getMonth();
+  const firstDay = new Date(year, m, 1);
+  const lastDay = new Date(year, m + 1, 0);
+
+  let startDow = firstDay.getDay() - 1;
+  if (startDow < 0) startDow = 6;
+
+  const cells: CalCell[] = [];
+  for (let i = startDow - 1; i >= 0; i--) {
+    const d = new Date(year, m, -i);
+    cells.push({ date: d, dateStr: toISO(d), inMonth: false });
+  }
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const d = new Date(year, m, day);
+    cells.push({ date: d, dateStr: toISO(d), inMonth: true });
+  }
+  const remaining = 7 - (cells.length % 7);
+  if (remaining < 7) {
+    for (let i = 1; i <= remaining; i++) {
+      const d = new Date(year, m + 1, i);
+      cells.push({ date: d, dateStr: toISO(d), inMonth: false });
+    }
+  }
+  return cells;
+}
+
+const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+const CAL_NAV_BTN_SX = {
+  width: 28,
+  height: 28,
+  borderRadius: '8px',
+  border: '1px solid var(--line-2)',
+  backgroundColor: 'var(--card)',
+  color: 'var(--muted)',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
+  transition: 'color .14s, border-color .14s',
+  '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '1px' },
+} as const;
+
+/** Champ date flottant cliquable (Arrivée / Départ) — affichage + cible de sélection. */
+const FloatDateField: React.FC<{
+  label: string;
+  value: string;
+  active: boolean;
+  onClick: () => void;
+}> = ({ label, value, active, onClick }) => (
+  <Box
+    component="button"
+    type="button"
+    onClick={onClick}
+    sx={{
+      position: 'relative',
+      width: '100%',
+      height: 44,
+      borderRadius: '11px',
+      backgroundColor: active ? 'var(--card)' : 'var(--field)',
+      border: '1px solid',
+      borderColor: active ? 'var(--accent)' : 'var(--field-line)',
+      boxShadow: active ? '0 0 0 3px var(--accent-soft)' : 'none',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 13px',
+      fontFamily: 'inherit',
+      fontSize: '13.5px',
+      fontWeight: value ? 600 : 500,
+      color: value ? 'var(--ink)' : 'var(--faint)',
+      cursor: 'pointer',
+      textAlign: 'left',
+      transition: 'border-color .14s, box-shadow .14s, background-color .14s',
+      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+    }}
+  >
+    <Box
+      component="span"
+      sx={{
+        position: 'absolute',
+        top: -7,
+        left: 12,
+        backgroundColor: 'var(--card)',
+        padding: '0 5px',
+        fontSize: '10.5px',
+        fontWeight: 600,
+        color: 'var(--muted)',
+        lineHeight: '14px',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </Box>
+    {value || '—'}
+  </Box>
+);
+
+interface SignatureRangeCalendarProps {
+  startDate: string;
+  endDate: string;
+  onChangeStart: (d: string) => void;
+  onChangeEnd: (d: string) => void;
+  /** Nombre de nuits (affiché dans la ligne sous le calendrier). */
+  nights: number;
+}
+
+const SignatureRangeCalendar: React.FC<SignatureRangeCalendarProps> = ({
+  startDate,
+  endDate,
+  onChangeStart,
+  onChangeEnd,
+  nights,
+}) => {
+  const [viewMonth, setViewMonth] = useState<Date>(() => {
+    if (startDate) {
+      const [y, m] = startDate.split('-').map(Number);
+      return new Date(y, m - 1, 1);
+    }
+    return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  });
+
+  // Sync displayed month when startDate prop changes (e.g. set by parent after mount)
+  useEffect(() => {
+    if (startDate) {
+      const [y, m] = startDate.split('-').map(Number);
+      setViewMonth((prev) => {
+        if (prev.getFullYear() === y && prev.getMonth() === m - 1) return prev;
+        return new Date(y, m - 1, 1);
+      });
+    }
+  }, [startDate]);
+
+  const [selectingField, setSelectingField] = useState<'start' | 'end'>('start');
+
+  const cells = useMemo(() => buildCalGrid(viewMonth), [viewMonth]);
+
+  const handleCellClick = useCallback(
+    (dateStr: string) => {
+      if (selectingField === 'start') {
+        onChangeStart(dateStr);
+        if (endDate && dateStr > endDate) {
+          onChangeEnd('');
+        }
+        setSelectingField('end');
+      } else {
+        if (startDate && dateStr < startDate) {
+          onChangeStart(dateStr);
+          onChangeEnd('');
+          setSelectingField('end');
+        } else {
+          onChangeEnd(dateStr);
+          setSelectingField('start');
+        }
+      }
+    },
+    [selectingField, startDate, endDate, onChangeStart, onChangeEnd],
+  );
+
+  const isInRange = useCallback(
+    (dateStr: string): boolean => {
+      if (!startDate || !endDate) return false;
+      return dateStr >= startDate && dateStr <= endDate;
+    },
+    [startDate, endDate],
+  );
+
+  const monthLabel = viewMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      {/* Champs Arrivée / Départ (cibles de sélection) */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <FloatDateField
+          label="Arrivée"
+          value={startDate}
+          active={selectingField === 'start'}
+          onClick={() => setSelectingField('start')}
+        />
+        <FloatDateField
+          label="Départ"
+          value={endDate}
+          active={selectingField === 'end'}
+          onClick={() => setSelectingField('end')}
+        />
+      </Box>
+
+      <Box>
+        {/* Navigation mois */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '6px' }}>
+          <Box
+            component="button"
+            type="button"
+            aria-label="Mois précédent"
+            onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+            sx={CAL_NAV_BTN_SX}
+          >
+            <ChevronLeft size={15} strokeWidth={1.75} />
+          </Box>
+          <Box
+            component="b"
+            sx={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: 'var(--ink)',
+              minWidth: 120,
+              textAlign: 'center',
+              textTransform: 'capitalize',
+            }}
+          >
+            {monthLabel}
+          </Box>
+          <Box
+            component="button"
+            type="button"
+            aria-label="Mois suivant"
+            onClick={() => setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+            sx={CAL_NAV_BTN_SX}
+          >
+            <ChevronRight size={15} strokeWidth={1.75} />
+          </Box>
+        </Box>
+
+        {/* Grille 7 colonnes */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
+          {WEEKDAYS.map((label, i) => (
+            <Box
+              key={`${label}-${i}`}
+              sx={{ textAlign: 'center', fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', padding: '4px 0' }}
+            >
+              {label}
+            </Box>
+          ))}
+          {cells.map((cell) => {
+            const isStart = cell.dateStr === startDate;
+            const isEnd = cell.dateStr === endDate;
+            const edge = isStart || isEnd;
+            const inRange = !edge && isInRange(cell.dateStr);
+
+            return (
+              <Box
+                key={cell.dateStr}
+                component="button"
+                type="button"
+                disabled={!cell.inMonth}
+                onClick={() => cell.inMonth && handleCellClick(cell.dateStr)}
+                sx={{
+                  aspectRatio: '1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: 0,
+                  padding: 0,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: edge
+                    ? 'var(--on-accent)'
+                    : inRange
+                      ? 'var(--accent)'
+                      : cell.inMonth
+                        ? 'var(--body)'
+                        : 'var(--faint)',
+                  backgroundColor: edge ? 'var(--accent)' : inRange ? 'var(--accent-soft)' : 'transparent',
+                  borderRadius: edge
+                    ? isStart && isEnd
+                      ? '9px'
+                      : isStart
+                        ? '9px 0 0 9px'
+                        : '0 9px 9px 0'
+                    : inRange
+                      ? 0
+                      : '9px',
+                  opacity: cell.inMonth ? 1 : 0.5,
+                  cursor: cell.inMonth ? 'pointer' : 'default',
+                  transition: 'background .12s, color .12s',
+                  userSelect: 'none',
+                  ...(cell.inMonth && !edge && !inRange
+                    ? { '&:hover': { backgroundColor: 'var(--hover)' } }
+                    : {}),
+                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '-2px' },
+                }}
+              >
+                {cell.date.getDate()}
+              </Box>
+            );
+          })}
+        </Box>
+
+        {/* Nuits + Effacer */}
+        {(startDate || endDate) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+            {nights > 0 ? (
+              <Box
+                sx={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: 'var(--muted)' }}
+              >
+                <NightsStay size={13} strokeWidth={1.75} />
+                {nights} nuit{nights > 1 ? 's' : ''}
+              </Box>
+            ) : (
+              <span />
+            )}
+            <Box
+              component="button"
+              type="button"
+              onClick={() => {
+                onChangeStart('');
+                onChangeEnd('');
+                setSelectingField('start');
+              }}
+              sx={{ ...LINK_SX, fontSize: '12px', alignSelf: 'auto' }}
+            >
+              Effacer
+            </Box>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -90,6 +598,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
   events = [],
 }) => {
   const queryClient = useQueryClient();
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   // ── Dates ──────────────────────────────────────────────────────────────
   const [startDate, setStartDate] = useState('');
@@ -259,11 +768,11 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
       // Overlap: newStart < evtEnd AND evtStart < newEnd
       if (newStart < evtEnd && evtStart < newEnd) {
         if (evt.type === 'reservation') {
-          warnings.push(`Conflit avec la reservation de ${evt.label} (${evt.startDate} → ${evt.endDate})`);
+          warnings.push(`Conflit avec la réservation de ${evt.label} (${evt.startDate} → ${evt.endDate})`);
         } else if (evt.type === 'cleaning') {
-          warnings.push(`Conflit avec un menage prevu (${evt.startDate} ${evt.startTime || ''} → ${evt.endDate} ${evt.endTime || ''})`);
+          warnings.push(`Conflit avec un ménage prévu (${evt.startDate} ${evt.startTime || ''} → ${evt.endDate} ${evt.endTime || ''})`);
         } else if (evt.type === 'maintenance') {
-          warnings.push(`Conflit avec une maintenance prevue (${evt.startDate} ${evt.startTime || ''} → ${evt.endDate} ${evt.endTime || ''})`);
+          warnings.push(`Conflit avec une maintenance prévue (${evt.startDate} ${evt.startTime || ''} → ${evt.endDate} ${evt.endTime || ''})`);
         } else {
           warnings.push(`Conflit avec un blocage (${evt.startDate} → ${evt.endDate})`);
         }
@@ -363,22 +872,22 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
       onClose();
     },
     onError: (err: Error) => {
-      setError(err.message || 'Erreur lors de la creation');
+      setError(err.message || 'Erreur lors de la création');
     },
   });
 
   const handleSubmit = useCallback(() => {
     if (!data) return;
     if (!selectedGuest) {
-      setError('Veuillez selectionner ou creer un voyageur');
+      setError('Veuillez sélectionner ou créer un voyageur');
       return;
     }
     if (!startDate || !endDate) {
-      setError('Veuillez selectionner les dates');
+      setError('Veuillez sélectionner les dates');
       return;
     }
     if (hasConflict) {
-      setError('Impossible de creer la reservation : conflit avec un evenement existant sur ce creneau');
+      setError('Impossible de créer la réservation : conflit avec un évènement existant sur ce créneau');
       return;
     }
 
@@ -406,10 +915,12 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
 
   const pricingLabel =
     pricingMode === 'custom'
-      ? 'Prix personnalise (EUR/nuit)'
+      ? 'Prix perso. (€/nuit)'
       : pricingMode === 'discount_euro'
-        ? 'Reduction (EUR)'
-        : 'Reduction (%)';
+        ? 'Réduction (€)'
+        : 'Réduction (%)';
+
+  const estimatedCleaningPrice = freshProp?.cleaningBasePrice ?? data.cleaningBasePrice;
 
   return (
     <Dialog
@@ -418,584 +929,751 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
       maxWidth={false}
       PaperProps={{
         sx: {
-          borderRadius: 2.5,
-          width: 780,
+          width: 980,
           maxWidth: '95vw',
           maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          backgroundColor: 'var(--card)',
+          backgroundImage: 'none',
+          color: 'var(--body)',
+          border: '1px solid var(--line)',
+          borderRadius: '18px',
+          boxShadow: 'var(--shadow-pop)',
+          // Entrée .s-modal : translateY(12px) scale(.985) → none
+          '@keyframes rmodalIn': {
+            from: { transform: 'translateY(12px) scale(.985)' },
+            to: { transform: 'none' },
+          },
+          animation: reduceMotion ? 'none' : 'rmodalIn .22s cubic-bezier(.16,1,.3,1)',
         },
       }}
       slotProps={{
         backdrop: {
-          sx: { backgroundColor: 'rgba(0,0,0,0.5)' },
+          sx: { backgroundColor: 'rgba(10,18,24,.5)', backdropFilter: 'blur(3px)' },
         },
       }}
     >
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="h6" sx={{ fontSize: '1.05rem', fontWeight: 700 }}>
-            Nouvelle reservation
-          </Typography>
-          <Chip
-            label="Direct"
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ fontWeight: 600, fontSize: '0.68rem', height: 22 }}
-          />
-          <ToggleButtonGroup
-            value={status}
-            exclusive
-            onChange={(_, val) => { if (val) setStatus(val); }}
-            size="small"
-            sx={{
-              '& .MuiToggleButton-root': {
-                textTransform: 'none',
-                fontSize: '0.65rem',
-                fontWeight: 600,
-                py: 0.25,
-                px: 0.75,
-                gap: 0.3,
-                lineHeight: 1.2,
-              },
-            }}
-          >
-            <ToggleButton value="pending">
-              <Schedule size={13} strokeWidth={1.75} />
-              En attente
-            </ToggleButton>
-            <ToggleButton value="confirmed">
-              <CheckCircle size={13} strokeWidth={1.75} />
-              Confirmee
-            </ToggleButton>
-          </ToggleButtonGroup>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Home size={15} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.84rem' }}>
-              {data.propertyName}
-            </Typography>
+      {/* ── Entête (.rm-head) ─────────────────────────────────────────────── */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '18px 22px',
+          borderBottom: '1px solid var(--line)',
+          flexShrink: 0,
+        }}
+      >
+        <Typography
+          component="span"
+          sx={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '18px',
+            fontWeight: 600,
+            color: 'var(--ink)',
+            letterSpacing: '-0.01em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Nouvelle réservation
+        </Typography>
+
+        {/* Pilule canal (.rm-chan) */}
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            fontWeight: 700,
+            color: 'var(--accent)',
+            backgroundColor: 'var(--accent-soft)',
+            borderRadius: '20px',
+            padding: '4px 11px',
+            flexShrink: 0,
+          }}
+        >
+          <GlobeIcon size={13} strokeWidth={2} />
+          Direct
+        </Box>
+
+        {/* Segmented statut (.rm-status) */}
+        <Box sx={{ ...SEG_WRAP_SX, marginLeft: '4px', flexShrink: 0 }}>
+          <Box component="button" type="button" onClick={() => setStatus('pending')} sx={segBtnSx(status === 'pending')}>
+            <Schedule size={13} strokeWidth={1.75} />
+            En attente
+          </Box>
+          <Box component="button" type="button" onClick={() => setStatus('confirmed')} sx={segBtnSx(status === 'confirmed')}>
+            <CheckCircle size={13} strokeWidth={1.75} />
+            Confirmée
           </Box>
         </Box>
-        <IconButton size="small" onClick={onClose}>
-          <Close size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
 
-      <DialogContent sx={{ pt: 1, pb: 2, px: 3 }}>
-        {/* ═══════════════════════════════════════════════════════════════════
-            TWO-COLUMN LAYOUT
-            Left: Calendar + Times + Guest
-            Right: Pricing + Cleaning + Tax + Code + Notes
-        ═══════════════════════════════════════════════════════════════════ */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, mt: 1 }}>
+        {/* Propriété (.rm-prop) */}
+        <Box
+          sx={{
+            marginLeft: 'auto',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: 'var(--ink)',
+            minWidth: 0,
+          }}
+        >
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+            <Home size={16} strokeWidth={1.75} />
+          </Box>
+          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {data.propertyName}
+          </Box>
+        </Box>
 
-          {/* ── LEFT COLUMN ──────────────────────────────────────────────── */}
-          <Box>
-            {/* Dates */}
-            <Typography sx={SECTION_LABEL_SX}>Dates du sejour</Typography>
-            <MiniDateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onChangeStart={setStartDate}
-              onChangeEnd={setEndDate}
-              isFrench
-              startLabel="Arrivee"
-              endLabel="Depart"
+        {/* ✕ (.rm-x) */}
+        <Box
+          component="button"
+          type="button"
+          aria-label="Fermer"
+          onClick={onClose}
+          sx={{
+            width: 34,
+            height: 34,
+            borderRadius: '10px',
+            border: '1px solid var(--line-2)',
+            backgroundColor: 'var(--card)',
+            color: 'var(--muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            padding: 0,
+            transition: 'color .14s, border-color .14s',
+            '&:hover': { color: 'var(--err)', borderColor: 'var(--err)' },
+            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+          }}
+        >
+          <Close size={16} strokeWidth={1.75} />
+        </Box>
+      </Box>
+
+      {/* ── Corps 2 colonnes (.rm-body) ───────────────────────────────────── */}
+      <Box sx={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+        {/* ── Colonne gauche : dates + calendrier + heures + voyageur ───── */}
+        <Box
+          sx={{
+            padding: '22px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px',
+            borderRight: '1px solid var(--line)',
+          }}
+        >
+          <Typography sx={SEC_SX}>Dates du séjour</Typography>
+
+          <SignatureRangeCalendar
+            startDate={startDate}
+            endDate={endDate}
+            onChangeStart={setStartDate}
+            onChangeEnd={setEndDate}
+            nights={numberOfNights}
+          />
+
+          {/* Heures arrivée / départ */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <TextField
+              label="Arrivée"
+              type="time"
+              value={checkInTime}
+              onChange={(e) => setCheckInTime(e.target.value)}
+              fullWidth
+              InputProps={{
+                startAdornment: <AdornIcon><AccessTime size={15} strokeWidth={1.75} /></AdornIcon>,
+              }}
+              InputLabelProps={{ shrink: true }}
+              sx={FIELD_SX}
             />
+            <TextField
+              label="Départ"
+              type="time"
+              value={checkOutTime}
+              onChange={(e) => setCheckOutTime(e.target.value)}
+              fullWidth
+              InputProps={{
+                startAdornment: <AdornIcon><AccessTime size={15} strokeWidth={1.75} /></AdornIcon>,
+              }}
+              InputLabelProps={{ shrink: true }}
+              sx={FIELD_SX}
+            />
+          </Box>
 
-            {/* Times + Nights — single row */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1, mb: 2 }}>
-              <TextField
-                label="Arrivee"
-                type="time"
-                value={checkInTime}
-                onChange={(e) => setCheckInTime(e.target.value)}
-                size="small"
-                fullWidth
-                InputProps={{
-                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><AccessTime size={14} strokeWidth={1.75} /></Box>,
+          <Typography sx={{ ...SEC_SX, marginTop: '4px' }}>Voyageur</Typography>
+
+          {selectedGuest ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <Chip
+                icon={<Person size={15} strokeWidth={1.75} />}
+                label={selectedGuest.fullName}
+                onDelete={() => {
+                  setSelectedGuest(null);
+                  setGuestSearchQuery('');
                 }}
-                InputLabelProps={{ shrink: true }}
-                sx={{ flex: 1, ...FIELD_SX }}
-              />
-              <TextField
-                label="Depart"
-                type="time"
-                value={checkOutTime}
-                onChange={(e) => setCheckOutTime(e.target.value)}
-                size="small"
-                fullWidth
-                InputProps={{
-                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><AccessTime size={14} strokeWidth={1.75} /></Box>,
+                sx={{
+                  height: 32,
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--accent-soft)',
+                  color: 'var(--ink)',
+                  fontWeight: 600,
+                  fontSize: '12.5px',
+                  '& .MuiChip-icon': { color: 'var(--accent)' },
+                  '& .MuiChip-deleteIcon': {
+                    color: 'var(--accent)',
+                    '&:hover': { color: 'var(--accent-deep)' },
+                  },
                 }}
-                InputLabelProps={{ shrink: true }}
-                sx={{ flex: 1, ...FIELD_SX }}
               />
-              {numberOfNights > 0 && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, whiteSpace: 'nowrap' }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><NightsStay size={14} strokeWidth={1.75} /></Box>
-                  <Typography variant="body2" sx={{ fontSize: '0.78rem', fontWeight: 700 }}>
-                    {numberOfNights} nuit{numberOfNights > 1 ? 's' : ''}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-
-            <Divider sx={{ mb: 2 }} />
-
-            {/* Guest */}
-            <Typography sx={SECTION_LABEL_SX}>Voyageur</Typography>
-
-            {selectedGuest ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Chip
-                  icon={<Person size={16} strokeWidth={1.75} />}
-                  label={selectedGuest.fullName}
-                  onDelete={() => {
-                    setSelectedGuest(null);
-                    setGuestSearchQuery('');
-                  }}
-                  sx={{ fontWeight: 600, fontSize: '0.8rem' }}
-                />
-                {selectedGuest.email && (
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                    {selectedGuest.email}
-                  </Typography>
-                )}
-              </Box>
-            ) : (
-              <Autocomplete
-                freeSolo={false}
-                options={searchResults}
-                getOptionLabel={(option) => option.fullName}
-                renderOption={(props, option) => (
-                  <Box component="li" {...props} key={option.id}>
-                    <Box>
-                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.84rem' }}>
-                        {option.fullName}
-                      </Typography>
-                      {option.email && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                          {option.email}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                )}
-                inputValue={guestSearchQuery}
-                onInputChange={(_, val) => setGuestSearchQuery(val)}
-                value={null}
-                onChange={(_, val) => {
-                  if (val) setSelectedGuest(val);
-                }}
-                loading={isSearching}
-                noOptionsText={debouncedSearch.length >= 2 ? 'Aucun voyageur trouve' : 'Tapez au moins 2 caracteres'}
-                size="small"
-                sx={{ mb: 0.5 }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Rechercher un voyageur"
-                    placeholder="Nom ou prenom..."
-                    sx={FIELD_SX}
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {isSearching ? <CircularProgress size={16} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-              />
-            )}
-
-            {/* Create guest link + form */}
-            {!selectedGuest && (
-              <>
-                <Button
-                  size="small"
-                  startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
-                  onClick={() => setShowCreateGuestForm(!showCreateGuestForm)}
+              {selectedGuest.email && (
+                <Typography
                   sx={{
-                    textTransform: 'none',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: 'primary.main',
-                    mb: 0.5,
-                    px: 0.5,
+                    fontSize: '11.5px',
+                    color: 'var(--muted)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {showCreateGuestForm ? 'Annuler' : 'Creer une fiche client'}
-                </Button>
-
-                <Collapse in={showCreateGuestForm}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
-                      mb: 1,
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                      <TextField
-                        label="Prenom"
-                        value={newGuestFirstName}
-                        onChange={(e) => setNewGuestFirstName(e.target.value)}
-                        size="small"
-                        required
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ flex: 1, ...FIELD_SX }}
-                      />
-                      <TextField
-                        label="Nom"
-                        value={newGuestLastName}
-                        onChange={(e) => setNewGuestLastName(e.target.value)}
-                        size="small"
-                        required
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ flex: 1, ...FIELD_SX }}
-                      />
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                      <TextField
-                        label="Email"
-                        type="email"
-                        value={newGuestEmail}
-                        onChange={(e) => setNewGuestEmail(e.target.value)}
-                        size="small"
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ flex: 1, ...FIELD_SX }}
-                      />
-                      <TextField
-                        label="Telephone"
-                        value={newGuestPhone}
-                        onChange={(e) => setNewGuestPhone(e.target.value)}
-                        size="small"
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ flex: 1, ...FIELD_SX }}
-                      />
-                    </Box>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={handleCreateGuest}
-                      disabled={!newGuestFirstName.trim() || !newGuestLastName.trim() || createGuestMutation.isPending}
-                      sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, height: 30 }}
-                    >
-                      {createGuestMutation.isPending ? <CircularProgress size={16} /> : 'Creer le voyageur'}
-                    </Button>
-                    {createGuestMutation.isError && (
-                      <Typography color="error" variant="caption" sx={{ mt: 0.5, display: 'block' }}>
-                        Erreur lors de la creation
+                  {selectedGuest.email}
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Autocomplete
+              freeSolo={false}
+              options={searchResults}
+              getOptionLabel={(option) => option.fullName}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option.id}>
+                  <Box>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                      {option.fullName}
+                    </Typography>
+                    {option.email && (
+                      <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+                        {option.email}
                       </Typography>
                     )}
                   </Box>
-                </Collapse>
-              </>
-            )}
+                </Box>
+              )}
+              inputValue={guestSearchQuery}
+              onInputChange={(_, val) => setGuestSearchQuery(val)}
+              value={null}
+              onChange={(_, val) => {
+                if (val) setSelectedGuest(val);
+              }}
+              loading={isSearching}
+              noOptionsText={debouncedSearch.length >= 2 ? 'Aucun voyageur trouvé' : 'Tapez au moins 2 caractères'}
+              slotProps={{
+                paper: {
+                  sx: {
+                    borderRadius: '12px',
+                    border: '1px solid var(--line)',
+                    boxShadow: 'var(--shadow-pop)',
+                    backgroundColor: 'var(--card)',
+                    backgroundImage: 'none',
+                  },
+                },
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Rechercher un voyageur…"
+                  sx={[
+                    FIELD_SX,
+                    {
+                      '& .MuiOutlinedInput-root': { padding: '0 39px 0 13px' },
+                      '& .MuiOutlinedInput-root .MuiAutocomplete-input': { padding: '0 0 0 8px', fontWeight: 500 },
+                    },
+                  ]}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: <AdornIcon><SearchIcon size={15} strokeWidth={1.75} /></AdornIcon>,
+                    endAdornment: (
+                      <>
+                        {isSearching ? <CircularProgress size={16} sx={{ color: 'var(--accent)' }} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+          )}
 
-            {/* Guest count */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><GroupIcon size={16} strokeWidth={1.75} /></Box>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600, mr: 0.5 }}>
-                Voyageurs
-              </Typography>
+          {/* Créer une fiche client (.rm-link) + formulaire */}
+          {!selectedGuest && (
+            <>
               <Box
+                component="button"
+                type="button"
+                onClick={() => setShowCreateGuestForm(!showCreateGuestForm)}
+                sx={LINK_SX}
+              >
+                <PersonAdd size={15} strokeWidth={1.75} />
+                {showCreateGuestForm ? 'Annuler' : 'Créer une fiche client'}
+              </Box>
+
+              <Collapse in={showCreateGuestForm} sx={{ marginTop: '-10px' }}>
+                <Box
+                  sx={{
+                    padding: '18px 14px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--surface-2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    marginTop: '10px',
+                  }}
+                >
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <TextField
+                      label="Prénom"
+                      value={newGuestFirstName}
+                      onChange={(e) => setNewGuestFirstName(e.target.value)}
+                      required
+                      InputLabelProps={{ shrink: true }}
+                      sx={FIELD_SX}
+                    />
+                    <TextField
+                      label="Nom"
+                      value={newGuestLastName}
+                      onChange={(e) => setNewGuestLastName(e.target.value)}
+                      required
+                      InputLabelProps={{ shrink: true }}
+                      sx={FIELD_SX}
+                    />
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <TextField
+                      label="Email"
+                      type="email"
+                      value={newGuestEmail}
+                      onChange={(e) => setNewGuestEmail(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      sx={FIELD_SX}
+                    />
+                    <TextField
+                      label="Téléphone"
+                      value={newGuestPhone}
+                      onChange={(e) => setNewGuestPhone(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      sx={FIELD_SX}
+                    />
+                  </Box>
+                  <Box
+                    component="button"
+                    type="button"
+                    onClick={handleCreateGuest}
+                    disabled={!newGuestFirstName.trim() || !newGuestLastName.trim() || createGuestMutation.isPending}
+                    sx={{ ...BTN_PRIMARY_SX, height: 32, fontSize: '12px', padding: '0 14px', alignSelf: 'flex-start' }}
+                  >
+                    {createGuestMutation.isPending ? (
+                      <CircularProgress size={14} sx={{ color: 'var(--accent)' }} />
+                    ) : (
+                      'Créer le voyageur'
+                    )}
+                  </Box>
+                  {createGuestMutation.isError && (
+                    <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--err)' }}>
+                      Erreur lors de la création
+                    </Typography>
+                  )}
+                </Box>
+              </Collapse>
+            </>
+          )}
+
+          {/* Compteur voyageurs (.rm-count) */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                color: 'var(--ink)',
+              }}
+            >
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+                <GroupIcon size={16} strokeWidth={1.75} />
+              </Box>
+              Voyageurs
+            </Box>
+            <Box
+              sx={{
+                marginLeft: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: 'var(--field)',
+                border: '1px solid var(--field-line)',
+                borderRadius: '10px',
+                padding: '3px',
+              }}
+            >
+              <Box
+                component="button"
+                type="button"
+                aria-label="Moins de voyageurs"
+                onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
+                disabled={guestCount <= 1}
                 sx={{
-                  display: 'inline-flex',
+                  width: 30,
+                  height: 30,
+                  borderRadius: '8px',
+                  border: 0,
+                  backgroundColor: 'var(--card)',
+                  color: 'var(--body)',
+                  cursor: 'pointer',
+                  display: 'flex',
                   alignItems: 'center',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  overflow: 'hidden',
+                  justifyContent: 'center',
+                  padding: 0,
+                  transition: 'color .14s',
+                  '&:hover:not(:disabled)': { color: 'var(--accent)' },
+                  '&:disabled': { opacity: 0.4, cursor: 'default' },
+                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '1px' },
                 }}
               >
-                <IconButton
-                  size="small"
-                  onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
-                  disabled={guestCount <= 1}
-                  sx={{
-                    borderRadius: 0,
-                    width: 30,
-                    height: 30,
-                    '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) },
-                  }}
-                >
-                  <RemoveIcon size={15} strokeWidth={1.75} />
-                </IconButton>
-                <Typography
-                  sx={{
-                    minWidth: 32,
-                    textAlign: 'center',
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    userSelect: 'none',
-                    lineHeight: '30px',
-                    borderLeft: '1px solid',
-                    borderRight: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  {guestCount}
-                </Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => setGuestCount((c) => Math.min(20, c + 1))}
-                  disabled={guestCount >= 20}
-                  sx={{
-                    borderRadius: 0,
-                    width: 30,
-                    height: 30,
-                    '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) },
-                  }}
-                >
-                  <AddIcon size={15} strokeWidth={1.75} />
-                </IconButton>
+                <RemoveIcon size={15} strokeWidth={1.75} />
+              </Box>
+              <Box
+                sx={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  color: 'var(--ink)',
+                  minWidth: 30,
+                  textAlign: 'center',
+                  userSelect: 'none',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {guestCount}
+              </Box>
+              <Box
+                component="button"
+                type="button"
+                aria-label="Plus de voyageurs"
+                onClick={() => setGuestCount((c) => Math.min(20, c + 1))}
+                disabled={guestCount >= 20}
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '8px',
+                  border: 0,
+                  backgroundColor: 'var(--card)',
+                  color: 'var(--body)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  transition: 'color .14s',
+                  '&:hover:not(:disabled)': { color: 'var(--accent)' },
+                  '&:disabled': { opacity: 0.4, cursor: 'default' },
+                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '1px' },
+                }}
+              >
+                <AddIcon size={15} strokeWidth={1.75} />
               </Box>
             </Box>
           </Box>
+        </Box>
 
-          {/* ── RIGHT COLUMN ─────────────────────────────────────────────── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75 }}>
-            {/* ── Tarification ─────────────────────────────────────────── */}
-            <Typography sx={SECTION_LABEL_SX}>Tarification</Typography>
+        {/* ── Colonne droite : tarification + ménage + code + notes ─────── */}
+        <Box sx={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <Typography sx={SEC_SX}>Tarification</Typography>
 
-            {/* Base + Mode row */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-              <TextField
-                label="Base (EUR/nuit)"
-                value={baseNightlyPrice > 0 ? baseNightlyPrice : ''}
-                size="small"
-                fullWidth
-                disabled
-                InputProps={{
-                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><Euro size={14} strokeWidth={1.75} /></Box>,
-                }}
-                InputLabelProps={{ shrink: true }}
-                sx={FIELD_SX}
-              />
-              <TextField
-                label={pricingLabel}
-                type="number"
-                value={pricingValue}
-                onChange={(e) => setPricingValue(e.target.value)}
-                size="small"
-                fullWidth
-                inputProps={{ min: 0, step: 0.01 }}
-                InputLabelProps={{ shrink: true }}
-                sx={FIELD_SX}
-              />
-            </Box>
-
-            {/* Pricing mode toggles */}
-            <ToggleButtonGroup
-              value={pricingMode}
-              exclusive
-              onChange={(_, val) => {
-                if (val) {
-                  setPricingMode(val);
-                  setPricingValue('');
-                }
-              }}
-              size="small"
+          {/* Base + prix perso */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <TextField
+              label="Base / nuit (€)"
+              value={baseNightlyPrice > 0 ? baseNightlyPrice : ''}
               fullWidth
-              sx={{
-                '& .MuiToggleButton-root': {
-                  textTransform: 'none',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  py: 0.35,
-                  gap: 0.4,
-                },
+              disabled
+              InputProps={{
+                startAdornment: (
+                  <Box component="span" sx={{ color: 'var(--faint)', fontSize: '14px', fontWeight: 600 }}>€</Box>
+                ),
               }}
-            >
-              <ToggleButton value="custom">
-                <EditIcon size={12} strokeWidth={1.75} />
-                Personnalise
-              </ToggleButton>
-              <ToggleButton value="discount_euro">
-                <Euro size={12} strokeWidth={1.75} />
-                Reduction EUR
-              </ToggleButton>
-              <ToggleButton value="discount_percent">
-                <Percent size={12} strokeWidth={1.75} />
-                Reduction %
-              </ToggleButton>
-            </ToggleButtonGroup>
+              InputLabelProps={{ shrink: true }}
+              sx={FIELD_SX}
+            />
+            <TextField
+              label={pricingLabel}
+              type="number"
+              value={pricingValue}
+              onChange={(e) => setPricingValue(e.target.value)}
+              fullWidth
+              placeholder="—"
+              inputProps={{ min: 0, step: 0.01 }}
+              InputLabelProps={{ shrink: true }}
+              sx={FIELD_SX}
+            />
+          </Box>
 
-            {/* Price summary */}
-            {numberOfNights > 0 && (
-              <Box
+          {/* Onglets tarification (.rm-tariftabs) */}
+          <Box sx={{ ...SEG_WRAP_SX, width: '100%' }}>
+            <Box
+              component="button"
+              type="button"
+              onClick={() => { setPricingMode('custom'); setPricingValue(''); }}
+              sx={{ ...segBtnSx(pricingMode === 'custom'), flex: 1, gap: '5px', padding: '7px' }}
+            >
+              <EditIcon size={13} strokeWidth={1.75} />
+              Personnalisé
+            </Box>
+            <Box
+              component="button"
+              type="button"
+              onClick={() => { setPricingMode('discount_euro'); setPricingValue(''); }}
+              sx={{ ...segBtnSx(pricingMode === 'discount_euro'), flex: 1, gap: '5px', padding: '7px' }}
+            >
+              <MinusCircleIcon size={13} strokeWidth={1.75} />
+              Réduction €
+            </Box>
+            <Box
+              component="button"
+              type="button"
+              onClick={() => { setPricingMode('discount_percent'); setPricingValue(''); }}
+              sx={{ ...segBtnSx(pricingMode === 'discount_percent'), flex: 1, gap: '5px', padding: '7px' }}
+            >
+              <Percent size={13} strokeWidth={1.75} />
+              Réduction %
+            </Box>
+          </Box>
+
+          {/* Récap (.rm-recap) */}
+          {numberOfNights > 0 && (
+            <Box sx={{ backgroundColor: 'var(--accent-soft)', borderRadius: '12px', padding: '14px 16px' }}>
+              <Typography sx={{ fontSize: '13px', color: 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>
+                {numberOfNights} nuit{numberOfNights > 1 ? 's' : ''} × {effectiveNightlyPrice.toFixed(2)} € ={' '}
+                <Box component="b" sx={{ color: 'var(--ink)' }}>{accommodationTotal.toFixed(2)} €</Box>
+              </Typography>
+              {cleaningFeeAmount > 0 && (
+                <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+                  + Ménage : {cleaningFeeAmount.toFixed(2)} €
+                </Typography>
+              )}
+              {touristTaxAmount > 0 && (
+                <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+                  + Taxe de séjour : {touristTaxAmount.toFixed(2)} €
+                </Typography>
+              )}
+              <Typography
                 sx={{
-                  p: 1.25,
-                  borderRadius: 1.5,
-                  bgcolor: (theme) => alpha(theme.palette.success.main, 0.06),
-                  border: '1px solid',
-                  borderColor: (theme) => alpha(theme.palette.success.main, 0.18),
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  color: 'var(--accent-deep)',
+                  marginTop: '6px',
+                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                  {numberOfNights} nuit{numberOfNights > 1 ? 's' : ''} x {effectiveNightlyPrice.toFixed(2)} EUR = {accommodationTotal.toFixed(2)} EUR
-                </Typography>
-                {cleaningFeeAmount > 0 && (
-                  <Typography variant="body2" sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
-                    + Menage : {cleaningFeeAmount.toFixed(2)} EUR
-                  </Typography>
-                )}
-                {touristTaxAmount > 0 && (
-                  <Typography variant="body2" sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
-                    + Taxe de sejour : {touristTaxAmount.toFixed(2)} EUR
-                  </Typography>
-                )}
-                <Divider sx={{ my: 0.5 }} />
-                <Typography component="div" sx={{ fontSize: '0.88rem', fontWeight: 700, color: 'success.dark' }}>
-                  Total : {totalPrice.toFixed(2)} EUR
-                </Typography>
-              </Box>
-            )}
+                Total : {totalPrice.toFixed(2)} €
+              </Typography>
+            </Box>
+          )}
 
-            <Divider />
-
-            {/* ── Menage ───────────────────────────────────────────────── */}
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={createCleaning}
-                  onChange={(e) => setCreateCleaning(e.target.checked)}
-                  size="small"
-                />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={14} strokeWidth={1.75} /></Box>
-                  <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                    Menage au depart
-                  </Typography>
-                </Box>
-              }
-              sx={{ ml: 0, mr: 0 }}
+          {/* Toggle ménage (.rm-toggle) */}
+          <Box
+            component="label"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '11px',
+              cursor: 'pointer',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              color: 'var(--ink)',
+              width: 'fit-content',
+            }}
+          >
+            <Switch
+              checked={createCleaning}
+              onChange={(e) => setCreateCleaning(e.target.checked)}
+              sx={SWITCH_SX}
+              disableRipple
             />
-            <Collapse in={createCleaning}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {((freshProp?.cleaningBasePrice ?? data.cleaningBasePrice) != null && (freshProp?.cleaningBasePrice ?? data.cleaningBasePrice)! > 0) && (
-                  <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontStyle: 'italic' }}>
-                    Montant estime du logement : {(freshProp?.cleaningBasePrice ?? data.cleaningBasePrice)!.toFixed(2)} EUR
-                  </Typography>
-                )}
-                <TextField
-                  label="Frais de menage (EUR)"
-                  type="number"
-                  value={cleaningFee}
-                  onChange={(e) => setCleaningFee(e.target.value)}
-                  size="small"
-                  fullWidth
-                  inputProps={{ min: 0, step: 0.01 }}
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><CleaningServices size={14} strokeWidth={1.75} /></Box>,
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  placeholder={(freshProp?.cleaningBasePrice ?? data.cleaningBasePrice) ? String(freshProp?.cleaningBasePrice ?? data.cleaningBasePrice) : ''}
-                  sx={FIELD_SX}
-                />
-              </Box>
-            </Collapse>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+              <CleaningServices size={16} strokeWidth={1.75} />
+            </Box>
+            Ménage au départ
+          </Box>
 
-            {/* ── Taxe de sejour ────────────────────────────────────────── */}
+          {/* Frais ménage (si toggle actif) + taxe de séjour */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: createCleaning ? '1fr 1fr' : '1fr', gap: '12px' }}>
+            {createCleaning && (
+              <TextField
+                label="Frais ménage (€)"
+                type="number"
+                value={cleaningFee}
+                onChange={(e) => setCleaningFee(e.target.value)}
+                fullWidth
+                inputProps={{ min: 0, step: 0.01 }}
+                InputProps={{
+                  startAdornment: <AdornIcon><CleaningServices size={15} strokeWidth={1.75} /></AdornIcon>,
+                }}
+                InputLabelProps={{ shrink: true }}
+                placeholder={estimatedCleaningPrice ? String(estimatedCleaningPrice) : '0'}
+                sx={FIELD_SX}
+              />
+            )}
             <TextField
-              label="Taxe de sejour / pers. / nuit (EUR)"
+              label="Taxe / pers. / nuit (€)"
               type="number"
               value={touristTaxPerPerson}
               onChange={(e) => setTouristTaxPerPerson(e.target.value)}
-              size="small"
               fullWidth
               inputProps={{ min: 0, step: 0.01 }}
               InputProps={{
-                startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><AccountBalance size={14} strokeWidth={1.75} /></Box>,
+                startAdornment: <AdornIcon><ReceiptIcon size={15} strokeWidth={1.75} /></AdornIcon>,
                 endAdornment: touristTaxAmount > 0 ? (
-                  <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap', color: 'text.secondary' }}>
-                    = {touristTaxAmount.toFixed(2)} EUR
+                  <Typography
+                    sx={{
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      color: 'var(--muted)',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    = {touristTaxAmount.toFixed(2)} €
                   </Typography>
                 ) : undefined,
               }}
               InputLabelProps={{ shrink: true }}
-              sx={FIELD_SX}
-            />
-
-            <Divider />
-
-            {/* ── Code + Notes ──────────────────────────────────────────── */}
-            <TextField
-              label="Code de confirmation"
-              value={confirmationCode}
-              onChange={(e) => setConfirmationCode(e.target.value)}
-              size="small"
-              fullWidth
-              InputProps={{
-                startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><ConfirmationNumber size={14} strokeWidth={1.75} /></Box>,
-              }}
-              InputLabelProps={{ shrink: true }}
-              sx={FIELD_SX}
-            />
-
-            <TextField
-              label="Notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              fullWidth
-              size="small"
-              multiline
-              rows={2}
-              InputLabelProps={{ shrink: true }}
+              placeholder="0"
               sx={FIELD_SX}
             />
           </Box>
+          {createCleaning && estimatedCleaningPrice != null && estimatedCleaningPrice > 0 && (
+            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontStyle: 'italic', marginTop: '-12px' }}>
+              Montant estimé du logement : {estimatedCleaningPrice.toFixed(2)} €
+            </Typography>
+          )}
+
+          {/* Code de confirmation */}
+          <TextField
+            label="Code de confirmation"
+            value={confirmationCode}
+            onChange={(e) => setConfirmationCode(e.target.value)}
+            fullWidth
+            InputProps={{
+              startAdornment: <AdornIcon><HashIcon size={15} strokeWidth={1.75} /></AdornIcon>,
+            }}
+            InputLabelProps={{ shrink: true }}
+            sx={FIELD_SX}
+          />
+
+          {/* Notes */}
+          <TextField
+            label="Notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            fullWidth
+            multiline
+            minRows={3}
+            placeholder="Informations complémentaires…"
+            InputLabelProps={{ shrink: true }}
+            sx={TEXTAREA_SX}
+          />
         </Box>
 
-        {/* Conflict warnings */}
+        {/* ── Alerte conflit pleine largeur (.rm-conflict) ───────────────── */}
         {hasConflict && (
-          <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1.5, backgroundColor: (theme) => alpha(theme.palette.warning.main, 0.1), border: '1px solid', borderColor: 'warning.main' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><WarningIcon size={16} strokeWidth={1.75} /></Box>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'warning.main' }}>
-                Conflit detecte
-              </Typography>
+          <Box
+            sx={{
+              gridColumn: '1 / -1',
+              margin: '0 22px 20px',
+              backgroundColor: 'var(--warn-soft)',
+              border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
+              borderRadius: '12px',
+              padding: '13px 16px',
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '9px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                color: 'var(--ink)',
+              }}
+            >
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+                <WarningIcon size={17} strokeWidth={1.75} />
+              </Box>
+              Conflit détecté
             </Box>
             {conflictWarnings.map((w, i) => (
-              <Typography key={i} sx={{ fontSize: '0.7rem', color: 'text.secondary', pl: 2.75 }}>
+              <Typography key={i} sx={{ fontSize: '12.5px', color: 'var(--body)', marginTop: '4px', paddingLeft: '26px' }}>
                 {w}
               </Typography>
             ))}
           </Box>
         )}
 
-        {/* Error message */}
+        {/* Message d'erreur */}
         {error && (
-          <Typography color="error" variant="caption" sx={{ mt: 1, display: 'block', fontSize: '0.75rem' }}>
+          <Typography
+            sx={{
+              gridColumn: '1 / -1',
+              margin: '0 22px 20px',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              color: 'var(--err)',
+            }}
+          >
             {error}
           </Typography>
         )}
-      </DialogContent>
+      </Box>
 
-      {/* ── Actions ───────────────────────────────────────────────────────── */}
-      <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none', fontSize: '0.8rem' }}>
+      {/* ── Pied (.rm-foot) ───────────────────────────────────────────────── */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: '10px',
+          padding: '14px 22px',
+          borderTop: '1px solid var(--line)',
+          backgroundColor: 'var(--surface-2)',
+          flexShrink: 0,
+        }}
+      >
+        <Box component="button" type="button" onClick={onClose} sx={BTN_GHOST_SX}>
           Annuler
-        </Button>
-        <Button
-          variant="contained"
+        </Box>
+        <Box
+          component="button"
+          type="button"
           onClick={handleSubmit}
           disabled={createMutation.isPending || !selectedGuest || !startDate || !endDate || hasConflict}
-          sx={{ textTransform: 'none', fontSize: '0.8rem', fontWeight: 600, px: 3 }}
+          sx={BTN_PRIMARY_SX}
         >
-          {createMutation.isPending ? 'Creation...' : 'Creer la reservation'}
-        </Button>
-      </DialogActions>
+          <Check size={15} strokeWidth={2} />
+          {createMutation.isPending ? 'Création…' : 'Créer la réservation'}
+        </Box>
+      </Box>
     </Dialog>
   );
 };

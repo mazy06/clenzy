@@ -8,12 +8,10 @@ import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyM
 import type { ServiceRequest } from './serviceRequestsUtils';
 import {
   getServiceRequestStatusLabel,
-  getServiceRequestStatusHex,
   getServiceRequestPriorityLabel,
-  getServiceRequestPriorityHex,
 } from '../../utils/statusUtils';
 import { stripPropertySuffix } from './serviceRequestDisplayMapper';
-import { LIST_PAPER_SX } from './serviceRequestsListConstants';
+import { LIST_PAPER_SX, srStatusChipSx, srPriorityChipSx } from './serviceRequestsListConstants';
 
 interface ServiceRequestsMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -42,8 +40,8 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
           />
         ) : (
           <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.5 }}><BuildIcon size={36} strokeWidth={1.5} /></Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><BuildIcon size={36} strokeWidth={1.5} /></Box>
+            <Typography sx={{ fontSize: '13px', color: 'var(--muted)' }}>
               Aucune demande avec coordonnées GPS
             </Typography>
           </Box>
@@ -53,54 +51,52 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
       {mapMarkers.length > 0 && (
         <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <Typography
-            variant="subtitle2"
-            sx={{ mb: 1, fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
+            sx={{
+              mb: 1, flexShrink: 0,
+              fontSize: '10.5px', fontWeight: 700, letterSpacing: '.05em',
+              textTransform: 'uppercase', color: 'var(--faint)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
           >
             {viewportRequests.length} {viewportRequests.length > 1 ? 'demandes' : 'demande'} dans la zone visible
           </Typography>
 
           {viewportRequests.length === 0 ? (
-            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+            <Paper sx={{ ...LIST_PAPER_SX, p: 2, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: '13px', color: 'var(--muted)' }}>
                 Aucune demande dans cette zone. Déplacez ou dézoomez la carte.
               </Typography>
             </Paper>
           ) : (
             <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
               {viewportRequests.map((request) => {
-                const statusColor = getServiceRequestStatusHex(request.status);
-                const priorityColor = getServiceRequestPriorityHex(request.priority);
                 return (
                   <Paper
                     key={request.id}
                     sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
+                      border: '1px solid var(--line)',
+                      bgcolor: 'var(--card)',
                       boxShadow: 'none',
-                      borderRadius: 1.5,
+                      borderRadius: '14px',
                       p: 1.5,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
+                      transition: 'border-color .15s, background-color .15s',
                       flexShrink: 0,
-                      '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                      '&:hover': { borderColor: 'var(--line-2)', bgcolor: 'var(--hover)' },
                     }}
                     onClick={() => navigate(`/service-requests/${request.id}`)}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography
-                          variant="body2"
-                          fontWeight={600}
-                          sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          sx={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                         >
                           {stripPropertySuffix(request.title, request.propertyName)}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                          <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                           <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            sx={{ fontSize: '11.5px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                           >
                             {request.propertyName} — {request.propertyAddress}
                           </Typography>
@@ -110,33 +106,15 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
                         <Chip
                           label={getServiceRequestStatusLabel(request.status, t)}
                           size="small"
-                          sx={{
-                            backgroundColor: `${statusColor}18`,
-                            color: statusColor,
-                            border: `1px solid ${statusColor}40`,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.62rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
+                          sx={srStatusChipSx(request.status)}
                         />
                         <Chip
                           label={getServiceRequestPriorityLabel(request.priority, t)}
                           size="small"
-                          sx={{
-                            backgroundColor: `${priorityColor}18`,
-                            color: priorityColor,
-                            border: `1px solid ${priorityColor}40`,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.62rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
+                          sx={srPriorityChipSx(request.priority)}
                         />
                         {request.assignedToName && (
-                          <Typography variant="caption" sx={{ fontSize: '0.68rem', color: 'text.secondary', ml: 0.5 }}>
+                          <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', ml: 0.5 }}>
                             {request.assignedToName}
                           </Typography>
                         )}

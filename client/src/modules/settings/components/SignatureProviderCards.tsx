@@ -13,8 +13,8 @@ import type { SignatureProvider } from '../../../services/api/integrationsApi';
  * en bas. Utilise le composant partagé {@link ServiceGridCard}.
  */
 
-const ACCENT = '#4A9B8E';
-const READY = '#D4A574';
+const ACCENT = 'var(--ok)';
+const READY = 'var(--warn)';
 
 type SelectableProvider = Exclude<SignatureProvider, null>;
 
@@ -40,8 +40,8 @@ const qtspBadge = (
       fontWeight: 700,
       letterSpacing: '0.02em',
       color: ACCENT,
-      backgroundColor: `${ACCENT}14`,
-      border: `1px solid ${ACCENT}33`,
+      backgroundColor: 'var(--ok-soft)',
+      border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
       borderRadius: '3px',
       px: 0.375,
       display: 'inline-flex',
@@ -65,8 +65,8 @@ const readyToWireBadge = (
       fontSize: '0.6rem',
       fontWeight: 700,
       color: READY,
-      backgroundColor: `${READY}14`,
-      border: `1px solid ${READY}40`,
+      backgroundColor: 'var(--warn-soft)',
+      border: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)',
       '& .MuiChip-label': { px: 0.875 },
     }}
   />

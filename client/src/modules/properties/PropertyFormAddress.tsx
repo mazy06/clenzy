@@ -273,10 +273,10 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                     ml: 0.5,
                     px: 0.75,
                     py: 0.1,
-                    borderRadius: 0.75,
-                    bgcolor: 'success.main',
-                    color: 'success.contrastText',
-                    fontSize: '0.5625rem',
+                    borderRadius: 999,
+                    bgcolor: 'var(--ok-soft)',
+                    color: 'var(--ok)',
+                    fontSize: '9.5px',
                     fontWeight: 700,
                   }}
                 >

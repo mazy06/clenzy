@@ -7,17 +7,27 @@ import {
   CardContent,
   Button,
   Skeleton,
-  useTheme,
 } from '@mui/material';
 import { ArrowForward, CalendarMonth, Add } from '../../icons';
 import type { NavigateFunction } from 'react-router-dom';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
 import apiClient from '../../services/apiClient';
-import {
-  RESERVATION_STATUS_COLORS,
-  INTERVENTION_TYPE_COLORS,
-} from '../../services/api/reservationsApi';
-import type { Reservation, PlanningIntervention, ReservationStatus, PlanningInterventionType } from '../../services/api';
+import type { Reservation, PlanningIntervention, PlanningInterventionType } from '../../services/api';
+
+// ─── Couleurs (tokens Signature) ────────────────────────────────────────────
+// Barres de réservation par canal (maquette 02-_dash) ; repli accent si source inconnue.
+const CHANNEL_BAR_COLORS: Record<string, string> = {
+  airbnb: 'var(--airbnb)',
+  booking: 'var(--booking)',
+  direct: 'var(--direct)',
+  other: 'var(--info)',
+};
+
+// Marqueurs d'intervention : ménage = info, maintenance = warn (spec Signature).
+const INTERVENTION_BAR_COLORS: Record<PlanningInterventionType, string> = {
+  cleaning: 'var(--info)',
+  maintenance: 'var(--warn)',
+};
 
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -54,11 +64,11 @@ const CARD_CONTENT_SX = {
 } as const;
 
 const SECTION_TITLE_SX = {
-  fontSize: '0.75rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
+  letterSpacing: '0.05em',
+  color: 'var(--faint)',
   display: 'flex',
   alignItems: 'center',
   gap: 0.5,
@@ -168,9 +178,6 @@ const isSameCalendarDay = (a: Date, b: Date): boolean =>
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navigate, t, isOperational = false, onReady }) => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-
   const { properties, reservations, filteredInterventions, loading } = useDashboardPlanning();
 
   // For operational roles: fetch interventions directly (not property-based)
@@ -251,7 +258,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
           id: res.id,
           left: clampedStart * 100,
           width: Math.max(0, (clampedEnd - clampedStart) * 100),
-          color: RESERVATION_STATUS_COLORS[res.status as ReservationStatus] ?? '#6B8A9A',
+          color: CHANNEL_BAR_COLORS[res.source] ?? 'var(--accent)',
           roundLeft: rawStart >= 0,
           roundRight: rawEnd <= 1,
         };
@@ -275,7 +282,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
             id: `${inter.id}-${d}`,
             left: centerX - markerWidth / 2,
             width: markerWidth,
-            color: INTERVENTION_TYPE_COLORS[inter.type as PlanningInterventionType] ?? '#9B7FC4',
+            color: INTERVENTION_BAR_COLORS[inter.type as PlanningInterventionType] ?? 'var(--info)',
           });
         }
       }
@@ -285,7 +292,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
   }, [visibleProperties, reservations, filteredInterventions, windowStart]);
 
   return (
-    <Card sx={{ borderRadius: '12px' }}>
+    <Card sx={{ borderRadius: 'var(--radius-lg)' }}>
       <CardContent sx={CARD_CONTENT_SX}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
@@ -326,7 +333,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
               {operationalInterventions.slice(0, 7).map((inter) => {
-                const color = INTERVENTION_TYPE_COLORS[inter.type as PlanningInterventionType] ?? '#9B7FC4';
+                const color = INTERVENTION_BAR_COLORS[inter.type as PlanningInterventionType] ?? 'var(--info)';
                 const date = inter.startDate ? new Date(inter.startDate) : null;
                 const isToday = date ? isSameCalendarDay(date, new Date()) : false;
                 return (
@@ -339,16 +346,20 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
                       gap: 1,
                       px: 1.25,
                       py: 0.75,
-                      borderRadius: '8px',
+                      borderRadius: 'var(--radius-md)',
                       border: '1px solid',
-                      borderColor: isToday ? 'primary.main' : 'divider',
-                      bgcolor: isToday ? (isDark ? 'rgba(107,138,154,0.08)' : 'rgba(107,138,154,0.04)') : 'transparent',
+                      borderColor: isToday ? 'var(--accent)' : 'var(--line)',
+                      bgcolor: isToday ? 'var(--accent-soft)' : 'transparent',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                       '&:hover': {
-                        borderColor: 'primary.main',
+                        borderColor: 'var(--accent)',
                         transform: 'translateY(-1px)',
-                        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.15)' : '0 2px 8px rgba(107,138,154,0.10)',
+                        boxShadow: 'var(--shadow-card)',
+                      },
+                      '@media (prefers-reduced-motion: reduce)': {
+                        transition: 'none',
+                        '&:hover': { transform: 'none' },
                       },
                     }}
                   >
@@ -397,15 +408,17 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
                     <Box key={i} sx={{ flex: 1, textAlign: 'center' }}>
                       <Typography sx={{
                         ...DAY_HEADER_SX,
-                        color: highlight ? 'primary.main' : 'text.secondary',
+                        color: highlight ? 'var(--accent)' : 'text.secondary',
                         fontWeight: highlight ? 700 : 600,
                       }}>
                         {dayName}
                       </Typography>
                       <Typography sx={{
+                        fontFamily: 'var(--font-display)',
                         fontSize: '0.6875rem',
                         fontWeight: highlight ? 700 : 500,
-                        color: highlight ? 'primary.main' : 'text.primary',
+                        fontVariantNumeric: 'tabular-nums',
+                        color: highlight ? 'var(--accent)' : 'text.primary',
                         textAlign: 'center',
                       }}>
                         {dayNum}
@@ -441,7 +454,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
                         sx={{
                           flex: 1,
                           bgcolor: isSameCalendarDay(day, windowStart)
-                            ? (isDark ? 'rgba(107,138,154,0.06)' : 'rgba(107,138,154,0.04)')
+                            ? 'var(--accent-soft)'
                             : 'transparent',
                         }}
                       />
@@ -489,15 +502,15 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
             {/* Legend */}
             <Box sx={{ display: 'flex', gap: 2, mt: 1.5, flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ ...LEGEND_DOT_SX, bgcolor: '#4A9B8E' }} />
+                <Box sx={{ ...LEGEND_DOT_SX, bgcolor: 'var(--accent)' }} />
                 <Typography sx={LEGEND_LABEL_SX}>{t('dashboard.miniPlanning.legend.reservation')}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ ...LEGEND_DOT_SX, bgcolor: '#9B7FC4' }} />
+                <Box sx={{ ...LEGEND_DOT_SX, bgcolor: 'var(--info)' }} />
                 <Typography sx={LEGEND_LABEL_SX}>{t('dashboard.miniPlanning.legend.cleaning')}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ ...LEGEND_DOT_SX, bgcolor: '#7EBAD0' }} />
+                <Box sx={{ ...LEGEND_DOT_SX, bgcolor: 'var(--warn)' }} />
                 <Typography sx={LEGEND_LABEL_SX}>{t('dashboard.miniPlanning.legend.maintenance')}</Typography>
               </Box>
             </Box>

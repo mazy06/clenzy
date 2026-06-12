@@ -106,13 +106,12 @@ export function formatDuration(mins: number): string {
   return `${hours}h${String(remainder).padStart(2, '0')}`;
 }
 
-// ─── Stable sx ──────────────────────────────────────────────────────────────
+// ─── Stable sx (tokens DESIGN_BASELINE) ─────────────────────────────────────
 
 const CONTAINER_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 1.5,
-  bgcolor: 'background.paper',
+  border: '1px solid var(--line)',
+  borderRadius: '14px',
+  bgcolor: 'var(--card)',
   px: 2,
   py: 1.5,
 } as const;
@@ -144,25 +143,22 @@ const PRICE_CARD_SX = {
   gap: 0.75,
   py: 1.5,
   px: 1.5,
-  borderRadius: 1.5,
-  border: '1px solid',
-  borderColor: 'divider',
-  bgcolor: 'grey.50',
+  borderRadius: '11px',
+  border: '1px solid var(--field-line)',
+  bgcolor: 'var(--field)',
   position: 'relative',
 } as const;
 
 const PRICE_CARD_PRIMARY_SX = {
   ...PRICE_CARD_SX,
-  borderColor: 'primary.main',
-  borderWidth: 2,
-  bgcolor: 'primary.50',
+  border: '1px solid var(--accent)',
+  bgcolor: 'var(--accent-soft)',
 } as const;
 
 const CHIP_SX = {
   height: 22,
-  fontSize: '0.625rem',
-  fontWeight: 600,
-  borderRadius: 1,
+  fontSize: '10.5px',
+  fontWeight: 700,
   '& .MuiChip-label': { px: 1 },
 } as const;
 
@@ -174,10 +170,9 @@ const DURATION_BANNER_SX = {
   py: 1,
   px: 1.5,
   mb: 1.5,
-  borderRadius: 1.5,
-  border: '1px solid',
-  borderColor: 'primary.main',
-  bgcolor: 'primary.50',
+  borderRadius: '11px',
+  border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
+  bgcolor: 'var(--accent-soft)',
 } as const;
 
 const NO_DATA_SX = {
@@ -186,12 +181,12 @@ const NO_DATA_SX = {
   gap: 1,
   py: 1.5,
   px: 2,
-  borderRadius: 1.5,
-  bgcolor: 'grey.50',
-  border: '1px dashed',
-  borderColor: 'grey.300',
+  borderRadius: '11px',
+  bgcolor: 'var(--field)',
+  border: '1px dashed var(--line-2)',
 } as const;
 
+// Marqueur accent compact (même famille que le carré « aujourd'hui » du planning).
 const RECOMMENDED_BADGE_SX = {
   position: 'absolute',
   top: -10,
@@ -201,13 +196,12 @@ const RECOMMENDED_BADGE_SX = {
   gap: 0.25,
   px: 0.75,
   py: 0.25,
-  borderRadius: 1,
-  bgcolor: 'primary.main',
-  color: 'white',
-  fontSize: '0.5rem',
+  borderRadius: '6px',
+  bgcolor: 'var(--accent)',
+  color: 'var(--on-accent)',
+  fontSize: '9px',
   fontWeight: 700,
   letterSpacing: '0.03em',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
 } as const;
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -260,21 +254,21 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         {/* Header */}
         <Box sx={HEADER_SX}>
           <Box sx={TITLE_ROW_SX}>
-            <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
+            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
               Estimation du prix
             </Typography>
           </Box>
           <Tooltip title="Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire." arrow>
-            <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", cursor: "help" }}><Info size={14} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', cursor: 'help' }}><Info size={14} strokeWidth={1.75} /></Box>
           </Tooltip>
         </Box>
 
         {/* Aucune propriété sélectionnée */}
         {!property && (
           <Box sx={NO_DATA_SX}>
-            <Box component="span" sx={{ display: "inline-flex", color: "text.disabled" }}><InfoOutlined size={16} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', lineHeight: 1.3 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><InfoOutlined size={16} strokeWidth={1.75} /></Box>
+            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.3 }}>
               Sélectionnez une propriété pour afficher l'estimation du prix et de la durée.
             </Typography>
           </Box>
@@ -283,8 +277,8 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         {/* Avertissement données minimales (propriété sélectionnée mais données incomplètes) */}
         {property && !hasRichData && (
           <Box sx={NO_DATA_SX}>
-            <Box component="span" sx={{ display: "inline-flex", color: "text.disabled" }}><InfoOutlined size={16} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', lineHeight: 1.3 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><InfoOutlined size={16} strokeWidth={1.75} /></Box>
+            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.3 }}>
               {canEstimate
                 ? 'Estimation approximative — renseignez la surface et le tarif de base dans la fiche logement pour une estimation plus précise.'
                 : 'Renseignez les caractéristiques du logement (chambres, surface, tarif de base) pour afficher une estimation.'}
@@ -295,16 +289,16 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
         {/* Duration banner */}
         {property && (
           <Box sx={{ ...DURATION_BANNER_SX, mt: !hasRichData ? 1.5 : 0 }}>
-            <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><Timer size={18} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-              <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.2 }}>
+              <Typography sx={{ fontSize: '16px', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.2, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
                 {formatDuration(estimatedDuration)}
               </Typography>
-              <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary' }}>
+              <Typography sx={{ fontSize: '10.5px', fontWeight: 500, color: 'var(--muted)' }}>
                 durée estimée
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', fontStyle: 'italic', ml: 'auto' }}>
+            <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', ml: 'auto' }}>
               Calculée automatiquement
             </Typography>
           </Box>
@@ -328,20 +322,25 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                   <Chip
                     label={label}
                     size="small"
-                    variant={isHighlighted ? 'filled' : 'outlined'}
-                    color={isHighlighted ? 'primary' : 'default'}
-                    sx={CHIP_SX}
+                    sx={{
+                      ...CHIP_SX,
+                      color: isHighlighted ? 'var(--accent)' : 'var(--muted)',
+                      bgcolor: isHighlighted ? 'var(--card)' : 'var(--hover)',
+                      border: isHighlighted ? '1px solid var(--accent)' : 'none',
+                    }}
                   />
                   <Typography sx={{
-                    fontSize: isHighlighted ? '1.125rem' : '1rem',
-                    fontWeight: 700,
-                    color: isHighlighted ? 'primary.main' : 'text.primary',
+                    fontSize: isHighlighted ? '18px' : '16px',
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-display)',
+                    fontVariantNumeric: 'tabular-nums',
+                    color: isHighlighted ? 'var(--accent)' : 'var(--ink)',
                     whiteSpace: 'nowrap',
                     lineHeight: 1.2,
                   }}>
                     {min === max ? convertAndFormat(min, 'EUR') : `${convertAndFormat(min, 'EUR')} – ${convertAndFormat(max, 'EUR')}`}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', lineHeight: 1 }}>
+                  <Typography sx={{ fontSize: '10px', color: 'var(--faint)', lineHeight: 1 }}>
                     par intervention
                   </Typography>
                 </Box>
@@ -360,19 +359,19 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                   <Chip
                     label={forfait.label}
                     size="small"
-                    variant="outlined"
-                    sx={CHIP_SX}
+                    sx={{ ...CHIP_SX, color: 'var(--muted)', bgcolor: 'var(--hover)', border: 'none' }}
                   />
                   <Typography sx={{
-                    fontSize: isFirst ? '1.125rem' : '1rem',
-                    fontWeight: 700,
-                    color: 'text.disabled',
+                    fontSize: isFirst ? '18px' : '16px',
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-display)',
+                    color: 'var(--faint)',
                     whiteSpace: 'nowrap',
                     lineHeight: 1.2,
                   }}>
                     —
                   </Typography>
-                  <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', lineHeight: 1 }}>
+                  <Typography sx={{ fontSize: '10px', color: 'var(--faint)', lineHeight: 1 }}>
                     par intervention
                   </Typography>
                 </Box>
@@ -383,8 +382,8 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
 
         {/* Base note */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
-          <Box component="span" sx={{ display: "inline-flex", color: "text.disabled" }}><TrendingUp size={11} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', fontStyle: 'italic' }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><TrendingUp size={11} strokeWidth={1.75} /></Box>
+          <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic' }}>
             Basé sur les caractéristiques du logement
           </Typography>
         </Box>

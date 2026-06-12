@@ -6,7 +6,6 @@ import {
   IconButton,
   Button,
   CircularProgress,
-  alpha,
 } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
@@ -16,6 +15,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { calendarPricingApi } from '../../services/api';
 import type { CalendarPricingDay } from '../../services/api/calendarPricingApi';
 import { minNightsKeys } from '../planning/hooks/usePlanningMinNights';
+import EmptyState from '../../components/EmptyState';
 import PricingEditDialog from './PricingEditDialog';
 import MinNightsEditDialog from './MinNightsEditDialog';
 
@@ -23,9 +23,10 @@ import MinNightsEditDialog from './MinNightsEditDialog';
 
 const CARD_SX = {
   border: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: '14px',
   p: 1.5,
 } as const;
 
@@ -152,6 +153,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   });
 
   const calendarCells = useMemo(() => buildCalendarGrid(currentMonth), [currentMonth]);
+  const todayISO = useMemo(() => toISO(new Date()), []);
 
   const pricingMap = useMemo(() => {
     const map = new Map<string, CalendarPricingDay>();
@@ -241,39 +243,14 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
         </Box>
       </Paper>
 
-      {/* ── No property selected — engaging empty state ── */}
+      {/* ── No property selected — état vide standardisé ── */}
       {!selectedPropertyId && (
-        <Paper
-          sx={{
-            ...CARD_SX,
-            py: 6,
-            px: 3,
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1.5,
-            flex: 1,
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
-          }}
-        >
-          <Box
-            component="span"
-            sx={{
-              display: 'inline-flex',
-              color: (theme) => alpha(theme.palette.primary.main, 0.25),
-              mb: 0.5,
-            }}
-          >
-            <CalendarMonthIcon size={48} strokeWidth={1.75} />
-          </Box>
-          <Typography variant="body1" fontWeight={600} color="text.primary" sx={{ fontSize: '0.875rem' }}>
-            {t('dynamicPricing.calendar.noProperty')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', maxWidth: 320 }}>
-            {t('dynamicPricing.calendar.noPropertyHint')}
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<CalendarMonthIcon />}
+          title={t('dynamicPricing.calendar.noProperty')}
+          description={t('dynamicPricing.calendar.noPropertyHint')}
+          minHeight={260}
+        />
       )}
 
       {/* ── Calendar grid ── */}
@@ -287,20 +264,20 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: (theme) => alpha(theme.palette.background.paper, 0.7),
+                bgcolor: 'color-mix(in srgb, var(--card) 70%, transparent)',
                 zIndex: 2,
-                borderRadius: 1.5,
+                borderRadius: '14px',
               }}
             >
               <CircularProgress size={28} />
             </Box>
           )}
 
-          {/* Day headers */}
+          {/* Day headers — overline (pattern entête planning) */}
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', mb: '2px' }}>
             {dayHeaders.map((label) => (
               <Box key={label} sx={{ textAlign: 'center', py: 0.5 }}>
-                <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                <Typography variant="caption" sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {label}
                 </Typography>
               </Box>
@@ -312,6 +289,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
             {calendarCells.map((cell) => {
               const pricing = pricingMap.get(cell.dateStr);
               const isSelected = selectedDates.includes(cell.dateStr);
+              const isToday = cell.dateStr === todayISO;
               const sourceColor = pricing ? getSourceColor(pricing.priceSource) : '#8BA0B3';
 
               return (
@@ -327,36 +305,61 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                   sx={{
                     minHeight: 64,
                     p: 0.5,
-                    borderRadius: 1,
+                    borderRadius: '8px',
                     cursor: cell.inMonth ? 'pointer' : 'default',
                     opacity: cell.inMonth ? 1 : 0.3,
-                    bgcolor: isSelected
-                      ? (theme) => alpha(theme.palette.primary.main, 0.12)
-                      : 'transparent',
-                    border: isSelected ? '2px solid' : '1px solid',
-                    borderColor: isSelected ? 'primary.main' : 'divider',
+                    bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
+                    border: '1px solid',
+                    borderColor: isSelected ? 'var(--accent)' : 'var(--line)',
+                    boxShadow: isSelected ? 'inset 0 0 0 1px var(--accent)' : 'none',
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'border-color 0.15s, background-color 0.15s',
-                    '&:hover': cell.inMonth
-                      ? { borderColor: 'primary.light', bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) }
+                    '&:hover': cell.inMonth && !isSelected
+                      ? { borderColor: 'var(--line-2)', bgcolor: 'var(--hover)' }
                       : {},
                   }}
                 >
-                  <Typography variant="caption" fontWeight={600} sx={{ lineHeight: 1, fontSize: '0.6875rem' }}>
-                    {cell.date.getDate()}
-                  </Typography>
+                  {/* Pastille « aujourd'hui » — pattern planning (carré accent r8) */}
+                  {isToday ? (
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 20,
+                        height: 20,
+                        borderRadius: '7px',
+                        bgcolor: 'var(--accent)',
+                        color: 'var(--on-accent)',
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 600,
+                        fontSize: '0.6875rem',
+                        lineHeight: 1,
+                        alignSelf: 'flex-start',
+                      }}
+                    >
+                      {cell.date.getDate()}
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" fontWeight={600} sx={{ lineHeight: 1, fontSize: '0.6875rem', fontVariantNumeric: 'tabular-nums' }}>
+                      {cell.date.getDate()}
+                    </Typography>
+                  )}
 
                   {pricing && pricing.nightlyPrice !== null && (
                     <Typography
                       variant="body2"
-                      fontWeight={700}
+                      fontWeight={600}
                       sx={{
                         flex: 1,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: sourceColor,
+                        fontFamily: 'var(--font-display)',
+                        fontVariantNumeric: 'tabular-nums',
                         fontSize: '0.8125rem',
                       }}
                     >
@@ -373,7 +376,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           </Box>
 
           {/* Legend */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'var(--line)' }}>
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
               <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
@@ -394,10 +397,11 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+            bgcolor: 'var(--accent-soft)',
+            borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
           }}
         >
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+          <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}>
             {selectedDates.length} {t('common.date')}(s)
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -405,7 +409,6 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               variant="text"
               size="small"
               onClick={() => setSelectedDates([])}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
               {t('common.cancel')}
             </Button>
@@ -414,7 +417,6 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               size="small"
               startIcon={<NightsStay size={14} strokeWidth={1.75} />}
               onClick={() => setMinNightsDialogOpen(true)}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
               Min-nights
             </Button>
@@ -422,7 +424,6 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               variant="contained"
               size="small"
               onClick={() => setEditDialogOpen(true)}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
               {t('dynamicPricing.calendar.editPrice')}
             </Button>

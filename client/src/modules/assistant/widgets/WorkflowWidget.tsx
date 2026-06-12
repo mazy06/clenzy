@@ -7,8 +7,6 @@ import {
   StepLabel,
   Button,
   Chip,
-  useTheme,
-  alpha,
 } from '@mui/material';
 import { AssistantMarkdown } from '../components/AssistantMarkdown';
 
@@ -84,12 +82,13 @@ function dispatchQuickReply(text: string) {
  *       repondre dans le champ chat.</li>
  * </ul>
  *
- * <p>Borderless, bg tonal, conforme aux autres widgets. Pour les boolean
- * quick replies, on emet un {@link ASSISTANT_QUICK_REPLY_EVENT} sur la window
- * que la page chat ecoute pour rappeler {@code sendMessage}.</p>
+ * <p>Pattern « Signature » : tokens var(--…), overlines 10.5px {@code --faint}.
+ * Stepper MUI conservé tel quel (pattern Wizard/Stepper absent du baseline §7 —
+ * tokenisé sans nouveau dessin). Pour les boolean quick replies, on emet un
+ * {@link ASSISTANT_QUICK_REPLY_EVENT} sur la window que la page chat ecoute
+ * pour rappeler {@code sendMessage}.</p>
  */
 export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
-  const theme = useTheme();
   const total = data.totalSteps ?? data.steps?.length ?? 0;
   const currentIdx = data.currentStepIdx ?? 0;
   const isCompleted = data.status === 'COMPLETED';
@@ -108,16 +107,16 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
     <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
       {/* Header titre + meta */}
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
-        <Typography variant="caption" sx={{
-          fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title || 'Workflow'}
         </Typography>
         {data.estimatedDuration && (
-          <Typography variant="caption" sx={{
-            fontSize: '0.7rem', color: theme.palette.text.disabled,
+          <Typography sx={{
+            fontSize: '11.5px', color: 'var(--faint)',
             fontVariantNumeric: 'tabular-nums',
           }}>
             ≈ {data.estimatedDuration} min
@@ -128,13 +127,15 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
             label={data.status}
             size="small"
             sx={{
-              height: 18, fontSize: '0.65rem', fontWeight: 600,
+              height: 18, fontSize: '10.5px', fontWeight: 700,
+              letterSpacing: '.04em', textTransform: 'uppercase',
               bgcolor: data.status === 'COMPLETED'
-                ? alpha(theme.palette.success.main, 0.14)
-                : alpha(theme.palette.text.primary, 0.08),
+                ? 'var(--ok-soft)'
+                : 'var(--hover)',
               color: data.status === 'COMPLETED'
-                ? theme.palette.success.dark
-                : theme.palette.text.secondary,
+                ? 'var(--ok)'
+                : 'var(--muted)',
+              border: 'none',
               '& .MuiChip-label': { px: 0.75 },
             }}
           />
@@ -145,20 +146,26 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
       {stepsForStepper.length > 0 && (
         <Box sx={{
           px: 1.5, py: 1.25,
-          borderRadius: 1.5,
-          bgcolor: alpha(theme.palette.primary.main, 0.04),
+          borderRadius: '12px',
+          bgcolor: 'var(--accent-soft)',
         }}>
           <Stepper
             activeStep={isCompleted ? stepsForStepper.length : currentIdx}
             alternativeLabel
             sx={{
               '& .MuiStepLabel-label': {
-                fontSize: '0.7rem',
+                fontSize: '11.5px',
                 fontWeight: 500,
+                color: 'var(--muted)',
                 mt: 0.5,
+                '&.Mui-active': { color: 'var(--ink)', fontWeight: 600 },
+                '&.Mui-completed': { color: 'var(--muted)' },
               },
               '& .MuiStepIcon-root': {
                 fontSize: '1.1rem',
+                color: 'var(--line-2)',
+                '&.Mui-active': { color: 'var(--accent)' },
+                '&.Mui-completed': { color: 'var(--accent)' },
               },
             }}
           >
@@ -175,13 +182,13 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
       {!isCompleted && data.currentStep && data.currentStep.prompt && (
         <Box sx={{
           px: 1.5, py: 1.25,
-          borderRadius: 1.5,
-          bgcolor: alpha(theme.palette.text.primary, 0.035),
+          borderRadius: '12px',
+          bgcolor: 'var(--field)',
         }}>
-          <Typography variant="caption" sx={{
-            display: 'block', fontSize: '0.65rem', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.05em',
-            color: theme.palette.primary.dark, mb: 0.75,
+          <Typography sx={{
+            display: 'block', fontSize: '10.5px', fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '.05em',
+            color: 'var(--accent)', mb: 0.75,
           }}>
             Etape {currentIdx + 1}/{total}
             {data.currentStep.title ? ` · ${data.currentStep.title}` : ''}
@@ -214,18 +221,18 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
               </Button>
             </Box>
           ) : (
-            <Typography variant="caption" sx={{
-              display: 'block', mt: 1.5, fontSize: '0.72rem', fontStyle: 'italic',
-              color: theme.palette.text.disabled,
+            <Typography sx={{
+              display: 'block', mt: 1.5, fontSize: '11.5px', fontStyle: 'italic',
+              color: 'var(--faint)',
             }}>
               Reponds dans le chat ci-dessous puis j'enchainerai l'etape suivante.
             </Typography>
           )}
 
           {data.currentStep.suggestTool?.name && (
-            <Typography variant="caption" sx={{
-              display: 'block', mt: 1.25, fontSize: '0.7rem',
-              color: theme.palette.text.secondary,
+            <Typography sx={{
+              display: 'block', mt: 1.25, fontSize: '11.5px',
+              color: 'var(--muted)',
             }}>
               Indice : je peux aussi te diriger vers <code>{data.currentStep.suggestTool.name}</code>.
             </Typography>
@@ -237,18 +244,18 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
       {isCompleted && (
         <Box sx={{
           px: 1.5, py: 1.5,
-          borderRadius: 1.5,
-          bgcolor: alpha(theme.palette.success.main, 0.1),
+          borderRadius: '12px',
+          bgcolor: 'var(--ok-soft)',
         }}>
-          <Typography variant="body2" sx={{
-            fontWeight: 600, color: theme.palette.success.dark,
+          <Typography sx={{
+            fontSize: '12.5px', fontWeight: 600, color: 'var(--ok)',
           }}>
             Workflow termine.
           </Typography>
           {data.suggestedAction?.toolName && (
-            <Typography variant="caption" sx={{
-              display: 'block', mt: 0.5, fontSize: '0.75rem',
-              color: theme.palette.text.secondary,
+            <Typography sx={{
+              display: 'block', mt: 0.5, fontSize: '11.5px',
+              color: 'var(--muted)',
             }}>
               Prochaine action suggeree : <code>{data.suggestedAction.toolName}</code>
             </Typography>

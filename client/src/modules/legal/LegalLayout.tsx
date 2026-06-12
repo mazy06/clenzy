@@ -89,6 +89,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
             variant="h4"
             component="h1"
             sx={{
+              fontFamily: 'var(--font-display)',
               fontWeight: 600,
               color: 'text.primary',
               mb: 1,

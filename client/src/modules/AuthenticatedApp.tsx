@@ -52,8 +52,9 @@ import Tarification from './tarification/Tarification';
 // Permissions
 import PermissionConfig from '../components/PermissionConfig';
 
-// Contact
-import ContactPage from './contact/ContactPage';
+// Messagerie unifiée (hub : conversations · archives · formulaires reçus · OTA)
+// — remplace l'ancienne ContactPage sur la route /contact (mêmes ?tab= legacy).
+import MessagingHubPage from './messaging/MessagingHubPage';
 import ContactCreatePage from './contact/ContactCreatePage';
 
 // Documents
@@ -366,7 +367,7 @@ const AuthenticatedApp: React.FC = () => {
         } />
         
         <Route path="/contact" element={
-          <ContactPage />
+          <MessagingHubPage />
         } />
         <Route path="/contact/create" element={
           <ContactCreatePage />

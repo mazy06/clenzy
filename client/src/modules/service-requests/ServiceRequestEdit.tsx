@@ -6,20 +6,8 @@ import ServiceRequestForm from './ServiceRequestForm';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
-
-const ACTION_BUTTON_SX = {
-  textTransform: 'none',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  height: 28,
-  px: 1.5,
-  '& .MuiButton-startIcon': { mr: 0.5 },
-  '& .MuiSvgIcon-root': { fontSize: 14 },
-} as const;
-
 // ─── Component ──────────────────────────────────────────────────────────────
+// Boutons d'action : géométrie/typo héritées du thème global (.s-btn small).
 
 const ServiceRequestEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -46,7 +34,6 @@ const ServiceRequestEdit: React.FC = () => {
                 startIcon={<Cancel size={18} strokeWidth={1.75} />}
                 size="small"
                 disabled={loading}
-                sx={ACTION_BUTTON_SX}
                 title={t('common.cancel')}
               >
                 {t('common.cancel')}
@@ -57,7 +44,6 @@ const ServiceRequestEdit: React.FC = () => {
                 startIcon={<Save size={18} strokeWidth={1.75} />}
                 size="small"
                 disabled={loading}
-                sx={ACTION_BUTTON_SX}
                 title={t('serviceRequests.update')}
               >
                 {loading ? t('serviceRequests.updating') : t('serviceRequests.update')}

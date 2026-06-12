@@ -39,10 +39,10 @@ interface StatusMeta {
 }
 
 const STATUS_META: Record<ChannexSyncStatus, StatusMeta> = {
-  ACTIVE: { color: '#10B981', label: 'Sync Channex active', Icon: CheckCircle2 },
-  PENDING: { color: '#D97706', label: 'Connexion Channex en cours', Icon: Clock },
-  ERROR: { color: '#EF4444', label: 'Erreur de sync Channex', Icon: AlertCircle },
-  DISABLED: { color: '#6B7280', label: 'Sync Channex mise en pause', Icon: Pause },
+  ACTIVE: { color: 'var(--ok)', label: 'Sync Channex active', Icon: CheckCircle2 },
+  PENDING: { color: 'var(--warn)', label: 'Connexion Channex en cours', Icon: Clock },
+  ERROR: { color: 'var(--err)', label: 'Erreur de sync Channex', Icon: AlertCircle },
+  DISABLED: { color: 'var(--muted)', label: 'Sync Channex mise en pause', Icon: Pause },
 };
 
 function formatLastSync(iso: string | null): string {
@@ -88,7 +88,7 @@ export default function ChannexHealthBadge({
             display: 'block',
             mt: 0.5,
             pt: 0.5,
-            borderTop: '1px solid rgba(255,255,255,0.15)',
+            borderTop: '1px solid color-mix(in srgb, var(--bg) 20%, transparent)',
             opacity: 0.9,
             fontStyle: 'italic',
           }}
@@ -147,7 +147,7 @@ export default function ChannexHealthBadge({
               width: size + 8,
               height: size + 8,
               borderRadius: '50%',
-              bgcolor: `${meta.color}1A`,
+              bgcolor: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -170,6 +170,7 @@ export default function ChannexHealthBadge({
                   '0%, 100%': { opacity: 1 },
                   '50%': { opacity: 0.55 },
                 },
+                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
               }}
             />
           </Box>
@@ -181,12 +182,13 @@ export default function ChannexHealthBadge({
               borderRadius: '50%',
               bgcolor: meta.color,
               flexShrink: 0,
-              boxShadow: `0 0 0 2px ${meta.color}26`,
+              boxShadow: `0 0 0 2px color-mix(in srgb, ${meta.color} 15%, transparent)`,
               animation: mapping.syncStatus === 'ERROR' ? 'pulse 2s infinite' : undefined,
               '@keyframes pulse': {
                 '0%, 100%': { opacity: 1 },
                 '50%': { opacity: 0.55 },
               },
+              '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
             }}
           />
         )}

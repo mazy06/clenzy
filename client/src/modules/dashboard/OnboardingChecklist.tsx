@@ -6,7 +6,6 @@ import {
   IconButton,
   Tooltip,
   Button,
-  useTheme,
 } from '@mui/material';
 import {
   CheckCircle,
@@ -47,121 +46,123 @@ interface StepVisual {
   actionIcon: React.ReactNode;
 }
 
+// Aplats tokens Signature — les anciens dégradés deviennent des fonds unis
+// (le champ `gradient` reste le fond du CTA, désormais une couleur token).
 const STEP_VISUALS: Record<string, StepVisual> = {
   create_property: {
     icon: <Home size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-    accentColor: '#6B8A9A',
+    gradient: 'var(--accent)',
+    accentColor: 'var(--accent)',
     actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
   configure_details: {
     icon: <Tune size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-    accentColor: '#6B8A9A',
+    gradient: 'var(--accent)',
+    accentColor: 'var(--accent)',
     actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   define_pricing: {
     icon: <Euro size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
-    accentColor: '#4A9B8E',
+    gradient: 'var(--ok)',
+    accentColor: 'var(--ok)',
     actionIcon: <Euro size={14} strokeWidth={1.75} />,
   },
   connect_channels: {
     icon: <CalendarMonth size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #FF5A5F 0%, #FF8A8E 100%)',
-    accentColor: '#FF5A5F',
+    gradient: 'var(--airbnb)',
+    accentColor: 'var(--airbnb)',
     actionIcon: <Sync size={14} strokeWidth={1.75} />,
   },
   configure_billing: {
     icon: <Receipt size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
-    accentColor: '#D4A574',
+    gradient: 'var(--warn)',
+    accentColor: 'var(--warn)',
     actionIcon: <Receipt size={14} strokeWidth={1.75} />,
   },
   configure_org: {
     icon: <Settings size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-    accentColor: '#6B8A9A',
+    gradient: 'var(--accent)',
+    accentColor: 'var(--accent)',
     actionIcon: <Settings size={14} strokeWidth={1.75} />,
   },
   invite_members: {
     icon: <Group size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
-    accentColor: '#4A9B8E',
+    gradient: 'var(--ok)',
+    accentColor: 'var(--ok)',
     actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
   setup_settings: {
     icon: <Tune size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
-    accentColor: '#D4A574',
+    gradient: 'var(--warn)',
+    accentColor: 'var(--warn)',
     actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   setup_fiscal: {
     icon: <Receipt size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
-    accentColor: '#D4A574',
+    gradient: 'var(--warn)',
+    accentColor: 'var(--warn)',
     actionIcon: <Receipt size={14} strokeWidth={1.75} />,
   },
   setup_notifications: {
     icon: <Notifications size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #5C7AEA 0%, #7B95F0 100%)',
-    accentColor: '#5C7AEA',
+    gradient: 'var(--info)',
+    accentColor: 'var(--info)',
     actionIcon: <Notifications size={14} strokeWidth={1.75} />,
   },
   setup_general: {
     icon: <Tune size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-    accentColor: '#6B8A9A',
+    gradient: 'var(--accent)',
+    accentColor: 'var(--accent)',
     actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   setup_integrations: {
     icon: <Extension size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #9B59B6 0%, #B07CC6 100%)',
-    accentColor: '#9B59B6',
+    gradient: 'var(--info)',
+    accentColor: 'var(--info)',
     actionIcon: <Extension size={14} strokeWidth={1.75} />,
   },
   setup_payment: {
     icon: <Payment size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #E67E22 0%, #F0A050 100%)',
-    accentColor: '#E67E22',
+    gradient: 'var(--warn)',
+    accentColor: 'var(--warn)',
     actionIcon: <Payment size={14} strokeWidth={1.75} />,
   },
   setup_messaging: {
     icon: <ChatBubbleOutline size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #3498DB 0%, #5DADE2 100%)',
-    accentColor: '#3498DB',
+    gradient: 'var(--info)',
+    accentColor: 'var(--info)',
     actionIcon: <ChatBubbleOutline size={14} strokeWidth={1.75} />,
   },
   setup_payouts: {
     icon: <AccountBalanceWallet size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #27AE60 0%, #52C47A 100%)',
-    accentColor: '#27AE60',
+    gradient: 'var(--ok)',
+    accentColor: 'var(--ok)',
     actionIcon: <AccountBalanceWallet size={14} strokeWidth={1.75} />,
   },
   complete_profile: {
     icon: <Person size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-    accentColor: '#6B8A9A',
+    gradient: 'var(--accent)',
+    accentColor: 'var(--accent)',
     actionIcon: <Person size={14} strokeWidth={1.75} />,
   },
   view_interventions: {
     icon: <Assignment size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
-    accentColor: '#4A9B8E',
+    gradient: 'var(--ok)',
+    accentColor: 'var(--ok)',
     actionIcon: <Build size={14} strokeWidth={1.75} />,
   },
   create_team: {
     icon: <Group size={16} strokeWidth={1.75} />,
-    gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
-    accentColor: '#4A9B8E',
+    gradient: 'var(--ok)',
+    accentColor: 'var(--ok)',
     actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
 };
 
 const DEFAULT_VISUAL: StepVisual = {
   icon: <Settings size={16} strokeWidth={1.75} />,
-  gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-  accentColor: '#6B8A9A',
+  gradient: 'var(--accent)',
+  accentColor: 'var(--accent)',
   actionIcon: <Settings size={14} strokeWidth={1.75} />,
 };
 
@@ -170,8 +171,6 @@ const DEFAULT_VISUAL: StepVisual = {
 const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ onReady }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const [icalOpen, setIcalOpen] = useState(false);
 
   const {
@@ -232,12 +231,12 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
           sx={{
             color: 'text.disabled',
             border: '1px dashed',
-            borderColor: 'divider',
-            borderRadius: '8px',
+            borderColor: 'var(--line-2)',
+            borderRadius: 'var(--radius-md)',
             px: 1.5,
             py: 0.25,
             fontSize: '0.65rem',
-            '&:hover': { color: 'primary.main', borderColor: 'primary.main' },
+            '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
           }}
         >
           <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><Replay size={12} strokeWidth={1.75} /></Box>
@@ -258,42 +257,38 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
     <>
       <Box
         sx={{
-          bgcolor: 'background.paper',
-          borderRadius: '10px',
-          borderLeft: '3px solid',
-          borderLeftColor: 'primary.main',
+          bgcolor: 'var(--card)',
+          border: '1px solid var(--line)',
+          borderRadius: 'var(--radius-lg)',
           px: 2,
           py: 1.25,
           height: '100%',
           '@keyframes shadowPulse': {
             '0%': {
-              boxShadow: isDark
-                ? '0 1px 6px rgba(0,0,0,0.3)'
-                : '0 1px 6px rgba(107,138,154,0.10)',
+              boxShadow: 'none',
             },
             '50%': {
-              boxShadow: isDark
-                ? '0 4px 20px rgba(107,138,154,0.35), 0 0 0 1px rgba(107,138,154,0.15)'
-                : '0 6px 28px rgba(107,138,154,0.30), 0 0 0 1.5px rgba(107,138,154,0.20)',
+              boxShadow: '0 6px 28px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 0 1.5px color-mix(in srgb, var(--accent) 20%, transparent)',
             },
             '100%': {
-              boxShadow: isDark
-                ? '0 1px 6px rgba(0,0,0,0.3)'
-                : '0 1px 6px rgba(107,138,154,0.10)',
+              boxShadow: 'none',
             },
           },
           animation: 'shadowPulse 3s ease-in-out infinite',
+          '@media (prefers-reduced-motion: reduce)': {
+            animation: 'none',
+          },
         }}
       >
         {/* ── Header row: title + progress + bar + dismiss ────────── */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
           <Typography
             sx={{
-              fontSize: '0.7rem',
+              fontSize: '10.5px',
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              color: 'text.secondary',
+              letterSpacing: '0.05em',
+              color: 'var(--faint)',
               lineHeight: 1,
               whiteSpace: 'nowrap',
             }}
@@ -320,10 +315,10 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
               height: 4,
               borderRadius: 2,
               minWidth: 40,
-              bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'action.hover',
+              bgcolor: 'var(--field)',
               '& .MuiLinearProgress-bar': {
                 borderRadius: 2,
-                background: 'linear-gradient(90deg, #6B8A9A 0%, #4A9B8E 100%)',
+                background: 'var(--accent)',
               },
             }}
           />
@@ -354,30 +349,32 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
                   gap: 1,
                   px: 1.25,
                   py: 0.75,
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-md)',
                   border: '1px solid',
                   borderColor: step.completed
-                    ? (isDark ? 'rgba(74,155,142,0.25)' : 'rgba(74,155,142,0.15)')
+                    ? 'color-mix(in srgb, var(--ok) 25%, transparent)'
                     : isActive
-                      ? 'primary.main'
-                      : 'divider',
+                      ? 'var(--accent)'
+                      : 'var(--line)',
                   bgcolor: step.completed
-                    ? (isDark ? 'rgba(74,155,142,0.06)' : 'rgba(74,155,142,0.03)')
+                    ? 'color-mix(in srgb, var(--ok) 5%, transparent)'
                     : isActive
-                      ? (isDark ? 'rgba(107,138,154,0.08)' : 'rgba(107,138,154,0.04)')
+                      ? 'var(--accent-soft)'
                       : 'transparent',
                   cursor: step.locked ? 'default' : 'pointer',
                   opacity: step.locked ? 0.45 : 1,
                   transition: 'all 0.15s ease',
                   ...(!step.locked && {
                     '&:hover': {
-                      borderColor: 'primary.main',
+                      borderColor: 'var(--accent)',
                       transform: 'translateY(-1px)',
-                      boxShadow: isDark
-                        ? '0 2px 8px rgba(0,0,0,0.15)'
-                        : '0 2px 8px rgba(107,138,154,0.10)',
+                      boxShadow: 'var(--shadow-card)',
                     },
                   }),
+                  '@media (prefers-reduced-motion: reduce)': {
+                    transition: 'none',
+                    '&:hover': { transform: 'none' },
+                  },
                 }}
               >
                 {/* Icon */}
@@ -385,17 +382,17 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
                   sx={{
                     width: 28,
                     height: 28,
-                    borderRadius: '50%',
+                    borderRadius: 'var(--radius-sm)',
                     bgcolor: step.completed
-                      ? (isDark ? 'rgba(74,155,142,0.12)' : 'rgba(74,155,142,0.08)')
+                      ? 'var(--ok-soft)'
                       : isActive
-                        ? (isDark ? 'rgba(107,138,154,0.15)' : 'rgba(107,138,154,0.10)')
-                        : (isDark ? 'rgba(107,138,154,0.10)' : 'rgba(107,138,154,0.06)'),
+                        ? 'var(--accent-soft)'
+                        : 'var(--hover)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    color: step.completed ? 'success.main' : isActive ? 'primary.main' : 'text.secondary',
+                    color: step.completed ? 'var(--ok)' : isActive ? 'var(--accent)' : 'text.secondary',
                   }}
                 >
                   {visual.icon}
@@ -419,7 +416,7 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
 
                 {/* Status */}
                 {step.completed ? (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', flexShrink: 0 }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', flexShrink: 0 }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
                 ) : step.locked ? (
                   <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}><Lock size={12} strokeWidth={1.75} /></Box>
                 ) : (
@@ -433,14 +430,13 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
         {/* ── CTA: always show for the current active step ─────────── */}
         {activeStep && activeVisual && (
           <CtaSection
-            icon={React.cloneElement(activeVisual.icon as React.ReactElement, { sx: { fontSize: 18, color: '#fff' } })}
+            icon={React.cloneElement(activeVisual.icon as React.ReactElement, { sx: { fontSize: 18, color: 'var(--on-accent)' } })}
             gradient={activeVisual.gradient}
             title={t(activeStep.labelKey)}
             description={t(activeStep.descriptionKey)}
             actionLabel={t(activeStep.labelKey)}
             actionIcon={activeVisual.actionIcon}
             onAction={handleCtaAction}
-            isDark={isDark}
             accentColor={activeVisual.accentColor}
             skippable={activeStep.skippable}
             onSkip={() => completeStep(activeStep.key)}
@@ -472,7 +468,6 @@ interface CtaSectionProps {
   actionLabel: string;
   actionIcon: React.ReactNode;
   onAction: () => void;
-  isDark: boolean;
   accentColor?: string;
   skippable?: boolean;
   onSkip?: () => void;
@@ -487,8 +482,7 @@ const CtaSection: React.FC<CtaSectionProps> = ({
   actionLabel,
   actionIcon,
   onAction,
-  isDark,
-  accentColor = '#6B8A9A',
+  accentColor = 'var(--accent)',
   skippable,
   onSkip,
   skipLabel,
@@ -508,13 +502,13 @@ const CtaSection: React.FC<CtaSectionProps> = ({
       sx={{
         width: 36,
         height: 36,
-        borderRadius: '50%',
+        borderRadius: 'var(--radius-md)',
         background: gradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        boxShadow: `0 2px 8px ${accentColor}33`,
+        boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 20%, transparent)`,
       }}
     >
       {icon}
@@ -541,7 +535,7 @@ const CtaSection: React.FC<CtaSectionProps> = ({
             whiteSpace: 'nowrap',
             '&:hover': {
               color: 'text.primary',
-              bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+              bgcolor: 'var(--hover)',
             },
           }}
         >
@@ -555,21 +549,19 @@ const CtaSection: React.FC<CtaSectionProps> = ({
         onClick={onAction}
         sx={{
           background: gradient,
-          color: '#fff',
+          color: 'var(--on-accent)',
           fontWeight: 600,
           fontSize: '0.75rem',
           textTransform: 'none',
-          borderRadius: '8px',
+          borderRadius: 'var(--radius-md)',
           px: 2,
           py: 0.5,
           whiteSpace: 'nowrap',
           flexShrink: 0,
-          boxShadow: isDark
-            ? '0 2px 8px rgba(0,0,0,0.3)'
-            : `0 2px 8px ${accentColor}40`,
+          boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 25%, transparent)`,
           '&:hover': {
             filter: 'brightness(0.9)',
-            boxShadow: `0 4px 12px ${accentColor}55`,
+            boxShadow: `0 4px 12px color-mix(in srgb, ${accentColor} 33%, transparent)`,
           },
         }}
       >

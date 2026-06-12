@@ -1,6 +1,24 @@
 import type { PlanningEvent, BarLayout, DensityMode } from '../types';
-import { ROW_CONFIG, BAR_MIN_WIDTH, INTERVENTION_LANE_GAP, INTERVENTION_BOTTOM_PAD } from '../constants';
+import {
+  ROW_CONFIG,
+  BAR_MIN_WIDTH,
+  BAR_MIN_DAY_FRACTION,
+  DEFAULT_CHECK_IN_HOUR,
+  DEFAULT_CHECK_OUT_HOUR,
+  INTERVENTION_LANE_GAP,
+  INTERVENTION_BOTTOM_PAD,
+} from '../constants';
 import { toDate, daysBetween, getHourOffsetPx } from './dateUtils';
+
+/** Fraction de jour (0..1) d'une heure "HH:mm", avec heure de repli. */
+function timeFractionOfDay(timeStr: string | undefined, fallbackHour: number): number {
+  if (!timeStr) return fallbackHour / 24;
+  const parts = timeStr.split(':');
+  const h = parseInt(parts[0], 10);
+  if (Number.isNaN(h)) return fallbackHour / 24;
+  const m = parseInt(parts[1] || '0', 10);
+  return (h + (Number.isNaN(m) ? 0 : m) / 60) / 24;
+}
 
 // Largeur minimum d'une intervention pour afficher le label de type en
 // entier (MENAGE / MAINTENANCE en uppercase bold ~8-9px + padding).
@@ -30,56 +48,58 @@ export function computeBarLayout(
   // Skip events completely outside the visible range
   if (eventEnd < rangeStart || eventStart > rangeEnd) return null;
 
-  // Compute left position
   const startOffset = daysBetween(rangeStart, eventStart);
-  const clampedStartOffset = Math.max(0, startOffset);
-  let left = clampedStartOffset * dayWidth;
-
-  // Add hour offset for zoomed-in views
-  if (startOffset >= 0) {
-    left += getHourOffsetPx(event.startTime, dayWidth);
-  }
-
-  // Compute width
-  // In PMS logic, the checkout day is partially occupied (guest leaves in the morning).
-  // We add a checkout overlap so the bar visually extends into the checkout day column.
   const durationDays = daysBetween(eventStart, eventEnd);
-  const visibleStart = Math.max(0, startOffset);
-  const visibleEnd = Math.min(days.length, startOffset + durationDays);
-  let width = (visibleEnd - visibleStart) * dayWidth;
-
-  // Checkout overlap: extend bar into the checkout day
   const isReservation = event.type === 'reservation';
-  if (isReservation && startOffset + durationDays <= days.length) {
-    if (event.endTime && dayWidth > 40) {
-      // Use actual checkout time for precise positioning
-      width += getHourOffsetPx(event.endTime, dayWidth);
-    } else {
-      // Default: extend 40% into checkout day (≈ morning occupation until ~10h)
-      width += dayWidth * 0.4;
-    }
-  }
-
-  // Check-in hour offset: shift start for precise positioning
-  if (startOffset >= 0 && event.startTime && dayWidth > 40) {
-    width -= getHourOffsetPx(event.startTime, dayWidth);
-  }
-
   const isIntervention = event.type === 'cleaning' || event.type === 'maintenance';
 
-  // Interventions : occuper AU MINIMUM la largeur necessaire pour afficher
-  // le type de prestation en entier (MENAGE / MAINTENANCE). Sans ca, le bar
-  // tombe a BAR_MIN_WIDTH (28px) et le texte est tronque. On ne va PAS
-  // jusqu'a une cellule jour complete pour ne pas masquer le voisin.
-  if (isIntervention) {
-    const minTypeWidth = INTERVENTION_TYPE_MIN_WIDTH[event.type] ?? 64;
-    if (width < minTypeWidth) {
-      width = minTypeWidth;
+  let left: number;
+  let width: number;
+
+  if (isReservation) {
+    // ── Brique positionnée à l'heure (spec JS placeBar) ─────────────────────
+    //   left  = (startDayIndex + checkInHour/24)  × dayWidth
+    //   right = (startDayIndex + nuits + checkOutHour/24) × dayWidth
+    //   width = max(3.5 % de la grille 14 jours ≈ 0.49 jour, right − left)
+    // Heures de repli 15 h / 11 h quand la réservation n'en porte pas.
+    // Seul le RENDU est décalé à l'heure : drag & resize restent snappés au
+    // jour (Math.round(deltaX / dayWidth) dans usePlanningDrag), le ghost
+    // repasse par ce calcul et reste donc cohérent.
+    const checkInFrac = timeFractionOfDay(event.startTime, DEFAULT_CHECK_IN_HOUR);
+    const checkOutFrac = timeFractionOfDay(event.endTime, DEFAULT_CHECK_OUT_HOUR);
+    const leftDays = Math.max(0, startOffset + checkInFrac);
+    const rightDays = Math.min(days.length, startOffset + durationDays + checkOutFrac);
+    left = leftDays * dayWidth;
+    width = Math.max(
+      BAR_MIN_WIDTH,
+      BAR_MIN_DAY_FRACTION * dayWidth,
+      (rightDays - leftDays) * dayWidth,
+    );
+  } else {
+    // ── Interventions / blocages : positionnement au jour (inchangé) ────────
+    const clampedStartOffset = Math.max(0, startOffset);
+    left = clampedStartOffset * dayWidth;
+    if (startOffset >= 0) {
+      left += getHourOffsetPx(event.startTime, dayWidth);
     }
+    const visibleStart = Math.max(0, startOffset);
+    const visibleEnd = Math.min(days.length, startOffset + durationDays);
+    width = (visibleEnd - visibleStart) * dayWidth;
+
+    // Interventions : occuper AU MINIMUM la largeur necessaire pour afficher
+    // le type de prestation en entier (MENAGE / MAINTENANCE). Sans ca, le bar
+    // tombe a BAR_MIN_WIDTH (28px) et le texte est tronque. On ne va PAS
+    // jusqu'a une cellule jour complete pour ne pas masquer le voisin.
+    if (isIntervention) {
+      const minTypeWidth = INTERVENTION_TYPE_MIN_WIDTH[event.type] ?? 64;
+      if (width < minTypeWidth) {
+        width = minTypeWidth;
+      }
+    }
+
+    width = Math.max(BAR_MIN_WIDTH, width);
   }
 
-  // Ensure minimum width
-  width = Math.max(BAR_MIN_WIDTH, width);
   const layer = isIntervention ? 'secondary' as const : 'primary' as const;
 
   return {

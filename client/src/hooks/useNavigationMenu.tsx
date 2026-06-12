@@ -5,32 +5,24 @@ import {
   Dashboard,
   Home,
   Build,
-  People,
   Settings,
-  Business,
   Assessment,
   Security,
   Euro,
-  Payment,
   Description,
-  Mail,
   AdminPanelSettings,
-  Sync,
-  Speed,
-  EventNote,
   Hub,
-  Handshake,
-  ChatBubbleOutline,
-  Storage,
-  CurrencyExchange,
-  LocalOffer,
   CalendarViewWeek,
-  PersonSearch,
   Contacts,
-  Public,
-  StorefrontOutlined,
 } from '../icons';
 import BaitlyMarkLogo from '../components/BaitlyMarkLogo';
+import {
+  NAVIGATION_HUBS,
+  accessibleHubTabs,
+  tabRoutePrefixes,
+  type HubAccess,
+  type HubDef,
+} from '../config/navigationHubs';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +44,11 @@ export interface MenuItem {
   permission?: string;
   translationKey?: string;
   group: NavGroup;
+  /**
+   * Préfixes de routes additionnels qui rendent l'item actif (hubs : routes de
+   * tous les onglets accessibles + leurs sous-routes détail).
+   */
+  matchPaths?: string[];
   /** Badge counter affiche sur l'icone (notifications, demandes en attente, etc.) */
   badge?: number;
   /** Couleur du badge — defaut: warning (orange) pour les leads/demandes. */
@@ -66,213 +63,114 @@ interface UseNavigationMenuReturn {
 }
 
 // ─── Menu Configuration ──────────────────────────────────────────────────────
+//
+// Regroupement validé 2026-06-12 (16 entrées → 9) : les écrans regroupés
+// vivent dans des HUBS (config/navigationHubs) — 1 entrée sidebar par hub,
+// les écrans frères deviennent un switcher segmenté de niveau 1 rendu dans le
+// PageHeader (HubScreenSwitcher, Direction A). Les URLs historiques restent
+// canoniques.
 
-const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
+type MenuEntryConfig =
+  | { kind: 'item'; item: Omit<MenuItem, 'id' | 'text'> }
+  | { kind: 'hub'; hubId: string; icon: React.ReactNode };
+
+const MENU_ENTRIES: MenuEntryConfig[] = [
   // ── Main ──
   {
-    icon: <CalendarViewWeek />,
-    path: '/planning',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
-    permission: 'reservations:view',
-    translationKey: 'navigation.planning',
-    group: 'main',
+    kind: 'item',
+    item: {
+      icon: <CalendarViewWeek />,
+      path: '/planning',
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
+      permission: 'reservations:view',
+      translationKey: 'navigation.planning',
+      group: 'main',
+    },
   },
   {
-    icon: <Dashboard />,
-    path: '/dashboard',
-    roles: ['all'],
-    permission: 'dashboard:view',
-    translationKey: 'navigation.dashboard',
-    group: 'main',
+    kind: 'item',
+    item: {
+      icon: <Dashboard />,
+      path: '/dashboard',
+      roles: ['all'],
+      permission: 'dashboard:view',
+      translationKey: 'navigation.dashboard',
+      group: 'main',
+    },
   },
   {
-    // Sidebar injecte size via React.cloneElement (size matches autres icones).
-    // disableAnimation : pas d'orbit/scan dans la sidebar (visual noise constant
-    // sur un element toujours visible). L'icone est statique mais brand-color.
-    icon: <BaitlyMarkLogo variant="mark" disableAnimation />,
-    path: '/assistant',
-    roles: ['all'],
-    permission: 'ai:view',
-    translationKey: 'navigation.assistant',
-    group: 'main',
+    kind: 'item',
+    item: {
+      // Sidebar injecte size via React.cloneElement (size matches autres icones).
+      // disableAnimation : pas d'orbit/scan dans la sidebar (visual noise constant
+      // sur un element toujours visible). colorMode 'inherit' : le mark suit la
+      // couleur de l'item (blanc sur fond accent quand actif, gris sinon) comme
+      // les autres icones de nav — sinon var(--accent) serait invisible sur le
+      // fond accent de l'item actif.
+      icon: <BaitlyMarkLogo variant="mark" disableAnimation colorMode="inherit" />,
+      path: '/assistant',
+      roles: ['all'],
+      permission: 'ai:view',
+      translationKey: 'navigation.assistant',
+      group: 'main',
+    },
   },
-  {
-    icon: <Home />,
-    path: '/properties',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    permission: 'properties:view',
-    translationKey: 'navigation.properties',
-    group: 'main',
-  },
-  // Note : l'entree /connected-objects a ete deplacee dans Propriétés (onglet
-  // "connected-objects", conceptuellement lie aux biens). La route
-  // /connected-objects redirige vers /properties?tab=connected-objects
-  // (cf. AuthenticatedApp) pour preserver les bookmarks. Pas d'entree sidebar dediee.
-  {
-    icon: <Build />,
-    path: '/interventions',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'],
-    permission: 'interventions:view',
-    translationKey: 'navigation.interventions',
-    group: 'main',
-  },
-  {
-    icon: <EventNote />,
-    path: '/reservations',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
-    permission: 'reservations:view',
-    translationKey: 'navigation.reservations',
-    group: 'main',
-  },
+  // Exploitation = Propriétés · Réservations · Interventions
+  { kind: 'hub', hubId: 'exploitation', icon: <Home /> },
   // ── Management ──
+  // Contacts = Messagerie · Annuaire
+  { kind: 'hub', hubId: 'contacts', icon: <Contacts /> },
+  // Documents = Documents · Contrats de gestion
+  { kind: 'hub', hubId: 'documents', icon: <Description /> },
+  // Finances = Facturation · Tarification
+  { kind: 'hub', hubId: 'finances', icon: <Euro /> },
+  // Distribution = Channels · Réservation & accueil · Boutique
+  { kind: 'hub', hubId: 'distribution', icon: <Hub /> },
   {
-    icon: <Contacts />,
-    path: '/directory',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', 'HOST'],
-    translationKey: 'navigation.directory',
-    group: 'management',
+    kind: 'item',
+    item: {
+      icon: <Assessment />,
+      path: '/reports',
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+      permission: 'reports:view',
+      translationKey: 'navigation.reports',
+      group: 'management',
+    },
   },
-  {
-    icon: <Mail />,
-    path: '/contact',
-    roles: ['all'],
-    permission: 'contact:view',
-    translationKey: 'navigation.contact',
-    group: 'management',
-  },
-  {
-    icon: <Description />,
-    path: '/documents',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'documents:view',
-    translationKey: 'navigation.documents',
-    group: 'management',
-  },
-  {
-    icon: <Assessment />,
-    path: '/reports',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'reports:view',
-    translationKey: 'navigation.reports',
-    group: 'management',
-  },
-  {
-    icon: <Euro />,
-    path: '/tarification',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'tarification:view',
-    translationKey: 'navigation.tarification',
-    group: 'management',
-  },
-  // Note : l'entree /vouchers a ete deplacee dans Propriétés (onglet "vouchers").
-  // La route /vouchers reste accessible mais redirige vers /properties?tab=vouchers
-  // pour preserver les bookmarks. Pas d'entree sidebar dediee.
-  {
-    icon: <Payment />,
-    path: '/billing',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    permission: 'payments:view',
-    translationKey: 'navigation.billing',
-    group: 'management',
-  },
-  // Comptabilité fusionnée dans Facturation (onglets /billing?tab=payouts|expenses|reports)
-  // Portefeuille fusionné dans Facturation (/billing?tab=wallets)
-  {
-    icon: <Handshake />,
-    path: '/contracts',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'payments:manage',
-    translationKey: 'navigation.contracts',
-    group: 'management',
-  },
-  {
-    icon: <Hub />,
-    path: '/channels',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    permission: 'properties:view',
-    translationKey: 'navigation.channels',
-    group: 'management',
-  },
-  {
-    icon: <Public />,
-    path: '/booking-engine',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    permission: 'properties:view',
-    translationKey: 'guestExperience.navLabel',
-    group: 'management',
-  },
-  {
-    icon: <StorefrontOutlined />,
-    path: '/shop',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    translationKey: 'navigation.shop',
-    group: 'management',
-  },
-  // Messagerie fusionnee dans Documents — supprime de la sidebar
-  // Utilisateurs & Organisations fusionnes dans Annuaire (/directory)
   // ── Admin ──
   {
-    icon: <Settings />,
-    path: '/settings',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'settings:view',
-    translationKey: 'navigation.settings',
-    group: 'admin',
+    kind: 'item',
+    item: {
+      icon: <Settings />,
+      path: '/settings',
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+      permission: 'settings:view',
+      translationKey: 'navigation.settings',
+      group: 'admin',
+    },
   },
   {
-    icon: <AdminPanelSettings />,
-    path: '/permissions-test',
-    roles: ['SUPER_ADMIN'],
-    translationKey: 'navigation.rolesPermissions',
-    group: 'admin',
+    kind: 'item',
+    item: {
+      icon: <AdminPanelSettings />,
+      path: '/permissions-test',
+      roles: ['SUPER_ADMIN'],
+      translationKey: 'navigation.rolesPermissions',
+      group: 'admin',
+    },
   },
   {
-    icon: <Security />,
-    path: '/admin/monitoring',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    translationKey: 'navigation.monitoring',
-    group: 'admin',
+    kind: 'item',
+    item: {
+      icon: <Security />,
+      path: '/admin/monitoring',
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+      translationKey: 'navigation.monitoring',
+      group: 'admin',
+    },
   },
-  {
-    icon: <Sync />,
-    path: '/admin/sync',
-    roles: ['SUPER_ADMIN'],
-    permission: 'users:manage',
-    translationKey: 'navigation.syncDiagnostics',
-    group: 'admin',
-  },
-  {
-    icon: <Speed />,
-    path: '/admin/kpi',
-    roles: ['SUPER_ADMIN'],
-    permission: 'users:manage',
-    translationKey: 'navigation.kpiReadiness',
-    group: 'admin',
-  },
-  {
-    icon: <CurrencyExchange />,
-    path: '/admin/exchange-rates',
-    roles: ['SUPER_ADMIN'],
-    permission: 'users:manage',
-    translationKey: 'navigation.exchangeRates',
-    group: 'admin',
-  },
-  {
-    icon: <Storage />,
-    path: '/admin/database',
-    roles: ['SUPER_ADMIN'],
-    permission: 'users:manage',
-    translationKey: 'navigation.database',
-    group: 'admin',
-  },
-  {
-    icon: <LocalOffer />,
-    path: '/admin/promo-codes',
-    roles: ['SUPER_ADMIN'],
-    permission: 'users:manage',
-    translationKey: 'navigation.promoCodes',
-    group: 'admin',
-  },
+  // Outils plateforme = Sync · KPI · Taux de change · Base de données · Codes promo
+  { kind: 'hub', hubId: 'platform-tools', icon: <Build /> },
 ];
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
@@ -288,7 +186,7 @@ export function groupMenuItems(items: MenuItem[]): Record<NavGroup, MenuItem[]> 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export const useNavigationMenu = (): UseNavigationMenuReturn => {
-  const { hasPermissionAsync, isAdmin, isManager, user } = useAuth();
+  const { isAdmin, isManager, user } = useAuth();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -302,25 +200,6 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
         if (!hasPermission) return false;
       }
 
-      // Vérifications spéciales pour certains éléments
-      // Interventions : accessible aussi avec service-requests:view (HOST qui n'a pas interventions:view)
-      if (item.path === '/interventions') {
-        return (user?.permissions?.includes('interventions:view')
-          || user?.permissions?.includes('service-requests:view')
-          || false);
-      }
-
-      // Annuaire : visible si l'utilisateur a au moins une des permissions
-      if (item.path === '/directory') {
-        return (
-          user?.permissions?.includes('teams:view')
-          || user?.permissions?.includes('portfolios:view')
-          || user?.permissions?.includes('guests:view')
-          || user?.permissions?.includes('users:manage')
-          || false
-        );
-      }
-
       if (item.path === '/permissions-test') {
         return isAdmin(); // Seuls les utilisateurs ADMIN peuvent accéder
       }
@@ -329,27 +208,37 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
         return isAdmin() || isManager();
       }
 
-      if (item.path === '/admin/sync') {
-        return isAdmin();
-      }
-
-      if (item.path === '/admin/kpi') {
-        return isAdmin();
-      }
-
-      if (item.path === '/admin/exchange-rates') {
-        return isAdmin();
-      }
-
-      if (item.path === '/admin/database') {
-        return isAdmin();
-      }
-
       return true;
     } catch (err) {
       return false;
     }
   }, [user?.permissions, isAdmin, isManager]);
+
+  /**
+   * Construit l'item sidebar d'un hub : visible si au moins un onglet est
+   * accessible ; pointe vers le premier onglet accessible ; actif sur toutes
+   * les routes couvertes par les onglets accessibles (matchPaths).
+   */
+  const buildHubItem = useCallback((hub: HubDef, icon: React.ReactNode): MenuItem | null => {
+    const access: HubAccess = {
+      permissions: user?.permissions ?? [],
+      isAdmin: isAdmin(),
+      isManager: isManager(),
+    };
+    const tabs = accessibleHubTabs(hub, access);
+    if (tabs.length === 0) return null;
+
+    return {
+      id: `hub:${hub.id}`,
+      text: t(hub.translationKey, hub.fallbackLabel),
+      icon,
+      path: tabs[0].path,
+      roles: ['all'],
+      translationKey: hub.translationKey,
+      group: hub.group,
+      matchPaths: tabs.flatMap((tab) => tabRoutePrefixes(tab)),
+    };
+  }, [user?.permissions, isAdmin, isManager, t]);
 
   // Fonction pour construire le menu (synchronisée)
   const buildMenuItems = useCallback((): MenuItem[] => {
@@ -361,9 +250,17 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     try {
       const accessibleItems: MenuItem[] = [];
 
-      for (const item of MENU_CONFIG_BASE) {
-        const hasAccess = hasMenuAccess(item);
-        if (hasAccess) {
+      for (const entry of MENU_ENTRIES) {
+        if (entry.kind === 'hub') {
+          const hub = NAVIGATION_HUBS.find((h) => h.id === entry.hubId);
+          if (!hub) continue;
+          const hubItem = buildHubItem(hub, entry.icon);
+          if (hubItem) accessibleItems.push(hubItem);
+          continue;
+        }
+
+        const item = entry.item;
+        if (hasMenuAccess(item)) {
           accessibleItems.push({
             id: item.path,
             text: item.translationKey ? t(item.translationKey) : item.path,
@@ -395,7 +292,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     } finally {
       setLoading(false);
     }
-  }, [user, hasMenuAccess, t]);
+  }, [user, hasMenuAccess, buildHubItem, t]);
 
   // État mémorisé du menu
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);

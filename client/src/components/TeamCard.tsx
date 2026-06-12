@@ -148,15 +148,16 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
         display: 'flex',
         flexDirection: 'column',
         cursor: 'pointer',
-        borderRadius: '10px',
-        border: '1px solid',
-        borderColor: 'divider',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--line)',
+        bgcolor: 'var(--card)',
         boxShadow: 'none',
         overflow: 'hidden',
         transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         '&:hover': {
           borderColor: `${accent}66`,
-          boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+          boxShadow: 'var(--shadow-card)',
           transform: 'translateY(-1px)',
         },
       }}
@@ -175,7 +176,6 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
                 justifyContent: 'center',
                 bgcolor: `${accent}1F`,
                 color: accent,
-                border: `1px solid ${accent}33`,
                 flexShrink: 0,
               }}
             >
@@ -229,36 +229,17 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
             label={typeLabel}
             size="small"
             sx={{
-              height: 22,
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              letterSpacing: '0.01em',
-              backgroundColor: `${accent}14`,
+              backgroundColor: `${accent}18`,
               color: accent,
-              border: `1px solid ${accent}33`,
-              borderRadius: '6px',
-              px: 0.25,
-              '& .MuiChip-icon': {
-                color: `${accent} !important`,
-                ml: '6px',
-                mr: '-2px',
-              },
-              '& .MuiChip-label': { px: 0.875 },
+              '& .MuiChip-icon': { color: accent, ml: '6px', mr: '-2px' },
             }}
           />
           <Chip
             label={getStatusLabel(status)}
             size="small"
             sx={{
-              height: 22,
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              letterSpacing: '0.01em',
-              backgroundColor: `${statusHex}14`,
+              backgroundColor: `${statusHex}18`,
               color: statusHex,
-              border: `1px solid ${statusHex}33`,
-              borderRadius: '6px',
-              '& .MuiChip-label': { px: 0.875 },
             }}
           />
           {activeInterventionsCount > 0 && (
@@ -267,22 +248,10 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
               label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`}
               size="small"
               sx={{
-                height: 22,
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                letterSpacing: '0.01em',
-                backgroundColor: `${workloadColor}14`,
+                backgroundColor: `${workloadColor}18`,
                 color: workloadColor,
-                border: `1px solid ${workloadColor}33`,
-                borderRadius: '6px',
                 fontVariantNumeric: 'tabular-nums',
-                px: 0.25,
-                '& .MuiChip-icon': {
-                  color: `${workloadColor} !important`,
-                  ml: '6px',
-                  mr: '-2px',
-                },
-                '& .MuiChip-label': { px: 0.875 },
+                '& .MuiChip-icon': { color: workloadColor, ml: '6px', mr: '-2px' },
               }}
             />
           )}
@@ -299,9 +268,9 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
                     width: 24,
                     height: 24,
                     fontSize: '0.625rem',
+                    fontFamily: 'var(--font-display)',
                     fontWeight: 600,
-                    border: '2px solid',
-                    borderColor: 'background.paper',
+                    border: '2px solid var(--card)',
                     bgcolor: `${accent}1F`,
                     color: accent,
                   },
@@ -384,8 +353,8 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
             fontWeight: 600,
             letterSpacing: '0.01em',
             borderRadius: '6px',
-            borderColor: 'divider',
-            color: 'text.primary',
+            borderColor: 'var(--line-2)',
+            color: 'var(--body)',
             textTransform: 'none',
             py: 0.625,
             '&:hover': {
@@ -408,8 +377,8 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
               fontWeight: 600,
               letterSpacing: '0.01em',
               borderRadius: '6px',
-              borderColor: 'divider',
-              color: 'text.primary',
+              borderColor: 'var(--line-2)',
+              color: 'var(--body)',
               textTransform: 'none',
               py: 0.625,
               '&:hover': {

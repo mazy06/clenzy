@@ -276,7 +276,13 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         <IconButton
           size="small"
           onClick={() => navigate('/properties/new')}
-          sx={{ ...ICON_BUTTON_SX, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
+          sx={{
+            ...ICON_BUTTON_SX,
+            color: 'var(--accent)',
+            border: '1px solid var(--accent)',
+            bgcolor: 'transparent',
+            '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent-deep)', color: 'var(--accent-deep)' },
+          }}
         >
           <Add size={20} strokeWidth={1.75} />
         </IconButton>
@@ -343,9 +349,13 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
       {canManageContracts && missingContractIds.size > 0 ? (
         <Alert
           severity="warning"
+          icon={false}
           sx={{
-            mb: 1, flexShrink: 0, borderRadius: '8px', fontSize: '0.8125rem',
-            '& .MuiAlert-message': { fontSize: '0.8125rem' },
+            mb: 1, flexShrink: 0, borderRadius: '11px', fontSize: '12.5px',
+            bgcolor: 'var(--warn-soft)', color: 'var(--body)',
+            border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
+            '& .MuiAlert-message': { fontSize: '12.5px' },
+            '& .MuiAlert-action .MuiButton-root': { color: 'var(--warn)' },
           }}
           action={
             <Button
@@ -460,7 +470,6 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
       {/* FAB pour ajouter rapidement */}
       {(isAdmin() || isManager() || isHost()) ? (
         <Fab
-          color="primary"
           aria-label="add"
           size="small"
           sx={{
@@ -470,6 +479,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
             display: { md: 'none' },
             width: 40,
             height: 40,
+            bgcolor: 'var(--card)',
+            color: 'var(--accent)',
+            border: '1px solid var(--accent)',
+            boxShadow: 'var(--shadow-pop)',
+            '&:hover': { bgcolor: 'var(--accent-soft)' },
             '& .MuiSvgIcon-root': { fontSize: 20 },
           }}
           onClick={() => navigate('/properties/new')}

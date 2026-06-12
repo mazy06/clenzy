@@ -194,7 +194,7 @@ export default function InscriptionConfirm() {
           {/* Loading */}
           {status === 'loading' && (
             <Box sx={{ py: 4 }}>
-              <CircularProgress sx={{ color: '#6B8A9A', mb: 2 }} />
+              <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
               <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.secondary' }}>
                 {t('auth.inscriptionConfirm.loadingLink', 'Verification du lien...')}
               </Typography>
@@ -298,8 +298,8 @@ export default function InscriptionConfirm() {
                     py: 1.25,
                     fontWeight: 600,
                     fontSize: '0.9rem',
-                    backgroundColor: '#6B8A9A',
-                    '&:hover': { backgroundColor: '#5A7684' },
+                    backgroundColor: 'primary.main',
+                    '&:hover': { backgroundColor: 'primary.dark' },
                     borderRadius: 2,
                     boxShadow: '0 4px 12px rgba(107,138,154,0.3)',
                   }}
@@ -337,14 +337,14 @@ export default function InscriptionConfirm() {
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
                 {t('auth.inscriptionConfirm.successBody', 'Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...')}
               </Typography>
-              <CircularProgress size={24} sx={{ color: '#6B8A9A' }} />
+              <CircularProgress size={24} sx={{ color: 'primary.main' }} />
             </Box>
           )}
 
           {/* Deja finalise */}
           {status === 'already_completed' && (
             <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mb: 2 }}><CheckCircleIcon size={64} strokeWidth={1.75} color='#6B8A9A' /></Box>
+              <Box component="span" sx={{ display: 'inline-flex', mb: 2, color: 'primary.main' }}><CheckCircleIcon size={64} strokeWidth={1.75} color='currentColor' /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                 {t('auth.inscriptionConfirm.alreadyCompletedTitle', 'Inscription deja finalisee')}
               </Typography>
@@ -358,8 +358,8 @@ export default function InscriptionConfirm() {
                 sx={{
                   px: 4,
                   fontWeight: 600,
-                  backgroundColor: '#6B8A9A',
-                  '&:hover': { backgroundColor: '#5A7684' },
+                  backgroundColor: 'primary.main',
+                  '&:hover': { backgroundColor: 'primary.dark' },
                   borderRadius: 2,
                 }}
               >
@@ -382,9 +382,9 @@ export default function InscriptionConfirm() {
                 variant="outlined"
                 onClick={() => navigate('/login')}
                 sx={{
-                  borderColor: '#6B8A9A',
-                  color: '#6B8A9A',
-                  '&:hover': { borderColor: '#5A7684', backgroundColor: 'rgba(107,138,154,0.04)' },
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'rgba(107,138,154,0.04)' },
                 }}
               >
                 {t('auth.common.backToLogin', 'Retour a la connexion')}
@@ -406,9 +406,9 @@ export default function InscriptionConfirm() {
                 variant="outlined"
                 onClick={() => navigate('/login')}
                 sx={{
-                  borderColor: '#6B8A9A',
-                  color: '#6B8A9A',
-                  '&:hover': { borderColor: '#5A7684', backgroundColor: 'rgba(107,138,154,0.04)' },
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'rgba(107,138,154,0.04)' },
                 }}
               >
                 {t('auth.common.backToLogin', 'Retour a la connexion')}

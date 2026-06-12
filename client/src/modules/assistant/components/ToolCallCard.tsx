@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha, Chip } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { CheckCircle as CheckCircleIcon, ErrorOutline as AlertCircleIcon } from '../../../icons';
 import type { ToolCallExecuted } from '../../../hooks/useAgent';
 
@@ -8,62 +8,60 @@ interface ToolCallCardProps {
 }
 
 /**
- * Carte representant l'execution d'un tool par l'assistant.
+ * Chip representant l'execution d'un tool par l'assistant — pattern statut
+ * « Signature » : pilule fond `-soft` + texte/icone couleur semantique.
  *
  * <p>Affiche un recap discret : icone status + nom du tool. Le contenu complet
  * du resultat n'est PAS affiche ici (le LLM le synthetise dans le texte suivant).</p>
  */
 export const ToolCallCard: React.FC<ToolCallCardProps> = ({ call }) => {
-  const theme = useTheme();
-  const errorColor = theme.palette.error.main;
-  const successColor = theme.palette.success.main;
+  const isError = Boolean(call.toolError);
 
   return (
     <Box
       sx={{
-        // L4 tool card : bg success/error teinte. Pas de border, on monte
-        // legerement l'alpha (.12 au lieu de .08) pour la presence visuelle.
         display: 'inline-flex',
         alignItems: 'center',
         gap: 0.75,
-        px: 1,
-        py: 0.5,
+        height: 22,
+        px: '10px',
         mr: 0.75,
         mb: 0.5,
-        borderRadius: 1.25,
-        bgcolor: alpha(call.toolError ? errorColor : successColor, 0.14),
+        borderRadius: 999,
+        bgcolor: isError ? 'var(--err-soft)' : 'var(--ok-soft)',
+        color: isError ? 'var(--err)' : 'var(--ok)',
       }}
     >
-      {call.toolError ? (
-        <AlertCircleIcon size={14} color={errorColor} />
+      {isError ? (
+        <AlertCircleIcon size={12} strokeWidth={1.75} />
       ) : (
-        <CheckCircleIcon size={14} color={successColor} />
+        <CheckCircleIcon size={12} strokeWidth={1.75} />
       )}
       <Typography
-        variant="caption"
+        component="span"
         sx={{
           fontFamily: 'monospace',
-          fontSize: '0.72rem',
-          color: theme.palette.text.secondary,
+          fontSize: '10.5px',
+          fontWeight: 700,
+          letterSpacing: '.02em',
+          color: 'inherit',
         }}
       >
         {call.toolName}
       </Typography>
-      {call.toolError && (
-        <Chip
-          label="erreur"
-          size="small"
+      {isError && (
+        <Typography
+          component="span"
           sx={{
-            height: 18,
-            fontSize: '0.65rem',
-            fontWeight: 600,
-            letterSpacing: 0.2,
-            bgcolor: alpha(errorColor, 0.22),
-            color: errorColor,
-            border: 'none',
-            '& .MuiChip-label': { px: 0.75 },
+            fontSize: '10.5px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '.05em',
+            color: 'var(--err)',
           }}
-        />
+        >
+          erreur
+        </Typography>
       )}
     </Box>
   );

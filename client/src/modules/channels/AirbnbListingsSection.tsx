@@ -280,8 +280,10 @@ function LinkPropertyForm({
           value={selectedPropertyId}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPropertyChange(Number(e.target.value))}
           sx={{
-            fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: 1,
-            border: '1px solid', borderColor: 'divider', minWidth: 160, bgcolor: 'background.paper',
+            fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px',
+            border: '1px solid', borderColor: 'var(--field-line)', minWidth: 160, bgcolor: 'var(--field)',
+            color: 'var(--body)',
+            '&:focus': { outline: 'none', borderColor: 'var(--accent)' },
           }}
         >
           {properties.map((p) => (
@@ -293,21 +295,21 @@ function LinkPropertyForm({
           placeholder="Airbnb Listing ID"
           value={form.airbnbListingId}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingId: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider', minWidth: 140 }}
+          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 140 }}
         />
         <Box
           component="input"
           placeholder={t('channels.listings.listingTitle')}
           value={form.airbnbListingTitle}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingTitle: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider', minWidth: 180, flex: 1 }}
+          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 180, flex: 1 }}
         />
         <Box
           component="input"
           placeholder="URL Airbnb"
           value={form.airbnbListingUrl}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingUrl: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider', minWidth: 200, flex: 1 }}
+          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 200, flex: 1 }}
         />
         <Button
           size="small"

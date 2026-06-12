@@ -6,8 +6,6 @@ import {
   Button,
   CircularProgress,
   Typography,
-  alpha,
-  useTheme,
 } from '@mui/material';
 import { Upload, Delete } from '../../../icons';
 import { usersApi, type User } from '../../../services/api/usersApi';
@@ -27,13 +25,12 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
  * <h4>Design rules respected</h4>
  * <ul>
  *   <li>No emoji icons, no glassmorphism.</li>
- *   <li>Soft-tinted accent (`alpha(primary, 0.06)`) for the drop zone.</li>
+ *   <li>Soft-tinted accent (var(--accent-soft)) for the drop zone.</li>
  *   <li>`prefers-reduced-motion` respected.</li>
  *   <li>Inline error feedback, no modal-first reflex.</li>
  * </ul>
  */
 const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
-  const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -112,10 +109,8 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
           p: 2,
           borderRadius: 2,
           border: '1px dashed',
-          borderColor: dragOver ? 'primary.main' : 'divider',
-          bgcolor: dragOver
-            ? alpha(theme.palette.primary.main, 0.06)
-            : 'transparent',
+          borderColor: dragOver ? 'var(--accent)' : 'var(--line-2)',
+          bgcolor: dragOver ? 'var(--accent-soft)' : 'transparent',
           transition: 'border-color 150ms ease, background-color 150ms ease',
           '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         }}
@@ -127,11 +122,10 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
               width: 72,
               height: 72,
               fontSize: '1.5rem',
-              fontWeight: 700,
-              color: 'primary.contrastText',
-              backgroundImage: photoUrl
-                ? 'none'
-                : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.75)} 100%)`,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              color: 'var(--on-accent)',
+              bgcolor: photoUrl ? 'transparent' : 'var(--accent)',
             }}
           >
             {!photoUrl && initials}

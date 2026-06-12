@@ -101,13 +101,17 @@ export const DEVICE_KIND_ORDER: DeviceKind[] = [
   'lock', 'noise', 'keybox', 'camera', 'thermostat', 'climate', 'contact', 'motion', 'smoke',
 ];
 
-/** Couleurs des niveaux d'état (le seul endroit où la couleur porte un sens). */
-export const STATUS_COLORS: Record<DeviceStatusLevel, string> = {
-  ok: '#4A9B8E',       // vert — en ligne / OK
-  warning: '#D4A574',  // ambre — batterie faible / attention
-  critical: '#C97A7A', // rouge argile — alerte / critique
-  offline: '#9CA3AF',  // gris — hors ligne
-  unknown: '#9CA3AF',  // gris — inconnu
+/**
+ * Tokens des niveaux d'état (le seul endroit où la couleur porte un sens).
+ * Sémantique Signature : texte couleur + fond `-soft` assorti — en ligne = --ok,
+ * attention = --warn, alerte = --err, hors ligne / inconnu = neutre --muted/--hover.
+ */
+export const STATUS_TOKENS: Record<DeviceStatusLevel, { color: string; soft: string }> = {
+  ok: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
+  warning: { color: 'var(--warn)', soft: 'var(--warn-soft)' },
+  critical: { color: 'var(--err)', soft: 'var(--err-soft)' },
+  offline: { color: 'var(--muted)', soft: 'var(--hover)' },
+  unknown: { color: 'var(--muted)', soft: 'var(--hover)' },
 };
 
 export const STATUS_LABELS: Record<DeviceStatusLevel, string> = {

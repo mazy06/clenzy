@@ -70,17 +70,17 @@ const STATUS_CHIP_SX = {
 function buildStatusChipSx(color: string) {
   return {
     ...STATUS_CHIP_SX,
-    backgroundColor: `${color}14`,
+    backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
     color,
-    border: `1px solid ${color}33`,
+    border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
   } as const;
 }
 
 // ─── Share colors (palette Baitly) ──────────────────────────────────────────
 
-const SHARE_OWNER = '#4A9B8E';
-const SHARE_PLATFORM = '#6B8A9A';
-const SHARE_CONCIERGE = '#D4A574';
+const SHARE_OWNER = 'var(--ok)';
+const SHARE_PLATFORM = 'var(--accent)';
+const SHARE_CONCIERGE = 'var(--warn)';
 
 /** Providers configurables via le dialog (credentials chiffres en BDD).
  *  STRIPE est configure cote application.yml (global), pas par-tenant.
@@ -291,21 +291,21 @@ export default function PaymentSettings() {
               const isStub = STUB_PROVIDERS.includes(type);
               const isConfigurable = CONFIGURABLE_PROVIDERS.includes(type);
               const isConfigured = isProviderConfigured(type, config);
-              const brandColor = PROVIDER_COLORS[type] ?? '#8A8378';
+              const brandColor = PROVIDER_COLORS[type] ?? 'var(--muted)';
 
               const statusChips = (
                 <>
                   {isStub && (
-                    <Chip label="Bientôt" size="small" sx={buildStatusChipSx('#8A8378')} />
+                    <Chip label="Bientôt" size="small" sx={buildStatusChipSx('var(--muted)')} />
                   )}
                   {isConfigurable && !isConfigured && (
-                    <Chip label="À configurer" size="small" sx={buildStatusChipSx('#D4A574')} />
+                    <Chip label="À configurer" size="small" sx={buildStatusChipSx('var(--warn)')} />
                   )}
                   {enabled && !isStub && (
-                    <Chip label="Actif" size="small" sx={buildStatusChipSx('#4A9B8E')} />
+                    <Chip label="Actif" size="small" sx={buildStatusChipSx('var(--ok)')} />
                   )}
                   {config?.sandboxMode && isConfigured && (
-                    <Chip label="Sandbox" size="small" sx={buildStatusChipSx('#D4A574')} />
+                    <Chip label="Sandbox" size="small" sx={buildStatusChipSx('var(--warn)')} />
                   )}
                 </>
               );
@@ -325,8 +325,8 @@ export default function PaymentSettings() {
                     }}
                     sx={{
                       ml: 0.5,
-                      color: isConfigured ? 'text.secondary' : '#D4A574',
-                      '&:hover': { color: '#4A9B8E', backgroundColor: '#4A9B8E0F' },
+                      color: isConfigured ? 'text.secondary' : 'var(--warn)',
+                      '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
                     }}
                   >
                     <SettingsIcon size={16} strokeWidth={1.75} />
@@ -413,7 +413,7 @@ export default function PaymentSettings() {
                           fontSize: '0.7rem',
                           fontWeight: 700,
                           letterSpacing: '0.02em',
-                          color: '#fff',
+                          color: 'var(--on-accent)',
                           fontVariantNumeric: 'tabular-nums',
                         }}
                       >
@@ -437,7 +437,7 @@ export default function PaymentSettings() {
                           fontSize: '0.7rem',
                           fontWeight: 700,
                           letterSpacing: '0.02em',
-                          color: '#fff',
+                          color: 'var(--on-accent)',
                           fontVariantNumeric: 'tabular-nums',
                         }}
                       >
@@ -461,7 +461,7 @@ export default function PaymentSettings() {
                           fontSize: '0.7rem',
                           fontWeight: 700,
                           letterSpacing: '0.02em',
-                          color: '#fff',
+                          color: 'var(--on-accent)',
                           fontVariantNumeric: 'tabular-nums',
                         }}
                       >
@@ -508,13 +508,13 @@ export default function PaymentSettings() {
                   <Chip
                     label={`${total}%`}
                     size="small"
-                    sx={buildStatusChipSx(isValidTotal ? '#4A9B8E' : '#C97A7A')}
+                    sx={buildStatusChipSx(isValidTotal ? 'var(--ok)' : 'var(--err)')}
                   />
                   {!isValidTotal && (
                     <Typography
                       sx={{
                         fontSize: '0.72rem',
-                        color: '#C97A7A',
+                        color: 'var(--err)',
                         fontWeight: 500,
                       }}
                     >
@@ -535,28 +535,7 @@ export default function PaymentSettings() {
                   }
                   disabled={!isValidTotal || splitSaving}
                   onClick={handleSaveSplit}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    letterSpacing: '0.01em',
-                    borderRadius: '8px',
-                    py: 0.625,
-                    px: 1.5,
-                    bgcolor: '#6B8A9A',
-                    boxShadow: 'none',
-                    transition:
-                      'background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                    '&:hover': {
-                      bgcolor: '#6B8A9A',
-                      filter: 'brightness(0.94)',
-                      boxShadow: '0 1px 2px rgba(45, 55, 72, 0.06), 0 4px 10px rgba(107, 138, 154, 0.22)',
-                      transform: 'translateY(-1px)',
-                    },
-                    '&:active': { transform: 'translateY(0)', boxShadow: 'none' },
-                    '&.Mui-disabled': { bgcolor: 'rgba(107, 138, 154, 0.32)', color: '#fff' },
-                  }}
-                >
+>
                   {splitSaving ? t('settings.split.saving', 'Sauvegarde...') : t('settings.split.save')}
                 </Button>
               </Box>
@@ -646,9 +625,15 @@ const ShareInput: React.FC<ShareInputProps> = ({ label, value, onChange, color }
 // ─── Channel Commissions Section ────────────────────────────────────────────
 
 const CHANNEL_COLORS: Record<string, string> = {
-  AIRBNB: '#FF5A5F',
-  BOOKING: '#003580',
-  DIRECT: '#4A9B8E',
+  AIRBNB: 'var(--airbnb-ink)',
+  BOOKING: 'var(--booking-ink)',
+  DIRECT: 'var(--direct-ink)',
+};
+
+const CHANNEL_SOFT: Record<string, string> = {
+  AIRBNB: 'var(--airbnb-soft)',
+  BOOKING: 'var(--booking-soft)',
+  DIRECT: 'var(--direct-soft)',
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -732,7 +717,7 @@ function ChannelCommissionsSection() {
           <TableBody>
             {commissions.map((c) => {
               const isEditable = EDITABLE_CHANNELS.has(c.channelName);
-              const color = CHANNEL_COLORS[c.channelName] ?? '#8A8378';
+              const color = CHANNEL_COLORS[c.channelName] ?? 'var(--muted)';
               const label = CHANNEL_LABELS[c.channelName] ?? c.channelName;
               return (
                 <TableRow key={c.channelName} hover>
@@ -745,9 +730,9 @@ function ChannelCommissionsSection() {
                         fontSize: '0.6875rem',
                         fontWeight: 600,
                         letterSpacing: '0.01em',
-                        backgroundColor: `${color}14`,
+                        backgroundColor: CHANNEL_SOFT[c.channelName] ?? `color-mix(in srgb, ${color} 8%, transparent)`,
                         color,
-                        border: `1px solid ${color}33`,
+                        border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
                         borderRadius: '6px',
                         '& .MuiChip-label': { px: 0.875 },
                       }}
@@ -798,9 +783,9 @@ function ChannelCommissionsSection() {
                             height: 22,
                             fontSize: '0.6875rem',
                             fontWeight: 600,
-                            backgroundColor: '#4A9B8E14',
-                            color: '#4A9B8E',
-                            border: '1px solid #4A9B8E33',
+                            backgroundColor: 'var(--ok-soft)',
+                            color: 'var(--ok)',
+                            border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
                             borderRadius: '6px',
                             '& .MuiChip-label': { px: 0.875 },
                           }}
@@ -822,11 +807,11 @@ function ChannelCommissionsSection() {
                               transition:
                                 'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
                               '&:hover': {
-                                color: '#4A9B8E',
-                                borderColor: '#4A9B8E66',
-                                backgroundColor: '#4A9B8E0F',
+                                color: 'var(--accent)',
+                                borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                                backgroundColor: 'var(--accent-soft)',
                               },
-                              '&:focus-visible': { outline: '2px solid #4A9B8E', outlineOffset: 2 },
+                              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
                             }}
                           >
                             <Save size={13} strokeWidth={1.75} />
@@ -937,7 +922,7 @@ function MonetizationSection() {
           </Stack>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1 }}>
             {saved && (
-              <Chip label={t('common.saved', 'Sauvegardé')} size="small" sx={buildStatusChipSx('#4A9B8E')} />
+              <Chip label={t('common.saved', 'Sauvegardé')} size="small" sx={buildStatusChipSx('var(--ok)')} />
             )}
             <Button
               variant="contained"
@@ -946,18 +931,7 @@ function MonetizationSection() {
               startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
               disabled={saving}
               onClick={handleSave}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                borderRadius: '8px',
-                py: 0.625,
-                px: 1.5,
-                bgcolor: '#6B8A9A',
-                boxShadow: 'none',
-                '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.94)' },
-              }}
-            >
+>
               {t('settings.split.save', 'Enregistrer')}
             </Button>
           </Box>

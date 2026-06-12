@@ -50,6 +50,16 @@ export const STORAGE_KEYS = {
 
   // Contract CTA banner dismissed (per-device)
   CONTRACT_CTA_DISMISSED: 'clenzy_contract_cta_dismissed',
+
+  // Variante d'animation d'urgence des briques du planning (per-device,
+  // pref d'affichage type density). Utiliser useUrgencyAnimation(), jamais
+  // lire/ecrire cette cle directement.
+  PLANNING_URGENCY_ANIMATION: 'clenzy_planning_urgency_animation',
+
+  // Teinte d'accent Signature (per-device, anti-FOUC — lecture synchrone au
+  // boot comme clenzy_theme_mode). Utiliser les helpers de theme/signature/accent.ts,
+  // jamais lire/ecrire cette cle directement.
+  ACCENT: 'clenzy_accent',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

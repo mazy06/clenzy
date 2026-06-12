@@ -50,8 +50,9 @@ interface PageTabsProps<T extends string | number> {
 /**
  * Composant de tabs standardisé pour le PMS.
  *
- * Visuellement aligné sur le pattern de PropertiesPage :
- *   - Conteneur `<Paper>` (option) avec borderBottom divider
+ * Visuellement aligné sur les onglets niveau 1 Signature (.s-tab) :
+ *   - Conteneur (Paper plat en option) avec borderBottom hairline var(--line)
+ *   - Label var(--muted), hover var(--body), actif var(--accent) + souligné 2px var(--accent)
  *   - Tabs scrollable + scrollButtons auto
  *   - Tab icon à gauche (start), label sans uppercase
  *   - Slot inline à droite pour actions contextuelles
@@ -91,7 +92,7 @@ export default function PageTabs<T extends string | number = number>({
   const visibleOptions = options.filter((o) => !o.hidden);
 
   const tabsRow = (
-    <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--line)' }}>
       <Tabs
         value={value}
         onChange={(_, v) => onChange(v as T)}
@@ -101,6 +102,7 @@ export default function PageTabs<T extends string | number = number>({
         sx={{
           flex: 1,
           minHeight,
+          '& .MuiTabs-indicator': { backgroundColor: 'var(--accent)', height: 2 },
           '& .MuiTabs-flexContainer': { gap: 0.25 },
           '& .MuiTab-root': {
             minHeight,
@@ -108,6 +110,10 @@ export default function PageTabs<T extends string | number = number>({
             fontSize,
             '@media (min-width:1536px)': { fontSize: xlFontSize },
             fontWeight: 600,
+            color: 'var(--muted)',
+            transition: 'color .14s',
+            '&:hover': { color: 'var(--body)' },
+            '&.Mui-selected': { color: 'var(--accent)' },
             py: compact ? 0.25 : 0.5,
             px: compact ? 1 : 1.5,
             gap: 0.5,
@@ -179,7 +185,16 @@ export default function PageTabs<T extends string | number = number>({
   );
 
   if (paper) {
-    return <Paper sx={{ mb }} variant="outlined">{tabsRow}</Paper>;
+    // Signature : onglets niveau 1 = souligné seul (la hairline du conteneur
+    // tabsRow fait office de bordure), le Paper devient un wrapper plat.
+    return (
+      <Paper
+        sx={{ mb, border: 'none', borderRadius: 0, bgcolor: 'transparent', backgroundImage: 'none' }}
+        variant="outlined"
+      >
+        {tabsRow}
+      </Paper>
+    );
   }
   return <Box sx={{ mb }}>{tabsRow}</Box>;
 }

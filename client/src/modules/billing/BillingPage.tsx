@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Paper,
   ToggleButtonGroup,
   ToggleButton,
 } from '@mui/material';
@@ -41,22 +40,21 @@ const ReportsExportsTab: React.FC = () => {
 
   return (
     <Box>
-      <Paper sx={{ p: 1.5, mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
-        <ToggleButtonGroup
-          value={view}
-          exclusive
-          onChange={(_e, v) => v && setView(v)}
-          size="small"
-          sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontSize: '0.8125rem', px: 3 } }}
-        >
-          <ToggleButton value="fiscal">
-            {t('billing.tabs.fiscalReport', 'Rapport fiscal')}
-          </ToggleButton>
-          <ToggleButton value="exports">
-            {t('billing.tabs.exports', 'Exports comptables')}
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Paper>
+      {/* Segmented (bascule de vue) — stylé par le thème global MuiToggleButtonGroup */}
+      <ToggleButtonGroup
+        value={view}
+        exclusive
+        onChange={(_e, v) => v && setView(v)}
+        size="small"
+        sx={{ mb: 2 }}
+      >
+        <ToggleButton value="fiscal">
+          {t('billing.tabs.fiscalReport', 'Rapport fiscal')}
+        </ToggleButton>
+        <ToggleButton value="exports">
+          {t('billing.tabs.exports', 'Exports comptables')}
+        </ToggleButton>
+      </ToggleButtonGroup>
 
       {view === 'fiscal' && <FiscalReportSection />}
       {view === 'exports' && <ExportsTab />}

@@ -631,8 +631,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
           {/* ─── Colonne gauche : Propriété + Infos ─── */}
           <Box sx={{ flex: isPropertySelected ? 7 : 1, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, transition: 'flex 0.4s ease' }}>
-            {/* 1. Propriété — en premier pour auto-fill */}
-            <Paper sx={{ border: '1px solid', borderColor: isPropertySelected ? 'divider' : 'primary.main', boxShadow: isPropertySelected ? 'none' : '0 0 0 1px rgba(107,138,154,0.2)', borderRadius: 1.5, p: 2, transition: 'border-color 0.3s ease, box-shadow 0.3s ease' }}>
+            {/* 1. Propriété — en premier pour auto-fill (anneau accent-soft tant que rien n'est sélectionné) */}
+            <Paper sx={{ border: '1px solid', borderColor: isPropertySelected ? 'var(--line)' : 'var(--accent)', bgcolor: 'var(--card)', boxShadow: isPropertySelected ? 'none' : '0 0 0 3px var(--accent-soft)', borderRadius: '14px', p: 2, transition: 'border-color 0.3s ease, box-shadow 0.3s ease' }}>
               <ServiceRequestFormProperty
                 control={control}
                 errors={errors}
@@ -646,22 +646,14 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* Message d'aide quand aucune propriété n'est sélectionnée */}
             <Collapse in={!isPropertySelected} timeout={300}>
-              <Alert
-                severity="info"
-                sx={{
-                  py: 0.75,
-                  fontSize: '0.8125rem',
-                  borderRadius: 1.5,
-                  '& .MuiAlert-icon': { fontSize: 18 },
-                }}
-              >
+              <Alert severity="info" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
                 {t('serviceRequests.selectPropertyFirst')}
               </Alert>
             </Collapse>
 
             {/* 2. Informations de base — révélé quand propriété sélectionnée */}
             <Collapse in={isPropertySelected} timeout={400}>
-              <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
                 <ServiceRequestFormInfo
                   control={control}
                   errors={errors}
@@ -683,7 +675,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           {isPropertySelected && (
             <Box sx={{ flex: 5, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, animation: 'fadeSlideIn 0.4s ease-out', '@keyframes fadeSlideIn': { from: { opacity: 0, transform: 'translateX(20px)' }, to: { opacity: 1, transform: 'translateX(0)' } } }}>
               {/* 3. Planification */}
-              <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
                 <ServiceRequestFormPlanning
                   control={control}
                   errors={errors}
@@ -695,8 +687,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
               </Paper>
 
               {/* 4. Assignation et statut */}
-              <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
-                <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1.5 }}>
+              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
+                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
                   {t('serviceRequests.sections.requestorAssignment')}
                 </Typography>
 

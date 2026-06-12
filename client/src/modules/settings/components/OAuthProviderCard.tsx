@@ -44,8 +44,8 @@ import ServiceTooltip from './ServiceTooltip';
  * </ul>
  */
 
-const ACCENT = '#4A9B8E';
-const NEUTRAL = '#8A8378';
+const ACCENT = 'var(--ok)';
+const NEUTRAL = 'var(--muted)';
 
 export interface OAuthCardStatus {
   connected: boolean;
@@ -102,9 +102,9 @@ const buildStatusChipSx = (color: string) => ({
   letterSpacing: '0.01em',
   borderRadius: '6px',
   px: 0.25,
-  backgroundColor: `${color}14`,
+  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
   color,
-  border: `1px solid ${color}33`,
+  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
   '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
   '& .MuiChip-label': { px: 0.875 },
 });
@@ -217,7 +217,7 @@ export default function OAuthProviderCard({
       icon={<ErrorOutline size={11} strokeWidth={2} />}
       label="Erreur"
       size="small"
-      sx={buildStatusChipSx('#C97A7A')}
+      sx={buildStatusChipSx('var(--err)')}
     />
   ) : isConnected ? (
     <Chip
@@ -248,7 +248,7 @@ export default function OAuthProviderCard({
           onClick={() => setDisconnectOpen(true)}
           disabled={actionLoading}
           aria-label={labels.disconnect ?? `Déconnecter ${label}`}
-          sx={{ color: 'text.secondary', '&:hover': { color: '#C97A7A', bgcolor: '#C97A7A14' } }}
+          sx={{ color: 'text.secondary', '&:hover': { color: 'var(--err)', bgcolor: 'var(--err-soft)' } }}
         >
           <LinkOffIcon size={16} strokeWidth={2} />
         </IconButton>
@@ -262,7 +262,7 @@ export default function OAuthProviderCard({
           onClick={handleConnect}
           disabled={actionLoading || mainActionDisabled}
           aria-label={connectTooltip}
-          sx={{ color: ACCENT, '&:hover': { bgcolor: `${ACCENT}14` } }}
+          sx={{ color: ACCENT, '&:hover': { bgcolor: 'var(--ok-soft)' } }}
         >
           {actionLoading
             ? <CircularProgress size={16} sx={{ color: ACCENT }} />
@@ -305,10 +305,9 @@ export default function OAuthProviderCard({
         borderColor: 'divider',
         boxShadow: 'none',
         overflow: 'hidden',
-        transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: 'border-color 200ms cubic-bezier(0.16, 1, 0.3, 1)',
         '&:hover': {
-          borderColor: `${ACCENT}40`,
-          boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+          borderColor: 'color-mix(in srgb, var(--ok) 25%, transparent)',
         },
       }}
     >
@@ -360,7 +359,7 @@ export default function OAuthProviderCard({
             disabled={actionLoading}
             sx={{ textTransform: 'none', boxShadow: 'none' }}
           >
-            {actionLoading ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : (labels.confirm ?? 'Déconnecter')}
+            {actionLoading ? <CircularProgress size={14} color="inherit" /> : (labels.confirm ?? 'Déconnecter')}
           </Button>
         </DialogActions>
       </Dialog>

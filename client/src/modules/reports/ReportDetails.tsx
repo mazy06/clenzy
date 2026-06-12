@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Paper,
   Grid,
   Card,
   CardContent,
@@ -62,7 +61,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
-import DashboardDateFilter from '../dashboard/DashboardDateFilter';
+import PeriodSegmented from './PeriodSegmented';
 import DashboardErrorBoundary from '../dashboard/DashboardErrorBoundary';
 import {
   AnalyticsGlobalPerformance,
@@ -82,10 +81,16 @@ import {
   useTeamReport,
   useFinancialReport,
 } from './hooks/useReportData';
+import {
+  useChartTokens,
+  axisTick,
+  CHART_TOOLTIP_CONTENT_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  CHART_TOOLTIP_ITEM_STYLE,
+  renderChartLegendText,
+} from './chartTheme';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
-const CHART_COLORS = ['#4A9B8E', '#6B8A9A', '#D4A574', '#C97A7A', '#7B68A8', '#5BA4CF', '#795548', '#607d8b'];
 
 const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
   { value: 'week', label: '7j' },
@@ -97,33 +102,26 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
 const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; type: string; status: string; scheduledDate?: string; createdAt?: string }> = [];
 
 // ─── Mini chart constants (Pricing + Forecasts combined section) ────────────
-const MINI_AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
-const MINI_TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;
-const MINI_GRID_STROKE = '#F1F5F9';
+// Couleurs SVG (séries/grilles/ticks) : tokens résolus via useChartTokens().
 const MINI_CHART_CARD_SX = { width: '100%', height: 220 } as const;
 const MINI_CHART_CONTENT_SX = { p: 1.25, height: '100%', display: 'flex', flexDirection: 'column', '&:last-child': { pb: 1.25 } } as const;
-const MINI_CHART_LABEL_SX = { fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.04em', color: 'text.secondary', mb: 0.5, flexShrink: 0 } as const;
+const MINI_CHART_LABEL_SX = { fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--faint)', mb: 0.5, flexShrink: 0 } as const;
 const MINI_CHART_MARGIN = { top: 4, right: 6, left: -18, bottom: 4 } as const;
 
 // ─── Shared sx constants ────────────────────────────────────────────────────
+// Cartes : peau globale MuiCard (r14 hairline, hover --line-2) — pas de
+// transform au hover (anti-pattern baseline §5).
 
-const HERO_CARD_SX = {
-  height: '100%',
-  transition: 'border-color 0.2s ease, transform 0.2s ease',
-  '&:hover': { borderColor: 'primary.main', transform: 'translateY(-2px)' },
-} as const;
+const HERO_CARD_SX = { height: '100%' } as const;
 
-const SECONDARY_CARD_SX = {
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
-} as const;
+const SECONDARY_CARD_SX = { height: '100%' } as const;
 
 const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase' as const,
   letterSpacing: '0.05em',
-  color: 'text.disabled',
+  color: 'var(--faint)',
   mb: 1,
 } as const;
 
@@ -145,13 +143,13 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const isUp = value > 0;
   const isDown = value < 0;
   const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Remove;
-  const color = isUp ? 'success.main' : isDown ? 'error.main' : 'text.disabled';
+  const color = isUp ? 'var(--ok)' : isDown ? 'var(--err)' : 'var(--faint)';
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
       <Box component="span" sx={{ display: 'inline-flex', color }}>
         <Icon size={12} strokeWidth={1.75} />
       </Box>
-      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
+      <Typography sx={{ fontSize: '10.5px', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
         {isUp ? '+' : ''}{value}%
       </Typography>
     </Box>
@@ -173,22 +171,23 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
             <Box
               sx={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 32, height: 32, borderRadius: 1,
-                bgcolor: `${item.iconColor}12`,
-                '& .MuiSvgIcon-root': { fontSize: 18, color: item.iconColor },
+                width: 32, height: 32, borderRadius: 1, flexShrink: 0,
+                color: item.iconColor,
+                bgcolor: `color-mix(in srgb, ${item.iconColor} 12%, transparent)`,
+                '& svg': { width: 16, height: 16 },
               }}
             >
               {item.icon}
             </Box>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               {item.title}
             </Typography>
           </Box>
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
             {item.value}
           </Typography>
           {item.subtitle && (
-            <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', mt: 0.25, lineHeight: 1.2 }}>
+            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 0.25, lineHeight: 1.2 }}>
               {item.subtitle}
             </Typography>
           )}
@@ -205,14 +204,15 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
       sx={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: 28, height: 28, borderRadius: 0.75, flexShrink: 0,
-        bgcolor: `${item.iconColor}10`,
-        '& .MuiSvgIcon-root': { fontSize: 15, color: item.iconColor },
+        color: item.iconColor,
+        bgcolor: `color-mix(in srgb, ${item.iconColor} 10%, transparent)`,
+        '& svg': { width: 14, height: 14 },
       }}
     >
       {item.icon}
     </Box>
     <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 500, lineHeight: 1.2 }}>
+      <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 500, lineHeight: 1.2 }}>
         {item.title}
       </Typography>
     </Box>
@@ -221,7 +221,7 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
         <Skeleton variant="text" width={48} height={18} />
       ) : (
         <>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
             {item.value}
           </Typography>
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
@@ -239,25 +239,25 @@ interface CustomTooltipProps {
   label?: string;
 }
 
+// Pattern tooltip Signature : fond --ink, texte --bg, r8, 11.5px fw600.
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <Paper sx={{ p: 1.5, boxShadow: 3 }}>
+    <Box sx={{ px: 1.25, py: 0.75, borderRadius: '8px', bgcolor: 'var(--ink)', color: 'var(--bg)' }}>
       {label && (
-        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: '0.8125rem' }}>
+        <Typography sx={{ fontWeight: 700, mb: 0.25, fontSize: '11.5px', color: 'var(--bg)' }}>
           {label}
         </Typography>
       )}
       {payload.map((entry, index) => (
-        <Typography
-          key={index}
-          variant="caption"
-          sx={{ display: 'block', color: entry.color, fontSize: '0.75rem' }}
-        >
-          {entry.name}: {entry.value}
-        </Typography>
+        <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: entry.color || 'var(--accent)', flexShrink: 0 }} />
+          <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--bg)', fontVariantNumeric: 'tabular-nums' }}>
+            {entry.name}: {entry.value}
+          </Typography>
+        </Box>
       ))}
-    </Paper>
+    </Box>
   );
 };
 
@@ -268,10 +268,11 @@ interface ChartCardProps {
   children: React.ReactNode;
 }
 
+// Carte de graphe : peau globale MuiCard (r14 hairline) + titre overline.
 const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
-  <Card sx={{ height: '100%', transition: 'border-color 0.15s ease', '&:hover': { borderColor: 'text.secondary' } }}>
+  <Card sx={{ height: '100%' }}>
     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, mb: 2, color: 'text.primary' }}>
+      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, mb: 2, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {title}
       </Typography>
       {children}
@@ -288,12 +289,12 @@ interface EmptyChartStateProps {
 
 const EmptyChartState: React.FC<EmptyChartStateProps> = ({ message, description }) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
-    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><BarChartIcon size={48} strokeWidth={1.75} /></Box>
-    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mb: 1 }}><BarChartIcon size={48} strokeWidth={1.5} /></Box>
+    <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
       {message}
     </Typography>
     {description && (
-      <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+      <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)', mt: 0.5 }}>
         {description}
       </Typography>
     )}
@@ -304,6 +305,7 @@ const EmptyChartState: React.FC<EmptyChartStateProps> = ({ message, description 
 
 const InterventionsReport: React.FC = () => {
   const { t } = useTranslation();
+  const ct = useChartTokens();
   const { data, loading, error, retry } = useInterventionReport();
 
   // Compute KPI values from data
@@ -339,20 +341,20 @@ const InterventionsReport: React.FC = () => {
             {([
               {
                 key: 'total', title: t('reports.kpi.totalInterventions', 'Total interventions'),
-                value: `${kpis?.totalInterventions ?? 0}`, icon: <Build />, iconColor: '#4A9B8E',
+                value: `${kpis?.totalInterventions ?? 0}`, icon: <Build />, iconColor: 'var(--accent)',
                 trend: kpis?.monthTrend,
               },
               {
                 key: 'completion', title: t('reports.kpi.completionRate', 'Taux de completion'),
-                value: `${kpis?.completionRate ?? 0}%`, icon: <CheckCircle />, iconColor: '#4A9B8E',
+                value: `${kpis?.completionRate ?? 0}%`, icon: <CheckCircle />, iconColor: 'var(--ok)',
               },
               {
                 key: 'pending', title: t('reports.kpi.pending', 'En attente'),
-                value: `${kpis?.pending ?? 0}`, icon: <HourglassEmpty />, iconColor: '#D4A574',
+                value: `${kpis?.pending ?? 0}`, icon: <HourglassEmpty />, iconColor: 'var(--warn)',
               },
               {
                 key: 'avgMonth', title: t('reports.kpi.avgPerMonth', 'Moy. / mois'),
-                value: `${kpis?.avgPerMonth ?? 0}`, icon: <Speed />, iconColor: '#6B8A9A',
+                value: `${kpis?.avgPerMonth ?? 0}`, icon: <Speed />, iconColor: 'var(--info)',
               },
             ] as KpiItem[]).map((kpi) => (
               <Grid item xs={6} sm={3} key={kpi.key}>
@@ -371,11 +373,11 @@ const InterventionsReport: React.FC = () => {
                   </Typography>
                   {data.byStatus.map((item, i) => (
                     <React.Fragment key={item.name}>
-                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}
+                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'var(--line)' }} />}
                       <SecondaryKpiRow
                         item={{
                           key: item.name, title: item.name, value: `${item.value}`,
-                          icon: <AssignmentTurnedIn />, iconColor: item.color || CHART_COLORS[i % CHART_COLORS.length],
+                          icon: <AssignmentTurnedIn />, iconColor: item.color || ct.series[i % ct.series.length],
                         }}
                         loading={false}
                       />
@@ -392,11 +394,11 @@ const InterventionsReport: React.FC = () => {
                   </Typography>
                   {data.byType.map((item, i) => (
                     <React.Fragment key={item.name}>
-                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}
+                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'var(--line)' }} />}
                       <SecondaryKpiRow
                         item={{
                           key: item.name, title: item.name, value: `${item.value}`,
-                          icon: <Category />, iconColor: item.color || CHART_COLORS[i % CHART_COLORS.length],
+                          icon: <Category />, iconColor: item.color || ct.series[i % ct.series.length],
                         }}
                         loading={false}
                       />
@@ -424,11 +426,11 @@ const InterventionsReport: React.FC = () => {
                         labelLine={true}
                       >
                         {data.byStatus.map((entry, index) => (
-                          <Cell key={`status-${index}`} fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]} />
+                          <Cell key={`status-${index}`} fill={entry.color || ct.series[index % ct.series.length]} />
                         ))}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend verticalAlign="bottom" height={36} />
+                      <Legend verticalAlign="bottom" height={36} iconType="square" iconSize={9} formatter={renderChartLegendText} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -441,13 +443,13 @@ const InterventionsReport: React.FC = () => {
                 {data.byType.length > 0 ? (
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={data.byType}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                      <XAxis dataKey="name" tick={axisTick(ct)} />
+                      <YAxis allowDecimals={false} tick={axisTick(ct)} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" name={t('reports.charts.interventions')} radius={[4, 4, 0, 0]}>
                         {data.byType.map((entry, index) => (
-                          <Cell key={`type-${index}`} fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]} />
+                          <Cell key={`type-${index}`} fill={entry.color || ct.series[index % ct.series.length]} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -467,23 +469,24 @@ const InterventionsReport: React.FC = () => {
                   <ResponsiveContainer width="100%" height={280}>
                     <AreaChart data={data.byMonth}>
                       <defs>
+                        {/* Fondu d'aire accent → transparent (réf. .wk-area, opacité .22→0) */}
                         <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4A9B8E" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#4A9B8E" stopOpacity={0} />
+                          <stop offset="5%" stopColor={ct.accent} stopOpacity={0.22} />
+                          <stop offset="95%" stopColor={ct.accent} stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="gradCompleted" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6B8A9A" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#6B8A9A" stopOpacity={0} />
+                          <stop offset="5%" stopColor={ct.ok} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={ct.ok} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                      <XAxis dataKey="month" tick={axisTick(ct)} />
+                      <YAxis allowDecimals={false} tick={axisTick(ct)} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend verticalAlign="bottom" height={36} />
-                      <Area type="monotone" dataKey="total" name={t('reports.charts.total')} stroke="#4A9B8E" strokeWidth={2} fill="url(#gradTotal)" dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                      <Area type="monotone" dataKey="completed" name={t('reports.charts.completed')} stroke="#6B8A9A" strokeWidth={2} fill="url(#gradCompleted)" dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                      <Line type="monotone" dataKey="pending" name={t('reports.charts.pending')} stroke="#D4A574" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Legend verticalAlign="bottom" height={36} iconType="square" iconSize={9} formatter={renderChartLegendText} />
+                      <Area type="monotone" dataKey="total" name={t('reports.charts.total')} stroke={ct.accent} strokeWidth={2} fill="url(#gradTotal)" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Area type="monotone" dataKey="completed" name={t('reports.charts.completed')} stroke={ct.ok} strokeWidth={2} fill="url(#gradCompleted)" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Line type="monotone" dataKey="pending" name={t('reports.charts.pending')} stroke={ct.warn} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
@@ -500,13 +503,13 @@ const InterventionsReport: React.FC = () => {
                 {data.byPriority.length > 0 ? (
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={data.byPriority} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={80} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                      <XAxis type="number" allowDecimals={false} tick={axisTick(ct)} />
+                      <YAxis type="category" dataKey="name" tick={axisTick(ct)} width={80} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="value" name={t('reports.charts.interventions')} radius={[0, 4, 4, 0]}>
                         {data.byPriority.map((entry, index) => (
-                          <Cell key={`priority-${index}`} fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]} />
+                          <Cell key={`priority-${index}`} fill={entry.color || ct.series[index % ct.series.length]} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -529,6 +532,7 @@ const InterventionsReport: React.FC = () => {
 
 const TeamsReport: React.FC = () => {
   const { t } = useTranslation();
+  const ct = useChartTokens();
   const { data, loading, error, retry } = useTeamReport();
 
   // Compute KPI values
@@ -575,19 +579,19 @@ const TeamsReport: React.FC = () => {
             {([
               {
                 key: 'teams', title: t('reports.kpi.totalTeams', 'Equipes'),
-                value: `${kpis?.totalTeams ?? 0}`, icon: <Groups />, iconColor: '#4A9B8E',
+                value: `${kpis?.totalTeams ?? 0}`, icon: <Groups />, iconColor: 'var(--accent)',
               },
               {
                 key: 'tasks', title: t('reports.kpi.totalTasks', 'Total taches'),
-                value: `${kpis?.totalTasks ?? 0}`, icon: <TaskAlt />, iconColor: '#6B8A9A',
+                value: `${kpis?.totalTasks ?? 0}`, icon: <TaskAlt />, iconColor: 'var(--info)',
               },
               {
                 key: 'rate', title: t('reports.kpi.completionRate', 'Taux de completion'),
-                value: `${kpis?.completionRate ?? 0}%`, icon: <Percent />, iconColor: '#4A9B8E',
+                value: `${kpis?.completionRate ?? 0}%`, icon: <Percent />, iconColor: 'var(--ok)',
               },
               {
                 key: 'avg', title: t('reports.kpi.avgTasksPerTeam', 'Moy. taches / equipe'),
-                value: `${kpis?.avgTasksPerTeam ?? 0}`, icon: <Speed />, iconColor: '#7B68A8',
+                value: `${kpis?.avgTasksPerTeam ?? 0}`, icon: <Speed />, iconColor: 'var(--warn)',
               },
             ] as KpiItem[]).map((kpi) => (
               <Grid item xs={6} sm={3} key={kpi.key}>
@@ -605,12 +609,12 @@ const TeamsReport: React.FC = () => {
                     {t('reports.kpi.taskStatus', 'Statut des taches')}
                   </Typography>
                   {([
-                    { key: 'completed', title: t('reports.charts.completed'), value: `${kpis?.totalCompleted ?? 0}`, icon: <CheckCircle />, iconColor: '#4A9B8E' },
-                    { key: 'inProgress', title: t('reports.charts.inProgress'), value: `${kpis?.totalInProgress ?? 0}`, icon: <Engineering />, iconColor: '#6B8A9A' },
-                    { key: 'pending', title: t('reports.charts.pending'), value: `${kpis?.totalPending ?? 0}`, icon: <HourglassEmpty />, iconColor: '#D4A574' },
+                    { key: 'completed', title: t('reports.charts.completed'), value: `${kpis?.totalCompleted ?? 0}`, icon: <CheckCircle />, iconColor: 'var(--ok)' },
+                    { key: 'inProgress', title: t('reports.charts.inProgress'), value: `${kpis?.totalInProgress ?? 0}`, icon: <Engineering />, iconColor: 'var(--info)' },
+                    { key: 'pending', title: t('reports.charts.pending'), value: `${kpis?.totalPending ?? 0}`, icon: <HourglassEmpty />, iconColor: 'var(--warn)' },
                   ] as KpiItem[]).map((kpi, i) => (
                     <React.Fragment key={kpi.key}>
-                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}
+                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'var(--line)' }} />}
                       <SecondaryKpiRow item={kpi} loading={false} />
                     </React.Fragment>
                   ))}
@@ -625,17 +629,17 @@ const TeamsReport: React.FC = () => {
                   </Typography>
                   {kpis?.topPerformer ? (
                     <Box sx={{ py: 1.5, textAlign: 'center' }}>
-                      <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, color: '#4A9B8E', mb: 0.5 }}>
+                      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.015em', color: 'var(--accent)', mb: 0.5 }}>
                         {kpis.topPerformer.name}
                       </Typography>
-                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                      <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                         {kpis.topPerformer.completed} {t('reports.charts.completed').toLowerCase()}
                         {' / '}
                         {kpis.topPerformer.completed + kpis.topPerformer.inProgress + kpis.topPerformer.pending} {t('reports.kpi.totalTasks', 'total').toLowerCase()}
                       </Typography>
                     </Box>
                   ) : (
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', textAlign: 'center', py: 2 }}>
+                    <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)', textAlign: 'center', py: 2 }}>
                       {t('reports.charts.noData')}
                     </Typography>
                   )}
@@ -651,14 +655,14 @@ const TeamsReport: React.FC = () => {
                 {data.teamPerformance.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={data.teamPerformance}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={55} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                      <XAxis dataKey="name" tick={axisTick(ct)} angle={-20} textAnchor="end" height={55} />
+                      <YAxis allowDecimals={false} tick={axisTick(ct)} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend verticalAlign="bottom" height={36} />
-                      <Bar dataKey="completed" name={t('reports.charts.completed')} fill="#4A9B8E" stackId="stack" />
-                      <Bar dataKey="inProgress" name={t('reports.charts.inProgress')} fill="#6B8A9A" stackId="stack" />
-                      <Bar dataKey="pending" name={t('reports.charts.pending')} fill="#D4A574" stackId="stack" radius={[4, 4, 0, 0]} />
+                      <Legend verticalAlign="bottom" height={36} iconType="square" iconSize={9} formatter={renderChartLegendText} />
+                      <Bar dataKey="completed" name={t('reports.charts.completed')} fill={ct.ok} stackId="stack" />
+                      <Bar dataKey="inProgress" name={t('reports.charts.inProgress')} fill={ct.info} stackId="stack" />
+                      <Bar dataKey="pending" name={t('reports.charts.pending')} fill={ct.warn} stackId="stack" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -671,13 +675,13 @@ const TeamsReport: React.FC = () => {
                 {teamCompletionRates.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={teamCompletionRates} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                      <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v}%`} />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                      <XAxis type="number" domain={[0, 100]} tick={axisTick(ct)} tickFormatter={(v: number) => `${v}%`} />
+                      <YAxis type="category" dataKey="name" tick={axisTick(ct)} width={90} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="completionRate" name={t('reports.kpi.completionRate', 'Completion')} radius={[0, 4, 4, 0]}>
                         {teamCompletionRates.map((entry, index) => (
-                          <Cell key={`cr-${index}`} fill={entry.completionRate >= 70 ? '#4A9B8E' : entry.completionRate >= 40 ? '#D4A574' : '#C97A7A'} />
+                          <Cell key={`cr-${index}`} fill={entry.completionRate >= 70 ? ct.ok : entry.completionRate >= 40 ? ct.warn : ct.err} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -705,6 +709,7 @@ interface PeriodControlProps {
 
 const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, onPeriodChange }) => {
   const { t } = useTranslation();
+  const ct = useChartTokens();
   const { data, loading, error, retry } = usePropertyReport();
   const [internalPeriod, setInternalPeriod] = useState<DashboardPeriod>('month');
   const period = periodProp ?? internalPeriod;
@@ -733,10 +738,11 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
     <>
       {showInlineFilter && (
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          <DashboardDateFilter<DashboardPeriod>
+          <PeriodSegmented<DashboardPeriod>
             value={period}
             onChange={setPeriod}
             options={PERIOD_OPTIONS}
+            ariaLabel={t('reports.periodFilter', 'Période')}
           />
         </Box>
       )}
@@ -749,19 +755,19 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
               {([
                 {
                   key: 'properties', title: t('reports.kpi.totalProperties', 'Proprietes'),
-                  value: `${kpis?.totalProperties ?? 0}`, icon: <Apartment />, iconColor: '#4A9B8E',
+                  value: `${kpis?.totalProperties ?? 0}`, icon: <Apartment />, iconColor: 'var(--accent)',
                 },
                 {
                   key: 'interventions', title: t('reports.kpi.totalInterventions', 'Interventions'),
-                  value: `${kpis?.totalInterventions ?? 0}`, icon: <Build />, iconColor: '#6B8A9A',
+                  value: `${kpis?.totalInterventions ?? 0}`, icon: <Build />, iconColor: 'var(--info)',
                 },
                 {
                   key: 'cost', title: t('reports.kpi.totalCost', 'Cout total'),
-                  value: `${(kpis?.totalCost ?? 0).toLocaleString('fr-FR')} €`, icon: <AttachMoney />, iconColor: '#D4A574',
+                  value: `${(kpis?.totalCost ?? 0).toLocaleString('fr-FR')} €`, icon: <AttachMoney />, iconColor: 'var(--warn)',
                 },
                 {
                   key: 'avgCost', title: t('reports.kpi.avgCostPerProperty', 'Cout moy. / bien'),
-                  value: `${(kpis?.avgCostPerProperty ?? 0).toLocaleString('fr-FR')} €`, icon: <EuroIcon />, iconColor: '#7B68A8',
+                  value: `${(kpis?.avgCostPerProperty ?? 0).toLocaleString('fr-FR')} €`, icon: <EuroIcon />, iconColor: 'var(--ok)',
                 },
               ] as KpiItem[]).map((kpi) => (
                 <Grid item xs={6} sm={3} key={kpi.key}>
@@ -779,11 +785,11 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                       {t('reports.kpi.operationalMetrics', 'Indicateurs operationnels')}
                     </Typography>
                     {([
-                      { key: 'avgInt', title: t('reports.kpi.avgInterventions', 'Moy. interventions / bien'), value: `${kpis?.avgInterventionsPerProperty ?? 0}`, icon: <Speed />, iconColor: '#6B8A9A' },
-                      { key: 'topProp', title: t('reports.kpi.mostActive', 'Bien le plus actif'), value: kpis?.topProperty?.name ?? '-', icon: <PriorityHigh />, iconColor: '#C97A7A' },
+                      { key: 'avgInt', title: t('reports.kpi.avgInterventions', 'Moy. interventions / bien'), value: `${kpis?.avgInterventionsPerProperty ?? 0}`, icon: <Speed />, iconColor: 'var(--info)' },
+                      { key: 'topProp', title: t('reports.kpi.mostActive', 'Bien le plus actif'), value: kpis?.topProperty?.name ?? '-', icon: <PriorityHigh />, iconColor: 'var(--err)' },
                     ] as KpiItem[]).map((kpi, i) => (
                       <React.Fragment key={kpi.key}>
-                        {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}
+                        {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'var(--line)' }} />}
                         <SecondaryKpiRow item={kpi} loading={false} />
                       </React.Fragment>
                     ))}
@@ -799,14 +805,14 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                   {data.propertyStats.length > 0 ? (
                     <ResponsiveContainer width="100%" height={350}>
                       <BarChart data={data.propertyStats}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                        <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" height={80} />
-                        <YAxis yAxisId="left" allowDecimals={false} tick={{ fontSize: 11 }} />
-                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(value: number) => `${value}\u00A0€`} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                        <XAxis dataKey="name" tick={axisTick(ct)} angle={-25} textAnchor="end" height={80} />
+                        <YAxis yAxisId="left" allowDecimals={false} tick={axisTick(ct)} />
+                        <YAxis yAxisId="right" orientation="right" tick={axisTick(ct)} tickFormatter={(value: number) => `${value}\u00A0€`} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend verticalAlign="bottom" height={36} />
-                        <Bar yAxisId="left" dataKey="interventions" name={t('reports.charts.interventions')} fill="#4A9B8E" radius={[4, 4, 0, 0]} />
-                        <Bar yAxisId="right" dataKey="cost" name={t('reports.charts.cost')} fill="#D4A574" radius={[4, 4, 0, 0]} />
+                        <Legend verticalAlign="bottom" height={36} iconType="square" iconSize={9} formatter={renderChartLegendText} />
+                        <Bar yAxisId="left" dataKey="interventions" name={t('reports.charts.interventions')} fill={ct.accent} radius={[4, 4, 0, 0]} />
+                        <Bar yAxisId="right" dataKey="cost" name={t('reports.charts.cost')} fill={ct.warn} radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
@@ -860,6 +866,7 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
 
 const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onPeriodChange }) => {
   const { t } = useTranslation();
+  const ct = useChartTokens();
   const { data, loading, error, retry } = useFinancialReport();
   const [internalPeriod, setInternalPeriod] = useState<DashboardPeriod>('month');
   const period = periodProp ?? internalPeriod;
@@ -875,10 +882,11 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
     <>
       {showInlineFilter && (
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          <DashboardDateFilter<DashboardPeriod>
+          <PeriodSegmented<DashboardPeriod>
             value={period}
             onChange={setPeriod}
             options={PERIOD_OPTIONS}
+            ariaLabel={t('reports.periodFilter', 'Période')}
           />
         </Box>
       )}
@@ -924,19 +932,17 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                       {t('dashboard.analytics.priceVsRevPAN')}
                     </Typography>
                     {analyticsLoading || !analytics?.pricing ? (
-                      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Typography variant="caption" color="text.disabled">...</Typography>
-                      </Box>
+                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
                     ) : (
                       <Box sx={{ flex: 1, minHeight: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={analytics.pricing.avgPriceVsRevPAN} margin={MINI_CHART_MARGIN}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={MINI_GRID_STROKE} />
-                            <XAxis dataKey="month" tick={MINI_AXIS_TICK} />
-                            <YAxis tick={MINI_AXIS_TICK} />
-                            <Tooltip contentStyle={MINI_TOOLTIP_STYLE} formatter={(v) => `${v} €`} />
-                            <Line type="monotone" dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} stroke="#6B8A9A" strokeWidth={1.5} dot={{ r: 2 }} />
-                            <Line type="monotone" dataKey="revPAN" name="RevPAN" stroke="#4A9B8E" strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="5 3" />
+                            <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                            <XAxis dataKey="month" tick={axisTick(ct)} />
+                            <YAxis tick={axisTick(ct)} />
+                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => `${v} €`} />
+                            <Line type="monotone" dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} stroke={ct.accent} strokeWidth={1.5} dot={{ r: 2 }} />
+                            <Line type="monotone" dataKey="revPAN" name="RevPAN" stroke={ct.info} strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="5 3" />
                           </LineChart>
                         </ResponsiveContainer>
                       </Box>
@@ -953,18 +959,16 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                       {t('dashboard.analytics.priceByType')}
                     </Typography>
                     {analyticsLoading || !analytics?.pricing ? (
-                      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Typography variant="caption" color="text.disabled">...</Typography>
-                      </Box>
+                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
                     ) : (
                       <Box sx={{ flex: 1, minHeight: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={analytics.pricing.byPropertyType} margin={MINI_CHART_MARGIN}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={MINI_GRID_STROKE} />
-                            <XAxis dataKey="type" tick={MINI_AXIS_TICK} />
-                            <YAxis tick={MINI_AXIS_TICK} />
-                            <Tooltip contentStyle={MINI_TOOLTIP_STYLE} formatter={(v) => `${v} €`} />
-                            <Bar dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} fill="#D4A574" radius={[3, 3, 0, 0]} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                            <XAxis dataKey="type" tick={axisTick(ct)} />
+                            <YAxis tick={axisTick(ct)} />
+                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => `${v} €`} />
+                            <Bar dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} fill={ct.accent} radius={[3, 3, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </Box>
@@ -981,21 +985,20 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                       {t('dashboard.analytics.forecastChart')}
                     </Typography>
                     {analyticsLoading || !analytics?.forecast ? (
-                      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Typography variant="caption" color="text.disabled">...</Typography>
-                      </Box>
+                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
                     ) : (
                       <Box sx={{ flex: 1, minHeight: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                           <ComposedChart data={analytics.forecast.chartData} margin={MINI_CHART_MARGIN}>
-                            <CartesianGrid strokeDasharray="3 3" stroke={MINI_GRID_STROKE} />
-                            <XAxis dataKey="month" tick={MINI_AXIS_TICK} />
-                            <YAxis tick={MINI_AXIS_TICK} />
-                            <Tooltip contentStyle={MINI_TOOLTIP_STYLE} formatter={(v) => `${Number(v).toLocaleString('fr-FR')} €`} />
-                            <Area type="monotone" dataKey="upper" stroke="none" fill="#6B8A9A" fillOpacity={0.08} />
-                            <Area type="monotone" dataKey="lower" stroke="none" fill="#ffffff" fillOpacity={1} />
-                            <Line type="monotone" dataKey="actual" name={t('dashboard.analytics.actual')} stroke="#6B8A9A" strokeWidth={2} dot={{ r: 3 }} />
-                            <Line type="monotone" dataKey="forecast" name={t('dashboard.analytics.forecastLabel')} stroke="#4A9B8E" strokeWidth={1.5} strokeDasharray="6 3" dot={{ r: 2 }} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                            <XAxis dataKey="month" tick={axisTick(ct)} />
+                            <YAxis tick={axisTick(ct)} />
+                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => `${Number(v).toLocaleString('fr-FR')} €`} />
+                            <Area type="monotone" dataKey="upper" stroke="none" fill={ct.info} fillOpacity={0.08} />
+                            {/* Masque de la bande basse : surface carte (jamais de blanc pur — dark ok) */}
+                            <Area type="monotone" dataKey="lower" stroke="none" fill={ct.card} fillOpacity={1} />
+                            <Line type="monotone" dataKey="actual" name={t('dashboard.analytics.actual')} stroke={ct.accent} strokeWidth={2} dot={{ r: 3 }} />
+                            <Line type="monotone" dataKey="forecast" name={t('dashboard.analytics.forecastLabel')} stroke={ct.info} strokeWidth={1.5} strokeDasharray="6 3" dot={{ r: 2 }} />
                           </ComposedChart>
                         </ResponsiveContainer>
                       </Box>
@@ -1014,15 +1017,16 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 3, mt: 0.5 }}>
                     {[analytics.forecast.scenarios.optimistic, analytics.forecast.scenarios.realistic, analytics.forecast.scenarios.pessimistic].map((s, i) => {
-                      const colors = ['#4A9B8E', '#6B8A9A', '#C97A7A'];
+                      // Réf. SCEN (widget-board) : optimiste --ok, réaliste --info, pessimiste --warn
+                      const colors = ['var(--ok)', 'var(--info)', 'var(--warn)'];
                       return (
                         <Box key={s.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors[i], flexShrink: 0 }} />
+                          <Box sx={{ width: 9, height: 9, borderRadius: '3px', bgcolor: colors[i], flexShrink: 0 }} />
                           <Box>
-                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}>
+                            <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>
                               {s.label}
                             </Typography>
-                            <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                            <Typography sx={{ fontSize: '10.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                               {s.revenue.toLocaleString('fr-FR')} € &bull; {s.occupancy}% occ.
                             </Typography>
                           </Box>
@@ -1118,22 +1122,22 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                     <AreaChart data={data.monthlyFinancials}>
                       <defs>
                         <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4A9B8E" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#4A9B8E" stopOpacity={0} />
+                          <stop offset="5%" stopColor={ct.ok} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={ct.ok} stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="gradExpenses" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#C97A7A" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#C97A7A" stopOpacity={0} />
+                          <stop offset="5%" stopColor={ct.err} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={ct.err} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} tickFormatter={(value: number) => `${value}\u00A0€`} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
+                      <XAxis dataKey="month" tick={axisTick(ct)} />
+                      <YAxis tick={axisTick(ct)} tickFormatter={(value: number) => `${value}\u00A0€`} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend verticalAlign="bottom" height={36} />
-                      <Area type="monotone" dataKey="revenue" name={t('reports.charts.revenue')} stroke="#4A9B8E" strokeWidth={2} fill="url(#gradRevenue)" dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                      <Area type="monotone" dataKey="expenses" name={t('reports.charts.expenses')} stroke="#C97A7A" strokeWidth={2} fill="url(#gradExpenses)" dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                      <Line type="monotone" dataKey="profit" name={t('reports.charts.profit')} stroke="#6B8A9A" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Legend verticalAlign="bottom" height={36} iconType="square" iconSize={9} formatter={renderChartLegendText} />
+                      <Area type="monotone" dataKey="revenue" name={t('reports.charts.revenue')} stroke={ct.ok} strokeWidth={2} fill="url(#gradRevenue)" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Area type="monotone" dataKey="expenses" name={t('reports.charts.expenses')} stroke={ct.err} strokeWidth={2} fill="url(#gradExpenses)" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Line type="monotone" dataKey="profit" name={t('reports.charts.profit')} stroke={ct.accent} strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} activeDot={{ r: 5 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
@@ -1156,11 +1160,11 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                         labelLine={true}
                       >
                         {data.costBreakdown.map((entry, index) => (
-                          <Cell key={`cost-${index}`} fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]} />
+                          <Cell key={`cost-${index}`} fill={entry.color || ct.series[index % ct.series.length]} />
                         ))}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
-                      <Legend verticalAlign="bottom" height={36} />
+                      <Legend verticalAlign="bottom" height={36} iconType="square" iconSize={9} formatter={renderChartLegendText} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (

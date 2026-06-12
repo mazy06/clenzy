@@ -5,7 +5,6 @@ import {
   TextField,
   FormHelperText,
   Chip,
-  alpha,
   Tooltip,
   Popover,
 } from '@mui/material';
@@ -49,20 +48,21 @@ export interface ServiceRequestFormPlanningProps {
   estimatedDurationMinutes?: number;
 }
 
-// ─── Priority config ────────────────────────────────────────────────────────
+// ─── Priority config (tokens sémantiques — texte couleur + fond -soft) ──────
 
 interface PriorityDef {
   value: string;
   labelKey: string;
-  color: string;
+  fg: string;
+  bg: string;
   icon: React.ReactElement;
 }
 
 const PRIORITIES: PriorityDef[] = [
-  { value: 'LOW', labelKey: 'serviceRequests.priorities.low', color: '#78909c', icon: <ArrowDownward size={14} strokeWidth={1.75} /> },
-  { value: 'NORMAL', labelKey: 'serviceRequests.priorities.normal', color: '#42a5f5', icon: <FiberManualRecord size={10} strokeWidth={1.75} /> },
-  { value: 'HIGH', labelKey: 'serviceRequests.priorities.high', color: '#ff9800', icon: <ArrowUpward size={14} strokeWidth={1.75} /> },
-  { value: 'CRITICAL', labelKey: 'serviceRequests.priorities.critical', color: '#ef5350', icon: <Bolt size={14} strokeWidth={1.75} /> },
+  { value: 'LOW', labelKey: 'serviceRequests.priorities.low', fg: 'var(--muted)', bg: 'var(--hover)', icon: <ArrowDownward size={14} strokeWidth={1.75} /> },
+  { value: 'NORMAL', labelKey: 'serviceRequests.priorities.normal', fg: 'var(--info)', bg: 'var(--info-soft)', icon: <FiberManualRecord size={10} strokeWidth={1.75} /> },
+  { value: 'HIGH', labelKey: 'serviceRequests.priorities.high', fg: 'var(--warn)', bg: 'var(--warn-soft)', icon: <ArrowUpward size={14} strokeWidth={1.75} /> },
+  { value: 'CRITICAL', labelKey: 'serviceRequests.priorities.critical', fg: 'var(--err)', bg: 'var(--err-soft)', icon: <Bolt size={14} strokeWidth={1.75} /> },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -142,15 +142,15 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
     return (
       <>
         {/* Header */}
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1.5 }}>
+        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
           {t('serviceRequests.sections.priorityPlanning')}
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-          {/* ─── Priorité (Chips sélectionnables) ─── */}
+          {/* ─── Priorité (Chips sélectionnables, sémantique -soft) ─── */}
           <Box>
-            <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary', mb: 0.75 }}>
+            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.75 }}>
               {t('serviceRequests.fields.priority')} *
             </Typography>
             <Controller
@@ -168,29 +168,29 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                           label={t(p.labelKey)}
                           onClick={disabled ? undefined : () => field.onChange(p.value)}
                           disabled={disabled}
-                          variant={isSelected ? 'filled' : 'outlined'}
                           size="small"
+                          aria-pressed={isSelected}
                           sx={{
                             height: 30,
-                            fontSize: '0.75rem',
+                            fontSize: '11.5px',
                             fontWeight: isSelected ? 600 : 500,
-                            borderWidth: 1.5,
-                            borderColor: isSelected ? p.color : 'grey.200',
-                            bgcolor: isSelected ? alpha(p.color, 0.12) : 'transparent',
-                            color: isSelected ? p.color : 'text.secondary',
+                            border: '1px solid',
+                            borderColor: isSelected ? p.fg : 'var(--line-2)',
+                            bgcolor: isSelected ? p.bg : 'var(--card)',
+                            color: isSelected ? p.fg : 'var(--body)',
                             '& .MuiChip-icon': {
                               fontSize: 14,
                               ml: 0.5,
-                              color: isSelected ? p.color : 'primary.main',
+                              color: isSelected ? p.fg : 'var(--muted)',
                             },
                             '& .MuiChip-label': { px: 0.75 },
                             '&:hover': disabled ? {} : {
-                              bgcolor: alpha(p.color, 0.08),
-                              borderColor: p.color,
+                              bgcolor: isSelected ? p.bg : 'var(--hover)',
+                              borderColor: p.fg,
                             },
                             cursor: disabled ? 'default' : 'pointer',
-                            opacity: disabled ? 0.5 : 1,
-                            transition: 'all 0.15s ease',
+                            opacity: disabled ? 0.45 : 1,
+                            transition: 'background-color .15s, border-color .15s, color .15s',
                           }}
                         />
                       );
@@ -208,7 +208,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
 
           {/* ─── Durée estimée (chip + popover pour admin) ─── */}
           <Box>
-            <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary', mb: 0.75 }}>
+            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.75 }}>
               {t('serviceRequests.fields.estimatedDuration')} *
             </Typography>
             <Controller
@@ -233,32 +233,31 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                         gap: 0.75,
                         py: 0.75,
                         px: 1.5,
-                        borderRadius: 1.5,
-                        border: '1.5px solid',
-                        borderColor: durationOpen ? 'primary.main' : 'primary.200',
-                        bgcolor: 'primary.50',
+                        borderRadius: '11px',
+                        border: '1px solid',
+                        borderColor: durationOpen ? 'var(--accent)' : 'color-mix(in srgb, var(--accent) 30%, transparent)',
+                        bgcolor: 'var(--accent-soft)',
                         cursor: canEdit ? 'pointer' : 'default',
-                        transition: 'all 0.15s ease',
+                        transition: 'border-color .15s, background-color .15s',
                         '&:hover': canEdit ? {
-                          borderColor: 'primary.main',
-                          bgcolor: alpha('#6B8A9A', 0.08),
+                          borderColor: 'var(--accent)',
                         } : {},
                       }}
                     >
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Timer size={18} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
                       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                        <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.2 }}>
+                        <Typography sx={{ fontSize: '16px', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.2, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
                           {displayLabel}
                         </Typography>
-                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.secondary' }}>
+                        <Typography sx={{ fontSize: '10.5px', fontWeight: 500, color: 'var(--muted)' }}>
                           durée estimée
                         </Typography>
                       </Box>
                       {canEdit ? (
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.300', ml: 'auto' }}><EditIcon size={13} strokeWidth={1.75} /></Box>
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', ml: 'auto' }}><EditIcon size={13} strokeWidth={1.75} /></Box>
                       ) : (
                         <Tooltip title="Calculée automatiquement, modifiable par un manager" arrow>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', ml: 'auto' }}><Lock size={13} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', ml: 'auto' }}><Lock size={13} strokeWidth={1.75} /></Box>
                         </Tooltip>
                       )}
                     </Box>
@@ -278,20 +277,13 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
                       transformOrigin={{ vertical: 'top', horizontal: 'left' }}
                       slotProps={{
+                        // Skin popover global (hairline r12 + --shadow-pop) — seulement la géométrie locale.
                         paper: {
-                          sx: {
-                            mt: 0.5,
-                            borderRadius: 1.5,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            p: 2,
-                            minWidth: 220,
-                          },
+                          sx: { mt: 0.5, p: 2, minWidth: 220 },
                         },
                       }}
                     >
-                      <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.disabled', mb: 1 }}>
+                      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
                         Modifier la durée
                       </Typography>
                       <TextField
@@ -315,7 +307,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                         inputProps={{ min: 1, step: 5 }}
                         InputProps={{
                           endAdornment: (
-                            <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', whiteSpace: 'nowrap', ml: 0.5 }}>
+                            <Typography sx={{ fontSize: '12px', color: 'var(--faint)', whiteSpace: 'nowrap', ml: 0.5 }}>
                               min
                             </Typography>
                           ),
@@ -326,8 +318,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                             : 'Saisissez la durée en minutes'
                         }
                         sx={{
-                          '& .MuiInputBase-root': { fontSize: '0.875rem' },
-                          '& .MuiFormHelperText-root': { fontSize: '0.625rem', mt: 0.5, color: 'primary.main', fontWeight: 500 },
+                          '& .MuiFormHelperText-root': { fontSize: '10.5px', mt: 0.5, color: 'var(--accent)', fontWeight: 500 },
                         }}
                       />
                     </Popover>
@@ -338,7 +329,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       </FormHelperText>
                     )}
                     {!isAdminOrManager && (
-                      <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', fontStyle: 'italic', mt: 0.5 }}>
+                      <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', mt: 0.5 }}>
                         Calculée automatiquement depuis les caractéristiques du logement
                       </Typography>
                     )}
@@ -351,30 +342,42 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
           {/* ─── Date d'échéance ─── */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-              <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary' }}>
+              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
                 {t('serviceRequests.fields.dueDate')} *
               </Typography>
 
-              {/* Toggle checkout / custom */}
+              {/* Toggle checkout / custom — chips sélecteurs accent-soft */}
               <Box sx={{ display: 'flex', gap: 0.5 }}>
-                <Chip
-                  icon={<EventAvailable size={14} strokeWidth={1.75} />}
-                  label="Checkout"
-                  size="small"
-                  onClick={handleSwitchToCheckout}
-                  variant={dateMode === 'checkout' ? 'filled' : 'outlined'}
-                  color={dateMode === 'checkout' ? 'primary' : 'default'}
-                  sx={{ height: 30, fontSize: '0.75rem', '& .MuiChip-icon': { fontSize: 14, ml: 0.5 }, '& .MuiChip-label': { px: 0.75 } }}
-                />
-                <Chip
-                  icon={<EditIcon size={14} strokeWidth={1.75} />}
-                  label="Autre date"
-                  size="small"
-                  onClick={handleSwitchToCustom}
-                  variant={dateMode === 'custom' ? 'filled' : 'outlined'}
-                  color={dateMode === 'custom' ? 'primary' : 'default'}
-                  sx={{ height: 30, fontSize: '0.75rem', '& .MuiChip-icon': { fontSize: 14, ml: 0.5 }, '& .MuiChip-label': { px: 0.75 } }}
-                />
+                {([
+                  { key: 'checkout' as const, label: 'Checkout', icon: <EventAvailable size={14} strokeWidth={1.75} />, onClick: handleSwitchToCheckout },
+                  { key: 'custom' as const, label: 'Autre date', icon: <EditIcon size={14} strokeWidth={1.75} />, onClick: handleSwitchToCustom },
+                ]).map((mode) => {
+                  const isActive = dateMode === mode.key;
+                  return (
+                    <Chip
+                      key={mode.key}
+                      icon={mode.icon}
+                      label={mode.label}
+                      size="small"
+                      onClick={mode.onClick}
+                      aria-pressed={isActive}
+                      sx={{
+                        height: 30,
+                        fontSize: '11.5px',
+                        fontWeight: isActive ? 600 : 500,
+                        border: '1px solid',
+                        borderColor: isActive ? 'var(--accent)' : 'var(--line-2)',
+                        bgcolor: isActive ? 'var(--accent-soft)' : 'var(--card)',
+                        color: isActive ? 'var(--accent)' : 'var(--body)',
+                        cursor: 'pointer',
+                        transition: 'background-color .15s, border-color .15s, color .15s',
+                        '&:hover': { bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)', borderColor: 'var(--accent)' },
+                        '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: isActive ? 'var(--accent)' : 'var(--muted)' },
+                        '& .MuiChip-label': { px: 0.75 },
+                      }}
+                    />
+                  );
+                })}
               </Box>
             </Box>
 
@@ -400,31 +403,30 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                                   gap: 1,
                                   py: 0.75,
                                   px: 1.25,
-                                  borderRadius: 1.5,
-                                  border: '1.5px solid',
-                                  borderColor: isSelected ? 'primary.main' : 'grey.200',
-                                  bgcolor: isSelected ? 'primary.50' : 'grey.50',
+                                  borderRadius: '11px',
+                                  border: '1px solid',
+                                  borderColor: isSelected ? 'var(--accent)' : 'var(--field-line)',
+                                  bgcolor: isSelected ? 'var(--accent-soft)' : 'var(--field)',
                                   cursor: disabled ? 'default' : 'pointer',
-                                  opacity: disabled ? 0.5 : 1,
-                                  transition: 'all 0.15s ease',
+                                  opacity: disabled ? 0.45 : 1,
+                                  transition: 'background-color .15s, border-color .15s',
                                   '&:hover': disabled ? {} : {
-                                    borderColor: 'primary.main',
-                                    bgcolor: alpha('#1976d2', 0.04),
+                                    borderColor: 'var(--accent)',
                                   },
                                 }}
                               >
-                                <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'primary.main' : 'text.disabled' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
+                                <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'var(--accent)' : 'var(--faint)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
                                 <Box sx={{ flex: 1 }}>
-                                  <Typography sx={{ fontSize: '0.75rem', fontWeight: isSelected ? 600 : 500, color: isSelected ? 'primary.main' : 'text.primary', lineHeight: 1.3 }}>
+                                  <Typography sx={{ fontSize: '12px', fontWeight: isSelected ? 600 : 500, color: isSelected ? 'var(--accent)' : 'var(--ink)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
                                     {formatCheckoutDateDisplay(co.checkOut, co.checkOutTime)}
                                   </Typography>
-                                  <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', lineHeight: 1.2 }}>
+                                  <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', lineHeight: 1.2 }}>
                                     Départ {co.guestName}
                                   </Typography>
                                 </Box>
                                 {isSelected && (
-                                  <Chip label="Sélectionné" size="small" color="primary" variant="filled"
-                                    sx={{ height: 18, fontSize: '0.5625rem', fontWeight: 600, '& .MuiChip-label': { px: 0.75 } }}
+                                  <Chip label="Sélectionné" size="small"
+                                    sx={{ height: 18, fontSize: '10px', fontWeight: 700, color: 'var(--accent)', bgcolor: 'var(--card)', border: '1px solid var(--accent)', '& .MuiChip-label': { px: 0.75 } }}
                                   />
                                 )}
                               </Box>
@@ -435,20 +437,19 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                         <Box sx={{
                           py: 1.5,
                           px: 1.5,
-                          borderRadius: 1.5,
-                          bgcolor: 'grey.50',
-                          border: '1px dashed',
-                          borderColor: 'grey.300',
+                          borderRadius: '11px',
+                          bgcolor: 'var(--field)',
+                          border: '1px dashed var(--line-2)',
                           textAlign: 'center',
                         }}>
-                          <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
+                          <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)' }}>
                             Aucun checkout à venir pour cette propriété
                           </Typography>
                           <Chip
                             label="Saisir une date manuellement"
                             size="small"
                             onClick={handleSwitchToCustom}
-                            sx={{ mt: 0.75, height: 22, fontSize: '0.625rem', cursor: 'pointer' }}
+                            sx={{ mt: 0.75, height: 22, fontSize: '10.5px', cursor: 'pointer', color: 'var(--accent)', bgcolor: 'var(--accent-soft)', border: 'none', '&:hover': { bgcolor: 'var(--accent-soft)' } }}
                           />
                         </Box>
                       )}

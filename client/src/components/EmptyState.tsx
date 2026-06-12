@@ -4,7 +4,7 @@ import { Lightbulb } from '../icons';
 import { useIconSize } from '../hooks/useResponsiveSize';
 
 interface EmptyStateProps {
-  /** Icone affichee en grand, ton text.disabled. */
+  /** Icone affichee en grand, ton var(--faint). */
   icon: React.ReactNode;
   /** Titre principal (variant h6 par defaut). */
   title: string;
@@ -29,7 +29,7 @@ interface EmptyStateProps {
  * Etat vide standardise pour les listes / tableaux / sections sans contenu.
  *
  * Caracteristiques :
- *  - Icone discrete en `text.disabled` taille hero (responsive)
+ *  - Icone discrete en `var(--faint)` taille hero (responsive)
  *  - Titre + description centres
  *  - Variant 'dashed' (default) pour les zones "ajoute ton premier X"
  *  - Variant 'plain' pour les errors / etats info
@@ -69,9 +69,9 @@ export default function EmptyState({
         px: 3,
         textAlign: 'center',
         borderStyle: variant === 'dashed' ? 'dashed' : 'solid',
-        borderRadius: 2,
-        bgcolor: variant === 'transparent' ? 'transparent' : 'background.paper',
-        borderColor: variant === 'transparent' ? 'transparent' : 'divider',
+        borderRadius: 'var(--radius-lg)',
+        bgcolor: variant === 'transparent' ? 'transparent' : 'var(--card)',
+        borderColor: variant === 'transparent' ? 'transparent' : 'var(--line)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -81,7 +81,7 @@ export default function EmptyState({
         ...(minHeight && { minHeight }),
       }}
     >
-      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 0.5 }}>
+      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mb: 0.5 }}>
         {React.isValidElement(icon)
           ? React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
               size: heroSize,
@@ -89,11 +89,11 @@ export default function EmptyState({
             })
           : icon}
       </Box>
-      <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+      <Typography variant="h6" sx={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
         {title}
       </Typography>
       {description && (
-        <Typography variant="body2" sx={{ color: 'text.disabled', maxWidth: 480 }}>
+        <Typography variant="body2" sx={{ color: 'var(--muted)', maxWidth: 480 }}>
           {description}
         </Typography>
       )}
@@ -109,24 +109,20 @@ export default function EmptyState({
             mt: 2,
             px: 1.25,
             py: 0.75,
-            borderRadius: 1,
-            bgcolor: (theme) => theme.palette.mode === 'dark'
-              ? 'rgba(212, 165, 116, 0.10)'
-              : 'rgba(212, 165, 116, 0.12)',
+            borderRadius: 'var(--radius-sm)',
+            bgcolor: 'var(--warn-soft)',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 0.75,
             maxWidth: 480,
             border: '1px solid',
-            borderColor: (theme) => theme.palette.mode === 'dark'
-              ? 'rgba(212, 165, 116, 0.25)'
-              : 'rgba(212, 165, 116, 0.30)',
+            borderColor: 'color-mix(in srgb, var(--warn) 30%, transparent)',
           }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'warning.dark', flexShrink: 0 }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)', flexShrink: 0 }}>
             <Lightbulb size={12} strokeWidth={2} />
           </Box>
-          <Typography variant="caption" sx={{ color: 'warning.dark', textAlign: 'left', lineHeight: 1.35 }}>
+          <Typography variant="caption" sx={{ color: 'var(--warn)', textAlign: 'left', lineHeight: 1.35 }}>
             {tip}
           </Typography>
         </Box>

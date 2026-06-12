@@ -1,8 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Box, Typography, Tooltip, useTheme, Chip, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import PropertyPopover from './PropertyPopover';
 import type { PlanningProperty, DensityMode } from './types';
-import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getCleaningFrequencyLabel } from '../../utils/statusUtils';
 import {
@@ -54,8 +54,8 @@ function buildStaticMapUrl(
 // alourdir le tooltip total.
 
 const TITLE_FS = '0.8125rem';
-const BODY_FS  = '0.6875rem';
-const LABEL_FS = '0.5625rem';
+const BODY_FS  = '11.5px';
+const LABEL_FS = '10.5px';
 const ICON_SIZE = 11;
 const TOOLTIP_WIDTH = 264;
 const HEADER_HEIGHT = 100;
@@ -89,11 +89,11 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           sx={{
             width: '100%',
             height: HEADER_HEIGHT,
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
             overflow: 'hidden',
             mb: 1.25,
-            bgcolor: 'action.hover',
+            bgcolor: 'var(--hover)',
           }}
         >
           <Box
@@ -117,11 +117,11 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
             position: 'relative',
             width: '100%',
             height: HEADER_HEIGHT,
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
             overflow: 'hidden',
             mb: 1.25,
-            bgcolor: 'action.hover',
+            bgcolor: 'var(--hover)',
           }}
         >
           <Box
@@ -148,18 +148,17 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
               height: 16,
               fontSize: LABEL_FS,
               fontWeight: 600,
-              bgcolor: 'background.paper',
-              color: 'text.primary',
-              border: '1px solid',
-              borderColor: 'divider',
-              '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: 'warning.main' },
+              bgcolor: 'var(--card)',
+              color: 'var(--ink)',
+              border: '1px solid var(--line)',
+              '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: 'var(--warn)' },
               '& .MuiChip-label': { px: 0.5 },
             }}
           />
         </Box>
       )}
       <Box sx={{ px: 1.5, pb: 1.5, pt: hasHeader ? 0.25 : 1.5 }}>
-        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 600, lineHeight: 1.3, color: 'text.primary' }}>
+        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 600, lineHeight: 1.3, color: 'var(--ink)' }}>
           {property.name}
         </Typography>
         {property.type && (
@@ -171,9 +170,8 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
               height: 18,
               fontSize: LABEL_FS,
               fontWeight: 600,
-              bgcolor: (theme) =>
-                theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(107,138,154,0.12)',
-              color: 'primary.main',
+              bgcolor: 'var(--accent-soft)',
+              color: 'var(--accent)',
               textTransform: 'capitalize',
               '& .MuiChip-label': { px: 0.625 },
             }}
@@ -182,10 +180,10 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {(property.address || property.city) && (
           <Box sx={{ display: 'flex', gap: 0.625, mt: 1, alignItems: 'flex-start' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.15 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', mt: 0.15 }}>
               <LocationOn size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', lineHeight: 1.4 }}>
+            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', lineHeight: 1.4 }}>
               {[property.address, property.city].filter(Boolean).join(', ')}
             </Typography>
           </Box>
@@ -193,16 +191,16 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {property.ownerName && (
           <Box sx={{ display: 'flex', gap: 0.625, mt: 0.625, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
               <Person size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
               {property.ownerName}
             </Typography>
           </Box>
         )}
 
-        <Divider sx={{ my: 1.25 }} />
+        <Divider sx={{ my: 1.25, borderColor: 'var(--line)' }} />
 
         {/* Stats grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1 }}>
@@ -240,21 +238,21 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: 0.75, flexWrap: 'wrap' }}>
             {property.defaultCheckInTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}>
                   <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
                 </Box>
-                <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
-                  Check-in <Box component="strong" sx={{ color: 'text.primary' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
+                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+                  Check-in <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
                 </Typography>
               </Box>
             )}
             {property.defaultCheckOutTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
                   <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
                 </Box>
-                <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
-                  Check-out <Box component="strong" sx={{ color: 'text.primary' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
+                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+                  Check-out <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
                 </Typography>
               </Box>
             )}
@@ -263,11 +261,11 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {property.cleaningFrequency && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
               <CalendarMonth size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
-              Fréquence ménage : <Box component="strong" sx={{ color: 'text.primary' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
+            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+              Fréquence ménage : <Box component="strong" sx={{ color: 'var(--ink)' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
             </Typography>
           </Box>
         )}
@@ -284,14 +282,15 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
             mt: 1.25,
             pt: 1,
             borderTop: '1px dashed',
-            borderColor: 'divider',
+            borderColor: 'var(--line)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             cursor: 'pointer',
-            color: 'primary.main',
+            color: 'var(--accent)',
             transition: 'color 150ms',
-            '&:hover': { color: 'primary.dark' },
+            '&:hover': { color: 'var(--accent-deep)' },
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
           }}
         >
           <Typography sx={{ fontSize: LABEL_FS, fontWeight: 600, color: 'inherit' }}>
@@ -320,28 +319,21 @@ function StatPill({
       sx={{
         p: 0.875,
         borderRadius: 1,
-        bgcolor: (theme) => {
-          if (highlight) {
-            return theme.palette.mode === 'dark'
-              ? 'rgba(16,185,129,0.18)'
-              : 'rgba(16,185,129,0.10)';
-          }
-          return theme.palette.mode === 'dark'
-            ? 'rgba(255,255,255,0.04)'
-            : 'rgba(0,0,0,0.025)';
-        },
+        bgcolor: highlight
+          ? 'var(--ok-soft)'
+          : 'color-mix(in srgb, var(--ink) 2.5%, transparent)',
         border: '1px solid',
-        borderColor: highlight ? 'success.main' : 'divider',
+        borderColor: highlight ? 'var(--ok)' : 'var(--line)',
         minWidth: 0,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'success.main' : 'text.secondary', mb: 0.375 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'var(--ok)' : 'var(--muted)', mb: 0.375 }}>
         {icon}
         <Typography sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'inherit', lineHeight: 1 }}>
           {label}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: highlight ? 'success.main' : 'text.primary', lineHeight: 1.2 }}>
+      <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: highlight ? 'var(--ok)' : 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Typography>
     </Box>
@@ -357,7 +349,6 @@ interface PlanningPropertyColumnProps {
   onColWidthChange?: (width: number) => void;
   effectiveRowHeight: number;
   emptyRowCount?: number;
-  onPropertyClick?: (propertyId: number) => void;
   reservationCountByProperty?: Map<number, number>;
   channelSyncMap?: ChannelSyncMap;
 }
@@ -370,12 +361,16 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   onColWidthChange,
   effectiveRowHeight,
   emptyRowCount = 0,
-  onPropertyClick,
   reservationCountByProperty,
   channelSyncMap,
 }) => {
-  const theme = useTheme();
-
+  // ── Popover logement (maquette) : ouvert au clic sur le nom ──────────────
+  // Le tooltip hover riche reste en place (info au survol) ; il est suspendu
+  // pour la ligne dont le popover est ouvert afin d'éviter le chevauchement.
+  const [popover, setPopover] = useState<{ anchorEl: HTMLElement; propertyId: number } | null>(null);
+  const popoverProperty = popover
+    ? properties.find((p) => p.id === popover.propertyId) ?? null
+    : null;
   // ── Drag handle pour redimensionner la colonne ───────────────────────────
   const resizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -419,7 +414,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         width: colWidth,
         minWidth: colWidth,
         flexShrink: 0,
-        backgroundColor: 'background.paper',
+        backgroundColor: 'var(--card)',
+        borderRight: '1px solid var(--line)',
       }}
     >
       {/* Drag handle pour redimensionner la colonne (bord droit).
@@ -447,42 +443,32 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               width: 2,
               height: '100%',
               backgroundColor: isResizing
-                ? 'primary.main'
+                ? 'var(--accent)'
                 : 'transparent',
               transition: 'background-color 150ms ease',
             },
             '&:hover::after': {
-              backgroundColor: isResizing ? 'primary.main' : 'primary.light',
+              backgroundColor: isResizing
+                ? 'var(--accent)'
+                : 'color-mix(in srgb, var(--accent) 55%, transparent)',
             },
           }}
         />
       )}
-      {properties.map((property, idx) => {
-        const showCarousel = colWidth >= 100;
-        // Padding vertical autour du carousel (top + bottom). Hauteur = row
-        // moins le padding. Largeur LEGEREMENT plus grande que la hauteur
-        // pour donner un aspect "landscape" type photo de propriete (1.45:1),
-        // tout en plafonnant a 50% de la colonne pour ne pas trop manger
-        // l'espace texte.
-        const rowVerticalPadding = 6; // px
-        const carouselHeight = Math.max(24, effectiveRowHeight - rowVerticalPadding * 2);
-        const carouselWidth = Math.max(
-          carouselHeight,
-          Math.min(Math.round(carouselHeight * 1.45), Math.round(colWidth * 0.5)),
-        );
+      {properties.map((property) => {
         const reservationCount = reservationCountByProperty?.get(property.id) ?? 0;
         const subtitle = property.city || property.address || '';
         const sync = channelSyncMap?.get(property.id);
-        // Color du wifi : vert si tout sync, orange si partiel, gris si rien connecte
+        // Color du wifi : vert si tout sync, ambre si partiel, rouge si zero
         const syncColor = sync && sync.total > 0
           ? sync.synced === sync.total
-            ? '#5FAB7E' // vert sauge (matches checked_in)
-            : sync.synced > 0 ? '#D4A574' : '#d32f2f' // ambre partiel / red zero
-          : 'text.disabled';
+            ? 'var(--ok)'
+            : sync.synced > 0 ? 'var(--warn)' : 'var(--err)'
+          : 'var(--faint)';
         return (
           <Tooltip
             key={property.id}
-            title={<PropertyTooltipContent property={property} />}
+            title={popover?.propertyId === property.id ? '' : <PropertyTooltipContent property={property} />}
             placement="right"
             arrow
             enterDelay={350}
@@ -490,27 +476,23 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             leaveDelay={100}
             slotProps={{
               tooltip: {
-                sx: (theme) => ({
-                  bgcolor: 'background.paper',
-                  color: 'text.primary',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2,
+                // Carte riche : peau popover Signature (hairline, r12, shadow-pop)
+                sx: {
+                  bgcolor: 'var(--card)',
+                  color: 'var(--ink)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '12px',
                   p: 0,
                   maxWidth: 'none',
-                  boxShadow:
-                    theme.palette.mode === 'dark'
-                      ? '0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)'
-                      : '0 12px 32px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.08)',
+                  boxShadow: 'var(--shadow-pop)',
                   '& .MuiTooltip-arrow': {
-                    color: theme.palette.background.paper,
+                    color: 'var(--card)',
                     '&::before': {
-                      border: '1px solid',
-                      borderColor: theme.palette.divider,
-                      backgroundColor: theme.palette.background.paper,
+                      border: '1px solid var(--line)',
+                      backgroundColor: 'var(--card)',
                     },
                   },
-                }),
+                },
               },
               popper: {
                 modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
@@ -518,7 +500,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             }}
           >
             <Box
-              onClick={() => onPropertyClick?.(property.id)}
+              onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })}
               sx={{
                 position: 'relative',
                 height: effectiveRowHeight,
@@ -527,75 +509,21 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 alignItems: 'center',
                 gap: 0,
                 px: 0,
-                py: `${rowVerticalPadding}px`,
-                cursor: onPropertyClick ? 'pointer' : 'default',
-                backgroundColor: selectedPropertyId === property.id
-                  ? theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.1)' : 'rgba(107, 138, 154, 0.05)'
-                  : idx % 2 === 0
-                    ? 'transparent'
-                    : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
+                cursor: 'pointer',
+                borderBottom: '1px solid var(--line)',
+                // Spec .pl-name : fond plat var(--card) (pas de zebra)
+                backgroundColor: selectedPropertyId === property.id || popover?.propertyId === property.id
+                  ? 'var(--accent-soft)'
+                  : 'var(--card)',
                 transition: 'background-color 0.15s ease',
-                '&:hover': onPropertyClick ? {
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.15)' : 'rgba(107, 138, 154, 0.08)',
-                } : {},
+                '&:hover': {
+                  backgroundColor: 'var(--hover)',
+                },
               }}
             >
-              {showCarousel && (() => {
-                const hasPhoto = (property.photoUrls?.length ?? 0) > 0;
-                const carouselSx = {
-                  width: carouselWidth,
-                  height: carouselHeight,
-                  flexShrink: 0,
-                  overflow: 'hidden',
-                } as const;
-                if (hasPhoto) {
-                  return (
-                    <Box sx={carouselSx}>
-                      <PropertyImageCarousel
-                        photoUrls={property.photoUrls}
-                        alt={property.name}
-                        width={carouselWidth}
-                        height={carouselHeight}
-                        sx={{ width: carouselWidth, height: carouselHeight }}
-                      />
-                    </Box>
-                  );
-                }
-                // Pas de photo → on tente la carte statique
-                const mapUrl = buildStaticMapUrl(
-                  property.latitude,
-                  property.longitude,
-                  carouselWidth,
-                  carouselHeight,
-                  theme.palette.mode === 'dark',
-                );
-                if (mapUrl) {
-                  return (
-                    <Box
-                      sx={{
-                        ...carouselSx,
-                        backgroundImage: `url(${mapUrl})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }}
-                    />
-                  );
-                }
-                // Aucun fallback dispo → placeholder du carousel
-                return (
-                  <Box sx={carouselSx}>
-                    <PropertyImageCarousel
-                      photoUrls={property.photoUrls}
-                      alt={property.name}
-                      width={carouselWidth}
-                      height={carouselHeight}
-                      sx={{ width: carouselWidth, height: carouselHeight }}
-                    />
-                  </Box>
-                );
-              })()}
-              {/* Bloc texte : nom + sous-titre, centre verticalement.
-                  pr augmente pour laisser respirer le tag count en bas-droite. */}
+              {/* Bloc texte (spec .pl-name : padding 0 16px, colonne centrée) :
+                  nom + ville dessous. Le count de reservations en cours reste
+                  visible en pastille discrete inline a cote du nom. */}
               <Box
                 sx={{
                   flex: 1,
@@ -603,37 +531,65 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 0.125,
-                  pl: 0.75,
-                  pr: reservationCount > 0 ? 2.25 : 0.75,
+                  px: '16px',
                 }}
               >
-                {/* Box component=span : evite l'heritage du variant body1 du
-                    Typography (le theme MUI a des fontSize responsive en
-                    media-query qui peuvent surcharger sx en breakpoint large). */}
-                <Box
-                  component="span"
-                  sx={{
-                    fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
-                    fontWeight: 600,
-                    color: 'text.primary',
-                    lineHeight: 1.25,
-                    letterSpacing: '-0.01em',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {property.name}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, minWidth: 0 }}>
+                  {/* Box component=span : evite l'heritage du variant body1 du
+                      Typography (le theme MUI a des fontSize responsive en
+                      media-query qui peuvent surcharger sx en breakpoint large). */}
+                  {/* Spec .pl-name .nm : 12.5px fw600 var(--ink), 1 ligne ellipsis */}
+                  <Box
+                    component="span"
+                    sx={{
+                      fontSize: density === 'compact' ? '11.5px' : '12.5px',
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                      lineHeight: 1.25,
+                      letterSpacing: '-0.01em',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      minWidth: 0,
+                    }}
+                  >
+                    {property.name}
+                  </Box>
+                  {/* Reservations en cours / a venir : pastille inline discrete */}
+                  {reservationCount > 0 && (
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.25,
+                        flexShrink: 0,
+                        color: 'var(--faint)',
+                      }}
+                    >
+                      <TagIcon size={10} strokeWidth={1.75} />
+                      <Box
+                        component="span"
+                        sx={{
+                          fontSize: '0.625rem',
+                          fontWeight: 600,
+                          lineHeight: 1,
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {reservationCount}
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
+                {/* Spec .pl-name .ci : 10.5px var(--muted) */}
                 {subtitle && (
                   <Box
                     component="span"
                     sx={{
-                      fontSize: density === 'compact' ? '0.5625rem' : '0.625rem',
+                      fontSize: density === 'compact' ? '9.5px' : '10.5px',
                       fontWeight: 400,
-                      color: 'text.secondary',
+                      color: 'var(--muted)',
                       lineHeight: 1.2,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -645,8 +601,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                   </Box>
                 )}
               </Box>
-              {/* Indicateurs en bas-droite : reservations (tag) + sync (wifi) */}
-              {(reservationCount > 0 || (sync && sync.total > 0)) && (
+              {/* Indicateur en bas-droite : sync canaux (wifi) */}
+              {sync && sync.total > 0 && (
                 <Box
                   sx={{
                     position: 'absolute',
@@ -658,79 +614,57 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                     pointerEvents: 'none',
                   }}
                 >
-                  {sync && sync.total > 0 && (
-                    <Tooltip
-                      title={`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
-                      placement="top"
-                      arrow
-                    >
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.25,
-                          color: syncColor,
-                          pointerEvents: 'auto',
-                        }}
-                      >
-                        <ChannelIcon size={11} strokeWidth={1.75} />
-                        <Box
-                          component="span"
-                          sx={{
-                            fontSize: '0.5625rem',
-                            fontWeight: 600,
-                            color: 'inherit',
-                            lineHeight: 1,
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          {sync.synced}/{sync.total}
-                        </Box>
-                      </Box>
-                    </Tooltip>
-                  )}
-                  {reservationCount > 0 && (
+                  <Tooltip
+                    title={`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
+                    placement="top"
+                    arrow
+                  >
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 0.25,
-                        color: 'text.secondary',
+                        color: syncColor,
+                        pointerEvents: 'auto',
                       }}
                     >
-                      <TagIcon size={13} strokeWidth={1.75} />
+                      <ChannelIcon size={11} strokeWidth={1.75} />
                       <Box
                         component="span"
                         sx={{
-                          fontSize: '0.6875rem',
-                          fontWeight: 500,
-                          color: 'text.secondary',
+                          fontSize: '0.5625rem',
+                          fontWeight: 600,
+                          color: 'inherit',
                           lineHeight: 1,
                           fontVariantNumeric: 'tabular-nums',
                         }}
                       >
-                        {reservationCount}
+                        {sync.synced}/{sync.total}
                       </Box>
                     </Box>
-                  )}
+                  </Tooltip>
                 </Box>
               )}
             </Box>
           </Tooltip>
         );
       })}
-      {/* Empty filler rows */}
+      {/* Empty filler rows — fond plat (spec : pas de zebra) */}
       {Array.from({ length: emptyRowCount }, (_, i) => (
         <Box
           key={`empty-${i}`}
-          sx={{
-            height: effectiveRowHeight,
-            backgroundColor: (properties.length + i) % 2 === 0
-              ? 'transparent'
-              : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
-          }}
+          sx={{ height: effectiveRowHeight, backgroundColor: 'var(--card)' }}
         />
       ))}
+
+      {/* Popover logement (clic sur le nom) */}
+      {popover && popoverProperty && (
+        <PropertyPopover
+          anchorEl={popover.anchorEl}
+          property={popoverProperty}
+          onClose={() => setPopover(null)}
+        />
+      )}
     </Box>
   );
 });

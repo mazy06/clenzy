@@ -38,6 +38,7 @@ import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
 import { contactSchema } from '../../schemas';
 import type { ContactFormValues } from '../../schemas';
+import PageHeader from '../../components/PageHeader';
 import ContactTemplates from './ContactTemplates';
 
 type ContactFormInput = z.input<typeof contactSchema>;
@@ -177,13 +178,14 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+      <PageHeader
+        title={t('contact.newMessageTitle')}
+        iconBadge={<MessageIcon />}
+        onBack={onCancel}
+        backPath="/contact"
+      />
       <Card>
         <CardContent>
-          <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <MessageIcon color="primary" />
-            {t('contact.newMessageTitle')}
-          </Typography>
-
           {isRestrictedUser && (
             <Alert severity="info" sx={{ mb: 3 }}>
               {t('contact.info.restrictedUser')}

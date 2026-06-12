@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
+import { Box, Typography } from '@mui/material';
 import {
   WeatherSun,
   WeatherCloudSun,
@@ -48,18 +47,17 @@ interface WeatherWidgetProps {
  * <p>Borderless, bg tonal, scroll horizontal sur mobile si necessaire.</p>
  */
 export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
-  const theme = useTheme();
   const items = data.items ?? [];
 
   if (items.length === 0) {
     return (
       <Box sx={{ mt: 1, mb: 1.5 }}>
         <Box sx={{
-          p: 2, borderRadius: 2,
-          bgcolor: alpha(theme.palette.warning.main, 0.08),
+          p: 2, borderRadius: '12px',
+          bgcolor: 'var(--warn-soft)',
           textAlign: 'center',
         }}>
-          <Typography variant="body2" sx={{ color: theme.palette.warning.dark }}>
+          <Typography sx={{ fontSize: '12.5px', color: 'var(--warn)' }}>
             Aucune donnee meteo disponible.
           </Typography>
         </Box>
@@ -70,10 +68,10 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
   return (
     <Box sx={{ mt: 1, mb: 1.5 }}>
       {data.title && (
-        <Typography variant="caption" sx={{
-          display: 'block', mb: 0.75, fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          display: 'block', mb: 0.75, fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title}
         </Typography>
@@ -88,7 +86,7 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
           // Scrollbar discrete
           '&::-webkit-scrollbar': { height: 4 },
           '&::-webkit-scrollbar-thumb': {
-            bgcolor: alpha(theme.palette.text.primary, 0.15),
+            bgcolor: 'var(--line-2)',
             borderRadius: 2,
           },
         }}
@@ -102,7 +100,6 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
 };
 
 const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
-  const theme = useTheme();
   const Icon = iconFromCode(item.conditionCode);
   const rain = item.rain_mm ?? 0;
   const tMax = item.tempMax;
@@ -112,8 +109,9 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
     <Box
       sx={{
         px: 0.75, py: 1,
-        borderRadius: 1.5,
-        bgcolor: alpha(theme.palette.primary.main, 0.05),
+        borderRadius: '10px',
+        border: '1px solid var(--line)',
+        bgcolor: 'var(--card)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -122,30 +120,31 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
         textAlign: 'center',
       }}
     >
-      <Typography variant="caption" sx={{
-        fontSize: '0.65rem', fontWeight: 600,
+      <Typography sx={{
+        fontSize: '10.5px', fontWeight: 700,
         textTransform: 'uppercase',
-        color: theme.palette.text.secondary,
-        letterSpacing: '0.04em',
+        color: 'var(--faint)',
+        letterSpacing: '.05em',
       }}>
         {formatDay(item.date)}
       </Typography>
-      <Typography variant="caption" sx={{
-        fontSize: '0.65rem', color: theme.palette.text.disabled,
+      <Typography sx={{
+        fontSize: '10.5px', color: 'var(--faint)',
         fontVariantNumeric: 'tabular-nums',
       }}>
         {formatDate(item.date)}
       </Typography>
       <Box sx={{
-        color: iconColor(item.conditionCode, theme),
+        color: iconColor(item.conditionCode),
         display: 'inline-flex', my: 0.25,
       }}>
         <Icon size={22} />
       </Box>
       {tMax !== undefined && tMax !== null && (
         <Typography sx={{
+          fontFamily: 'var(--font-display)',
           fontSize: '0.95rem', fontWeight: 600,
-          color: theme.palette.text.primary,
+          color: 'var(--ink)',
           fontVariantNumeric: 'tabular-nums',
           lineHeight: 1,
         }}>
@@ -153,9 +152,9 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
         </Typography>
       )}
       {tMin !== undefined && tMin !== null && (
-        <Typography variant="caption" sx={{
-          fontSize: '0.7rem',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          fontSize: '11px',
+          color: 'var(--muted)',
           fontVariantNumeric: 'tabular-nums',
         }}>
           {Math.round(tMin)}°
@@ -165,11 +164,11 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
         <Box sx={{
           display: 'inline-flex', alignItems: 'center', gap: 0.25,
           mt: 0.25,
-          color: theme.palette.info.main,
+          color: 'var(--info)',
         }}>
           <WeatherDroplets size={10} />
-          <Typography variant="caption" sx={{
-            fontSize: '0.65rem',
+          <Typography sx={{
+            fontSize: '10.5px',
             color: 'inherit',
             fontVariantNumeric: 'tabular-nums',
           }}>
@@ -202,13 +201,13 @@ function iconFromCode(code: number | null | undefined): WeatherIcon {
   return WeatherCloud;
 }
 
-function iconColor(code: number | null | undefined, theme: Theme): string {
-  if (code == null) return theme.palette.text.disabled;
-  if (code === 0) return '#D4A574'; // soleil — accent ambre Baitly
-  if (code >= 95 && code <= 99) return theme.palette.warning.main;
-  if (code >= 61 && code <= 82) return theme.palette.info.main;
-  if (code >= 71 && code <= 86) return theme.palette.info.light;
-  return theme.palette.text.secondary;
+function iconColor(code: number | null | undefined): string {
+  if (code == null) return 'var(--faint)';
+  if (code === 0) return '#D4A574'; // soleil — accent ambre Baitly (palette validee)
+  if (code >= 95 && code <= 99) return 'var(--warn)';
+  if (code >= 61 && code <= 82) return 'var(--info)';
+  if (code >= 71 && code <= 86) return 'var(--info)';
+  return 'var(--muted)';
 }
 
 function formatDay(iso: string): string {
