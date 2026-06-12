@@ -485,7 +485,12 @@
       "main": "الرئيسية",
       "management": "الإدارة",
       "admin": "الإدارة العامة"
-    }
+    },
+    "exploitation": "التشغيل",
+    "contactsHub": "جهات الاتصال",
+    "finances": "المالية",
+    "distribution": "التوزيع",
+    "platformTools": "أدوات المنصة"
   },
   "dashboard": {
     "title": "لوحة التحكم",

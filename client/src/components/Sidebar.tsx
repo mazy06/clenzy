@@ -140,7 +140,13 @@ export default function Sidebar({
     if (isMobile) onCloseMobile();
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  // Hubs : l'entrée est active sur toutes les routes couvertes par ses onglets
+  // accessibles (matchPaths = préfixes, sous-routes détail comprises).
+  const isActive = (item: MenuItem) =>
+    location.pathname === item.path
+    || (item.matchPaths ?? []).some(
+      (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`),
+    );
 
   const handleLogout = async () => {
     try {
@@ -291,7 +297,7 @@ export default function Sidebar({
                   <SidebarNavItem
                     key={item.id}
                     item={item}
-                    isActive={isActive(item.path)}
+                    isActive={isActive(item)}
                     isCollapsed={collapsed}
                     onClick={handleNavigation}
                   />
