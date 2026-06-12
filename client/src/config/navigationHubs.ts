@@ -225,3 +225,29 @@ export function accessibleHubTabs(hub: HubDef, access: HubAccess): HubTab[] {
 export function findHubById(id: string): HubDef | undefined {
   return NAVIGATION_HUBS.find((hub) => hub.id === id);
 }
+
+export interface HubScreenContext {
+  hub: HubDef;
+  /** Onglets accessibles (= écrans frères) du hub. */
+  tabs: HubTab[];
+  /** Route canonique de l'onglet actif (celui dont la racine == pathname). */
+  activeTabPath: string;
+}
+
+/**
+ * Contexte du switcher d'écran quand pathname est une page-RACINE de hub
+ * (match EXACT de la route d'un onglet ou d'un de ses préfixes — PAS une
+ * sous-route de détail comme /properties/123) ET qu'au moins 2 onglets sont
+ * accessibles. Sinon null (pages de détail / hors hub → header classique).
+ *
+ * Consommé par PageHeader pour basculer en mode « switcher intégré » (Direction A).
+ */
+export function getHubScreenContext(pathname: string, access: HubAccess): HubScreenContext | null {
+  const hub = findHubForPath(pathname);
+  if (!hub) return null;
+  const tabs = accessibleHubTabs(hub, access);
+  if (tabs.length < 2) return null;
+  const active = tabs.find((tab) => tabRoutePrefixes(tab).some((prefix) => prefix === pathname));
+  if (!active) return null;
+  return { hub, tabs, activeTabPath: active.path };
+}

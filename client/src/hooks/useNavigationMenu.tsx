@@ -66,8 +66,9 @@ interface UseNavigationMenuReturn {
 //
 // Regroupement validé 2026-06-12 (16 entrées → 9) : les écrans regroupés
 // vivent dans des HUBS (config/navigationHubs) — 1 entrée sidebar par hub,
-// les écrans frères deviennent des onglets de niveau 1 pilotés par la route
-// (HubTabsBar dans MainLayoutFull). Les URLs historiques restent canoniques.
+// les écrans frères deviennent un switcher segmenté de niveau 1 rendu dans le
+// PageHeader (HubScreenSwitcher, Direction A). Les URLs historiques restent
+// canoniques.
 
 type MenuEntryConfig =
   | { kind: 'item'; item: Omit<MenuItem, 'id' | 'text'> }

@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography, Button, Tooltip, useTheme, useMediaQuery } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '../icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useIconSize } from '../hooks/useResponsiveSize';
+import { useAuth } from '../hooks/useAuth';
+import { getHubScreenContext, type HubAccess } from '../config/navigationHubs';
+import HubScreenSwitcher from './HubScreenSwitcher';
 
 interface PageHeaderProps {
   title: string;
@@ -60,9 +63,23 @@ export default function PageHeader({
   showBackButtonWithActions = false,
 }: PageHeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAdmin, isManager } = useAuth();
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
   const badgeIconSize = useIconSize('badge');
+
+  // Mode « switcher intégré » (Direction A) : sur une page-RACINE de hub, le
+  // bloc titre est remplacé par le contrôle segmenté des écrans frères. Les
+  // pages de détail et les écrans hors hub gardent le header classique.
+  const hubContext = useMemo(() => {
+    const access: HubAccess = {
+      permissions: user?.permissions ?? [],
+      isAdmin: isAdmin(),
+      isManager: isManager(),
+    };
+    return getHubScreenContext(location.pathname, access);
+  }, [location.pathname, user?.permissions, isAdmin, isManager]);
 
   const handleBack = () => {
     if (onBack) {
@@ -118,7 +135,14 @@ export default function PageHeader({
   return (
     <Box mb={1.5}>
       <Box display="flex" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
-        {/* Titre et sous-titre (avec optionally iconBadge) */}
+        {hubContext ? (
+          /* Mode switcher intégré : le segmented des écrans frères tient lieu de
+             titre (Direction A). Le sous-titre est volontairement omis (densité). */
+          <Box sx={{ minWidth: 0, flex: 1, mr: 1 }}>
+            <HubScreenSwitcher context={hubContext} />
+          </Box>
+        ) : (
+        /* Titre et sous-titre (avec optionally iconBadge) */
         <Box sx={{ minWidth: 0, flex: 1, mr: 1, display: 'flex', alignItems: 'center', gap: 0.875 }}>
           {iconBadge && (
             <Box
@@ -185,6 +209,7 @@ export default function PageHeader({
             )}
           </Box>
         </Box>
+        )}
 
         {/* Filters + Actions a droite */}
         <Box
