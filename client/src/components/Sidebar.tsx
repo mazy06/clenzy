@@ -226,17 +226,17 @@ export default function Sidebar({
           }
         }}
       >
-        {/* Référence : mark 26px + wordmark Space Grotesk 600 20px.
-            BaitlyMarkLogo couple mark et wordmark (fontSize = 32×size/56) :
-            on rend donc 2 instances — mark size=26 (26px exact) et
-            wordmark size=35 (32×35/56 = 20px exact), gap 11px via le parent.
-            Réduit = mark seul centré (idle animation conservée). */}
+        {/* Le mark a du padding interne au viewBox (nodes 10→46 sur 56) : à
+            size=26 il flottait petit dans un conteneur de 62px. Agrandi pour
+            occuper l'espace, proportions mark/wordmark conservées (×1.3).
+            Réduit = mark 40px centré (idle animation conservée) ; déplié =
+            mark 34px + wordmark size=46 (32×46/56 ≈ 26px), gap 11px parent. */}
         {collapsed ? (
-          <BaitlyMarkLogo variant="mark" size={26} />
+          <BaitlyMarkLogo variant="mark" size={40} />
         ) : (
           <>
-            <BaitlyMarkLogo variant="mark" size={26} idleAnimation={false} />
-            <BaitlyMarkLogo variant="wordmark" size={35} />
+            <BaitlyMarkLogo variant="mark" size={34} idleAnimation={false} />
+            <BaitlyMarkLogo variant="wordmark" size={46} />
           </>
         )}
       </Box>
