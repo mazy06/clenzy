@@ -88,16 +88,59 @@ const PAYMENT_METHODS = [
   { value: 'other', label: 'Autre' },
 ];
 
-const STATUS_HEX: Record<string, string> = {
-  PAID: '#4A9B8E',
-  PENDING: '#ED6C02',
-  REFUNDED: '#d32f2f',
-  DRAFT: '#757575',
-  ISSUED: '#0288d1',
-  PROCESSING: '#0288d1',
-  FAILED: '#d32f2f',
-  CANCELLED: '#757575',
+type SoftTokens = { color: string; bg: string };
+
+const OK_TOKENS: SoftTokens = { color: 'var(--ok)', bg: 'var(--ok-soft)' };
+const WARN_TOKENS: SoftTokens = { color: 'var(--warn)', bg: 'var(--warn-soft)' };
+const ERR_TOKENS: SoftTokens = { color: 'var(--err)', bg: 'var(--err-soft)' };
+const INFO_TOKENS: SoftTokens = { color: 'var(--info)', bg: 'var(--info-soft)' };
+const NEUTRAL_TOKENS: SoftTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
+
+/** Statuts paiement → tokens sémantiques (succès = ok, attente = warn, en cours = info, échec = err). */
+const STATUS_TOKENS: Record<string, SoftTokens> = {
+  PAID: OK_TOKENS,
+  PENDING: WARN_TOKENS,
+  REFUNDED: ERR_TOKENS,
+  DRAFT: NEUTRAL_TOKENS,
+  ISSUED: INFO_TOKENS,
+  PROCESSING: INFO_TOKENS,
+  FAILED: ERR_TOKENS,
+  CANCELLED: NEUTRAL_TOKENS,
 };
+
+const OVERLINE_SX = {
+  fontSize: '0.625rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--faint)',
+};
+
+/** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
+const CLOSE_BTN_SX = {
+  width: 34,
+  height: 34,
+  borderRadius: '10px',
+  border: '1px solid var(--line-2)',
+  backgroundColor: 'var(--card)',
+  color: 'var(--muted)',
+  transition: 'color .14s, border-color .14s',
+  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+};
+
+/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
+const chipSx = (bg: string, color: string) => ({
+  height: 20,
+  fontSize: '0.6875rem',
+  fontWeight: 600,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  '& .MuiChip-label': { px: 1 },
+});
 
 const STATUS_LABELS: Record<string, string> = {
   PAID: 'Paye',
@@ -121,82 +164,58 @@ const INTERVENTION_STATUS_LABELS: Record<string, string> = {
   awaiting_validation: 'Att. validation',
 };
 
-const INTERVENTION_STATUS_HEX: Record<string, string> = {
-  scheduled: '#0288d1',
-  in_progress: '#ED6C02',
-  completed: '#4A9B8E',
-  cancelled: '#757575',
-  pending: '#ED6C02',
-  assigned: '#0288d1',
-  awaiting_payment: '#D4A574',
-  awaiting_validation: '#7B61FF',
+const INTERVENTION_STATUS_TOKENS: Record<string, SoftTokens> = {
+  scheduled: INFO_TOKENS,
+  in_progress: INFO_TOKENS,
+  completed: OK_TOKENS,
+  cancelled: NEUTRAL_TOKENS,
+  pending: WARN_TOKENS,
+  assigned: INFO_TOKENS,
+  awaiting_payment: WARN_TOKENS,
+  awaiting_validation: WARN_TOKENS,
 };
 
 let mockFinancialId = 5000;
 
-// ── Section wrapper ─────────────────────────────────────────────────────────
+// ── Section wrapper — carte hairline, titre overline, badge chip soft ───────
 const SectionCard: React.FC<{
-  borderColor: string;
-  bgColor: string;
   icon: React.ReactNode;
   title: string;
   badge: string;
-  badgeColor: string;
+  badgeTokens: SoftTokens;
   children: React.ReactNode;
-}> = ({ borderColor, bgColor, icon, title, badge, badgeColor, children }) => (
+}> = ({ icon, title, badge, badgeTokens, children }) => (
   <Box
     sx={{
-      border: `1px solid ${borderColor}`,
-      backgroundColor: bgColor,
-      borderRadius: 1,
+      border: '1px solid var(--line)',
+      backgroundColor: 'var(--card)',
+      borderRadius: '12px',
       p: 1.5,
     }}
   >
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
       {icon}
-      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', flex: 1 }}>
+      <Typography variant="body2" sx={{ ...OVERLINE_SX, flex: 1 }}>
         {title}
       </Typography>
-      <Chip
-        label={badge}
-        size="small"
-        sx={{
-          fontSize: '0.5625rem',
-          height: 20,
-          fontWeight: 600,
-          backgroundColor: `${badgeColor}18`,
-          color: badgeColor,
-          border: `1px solid ${badgeColor}40`,
-          borderRadius: '6px',
-          '& .MuiChip-label': { px: 0.75 },
-        }}
-      />
+      <Chip label={badge} size="small" sx={chipSx(badgeTokens.bg, badgeTokens.color)} />
     </Box>
     {children}
   </Box>
 );
 
 // ── Status chip helper ──────────────────────────────────────────────────────
-const StatusChip: React.FC<{ status: string; map?: Record<string, string>; hexMap?: Record<string, string> }> = ({
+const StatusChip: React.FC<{ status: string; map?: Record<string, string>; tokenMap?: Record<string, SoftTokens> }> = ({
   status,
   map = STATUS_LABELS,
-  hexMap = STATUS_HEX,
+  tokenMap = STATUS_TOKENS,
 }) => {
-  const c = hexMap[status] || '#757575';
+  const t = tokenMap[status] || NEUTRAL_TOKENS;
   return (
     <Chip
       label={map[status] || status}
       size="small"
-      sx={{
-        fontSize: '0.5625rem',
-        height: 18,
-        fontWeight: 600,
-        backgroundColor: `${c}18`,
-        color: c,
-        border: `1px solid ${c}40`,
-        borderRadius: '6px',
-        '& .MuiChip-label': { px: 0.75 },
-      }}
+      sx={{ ...chipSx(t.bg, t.color), height: 18, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.75 } }}
     />
   );
 };
@@ -221,7 +240,13 @@ const FinRow: React.FC<{
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <Typography
         variant="body2"
-        sx={{ fontWeight: bold ? 700 : 600, fontSize: '0.8125rem', color: color || undefined }}
+        sx={{
+          fontWeight: 600,
+          fontSize: '0.8125rem',
+          color: color || 'var(--ink)',
+          fontVariantNumeric: 'tabular-nums',
+          ...(bold && { fontFamily: 'var(--font-display)' }),
+        }}
       >
         {value}
       </Typography>
@@ -447,7 +472,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const balanceDue = grandTotal - totalPaid + totalRefunded;
 
   const paymentStatus = balanceDue <= 0 ? 'Solde' : totalPaid > 0 ? 'Partiel' : 'En attente';
-  const paymentStatusHex = balanceDue <= 0 ? '#4A9B8E' : totalPaid > 0 ? '#0288d1' : '#ED6C02';
+  const paymentStatusTokens = balanceDue <= 0 ? OK_TOKENS : totalPaid > 0 ? INFO_TOKENS : WARN_TOKENS;
 
   // ── Computed values — Interventions ────────────────────────────────────
   // Only show interventions that are assigned + paid (or no cost) in the financial tab
@@ -671,7 +696,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const effectiveTotalPaid = isOTABooking ? grandTotal : totalPaid;
   const effectiveBalanceDue = isOTABooking ? 0 : balanceDue;
   const effectivePaymentStatus = isOTABooking ? `Paye ${otaChannelLabel}` : paymentStatus;
-  const effectivePaymentStatusHex = isOTABooking ? '#4A9B8E' : paymentStatusHex;
+  const effectivePaymentStatusTokens = isOTABooking ? OK_TOKENS : paymentStatusTokens;
 
   // ── Hero « MONTANT » (maquette Signature) : gros montant display +
   //    badge Réglé / En attente (tokens ok-soft / warn-soft). ─────────────
@@ -738,12 +763,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {reservation && (
         <SectionCard
-          borderColor="#0288d1"
-          bgColor="#0288d108"
-          icon={<Person size={18} strokeWidth={1.75} color='#0288d1' />}
+          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Person size={18} strokeWidth={1.75} /></Box>}
           title="Paiement reservation"
           badge="Voyageur"
-          badgeColor="#0288d1"
+          badgeTokens={INFO_TOKENS}
         >
           {/* Summary */}
           <FinRow label="Montant reservation" value={isICalImport && !hasTotalPrice ? 'Non communique' : fmtCurrency(totalPrice)} bold />
@@ -768,11 +791,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           <FinRow
             label={isOTABooking ? `Paye sur ${otaChannelLabel}` : 'Paye'}
             value={fmtCurrency(effectiveTotalPaid)}
-            color="success.main"
+            color="var(--ok)"
           />
 
           {totalRefunded > 0 && (
-            <FinRow label="Rembourse" value={`-${fmtCurrency(totalRefunded)}`} color="error.main" />
+            <FinRow label="Rembourse" value={`-${fmtCurrency(totalRefunded)}`} color="var(--err)" />
           )}
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -780,18 +803,21 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               Reste a payer
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: effectiveBalanceDue > 0 ? 'warning.main' : 'success.main' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-display)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: effectiveBalanceDue > 0 ? 'var(--warn)' : 'var(--ok)',
+                }}
+              >
                 {Math.max(0, effectiveBalanceDue).toFixed(2)} EUR
               </Typography>
               <Chip
                 label={effectivePaymentStatus}
                 size="small"
-                sx={{
-                  fontSize: '0.625rem', height: 20, fontWeight: 600,
-                  backgroundColor: `${effectivePaymentStatusHex}18`, color: effectivePaymentStatusHex,
-                  border: `1px solid ${effectivePaymentStatusHex}40`, borderRadius: '6px',
-                  '& .MuiChip-label': { px: 0.75 },
-                }}
+                sx={chipSx(effectivePaymentStatusTokens.bg, effectivePaymentStatusTokens.color)}
               />
             </Box>
           </Box>
@@ -845,9 +871,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* ── Confirmation lien envoye ──────────────────────────── */}
           {lastSentAt && (
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mt: 0.25 }}><CheckCircle size={16} strokeWidth={1.75} color='#4A9B8E' /></Box>
+              <Box component="span" sx={{ display: 'inline-flex', mt: 0.25, color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: '#4A9B8E', fontWeight: 600 }}>
+                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--ok)', fontWeight: 600 }}>
                   Lien envoye le {fmtDate(lastSentAt)}
                 </Typography>
                 {lastSentEmail && (
@@ -879,13 +905,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   gap: 0.75,
                   px: 1.25,
                   py: 0.875,
-                  borderRadius: 1,
-                  backgroundColor: 'rgba(74, 155, 142, 0.08)',
-                  border: '1px solid rgba(74, 155, 142, 0.2)',
+                  borderRadius: '9px',
+                  backgroundColor: 'var(--ok-soft)',
+                  border: '1px solid color-mix(in srgb, var(--ok) 30%, transparent)',
                 }}
               >
-                <CheckCircle size={14} strokeWidth={1.75} color='#4A9B8E' />
-                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: '#4A9B8E', fontWeight: 500 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
+                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--ok)', fontWeight: 500 }}>
                   Reglement effectue sur {otaChannelLabel}
                 </Typography>
               </Box>
@@ -902,10 +928,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                     setShowEmailInput(true);
                   }
                 }}
-                sx={{
-                  flex: 1, fontSize: '0.6875rem', textTransform: 'none',
-                  backgroundColor: '#0288d1', '&:hover': { backgroundColor: '#01579b' },
-                }}
+                sx={{ flex: 1 }}
               >
                 {lastSentAt ? 'Renvoyer lien' : 'Lien paiement'}
               </Button>
@@ -921,7 +944,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   const { documentsApi } = await import('../../../services/api/documentsApi');
                   await documentsApi.downloadGeneration(inv.id, inv.fileName);
                 }}
-                sx={{ flex: 1, fontSize: '0.6875rem', textTransform: 'none' }}
+                sx={{ flex: 1 }}
               >
                 Duplicata
               </Button>
@@ -932,7 +955,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
                 disabled={invoiceLoading || !onGenerateInvoice || !reservation || !hasTotalPrice}
                 onClick={() => reservation && handleGenerateInvoice('RESERVATION', reservation.id)}
-                sx={{ flex: 1, fontSize: '0.6875rem', textTransform: 'none' }}
+                sx={{ flex: 1 }}
               >
                 Facture
               </Button>
@@ -959,7 +982,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 variant="contained"
                 disabled={!linkEmail || sendingLink || !hasTotalPrice}
                 onClick={() => handleSendPaymentLink(linkEmail)}
-                sx={{ fontSize: '0.6875rem', textTransform: 'none', minWidth: 'auto', px: 1.5 }}
+                sx={{ minWidth: 'auto', px: 1.5 }}
               >
                 Envoyer
               </Button>
@@ -974,35 +997,36 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {reservation && (linkedInterventions.length > 0 || payableServiceRequests.length > 0) && (
         <SectionCard
-          borderColor="#D4A574"
-          bgColor="#D4A57408"
-          icon={<Business size={18} strokeWidth={1.75} color='#D4A574' />}
+          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
           title="Paiement interventions"
           badge="Proprietaire"
-          badgeColor="#D4A574"
+          badgeTokens={WARN_TOKENS}
         >
           {/* ── Interventions proposees (SR assignees, en attente de paiement) ── */}
           {payableServiceRequests.length > 0 && (
             <>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: '#D4A574' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'var(--warn)' }}>
                   Interventions proposees ({payableServiceRequests.length})
                 </Typography>
               </Box>
               {payableServiceRequests.map((sr) => {
                 const cost = sr.estimatedCost || (sr.estimatedDurationHours ? sr.estimatedDurationHours * 25 : 0);
-                const typeIcon = sr.serviceType === 'CLEANING' || sr.serviceType === 'EXPRESS_CLEANING'
-                  ? <CleaningServices size={14} strokeWidth={1.75} color='#D4A574' />
-                  : <Handyman size={14} strokeWidth={1.75} color='#D4A574' />;
+                const typeIcon = (
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+                    {sr.serviceType === 'CLEANING' || sr.serviceType === 'EXPRESS_CLEANING'
+                      ? <CleaningServices size={14} strokeWidth={1.75} />
+                      : <Handyman size={14} strokeWidth={1.75} />}
+                  </Box>
+                );
                 return (
                   <Box
                     key={`sr-${sr.id}`}
                     sx={{
                       display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
-                      p: 0.75, borderRadius: 1,
-                      border: '1px dashed',
-                      borderColor: '#D4A57480',
-                      backgroundColor: '#D4A57408',
+                      p: 0.75, borderRadius: '9px',
+                      border: '1px dashed color-mix(in srgb, var(--warn) 50%, transparent)',
+                      backgroundColor: 'var(--warn-soft)',
                     }}
                   >
                     {typeIcon}
@@ -1018,18 +1042,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         {sr.estimatedDurationHours}h
                       </Typography>
                     )}
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
+                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                       {cost > 0 ? `${cost.toFixed(0)} EUR` : '\u2014'}
                     </Typography>
                     <Chip
                       label="A payer"
                       size="small"
-                      sx={{
-                        fontSize: '0.5625rem', height: 18, fontWeight: 600,
-                        backgroundColor: '#D4A57420', color: '#D4A574',
-                        border: '1px solid #D4A57440', borderRadius: '6px',
-                        '& .MuiChip-label': { px: 0.5 },
-                      }}
+                      sx={{ ...chipSx('var(--warn-soft)', 'var(--warn)'), height: 18, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.75 } }}
                     />
                   </Box>
                 );
@@ -1061,8 +1080,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                       key={intv.id}
                       sx={{
                         display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
-                        p: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider',
-                        backgroundColor: 'background.paper',
+                        p: 0.75, borderRadius: '9px', border: '1px solid var(--line)',
+                        backgroundColor: 'var(--card)',
                       }}
                     >
                       {typeIcon}
@@ -1078,13 +1097,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                           {intv.estimatedDurationHours}h
                         </Typography>
                       )}
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
+                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                         {cost > 0 ? convertAndFormat(cost, 'EUR') : '—'}
                       </Typography>
                       <StatusChip
                         status={intv.paymentStatus || intv.status}
                         map={{ ...STATUS_LABELS, ...INTERVENTION_STATUS_LABELS }}
-                        hexMap={{ ...STATUS_HEX, ...INTERVENTION_STATUS_HEX }}
+                        tokenMap={{ ...STATUS_TOKENS, ...INTERVENTION_STATUS_TOKENS }}
                       />
                     </Box>
                   );
@@ -1097,14 +1116,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
           {/* Summary */}
           {srProposedTotal > 0 && (
-            <FinRow label="Interventions proposees" value={fmtCurrency(srProposedTotal)} color="#D4A574" />
+            <FinRow label="Interventions proposees" value={fmtCurrency(srProposedTotal)} color="var(--warn)" />
           )}
           <FinRow label="Total interventions" value={fmtCurrency(interventionCostTotal + srProposedTotal)} bold />
           {interventionPaid > 0 && (
-            <FinRow label="Paye" value={fmtCurrency(interventionPaid)} color="#4A9B8E" />
+            <FinRow label="Paye" value={fmtCurrency(interventionPaid)} color="var(--ok)" />
           )}
           {interventionAwaitingTotal > 0 && (
-            <FinRow label="En attente" value={fmtCurrency(interventionAwaitingTotal)} color="#D4A574" />
+            <FinRow label="En attente" value={fmtCurrency(interventionAwaitingTotal)} color="var(--warn)" />
           )}
 
           {/* Action buttons */}
@@ -1123,12 +1142,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   handlePayInterventions();
                 }
               }}
-              sx={{
-                flex: 1,
-                fontSize: '0.75rem', textTransform: 'none', fontWeight: 700,
-                backgroundColor: '#D4A574', '&:hover': { backgroundColor: '#C0915E' },
-                '&.Mui-disabled': { backgroundColor: '#D4A57440', color: '#fff8' },
-              }}
+              color="warning"
+              sx={{ flex: 1 }}
             >
               Payer
             </Button>
@@ -1144,7 +1159,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   handleGenerateInvoice('INTERVENTION', intv.id);
                 }
               }}
-              sx={{ flex: 1, fontSize: '0.6875rem', textTransform: 'none', borderColor: '#D4A574', color: '#D4A574' }}
+              color="warning"
+              sx={{ flex: 1 }}
             >
               Facture
             </Button>
@@ -1156,7 +1172,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               startIcon={<MoneyOff size={12} strokeWidth={1.75} />}
               disabled={interventionPaid <= 0}
               onClick={() => setRefundDialogOpen(true)}
-              sx={{ flex: 1, fontSize: '0.6875rem', textTransform: 'none' }}
+              sx={{ flex: 1 }}
             >
               Remboursement
             </Button>
@@ -1167,14 +1183,12 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       {/* ── No interventions message ───────────────────────────────────── */}
       {reservation && linkedInterventions.length === 0 && payableServiceRequests.length === 0 && (
         <SectionCard
-          borderColor="#D4A574"
-          bgColor="#D4A57408"
-          icon={<Business size={18} strokeWidth={1.75} color='#D4A574' />}
+          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
           title="Paiement interventions"
           badge="Proprietaire"
-          badgeColor="#D4A574"
+          badgeTokens={WARN_TOKENS}
         >
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+          <Typography variant="body2" sx={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--muted)' }}>
             Aucune intervention liee a cette reservation.
           </Typography>
         </SectionCard>
@@ -1185,12 +1199,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {!reservation && intervention && (
         <SectionCard
-          borderColor="#D4A574"
-          bgColor="#D4A57408"
-          icon={<Business size={18} strokeWidth={1.75} color='#D4A574' />}
+          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
           title="Cout intervention"
           badge="Proprietaire"
-          badgeColor="#D4A574"
+          badgeTokens={WARN_TOKENS}
         >
           <FinRow label="Duree estimee" value={intervention.estimatedDurationHours ? `${intervention.estimatedDurationHours}h` : '-'} />
           {intervention.estimatedDurationHours && (
@@ -1201,7 +1213,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             />
           )}
           {intervention.actualCost != null && intervention.actualCost > 0 && (
-            <FinRow label="Cout reel" value={fmtCurrency(intervention.actualCost)} bold color="#4A9B8E" />
+            <FinRow label="Cout reel" value={fmtCurrency(intervention.actualCost)} bold color="var(--ok)" />
           )}
 
           <Divider sx={{ my: 0.75 }} />
@@ -1213,7 +1225,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <StatusChip
               status={intervention.paymentStatus || intervention.status}
               map={{ ...STATUS_LABELS, ...INTERVENTION_STATUS_LABELS }}
-              hexMap={{ ...STATUS_HEX, ...INTERVENTION_STATUS_HEX }}
+              tokenMap={{ ...STATUS_TOKENS, ...INTERVENTION_STATUS_TOKENS }}
             />
           </FinRow>
 
@@ -1228,11 +1240,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 setPaymentModalTarget({ interventionId: intervention.id, amount: cost, title: intervention.title });
                 setPaymentModalOpen(true);
               }}
-              sx={{
-                mt: 1,
-                fontSize: '0.75rem', textTransform: 'none', fontWeight: 700,
-                backgroundColor: '#D4A574', '&:hover': { backgroundColor: '#C0915E' },
-              }}
+              color="warning"
+              sx={{ mt: 1 }}
             >
               Payer {fmtCurrency(intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0))}
             </Button>
@@ -1247,11 +1256,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               fullWidth
               disabled={invoiceLoading}
               onClick={() => handleGenerateInvoice('INTERVENTION', intervention.id)}
-              sx={{
-                mt: 0.75,
-                fontSize: '0.6875rem', textTransform: 'none',
-                borderColor: '#D4A574', color: '#D4A574',
-              }}
+              color="warning"
+              sx={{ mt: 0.75 }}
             >
               Generer facture
             </Button>
@@ -1308,15 +1314,15 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
 
       {/* View Payments Dialog */}
-      <Dialog open={paymentsDialogOpen} onClose={() => setPaymentsDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={paymentsDialogOpen} onClose={() => setPaymentsDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Payment size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Historique des paiements</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payment size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Historique des paiements</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setPaymentsDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setPaymentsDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 2 }}>
+        <DialogContent>
           {payments.length === 0 ? (
             <Alert severity="info" sx={{ fontSize: '0.8125rem' }}>Aucun paiement enregistre.</Alert>
           ) : (
@@ -1324,20 +1330,20 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700 }}>Methode</TableCell>
-                    <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700 }}>Reference</TableCell>
-                    <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700 }} align="right">Montant</TableCell>
-                    <TableCell sx={{ fontSize: '0.6875rem', fontWeight: 700 }}>Statut</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Methode</TableCell>
+                    <TableCell>Reference</TableCell>
+                    <TableCell align="right">Montant</TableCell>
+                    <TableCell>Statut</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {payments.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell sx={{ fontSize: '0.75rem' }}>{p.date}</TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem' }}>{PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}</TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{p.reference || '-'}</TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem', fontWeight: 600 }} align="right">
+                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{p.date}</TableCell>
+                      <TableCell>{PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}</TableCell>
+                      <TableCell sx={{ color: 'text.secondary' }}>{p.reference || '-'}</TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} align="right">
                         {p.status === 'REFUNDED' ? '-' : ''}{fmtCurrency(p.amount)}
                       </TableCell>
                       <TableCell><StatusChip status={p.status} /></TableCell>
@@ -1351,17 +1357,17 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <Box sx={{ mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Total paye</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'success.main' }}>{fmtCurrency(totalPaid)}</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ok)' }}>{fmtCurrency(totalPaid)}</Typography>
               </Box>
               {totalRefunded > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
                   <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Total rembourse</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'error.main' }}>-{fmtCurrency(totalRefunded)}</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--err)' }}>-{fmtCurrency(totalRefunded)}</Typography>
                 </Box>
               )}
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Reste a payer</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: balanceDue > 0 ? 'warning.main' : 'success.main' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: balanceDue > 0 ? 'var(--warn)' : 'var(--ok)' }}>
                   {Math.max(0, balanceDue).toFixed(2)} EUR
                 </Typography>
               </Box>
@@ -1371,15 +1377,15 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       </Dialog>
 
       {/* Add Payment Dialog */}
-      <Dialog open={addPaymentOpen} onClose={() => setAddPaymentOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={addPaymentOpen} onClose={() => setAddPaymentOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Add size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Ajouter un paiement</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Add size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Ajouter un paiement</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setAddPaymentOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddPaymentOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           {reservation && (
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
               Reservation : <strong>{reservation.guestName}</strong> — Reste a payer : <strong>{Math.max(0, balanceDue).toFixed(2)} EUR</strong>
@@ -1394,24 +1400,24 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <TextField label="Reference (optionnel)" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} size="small" fullWidth placeholder="N° transaction, cheque..." sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setAddPaymentOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
-          <Button onClick={handleAddPayment} variant="contained" size="small" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading} startIcon={paymentLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+        <DialogActions>
+          <Button onClick={() => setAddPaymentOpen(false)} size="small">Annuler</Button>
+          <Button onClick={handleAddPayment} variant="contained" size="small" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading} startIcon={paymentLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}>
             Enregistrer
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Add Extra Fee Dialog */}
-      <Dialog open={addFeeOpen} onClose={() => setAddFeeOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={addFeeOpen} onClose={() => setAddFeeOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AttachMoney size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Frais supplementaires</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AttachMoney size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Frais supplementaires</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setAddFeeOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddFeeOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField label="Description" value={feeDescription} onChange={(e) => setFeeDescription(e.target.value)} size="small" fullWidth required placeholder="Ex: Menage supplementaire, cle perdue..." sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
             <TextField type="number" label="Montant (EUR)" value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} size="small" fullWidth required inputProps={{ min: 0.01, step: 0.01 }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
@@ -1422,31 +1428,31 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             </Alert>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setAddFeeOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
-          <Button onClick={handleAddFee} variant="contained" size="small" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading} startIcon={feeLoading ? <CircularProgress size={14} /> : <Add size={16} strokeWidth={1.75} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+        <DialogActions>
+          <Button onClick={() => setAddFeeOpen(false)} size="small">Annuler</Button>
+          <Button onClick={handleAddFee} variant="contained" size="small" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading} startIcon={feeLoading ? <CircularProgress size={14} /> : <Add size={16} strokeWidth={1.75} />}>
             Ajouter
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Refund Confirmation Dialog */}
-      <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><MoneyOff size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Confirmer le remboursement</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><MoneyOff size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Confirmer le remboursement</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setRefundDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setRefundDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           <Alert severity="warning" icon={<Warning size={18} strokeWidth={1.75} />} sx={{ fontSize: '0.8125rem', mb: 2 }}>
             Cette action est irreversible. Le remboursement sera traite via le mode de paiement d'origine.
           </Alert>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.5, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.5, borderRadius: '10px', bgcolor: 'var(--field)' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>Montant total paye</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>{fmtCurrency(totalPaid)}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtCurrency(totalPaid)}</Typography>
             </Box>
             {reservation && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1456,15 +1462,15 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             )}
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>Montant rembourse</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', color: 'error.main' }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', color: 'var(--err)', fontVariantNumeric: 'tabular-nums' }}>
                 -{fmtCurrency(totalPaid)}
               </Typography>
             </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setRefundDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
-          <Button onClick={handleRefund} variant="contained" color="warning" size="small" disabled={refundLoading} startIcon={refundLoading ? <CircularProgress size={14} /> : <MoneyOff size={16} strokeWidth={1.75} />} sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+        <DialogActions>
+          <Button onClick={() => setRefundDialogOpen(false)} size="small">Annuler</Button>
+          <Button onClick={handleRefund} variant="contained" color="warning" size="small" disabled={refundLoading} startIcon={refundLoading ? <CircularProgress size={14} /> : <MoneyOff size={16} strokeWidth={1.75} />}>
             Confirmer le remboursement
           </Button>
         </DialogActions>

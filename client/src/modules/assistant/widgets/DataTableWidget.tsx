@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 type DataItem = Record<string, unknown>;
 
@@ -28,11 +28,10 @@ interface DataTableWidgetProps {
  * statique). Fallback : utilise les keys du premier item. Limite a 8 lignes
  * affichees, avec footer "N de plus" si {@code truncated}.</p>
  *
- * <p>Design : table borderless, lignes alternees via bg color, headers en
- * uppercase petite taille, tabular-nums sur les valeurs.</p>
+ * <p>Design « Signature » : carte hairline, entêtes overline 10.5 `--faint`,
+ * lignes au filet `--line`, hover `--hover`, valeurs 12.5px tabular-nums.</p>
  */
 export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName }) => {
-  const theme = useTheme();
   const items = data.items ?? [];
   const MAX_ROWS = 8;
   const visibleItems = items.slice(0, MAX_ROWS);
@@ -50,12 +49,13 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
         sx={{
           mt: 1, mb: 1.5,
           px: 2, py: 2,
-          borderRadius: 2,
-          bgcolor: alpha(theme.palette.text.primary, 0.035),
+          borderRadius: '12px',
+          border: '1px solid var(--line)',
+          bgcolor: 'var(--card)',
           textAlign: 'center',
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
           Aucun resultat
           {data.from && data.to && ` sur la periode ${formatDate(data.from)} → ${formatDate(data.to)}`}.
         </Typography>
@@ -68,11 +68,11 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
       {/* Header avec range de dates si fournie */}
       {data.from && data.to && (
         <Typography
-          variant="caption"
           sx={{
             display: 'block',
             mb: 0.75,
-            color: theme.palette.text.secondary,
+            fontSize: '11.5px',
+            color: 'var(--muted)',
             fontVariantNumeric: 'tabular-nums',
           }}
         >
@@ -80,12 +80,13 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
         </Typography>
       )}
 
-      {/* Table borderless */}
+      {/* Table hairline */}
       <Box
         sx={{
-          borderRadius: 2,
+          borderRadius: '12px',
           overflow: 'hidden',
-          bgcolor: alpha(theme.palette.text.primary, 0.025),
+          border: '1px solid var(--line)',
+          bgcolor: 'var(--card)',
         }}
       >
         {/* Header row */}
@@ -96,19 +97,19 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
             gap: 1,
             px: 1.5,
             py: 0.75,
-            bgcolor: alpha(theme.palette.text.primary, 0.04),
+            bgcolor: 'var(--surface-2)',
+            borderBottom: '1px solid var(--line)',
           }}
         >
           {columns.map((col) => (
             <Typography
               key={col.key}
-              variant="caption"
               sx={{
-                fontSize: '0.65rem',
-                fontWeight: 600,
-                letterSpacing: 0.5,
+                fontSize: '10.5px',
+                fontWeight: 700,
+                letterSpacing: '.05em',
                 textTransform: 'uppercase',
-                color: theme.palette.text.secondary,
+                color: 'var(--faint)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -129,19 +130,18 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
               gap: 1,
               px: 1.5,
               py: 1,
-              // Zebra stripes via bg alpha, pas via border
-              bgcolor: idx % 2 === 1
-                ? alpha(theme.palette.text.primary, 0.02)
-                : 'transparent',
+              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
+              transition: 'background .12s',
+              '&:hover': { bgcolor: 'var(--hover)' },
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             }}
           >
             {columns.map((col) => (
               <Typography
                 key={col.key}
-                variant="body2"
                 sx={{
-                  fontSize: '0.8125rem',
-                  color: theme.palette.text.primary,
+                  fontSize: '12.5px',
+                  color: 'var(--body)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -158,11 +158,11 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
       {/* Footer truncation */}
       {hiddenCount > 0 && (
         <Typography
-          variant="caption"
           sx={{
             display: 'block',
             mt: 0.75,
-            color: theme.palette.text.secondary,
+            fontSize: '11.5px',
+            color: 'var(--muted)',
             fontStyle: 'italic',
           }}
         >

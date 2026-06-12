@@ -449,9 +449,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   height: 20,
                   fontSize: '0.6875rem',
                   fontWeight: 700,
-                  bgcolor: stats.filled === stats.total ? '#10b98115' : 'primary.main',
-                  color: stats.filled === stats.total ? '#10b981' : 'primary.contrastText',
-                  border: stats.filled === stats.total ? '1px solid #10b98140' : 'none',
+                  bgcolor: stats.filled === stats.total ? '#3E9C8015' : 'primary.main',
+                  color: stats.filled === stats.total ? '#3E9C80' : 'primary.contrastText',
+                  border: stats.filled === stats.total ? '1px solid #3E9C8040' : 'none',
                   '& .MuiChip-label': { px: 1 },
                 }}
               />
@@ -465,7 +465,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                 borderRadius: 2,
                 bgcolor: 'action.hover',
                 '& .MuiLinearProgress-bar': {
-                  bgcolor: stats.percentage === 100 ? '#10b981' : 'primary.main',
+                  bgcolor: stats.percentage === 100 ? '#3E9C80' : 'primary.main',
                   borderRadius: 2,
                 },
               }}
@@ -485,7 +485,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
           <SectionCard
             icon={<KeyIcon />}
-            accentColor="#f59e0b"
+            accentColor="#C28A52"
             title={t('channels.checkIn.accessSection')}
             description="Code d'entrée et identifiants WiFi"
             filledCount={stats.access}
@@ -525,7 +525,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                         <Tooltip title={copiedField === 'accessCode' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
                           <IconButton size="small" edge="end" onClick={(e) => { e.stopPropagation(); handleCopy('accessCode', form.accessCode); }}>
                             {copiedField === 'accessCode' ? (
-                              <CheckCircle size={16} strokeWidth={2} color="#10b981" />
+                              <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
                             ) : (
                               <ContentCopy size={14} strokeWidth={1.75} />
                             )}
@@ -567,7 +567,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                           <Tooltip title={copiedField === 'wifiPassword' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
                             <IconButton size="small" onClick={() => handleCopy('wifiPassword', form.wifiPassword)}>
                               {copiedField === 'wifiPassword' ? (
-                                <CheckCircle size={16} strokeWidth={2} color="#10b981" />
+                                <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
                               ) : (
                                 <ContentCopy size={14} strokeWidth={1.75} />
                               )}
@@ -687,7 +687,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Parking */}
         <SectionCard
           icon={<ParkingIcon />}
-          accentColor="#6366f1"
+          accentColor="#4F86C6"
           title={t('channels.checkIn.parkingSection')}
           description="Où et comment se garer"
           filledCount={stats.parking}
@@ -709,7 +709,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Arrivée */}
         <SectionCard
           icon={<ArrivalIcon />}
-          accentColor="#10b981"
+          accentColor="#3E9C80"
           title={t('channels.checkIn.arrivalSection')}
           description="Comment accéder au logement"
           filledCount={stats.arrival}
@@ -732,7 +732,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
           <SectionCard
             icon={<PhotoIcon />}
-            accentColor="#8b5cf6"
+            accentColor="#9A7FA3"
             title={t('channels.checkIn.accessPhotosSection', "Photos d'accès")}
             description={t('channels.checkIn.accessPhotosDesc', 'Aidez le voyageur à trouver et accéder au logement (entrée, parcours, boîte à clés…)')}
             filledCount={accessPhotos.length > 0 ? 1 : 0}
@@ -794,7 +794,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Départ */}
         <SectionCard
           icon={<DepartureIcon />}
-          accentColor="#0ea5e9"
+          accentColor="#7BA3C2"
           title={t('channels.checkIn.departureSection')}
           description="Procédure et check-out"
           filledCount={stats.departure}
@@ -816,7 +816,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Règlement */}
         <SectionCard
           icon={<RulesIcon />}
-          accentColor="#8b5cf6"
+          accentColor="#9A7FA3"
           title={t('channels.checkIn.rulesSection')}
           description="Règles à respecter dans le logement"
           filledCount={stats.rules}
@@ -839,7 +839,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
           <SectionCard
             icon={<PhoneIcon />}
-            accentColor="#ef4444"
+            accentColor="#E5484D"
             title={t('channels.checkIn.emergencySection')}
             description="À contacter en cas d'incident — affiché en évidence pour le voyageur"
             filledCount={stats.emergency}
@@ -856,7 +856,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Box component="span" sx={{ display: 'inline-flex', color: '#ef4444' }}>
+                    <Box component="span" sx={{ display: 'inline-flex', color: '#E5484D' }}>
                       <PhoneIcon size={16} strokeWidth={1.75} />
                     </Box>
                   </InputAdornment>
@@ -870,7 +870,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
           <SectionCard
             icon={<NotesIcon />}
-            accentColor="#64748b"
+            accentColor="#8BA0B3"
             title={t('channels.checkIn.additionalSection')}
             description="Bons plans, recommandations, infos pratiques sur le quartier"
             filledCount={stats.additional}

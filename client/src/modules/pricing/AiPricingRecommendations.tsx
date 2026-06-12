@@ -33,11 +33,13 @@ interface AiPricingRecommendationsProps {
 
 const CARD_SX = {
   border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: 1.5,
+  borderColor: 'var(--line)',
+  bgcolor: 'var(--card)',
+  boxShadow: 'none',
+  borderRadius: '14px',
   p: 1.5,
   transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
+  '&:hover': { borderColor: 'var(--line-2)' },
 } as const;
 
 const HEADER_SX = {

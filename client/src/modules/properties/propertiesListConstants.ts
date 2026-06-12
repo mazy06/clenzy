@@ -19,20 +19,6 @@ export const PAGINATION_SX = {
   borderTop: '1px solid var(--line)',
   mt: 1.5,
   borderRadius: '9px',
-  '& .MuiTablePagination-toolbar': {
-    minHeight: 36,
-    px: 1,
-  },
-  '& .MuiTablePagination-displayedRows': {
-    fontSize: '11.5px',
-    fontWeight: 600,
-    color: 'var(--muted)',
-    fontVariantNumeric: 'tabular-nums',
-  },
-  '& .MuiTablePagination-actions .MuiIconButton-root': {
-    p: 0.5,
-    '& .MuiSvgIcon-root': { fontSize: 18 },
-  },
 } as const;
 
 export const ITEMS_PER_PAGE = 6;

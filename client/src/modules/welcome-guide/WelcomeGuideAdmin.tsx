@@ -665,12 +665,12 @@ const WelcomeGuideAdmin: React.FC = () => {
               key={g.id}
               variant="outlined"
               sx={{
-                borderRadius: 3,
                 overflow: 'hidden',
                 transition: 'border-color .2s ease, box-shadow .2s ease',
+                // Carte cliquable « Signature » : hover hairline renforcée + ombre teintée.
                 '&:hover': {
-                  borderColor: 'primary.main',
-                  boxShadow: '0 8px 24px -12px rgba(107,138,154,0.45)',
+                  borderColor: 'var(--line-2)',
+                  boxShadow: 'var(--shadow-card)',
                 },
               }}
             >
@@ -980,14 +980,18 @@ const WelcomeGuideAdmin: React.FC = () => {
                     fontVariantNumeric: 'tabular-nums',
                     userSelect: 'none',
                     cursor: 'pointer',
-                    bgcolor: active ? 'primary.main' : done ? 'rgba(107,138,154,0.16)' : 'action.hover',
-                    color: active ? '#fff' : done ? 'primary.main' : 'text.secondary',
+                    bgcolor: active ? 'var(--accent)' : done ? 'var(--accent-soft)' : 'var(--hover)',
+                    color: active ? 'var(--on-accent)' : done ? 'var(--accent)' : 'var(--muted)',
                     border: '1px solid',
-                    borderColor: active ? 'primary.main' : done ? 'rgba(107,138,154,0.35)' : 'divider',
+                    borderColor: active
+                      ? 'var(--accent)'
+                      : done
+                        ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
+                        : 'var(--line)',
                     transition: 'background-color .18s ease, color .18s ease, border-color .18s ease',
                     '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    '&:hover': !active ? { borderColor: 'primary.main', color: 'primary.main' } : undefined,
-                    '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                    '&:hover': !active ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined,
+                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
                   }}
                 >
                   {done ? <Check size={15} strokeWidth={2.5} /> : i + 1}
@@ -1060,7 +1064,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       { label: t('welcomeGuide.wizard.recapPublished', 'Publié'), value: published ? yes : no },
     ];
     return (
-      <Card variant="outlined" sx={{ borderRadius: 3 }}>
+      <Card variant="outlined">
         <CardContent>
           <SectionHeading
             icon={<Check size={17} strokeWidth={1.75} />}
@@ -1121,10 +1125,10 @@ const WelcomeGuideAdmin: React.FC = () => {
           />
         </Box>
         {linked && linkedReservation ? (
-          <Card variant="outlined" sx={{ borderRadius: 2 }}>
+          <Card variant="outlined">
             <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CalendarDays size={18} strokeWidth={1.75} style={{ color: DEFAULT_COLOR, flexShrink: 0 }} />
+                <CalendarDays size={18} strokeWidth={1.75} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                     {linkedReservation.guestName || t('welcomeGuide.reservationLink.guestUnknown', 'Voyageur')}
@@ -1346,10 +1350,10 @@ const WelcomeGuideAdmin: React.FC = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     boxShadow: on
-                      ? `0 0 0 2px ${DEFAULT_COLOR}, 0 0 0 4px rgba(107,138,154,0.20)`
-                      : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+                      ? '0 0 0 2px var(--accent), 0 0 0 4px var(--accent-soft)'
+                      : 'inset 0 0 0 1px var(--line-2)',
                     transition: 'box-shadow .15s',
-                    '&:hover': on ? undefined : { boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.28)' },
+                    '&:hover': on ? undefined : { boxShadow: 'inset 0 0 0 1px var(--faint)' },
                   }}
                 >
                   <Box sx={{ flex: 1, bgcolor: th.swatch.bg }} />
@@ -1366,10 +1370,10 @@ const WelcomeGuideAdmin: React.FC = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+                          boxShadow: '0 1px 3px rgba(21,36,45,.3)',
                         }}
                       >
-                        <Check size={14} strokeWidth={2.75} style={{ color: DEFAULT_COLOR }} />
+                        <Check size={14} strokeWidth={2.75} style={{ color: 'var(--accent)' }} />
                       </Box>
                     </Box>
                   ) : null}
@@ -1433,7 +1437,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                     overflow: 'hidden',
                     cursor: 'pointer',
                     border: '2px solid',
-                    borderColor: on ? 'primary.main' : 'rgba(0,0,0,0.10)',
+                    borderColor: on ? 'var(--accent)' : 'var(--line-2)',
                     transition: 'border-color .15s',
                   }}
                 >
@@ -1445,7 +1449,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                     sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
                   {on ? (
-                    <Box sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'primary.main', color: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Box sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Check size={14} strokeWidth={2.5} />
                     </Box>
                   ) : null}

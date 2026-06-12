@@ -1,5 +1,5 @@
 import { Box, Button, Typography } from '@mui/material';
-import { Smartphone, RefreshCw } from 'lucide-react';
+import { Smartphone, Refresh } from '../../../icons';
 import { BAITLY_APP } from '../baitlyApp';
 
 /**
@@ -23,7 +23,7 @@ const STEPS = [
   'Revenez ici et rafraîchissez la liste',
 ];
 
-const ACCENT = '#6B8A9A';
+const ACCENT = 'var(--accent)';
 
 export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePairingGuideProps) {
   return (
@@ -31,10 +31,9 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
       sx={{
         mt: 1,
         p: 1.5,
-        borderRadius: '10px',
-        border: '1px solid',
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--line)',
+        bgcolor: 'var(--card)',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
@@ -64,24 +63,23 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
                 component="a"
                 href={BAITLY_APP.pairingDeepLink}
                 startIcon={<Smartphone size={15} strokeWidth={2} />}
-                sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.74rem', cursor: 'pointer' }}
               >
                 Ouvrir l'app {BAITLY_APP.name}
               </Button>
             )}
             {BAITLY_APP.iosStoreUrl && (
-              <Button size="small" variant="text" component="a" href={BAITLY_APP.iosStoreUrl} target="_blank" rel="noopener noreferrer" sx={{ textTransform: 'none', fontSize: '0.72rem', cursor: 'pointer' }}>
+              <Button size="small" variant="text" component="a" href={BAITLY_APP.iosStoreUrl} target="_blank" rel="noopener noreferrer">
                 App Store
               </Button>
             )}
             {BAITLY_APP.androidStoreUrl && (
-              <Button size="small" variant="text" component="a" href={BAITLY_APP.androidStoreUrl} target="_blank" rel="noopener noreferrer" sx={{ textTransform: 'none', fontSize: '0.72rem', cursor: 'pointer' }}>
+              <Button size="small" variant="text" component="a" href={BAITLY_APP.androidStoreUrl} target="_blank" rel="noopener noreferrer">
                 Play Store
               </Button>
             )}
           </>
         ) : (
-          <Typography sx={{ fontSize: '0.72rem', color: '#B98900', fontWeight: 600 }}>
+          <Typography sx={{ fontSize: '0.72rem', color: 'var(--warn)', fontWeight: 600 }}>
             App {BAITLY_APP.name} bientôt disponible — en attendant, contactez le support pour l'appairage.
           </Typography>
         )}
@@ -92,8 +90,8 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
             variant="outlined"
             onClick={onRefresh}
             disabled={refreshing}
-            startIcon={<RefreshCw size={15} strokeWidth={2} />}
-            sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.74rem', ml: 'auto', cursor: 'pointer' }}
+            startIcon={<Refresh size={15} strokeWidth={2} />}
+            sx={{ ml: 'auto' }}
           >
             {refreshing ? 'Recherche…' : "J'ai appairé — rafraîchir"}
           </Button>

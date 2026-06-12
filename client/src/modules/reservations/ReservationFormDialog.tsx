@@ -14,7 +14,6 @@ import {
   CircularProgress,
   Typography,
   Alert,
-  alpha,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -185,10 +184,11 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1, fontSize: '0.9375rem', fontWeight: 700 }}>
+      {/* Titre display + filets + pied surface-2 : portés par le thème global */}
+      <DialogTitle>
         {isEditing ? t('reservations.edit') : t('reservations.create')}
       </DialogTitle>
-      <DialogContent sx={{ pt: 1.5 }}>
+      <DialogContent sx={{ pt: '16px !important' }}>
         {submitError && (
           <Alert severity="error" sx={{ mb: 2, fontSize: '0.8125rem' }}>
             {submitError}
@@ -236,7 +236,7 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
 
           {/* Show property name when editing */}
           {isEditing && reservation && (
-            <Box sx={{ py: 0.5, px: 1, borderRadius: 1, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06) }}>
+            <Box sx={{ py: 0.5, px: 1, borderRadius: '9px', bgcolor: 'var(--accent-soft)' }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.5625rem', display: 'block' }}>
                 {t('reservations.fields.property')}
               </Typography>
@@ -421,13 +421,8 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 2, pb: 1.5 }}>
-        <Button
-          onClick={onClose}
-          size="small"
-          disabled={isSubmitting}
-          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-        >
+      <DialogActions>
+        <Button onClick={onClose} size="small" disabled={isSubmitting}>
           {t('common.cancel')}
         </Button>
         <Button
@@ -436,7 +431,6 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
           size="small"
           disabled={!isValid || isSubmitting}
           startIcon={isSubmitting ? <CircularProgress size={14} /> : undefined}
-          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
         >
           {isEditing ? t('common.save') : t('reservations.create')}
         </Button>

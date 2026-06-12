@@ -395,8 +395,7 @@ export default function ChannexDiagnoseDialog({
             <Box>
               <Typography
                 variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', mb: 0.85, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}
+                sx={{ display: 'block', mb: 0.85, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}
               >
                 Actions recommandees
               </Typography>

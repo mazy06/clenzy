@@ -709,16 +709,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[5, 10, 25, 50]}
             labelRowsPerPage={t('common.all') === 'Tous' ? 'Lignes par page' : 'Rows per page'}
-            sx={{
-              borderTop: '1px solid var(--line)',
-              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                fontSize: '12.5px',
-                color: 'var(--muted)',
-              },
-              '& .MuiTablePagination-select': {
-                fontSize: '12.5px',
-              },
-            }}
+            sx={{ borderTop: '1px solid var(--line)' }}
           />
         </TableContainer>
       </DataFetchWrapper>

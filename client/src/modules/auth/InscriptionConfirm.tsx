@@ -298,8 +298,8 @@ export default function InscriptionConfirm() {
                     py: 1.25,
                     fontWeight: 600,
                     fontSize: '0.9rem',
-                    backgroundColor: '#6B8A9A',
-                    '&:hover': { backgroundColor: '#5A7684' },
+                    backgroundColor: 'primary.main',
+                    '&:hover': { backgroundColor: 'primary.dark' },
                     borderRadius: 2,
                     boxShadow: '0 4px 12px rgba(107,138,154,0.3)',
                   }}
@@ -358,8 +358,8 @@ export default function InscriptionConfirm() {
                 sx={{
                   px: 4,
                   fontWeight: 600,
-                  backgroundColor: '#6B8A9A',
-                  '&:hover': { backgroundColor: '#5A7684' },
+                  backgroundColor: 'primary.main',
+                  '&:hover': { backgroundColor: 'primary.dark' },
                   borderRadius: 2,
                 }}
               >
@@ -382,9 +382,9 @@ export default function InscriptionConfirm() {
                 variant="outlined"
                 onClick={() => navigate('/login')}
                 sx={{
-                  borderColor: '#6B8A9A',
-                  color: '#6B8A9A',
-                  '&:hover': { borderColor: '#5A7684', backgroundColor: 'rgba(107,138,154,0.04)' },
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'rgba(107,138,154,0.04)' },
                 }}
               >
                 {t('auth.common.backToLogin', 'Retour a la connexion')}
@@ -406,9 +406,9 @@ export default function InscriptionConfirm() {
                 variant="outlined"
                 onClick={() => navigate('/login')}
                 sx={{
-                  borderColor: '#6B8A9A',
-                  color: '#6B8A9A',
-                  '&:hover': { borderColor: '#5A7684', backgroundColor: 'rgba(107,138,154,0.04)' },
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'rgba(107,138,154,0.04)' },
                 }}
               >
                 {t('auth.common.backToLogin', 'Retour a la connexion')}

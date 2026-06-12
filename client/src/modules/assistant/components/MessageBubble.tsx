@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, useTheme, alpha, CircularProgress, Dialog, DialogContent } from '@mui/material';
+import { Box, Typography, CircularProgress, Dialog, DialogContent } from '@mui/material';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
@@ -12,22 +12,17 @@ interface MessageBubbleProps {
 }
 
 /**
- * Rendu d'un message individuel — style Claude.ai / ChatGPT moderne (document
- * flow vs back-and-forth chat).
+ * Rendu d'un message individuel — pattern bulles « Signature » (réf .mg-b,
+ * messagerie unifiée).
  *
- * <p><b>User</b> : aligne droite, dans une carte arrondie avec bg primary teinte.
- * Compact (max 78% largeur). Le user "soumet" — visuel input-like.</p>
+ * <p><b>User (out)</b> : aligné droite, bulle accent pleine (exception validée
+ * messagerie), coin bas-droit 5px, max 74%.</p>
  *
- * <p><b>Assistant</b> : aligne gauche, pleine largeur, PAS de bulle. Texte en
- * flow document, precede d'un avatar sparkles. Le LLM "parle" — visuel
- * narrateur / document.</p>
- *
- * <p>Les deux roles ont leur "cote" stable (user toujours droite, assistant
- * toujours gauche) : pas de zigzag, le flow est lineaire et lisible comme un
- * fil de discussion document.</p>
+ * <p><b>Assistant (in)</b> : aligné gauche, carte hairline coin bas-gauche 5px,
+ * précédé de l'avatar mark. Les widgets riches (KPI, tables…) restent hors
+ * bulle, pleine largeur.</p>
  */
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
-  const theme = useTheme();
   const isUser = message.role === 'user';
   const isStreaming = message.streaming === true;
   const [fullSizeUrl, setFullSizeUrl] = useState<string | null>(null);
@@ -36,20 +31,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   // Tool messages (results) are hidden from the chat view — they live in ToolCallCard.
   if (message.role === 'tool') return null;
 
-  // ── USER : carte alignee droite, max-width 78% ──────────────────────────
+  // ── USER : bulle .mg-b out (accent plein), alignée droite, max 74% ───────
   if (isUser) {
     const attachments = message.attachments ?? [];
     return (
       <>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Box
             sx={{
-              maxWidth: '78%',
-              px: 1.75,
-              py: 1.25,
-              borderRadius: 2.5,
-              bgcolor: alpha(theme.palette.primary.main, 0.12),
-              color: theme.palette.text.primary,
+              maxWidth: '74%',
+              p: '11px 14px',
+              borderRadius: '15px',
+              borderBottomRightRadius: '5px',
+              bgcolor: 'var(--accent)',
+              color: 'var(--on-accent)',
               display: 'flex',
               flexDirection: 'column',
               gap: 1,
@@ -70,18 +65,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                     sx={{
                       width: 100,
                       height: 100,
-                      borderRadius: 1.5,
+                      borderRadius: '10px',
                       overflow: 'hidden',
                       border: 'none',
                       padding: 0,
                       cursor: 'pointer',
-                      bgcolor: alpha(theme.palette.text.primary, 0.06),
-                      transition: 'opacity 180ms ease-out',
+                      bgcolor: 'rgba(255,255,255,.18)',
+                      transition: 'opacity .15s',
                       '&:hover': { opacity: 0.85 },
                       '&:focus-visible': {
-                        outline: `2px solid ${theme.palette.primary.main}`,
+                        outline: '2px solid var(--on-accent)',
                         outlineOffset: 2,
                       },
+                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                     }}
                   >
                     <Box
@@ -102,12 +98,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
             {message.content && (
               <Typography
-                variant="body2"
                 dir={arabicDirProp(message.content)}
                 sx={{
+                  fontSize: 13,
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
-                  lineHeight: 1.55,
+                  lineHeight: 1.5,
                   // Si le message user est en arabe : agrandit + line-height
                   // adapte + font-family arabe-friendly. Sinon styles latins.
                   ...(isArabicHeavy(message.content) ? {
@@ -129,11 +125,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           maxWidth="lg"
           aria-labelledby="attachment-fullsize-title"
         >
-          <DialogContent sx={{ p: 1.5, bgcolor: theme.palette.background.default }}>
+          <DialogContent sx={{ p: 1.5 }}>
             <Typography
               id="attachment-fullsize-title"
               variant="caption"
-              sx={{ display: 'block', mb: 1, color: theme.palette.text.secondary }}
+              sx={{ display: 'block', mb: 1, color: 'var(--muted)' }}
             >
               {fullSizeAlt}
             </Typography>
@@ -147,6 +143,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                   maxHeight: '80vh',
                   display: 'block',
                   mx: 'auto',
+                  borderRadius: '10px',
                 }}
               />
             )}
@@ -156,17 +153,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     );
   }
 
-  // ── ASSISTANT : pleine largeur a gauche, avatar + texte en flow document ─
+  // ── ASSISTANT : avatar mark + bulle .mg-b in (carte hairline) ────────────
   return (
     <Box
       sx={{
         display: 'flex',
         gap: 1.5,
         alignItems: 'flex-start',
-        mb: 3,
+        mb: 2.5,
         // Streaming visual : opacity subtile uniquement avant tout contenu
         opacity: isStreaming && !message.content && !message.toolCalls?.length ? 0.85 : 1,
-        transition: 'opacity 200ms ease-out',
+        transition: 'opacity .2s',
         '@media (prefers-reduced-motion: reduce)': {
           transition: 'none',
         },
@@ -184,7 +181,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          mt: 0.25, // align with first line of text
+          mt: 0.5, // align with bubble first line
         }}
       >
         {/* idleAnimation=false : pas de boot+scan+breathe sur chaque message
@@ -201,8 +198,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         />
       </Box>
 
-      {/* Contenu : tool calls + texte en flow document */}
-      <Box sx={{ flex: 1, minWidth: 0, pt: 0.25 }}>
+      {/* Contenu : tool calls + widgets pleine largeur, texte en bulle in */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         {/* Tool call cards : chip recap des outils utilises (compact) */}
         {message.toolCalls && message.toolCalls.length > 0 && (
           <Box sx={{ mb: 1, display: 'flex', flexWrap: 'wrap' }}>
@@ -224,14 +221,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
         {/* Texte de la reponse rendu en MARKDOWN — supporte les liens internes
             [texte](/route) qui deviennent <RouterLink>, listes a puces, gras, etc.
-            Permet au LLM de proposer "[Settings](/settings?tab=ai)" cliquable inline. */}
-        {message.content && <AssistantMarkdown text={message.content} />}
+            Permet au LLM de proposer "[Settings](/settings?tab=ai)" cliquable inline.
+            Bulle in : carte hairline, coin bas-gauche 5px. */}
+        {message.content && (
+          <Box
+            sx={{
+              display: 'inline-block',
+              maxWidth: '100%',
+              p: '11px 14px',
+              borderRadius: '15px',
+              borderBottomLeftRadius: '5px',
+              bgcolor: 'var(--card)',
+              border: '1px solid var(--line)',
+              color: 'var(--body)',
+            }}
+          >
+            <AssistantMarkdown text={message.content} />
+          </Box>
+        )}
 
         {/* Streaming indicator quand le contenu est encore vide */}
         {isStreaming && !message.content && !message.toolCalls?.length && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-            <CircularProgress size={12} thickness={5} />
-            <Typography variant="caption" color="text.secondary">
+            <CircularProgress size={12} thickness={5} sx={{ color: 'var(--accent)' }} />
+            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
               Reflechit...
             </Typography>
           </Box>

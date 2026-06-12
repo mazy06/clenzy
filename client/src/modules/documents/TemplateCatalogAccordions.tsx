@@ -25,18 +25,22 @@ import {
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import type { DocumentTemplate } from '../../services/api/documentsApi';
-import { softChipSx } from '../../utils/statusUtils';
 
-// ─── Baitly palette (accents valides) ───────────────────────────────────────
-// Toutes les couleurs respectent l'identite Baitly (primer.md + Impeccable).
-// On evite les couleurs MUI brutes (#1976d2, #2e7d32...) au profit des accents
-// du produit pour eviter le rendu "templated" / generique.
-const ACCENT_TEAL = '#4A9B8E';   // teal — actions positives, welcoming
-const PRIMARY = '#6B8A9A';        // bleu-gris Baitly — etat principal
-const WARM = '#D4A574';           // warm sand — transition/important
-const SOFT_BLUE = '#7BA3C2';      // bleu doux — info passive
-const NEUTRAL = '#8A8378';        // warm-gray Baitly — secondaire/inactif
-const VIOLET = '#8b5cf6';         // violet — docs commerciaux (categorie distincte)
+// ─── Tons sémantiques (tokens Signature) ─────────────────────────────────────
+// Mapping : étapes du parcours → ok/accent/warn ; documents PDF → err (pastille
+// type), admin → muted. Les -soft viennent des tokens (dark mode automatique).
+interface Tone { c: string; bg: string }
+
+const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
+  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
+  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
+  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
+  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
+  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
+  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
+};
+
+const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -66,7 +70,7 @@ interface CatalogGroup {
   id: string;
   label: string;
   icon: React.ReactNode;
-  color: string;
+  tone: Tone;
   items: CatalogItem[];
 }
 
@@ -85,7 +89,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'pre-stay',
     label: 'Avant le sejour',
     icon: <EventAvailable />,
-    color: ACCENT_TEAL,
+    tone: TONES.ok,
     items: [
       {
         id: 'checkin-instructions',
@@ -139,7 +143,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'during-stay',
     label: 'Pendant le sejour',
     icon: <Hotel />,
-    color: PRIMARY,
+    tone: TONES.accent,
     items: [
       {
         id: 'noise-alert-owner',
@@ -187,7 +191,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'post-stay',
     label: 'Fin du sejour',
     icon: <ExitToApp />,
-    color: WARM,
+    tone: TONES.warn,
     items: [
       {
         id: 'checkout-instructions',
@@ -212,7 +216,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'documents',
     label: 'Documents commerciaux',
     icon: <Description />,
-    color: VIOLET,
+    tone: TONES.err,
     items: [
       {
         id: 'doc-devis',
@@ -308,7 +312,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'admin',
     label: 'Administration',
     icon: <AdminPanelSettings />,
-    color: NEUTRAL,
+    tone: TONES.muted,
     items: [
       {
         id: 'invitation-org',
@@ -353,24 +357,23 @@ const CATALOG_GROUPS: CatalogGroup[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Couleurs des chips alignees sur la palette Baitly via softChipSx.
-// Semantic mapping :
-//   auto      = PRIMARY (action systeme reguliere)
-//   manual    = NEUTRAL (action humaine)
-//   form      = WARM (declenchement externe)
-//   document  = VIOLET (canal physique)
-const TRIGGER_CONFIG: Record<string, { label: string; hex: string }> = {
-  auto: { label: 'Automatique', hex: PRIMARY },
-  manual: { label: 'Manuel', hex: NEUTRAL },
-  form: { label: 'Formulaire', hex: WARM },
-  'auto+manual': { label: 'Auto / Manuel', hex: ACCENT_TEAL },
+// Chips meta en tons -soft semantiques :
+//   auto      = accent (action systeme reguliere)
+//   manual    = muted (action humaine)
+//   form      = warn (declenchement externe)
+//   document  = err (pastille type document, cf. pattern .fr-doc)
+const TRIGGER_CONFIG: Record<string, { label: string; tone: Tone }> = {
+  auto: { label: 'Automatique', tone: TONES.accent },
+  manual: { label: 'Manuel', tone: TONES.muted },
+  form: { label: 'Formulaire', tone: TONES.warn },
+  'auto+manual': { label: 'Auto / Manuel', tone: TONES.ok },
 };
 
-const CHANNEL_CONFIG: Record<string, { label: string; hex: string }> = {
-  email: { label: 'Email', hex: SOFT_BLUE },
-  'in-app': { label: 'In-app', hex: ACCENT_TEAL },
-  'email+in-app': { label: 'Email + In-app', hex: ACCENT_TEAL },
-  document: { label: 'Document .odt', hex: VIOLET },
+const CHANNEL_CONFIG: Record<string, { label: string; tone: Tone }> = {
+  email: { label: 'Email', tone: TONES.info },
+  'in-app': { label: 'In-app', tone: TONES.ok },
+  'email+in-app': { label: 'Email + In-app', tone: TONES.ok },
+  document: { label: 'Document .odt', tone: TONES.err },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -444,8 +447,8 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  bgcolor: `${group.color}14`,
-                  color: group.color,
+                  bgcolor: group.tone.bg,
+                  color: group.tone.c,
                   flexShrink: 0,
                 }}
               >
@@ -462,7 +465,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
               <Chip
                 label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`}
                 size="small"
-                sx={softChipSx(group.color)}
+                sx={chipSx(group.tone)}
               />
             </Box>
           </AccordionSummary>
@@ -481,9 +484,9 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                       <Typography sx={{ fontWeight: 600, fontSize: '0.8125rem', flex: 1, minWidth: 0 }}>
                         {item.name}
                       </Typography>
-                      <Chip label={trigger.label} size="small" sx={softChipSx(trigger.hex)} />
-                      <Chip label={channel.label} size="small" sx={softChipSx(channel.hex)} />
-                      <Chip label={item.recipient} size="small" sx={softChipSx(NEUTRAL)} />
+                      <Chip label={trigger.label} size="small" sx={chipSx(trigger.tone)} />
+                      <Chip label={channel.label} size="small" sx={chipSx(channel.tone)} />
+                      <Chip label={item.recipient} size="small" sx={chipSx(TONES.muted)} />
                     </Box>
 
                     {/* Description */}
@@ -515,10 +518,10 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                               sx={{
                                 fontFamily: '"SF Mono", Menlo, Consolas, monospace',
                                 fontSize: '0.6875rem',
-                                color: PRIMARY,
-                                backgroundColor: `${PRIMARY}0F`,
+                                color: 'var(--accent)',
+                                backgroundColor: 'var(--accent-soft)',
                                 border: '1px solid',
-                                borderColor: `${PRIMARY}26`,
+                                borderColor: 'color-mix(in srgb, var(--accent) 24%, transparent)',
                                 borderRadius: '4px',
                                 px: 0.625,
                                 py: '2px',
@@ -538,12 +541,12 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                       // Etat = couleur d'accent + icone choisis selon le type de template
                       const status =
                         item.templateKind === 'document' && linkedTemplate
-                          ? { hex: ACCENT_TEAL, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
+                          ? { tone: TONES.ok, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
                           : item.templateKind === 'document' && !linkedTemplate
-                          ? { hex: WARM, icon: <Warning size={16} strokeWidth={1.75} /> }
+                          ? { tone: TONES.warn, icon: <Warning size={16} strokeWidth={1.75} /> }
                           : item.templateKind === 'message'
-                          ? { hex: SOFT_BLUE, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
-                          : { hex: NEUTRAL, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
+                          ? { tone: TONES.info, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
+                          : { tone: TONES.muted, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
 
                       return (
                         <Box
@@ -552,15 +555,15 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                             px: 1.25,
                             py: 1,
                             borderRadius: 1.25,
-                            backgroundColor: `${status.hex}0C`,
+                            backgroundColor: status.tone.bg,
                             border: '1px solid',
-                            borderColor: `${status.hex}26`,
+                            borderColor: `color-mix(in srgb, ${status.tone.c} 24%, transparent)`,
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1,
                           }}
                         >
-                          <Box component="span" sx={{ display: 'inline-flex', color: status.hex, flexShrink: 0 }}>
+                          <Box component="span" sx={{ display: 'inline-flex', color: status.tone.c, flexShrink: 0 }}>
                             {status.icon}
                           </Box>
 
@@ -582,9 +585,9 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                   fontSize: '0.6875rem',
                                   textTransform: 'none',
                                   fontWeight: 600,
-                                  color: status.hex,
+                                  color: status.tone.c,
                                   cursor: 'pointer',
-                                  '&:hover': { backgroundColor: `${status.hex}14` },
+                                  '&:hover': { backgroundColor: status.tone.bg },
                                 }}
                               >
                                 Voir
@@ -606,10 +609,10 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                   fontSize: '0.6875rem',
                                   textTransform: 'none',
                                   fontWeight: 600,
-                                  borderColor: `${status.hex}66`,
-                                  color: status.hex,
+                                  borderColor: `color-mix(in srgb, ${status.tone.c} 40%, transparent)`,
+                                  color: status.tone.c,
                                   cursor: 'pointer',
-                                  '&:hover': { borderColor: status.hex, backgroundColor: `${status.hex}14` },
+                                  '&:hover': { borderColor: status.tone.c, backgroundColor: status.tone.bg },
                                 }}
                               >
                                 Uploader un template .odt
@@ -631,9 +634,9 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                     fontSize: '0.6875rem',
                                     textTransform: 'none',
                                     fontWeight: 600,
-                                    color: status.hex,
+                                    color: status.tone.c,
                                     cursor: 'pointer',
-                                    '&:hover': { backgroundColor: `${status.hex}14` },
+                                    '&:hover': { backgroundColor: status.tone.bg },
                                   }}
                                 >
                                   Gérer
@@ -662,9 +665,9 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                                     fontSize: '0.6875rem',
                                     textTransform: 'none',
                                     fontWeight: 600,
-                                    color: status.hex,
+                                    color: status.tone.c,
                                     cursor: 'pointer',
-                                    '&:hover': { backgroundColor: `${status.hex}14` },
+                                    '&:hover': { backgroundColor: status.tone.bg },
                                   }}
                                 >
                                   Personnaliser

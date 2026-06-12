@@ -63,7 +63,7 @@ function PeriodSegmentedInner<T extends string>({
               transition: 'background-color .14s, color .14s',
               bgcolor: selected ? 'var(--card)' : 'transparent',
               color: selected ? 'var(--accent)' : 'var(--muted)',
-              boxShadow: selected ? '0 1px 3px rgba(21,36,45,.1)' : 'none',
+              boxShadow: selected ? '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)' : 'none',
               '&:hover': { color: selected ? 'var(--accent)' : 'var(--body)' },
               '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
               '@media (prefers-reduced-motion: reduce)': { transition: 'none' },

@@ -11,11 +11,10 @@ import {
   Chip,
   Button,
   CircularProgress,
+  Skeleton,
   Alert,
   Typography,
   Grid,
-  Card,
-  CardContent,
   TextField,
   TablePagination,
   Dialog,
@@ -23,30 +22,38 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import { PlayArrow } from '../../../icons';
+import {
+  PlayArrow,
+  CompareArrows,
+  CheckCircle,
+  ErrorOutline,
+  WarningAmber,
+  Tune,
+  AutoFixHigh,
+} from '../../../icons';
 import { syncAdminApi, ReconciliationRun, ReconciliationStats } from '../../../services/api/syncAdminApi';
-import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
 import FilterChipRow from '../../../components/FilterChipRow';
+import StatTile from '../../../components/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 
 type ReconciliationStatus = 'SUCCESS' | 'FAILED' | 'DIVERGENCE' | 'RUNNING';
 
 const STATUS_OPTIONS: { value: ReconciliationStatus; label: string; color: string }[] = [
-  { value: 'SUCCESS',    label: 'Success',    color: semanticToHex('success') },
-  { value: 'FAILED',     label: 'Failed',     color: semanticToHex('error') },
-  { value: 'DIVERGENCE', label: 'Divergence', color: semanticToHex('warning') },
-  { value: 'RUNNING',    label: 'Running',    color: semanticToHex('info') },
+  { value: 'SUCCESS',    label: 'Success',    color: 'var(--ok)' },
+  { value: 'FAILED',     label: 'Failed',     color: 'var(--err)' },
+  { value: 'DIVERGENCE', label: 'Divergence', color: 'var(--warn)' },
+  { value: 'RUNNING',    label: 'Running',    color: 'var(--info)' },
 ];
 
-const statusSemantic = (status: string): string => {
-  switch (status) {
-    case 'SUCCESS': return 'success';
-    case 'FAILED': return 'error';
-    case 'DIVERGENCE': return 'warning';
-    case 'RUNNING': return 'info';
-    default: return 'default';
-  }
+// Statuts de run → tokens sémantiques (chips -soft : texte couleur + fond -soft)
+const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
+  SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  DIVERGENCE: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  RUNNING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
 };
+
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 
 const ReconciliationTab: React.FC = () => {
   const [runs, setRuns] = useState<ReconciliationRun[]>([]);
@@ -137,7 +144,6 @@ const ReconciliationTab: React.FC = () => {
         color="primary"
         startIcon={<PlayArrow />}
         onClick={() => setTriggerDialogOpen(true)}
-        sx={{ textTransform: 'none', fontWeight: 600 }}
       >
         Trigger Reconciliation
       </Button>,
@@ -186,56 +192,26 @@ const ReconciliationTab: React.FC = () => {
 
   return (
     <Box>
-      {/* Stats Cards */}
+      {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={6} sm={2}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Total Runs</Typography>
-                <Typography variant="h4">{stats.totalRuns}</Typography>
-              </CardContent>
-            </Card>
+            <StatTile icon={<CompareArrows />} label="Total Runs" value={stats.totalRuns} color="#6B8A9A" />
           </Grid>
           <Grid item xs={6} sm={2}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Success</Typography>
-                <Typography variant="h4" color="success.main">{stats.successRuns}</Typography>
-              </CardContent>
-            </Card>
+            <StatTile icon={<CheckCircle />} label="Success" value={stats.successRuns} color="#4A9B8E" />
           </Grid>
           <Grid item xs={6} sm={2}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Failed</Typography>
-                <Typography variant="h4" color="error.main">{stats.failedRuns}</Typography>
-              </CardContent>
-            </Card>
+            <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failedRuns} color="#C97A7A" />
           </Grid>
           <Grid item xs={6} sm={2}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Divergence</Typography>
-                <Typography variant="h4" color="warning.main">{stats.divergenceRuns}</Typography>
-              </CardContent>
-            </Card>
+            <StatTile icon={<WarningAmber />} label="Divergence" value={stats.divergenceRuns} color="#D4A574" />
           </Grid>
           <Grid item xs={6} sm={2}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Discrepancies</Typography>
-                <Typography variant="h4">{stats.totalDiscrepancies}</Typography>
-              </CardContent>
-            </Card>
+            <StatTile icon={<Tune />} label="Discrepancies" value={stats.totalDiscrepancies} color="#7BA3C2" />
           </Grid>
           <Grid item xs={6} sm={2}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">Fixes</Typography>
-                <Typography variant="h4" color="success.main">{stats.totalFixes}</Typography>
-              </CardContent>
-            </Card>
+            <StatTile icon={<AutoFixHigh />} label="Fixes" value={stats.totalFixes} color="#4A9B8E" />
           </Grid>
         </Grid>
       )}
@@ -244,12 +220,18 @@ const ReconciliationTab: React.FC = () => {
       {triggerMessage && <Alert severity="info" sx={{ mb: 2 }}>{triggerMessage}</Alert>}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+          ))}
         </Box>
       ) : (
         <>
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer
+            component={Paper}
+            variant="outlined"
+            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
+          >
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -270,34 +252,42 @@ const ReconciliationTab: React.FC = () => {
               <TableBody>
                 {runs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} align="center">Aucune reconciliation</TableCell>
+                    <TableCell colSpan={12} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                      Aucune reconciliation
+                    </TableCell>
                   </TableRow>
                 ) : (
                   runs.map((run) => (
                     <TableRow key={run.id}>
-                      <TableCell>{run.id}</TableCell>
+                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.id}</TableCell>
                       <TableCell>
                         <Chip
                           label={run.channel}
                           size="small"
-                          sx={softChipSx(semanticToHex('default'))}
+                          sx={{ color: NEUTRAL_TOKEN.fg, backgroundColor: NEUTRAL_TOKEN.bg }}
                         />
                       </TableCell>
-                      <TableCell>{run.propertyId}</TableCell>
+                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.propertyId}</TableCell>
                       <TableCell>
                         <Chip
                           label={run.status}
                           size="small"
-                          sx={softChipSx(semanticToHex(statusSemantic(run.status)))}
+                          sx={(() => {
+                            const tk = STATUS_TOKEN[run.status] ?? NEUTRAL_TOKEN;
+                            return { color: tk.fg, backgroundColor: tk.bg };
+                          })()}
                         />
                       </TableCell>
-                      <TableCell>{run.pmsDaysChecked}</TableCell>
-                      <TableCell>{run.channelDaysChecked}</TableCell>
+                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.pmsDaysChecked}</TableCell>
+                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.channelDaysChecked}</TableCell>
                       <TableCell>
                         <Typography
                           variant="body2"
-                          color={run.discrepanciesFound > 0 ? 'warning.main' : 'text.primary'}
-                          fontWeight={run.discrepanciesFound > 0 ? 'bold' : 'normal'}
+                          sx={{
+                            color: run.discrepanciesFound > 0 ? 'var(--warn)' : 'var(--body)',
+                            fontWeight: run.discrepanciesFound > 0 ? 600 : 400,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
                         >
                           {run.discrepanciesFound}
                         </Typography>
@@ -305,7 +295,10 @@ const ReconciliationTab: React.FC = () => {
                       <TableCell>
                         <Typography
                           variant="body2"
-                          color={run.discrepanciesFixed > 0 ? 'success.main' : 'text.primary'}
+                          sx={{
+                            color: run.discrepanciesFixed > 0 ? 'var(--ok)' : 'var(--body)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
                         >
                           {run.discrepanciesFixed}
                         </Typography>

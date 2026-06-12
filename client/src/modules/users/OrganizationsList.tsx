@@ -14,7 +14,7 @@ import {
   MenuItem,
   ListItemIcon,
   Alert,
-  CircularProgress,
+  Skeleton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -41,6 +41,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
+import StatTile from '../../components/StatTile';
+import EmptyState from '../../components/EmptyState';
 import { organizationsApi } from '../../services/api';
 import type { OrganizationDto } from '../../services/api';
 import MembersList from '../organization/MembersList';
@@ -222,9 +224,13 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={32} />
-      </Box>
+      <Grid container spacing={2}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+            <Skeleton variant="rounded" height={170} sx={{ borderRadius: '14px' }} />
+          </Grid>
+        ))}
+      </Grid>
     );
   }
 
@@ -284,40 +290,30 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         />
       )}
 
-      {/* Statistiques */}
+      {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
           <Grid item xs={6} sm={4} md>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
-                <Typography variant="h6" color="primary" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
-                  {organizations.length}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Total organisations
-                </Typography>
-              </CardContent>
-            </Card>
+            <StatTile
+              icon={<CorporateFare />}
+              label="Total organisations"
+              value={organizations.length}
+              color="#6B8A9A"
+            />
           </Grid>
-          {orgTypes.map((typeInfo) => (
-            <Grid item xs={6} sm={4} md key={typeInfo.value}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
-                  <Typography
-                    variant="h6"
-                    color={`${typeInfo.color}.main`}
-                    fontWeight={700}
-                    sx={{ fontSize: '1.5rem' }}
-                  >
-                    {organizations.filter(o => o.type === typeInfo.value).length}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                    {typeInfo.label}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+          {orgTypes.map((typeInfo) => {
+            const TypeIcon = typeInfo.Icon;
+            return (
+              <Grid item xs={6} sm={4} md key={typeInfo.value}>
+                <StatTile
+                  icon={<TypeIcon />}
+                  label={typeInfo.label}
+                  value={organizations.filter(o => o.type === typeInfo.value).length}
+                  color={typeInfo.hex}
+                />
+              </Grid>
+            );
+          })}
         </Grid>
       </Box>
 
@@ -330,15 +326,15 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       <Grid container spacing={2}>
         {filteredOrgs.length === 0 ? (
           <Grid item xs={12}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2.5, px: 2 }}>
-                <Typography variant="h6" align="center" sx={{ fontSize: '0.95rem', mb: 1 }}>
-                  {organizations.length === 0
-                    ? 'Aucune organisation trouvee.'
-                    : 'Aucune organisation ne correspond aux filtres.'}
-                </Typography>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={<CorporateFare />}
+              title={organizations.length === 0 ? 'Aucune organisation' : 'Aucun résultat'}
+              description={
+                organizations.length === 0
+                  ? 'Créez la première organisation avec le bouton « Nouvelle organisation ».'
+                  : 'Aucune organisation ne correspond aux filtres sélectionnés.'
+              }
+            />
           </Grid>
         ) : (
           filteredOrgs.map((org) => {
@@ -347,38 +343,36 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
             const TypeIcon = typeInfo.Icon;
             return (
               <Grid item xs={12} sm={6} md={4} lg={3} key={org.id}>
+                {/* Carte hairline r14 (thème global) — hover lift + shadow-card */}
                 <Card
                   sx={{
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    borderRadius: '10px',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    boxShadow: 'none',
-                    transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
                     '&:hover': {
-                      borderColor: 'rgba(107, 138, 154, 0.35)',
-                      boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+                      borderColor: 'var(--line-2)',
+                      boxShadow: 'var(--shadow-card)',
                       transform: 'translateY(-1px)',
+                    },
+                    '@media (prefers-reduced-motion: reduce)': {
+                      '&:hover': { transform: 'none' },
                     },
                   }}
                 >
                   <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
-                    {/* Header */}
+                    {/* Header — badge icône fond soft (pattern .mg-avt) */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
                         <Box
                           sx={{
                             width: 38,
                             height: 38,
-                            borderRadius: '8px',
+                            borderRadius: '10px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             bgcolor: `${typeColor}1F`,
                             color: typeColor,
-                            border: `1px solid ${typeColor}33`,
                             flexShrink: 0,
                           }}
                         >
@@ -425,28 +419,16 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       </IconButton>
                     </Box>
 
-                    {/* Type et membres */}
+                    {/* Type et membres — chips -soft (pilule/typo via thème global MuiChip) */}
                     <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
                       <Chip
                         icon={<TypeIcon size={11} strokeWidth={2} />}
                         label={typeInfo.label}
                         size="small"
                         sx={{
-                          height: 22,
-                          fontSize: '0.6875rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.01em',
-                          backgroundColor: `${typeColor}14`,
+                          backgroundColor: `${typeColor}18`,
                           color: typeColor,
-                          border: `1px solid ${typeColor}33`,
-                          borderRadius: '6px',
-                          px: 0.25,
-                          '& .MuiChip-icon': {
-                            color: `${typeColor} !important`,
-                            ml: '6px',
-                            mr: '-2px',
-                          },
-                          '& .MuiChip-label': { px: 0.875 },
+                          '& .MuiChip-icon': { color: typeColor, ml: '8px', mr: '-4px' },
                         }}
                       />
                       <Chip
@@ -455,26 +437,12 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                         size="small"
                         onClick={() => setMembersDialogOrg(org)}
                         sx={{
-                          height: 22,
-                          fontSize: '0.6875rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.01em',
                           cursor: 'pointer',
-                          backgroundColor: `${MEMBER_CHIP_COLOR}14`,
+                          backgroundColor: `${MEMBER_CHIP_COLOR}18`,
                           color: MEMBER_CHIP_COLOR,
-                          border: `1px solid ${MEMBER_CHIP_COLOR}33`,
-                          borderRadius: '6px',
-                          px: 0.25,
                           fontVariantNumeric: 'tabular-nums',
-                          '& .MuiChip-icon': {
-                            color: `${MEMBER_CHIP_COLOR} !important`,
-                            ml: '6px',
-                            mr: '-2px',
-                          },
-                          '& .MuiChip-label': { px: 0.875 },
-                          '&:hover': {
-                            backgroundColor: `${MEMBER_CHIP_COLOR}22`,
-                          },
+                          '& .MuiChip-icon': { color: MEMBER_CHIP_COLOR, ml: '8px', mr: '-4px' },
+                          '&:hover': { backgroundColor: `${MEMBER_CHIP_COLOR}28` },
                         }}
                       />
                     </Box>
@@ -497,27 +465,14 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                   </CardContent>
 
                   {/* Actions */}
+                  {/* Boutons secondaires : peau .s-btn--g du thème global */}
                   <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5, gap: 0.75 }}>
                     <Button
                       variant="outlined"
                       size="small"
                       startIcon={<Visibility size={14} strokeWidth={1.75} />}
                       onClick={() => setMembersDialogOrg(org)}
-                      sx={{
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        letterSpacing: '0.01em',
-                        borderRadius: '6px',
-                        borderColor: 'divider',
-                        color: 'text.primary',
-                        textTransform: 'none',
-                        py: 0.625,
-                        flex: 1,
-                        '&:hover': {
-                          borderColor: 'rgba(107, 138, 154, 0.5)',
-                          backgroundColor: 'rgba(107, 138, 154, 0.06)',
-                        },
-                      }}
+                      sx={{ flex: 1 }}
                     >
                       Membres
                     </Button>
@@ -531,21 +486,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                         setFormData({ name: org.name, type: org.type });
                         setFormDialogOpen(true);
                       }}
-                      sx={{
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        letterSpacing: '0.01em',
-                        borderRadius: '6px',
-                        borderColor: 'divider',
-                        color: 'text.primary',
-                        textTransform: 'none',
-                        py: 0.625,
-                        flex: 1,
-                        '&:hover': {
-                          borderColor: 'rgba(107, 138, 154, 0.5)',
-                          backgroundColor: 'rgba(107, 138, 154, 0.06)',
-                        },
-                      }}
+                      sx={{ flex: 1 }}
                     >
                       Modifier
                     </Button>
@@ -570,29 +511,22 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
             if (selectedOrg) setMembersDialogOrg(selectedOrg);
             setAnchorEl(null);
           }}
-          sx={{ fontSize: '0.85rem', py: 0.75 }}
         >
           <ListItemIcon>
             <People size={18} strokeWidth={1.75} />
           </ListItemIcon>
           Voir les membres
         </MenuItem>
-        <MenuItem
-          onClick={handleEdit}
-          sx={{ fontSize: '0.85rem', py: 0.75 }}
-        >
+        <MenuItem onClick={handleEdit}>
           <ListItemIcon>
             <Edit size={18} strokeWidth={1.75} />
           </ListItemIcon>
           Modifier
         </MenuItem>
         {isAdmin() && (
-          <MenuItem
-            onClick={handleDelete}
-            sx={{ color: 'error.main', fontSize: '0.85rem', py: 0.75 }}
-          >
+          <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)' }}>
             <ListItemIcon>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Delete size={18} strokeWidth={1.75} /></Box>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete size={18} strokeWidth={1.75} /></Box>
             </ListItemIcon>
             Supprimer
           </MenuItem>
@@ -721,13 +655,13 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       <Chip
                         label={ti.label}
                         size="small"
-                        sx={{ height: 22, fontSize: '0.6875rem', fontWeight: 600, backgroundColor: `${c}14`, color: c, border: `1px solid ${c}33`, borderRadius: '6px', '& .MuiChip-label': { px: 0.875 } }}
+                        sx={{ backgroundColor: `${c}18`, color: c }}
                       />
                     ); })()}
                     <Chip
                       label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`}
                       size="small"
-                      sx={{ height: 22, fontSize: '0.6875rem', fontWeight: 600, backgroundColor: `${MEMBER_CHIP_COLOR}14`, color: MEMBER_CHIP_COLOR, border: `1px solid ${MEMBER_CHIP_COLOR}33`, borderRadius: '6px', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.875 } }}
+                      sx={{ backgroundColor: `${MEMBER_CHIP_COLOR}18`, color: MEMBER_CHIP_COLOR, fontVariantNumeric: 'tabular-nums' }}
                     />
                   </Box>
                 </Box>

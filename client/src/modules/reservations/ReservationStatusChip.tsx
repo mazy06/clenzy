@@ -1,33 +1,38 @@
 import React from 'react';
-import { Chip } from '@mui/material';
+import { Box, Chip } from '@mui/material';
 import type { ReservationStatus, ReservationSource } from '../../services/api/reservationsApi';
+import { RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
 import {
-  RESERVATION_STATUS_COLORS,
-  RESERVATION_SOURCE_LABELS,
-} from '../../services/api/reservationsApi';
+  RESERVATION_STATUS_TOKEN_COLORS,
+  PLANNING_DEPARTURE_VIOLET,
+} from '../planning/constants';
+import { getSourceLogo } from '../planning/utils/sourceLogos';
 import { useTranslation } from '../../hooks/useTranslation';
-import { CheckCircle, AccessTime, ArrowForward, ArrowBack, Cancel } from '../../icons';
 
-// ─── Source colors ───────────────────────────────────────────────────────────
+// ─── Statuts : couleurs VALIDÉES planning (constantes locales planning) ──────
+//
+// Texte couleur + fond `-soft` (pattern chips statut du PanelReservationInfo).
+// Annulée = fantôme neutre (--hover / --muted), cohérent avec la brique hachurée.
 
-const SOURCE_COLORS: Record<ReservationSource, string> = {
-  airbnb: '#FF5A5F',
-  booking: '#003580',
-  direct: '#4A9B8E',
-  other: '#9e9e9e',
+const STATUS_SOFT: Record<string, string> = {
+  confirmed: 'var(--ok-soft)',
+  pending: 'var(--warn-soft)',
+  checked_in: 'var(--info-soft)',
+  checked_out: `${PLANNING_DEPARTURE_VIOLET}1F`,
+  cancelled: 'var(--hover)',
 };
 
-// ─── Status icons (accessibility : color-only fix) ───────────────────────────
-
-// Lucide icons : on caste en React.FC compatible avec size/strokeWidth.
-type IconComponent = React.FC<{ size?: number; strokeWidth?: number }>;
-const STATUS_ICONS: Record<ReservationStatus, IconComponent> = {
-  confirmed:    CheckCircle as unknown as IconComponent,
-  pending:      AccessTime as unknown as IconComponent,
-  checked_in:   ArrowForward as unknown as IconComponent,
-  checked_out:  ArrowBack as unknown as IconComponent,
-  cancelled:    Cancel as unknown as IconComponent,
-};
+/** Pilule soft : fond doux + texte couleur (rayon/typo portés par le thème). */
+const chipSx = (bg: string, color: string) => ({
+  height: 22,
+  fontSize: '0.6875rem',
+  fontWeight: 600,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  '& .MuiChip-label': { px: 1 },
+});
 
 // ─── Status Chip ─────────────────────────────────────────────────────────────
 
@@ -37,55 +42,69 @@ interface StatusChipProps {
 
 export const ReservationStatusChip: React.FC<StatusChipProps> = ({ status }) => {
   const { t } = useTranslation();
-  const color = RESERVATION_STATUS_COLORS[status] ?? '#757575';
+  const color =
+    status === 'cancelled'
+      ? 'var(--muted)'
+      : RESERVATION_STATUS_TOKEN_COLORS[status] ?? 'var(--muted)';
+  const soft = STATUS_SOFT[status] ?? 'var(--hover)';
   const label = t(`reservations.status.${status}`) as string;
-  const Icon = STATUS_ICONS[status];
 
   return (
     <Chip
-      icon={Icon ? <Icon size={10} strokeWidth={2} /> : undefined}
+      icon={
+        <Box
+          component="span"
+          sx={{ width: 9, height: 9, borderRadius: '3px', backgroundColor: color, flexShrink: 0 }}
+        />
+      }
       label={label}
       size="small"
       sx={{
-        backgroundColor: `${color}18`,
-        color,
-        fontWeight: 600,
-        fontSize: '0.75rem',
-        height: 24,
-        borderRadius: '6px',
-        border: `1px solid ${color}40`,
-        '& .MuiChip-icon': {
-          color,
-          marginLeft: 0.5,
-          marginRight: -0.25,
-        },
+        ...chipSx(soft, color),
+        '& .MuiChip-icon': { ml: 1, mr: -0.5 },
       }}
     />
   );
 };
 
-// ─── Source Badge ─────────────────────────────────────────────────────────────
+// ─── Source Badge : pastille canal (logo + tokens de canal) ──────────────────
+
+/** Tokens de canal (airbnb / booking / direct), repli neutre — pattern planning. */
+function getChannelChipTokens(source: string): { bg: string; color: string } {
+  switch (source) {
+    case 'airbnb': return { bg: 'var(--airbnb-soft)', color: 'var(--airbnb-ink)' };
+    case 'booking': return { bg: 'var(--booking-soft)', color: 'var(--booking-ink)' };
+    case 'direct': return { bg: 'var(--direct-soft)', color: 'var(--direct-ink)' };
+    default: return { bg: 'var(--field)', color: 'var(--muted)' };
+  }
+}
 
 interface SourceBadgeProps {
   source: ReservationSource;
 }
 
 export const ReservationSourceBadge: React.FC<SourceBadgeProps> = ({ source }) => {
-  const color = SOURCE_COLORS[source] ?? '#9e9e9e';
+  const tokens = getChannelChipTokens(source);
   const label = RESERVATION_SOURCE_LABELS[source] ?? source;
+  const logo = getSourceLogo(source);
 
   return (
     <Chip
+      icon={
+        logo ? (
+          <Box
+            component="img"
+            src={logo}
+            alt=""
+            sx={{ width: 13, height: 13, objectFit: 'contain', display: 'block' }}
+          />
+        ) : undefined
+      }
       label={label}
       size="small"
-      variant="outlined"
       sx={{
-        color,
-        borderColor: `${color}60`,
-        fontWeight: 500,
-        fontSize: '0.72rem',
-        height: 22,
-        borderRadius: '6px',
+        ...chipSx(tokens.bg, tokens.color),
+        '& .MuiChip-icon': { ml: 1, mr: -0.5 },
       }}
     />
   );

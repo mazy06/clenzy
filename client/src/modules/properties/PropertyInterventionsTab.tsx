@@ -280,7 +280,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
             '& .Mui-selected': {
               bgcolor: 'var(--card) !important',
               color: 'var(--accent) !important',
-              boxShadow: '0 1px 3px rgba(21,36,45,.12)',
+              boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)',
             },
           }}
         >
@@ -631,7 +631,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 600, lineHeight: 1, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                             {new Date(iv.scheduledDate).getDate()}
                           </Typography>
-                          <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                          <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
                             {new Date(iv.scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short' })}
                           </Typography>
                         </Box>

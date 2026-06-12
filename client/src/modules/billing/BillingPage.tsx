@@ -40,41 +40,13 @@ const ReportsExportsTab: React.FC = () => {
 
   return (
     <Box>
-      {/* Segmented (bascule de vue) : conteneur --field r10 p3, actif = fond --card + texte accent */}
+      {/* Segmented (bascule de vue) — stylé par le thème global MuiToggleButtonGroup */}
       <ToggleButtonGroup
         value={view}
         exclusive
         onChange={(_e, v) => v && setView(v)}
         size="small"
-        sx={{
-          mb: 2,
-          p: '3px',
-          gap: '3px',
-          bgcolor: 'var(--field)',
-          border: '1px solid var(--field-line)',
-          borderRadius: '10px',
-          '& .MuiToggleButtonGroup-grouped': {
-            border: 0,
-            '&:not(:first-of-type), &:first-of-type': { borderRadius: '8px' },
-          },
-          '& .MuiToggleButton-root': {
-            textTransform: 'none',
-            fontSize: '12.5px',
-            fontWeight: 600,
-            color: 'var(--muted)',
-            px: 2,
-            height: 32,
-            transition: 'background-color .14s, color .14s',
-            '&:hover': { bgcolor: 'var(--hover)' },
-            '&.Mui-selected': {
-              bgcolor: 'var(--card)',
-              color: 'var(--accent)',
-              boxShadow: '0 1px 3px rgba(21,36,45,.10)',
-              '&:hover': { bgcolor: 'var(--card)' },
-            },
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-          },
-        }}
+        sx={{ mb: 2 }}
       >
         <ToggleButton value="fiscal">
           {t('billing.tabs.fiscalReport', 'Rapport fiscal')}

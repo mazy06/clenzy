@@ -9,7 +9,7 @@ import {
   TableRow,
   Paper,
   Chip,
-  CircularProgress,
+  Skeleton,
   Alert,
   TablePagination,
 } from '@mui/material';
@@ -52,8 +52,10 @@ const MappingsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" p={4}>
-        <CircularProgress />
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+        ))}
       </Box>
     );
   }
@@ -64,7 +66,11 @@ const MappingsTab: React.FC = () => {
 
   return (
     <Box>
-      <TableContainer component={Paper} variant="outlined">
+      <TableContainer
+        component={Paper}
+        variant="outlined"
+        sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
+      >
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -81,21 +87,28 @@ const MappingsTab: React.FC = () => {
           <TableBody>
             {mappings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center">Aucun mapping</TableCell>
+                <TableCell colSpan={8} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                  Aucun mapping
+                </TableCell>
               </TableRow>
             ) : (
               mappings.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell>{m.id}</TableCell>
+                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.id}</TableCell>
                   <TableCell>{m.channel || '—'}</TableCell>
                   <TableCell>{m.entityType}</TableCell>
-                  <TableCell>{m.internalId}</TableCell>
-                  <TableCell>{m.externalId}</TableCell>
+                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.internalId}</TableCell>
+                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.externalId}</TableCell>
                   <TableCell>
+                    {/* Chip -soft : actif --ok, désactivé neutre muted */}
                     <Chip
                       label={m.syncEnabled ? 'Active' : 'Disabled'}
-                      color={m.syncEnabled ? 'success' : 'default'}
                       size="small"
+                      sx={
+                        m.syncEnabled
+                          ? { color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' }
+                          : { color: 'var(--muted)', backgroundColor: 'var(--hover)' }
+                      }
                     />
                   </TableCell>
                   <TableCell>

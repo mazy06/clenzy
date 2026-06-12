@@ -2,26 +2,31 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
 } from '@mui/material';
 import {
-  Timeline,
   FlightLand,
   FlightTakeoff,
   AutoAwesome,
   Handyman,
-  CheckCircle,
-  History,
 } from '../../../icons';
 import type { PlanningEvent } from '../types';
+import {
+  RESERVATION_STATUS_TOKEN_COLORS,
+  PLANNING_DEPARTURE_VIOLET,
+  INTERVENTION_TYPE_TOKEN_COLORS,
+} from '../constants';
 
 interface PanelHistoryProps {
   event: PlanningEvent;
 }
+
+const OVERLINE_SX = {
+  fontSize: '0.625rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--faint)',
+};
 
 const PanelHistory: React.FC<PanelHistoryProps> = ({ event }) => {
   const reservation = event.reservation;
@@ -31,31 +36,31 @@ const PanelHistory: React.FC<PanelHistoryProps> = ({ event }) => {
 
   if (reservation) {
     timelineItems.push({
-      icon: <FlightLand size={16} strokeWidth={1.75} />,
+      icon: <FlightLand size={14} strokeWidth={1.75} />,
       label: 'Check-in',
       date: `${reservation.checkIn}${reservation.checkInTime ? ` ${reservation.checkInTime}` : ''}`,
-      color: '#6B8A9A',
+      color: RESERVATION_STATUS_TOKEN_COLORS.checked_in,
     });
     timelineItems.push({
-      icon: <FlightTakeoff size={16} strokeWidth={1.75} />,
+      icon: <FlightTakeoff size={14} strokeWidth={1.75} />,
       label: 'Check-out',
       date: `${reservation.checkOut}${reservation.checkOutTime ? ` ${reservation.checkOutTime}` : ''}`,
-      color: '#757575',
+      color: PLANNING_DEPARTURE_VIOLET,
     });
     // Auto-cleaning placeholder
     timelineItems.push({
-      icon: <AutoAwesome size={16} strokeWidth={1.75} />,
+      icon: <AutoAwesome size={14} strokeWidth={1.75} />,
       label: 'Menage prevu',
       date: reservation.checkOut,
-      color: '#9B7FC4',
+      color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning,
     });
   }
 
   if (event.intervention) {
     timelineItems.push({
       icon: event.type === 'cleaning'
-        ? <AutoAwesome size={16} strokeWidth={1.75} />
-        : <Handyman size={16} strokeWidth={1.75} />,
+        ? <AutoAwesome size={14} strokeWidth={1.75} />
+        : <Handyman size={14} strokeWidth={1.75} />,
       label: event.intervention.title,
       date: `${event.intervention.startDate}${event.intervention.startTime ? ` ${event.intervention.startTime}` : ''}`,
       color: event.color,
@@ -63,43 +68,53 @@ const PanelHistory: React.FC<PanelHistoryProps> = ({ event }) => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* Stay timeline */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
+      {/* Stay timeline — lignes hairline + dots tokens */}
       <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Timeline size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
-            Timeline du sejour
-          </Typography>
-        </Box>
-        <List dense sx={{ py: 0 }}>
+        <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+          Timeline du sejour
+        </Typography>
+        <Box>
           {timelineItems.map((item, idx) => (
-            <ListItem key={idx} sx={{ px: 0, py: 0.5 }}>
-              <ListItemIcon sx={{ minWidth: 32, color: item.color }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                secondary={item.date}
-                primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }}
-                secondaryTypographyProps={{ fontSize: '0.6875rem' }}
+            <Box
+              key={idx}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.25,
+                py: 1,
+                borderBottom: idx < timelineItems.length - 1 ? '1px solid var(--line)' : 'none',
+              }}
+            >
+              <Box
+                sx={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: '3px',
+                  backgroundColor: item.color,
+                  flexShrink: 0,
+                }}
               />
-            </ListItem>
+              <Box component="span" sx={{ display: 'inline-flex', color: item.color, flexShrink: 0 }}>
+                {item.icon}
+              </Box>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', flex: 1, minWidth: 0 }} noWrap>
+                {item.label}
+              </Typography>
+              <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                {item.date}
+              </Typography>
+            </Box>
           ))}
-        </List>
+        </Box>
       </Box>
-
-      <Divider />
 
       {/* Modification history placeholder */}
       <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><History size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
-            Historique des modifications
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+        <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+          Historique des modifications
+        </Typography>
+        <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)', fontStyle: 'italic' }}>
           L'historique detaille sera disponible dans une prochaine mise a jour.
         </Typography>
       </Box>

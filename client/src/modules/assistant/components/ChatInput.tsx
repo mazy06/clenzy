@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, IconButton, TextField, useTheme, alpha, CircularProgress, Tooltip } from '@mui/material';
+import { Box, IconButton, InputBase, CircularProgress, Tooltip } from '@mui/material';
 import {
   Send as SendIcon,
   Close as XIcon,
@@ -23,7 +23,9 @@ interface ChatInputProps {
 const MAX_ATTACHMENTS = 3;
 
 /**
- * Input multilignes pour saisir un message a l'assistant.
+ * Boîte de composition de l'assistant — pattern « Signature » .mg-cbox
+ * (réf messagerie unifiée) : conteneur `--field` r13, outils .mg-ctool,
+ * bouton envoi 36px r11 accent plein (exception validée).
  *
  * Comportements :
  *   - Enter envoie ; Shift+Enter ajoute un saut de ligne.
@@ -38,7 +40,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = "Demande quelque chose a l'assistant... (Entree pour envoyer)",
   autoFocus = false,
 }) => {
-  const theme = useTheme();
   const { notify } = useNotification();
   const [value, setValue] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -100,7 +101,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     fileInputRef.current?.click();
   }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
@@ -110,14 +111,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [handleSubmit]);
 
+  const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !isBusy && !isUploading;
+
   return (
     <Box
       sx={{
-        // L2 input panel : bg subtilement teinte par rapport au L1 Paper pour
-        // separer la zone d'input du flux de messages, SANS border-top.
-        // Le contraste tonal joue le role du divider.
-        bgcolor: alpha(theme.palette.text.primary, 0.025),
-        py: 1.5,
+        // Réf .mg-compose : zone compose sur carte, filet hairline au-dessus.
+        bgcolor: 'var(--card)',
+        borderTop: '1px solid var(--line)',
+        py: '14px',
       }}
     >
       {/* Input file cache — pilote par le bouton Paperclip */}
@@ -163,9 +165,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 position: 'relative',
                 width: 64,
                 height: 64,
-                borderRadius: 1.5,
+                borderRadius: '10px',
                 overflow: 'hidden',
-                bgcolor: alpha(theme.palette.text.primary, 0.06),
+                border: '1px solid var(--line)',
+                bgcolor: 'var(--field)',
               }}
             >
               <Box
@@ -189,9 +192,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   right: 2,
                   width: 18,
                   height: 18,
-                  bgcolor: alpha(theme.palette.common.black, 0.55),
-                  color: theme.palette.common.white,
-                  '&:hover': { bgcolor: alpha(theme.palette.common.black, 0.75) },
+                  // Scrim teinte encre (sur image) — pas de noir pur.
+                  bgcolor: 'rgba(21,36,45,.55)',
+                  color: '#FDFDFC',
+                  '&:hover': { bgcolor: 'rgba(21,36,45,.75)' },
                   cursor: 'pointer',
                 }}
               >
@@ -200,114 +204,122 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </Box>
           ))}
           {isUploading && (
-            <CircularProgress size={20} sx={{ ml: 0.5 }} />
+            <CircularProgress size={20} sx={{ ml: 0.5, color: 'var(--accent)' }} />
           )}
         </Box>
       )}
 
+      {/* Boîte .mg-cbox : champ + outils + envoi */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'flex-end',
-          gap: 1,
+          gap: 1.25,
+          bgcolor: 'var(--field)',
+          border: '1px solid var(--field-line)',
+          borderRadius: '13px',
+          p: '8px 8px 8px 14px',
+          transition: 'border-color .14s',
+          '&:focus-within': { borderColor: 'var(--accent)' },
         }}
       >
-      <TextField
-        inputRef={inputRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        multiline
-        maxRows={6}
-        fullWidth
-        autoFocus={autoFocus}
-        size="small"
-        disabled={status === 'sending'}
-        sx={{
-          // TextField : retire l'outline MUI par defaut, utilise un bg blanc
-          // (Paper) pour ressortir sur le panel L2. Focus = anneau primary subtil.
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 2,
-            fontSize: '0.875rem',
-            bgcolor: theme.palette.background.paper,
-            transition: 'box-shadow 180ms ease-out',
-            '& fieldset': { border: 'none' },
-            '&:hover fieldset': { border: 'none' },
-            '&.Mui-focused fieldset': { border: 'none' },
-            '&.Mui-focused': {
-              boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.35)}`,
-            },
-          },
-        }}
-      />
-
-      {!isBusy && (
-        <Tooltip title={attachments.length >= MAX_ATTACHMENTS
-          ? `Maximum ${MAX_ATTACHMENTS} images`
-          : 'Joindre une image'}>
-          <span>
-            <IconButton
-              onClick={handleAttachClick}
-              disabled={!canAddAttachments || isUploading}
-              aria-label="Joindre une image"
-              sx={{
-                bgcolor: alpha(theme.palette.text.primary, 0.06),
-                color: theme.palette.text.secondary,
-                '&:hover': { bgcolor: alpha(theme.palette.text.primary, 0.1) },
-                cursor: canAddAttachments ? 'pointer' : 'not-allowed',
-                transition: 'background-color 200ms ease-out',
-              }}
-            >
-              {isUploading ? <CircularProgress size={16} /> : <AttachFile size={18} />}
-            </IconButton>
-          </span>
-        </Tooltip>
-      )}
-
-      {isBusy && onAbort ? (
-        <IconButton
-          onClick={onAbort}
-          aria-label="Annuler"
+        <InputBase
+          inputRef={inputRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          multiline
+          maxRows={6}
+          fullWidth
+          autoFocus={autoFocus}
+          disabled={status === 'sending'}
+          // Réf .mg-cbox textarea : la boîte porte le padding, champ nu.
           sx={{
-            bgcolor: alpha(theme.palette.error.main, 0.1),
-            color: theme.palette.error.main,
-            '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.18) },
-            cursor: 'pointer',
-            transition: 'background-color 200ms ease-out',
+            flex: 1,
+            fontSize: '12.5px',
+            color: 'var(--body)',
+            lineHeight: 1.5,
+            py: '7px',
+            '& textarea': { p: 0 },
+            '& textarea::placeholder': { color: 'var(--faint)', opacity: 1 },
           }}
-        >
-          {status === 'sending' ? <CircularProgress size={16} /> : <XIcon size={18} />}
-        </IconButton>
-      ) : (() => {
-        // Le bouton Send est actif si on a du texte OU des attachments — et qu'on
-        // n'est pas en cours d'upload (eviter d'envoyer une liste partielle).
-        const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !isBusy && !isUploading;
-        return (
+        />
+
+        {!isBusy && (
+          <Tooltip title={attachments.length >= MAX_ATTACHMENTS
+            ? `Maximum ${MAX_ATTACHMENTS} images`
+            : 'Joindre une image'}>
+            <span>
+              {/* Outil .mg-ctool : 30px r8, transparent, hover card+accent */}
+              <IconButton
+                onClick={handleAttachClick}
+                disabled={!canAddAttachments || isUploading}
+                aria-label="Joindre une image"
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '8px',
+                  color: 'var(--muted)',
+                  bgcolor: 'transparent',
+                  transition: 'background .14s, color .14s',
+                  '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
+                  cursor: canAddAttachments ? 'pointer' : 'not-allowed',
+                  '&.Mui-disabled': { opacity: 0.45 },
+                }}
+              >
+                {isUploading
+                  ? <CircularProgress size={15} sx={{ color: 'var(--accent)' }} />
+                  : <AttachFile size={15} strokeWidth={1.75} />}
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
+
+        {isBusy && onAbort ? (
+          <IconButton
+            onClick={onAbort}
+            aria-label="Annuler"
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '11px',
+              bgcolor: 'var(--err-soft)',
+              color: 'var(--err)',
+              flexShrink: 0,
+              transition: 'background .14s, transform .12s',
+              '&:hover': { bgcolor: 'var(--err-soft)', filter: 'brightness(.96)' },
+              '&:active': { transform: 'scale(.97)' },
+              cursor: 'pointer',
+            }}
+          >
+            {status === 'sending'
+              ? <CircularProgress size={15} sx={{ color: 'var(--err)' }} />
+              : <XIcon size={15} strokeWidth={1.75} />}
+          </IconButton>
+        ) : (
+          // Envoi .mg-send : 36px r11 accent PLEIN (exception validée messagerie)
           <IconButton
             onClick={handleSubmit}
             disabled={!canSubmit}
             aria-label="Envoyer"
             sx={{
-              bgcolor: canSubmit
-                ? theme.palette.primary.main
-                : alpha(theme.palette.primary.main, 0.15),
-              color: canSubmit
-                ? theme.palette.primary.contrastText
-                : theme.palette.text.disabled,
-              '&:hover': {
-                bgcolor: canSubmit
-                  ? theme.palette.primary.dark
-                  : alpha(theme.palette.primary.main, 0.15),
-              },
-              cursor: canSubmit ? 'pointer' : 'default',
-              transition: 'background-color 200ms ease-out',
+              width: 36,
+              height: 36,
+              borderRadius: '11px',
+              bgcolor: 'var(--accent)',
+              color: 'var(--on-accent)',
+              flexShrink: 0,
+              transition: 'background .14s, transform .12s',
+              '&:hover': { bgcolor: 'var(--accent-deep)' },
+              '&:active': { transform: 'scale(.97)' },
+              '&.Mui-disabled': { bgcolor: 'var(--accent)', color: 'var(--on-accent)', opacity: 0.45 },
+              cursor: 'pointer',
             }}
           >
-            <SendIcon size={18} />
+            <SendIcon size={15} strokeWidth={1.75} />
           </IconButton>
-        );
-      })()}
+        )}
       </Box>
       </Box>
     </Box>

@@ -38,17 +38,40 @@ import PanelPaymentCart from './PanelPaymentCart';
 
 type ActionResult = { success: boolean; error: string | null };
 
-const STATUS_HEX: Record<string, string> = {
-  PAID: '#4A9B8E',
-  PENDING: '#ED6C02',
-  AWAITING_PAYMENT: '#D4A574',
-  PROCESSING: '#0288d1',
-  FAILED: '#d32f2f',
-  REFUNDED: '#7B61FF',
-  CANCELLED: '#757575',
-  COMPLETED: '#4A9B8E',
-  SCHEDULED: '#0288d1',
-  IN_PROGRESS: '#1976d2',
+/** Statuts paiement → tokens sémantiques (succès = ok, attente = warn, en cours = info, échec = err). */
+const STATUS_TOKENS: Record<string, { color: string; bg: string }> = {
+  PAID: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  PENDING: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  AWAITING_PAYMENT: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  PROCESSING: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  REFUNDED: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  CANCELLED: { color: 'var(--muted)', bg: 'var(--hover)' },
+  COMPLETED: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  SCHEDULED: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  IN_PROGRESS: { color: 'var(--info)', bg: 'var(--info-soft)' },
+};
+
+const NEUTRAL_TOKENS = { color: 'var(--muted)', bg: 'var(--hover)' };
+
+/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
+const chipSx = (bg: string, color: string) => ({
+  height: 22,
+  fontSize: '0.6875rem',
+  fontWeight: 600,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  '& .MuiChip-label': { px: 1 },
+});
+
+const OVERLINE_SX = {
+  fontSize: '0.625rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--faint)',
 };
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -117,34 +140,34 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
     <Box>
       {/* Payment status */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Payment size={18} strokeWidth={1.75} /></Box>
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Statut paiement</Typography>
-        {(() => { const c = STATUS_HEX[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || '#757575'; return (
+        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payment size={18} strokeWidth={1.75} /></Box>
+        <Typography sx={OVERLINE_SX}>Statut paiement</Typography>
+        {(() => { const t = STATUS_TOKENS[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || NEUTRAL_TOKENS; return (
         <Chip
           label={intervention.paymentStatus || intervention.status}
           size="small"
-          sx={{ fontSize: '0.625rem', height: 22, ml: 'auto', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+          sx={{ ...chipSx(t.bg, t.color), ml: 'auto' }}
         />
         ); })()}
       </Box>
 
       {/* Cost details */}
-      <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+      <Box sx={{ p: 1.5, border: '1px solid var(--line)', borderRadius: '10px', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={14} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>Durée estimée</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Schedule size={14} strokeWidth={1.75} /></Box>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>Durée estimée</Typography>
           </Box>
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
+          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
             {intervention.estimatedDurationHours || '—'} h
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AttachMoney size={14} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>Coût estimé</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><AttachMoney size={14} strokeWidth={1.75} /></Box>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>Coût estimé</Typography>
           </Box>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: 'primary.main' }}>
+          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
             {estimatedCost.toFixed(2)} €
           </Typography>
         </Box>
@@ -162,8 +185,8 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       {canValidate && intervention.status === 'awaiting_validation' && (
         <>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Gavel size={16} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Gavel size={16} strokeWidth={1.75} /></Box>
+            <Typography sx={OVERLINE_SX}>
               Validation manager
             </Typography>
           </Box>
@@ -180,7 +203,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
               setValidateCost(estimatedCost.toFixed(2));
               setValidateDialogOpen(true);
             }}
-            sx={{ textTransform: 'none', fontSize: '0.75rem', mb: 2 }}
+            sx={{ mb: 2 }}
           >
             Valider l'intervention
           </Button>
@@ -190,8 +213,8 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
 
       {/* Payment history */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Receipt size={16} strokeWidth={1.75} /></Box>
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
+        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Receipt size={16} strokeWidth={1.75} /></Box>
+        <Typography sx={OVERLINE_SX}>
           Historique paiements
         </Typography>
       </Box>
@@ -201,7 +224,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           <CircularProgress size={20} />
         </Box>
       ) : payment.paymentHistory.length === 0 ? (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontStyle: 'italic' }}>
           Aucun paiement enregistré
         </Typography>
       ) : (
@@ -209,26 +232,26 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontSize: '0.5625rem', fontWeight: 700, p: 0.5 }}>Date</TableCell>
-                <TableCell sx={{ fontSize: '0.5625rem', fontWeight: 700, p: 0.5 }}>Montant</TableCell>
-                <TableCell sx={{ fontSize: '0.5625rem', fontWeight: 700, p: 0.5 }}>Statut</TableCell>
+                <TableCell sx={{ p: 0.5 }}>Date</TableCell>
+                <TableCell sx={{ p: 0.5 }}>Montant</TableCell>
+                <TableCell sx={{ p: 0.5 }}>Statut</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {payment.paymentHistory.map((record) => (
                 <TableRow key={record.id}>
-                  <TableCell sx={{ fontSize: '0.5625rem', p: 0.5 }}>
+                  <TableCell sx={{ p: 0.5, fontVariantNumeric: 'tabular-nums' }}>
                     {new Date(record.transactionDate).toLocaleDateString('fr-FR')}
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.5625rem', fontWeight: 600, p: 0.5 }}>
+                  <TableCell sx={{ p: 0.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                     {record.amount.toFixed(2)} €
                   </TableCell>
                   <TableCell sx={{ p: 0.5 }}>
-                    {(() => { const c = STATUS_HEX[record.status] || '#757575'; return (
+                    {(() => { const t = STATUS_TOKENS[record.status] || NEUTRAL_TOKENS; return (
                     <Chip
                       label={record.status}
                       size="small"
-                      sx={{ fontSize: '0.5rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                      sx={{ ...chipSx(t.bg, t.color), height: 18, fontSize: '0.625rem' }}
                     />
                     ); })()}
                   </TableCell>
@@ -241,7 +264,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
 
       {/* Validate dialog */}
       <Dialog open={validateDialogOpen} onClose={() => setValidateDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontSize: '0.875rem' }}>Valider l'intervention</DialogTitle>
+        <DialogTitle>Valider l'intervention</DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: '0.75rem', mb: 2 }}>
             Intervention : <strong>{intervention.title}</strong>

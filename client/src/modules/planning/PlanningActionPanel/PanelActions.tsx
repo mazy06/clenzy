@@ -38,6 +38,40 @@ import { managersApi } from '../../../services/api';
 import type { PortfolioTeam, OperationalUser } from '../../../services/api';
 import SendMessageDialog from '../../messaging/SendMessageDialog';
 
+const OVERLINE_SX = {
+  fontSize: '0.625rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--faint)',
+};
+
+/** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
+const CLOSE_BTN_SX = {
+  width: 34,
+  height: 34,
+  borderRadius: '10px',
+  border: '1px solid var(--line-2)',
+  backgroundColor: 'var(--card)',
+  color: 'var(--muted)',
+  transition: 'color .14s, border-color .14s',
+  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+};
+
+/** Chip marqueur pilule — texte couleur + fond soft (jamais d'aplat). */
+const markerChipSx = (bg: string, color: string) => ({
+  height: 18,
+  fontSize: '0.625rem',
+  fontWeight: 700,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  '& .MuiChip-label': { px: 0.75 },
+});
+
 interface PanelActionsProps {
   event: PlanningEvent;
   allEvents?: PlanningEvent[];
@@ -344,7 +378,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
       {/* Optimization & logistics */}
       {isReservation && reservation && (
         <Box>
-          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+          <Typography variant="body2" sx={{ ...OVERLINE_SX, mb: 1 }}>
             Optimisation
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -365,7 +399,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
                 setDupError(null);
                 setDuplicateOpen(true);
               }}
-              sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              sx={{ justifyContent: 'flex-start' }}
             >
               Dupliquer reservation
             </Button>
@@ -380,7 +414,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
                 setExtendError(null);
                 setExtendOpen(true);
               }}
-              sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              sx={{ justifyContent: 'flex-start' }}
             >
               Prolonger sejour
             </Button>
@@ -395,7 +429,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
                 setExtendError(null);
                 setExtendOpen(true);
               }}
-              sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              sx={{ justifyContent: 'flex-start' }}
             >
               Raccourcir sejour
             </Button>
@@ -409,7 +443,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
                 setBlockReason('Preparation logement');
                 setBlockOpen(true);
               }}
-              sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              sx={{ justifyContent: 'flex-start' }}
             >
               Bloquer logement apres depart
             </Button>
@@ -419,7 +453,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
 
       {isReservation && reservation && (
         <Box>
-          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+          <Typography variant="body2" sx={{ ...OVERLINE_SX, mb: 1 }}>
             Communication voyageur
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -429,7 +463,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               startIcon={<Send size={14} strokeWidth={1.75} />}
               fullWidth
               onClick={() => setGuestMessageOpen(true)}
-              sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              sx={{ justifyContent: 'flex-start' }}
             >
               Envoyer un message au voyageur
             </Button>
@@ -441,44 +475,52 @@ const PanelActions: React.FC<PanelActionsProps> = ({
 
       {/* Tags & markers */}
       <Box>
-        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+        <Typography variant="body2" sx={{ ...OVERLINE_SX, mb: 1 }}>
           Marqueurs
           {(isVip || hasAttention) && (
             <Box component="span" sx={{ ml: 1 }}>
-              {isVip && <Chip label="VIP" size="small" sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: '#FFB80018', color: '#FFB800', border: '1px solid #FFB80040', borderRadius: '6px', mr: 0.5, '& .MuiChip-label': { px: 0.75 } }} />}
-              {hasAttention && <Chip label="ATTENTION" size="small" sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: '#EF444418', color: '#EF4444', border: '1px solid #EF444440', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />}
+              {isVip && <Chip label="VIP" size="small" sx={{ ...markerChipSx('var(--warn-soft)', 'var(--warn)'), mr: 0.5 }} />}
+              {hasAttention && <Chip label="ATTENTION" size="small" sx={markerChipSx('var(--err-soft)', 'var(--err)')} />}
             </Box>
           )}
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
           <Button
             size="small"
-            variant={isVip ? 'contained' : 'outlined'}
-            startIcon={vipLoading ? <CircularProgress size={14} /> : <Box component="span" sx={{ display: 'inline-flex', color: isVip ? '#fff' : '#FFB800' }}><Star size={14} strokeWidth={1.75} /></Box>}
+            variant="outlined"
+            startIcon={vipLoading ? <CircularProgress size={14} /> : <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Star size={14} strokeWidth={isVip ? 2 : 1.75} /></Box>}
             fullWidth
             disabled={vipLoading || !reservation}
             onClick={handleToggleVip}
+            aria-pressed={isVip}
             sx={{
-              fontSize: '0.75rem',
-              textTransform: 'none',
               justifyContent: 'flex-start',
-              ...(isVip && { bgcolor: '#FFB800', '&:hover': { bgcolor: '#E5A600' } }),
+              ...(isVip && {
+                backgroundColor: 'var(--warn-soft)',
+                color: 'var(--warn)',
+                borderColor: 'var(--warn)',
+                '&:hover': { backgroundColor: 'var(--warn-soft)', borderColor: 'var(--warn)' },
+              }),
             }}
           >
             {isVip ? 'Retirer VIP' : 'Marquer VIP'}
           </Button>
           <Button
             size="small"
-            variant={hasAttention ? 'contained' : 'outlined'}
-            startIcon={attentionLoading ? <CircularProgress size={14} /> : <Box component="span" sx={{ display: 'inline-flex', color: hasAttention ? '#fff' : '#EF4444' }}><Warning size={14} strokeWidth={1.75} /></Box>}
+            variant="outlined"
+            startIcon={attentionLoading ? <CircularProgress size={14} /> : <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Warning size={14} strokeWidth={hasAttention ? 2 : 1.75} /></Box>}
             fullWidth
             disabled={attentionLoading || !reservation}
             onClick={handleToggleAttention}
+            aria-pressed={hasAttention}
             sx={{
-              fontSize: '0.75rem',
-              textTransform: 'none',
               justifyContent: 'flex-start',
-              ...(hasAttention && { bgcolor: '#EF4444', '&:hover': { bgcolor: '#DC2626' } }),
+              ...(hasAttention && {
+                backgroundColor: 'var(--err-soft)',
+                color: 'var(--err)',
+                borderColor: 'var(--err)',
+                '&:hover': { backgroundColor: 'var(--err-soft)', borderColor: 'var(--err)' },
+              }),
             }}
           >
             {hasAttention ? 'Retirer attention' : 'Attention particuliere'}
@@ -493,7 +535,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               setTagValue('');
               setTagDialogOpen(true);
             }}
-            sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+            sx={{ justifyContent: 'flex-start' }}
           >
             Ajouter tag personnalise
           </Button>
@@ -504,7 +546,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
 
       {/* Coordination */}
       <Box>
-        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+        <Typography variant="body2" sx={{ ...OVERLINE_SX, mb: 1 }}>
           Coordination interne
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -519,7 +561,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               setMessageText('');
               setMessageOpen(true);
             }}
-            sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+            sx={{ justifyContent: 'flex-start' }}
           >
             Envoyer message equipe
           </Button>
@@ -535,7 +577,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               setTaskDueDate(reservation?.checkOut || today);
               setTaskOpen(true);
             }}
-            sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+            sx={{ justifyContent: 'flex-start' }}
           >
             Creer tache interne
           </Button>
@@ -545,15 +587,15 @@ const PanelActions: React.FC<PanelActionsProps> = ({
       {/* ── Dialogs ─────────────────────────────────────────────────────────── */}
 
       {/* Duplicate Dialog */}
-      <Dialog open={duplicateOpen} onClose={() => setDuplicateOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={duplicateOpen} onClose={() => setDuplicateOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><ContentCopy size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Dupliquer reservation</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><ContentCopy size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Dupliquer reservation</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setDuplicateOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setDuplicateOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           {reservation && (
             <Alert severity="info" sx={{ fontSize: '0.75rem', mb: 2, '& .MuiAlert-message': { py: 0.25 } }}>
               Copie de la reservation de <strong>{reservation.guestName}</strong> ({reservation.guestCount} pers.) dans <strong>{reservation.propertyName}</strong>
@@ -576,31 +618,31 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           </Box>
           {dupError && <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>{dupError}</Alert>}
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setDuplicateOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
+        <DialogActions>
+          <Button onClick={() => setDuplicateOpen(false)} size="small">Annuler</Button>
           <Button onClick={handleDuplicate} variant="contained" size="small" disabled={!dupCheckIn || !dupCheckOut || dupCheckIn >= dupCheckOut || dupLoading}
             startIcon={dupLoading ? <CircularProgress size={14} /> : <ContentCopy size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+           >
             Dupliquer
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Extend / Shorten Dialog */}
-      <Dialog open={extendOpen} onClose={() => setExtendOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={extendOpen} onClose={() => setExtendOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {extendMode === 'extend'
-              ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><AddCircleOutline size={20} strokeWidth={1.75} /></Box>
-              : <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><RemoveCircleOutline size={20} strokeWidth={1.75} /></Box>
+              ? <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><AddCircleOutline size={20} strokeWidth={1.75} /></Box>
+              : <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><RemoveCircleOutline size={20} strokeWidth={1.75} /></Box>
             }
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+            <Typography component="span" variant="inherit">
               {extendMode === 'extend' ? 'Prolonger le sejour' : 'Raccourcir le sejour'}
             </Typography>
           </Box>
-          <IconButton size="small" onClick={() => setExtendOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setExtendOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           {reservation && (
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
               Check-out actuel : <strong>{reservation.checkOut}</strong>
@@ -619,27 +661,27 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           />
           {extendError && <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>{extendError}</Alert>}
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setExtendOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
+        <DialogActions>
+          <Button onClick={() => setExtendOpen(false)} size="small">Annuler</Button>
           <Button onClick={handleExtend} variant="contained" size="small" disabled={extendLoading}
             color={extendMode === 'extend' ? 'primary' : 'warning'}
             startIcon={extendLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+           >
             Confirmer
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Block Property Dialog */}
-      <Dialog open={blockOpen} onClose={() => setBlockOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={blockOpen} onClose={() => setBlockOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Block size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Bloquer le logement</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Block size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Bloquer le logement</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setBlockOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setBlockOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           {reservation && (
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
               Bloquer <strong>{reservation.propertyName}</strong> apres le depart du <strong>{reservation.checkOut}</strong>
@@ -661,26 +703,26 @@ const PanelActions: React.FC<PanelActionsProps> = ({
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setBlockOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
+        <DialogActions>
+          <Button onClick={() => setBlockOpen(false)} size="small">Annuler</Button>
           <Button onClick={handleBlock} variant="contained" color="error" size="small" disabled={blockLoading}
             startIcon={blockLoading ? <CircularProgress size={14} /> : <Block size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+           >
             Bloquer
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Custom Tag Dialog */}
-      <Dialog open={tagDialogOpen} onClose={() => setTagDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={tagDialogOpen} onClose={() => setTagDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Label size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Tag personnalise</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Label size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Tag personnalise</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setTagDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setTagDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           <TextField
             label="Nom du tag" value={tagValue}
             onChange={(e) => setTagValue(e.target.value)}
@@ -690,26 +732,26 @@ const PanelActions: React.FC<PanelActionsProps> = ({
             sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
           />
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setTagDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
+        <DialogActions>
+          <Button onClick={() => setTagDialogOpen(false)} size="small">Annuler</Button>
           <Button onClick={handleAddTag} variant="contained" size="small" disabled={!tagValue.trim() || tagLoading}
             startIcon={tagLoading ? <CircularProgress size={14} /> : <Label size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+           >
             Ajouter
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Send Message Dialog */}
-      <Dialog open={messageOpen} onClose={() => setMessageOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={messageOpen} onClose={() => setMessageOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Send size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Message a l'equipe</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Send size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Message a l'equipe</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setMessageOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setMessageOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
               select label="Destinataire" value={messageRecipient}
@@ -739,7 +781,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               {teamMemberOptions.teams.map((t) => (
                 <MenuItem key={`team-${t.id}`} value={t.label} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={14} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={14} strokeWidth={1.75} /></Box>
                     {t.label}
                   </Box>
                 </MenuItem>
@@ -754,27 +796,27 @@ const PanelActions: React.FC<PanelActionsProps> = ({
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setMessageOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
+        <DialogActions>
+          <Button onClick={() => setMessageOpen(false)} size="small">Annuler</Button>
           <Button onClick={handleSendMessage} variant="contained" size="small"
             disabled={!messageRecipient || !messageText.trim() || messageLoading}
             startIcon={messageLoading ? <CircularProgress size={14} /> : <Send size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+           >
             Envoyer
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Create Internal Task Dialog */}
-      <Dialog open={taskOpen} onClose={() => setTaskOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
+      <Dialog open={taskOpen} onClose={() => setTaskOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><TaskAlt size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>Tache interne</Typography>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><TaskAlt size={20} strokeWidth={1.75} /></Box>
+            <Typography component="span" variant="inherit">Tache interne</Typography>
           </Box>
-          <IconButton size="small" onClick={() => setTaskOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
+          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setTaskOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
               label="Titre de la tache" value={taskTitle}
@@ -810,7 +852,7 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               {teamMemberOptions.teams.map((t) => (
                 <MenuItem key={`team-${t.id}`} value={t.label} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={14} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={14} strokeWidth={1.75} /></Box>
                     {t.label}
                   </Box>
                 </MenuItem>
@@ -824,12 +866,12 @@ const PanelActions: React.FC<PanelActionsProps> = ({
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setTaskOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>Annuler</Button>
+        <DialogActions>
+          <Button onClick={() => setTaskOpen(false)} size="small">Annuler</Button>
           <Button onClick={handleCreateTask} variant="contained" size="small"
             disabled={!taskTitle.trim() || !taskAssignee || taskLoading}
             startIcon={taskLoading ? <CircularProgress size={14} /> : <TaskAlt size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+           >
             Creer
           </Button>
         </DialogActions>

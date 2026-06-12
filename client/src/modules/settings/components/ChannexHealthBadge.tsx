@@ -170,6 +170,7 @@ export default function ChannexHealthBadge({
                   '0%, 100%': { opacity: 1 },
                   '50%': { opacity: 0.55 },
                 },
+                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
               }}
             />
           </Box>
@@ -187,6 +188,7 @@ export default function ChannexHealthBadge({
                 '0%, 100%': { opacity: 1 },
                 '50%': { opacity: 0.55 },
               },
+              '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
             }}
           />
         )}

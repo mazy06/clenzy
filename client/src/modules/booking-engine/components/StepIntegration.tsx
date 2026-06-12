@@ -84,7 +84,7 @@ const StepIntegration: React.FC<StepIntegrationProps> = ({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {/* Name + Toggle + API Key */}
-      <SectionPaper icon={<Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VpnKey size={20} strokeWidth={1.75} /></Box>} titleKey="bookingEngine.sections.statusApiKey">
+      <SectionPaper icon={<VpnKey size={20} strokeWidth={1.75} />} titleKey="bookingEngine.sections.statusApiKey">
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 1.5, alignItems: { md: 'center' } }}>
           <TextField
             size="small"
@@ -165,7 +165,16 @@ const StepIntegration: React.FC<StepIntegrationProps> = ({
       </SectionPaper>
 
       {isCreate && (
-        <Paper sx={{ p: 2, bgcolor: 'warning.main', color: 'warning.contrastText', borderRadius: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            bgcolor: 'var(--warn-soft)',
+            color: 'var(--warn)',
+            border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
+            borderRadius: '12px',
+          }}
+        >
           <Typography variant="body2">
             {t('bookingEngine.integration.saveFirst', "Sauvegardez d'abord votre configuration pour obtenir le code d'intégration.")}
           </Typography>
@@ -175,7 +184,7 @@ const StepIntegration: React.FC<StepIntegrationProps> = ({
       {!isCreate && (
         <>
           {/* Script embed */}
-          <SectionPaper icon={<Code size={20} strokeWidth={1.75} color='#4CAF50' />} titleKey="bookingEngine.sections.embedCode">
+          <SectionPaper icon={<Code size={20} strokeWidth={1.75} />} titleKey="bookingEngine.sections.embedCode">
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
               {t('bookingEngine.integration.embedHint', "Copiez ce code et collez-le dans votre site web, à l'endroit où vous souhaitez afficher le moteur de réservation.")}
             </Typography>
@@ -183,7 +192,7 @@ const StepIntegration: React.FC<StepIntegrationProps> = ({
           </SectionPaper>
 
           {/* iframe alternative */}
-          <SectionPaper icon={<Widgets size={20} strokeWidth={1.75} color='#2196F3' />} titleKey="bookingEngine.sections.iframeEmbed">
+          <SectionPaper icon={<Widgets size={20} strokeWidth={1.75} />} titleKey="bookingEngine.sections.iframeEmbed">
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
               {t('bookingEngine.integration.iframeHint', "Alternative : intégrez via un iframe si vous ne souhaitez pas charger le SDK JavaScript.")}
             </Typography>

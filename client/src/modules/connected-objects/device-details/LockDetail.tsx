@@ -20,12 +20,12 @@ export default function LockDetail({ device }: { device: ConnectedDevice }) {
   const meta = DEVICE_KINDS[device.kind];
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
         <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 700 }}>Code d'accès</Typography>
         <AccessCodeSection deviceId={device.id} />
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Informations</Typography>
         <InfoRow label="Type" value={meta.singular} />
         <InfoRow label="Marque" value={device.provider !== 'UNKNOWN' ? device.provider : '—'} />

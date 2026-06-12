@@ -137,7 +137,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   label={t('channels.guest.avgRating')}
                   value={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                      <StarIcon size={'0.75rem'} strokeWidth={1.75} color='#D4A574' />
+                      <StarIcon size={'0.75rem'} strokeWidth={1.75} color='var(--warn)' />
                       {guest.averageRating.toFixed(1)}
                     </Box>
                   }

@@ -112,32 +112,42 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      {/* ─── Header ──────────────────────────────────────────────── */}
+      {/* ─── Header — pastille logo (marque sur le logo, jamais en aplat/dégradé) ── */}
       <DialogTitle
         sx={{
-          background: channel.brandGradient,
-          color: '#fff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          py: 1.5,
-          px: 2.5,
+          gap: 1.5,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
           {channel.logo && (
             <Box
-              component="img"
-              src={channel.logo}
-              alt={channel.name}
-              sx={{ height: 24, objectFit: 'contain', filter: 'brightness(1.05) drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}
-            />
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 36,
+                px: 1.25,
+                borderRadius: '10px',
+                bgcolor: 'var(--field)',
+                flexShrink: 0,
+              }}
+            >
+              <Box
+                component="img"
+                src={channel.logo}
+                alt={channel.name}
+                sx={{ height: 20, objectFit: 'contain' }}
+              />
+            </Box>
           )}
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>
             {t('channels.connect.title', { channel: channel.name })}
           </Typography>
         </Box>
-        <IconButton onClick={handleClose} size="small" aria-label={t('common.close')} sx={{ color: 'rgba(255,255,255,0.8)' }}>
+        <IconButton onClick={handleClose} size="small" aria-label={t('common.close')}>
           <Close fontSize="small" />
         </IconButton>
       </DialogTitle>
@@ -194,7 +204,6 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
           startIcon={testMutation.isPending ? <CircularProgress size={14} color="inherit" /> : <Science />}
           onClick={handleTest}
           disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
-          sx={{ fontSize: '0.8125rem', textTransform: 'none' }}
         >
           {t('channels.connect.testConnection')}
         </Button>
@@ -203,7 +212,6 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
           onClick={handleClose}
           size="small"
           disabled={connectMutation.isPending}
-          sx={{ fontSize: '0.8125rem', textTransform: 'none' }}
         >
           {t('common.cancel')}
         </Button>
@@ -212,12 +220,6 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
           size="small"
           onClick={handleConnect}
           disabled={!isFormValid || connectMutation.isPending}
-          sx={{
-            fontSize: '0.8125rem',
-            textTransform: 'none',
-            backgroundColor: channel.brandColor,
-            '&:hover': { backgroundColor: channel.brandColor, filter: 'brightness(0.9)' },
-          }}
         >
           {connectMutation.isPending
             ? <CircularProgress size={16} color="inherit" />

@@ -21,14 +21,17 @@ import {
   DialogContent,
   DialogActions,
   Snackbar,
+  Skeleton,
   ToggleButtonGroup,
   ToggleButton,
   InputAdornment,
   Tooltip,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Add, Percent, LocalOffer, Refresh } from '../../icons';
+import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import StatTile from '../../components/StatTile';
+import EmptyState from '../../components/EmptyState';
 import {
   promoCodesApi,
   type PromoCode,
@@ -241,7 +244,7 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
           />
         </Box>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions>
         <Button onClick={handleClose} disabled={createMutation.isPending}>
           Annuler
         </Button>
@@ -365,21 +368,31 @@ export default function PromoCodesPage() {
             mb: 3,
           }}
         >
-          <StatTile label="Total" value={stats.total} />
-          <StatTile label="Actifs" value={stats.active} color="success" />
-          <StatTile label="Utilisations totales" value={stats.totalUses} color="primary" />
+          <StatTile icon={<LocalOffer />} label="Total" value={stats.total} color="#6B8A9A" />
+          <StatTile icon={<CheckCircle />} label="Actifs" value={stats.active} color="#4A9B8E" />
+          <StatTile icon={<Percent />} label="Utilisations totales" value={stats.totalUses} color="#7BA3C2" />
           <StatTile
+            icon={<TrendingUp />}
             label="Top code"
             value={stats.topUsed?.code ?? '—'}
-            sub={stats.topUsed ? `${stats.topUsed.usedCount} usages` : undefined}
+            color="#D4A574"
+            hint={stats.topUsed ? `${stats.topUsed.usedCount} usages` : undefined}
           />
         </Box>
       )}
 
-      {/* Filtre */}
+      {/* Filtre — segmented stylé par le thème global MuiToggleButtonGroup */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-          Filtre :
+        <Typography
+          sx={{
+            fontSize: '10.5px',
+            fontWeight: 700,
+            letterSpacing: '.05em',
+            textTransform: 'uppercase',
+            color: 'var(--faint)',
+          }}
+        >
+          Filtre
         </Typography>
         <ToggleButtonGroup
           value={filterMode}
@@ -387,18 +400,10 @@ export default function PromoCodesPage() {
           onChange={(_, v) => v && setFilterMode(v)}
           size="small"
         >
-          <ToggleButton value="all" sx={{ textTransform: 'none', px: 1.5 }}>
-            Tous ({promoCodes?.length ?? 0})
-          </ToggleButton>
-          <ToggleButton value="active" sx={{ textTransform: 'none', px: 1.5 }}>
-            Actifs ({stats?.active ?? 0})
-          </ToggleButton>
-          <ToggleButton value="inactive" sx={{ textTransform: 'none', px: 1.5 }}>
-            Inactifs
-          </ToggleButton>
-          <ToggleButton value="expired" sx={{ textTransform: 'none', px: 1.5 }}>
-            Expirés
-          </ToggleButton>
+          <ToggleButton value="all">Tous ({promoCodes?.length ?? 0})</ToggleButton>
+          <ToggleButton value="active">Actifs ({stats?.active ?? 0})</ToggleButton>
+          <ToggleButton value="inactive">Inactifs</ToggleButton>
+          <ToggleButton value="expired">Expirés</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
@@ -409,29 +414,34 @@ export default function PromoCodesPage() {
       )}
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: '9px' }} />
+          ))}
         </Box>
       ) : filtered.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-          <Typography variant="body2">
-            Aucun code promo {filterMode !== 'all' ? `(filtre : ${filterMode})` : ''}.
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<LocalOffer />}
+          title="Aucun code promo"
+          description={
+            filterMode !== 'all'
+              ? `Aucun code ne correspond au filtre « ${filterMode} ».`
+              : 'Créez votre premier code promo avec le bouton « Créer un code ».'
+          }
+        />
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}>
           <Table size="small">
+            {/* Entêtes overline via le thème global MuiTableCell */}
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Code</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Réduction</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Utilisations</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Validité</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Créé le</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="center">
-                  Actif
-                </TableCell>
+                <TableCell>Code</TableCell>
+                <TableCell>Réduction</TableCell>
+                <TableCell>Utilisations</TableCell>
+                <TableCell>Validité</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Créé le</TableCell>
+                <TableCell align="center">Actif</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -448,6 +458,7 @@ export default function PromoCodesPage() {
                       </Typography>
                     </TableCell>
                     <TableCell>
+                      {/* Chip -soft : actif = accent, sinon neutre muted */}
                       <Chip
                         size="small"
                         label={discountLabel(promo)}
@@ -456,8 +467,19 @@ export default function PromoCodesPage() {
                             <Percent size={12} strokeWidth={2} />
                           ) : undefined
                         }
-                        color={promo.active && !expired ? 'primary' : 'default'}
-                        variant="outlined"
+                        sx={
+                          promo.active && !expired
+                            ? {
+                                color: 'var(--accent)',
+                                backgroundColor: 'var(--accent-soft)',
+                                '& .MuiChip-icon': { color: 'var(--accent)' },
+                              }
+                            : {
+                                color: 'var(--muted)',
+                                backgroundColor: 'var(--hover)',
+                                '& .MuiChip-icon': { color: 'var(--muted)' },
+                              }
+                        }
                       />
                     </TableCell>
                     <TableCell>
@@ -476,7 +498,7 @@ export default function PromoCodesPage() {
                         variant="caption"
                         sx={{
                           display: 'block',
-                          color: expired ? 'error.main' : 'text.secondary',
+                          color: expired ? 'var(--err)' : 'text.secondary',
                           fontWeight: expired ? 600 : 400,
                         }}
                       >
@@ -556,42 +578,5 @@ export default function PromoCodesPage() {
         </Alert>
       </Snackbar>
     </Box>
-  );
-}
-
-// ─── Sous-composant : tuile KPI ───────────────────────────────────────────────
-
-interface StatTileProps {
-  label: string;
-  value: string | number;
-  sub?: string;
-  color?: 'success' | 'primary' | 'default';
-}
-
-function StatTile({ label, value, sub, color = 'default' }: StatTileProps) {
-  const accent = color === 'success' ? '#4A9B8E' : color === 'primary' ? '#6B8A9A' : 'text.primary';
-  return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-        {label}
-      </Typography>
-      <Typography
-        variant="h5"
-        sx={{
-          fontWeight: 600,
-          color: accent,
-          fontVariantNumeric: 'tabular-nums',
-          mt: 0.5,
-          textWrap: 'balance',
-        }}
-      >
-        {value}
-      </Typography>
-      {sub && (
-        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-          {sub}
-        </Typography>
-      )}
-    </Paper>
   );
 }

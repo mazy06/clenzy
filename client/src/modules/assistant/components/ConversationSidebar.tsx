@@ -5,8 +5,6 @@ import {
   IconButton,
   Tooltip,
   Typography,
-  alpha,
-  useTheme,
 } from '@mui/material';
 import { Add, Delete, Message as MessageIcon } from '../../../icons';
 import type { ConversationSummary } from '../../../services/api/assistantApi';
@@ -24,9 +22,8 @@ interface ConversationSidebarProps {
  * Sidebar gauche du chat assistant — liste les conversations utilisateur
  * triees par {@code updatedAt} desc.
  *
- * <p>Design pattern : Linear/Notion-style — pill active discrete, hover
- * reveals delete button, dense list scrollable. Group par jour ("Aujourd'hui",
- * "Hier", "Cette semaine", "Plus ancien") pour eviter une longue liste plate.</p>
+ * <p>Pattern « Signature » : groupes en overlines 10.5px `--faint`, item actif
+ * accent-soft, hover `--hover`, delete revele au survol.</p>
  *
  * <p>Etats :</p>
  * <ul>
@@ -43,7 +40,6 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   onNew,
   onArchive,
 }) => {
-  const theme = useTheme();
   const grouped = useMemo(() => groupByPeriod(conversations), [conversations]);
 
   return (
@@ -53,28 +49,29 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: alpha(theme.palette.text.primary, 0.02),
-        borderRight: { md: `1px solid ${alpha(theme.palette.text.primary, 0.06)}` },
         py: 1.5,
       }}
     >
       <Box sx={{ px: 1.5, pb: 1 }}>
+        {/* Soft accent (réf .s-btn--soft) : fond accent-soft + texte accent */}
         <Button
           fullWidth
           onClick={onNew}
-          startIcon={<Add size={16} strokeWidth={2} />}
+          startIcon={<Add size={15} strokeWidth={2} />}
           sx={{
             justifyContent: 'flex-start',
-            color: theme.palette.text.primary,
-            fontSize: '0.8125rem',
+            color: 'var(--accent)',
+            fontSize: '12.5px',
             fontWeight: 600,
             textTransform: 'none',
             py: 0.875,
             px: 1.25,
-            borderRadius: 1.5,
-            bgcolor: alpha(theme.palette.text.primary, 0.04),
+            borderRadius: '11px',
+            border: 'none',
+            bgcolor: 'var(--accent-soft)',
             '&:hover': {
-              bgcolor: alpha(theme.palette.text.primary, 0.08),
+              bgcolor: 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)',
+              border: 'none',
             },
           }}
         >
@@ -90,7 +87,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
           // Scrollbar discrete
           '&::-webkit-scrollbar': { width: 6 },
           '&::-webkit-scrollbar-thumb': {
-            bgcolor: alpha(theme.palette.text.primary, 0.12),
+            bgcolor: 'var(--line-2)',
             borderRadius: 3,
           },
         }}
@@ -103,8 +100,8 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
               px: 1.5,
               py: 3,
               textAlign: 'center',
-              color: theme.palette.text.secondary,
-              fontSize: '0.8125rem',
+              color: 'var(--muted)',
+              fontSize: '12.5px',
               lineHeight: 1.5,
             }}
           >
@@ -114,7 +111,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
               style={{ opacity: 0.4, marginBottom: 8 }}
             />
             <div>Aucune conversation.</div>
-            <div style={{ opacity: 0.6, marginTop: 2 }}>
+            <div style={{ color: 'var(--faint)', marginTop: 2 }}>
               Lance ta premiere question.
             </div>
           </Box>
@@ -123,16 +120,16 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         {grouped.map((group) => (
           <Box key={group.label} sx={{ mb: 1.5 }}>
             <Typography
-              variant="overline"
               sx={{
                 display: 'block',
                 px: 1.5,
                 pt: 1,
                 pb: 0.5,
-                fontSize: '0.625rem',
-                letterSpacing: 0.8,
+                fontSize: '10.5px',
+                letterSpacing: '.06em',
+                textTransform: 'uppercase',
                 fontWeight: 700,
-                color: alpha(theme.palette.text.secondary, 0.7),
+                color: 'var(--faint)',
               }}
             >
               {group.label}
@@ -168,7 +165,6 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   onSelect,
   onArchive,
 }) => {
-  const theme = useTheme();
   const [hovered, setHovered] = useState(false);
   const [archiving, setArchiving] = useState(false);
 
@@ -201,25 +197,22 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         px: 1.25,
         py: 0.75,
         mx: 0.5,
-        borderRadius: 1.25,
+        borderRadius: '9px',
         cursor: 'pointer',
-        bgcolor: active
-          ? alpha(theme.palette.primary.main, 0.10)
-          : 'transparent',
-        transition: 'background-color 120ms ease-out',
+        bgcolor: active ? 'var(--accent-soft)' : 'transparent',
+        transition: 'background .12s',
         '&:hover': {
-          bgcolor: active
-            ? alpha(theme.palette.primary.main, 0.14)
-            : alpha(theme.palette.text.primary, 0.05),
+          bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)',
         },
+        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
       }}
     >
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           sx={{
-            fontSize: '0.8125rem',
+            fontSize: '12.5px',
             fontWeight: active ? 600 : 500,
-            color: active ? theme.palette.primary.dark : theme.palette.text.primary,
+            color: active ? 'var(--accent)' : 'var(--body)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -237,13 +230,14 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           disabled={archiving}
           sx={{
             opacity: hovered ? 1 : 0,
-            transition: 'opacity 120ms',
-            color: alpha(theme.palette.error.main, 0.7),
+            transition: 'opacity .12s',
+            color: 'var(--muted)',
             p: 0.25,
             '&:hover': {
-              bgcolor: alpha(theme.palette.error.main, 0.10),
-              color: theme.palette.error.main,
+              bgcolor: 'var(--err-soft)',
+              color: 'var(--err)',
             },
+            '&:focus-visible': { opacity: 1 },
           }}
           aria-label={`Archiver la conversation ${title}`}
         >
@@ -257,7 +251,6 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 // ─── Loading skeleton ────────────────────────────────────────────────────────
 
 const SkeletonList: React.FC = () => {
-  const theme = useTheme();
   return (
     <Box sx={{ px: 0.5, pt: 1 }}>
       {[80, 65, 75].map((width, i) => (
@@ -274,8 +267,8 @@ const SkeletonList: React.FC = () => {
             sx={{
               width: `${width}%`,
               height: 11,
-              borderRadius: 1,
-              bgcolor: alpha(theme.palette.text.primary, 0.08),
+              borderRadius: '6px',
+              bgcolor: 'var(--hover)',
             }}
           />
         </Box>

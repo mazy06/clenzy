@@ -20,7 +20,7 @@ import {
   ListItemText,
   Divider,
   Alert,
-  CircularProgress,
+  Skeleton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -54,6 +54,8 @@ import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import ExportButton from '../../components/ExportButton';
+import StatTile from '../../components/StatTile';
+import EmptyState from '../../components/EmptyState';
 import { usersApi, type UserFormData } from '../../services/api';
 import { userAvatarSrc } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
@@ -105,13 +107,14 @@ const orgRoleDisplay: Record<string, { label: string; Icon: LucideIcon; color: C
   MEMBER: { label: 'Membre', Icon: Home, color: 'default', hex: '#8A8378' },
 };
 
-const USER_STATUS_HEX: Record<string, string> = {
-  ACTIVE: '#4A9B8E',
-  PENDING_VERIFICATION: '#ED6C02',
-  SUSPENDED: '#ED6C02',
-  INACTIVE: '#757575',
-  BLOCKED: '#d32f2f',
-  DELETED: '#d32f2f',
+// Statuts utilisateur → tokens sémantiques (chips -soft : texte couleur + fond -soft)
+const USER_STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
+  ACTIVE: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  PENDING_VERIFICATION: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  SUSPENDED: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  INACTIVE: { fg: 'var(--muted)', bg: 'var(--hover)' },
+  BLOCKED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  DELETED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
 // Utilisation des enums partagés pour les statuts utilisateur
@@ -348,9 +351,13 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={32} />
-      </Box>
+      <Grid container spacing={2}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+            <Skeleton variant="rounded" height={180} sx={{ borderRadius: '14px' }} />
+          </Grid>
+        ))}
+      </Grid>
     );
   }
 
@@ -439,56 +446,40 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         />
       )}
 
-      {/* Statistiques */}
+      {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
-                <Typography variant="h6" color="primary" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
-                  {users.length}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Total utilisateurs
-                </Typography>
-              </CardContent>
-            </Card>
+          <Grid item xs={6} md={3}>
+            <StatTile
+              icon={<Person />}
+              label="Total utilisateurs"
+              value={users.length}
+              color="#6B8A9A"
+            />
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
-                <Typography variant="h6" color="success.main" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
-                  {users.filter(u => u.status === 'ACTIVE').length}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Utilisateurs actifs
-                </Typography>
-              </CardContent>
-            </Card>
+          <Grid item xs={6} md={3}>
+            <StatTile
+              icon={<ManageAccounts />}
+              label="Utilisateurs actifs"
+              value={users.filter(u => u.status === 'ACTIVE').length}
+              color="#4A9B8E"
+            />
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
-                <Typography variant="h6" color="warning.main" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
-                  {users.filter(u => ['SUPER_ADMIN'].includes(u.role)).length}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Administrateurs
-                </Typography>
-              </CardContent>
-            </Card>
+          <Grid item xs={6} md={3}>
+            <StatTile
+              icon={<AdminPanelSettings />}
+              label="Administrateurs"
+              value={users.filter(u => ['SUPER_ADMIN'].includes(u.role)).length}
+              color="#C97A7A"
+            />
           </Grid>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
-                <Typography variant="h6" color="info.main" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
-                  {users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Personnel opérationnel
-                </Typography>
-              </CardContent>
-            </Card>
+          <Grid item xs={6} md={3}>
+            <StatTile
+              icon={<Build />}
+              label="Personnel opérationnel"
+              value={users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
+              color="#7BA3C2"
+            />
           </Grid>
         </Grid>
       </Box>
@@ -502,42 +493,43 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       <Grid container spacing={2}>
         {filteredUsers.length === 0 ? (
           <Grid item xs={12}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2.5, px: 2 }}>
-                <Typography variant="h6" align="center" sx={{ fontSize: '0.95rem', mb: 1 }}>
-                  {users.length === 0 ? 'Aucun utilisateur trouvé.' : 'Aucun utilisateur ne correspond aux filtres.'}
-                </Typography>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={<Person />}
+              title={users.length === 0 ? 'Aucun utilisateur' : 'Aucun résultat'}
+              description={
+                users.length === 0
+                  ? 'Créez le premier compte avec le bouton « Nouvel utilisateur ».'
+                  : 'Aucun utilisateur ne correspond aux filtres sélectionnés.'
+              }
+            />
           </Grid>
         ) : (
           filteredUsers.map((user) => {
             const r = getEffectiveRoleInfo(user);
             const s = getStatusInfo(user.status);
             const roleColor = r.hex;
-            const statusColor = USER_STATUS_HEX[user.status] || '#8A8378';
+            const statusToken = USER_STATUS_TOKEN[user.status] ?? { fg: 'var(--muted)', bg: 'var(--hover)' };
             const RoleIcon = r.Icon;
             return (
             <Grid item xs={12} sm={6} md={4} lg={3} key={user.id}>
+              {/* Carte hairline r14 (thème global) — hover lift + shadow-card (cliquable) */}
               <Card
                 sx={{
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  borderRadius: '10px',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: 'none',
-                  transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
                   '&:hover': {
-                    borderColor: 'rgba(107, 138, 154, 0.35)',
-                    boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 4px 12px rgba(45, 55, 72, 0.06)',
+                    borderColor: 'var(--line-2)',
+                    boxShadow: 'var(--shadow-card)',
                     transform: 'translateY(-1px)',
+                  },
+                  '@media (prefers-reduced-motion: reduce)': {
+                    '&:hover': { transform: 'none' },
                   },
                 }}
               >
                 <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
-                  {/* En-tête avec avatar et menu */}
+                  {/* En-tête avec avatar (initiales display — pattern .mg-avt/.s-av) et menu */}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
                       <Avatar
@@ -545,12 +537,13 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                         sx={{
                           width: 38,
                           height: 38,
+                          borderRadius: '10px',
                           bgcolor: `${roleColor}1F`,
                           color: roleColor,
+                          fontFamily: 'var(--font-display)',
                           fontSize: '0.8125rem',
                           fontWeight: 600,
                           letterSpacing: '0.02em',
-                          border: `1px solid ${roleColor}33`,
                         }}
                       >
                         {user.firstName.charAt(0)}{user.lastName.charAt(0)}
@@ -594,44 +587,22 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     </IconButton>
                   </Box>
 
-                  {/* Rôle et statut */}
+                  {/* Rôle et statut — chips -soft (pilule/typo via thème global MuiChip) */}
                   <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
                     <Chip
                       icon={<RoleIcon size={11} strokeWidth={2} />}
                       label={r.label}
                       size="small"
                       sx={{
-                        height: 22,
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        letterSpacing: '0.01em',
-                        backgroundColor: `${roleColor}14`,
+                        backgroundColor: `${roleColor}18`,
                         color: roleColor,
-                        border: `1px solid ${roleColor}33`,
-                        borderRadius: '6px',
-                        px: 0.25,
-                        '& .MuiChip-icon': {
-                          color: `${roleColor} !important`,
-                          ml: '6px',
-                          mr: '-2px',
-                        },
-                        '& .MuiChip-label': { px: 0.875 },
+                        '& .MuiChip-icon': { color: roleColor, ml: '8px', mr: '-4px' },
                       }}
                     />
                     <Chip
                       label={s.label}
                       size="small"
-                      sx={{
-                        height: 22,
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        letterSpacing: '0.01em',
-                        backgroundColor: `${statusColor}14`,
-                        color: statusColor,
-                        border: `1px solid ${statusColor}33`,
-                        borderRadius: '6px',
-                        '& .MuiChip-label': { px: 0.875 },
-                      }}
+                      sx={{ backgroundColor: statusToken.bg, color: statusToken.fg }}
                     />
                   </Box>
 
@@ -691,26 +662,13 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
 
                 {/* Actions */}
                 <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5 }}>
+                  {/* Bouton secondaire : peau .s-btn--g du thème global */}
                   <Button
                     variant="outlined"
                     size="small"
                     startIcon={<Visibility size={14} strokeWidth={1.75} />}
                     onClick={() => navigate(`/users/${user.id}`)}
                     fullWidth
-                    sx={{
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      letterSpacing: '0.01em',
-                      borderRadius: '6px',
-                      borderColor: 'divider',
-                      color: 'text.primary',
-                      textTransform: 'none',
-                      py: 0.625,
-                      '&:hover': {
-                        borderColor: 'rgba(107, 138, 154, 0.5)',
-                        backgroundColor: 'rgba(107, 138, 154, 0.06)',
-                      },
-                    }}
                   >
                     Voir détails
                   </Button>
@@ -736,21 +694,21 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           horizontal: 'right',
         }}
       >
-        <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
+        <MenuItem onClick={handleViewDetails}>
           <ListItemIcon>
             <Visibility size={18} strokeWidth={1.75} />
           </ListItemIcon>
           Voir détails
         </MenuItem>
-        <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
+        <MenuItem onClick={handleEdit}>
           <ListItemIcon>
             <Edit size={18} strokeWidth={1.75} />
           </ListItemIcon>
           Modifier
         </MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ color: 'error.main', fontSize: '0.85rem', py: 0.75 }}>
+        <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)' }}>
           <ListItemIcon>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Delete size={18} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete size={18} strokeWidth={1.75} /></Box>
           </ListItemIcon>
           Supprimer
         </MenuItem>

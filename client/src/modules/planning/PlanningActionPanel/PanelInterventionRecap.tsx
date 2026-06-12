@@ -64,10 +64,33 @@ const parseStepNotes = (notes?: string): Record<string, string> => {
   return result;
 };
 
-const SEVERITY_HEX: Record<string, string> = {
-  haute: '#d32f2f',
-  moyenne: '#ED6C02',
-  basse: '#0288d1',
+/** Sévérité → tokens sémantiques (haute = err, moyenne = warn, basse = info). */
+const SEVERITY_TOKENS: Record<string, { color: string; bg: string }> = {
+  haute: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  moyenne: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  basse: { color: 'var(--info)', bg: 'var(--info-soft)' },
+};
+
+/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
+const chipSx = (bg: string, color: string) => ({
+  height: 22,
+  fontSize: '0.6875rem',
+  fontWeight: 600,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  fontVariantNumeric: 'tabular-nums',
+  '& .MuiChip-label': { px: 1 },
+  '& .MuiChip-icon': { color: 'inherit' },
+});
+
+const OVERLINE_SX = {
+  fontSize: '0.625rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: 'var(--faint)',
 };
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -112,29 +135,32 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
     <Box>
       {/* Status + duration summary */}
       <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-        {(() => { const c = intervention.status === 'completed' ? '#4A9B8E' : intervention.status === 'in_progress' ? '#0288d1' : '#ED6C02'; return (
-        <Chip
-          label={intervention.status}
-          size="small"
-          sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-        />
-        ); })()}
-        {intervention.estimatedDurationHours && (() => { const c = '#0288d1'; return (
+        {(() => {
+          const t = intervention.status === 'completed'
+            ? { bg: 'var(--ok-soft)', color: 'var(--ok)' }
+            : intervention.status === 'in_progress'
+              ? { bg: 'var(--info-soft)', color: 'var(--info)' }
+              : { bg: 'var(--warn-soft)', color: 'var(--warn)' };
+          return (
+            <Chip label={intervention.status} size="small" sx={chipSx(t.bg, t.color)} />
+          );
+        })()}
+        {intervention.estimatedDurationHours && (
           <Chip
-            icon={<Schedule size={12} strokeWidth={1.75} color={c} />}
+            icon={<Schedule size={12} strokeWidth={1.75} />}
             label={`${intervention.estimatedDurationHours}h estimées`}
             size="small"
-            sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+            sx={chipSx('var(--info-soft)', 'var(--info)')}
           />
-        ); })()}
-        {intervention.estimatedDurationHours && (() => { const c = '#4A9B8E'; return (
+        )}
+        {intervention.estimatedDurationHours && (
           <Chip
-            icon={<AttachMoney size={12} strokeWidth={1.75} color={c} />}
+            icon={<AttachMoney size={12} strokeWidth={1.75} />}
             label={`${(intervention.estimatedDurationHours * 25).toFixed(0)} EUR`}
             size="small"
-            sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+            sx={chipSx('var(--ok-soft)', 'var(--ok)')}
           />
-        ); })()}
+        )}
       </Box>
 
       {/* Photos avant */}
@@ -148,12 +174,12 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       <Divider sx={{ my: 1.5 }} />
 
       {/* Notes per step */}
-      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1 }}>
+      <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
         Notes
       </Typography>
 
       {!hasNotes && !intervention.notes ? (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic', mb: 1.5 }}>
+        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontStyle: 'italic', mb: 1.5 }}>
           Aucune note enregistrée
         </Typography>
       ) : (
@@ -172,11 +198,11 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
                 disableGutters
                 elevation={0}
                 defaultExpanded
-                sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '6px !important', mb: 0.75 }}
+                sx={{ '&:before': { display: 'none' }, border: '1px solid var(--line)', borderRadius: '9px !important', mb: 0.75, backgroundColor: 'var(--card)', backgroundImage: 'none' }}
               >
                 <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 32, '& .MuiAccordionSummary-content': { my: 0.25 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Notes size={14} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Notes size={14} strokeWidth={1.75} /></Box>
                     <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>{labels[step]}</Typography>
                   </Box>
                 </AccordionSummary>
@@ -189,8 +215,8 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
 
           {/* Raw notes fallback if no structured notes */}
           {!hasNotes && intervention.notes && (
-            <Box sx={{ p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1.5 }}>
-              <Typography sx={{ fontSize: '0.6875rem', whiteSpace: 'pre-wrap' }}>{intervention.notes}</Typography>
+            <Box sx={{ p: 1.25, backgroundColor: 'var(--field)', borderRadius: '10px', mb: 1.5 }}>
+              <Typography sx={{ fontSize: '0.6875rem', color: 'var(--body)', whiteSpace: 'pre-wrap' }}>{intervention.notes}</Typography>
             </Box>
           )}
         </>
@@ -200,7 +226,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
 
       {/* Signalements */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
+        <Typography sx={OVERLINE_SX}>
           Signalements ({signalements.length})
         </Typography>
         <Button
@@ -214,7 +240,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
       </Box>
 
       {signalements.length === 0 ? (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontStyle: 'italic' }}>
           Aucun signalement
         </Typography>
       ) : (
@@ -223,25 +249,24 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
             <Box
               key={i}
               sx={{
-                p: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
+                p: 1.25,
+                border: '1px solid var(--line)',
+                borderRadius: '10px',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 1,
               }}
             >
-              {(() => { const c = SEVERITY_HEX[s.severity] || '#ED6C02'; return (
+              {(() => { const t = SEVERITY_TOKENS[s.severity] || SEVERITY_TOKENS.moyenne; return (
               <>
-              <Box component="span" sx={{ display: 'inline-flex', color: c, mt: 0.25 }}><Warning size={16} strokeWidth={1.75} /></Box>
+              <Box component="span" sx={{ display: 'inline-flex', color: t.color, mt: 0.25 }}><Warning size={16} strokeWidth={1.75} /></Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Chip
                   label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)}
                   size="small"
-                  sx={{ fontSize: '0.5625rem', height: 18, mb: 0.5, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                  sx={{ ...chipSx(t.bg, t.color), mb: 0.5 }}
                 />
-                <Typography sx={{ fontSize: '0.6875rem' }}>{s.description}</Typography>
+                <Typography sx={{ fontSize: '0.6875rem', color: 'var(--body)' }}>{s.description}</Typography>
               </Box>
               </>
               ); })()}
@@ -252,7 +277,7 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
 
       {/* Add signalement dialog */}
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontSize: '0.875rem' }}>Ajouter un signalement</DialogTitle>
+        <DialogTitle>Ajouter un signalement</DialogTitle>
         <DialogContent>
           <TextField
             select

@@ -14,6 +14,7 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  Skeleton,
   Tooltip,
   Chip,
 } from '@mui/material';
@@ -149,10 +150,12 @@ const DatabaseAdminPage: React.FC = () => {
         }
       />
 
-      <Paper sx={{ mt: 3 }}>
+      <Paper variant="outlined" sx={{ mt: 3, borderRadius: '14px', borderColor: 'var(--line)', overflow: 'hidden' }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            ))}
           </Box>
         ) : backups.length === 0 ? (
           <EmptyState
@@ -182,7 +185,11 @@ const DatabaseAdminPage: React.FC = () => {
                           {backup.filename}
                         </Typography>
                         {backup.filename.endsWith('.gz') && (
-                          <Chip label="gzip" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
+                          <Chip
+                            label="gzip"
+                            size="small"
+                            sx={{ color: 'var(--muted)', backgroundColor: 'var(--hover)' }}
+                          />
                         )}
                       </Box>
                     </TableCell>

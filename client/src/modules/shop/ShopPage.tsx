@@ -16,8 +16,7 @@ import ProductCard from './ProductCard';
 import CartDrawer from './CartDrawer';
 import PageHeader from '../../components/PageHeader';
 
-const PRIMARY = '#6B8A9A';
-const ACCENT = '#4A9B8E';
+const ACCENT = '#4A9B8E'; // teinte du badge icône PageHeader (prop hex requise)
 
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
@@ -139,13 +138,13 @@ const ShopPage: React.FC = () => {
             aria-label={t('shop.cart')}
             sx={{
               border: '1px solid',
-              borderColor: 'divider',
+              borderColor: 'var(--line-2)',
               borderRadius: '10px',
               p: 1,
-              transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+              transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1), background-color 0.18s cubic-bezier(.16,1,.3,1)',
               '&:hover': {
-                borderColor: `${PRIMARY}66`,
-                backgroundColor: `${PRIMARY}0A`,
+                borderColor: 'var(--faint)',
+                backgroundColor: 'var(--hover)',
               },
             }}
           >
@@ -158,14 +157,14 @@ const ShopPage: React.FC = () => {
                   height: 16,
                   minWidth: 16,
                   fontWeight: 700,
-                  bgcolor: ACCENT,
-                  border: '2px solid',
-                  borderColor: 'background.paper',
+                  bgcolor: 'var(--accent)',
+                  color: 'var(--on-accent)',
+                  border: '2px solid var(--card)',
                   padding: 0,
                 },
               }}
             >
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.primary' }}>
+              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ink)' }}>
                 <ShoppingCartOutlined size={20} strokeWidth={1.75} />
               </Box>
             </Badge>
@@ -173,7 +172,7 @@ const ShopPage: React.FC = () => {
         )}
       />
 
-      {/* Info banner — restrained, no MUI Alert chrome */}
+      {/* Info banner — alerte -soft tokenisée */}
       <Box
         sx={{
           display: 'flex',
@@ -183,17 +182,17 @@ const ShopPage: React.FC = () => {
           mb: 2.5,
           borderRadius: '10px',
           border: '1px solid',
-          borderColor: `${ACCENT}33`,
-          backgroundColor: `${ACCENT}0A`,
+          borderColor: 'color-mix(in srgb, var(--info) 30%, transparent)',
+          backgroundColor: 'var(--info-soft)',
         }}
       >
-        <Box sx={{ color: ACCENT, display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
+        <Box sx={{ color: 'var(--info)', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
           <CheckCircleOutline size={16} strokeWidth={1.75} />
         </Box>
         <Typography
           sx={{
             fontSize: '0.8rem',
-            color: 'text.secondary',
+            color: 'var(--body)',
             lineHeight: 1.5,
           }}
         >
@@ -237,20 +236,20 @@ const ShopPage: React.FC = () => {
                 userSelect: 'none',
                 borderRadius: '8px',
                 border: '1px solid',
-                borderColor: active ? PRIMARY : 'divider',
-                backgroundColor: active ? PRIMARY : 'transparent',
-                color: active ? '#fff' : 'text.primary',
+                borderColor: active ? 'var(--accent)' : 'var(--line-2)',
+                backgroundColor: active ? 'var(--accent-soft)' : 'var(--card)',
+                color: active ? 'var(--accent)' : 'var(--body)',
                 fontSize: '0.78rem',
                 fontWeight: 600,
                 letterSpacing: '0.01em',
                 transition:
-                  'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  'border-color 0.18s cubic-bezier(.16,1,.3,1), background-color 0.18s cubic-bezier(.16,1,.3,1), color 0.18s cubic-bezier(.16,1,.3,1)',
                 '&:hover': {
-                  borderColor: active ? PRIMARY : `${PRIMARY}66`,
-                  backgroundColor: active ? PRIMARY : `${PRIMARY}0A`,
+                  borderColor: active ? 'var(--accent)' : 'var(--faint)',
+                  backgroundColor: active ? 'var(--accent-soft)' : 'var(--hover)',
                 },
                 '&:focus-visible': {
-                  outline: `2px solid ${PRIMARY}`,
+                  outline: '2px solid var(--accent)',
                   outlineOffset: 2,
                 },
               }}
@@ -265,8 +264,8 @@ const ShopPage: React.FC = () => {
                   px: 0.625,
                   py: 0.125,
                   borderRadius: '5px',
-                  backgroundColor: active ? 'rgba(255,255,255,0.18)' : `${PRIMARY}14`,
-                  color: active ? 'rgba(255,255,255,0.95)' : PRIMARY,
+                  backgroundColor: active ? 'var(--accent)' : 'var(--field)',
+                  color: active ? 'var(--on-accent)' : 'var(--muted)',
                   fontVariantNumeric: 'tabular-nums',
                   minWidth: 16,
                   textAlign: 'center',

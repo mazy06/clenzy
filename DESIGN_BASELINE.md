@@ -149,3 +149,12 @@ Tokens/thème/accent · PageHeader + slots · PageTabs · StatTile · EmptyState
 - Tables denses avec tri/sélection multiple (pattern entêtes overline OK, mais toolbar de table non spécifiée).
 - Wizard/Stepper, Accordion, Upload/dropzone, éditeur riche : aucun pattern.
 - Pages publiques (login déjà « Signature-origine », autres pages publiques non couvertes).
+- Violet « IA » #8B5CF6/#7C3AED hors palette (settings ×5) — token dédié ou rattachement accent à arbitrer.
+- Palette catégorielle 10 teintes saturées de l'inventaire (`InventoryItemsSection.tsx:85-94`) — désaturer ou valider comme couleurs data.
+- `FEATURE_META` dupliqué entre `AiSettings` et `PlatformAiConfigSection` (couleurs/icônes par feature IA) — centraliser.
+- Lightbox photo (visionneuse plein écran) : aucun pattern validé.
+- FAB mobile : dérivation contour accent appliquée — à valider (le baseline ne couvre pas le FAB).
+- Chip statut NEUTRE : pas de token dédié (usage actuel `--muted`/`--hover` ad hoc) — à formaliser.
+- Légende de chart riche + labels sur Pie : aucun pattern chart validé.
+- `DashboardDateFilter` : chips vs segmented — deux patterns concurrents pour la même fonction, trancher.
+- `softChipSx`/`statusUtils` legacy + couleurs data des `services/api` (PAYOUT/EXPENSE/CHANNEX_STATUS_META, hex saturés ~:886) — migrer vers tokens sémantiques ou valider comme couleurs data.

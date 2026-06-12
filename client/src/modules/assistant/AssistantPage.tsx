@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Box, Typography, Paper, useTheme, alpha } from '@mui/material';
+import { Box, Typography, Paper } from '@mui/material';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import PageHeader from '../../components/PageHeader';
 import { useAgent } from '../../hooks/useAgent';
@@ -20,7 +20,6 @@ const SUGGESTED_PROMPTS = [
 ];
 
 const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest }) => {
-  const theme = useTheme();
   return (
     <Box
       sx={{
@@ -45,21 +44,30 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
           width: 64,
           height: 64,
           borderRadius: '50%',
-          bgcolor: alpha(theme.palette.primary.main, 0.1),
+          bgcolor: 'var(--accent-soft)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: theme.palette.primary.main,
+          color: 'var(--accent)',
         }}
       >
         <BaitlyMarkLogo variant="mark" size={52} />
       </Box>
 
       <Box>
-        <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 600 }}>
+        <Typography
+          sx={{
+            mb: 0.5,
+            fontFamily: 'var(--font-display)',
+            fontSize: 18,
+            fontWeight: 600,
+            color: 'var(--ink)',
+            textWrap: 'balance',
+          }}
+        >
           Comment puis-je t&apos;aider ?
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480 }}>
+        <Typography sx={{ maxWidth: 480, fontSize: 13, lineHeight: 1.55, color: 'var(--muted)' }}>
           Pose-moi une question sur tes proprietes, reservations, menages ou KPIs.
           J&apos;utilise tes donnees Baitly en temps reel.
         </Typography>
@@ -72,26 +80,27 @@ const EmptyState: React.FC<{ onSuggest: (text: string) => void }> = ({ onSuggest
             component="button"
             onClick={() => onSuggest(prompt)}
             sx={{
-              // L4 chips suggerees : bg neutre subtil → bg primary teinte au hover.
-              // Pas de border, c'est le bg qui donne la presence visuelle.
-              px: 1.75,
-              py: 1,
+              // Chips suggérées : accent-soft (réf FilterChipRow actif),
+              // hover = pilule accent pleine (réf .mg-subtab actif).
+              px: '14px',
+              py: '8px',
               border: 'none',
-              borderRadius: 999, // pill shape — plus elegant que rectangle arrondi
-              bgcolor: alpha(theme.palette.text.primary, 0.04),
-              color: theme.palette.text.primary,
+              borderRadius: 999,
+              bgcolor: 'var(--accent-soft)',
+              color: 'var(--accent)',
               fontFamily: 'inherit',
-              fontSize: '0.8125rem',
-              fontWeight: 500,
+              fontSize: '12.5px',
+              fontWeight: 600,
               textAlign: 'left',
               cursor: 'pointer',
-              transition: 'background-color 180ms ease-out, color 180ms ease-out',
+              transition: 'background .15s, color .15s, transform .12s',
               '&:hover': {
-                bgcolor: alpha(theme.palette.primary.main, 0.12),
-                color: theme.palette.primary.dark,
+                bgcolor: 'var(--accent)',
+                color: 'var(--on-accent)',
               },
+              '&:active': { transform: 'scale(.97)' },
               '&:focus-visible': {
-                outline: `2px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+                outline: '2px solid var(--accent)',
                 outlineOffset: 2,
               },
               '@media (prefers-reduced-motion: reduce)': {
@@ -204,7 +213,9 @@ const AssistantPage: React.FC = () => {
           sx={{
             display: { xs: 'none', md: 'flex' },
             flexDirection: 'column',
-            borderRadius: 3,
+            borderRadius: '14px',
+            border: '1px solid var(--line)',
+            bgcolor: 'var(--card)',
             overflow: 'hidden',
           }}
         >
@@ -222,14 +233,14 @@ const AssistantPage: React.FC = () => {
         <Paper
           elevation={0}
           sx={{
-            // Surface L1 (background.paper = white) sur fond L0 (background.default
-            // = light gray) : contraste de bg suffit pour delimiter la zone, pas de
-            // border. Approche Linear/Notion/Vercel.
+            // Carte hairline r14 (réf MuiCard Signature) — délimite la zone chat.
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            borderRadius: 3,
+            borderRadius: '14px',
+            border: '1px solid var(--line)',
+            bgcolor: 'var(--card)',
             minWidth: 0,
           }}
         >
@@ -253,11 +264,12 @@ const AssistantPage: React.FC = () => {
                 sx={{
                   px: 1.75,
                   py: 1,
-                  bgcolor: (t) => alpha(t.palette.error.main, 0.10),
-                  color: (t) => t.palette.error.dark,
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                  borderRadius: 2,
+                  bgcolor: 'var(--err-soft)',
+                  color: 'var(--err)',
+                  border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  borderRadius: '10px',
                 }}
               >
                 {error}

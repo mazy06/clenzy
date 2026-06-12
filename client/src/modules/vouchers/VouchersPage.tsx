@@ -26,8 +26,9 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash } from '../../icons';
+import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOffer } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   useBookingVouchersList,
@@ -40,25 +41,43 @@ import type {
   VoucherDiscountType,
   VoucherStatus,
 } from '../../services/api/bookingVouchersApi';
-import { softChipSx } from '../../utils/statusUtils';
 import VoucherAnalyticsPanel from './VoucherAnalyticsPanel';
 import VoucherEditorDialog from './VoucherEditorDialog';
 
-// ─── Palette Baitly (alignee sur les autres surfaces) ───────────────────────
+// ─── Tokens Signature : chips -soft par statut ───────────────────────────────
 
-const ACCENT_TEAL = '#4A9B8E';
-const WARM = '#D4A574';
-const SOFT_BLUE = '#7BA3C2';
-const NEUTRAL = '#8A8378';
-const DANGER_SOFT = '#C97A7A';
-
-/** Map status → couleur de chip (semantique : active=teal, pause=warm, draft=blue, expired=neutral). */
-const STATUS_COLOR: Record<VoucherStatus, string> = {
-  ACTIVE: ACCENT_TEAL,
-  PAUSED: WARM,
-  DRAFT: SOFT_BLUE,
-  EXPIRED: NEUTRAL,
+/** Chip -soft (texte couleur + fond -soft) par statut de voucher. */
+const STATUS_CHIP_SX: Record<VoucherStatus, Record<string, unknown>> = {
+  ACTIVE: { backgroundColor: 'var(--ok-soft)', color: 'var(--ok)' },
+  PAUSED: { backgroundColor: 'var(--warn-soft)', color: 'var(--warn)' },
+  DRAFT: { backgroundColor: 'var(--info-soft)', color: 'var(--info)' },
+  EXPIRED: { backgroundColor: 'var(--field)', color: 'var(--muted)' },
 };
+
+const CHIP_BASE_SX = {
+  fontSize: '10.5px',
+  fontWeight: 700,
+  height: 22,
+  border: 'none',
+} as const;
+
+/**
+ * Code voucher — pattern .fr-dip (IP mono de la messagerie) :
+ * mono display, fond --field, r6.
+ */
+const CODE_SX = {
+  display: 'inline-block',
+  fontFamily: 'var(--font-display)',
+  fontSize: '11.5px',
+  letterSpacing: '0.04em',
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--body)',
+  bgcolor: 'var(--field)',
+  border: '1px solid var(--field-line)',
+  borderRadius: '6px',
+  px: '8px',
+  py: '3px',
+} as const;
 
 type FilterMode = 'all' | VoucherStatus;
 
@@ -172,11 +191,6 @@ export default function VouchersPage({
         size="small"
         startIcon={<Add size={16} strokeWidth={2} />}
         onClick={() => setCreating(true)}
-        sx={{
-          bgcolor: ACCENT_TEAL,
-          textTransform: 'none',
-          '&:hover': { bgcolor: '#3d8276' },
-        }}
       >
         {t('vouchers.createButton')}
       </Button>
@@ -231,7 +245,15 @@ export default function VouchersPage({
             <CircularProgress />
           </Box>
         ) : sortedVouchers.length === 0 ? (
-          <Alert severity="info">{t('vouchers.empty')}</Alert>
+          <EmptyState
+            icon={<LocalOffer />}
+            title={t('vouchers.empty')}
+            action={(
+              <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setCreating(true)}>
+                {t('vouchers.createButton')}
+              </Button>
+            )}
+          />
         ) : (
           <TableContainer component={Paper}>
             <Table size="small">
@@ -291,13 +313,13 @@ export default function VouchersPage({
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPendingDelete(null)} sx={{ textTransform: 'none' }}>
+          <Button onClick={() => setPendingDelete(null)}>
             {t('common.cancel')}
           </Button>
           <Button
             onClick={confirmDelete}
             variant="contained"
-            sx={{ bgcolor: DANGER_SOFT, textTransform: 'none', '&:hover': { bgcolor: '#b86c6c' } }}
+            color="error"
             autoFocus
           >
             {t('common.delete')}
@@ -357,23 +379,27 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
       </TableCell>
       <TableCell>
         {v.code ? (
-          <Typography variant="body2" sx={{ fontFamily: 'monospace', letterSpacing: 0.5 }}>
+          <Typography variant="body2" component="span" sx={CODE_SX}>
             {v.code}
           </Typography>
         ) : (
-          <Chip label={t('vouchers.autoCampaign')} size="small" sx={softChipSx(SOFT_BLUE)} />
+          <Chip label={t('vouchers.autoCampaign')} size="small" sx={{ ...CHIP_BASE_SX, backgroundColor: 'var(--info-soft)', color: 'var(--info)' }} />
         )}
       </TableCell>
       <TableCell>
         <Chip
           label={isAuto ? t('vouchers.typeAuto') : t('vouchers.typeManual')}
           size="small"
-          variant="outlined"
-          sx={softChipSx(isAuto ? SOFT_BLUE : NEUTRAL)}
+          sx={{
+            ...CHIP_BASE_SX,
+            ...(isAuto
+              ? { backgroundColor: 'var(--info-soft)', color: 'var(--info)' }
+              : { backgroundColor: 'var(--field)', color: 'var(--muted)' }),
+          }}
         />
       </TableCell>
       <TableCell>
-        <Typography variant="body2" fontWeight={500}>
+        <Typography variant="body2" fontWeight={500} sx={{ fontVariantNumeric: 'tabular-nums' }}>
           {formatDiscount(v.discountType, v.discountValue)}
         </Typography>
       </TableCell>
@@ -394,7 +420,7 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
         <Chip
           label={t(`vouchers.status.${v.status}`)}
           size="small"
-          sx={softChipSx(STATUS_COLOR[v.status])}
+          sx={{ ...CHIP_BASE_SX, ...STATUS_CHIP_SX[v.status] }}
         />
       </TableCell>
       <TableCell align="right">
@@ -414,13 +440,13 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
             </Tooltip>
           )}
           <Tooltip title={t('common.edit')} arrow>
-            <IconButton size="small" onClick={onEdit} sx={{ cursor: 'pointer', '&:hover': { color: ACCENT_TEAL } }}>
+            <IconButton size="small" onClick={onEdit} sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)' } }}>
               <Edit size={16} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
           {canDelete && (
             <Tooltip title={t('common.delete')} arrow>
-              <IconButton size="small" onClick={onDelete} sx={{ cursor: 'pointer', '&:hover': { color: DANGER_SOFT } }}>
+              <IconButton size="small" onClick={onDelete} sx={{ cursor: 'pointer', '&:hover': { color: 'var(--err)' } }}>
                 <Trash size={16} strokeWidth={1.75} />
               </IconButton>
             </Tooltip>

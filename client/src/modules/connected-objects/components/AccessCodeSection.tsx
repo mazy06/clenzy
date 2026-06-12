@@ -96,8 +96,21 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
           <Typography variant="caption" sx={{ color: 'text.disabled' }}>Code d'accès…</Typography>
         ) : hasCode ? (
           <>
+            {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
             <Typography
-              sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, fontSize: '0.875rem', letterSpacing: revealed ? '0.06em' : '0.18em', color: 'text.primary' }}
+              sx={{
+                fontFamily: 'var(--font-display)',
+                fontVariantNumeric: 'tabular-nums',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                letterSpacing: revealed ? '0.06em' : '0.18em',
+                color: 'var(--ink)',
+                bgcolor: 'var(--field)',
+                borderRadius: '9px',
+                px: 1,
+                py: 0.25,
+                lineHeight: 1.4,
+              }}
             >
               {revealed ? code!.code : '••••••'}
             </Typography>
@@ -126,7 +139,7 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
               startIcon={rotating ? <CircularProgress size={13} /> : <Refresh size={14} strokeWidth={1.75} />}
               onClick={() => setConfirmOpen(true)}
               disabled={rotating}
-              sx={{ ml: 'auto', textTransform: 'none' }}
+              sx={{ ml: 'auto' }}
             >
               Générer
             </Button>

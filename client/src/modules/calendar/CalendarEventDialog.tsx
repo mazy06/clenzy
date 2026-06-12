@@ -25,7 +25,29 @@ import {
   PRIORITY_OPTIONS,
 } from '../../types/statusEnums';
 import { getTypeLabel } from '../interventions/interventionUtils';
+import { semanticToHex } from '../../utils/statusUtils';
 import type { ChipColor } from '../../types';
+
+// ─── Chips soft (pilule fond -soft + texte couleur — pattern baseline §2) ────
+
+const pillSx = (bg: string, color: string) => ({
+  height: 22,
+  fontSize: '0.6875rem',
+  fontWeight: 600,
+  backgroundColor: bg,
+  color,
+  border: 'none',
+  borderRadius: 'var(--radius-pill)',
+  '& .MuiChip-label': { px: 1 },
+});
+
+/** Couleur sémantique MUI → pilule soft (primary = accent thémable). */
+const chipColorSx = (color: ChipColor) => {
+  if (color === 'primary') return pillSx('var(--accent-soft)', 'var(--accent)');
+  if (color === 'default') return pillSx('var(--field)', 'var(--muted)');
+  const hex = semanticToHex(color);
+  return pillSx(`${hex}1F`, hex);
+};
 
 interface CalendarEventDialogProps {
   open: boolean;
@@ -89,34 +111,26 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 600, fontSize: '1rem' }}>
-          {intervention.title}
-        </Typography>
-      </DialogTitle>
+      {/* Titre display + filets : portés par le thème global */}
+      <DialogTitle>{intervention.title}</DialogTitle>
 
-      <DialogContent>
-        {/* Chips: Status, Priority, Type */}
+      <DialogContent sx={{ pt: '16px !important' }}>
+        {/* Chips: Status, Priority, Type — pilules soft (jamais d'aplat plein) */}
         <Box display="flex" gap={0.75} mb={2} flexWrap="wrap">
           <Chip
             label={getStatusLabel(intervention.status)}
             size="small"
-            color={getStatusChipColor(intervention.status)}
-            sx={{ fontSize: '0.75rem' }}
+            sx={chipColorSx(getStatusChipColor(intervention.status))}
           />
           <Chip
             label={getPriorityLabel(intervention.priority)}
             size="small"
-            color={getPriorityChipColor(intervention.priority)}
-            variant="outlined"
-            sx={{ fontSize: '0.75rem' }}
+            sx={chipColorSx(getPriorityChipColor(intervention.priority))}
           />
           <Chip
             label={getTypeLabel(intervention.type, t)}
             size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ fontSize: '0.75rem' }}
+            sx={chipColorSx('primary')}
           />
         </Box>
 
@@ -187,16 +201,11 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} size="small" sx={{ textTransform: 'none' }}>
+      <DialogActions>
+        <Button onClick={onClose} size="small">
           Fermer
         </Button>
-        <Button
-          variant="contained"
-          onClick={handleViewDetails}
-          size="small"
-          sx={{ textTransform: 'none' }}
-        >
+        <Button variant="contained" onClick={handleViewDetails} size="small">
           Voir les details
         </Button>
       </DialogActions>

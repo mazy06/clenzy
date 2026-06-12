@@ -88,14 +88,14 @@ export default function Support() {
       background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
       p: 2
     }}>
-      <Paper elevation={8} sx={{
+      <Paper elevation={0} sx={{
         p: 2.5,
         width: '100%',
         maxWidth: 440,
         borderRadius: 2,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
+        backgroundColor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
       }}>
         {/* Header avec logo */}
         <Box sx={{ textAlign: 'center', mb: 2 }}>
@@ -136,7 +136,7 @@ export default function Support() {
                 backgroundColor: 'secondary.main',
                 '&:hover': { backgroundColor: 'secondary.dark' },
                 borderRadius: 1.5,
-                boxShadow: '0 4px 12px rgba(166, 192, 206, 0.3)',
+                boxShadow: 'none',
               }}
             >
               {t('auth.support.backToLogin', 'Retour à la connexion')}
@@ -232,7 +232,7 @@ export default function Support() {
                   '&:active': { backgroundColor: 'primary.main' },
                   '&:disabled': { backgroundColor: 'secondary.light' },
                   borderRadius: 1.5,
-                  boxShadow: '0 4px 12px rgba(166, 192, 206, 0.3)',
+                  boxShadow: 'none',
                   transition: 'all 0.3s ease',
                 }}
               >

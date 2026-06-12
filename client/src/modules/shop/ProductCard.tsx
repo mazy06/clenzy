@@ -22,12 +22,12 @@ import ProductHero, { PRODUCT_PALETTE } from './ProductHero';
 
 const SAVINGS_FEATURE_RE = /^\s*économie\s+de\s+\d+\s*%\s*$/i;
 
-// ─── Badge styles (palette Baitly) ───────────────────────────────────────────
+// ─── Badge styles (tokens Signature -soft) ───────────────────────────────────
 
-const BADGE_STYLES: Record<string, { bg: string; color: string; border: string }> = {
-  new: { bg: '#4A9B8E14', color: '#4A9B8E', border: '#4A9B8E40' },
-  bestseller: { bg: '#6B8A9A14', color: '#6B8A9A', border: '#6B8A9A40' },
-  promo: { bg: '#C97A7A14', color: '#C97A7A', border: '#C97A7A40' },
+const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
+  new: { bg: 'var(--ok-soft)', color: 'var(--ok)' },
+  bestseller: { bg: 'var(--accent-soft)', color: 'var(--accent)' },
+  promo: { bg: 'var(--err-soft)', color: 'var(--err)' },
 };
 
 const DEFAULT_TINT = '#6B8A9A';
@@ -77,24 +77,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
         flexDirection: 'column',
         height: '100%',
         overflow: 'hidden',
-        borderRadius: '12px',
+        borderRadius: '14px',
         border: '1px solid',
-        borderColor: 'divider',
+        borderColor: 'var(--line)',
+        bgcolor: 'var(--card)',
         boxShadow: 'none',
-        transition:
-          'border-color 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
         '&:hover': {
-          borderColor: `${tint}66`,
-          boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04), 0 6px 16px rgba(45, 55, 72, 0.08)',
-          transform: 'translateY(-2px)',
-        },
-        '&:hover .product-hero-img': {
-          transform: 'scale(1.04)',
+          borderColor: 'var(--line-2)',
         },
       }}
     >
       {/* Hero image */}
-      <Box sx={{ position: 'relative' }} className="product-hero-img" style={{ transition: 'transform 400ms cubic-bezier(0.22, 1, 0.36, 1)' }}>
+      <Box sx={{ position: 'relative' }}>
         <ProductHero product={product} height={172} />
 
         {/* Badge floating top-right */}
@@ -112,14 +107,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
               size="small"
               sx={{
                 height: 22,
-                fontSize: '0.6875rem',
-                fontWeight: 600,
+                fontSize: '10.5px',
+                fontWeight: 700,
                 letterSpacing: '0.02em',
                 backgroundColor: badgeStyle.bg,
                 color: badgeStyle.color,
-                border: `1px solid ${badgeStyle.border}`,
-                borderRadius: '6px',
-                backdropFilter: 'none',
+                border: 'none',
                 '& .MuiChip-label': { px: 0.875 },
               }}
             />
@@ -137,8 +130,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
               px: 0.875,
               py: 0.25,
               borderRadius: '6px',
-              backgroundColor: '#4A9B8E',
-              color: '#fff',
+              backgroundColor: 'var(--ok)',
+              color: 'var(--on-accent)',
               fontSize: '0.6875rem',
               fontWeight: 700,
               letterSpacing: '0.02em',
@@ -195,9 +188,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1.25 }}>
           <Typography
             sx={{
+              fontFamily: 'var(--font-display)',
               fontSize: '1.15rem',
-              fontWeight: 700,
-              color: tint,
+              fontWeight: 600,
+              color: 'var(--ink)',
               fontVariantNumeric: 'tabular-nums',
               letterSpacing: '-0.01em',
             }}
@@ -208,7 +202,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <Typography
               sx={{
                 textDecoration: 'line-through',
-                color: 'text.disabled',
+                color: 'var(--faint)',
                 fontSize: '0.8rem',
                 fontVariantNumeric: 'tabular-nums',
               }}
@@ -228,16 +222,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 size="small"
                 sx={{
                   height: 22,
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
+                  fontSize: '10.5px',
+                  fontWeight: 700,
                   letterSpacing: '0.01em',
-                  backgroundColor: '#7BA3C214',
-                  color: '#7BA3C2',
-                  border: '1px solid #7BA3C233',
-                  borderRadius: '6px',
+                  backgroundColor: 'var(--info-soft)',
+                  color: 'var(--info)',
+                  border: 'none',
                   px: 0.25,
                   '& .MuiChip-icon': {
-                    color: '#7BA3C2 !important',
+                    color: 'var(--info) !important',
                     ml: '6px',
                     mr: '-2px',
                   },
@@ -251,13 +244,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 size="small"
                 sx={{
                   height: 22,
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
+                  fontSize: '10.5px',
+                  fontWeight: 700,
                   letterSpacing: '0.01em',
-                  backgroundColor: '#8A6E8A14',
-                  color: '#8A6E8A',
-                  border: '1px solid #8A6E8A33',
-                  borderRadius: '6px',
+                  backgroundColor: 'var(--field)',
+                  color: 'var(--muted)',
+                  border: 'none',
                   '& .MuiChip-label': { px: 0.875 },
                 }}
               />
@@ -341,64 +333,46 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <Button
             variant="contained"
             fullWidth
-            disableElevation
             startIcon={<ShoppingCartOutlined size={14} strokeWidth={2} />}
             onClick={onAddToCart}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.78rem',
-              letterSpacing: '0.01em',
-              borderRadius: '8px',
-              py: 0.875,
-              bgcolor: tint,
-              color: '#fff',
-              boxShadow: 'none',
-              transition: 'background-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-              '&:hover': {
-                bgcolor: tint,
-                filter: 'brightness(0.94)',
-                boxShadow: 'none',
-              },
-            }}
           >
             {t('shop.addToCart')}
           </Button>
         ) : (
+          /* Compteur — pattern .rm-count : conteneur --field r10 p3, boutons --card r8, valeur display */
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 0.5,
-              p: 0.5,
-              borderRadius: '8px',
-              border: `1px solid ${tint}40`,
-              backgroundColor: `${tint}0A`,
+              p: '3px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--field)',
+              border: '1px solid var(--field-line)',
             }}
           >
             <IconButton
               size="small"
               onClick={onRemoveFromCart}
               sx={{
-                width: 28,
-                height: 28,
-                bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: '6px',
-                color: tint,
-                '&:hover': { bgcolor: `${tint}14`, borderColor: `${tint}66` },
+                width: 30,
+                height: 30,
+                bgcolor: 'var(--card)',
+                borderRadius: '8px',
+                color: 'var(--body)',
+                '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
               }}
               aria-label="Diminuer la quantité"
             >
               <Remove size={14} strokeWidth={2} />
             </IconButton>
             <Typography
-              fontWeight={700}
               sx={{
-                fontSize: '0.85rem',
-                color: tint,
+                fontFamily: 'var(--font-display)',
+                fontWeight: 600,
+                fontSize: '15px',
+                color: 'var(--ink)',
                 fontVariantNumeric: 'tabular-nums',
                 minWidth: 24,
                 textAlign: 'center',
@@ -410,13 +384,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
               size="small"
               onClick={onAddToCart}
               sx={{
-                width: 28,
-                height: 28,
-                bgcolor: tint,
-                border: `1px solid ${tint}`,
-                borderRadius: '6px',
-                color: '#fff',
-                '&:hover': { bgcolor: tint, filter: 'brightness(0.94)' },
+                width: 30,
+                height: 30,
+                bgcolor: 'var(--card)',
+                borderRadius: '8px',
+                color: 'var(--body)',
+                '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
               }}
               aria-label="Augmenter la quantité"
             >

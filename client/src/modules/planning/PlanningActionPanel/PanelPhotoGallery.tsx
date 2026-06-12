@@ -30,8 +30,8 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
   if (photos.length === 0) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, py: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PhotoLibrary size={14} strokeWidth={1.75} /></Box>
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><PhotoLibrary size={14} strokeWidth={1.75} /></Box>
+        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontStyle: 'italic' }}>
           Aucune photo — {label}
         </Typography>
       </Box>
@@ -44,11 +44,15 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><PhotoLibrary size={14} strokeWidth={1.75} /></Box>
-        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
+        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><PhotoLibrary size={14} strokeWidth={1.75} /></Box>
+        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ink)' }}>
           {label}
         </Typography>
-        <Chip label={photos.length} size="small" sx={{ fontSize: '0.5625rem', height: 18, ml: 'auto' }} />
+        <Chip
+          label={photos.length}
+          size="small"
+          sx={{ height: 18, ml: 'auto', backgroundColor: 'var(--field)', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 } }}
+        />
       </Box>
 
       <Box
@@ -67,12 +71,13 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
               position: 'relative',
               width: '100%',
               paddingTop: '75%',
-              borderRadius: 1,
+              borderRadius: '10px',
               overflow: 'hidden',
               cursor: 'pointer',
-              border: '1px solid',
-              borderColor: 'divider',
-              '&:hover': { opacity: 0.85 },
+              border: '1px solid var(--line)',
+              transition: 'opacity .15s, border-color .15s',
+              '&:hover': { opacity: 0.85, borderColor: 'var(--line-2)' },
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             }}
           >
             <Box
@@ -97,10 +102,10 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  backgroundColor: 'rgba(21,36,45,.55)',
                 }}
               >
-                <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
+                <Typography sx={{ color: 'var(--on-accent)', fontWeight: 600, fontSize: '1rem', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
                   +{extra}
                 </Typography>
               </Box>
@@ -116,7 +121,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
         maxWidth={false}
         PaperProps={{
           sx: {
-            backgroundColor: 'rgba(0,0,0,0.95)',
+            backgroundColor: 'rgba(21,36,45,.96)',
             maxWidth: '90vw',
             maxHeight: '90vh',
             p: 0,
@@ -127,7 +132,8 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
         <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 400, minHeight: 300 }}>
           <IconButton
             onClick={() => setLightboxOpen(false)}
-            sx={{ position: 'absolute', top: 8, right: 8, color: '#fff', zIndex: 2 }}
+            aria-label="Fermer"
+            sx={{ position: 'absolute', top: 8, right: 8, color: 'var(--on-accent)', zIndex: 2, '&:hover': { backgroundColor: 'rgba(255,255,255,.12)' } }}
           >
             <Close />
           </IconButton>
@@ -136,13 +142,15 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
             <>
               <IconButton
                 onClick={() => setLightboxIndex((p) => (p > 0 ? p - 1 : photos.length - 1))}
-                sx={{ position: 'absolute', left: 8, color: '#fff', zIndex: 2 }}
+                aria-label="Photo precedente"
+                sx={{ position: 'absolute', left: 8, color: 'var(--on-accent)', zIndex: 2, '&:hover': { backgroundColor: 'rgba(255,255,255,.12)' } }}
               >
                 <ChevronLeft />
               </IconButton>
               <IconButton
                 onClick={() => setLightboxIndex((p) => (p < photos.length - 1 ? p + 1 : 0))}
-                sx={{ position: 'absolute', right: 8, color: '#fff', zIndex: 2 }}
+                aria-label="Photo suivante"
+                sx={{ position: 'absolute', right: 8, color: 'var(--on-accent)', zIndex: 2, '&:hover': { backgroundColor: 'rgba(255,255,255,.12)' } }}
               >
                 <ChevronRight />
               </IconButton>
@@ -156,7 +164,7 @@ const PanelPhotoGallery: React.FC<PanelPhotoGalleryProps> = ({
             sx={{ maxWidth: '85vw', maxHeight: '85vh', objectFit: 'contain' }}
           />
 
-          <Typography sx={{ position: 'absolute', bottom: 12, color: '#fff', fontSize: '0.75rem' }}>
+          <Typography sx={{ position: 'absolute', bottom: 12, color: 'var(--on-accent)', fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
             {lightboxIndex + 1} / {photos.length}
           </Typography>
         </Box>
