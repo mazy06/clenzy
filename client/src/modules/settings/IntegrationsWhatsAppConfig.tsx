@@ -22,9 +22,9 @@ import WhatsAppProviderConfigSection from './WhatsAppProviderConfigSection';
 import { whatsAppConfigApi } from '../../services/api/whatsAppConfigApi';
 import { getServicesByCategory } from '../../services/integrations/servicesCatalog';
 
-const ACCENT = '#4A9B8E';
-const WARM = '#D4A574';
-const DANGER = '#C97A7A';
+const ACCENT = 'var(--ok)';
+const WARM = 'var(--warn)';
+const DANGER = 'var(--err)';
 
 /** Le service catalogue WhatsApp (source de vérité visuelle : nom, couleur, desc). */
 const WHATSAPP_SERVICE = getServicesByCategory('messaging').find(
@@ -99,7 +99,7 @@ export default function IntegrationsWhatsAppConfig() {
           onClick={() => setDisconnectOpen(true)}
           disabled={disconnect.isPending}
           aria-label="Déconnecter WhatsApp"
-          sx={{ color: 'text.secondary', '&:hover': { color: DANGER, bgcolor: `${DANGER}14` } }}
+          sx={{ color: 'text.secondary', '&:hover': { color: DANGER, bgcolor: 'var(--err-soft)' } }}
         >
           <LinkOffIcon size={16} strokeWidth={2} />
         </IconButton>
@@ -112,7 +112,7 @@ export default function IntegrationsWhatsAppConfig() {
           size="small"
           onClick={() => setOpen(true)}
           aria-label="Connecter WhatsApp"
-          sx={{ color: ACCENT, '&:hover': { bgcolor: `${ACCENT}14` } }}
+          sx={{ color: ACCENT, '&:hover': { bgcolor: 'var(--ok-soft)' } }}
         >
           <LinkIcon size={16} strokeWidth={2} />
         </IconButton>
@@ -266,7 +266,7 @@ export default function IntegrationsWhatsAppConfig() {
             disabled={disconnect.isPending}
             sx={{ textTransform: 'none', boxShadow: 'none' }}
           >
-            {disconnect.isPending ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Déconnecter'}
+            {disconnect.isPending ? <CircularProgress size={14} color="inherit" /> : 'Déconnecter'}
           </Button>
         </DialogActions>
       </Dialog>

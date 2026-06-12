@@ -20,6 +20,7 @@ import {
   PhotoLibrary,
 } from '../../icons';
 import { useQueryClient } from '@tanstack/react-query';
+import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
 import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
@@ -40,52 +41,54 @@ interface PropertyPhotosTabProps {
 
 // ─── Stable sx constants ─────────────────────────────────────────────────────
 
+// .fr-sec — overline de section (tokens baseline).
 const SECTION_TITLE_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '10.5px',
   fontWeight: 700,
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
+  letterSpacing: '.06em',
+  color: 'var(--faint)',
   mb: 1,
 } as const;
 
+// .pd-card — carte hairline r14 plate.
 const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
+  border: '1px solid var(--line)',
+  bgcolor: 'var(--card)',
   boxShadow: 'none',
-  borderRadius: 1.5,
-  p: 1.5,
+  borderRadius: '14px',
+  p: '16px 18px',
 } as const;
 
+// Dropzone — pattern manquant au baseline (signalé) : dérivé minimal en tokens
+// (tirets --line-2, hover/drag accent + accent-soft), aucun style inventé au-delà.
 const DROP_ZONE_SX = {
-  border: '2px dashed',
-  borderColor: 'divider',
-  borderRadius: 1.5,
+  border: '2px dashed var(--line-2)',
+  borderRadius: '11px',
   p: 3,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
   cursor: 'pointer',
-  transition: 'border-color 0.2s ease, background-color 0.2s ease',
+  transition: 'border-color .14s, background-color .14s',
   '&:hover': {
-    borderColor: 'primary.main',
-    bgcolor: 'action.hover',
+    borderColor: 'var(--accent)',
+    bgcolor: 'var(--accent-soft)',
   },
 } as const;
 
 const DROP_ZONE_ACTIVE_SX = {
   ...DROP_ZONE_SX,
-  borderColor: 'primary.main',
-  bgcolor: 'primary.50',
+  borderColor: 'var(--accent)',
+  bgcolor: 'var(--accent-soft)',
 } as const;
 
 const PHOTO_CARD_SX = {
   position: 'relative',
-  borderRadius: 1.5,
+  borderRadius: '11px',
   overflow: 'hidden',
-  border: '1px solid',
-  borderColor: 'divider',
+  border: '1px solid var(--line)',
   aspectRatio: '4 / 3',
   '&:hover .photo-overlay': {
     opacity: 1,
@@ -98,9 +101,9 @@ const PHOTO_OVERLAY_SX = {
   right: 0,
   left: 0,
   bottom: 0,
-  bgcolor: 'rgba(0, 0, 0, 0.4)',
+  bgcolor: 'rgba(10, 18, 24, 0.42)',
   opacity: 0,
-  transition: 'opacity 0.2s ease',
+  transition: 'opacity .2s',
   display: 'flex',
   alignItems: 'flex-start',
   justifyContent: 'flex-end',
@@ -317,8 +320,10 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
                     size="small"
                     onClick={() => setDeleteTarget(photo)}
                     sx={{
-                      bgcolor: 'rgba(255, 255, 255, 0.9)',
-                      '&:hover': { bgcolor: 'error.light', color: 'white' },
+                      bgcolor: 'rgba(255,255,255,0.92)',
+                      color: '#2A3942',
+                      borderRadius: '10px',
+                      '&:hover': { bgcolor: '#fff', color: 'var(--err)' },
                       width: 28,
                       height: 28,
                     }}
@@ -345,33 +350,21 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           </Box>
         </Paper>
       ) : !loading ? (
-        <Paper
-          sx={{
-            ...CARD_SX,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            py: 6,
-          }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1.5 }}><PhotoLibrary size={48} strokeWidth={1.5} /></Box>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
-            {t('properties.photos.empty')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mb: 2, textAlign: 'center', maxWidth: 320 }}>
-            {t('properties.photos.emptyDesc')}
-          </Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<CloudUpload size={18} strokeWidth={1.75} />}
-            onClick={() => fileInputRef.current?.click()}
-            sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
-          >
-            {t('properties.photos.upload')}
-          </Button>
-        </Paper>
+        <EmptyState
+          icon={<PhotoLibrary />}
+          title={t('properties.photos.empty')}
+          description={t('properties.photos.emptyDesc')}
+          action={
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<CloudUpload size={18} strokeWidth={1.75} />}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t('properties.photos.upload')}
+            </Button>
+          }
+        />
       ) : null}
 
       {/* ── Delete confirmation dialog ───────────────────────────────────── */}

@@ -66,7 +66,7 @@ interface ChannexImportDiscoveryDialogProps {
   onRequestConnectExisting?: () => void;
 }
 
-const ACCENT = '#0F766E';
+const ACCENT = 'var(--accent)';
 
 interface RowState {
   selected: boolean;
@@ -387,7 +387,7 @@ export default function ChannexImportDiscoveryDialog({
               width: 32,
               height: 32,
               borderRadius: 1,
-              bgcolor: `${ACCENT}1A`,
+              bgcolor: 'var(--accent-soft)',
               color: ACCENT,
               display: 'flex',
               alignItems: 'center',
@@ -432,9 +432,9 @@ export default function ChannexImportDiscoveryDialog({
             p: 1.25,
             mb: 2,
             borderRadius: 1,
-            bgcolor: `${ACCENT}08`,
+            bgcolor: 'color-mix(in srgb, var(--accent) 4%, transparent)',
             border: '1px solid',
-            borderColor: `${ACCENT}33`,
+            borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
           }}
         >
           <Box sx={{ color: ACCENT, mt: 0.25, flexShrink: 0 }}>
@@ -493,7 +493,7 @@ export default function ChannexImportDiscoveryDialog({
                   width: 56,
                   height: 56,
                   borderRadius: '50%',
-                  bgcolor: `${ACCENT}10`,
+                  bgcolor: 'var(--accent-soft)',
                   color: ACCENT,
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -567,7 +567,7 @@ export default function ChannexImportDiscoveryDialog({
                         height: 40,
                         borderRadius: 1,
                         objectFit: 'contain',
-                        bgcolor: '#FFFFFF',
+                        bgcolor: 'var(--card)',
                         border: '1px solid',
                         borderColor: 'divider',
                         p: 0.5,
@@ -587,9 +587,9 @@ export default function ChannexImportDiscoveryDialog({
                             sx={{
                               height: 18,
                               fontSize: '0.65rem',
-                              bgcolor: '#10B98115',
-                              color: '#059669',
-                              '& .MuiChip-icon': { color: '#059669', ml: 0.5 },
+                              bgcolor: 'var(--ok-soft)',
+                              color: 'var(--ok)',
+                              '& .MuiChip-icon': { color: 'var(--ok)', ml: 0.5 },
                             }}
                           />
                         )}
@@ -647,8 +647,8 @@ export default function ChannexImportDiscoveryDialog({
                   width: 56,
                   height: 56,
                   borderRadius: '50%',
-                  bgcolor: '#10B98115',
-                  color: '#059669',
+                  bgcolor: 'var(--ok-soft)',
+                  color: 'var(--ok)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -734,7 +734,7 @@ export default function ChannexImportDiscoveryDialog({
                               height: 36,
                               borderRadius: 1,
                               objectFit: 'contain',
-                              bgcolor: '#FFFFFF',
+                              bgcolor: 'var(--card)',
                               border: '1px solid',
                               borderColor: 'divider',
                               p: 0.5,
@@ -791,7 +791,7 @@ export default function ChannexImportDiscoveryDialog({
                   </Box></>
                 )}
                 {diff.toDisconnect.length > 0 && (
-                  <> · <Box component="span" sx={{ color: '#EF4444', fontWeight: 600 }}>
+                  <> · <Box component="span" sx={{ color: 'var(--err)', fontWeight: 600 }}>
                     −{diff.toDisconnect.length} a desimporter
                   </Box></>
                 )}
@@ -827,14 +827,14 @@ export default function ChannexImportDiscoveryDialog({
                 let borderCol = 'divider';
                 let bgCol = 'background.paper';
                 if (p.isImported && row.selected) {
-                  borderCol = '#10B981';
-                  bgCol = '#10B98108';
+                  borderCol = 'var(--ok)';
+                  bgCol = 'color-mix(in srgb, var(--ok) 4%, transparent)';
                 } else if (p.isImported && !row.selected) {
-                  borderCol = '#EF4444';
-                  bgCol = '#EF444408';
+                  borderCol = 'var(--err)';
+                  bgCol = 'color-mix(in srgb, var(--err) 4%, transparent)';
                 } else if (!p.isImported && row.selected) {
                   borderCol = ACCENT;
-                  bgCol = `${ACCENT}08`;
+                  bgCol = 'color-mix(in srgb, var(--accent) 4%, transparent)';
                 }
                 return (
                   <Box
@@ -857,8 +857,8 @@ export default function ChannexImportDiscoveryDialog({
                       size="small"
                       sx={{
                         p: 0.5,
-                        color: p.isImported ? '#10B981' : ACCENT,
-                        '&.Mui-checked': { color: p.isImported ? '#10B981' : ACCENT },
+                        color: p.isImported ? 'var(--ok)' : ACCENT,
+                        '&.Mui-checked': { color: p.isImported ? 'var(--ok)' : ACCENT },
                       }}
                     />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -876,10 +876,10 @@ export default function ChannexImportDiscoveryDialog({
                             sx={{
                               height: 18,
                               fontSize: '0.65rem',
-                              bgcolor: row.selected ? '#10B98115' : '#EF444415',
-                              color: row.selected ? '#059669' : '#B91C1C',
+                              bgcolor: row.selected ? 'var(--ok-soft)' : 'var(--err-soft)',
+                              color: row.selected ? 'var(--ok)' : 'var(--err)',
                               '& .MuiChip-icon': {
-                                color: row.selected ? '#059669' : '#B91C1C',
+                                color: row.selected ? 'var(--ok)' : 'var(--err)',
                                 ml: 0.5,
                               },
                             }}
@@ -902,9 +902,9 @@ export default function ChannexImportDiscoveryDialog({
                             sx={{
                               height: 18,
                               fontSize: '0.65rem',
-                              bgcolor: '#F59E0B15',
-                              color: '#B45309',
-                              '& .MuiChip-icon': { color: '#B45309', ml: 0.5 },
+                              bgcolor: 'var(--warn-soft)',
+                              color: 'var(--warn)',
+                              '& .MuiChip-icon': { color: 'var(--warn)', ml: 0.5 },
                             }}
                           />
                         )}
@@ -918,9 +918,9 @@ export default function ChannexImportDiscoveryDialog({
                             sx={{
                               height: 18,
                               fontSize: '0.65rem',
-                              bgcolor: '#3B82F615',
-                              color: '#1D4ED8',
-                              '& .MuiChip-icon': { color: '#1D4ED8', ml: 0.5 },
+                              bgcolor: 'var(--info-soft)',
+                              color: 'var(--info)',
+                              '& .MuiChip-icon': { color: 'var(--info)', ml: 0.5 },
                             }}
                           />
                         )}
@@ -950,68 +950,68 @@ export default function ChannexImportDiscoveryDialog({
                           {/* Type listing brut (donnee structuree primaire) */}
                           {p.otaListingType && (
                             <Chip size="small" label={`Type OTA : ${p.otaListingType}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#EFF6FF', color: '#1E40AF', fontFamily: 'monospace' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)', fontFamily: 'monospace' }} />
                           )}
                           {/* Tarifs */}
                           {p.otaNightlyPrice != null && (
                             <Chip size="small" label={`${p.otaNightlyPrice} ${p.currency || 'EUR'} / nuit`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#ECFDF5', color: '#047857' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--ok-soft)', color: 'var(--ok)' }} />
                           )}
                           {p.otaWeekendPrice != null && p.otaWeekendPrice !== p.otaNightlyPrice && (
                             <Chip size="small" label={`weekend : ${p.otaWeekendPrice} ${p.currency || 'EUR'}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#ECFDF5', color: '#047857' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--ok-soft)', color: 'var(--ok)' }} />
                           )}
                           {p.otaGuestsIncluded != null && (
                             <Chip size="small" label={`${p.otaGuestsIncluded} voyageur${p.otaGuestsIncluded > 1 ? 's' : ''} inclus`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#F0F9FF', color: '#075985' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
                           )}
                           {p.otaPricePerExtraPerson != null && p.otaPricePerExtraPerson > 0 && (
                             <Chip size="small" label={`+${p.otaPricePerExtraPerson} ${p.currency || 'EUR'} / voyageur supp.`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#F0F9FF', color: '#075985' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
                           )}
                           {p.otaMonthlyPriceFactor != null && p.otaMonthlyPriceFactor > 0 && (
                             <Chip size="small" label={`-${p.otaMonthlyPriceFactor}% mensuel`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#FDF4FF', color: '#86198F' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
                           )}
                           {/* Sejour */}
                           {p.otaMinNights != null && (
                             <Chip size="small" label={`min ${p.otaMinNights} nuit${p.otaMinNights > 1 ? 's' : ''}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#FEF3C7', color: '#92400E' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
                           )}
                           {p.otaMaxNights != null && p.otaMaxNights < 365 && (
                             <Chip size="small" label={`max ${p.otaMaxNights} nuits`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#FEF3C7', color: '#92400E' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
                           )}
                           {/* Check-in/out */}
                           {p.otaCheckOutTime != null && (
                             <Chip size="small" label={`check-out ${p.otaCheckOutTime}h`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#F5F3FF', color: '#6D28D9' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
                           )}
                           {p.otaCheckInTimeStart && p.otaCheckInTimeStart !== 'FLEXIBLE' && (
                             <Chip size="small" label={`check-in ${p.otaCheckInTimeStart}h`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#F5F3FF', color: '#6D28D9' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
                           )}
                           {/* Politiques */}
                           {p.otaCancellationPolicy && (
                             <Chip size="small" label={`annulation : ${p.otaCancellationPolicy}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#FEF2F2', color: '#991B1B' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--err-soft)', color: 'var(--err)' }} />
                           )}
                           {p.otaInstantBooking && (
                             <Chip size="small" label={`booking : ${p.otaInstantBooking}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#FEF2F2', color: '#991B1B' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--err-soft)', color: 'var(--err)' }} />
                           )}
                           {/* Regles du logement (true uniquement = autorise par le host) */}
                           {p.otaAllowsPets === true && (
                             <Chip size="small" label="animaux acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#F1F5F9', color: '#475569' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
                           )}
                           {p.otaAllowsSmoking === true && (
                             <Chip size="small" label="fumeurs acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#F1F5F9', color: '#475569' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
                           )}
                           {p.otaAllowsEvents === true && (
                             <Chip size="small" label="evenements acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: '#F1F5F9', color: '#475569' }} />
+                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
                           )}
                         </Stack>
                       )}
@@ -1032,9 +1032,9 @@ export default function ChannexImportDiscoveryDialog({
                               sx={{
                                 height: 20,
                                 fontSize: '0.7rem',
-                                bgcolor: '#10B98115',
-                                color: '#059669',
-                                '& .MuiChip-icon': { color: '#059669', ml: 0.5 },
+                                bgcolor: 'var(--ok-soft)',
+                                color: 'var(--ok)',
+                                '& .MuiChip-icon': { color: 'var(--ok)', ml: 0.5 },
                               }}
                             />
                           )}
@@ -1084,7 +1084,7 @@ export default function ChannexImportDiscoveryDialog({
                       >
                         <AlertCircle
                           size={12}
-                          style={{ color: d.status === 'ERROR' ? '#EF4444' : '#F59E0B', flexShrink: 0 }}
+                          style={{ color: d.status === 'ERROR' ? 'var(--err)' : 'var(--warn)', flexShrink: 0 }}
                         />
                         <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }} noWrap>
                           {d.channexPropertyId.slice(0, 8)} : {d.message}
@@ -1187,12 +1187,8 @@ export default function ChannexImportDiscoveryDialog({
             size="small"
             onClick={handleApply}
             disabled={importing || !hasChanges}
-            startIcon={importing ? <CircularProgress size={12} sx={{ color: 'white' }} /> : <Download size={14} />}
-            sx={{
-              backgroundColor: ACCENT,
-              '&:hover': { backgroundColor: '#0d645e' },
-              textTransform: 'none',
-            }}
+            startIcon={importing ? <CircularProgress size={12} color="inherit" /> : <Download size={14} />}
+            sx={{ textTransform: 'none' }}
           >
             {importing
               ? 'Application en cours...'

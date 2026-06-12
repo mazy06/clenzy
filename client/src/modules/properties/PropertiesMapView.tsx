@@ -11,11 +11,10 @@ import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import {
   getPropertyStatusLabel,
-  getPropertyStatusHex,
   getPropertyTypeLabel,
   getPropertyTypeHex,
 } from '../../utils/statusUtils';
-import { LIST_PAPER_SX } from './propertiesListConstants';
+import { LIST_PAPER_SX, propertyStatusChipSx, softDataChipSx } from './propertiesListConstants';
 
 interface PropertiesMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -68,7 +67,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
         <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <Typography
             variant="subtitle2"
-            sx={{ mb: 1, fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
+            sx={{ mb: 1, fontSize: '12.5px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
           >
             {viewportProperties.length} {viewportProperties.length > 1 ? 'propriétés' : 'propriété'} dans la zone visible
           </Typography>
@@ -82,7 +81,6 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
           ) : (
             <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
               {viewportProperties.map((property) => {
-                const statusColor = getPropertyStatusHex(property.status);
                 const typeColor = getPropertyTypeHex(property.type);
                 return (
                   <Paper
@@ -91,11 +89,11 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                       ...LIST_PAPER_SX,
                       p: 1.5,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
+                      transition: 'border-color .14s, box-shadow .14s',
                       flexShrink: 0,
                       '&:hover': {
-                        borderColor: 'primary.main',
-                        bgcolor: 'action.hover',
+                        borderColor: 'var(--line-2)',
+                        boxShadow: 'var(--shadow-card)',
                       },
                     }}
                     onClick={() => navigate(`/properties/${property.id}`)}
@@ -143,37 +141,19 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                         <Chip
                           label={getPropertyTypeLabel(property.type, t)}
                           size="small"
-                          sx={{
-                            backgroundColor: `${typeColor}18`,
-                            color: typeColor,
-                            border: `1px solid ${typeColor}40`,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.68rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
+                          sx={{ ...softDataChipSx(typeColor), '& .MuiChip-label': { px: 1 } }}
                         />
                         <Chip
                           label={getPropertyStatusLabel(property.status, t)}
                           size="small"
-                          sx={{
-                            backgroundColor: `${statusColor}18`,
-                            color: statusColor,
-                            border: `1px solid ${statusColor}40`,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.68rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
+                          sx={{ ...propertyStatusChipSx(property.status), '& .MuiChip-label': { px: 1 } }}
                         />
                       </Box>
 
                       {/* Prix + Action */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
                         {property.nightlyPrice > 0 && (
-                          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.84rem', whiteSpace: 'nowrap' }}>
+                          <Typography variant="body2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13.5px', whiteSpace: 'nowrap', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                             {property.nightlyPrice}€
                             <Typography component="span" variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
                               /nuit

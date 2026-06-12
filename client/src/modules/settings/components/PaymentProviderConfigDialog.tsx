@@ -47,8 +47,8 @@ import { PAYMENT_PROVIDER_LABELS } from '../../../types/payment';
  * les autres clefs.</p>
  */
 
-const ACCENT = '#4A9B8E';
-const NEUTRAL = '#8A8378';
+const ACCENT = 'var(--ok)';
+const NEUTRAL = 'var(--muted)';
 
 interface FieldSpec {
   key: string;
@@ -443,8 +443,6 @@ export default function PaymentProviderConfigDialog({
               disabled={saving}
               size="small"
               sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': { color: ACCENT },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: ACCENT },
               }}
             />
           }
@@ -489,16 +487,7 @@ export default function PaymentProviderConfigDialog({
           onClick={handleSave}
           disabled={saving || fields.length === 0}
           startIcon={saving ? <CircularProgress size={14} color="inherit" /> : undefined}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            borderRadius: '8px',
-            bgcolor: ACCENT,
-            color: '#fff',
-            boxShadow: 'none',
-            '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
-          }}
+          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>

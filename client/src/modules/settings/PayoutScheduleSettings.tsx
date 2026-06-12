@@ -15,7 +15,7 @@ import SettingsSection from './components/SettingsSection';
 
 const VALID_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 
-const ACCENT = '#6B8A9A';
+const ACCENT = 'var(--accent)';
 
 export interface PayoutScheduleHandle {
   save: () => Promise<void>;
@@ -234,12 +234,12 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
                     border: '1px solid',
                     borderColor: active ? ACCENT : 'divider',
                     backgroundColor: active ? ACCENT : 'background.paper',
-                    color: active ? '#fff' : 'text.primary',
+                    color: active ? 'var(--on-accent)' : 'text.primary',
                     transition:
                       'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
                     '&:hover': {
-                      borderColor: active ? ACCENT : `${ACCENT}66`,
-                      backgroundColor: active ? ACCENT : `${ACCENT}0F`,
+                      borderColor: active ? ACCENT : 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                      backgroundColor: active ? ACCENT : 'var(--accent-soft)',
                     },
                     '&:focus-visible': {
                       outline: `2px solid ${ACCENT}`,

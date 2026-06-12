@@ -113,8 +113,8 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
                     height: '100%',
                     borderRadius: 0.75,
                     objectFit: 'contain',
-                    bgcolor: '#FFFFFF',
-                    border: '1px solid rgba(0,0,0,0.08)',
+                    bgcolor: 'var(--card)',
+                    border: '1px solid var(--line)',
                     p: 0.3,
                   }}
                 />
@@ -124,7 +124,7 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
                     width: '100%',
                     height: '100%',
                     borderRadius: 0.75,
-                    bgcolor: option?.brandColor ?? '#9CA3AF',
+                    bgcolor: option?.brandColor ?? 'var(--faint)',
                     color: option?.brandColorFg ?? '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -132,7 +132,7 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
                     fontWeight: 700,
                     fontSize: size * 0.42,
                     letterSpacing: '-0.02em',
-                    border: '1px solid rgba(0,0,0,0.08)',
+                    border: '1px solid var(--line)',
                   }}
                 >
                   {initials}
@@ -149,13 +149,12 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
                     width: size * 0.5,
                     height: size * 0.5,
                     borderRadius: '50%',
-                    bgcolor: '#10B981',
-                    color: '#FFFFFF',
+                    bgcolor: 'var(--ok)',
+                    color: 'var(--on-accent)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid #FFFFFF',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                    border: '2px solid var(--card)',
                   }}
                 >
                   <Check size={size * 0.32} strokeWidth={3} />
@@ -172,8 +171,8 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
                     width: size * 0.4,
                     height: size * 0.4,
                     borderRadius: '50%',
-                    bgcolor: '#F59E0B',
-                    border: '2px solid #FFFFFF',
+                    bgcolor: 'var(--warn)',
+                    border: '2px solid var(--card)',
                   }}
                 />
               )}

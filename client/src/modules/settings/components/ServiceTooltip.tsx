@@ -140,10 +140,7 @@ export default function ServiceTooltip({ providerId, data, name, children }: Ser
             maxWidth: 320,
             p: 1.5,
             fontSize: '0.75rem',
-            boxShadow:
-              theme.palette.mode === 'dark'
-                ? '0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)'
-                : '0 12px 32px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.08)',
+            boxShadow: 'var(--shadow-pop)',
             '& .MuiTooltip-arrow': {
               color: theme.palette.background.paper,
               '&::before': {

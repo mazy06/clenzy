@@ -18,7 +18,7 @@ interface Props {
   onStatusChange?: (connected: boolean) => void;
 }
 
-const NEUTRAL = '#8A8378';
+const NEUTRAL = 'var(--muted)';
 
 const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
   const meta = COMPLIANCE_PROVIDER_META[provider];
@@ -33,8 +33,8 @@ const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) =
         fontWeight: 700,
         letterSpacing: '0.02em',
         color: NEUTRAL,
-        backgroundColor: `${NEUTRAL}14`,
-        border: `1px solid ${NEUTRAL}33`,
+        backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)`,
         borderRadius: '4px',
         px: 0.5,
         py: 0.125,

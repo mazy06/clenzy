@@ -24,10 +24,11 @@ import {
   TeamsReport,
   PropertiesReport,
 } from './ReportDetails';
-import DashboardDateFilter, {
-  type DashboardPeriod,
-  type DateFilterOption,
+import type {
+  DashboardPeriod,
+  DateFilterOption,
 } from '../dashboard/DashboardDateFilter';
+import PeriodSegmented from './PeriodSegmented';
 
 // ─── Tab configuration ──────────────────────────────────────────────────────
 
@@ -205,10 +206,11 @@ const Reports: React.FC = () => {
           actions={headerActionsPortal}
           filters={
             currentTab.hasPeriodFilter ? (
-              <DashboardDateFilter<DashboardPeriod>
+              <PeriodSegmented<DashboardPeriod>
                 value={period}
                 onChange={setPeriod}
                 options={PERIOD_OPTIONS}
+                ariaLabel={t('reports.periodFilter', 'Période')}
               />
             ) : undefined
           }

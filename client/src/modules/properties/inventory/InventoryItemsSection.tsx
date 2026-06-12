@@ -218,8 +218,8 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: 'rgba(239,68,68,0.7)',
-              color: '#fff',
+              bgcolor: 'color-mix(in srgb, var(--err) 75%, transparent)',
+              color: 'var(--on-accent)',
               opacity: 0,
               transition: 'opacity 150ms',
             }}
@@ -245,9 +245,9 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
             color: 'text.disabled',
             transition: 'border-color 150ms, color 150ms, background-color 150ms',
             '&:hover': {
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              bgcolor: 'action.hover',
+              borderColor: 'var(--accent)',
+              color: 'var(--accent)',
+              bgcolor: 'var(--accent-soft)',
             },
           }}
         >
@@ -276,9 +276,10 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
       sx={{
         p: 2,
         mb: 2,
-        borderRadius: 2,
-        borderColor: 'divider',
-        bgcolor: (theme) => (theme.palette.mode === 'dark' ? 'background.paper' : '#fafbfc'),
+        borderRadius: '13px',
+        border: '1px solid var(--line)',
+        bgcolor: 'var(--surface-2)',
+        boxShadow: 'none',
       }}
     >
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '64px 1.5fr 2fr 0.9fr 1.6fr' }, gap: 2 }}>
@@ -338,20 +339,21 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
                   key={cat.value}
                   value={cat.value}
                   sx={{
-                    color: selected ? 'common.white' : cat.color,
-                    bgcolor: selected ? cat.color : 'transparent',
-                    borderColor: selected ? `${cat.color} !important` : 'divider',
-                    '&:hover': { bgcolor: selected ? cat.color : `${cat.color}15` },
+                    color: selected ? cat.color : 'var(--muted)',
+                    bgcolor: 'transparent',
+                    borderColor: 'var(--line-2)',
+                    '&:hover': { bgcolor: `${cat.color}15` },
                     '&.Mui-selected': {
-                      bgcolor: cat.color,
-                      color: 'common.white',
-                      '&:hover': { bgcolor: cat.color, opacity: 0.9 },
+                      bgcolor: `${cat.color}1F`,
+                      color: cat.color,
+                      borderColor: `${cat.color} !important`,
+                      '&:hover': { bgcolor: `${cat.color}1F` },
                     },
                   }}
                 >
                   {React.cloneElement(
                     cat.icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>,
-                    { size: 13, strokeWidth: 1.75, color: selected ? '#fff' : cat.color },
+                    { size: 13, strokeWidth: 1.75, color: cat.color },
                   )}
                   {cat.label}
                 </ToggleButton>
@@ -368,7 +370,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
               onClick={() => incrementQty(-1)}
               size="small"
               disabled={value.quantity <= 1}
-              sx={{ border: 1, borderColor: 'divider', borderRadius: 1, width: 28, height: 28 }}
+              sx={{ border: '1px solid var(--line-2)', bgcolor: 'var(--card)', borderRadius: '8px', width: 28, height: 28 }}
             >
               <Remove size={14} strokeWidth={1.75} />
             </IconButton>
@@ -388,7 +390,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
             <IconButton
               onClick={() => incrementQty(1)}
               size="small"
-              sx={{ border: 1, borderColor: 'divider', borderRadius: 1, width: 28, height: 28 }}
+              sx={{ border: '1px solid var(--line-2)', bgcolor: 'var(--card)', borderRadius: '8px', width: 28, height: 28 }}
             >
               <Add size={14} strokeWidth={1.75} />
             </IconButton>
@@ -497,11 +499,10 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
         )}
         label={cat.label}
         size="small"
-        variant="outlined"
         sx={{
-          borderColor: cat.color,
+          bgcolor: `${cat.color}1F`,
           color: cat.color,
-          fontWeight: 500,
+          border: 'none',
           '& .MuiChip-icon': { ml: 0.5 },
         }}
       />
@@ -521,7 +522,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
           <Inventory2 size={22} strokeWidth={1.75} />
         </Box>
         <Box>
@@ -549,7 +550,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
       {items.length === 0 ? (
         <Paper
           variant="outlined"
-          sx={{ p: 4, textAlign: 'center', borderStyle: 'dashed', borderRadius: 2 }}
+          sx={{ p: 4, textAlign: 'center', border: '1px dashed var(--line-2)', borderRadius: '14px', bgcolor: 'var(--card)', boxShadow: 'none' }}
         >
           <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}>
             <Inventory2 size={36} strokeWidth={1.5} />
@@ -614,8 +615,8 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                             border: '1px solid',
                             borderColor: 'divider',
                             cursor: 'zoom-in',
-                            transition: 'transform 150ms',
-                            '&:hover': { transform: 'scale(1.08)' },
+                            transition: 'border-color .14s, box-shadow .14s',
+                            '&:hover': { borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-card)' },
                           }}
                         />
                       ) : (

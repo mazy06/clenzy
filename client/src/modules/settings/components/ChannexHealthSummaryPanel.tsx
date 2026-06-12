@@ -50,9 +50,9 @@ interface ChannexHealthSummaryPanelProps {
 }
 
 const SEVERITY_META: Record<ChannexAttentionSeverity, { color: string; Icon: typeof AlertCircle; label: string }> = {
-  ERROR:   { color: '#EF4444', Icon: AlertCircle,   label: 'Erreur' },
-  WARNING: { color: '#D97706', Icon: AlertTriangle, label: 'Attention' },
-  INFO:    { color: '#0EA5E9', Icon: Info,          label: 'Info' },
+  ERROR:   { color: 'var(--err)', Icon: AlertCircle,   label: 'Erreur' },
+  WARNING: { color: 'var(--warn)', Icon: AlertTriangle, label: 'Attention' },
+  INFO:    { color: 'var(--info)', Icon: Info,          label: 'Info' },
 };
 
 const STATUS_ORDER: ChannexSyncStatus[] = ['ACTIVE', 'PENDING', 'ERROR', 'DISABLED'];
@@ -94,15 +94,15 @@ function AttentionRow({
         p: 1,
         borderRadius: 0.75,
         border: '1px solid',
-        borderColor: `${meta.color}22`,
-        bgcolor: `${meta.color}06`,
-        background: `${meta.color}06`,
+        borderColor: `color-mix(in srgb, ${meta.color} 13%, transparent)`,
+        bgcolor: `color-mix(in srgb, ${meta.color} 3%, transparent)`,
+        background: `color-mix(in srgb, ${meta.color} 3%, transparent)`,
         cursor: onClick ? 'pointer' : 'default',
         transition: onClick ? 'all 150ms cubic-bezier(0.22, 1, 0.36, 1)' : undefined,
         ...(onClick && {
           '&:hover': {
-            borderColor: `${meta.color}55`,
-            bgcolor: `${meta.color}10`,
+            borderColor: `color-mix(in srgb, ${meta.color} 33%, transparent)`,
+            bgcolor: `color-mix(in srgb, ${meta.color} 6%, transparent)`,
             transform: 'translateX(2px)',
           },
           '&:focus-visible': {
@@ -191,10 +191,10 @@ export default function ChannexHealthSummaryPanel({
       <Box
         sx={{
           border: '1px solid',
-          borderColor: 'rgba(239, 68, 68, 0.3)',
+          borderColor: 'color-mix(in srgb, var(--err) 30%, transparent)',
           borderRadius: 1,
           p: 1.25,
-          bgcolor: 'rgba(239, 68, 68, 0.04)',
+          bgcolor: 'color-mix(in srgb, var(--err) 5%, transparent)',
         }}
       >
         <Typography variant="caption" color="error" sx={{ display: 'block', mb: 0.5 }}>
@@ -217,11 +217,11 @@ export default function ChannexHealthSummaryPanel({
           borderColor: 'divider',
           borderRadius: 1,
           p: 1.5,
-          bgcolor: 'rgba(0,0,0,0.015)',
+          bgcolor: 'var(--surface-2)',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Activity size={16} color="#6B7280" strokeWidth={2.2} />
+          <Activity size={16} color="var(--muted)" strokeWidth={2.2} />
           <Typography variant="caption" color="text.secondary">
             Aucune propriete connectee a Channex pour l'instant.
           </Typography>
@@ -242,12 +242,12 @@ export default function ChannexHealthSummaryPanel({
         borderColor: 'divider',
         borderRadius: 1,
         p: 1.5,
-        bgcolor: 'rgba(0,0,0,0.015)',
+        bgcolor: 'var(--surface-2)',
       }}
     >
       {/* Header : total + chips par status + refresh */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: summary.attentionItems.length > 0 ? 1.25 : 0 }}>
-        <Activity size={16} color="#6B8A9A" strokeWidth={2.2} />
+        <Activity size={16} color="var(--accent)" strokeWidth={2.2} />
         <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
           {summary.totalMappings} propriete{summary.totalMappings > 1 ? 's' : ''} connectee{summary.totalMappings > 1 ? 's' : ''}
         </Typography>
@@ -265,7 +265,7 @@ export default function ChannexHealthSummaryPanel({
                   height: 20,
                   fontSize: '0.65rem',
                   fontWeight: 600,
-                  bgcolor: `${meta.color}1A`,
+                  bgcolor: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
                   color: meta.color,
                   border: `1px solid ${meta.color}40`,
                 }}

@@ -73,11 +73,11 @@ import {
 import CreateCustomAmenityModal from './CreateCustomAmenityModal';
 
 // Tokens design (cf. CLAUDE.md primary palette)
-const ACCENT = '#0F766E';
-const PRIMARY = '#6B8A9A';
-const SUCCESS = '#10B981';
-const WARN = '#F59E0B';
-const SURFACE = '#FAFAFA';
+const ACCENT = 'var(--accent)';
+const PRIMARY = 'var(--info)';
+const SUCCESS = 'var(--ok)';
+const WARN = 'var(--warn)';
+const SURFACE = 'var(--surface-2)';
 
 type TabKey = 'unmapped' | 'aliases' | 'custom' | 'ignored' | 'reference';
 
@@ -329,7 +329,7 @@ export default function AmenityMappingPage() {
               textTransform: 'none',
               borderColor: ACCENT,
               color: ACCENT,
-              '&:hover': { borderColor: '#0d645e', backgroundColor: 'rgba(15, 118, 110, 0.04)' },
+              '&:hover': { borderColor: 'var(--accent-deep)', backgroundColor: 'var(--accent-soft)' },
             }}
           >
             Re-traiter
@@ -405,8 +405,8 @@ export default function AmenityMappingPage() {
               <Stack direction="row" spacing={1} alignItems="center" sx={{
                 px: 1.5, py: 0.75,
                 borderRadius: 1,
-                bgcolor: 'rgba(15, 118, 110, 0.06)',
-                border: '1px solid', borderColor: 'rgba(15, 118, 110, 0.2)',
+                bgcolor: 'var(--accent-soft)',
+                border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
               }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: ACCENT }}>
                   {selectedRaw.size} sélectionné{selectedRaw.size > 1 ? 's' : ''}
@@ -428,7 +428,7 @@ export default function AmenityMappingPage() {
                         {opt.isCustom && (
                           <Chip size="small" label="custom"
                                 sx={{ ml: 0.75, height: 16, fontSize: '0.6rem',
-                                      bgcolor: 'rgba(107, 138, 154, 0.15)', color: PRIMARY }} />
+                                      bgcolor: 'var(--info-soft)', color: PRIMARY }} />
                         )}
                       </MenuItem>
                     ))}
@@ -440,11 +440,7 @@ export default function AmenityMappingPage() {
                   onClick={handleBulkMap}
                   disabled={!bulkCode || bulkBusy}
                   startIcon={<Wand2 size={14} />}
-                  sx={{
-                    backgroundColor: ACCENT,
-                    '&:hover': { backgroundColor: '#0d645e' },
-                    textTransform: 'none',
-                  }}
+                  sx={{ textTransform: 'none' }}
                 >
                   Appliquer
                 </Button>
@@ -516,11 +512,11 @@ export default function AmenityMappingPage() {
                     <Chip
                       size="small"
                       label={codeLabelOf(a.clenzyCode)}
-                      sx={{ height: 22, fontSize: '0.7rem', bgcolor: 'rgba(16, 185, 129, 0.1)', color: SUCCESS }}
+                      sx={{ height: 22, fontSize: '0.7rem', bgcolor: 'var(--ok-soft)', color: SUCCESS }}
                     />
                     {a.otaSource && (
                       <Chip size="small" label={a.otaSource}
-                            sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'rgba(0,0,0,0.05)', color: 'text.secondary' }} />
+                            sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
                     )}
                   </Stack>
                   <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
@@ -528,7 +524,7 @@ export default function AmenityMappingPage() {
                     {a.createdByEmail && ` · par ${a.createdByEmail}`}
                   </Typography>
                 </Box>
-                <IconButton size="small" onClick={() => handleDeleteAlias(a.id)} sx={{ color: '#EF4444' }}>
+                <IconButton size="small" onClick={() => handleDeleteAlias(a.id)} sx={{ color: 'var(--err)' }}>
                   <Trash2 size={14} />
                 </IconButton>
               </Box>
@@ -546,11 +542,7 @@ export default function AmenityMappingPage() {
               size="small"
               startIcon={<Plus size={14} />}
               onClick={() => setCreateModal({ open: true, prefillRawName: null, prefillAffectedCount: 0 })}
-              sx={{
-                backgroundColor: ACCENT,
-                '&:hover': { backgroundColor: '#0d645e' },
-                textTransform: 'none',
-              }}
+              sx={{ textTransform: 'none' }}
             >
               Nouvelle commodité
             </Button>
@@ -579,13 +571,13 @@ export default function AmenityMappingPage() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: isOverridden ? `${PRIMARY}14` : `${ACCENT}14`,
+                        bgcolor: isOverridden ? 'var(--info-soft)' : 'var(--accent-soft)',
                         color: isOverridden ? PRIMARY : ACCENT,
                         flexShrink: 0,
                         cursor: 'pointer',
                         transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
                         '&:hover': {
-                          bgcolor: isOverridden ? `${PRIMARY}24` : `${ACCENT}24`,
+                          bgcolor: isOverridden ? `color-mix(in srgb, ${PRIMARY} 14%, transparent)` : `color-mix(in srgb, ${ACCENT} 14%, transparent)`,
                         },
                       }}
                     >
@@ -602,7 +594,7 @@ export default function AmenityMappingPage() {
                       <Chip size="small"
                             label={AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category}
                             sx={{ height: 18, fontSize: '0.65rem',
-                                  bgcolor: 'rgba(107, 138, 154, 0.15)', color: PRIMARY }} />
+                                  bgcolor: 'var(--info-soft)', color: PRIMARY }} />
                     </Stack>
                     <Typography variant="caption" sx={{
                       display: 'block', fontFamily: 'monospace', color: 'text.disabled', mt: 0.25,
@@ -620,7 +612,7 @@ export default function AmenityMappingPage() {
                         aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
                         sx={{
                           width: 22, height: 22, cursor: 'pointer', color: 'text.secondary',
-                          '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}0F` },
+                          '&:hover': { color: PRIMARY, backgroundColor: 'var(--info-soft)' },
                         }}
                       >
                         <RotateCcw size={12} strokeWidth={1.75} />
@@ -632,7 +624,7 @@ export default function AmenityMappingPage() {
                     size="small"
                     onClick={() => handleDeleteCustom(c.id)}
                     aria-label={t('common.delete', 'Supprimer')}
-                    sx={{ cursor: 'pointer', color: '#EF4444' }}
+                    sx={{ cursor: 'pointer', color: 'var(--err)' }}
                   >
                     <Trash2 size={14} />
                   </IconButton>
@@ -658,11 +650,11 @@ export default function AmenityMappingPage() {
               <Box key={i.id} sx={SX_LIST_ROW}>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Stack direction="row" alignItems="center" spacing={1}>
-                    <Ban size={14} color="#9CA3AF" />
+                    <Ban size={14} color="var(--faint)" />
                     <Typography sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{i.rawOtaName}</Typography>
                     {i.otaSource && (
                       <Chip size="small" label={i.otaSource}
-                            sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'rgba(0,0,0,0.05)', color: 'text.secondary' }} />
+                            sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
                     )}
                   </Stack>
                 </Box>
@@ -704,7 +696,7 @@ export default function AmenityMappingPage() {
                       height: 18,
                       fontSize: '0.65rem',
                       fontWeight: 600,
-                      bgcolor: 'rgba(107,138,154,0.12)',
+                      bgcolor: 'var(--info-soft)',
                       color: PRIMARY,
                       '& .MuiChip-label': { px: 0.75 },
                     }}
@@ -753,13 +745,13 @@ export default function AmenityMappingPage() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              bgcolor: isOverridden ? `${PRIMARY}14` : `${ACCENT}14`,
+                              bgcolor: isOverridden ? 'var(--info-soft)' : 'var(--accent-soft)',
                               color: isOverridden ? PRIMARY : ACCENT,
                               flexShrink: 0,
                               cursor: 'pointer',
                               transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
                               '&:hover': {
-                                bgcolor: isOverridden ? `${PRIMARY}24` : `${ACCENT}24`,
+                                bgcolor: isOverridden ? `color-mix(in srgb, ${PRIMARY} 14%, transparent)` : `color-mix(in srgb, ${ACCENT} 14%, transparent)`,
                               },
                             }}
                           >
@@ -811,7 +803,7 @@ export default function AmenityMappingPage() {
                                   height: 22,
                                   cursor: 'pointer',
                                   color: 'text.secondary',
-                                  '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}0F` },
+                                  '&:hover': { color: PRIMARY, backgroundColor: 'var(--info-soft)' },
                                 }}
                               >
                                 <RotateCcw size={12} strokeWidth={1.75} />
@@ -831,7 +823,7 @@ export default function AmenityMappingPage() {
                                 cursor: 'pointer',
                                 color: 'text.secondary',
                                 transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '&:hover': { color: ACCENT, backgroundColor: `${ACCENT}0F` },
+                                '&:hover': { color: ACCENT, backgroundColor: 'var(--accent-soft)' },
                               }}
                             >
                               <Pencil size={12} strokeWidth={1.75} />
@@ -887,7 +879,7 @@ export default function AmenityMappingPage() {
           <Button onClick={() => setConfirmReprocess(false)} size="small"
                   sx={{ textTransform: 'none', color: 'text.secondary' }}>Annuler</Button>
           <Button variant="contained" size="small" onClick={handleReprocess}
-                  sx={{ backgroundColor: ACCENT, '&:hover': { backgroundColor: '#0d645e' }, textTransform: 'none' }}>
+                  sx={{ textTransform: 'none' }}>
             Re-traiter
           </Button>
         </DialogActions>
@@ -913,7 +905,7 @@ export default function AmenityMappingPage() {
           <Button onClick={() => setConfirmRescrape(false)} size="small"
                   sx={{ textTransform: 'none', color: 'text.secondary' }}>Annuler</Button>
           <Button variant="contained" size="small" onClick={handleRescrape}
-                  sx={{ backgroundColor: '#8B5CF6', '&:hover': { backgroundColor: '#7C3AED' }, textTransform: 'none' }}>
+                  sx={{ textTransform: 'none' }}>
             Lancer le re-scrape
           </Button>
         </DialogActions>
@@ -941,7 +933,7 @@ const SX_LIST_ROW = {
   border: '1px solid', borderColor: 'divider',
   bgcolor: SURFACE,
   transition: 'all 180ms ease-out',
-  '&:hover': { borderColor: 'rgba(15, 118, 110, 0.25)' },
+  '&:hover': { borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' },
 };
 
 function KpiTile({ label, value, color, loading }: {
@@ -953,7 +945,7 @@ function KpiTile({ label, value, color, loading }: {
       px: 2, py: 1.5,
       borderRadius: 1.5,
       border: '1px solid', borderColor: 'divider',
-      bgcolor: '#FFFFFF',
+      bgcolor: 'var(--card)',
     }}>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
         {label}
@@ -1003,10 +995,10 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
       gap: 1.5,
       px: 1.5, py: 1.5,
       borderRadius: 1.5,
-      border: '1px solid', borderColor: selected ? 'rgba(15, 118, 110, 0.4)' : 'divider',
-      bgcolor: selected ? 'rgba(15, 118, 110, 0.04)' : '#FFFFFF',
+      border: '1px solid', borderColor: selected ? 'color-mix(in srgb, var(--accent) 40%, transparent)' : 'divider',
+      bgcolor: selected ? 'var(--accent-soft)' : 'var(--card)',
       transition: 'all 180ms ease-out',
-      '&:hover': { borderColor: 'rgba(15, 118, 110, 0.25)' },
+      '&:hover': { borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' },
     }}>
       <Checkbox
         size="small"
@@ -1023,10 +1015,10 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
           </Typography>
           {item.otaSources[0] && item.otaSources[0] !== 'OTA' && (
             <Chip size="small" label={item.otaSources[0]}
-                  sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'rgba(0,0,0,0.05)', color: 'text.secondary' }} />
+                  sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--hover)', color: 'text.secondary' }} />
           )}
           <Chip size="small" label={`${item.occurrences} propriété${item.occurrences > 1 ? 's' : ''}`}
-                sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'rgba(245, 158, 11, 0.12)', color: '#B45309' }} />
+                sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
         </Stack>
         {item.affectedProperties.length > 0 && (
           <Typography variant="caption" color="text.secondary" noWrap>
@@ -1056,7 +1048,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
                 {opt.isCustom && (
                   <Chip size="small" label="custom"
                         sx={{ ml: 0.75, height: 16, fontSize: '0.6rem',
-                              bgcolor: 'rgba(107, 138, 154, 0.15)', color: PRIMARY }} />
+                              bgcolor: 'var(--info-soft)', color: PRIMARY }} />
                 )}
               </MenuItem>
             ))}
@@ -1064,7 +1056,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
         </FormControl>
         <Tooltip title="Créer une nouvelle commodité Baitly à partir de ce nom">
           <IconButton size="small" onClick={onCreateCustom}
-                      sx={{ color: ACCENT, border: '1px solid', borderColor: 'rgba(15, 118, 110, 0.25)' }}>
+                      sx={{ color: ACCENT, border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' }}>
             <Plus size={14} />
           </IconButton>
         </Tooltip>

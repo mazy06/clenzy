@@ -249,9 +249,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
     >
-      <Box sx={{ height: 3, bgcolor: accent }} />
       <DialogTitle sx={{ pb: 1 }}>
         <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
           {editModel
@@ -571,7 +569,7 @@ function UsageBreakdownTooltip({
             color: 'text.primary',
             border: '1px solid',
             borderColor: 'divider',
-            boxShadow: 4,
+            boxShadow: 'var(--shadow-pop)',
             p: 0,
             maxWidth: 360,
             fontFamily: 'inherit',

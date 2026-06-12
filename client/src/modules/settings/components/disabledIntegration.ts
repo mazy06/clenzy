@@ -8,7 +8,7 @@ import type React from 'react';
  * disponibles pour decrire chaque provider).
  */
 
-const NEUTRAL = '#8A8378';
+const NEUTRAL = 'var(--muted)';
 
 export const COMING_SOON_CHIP_SX = {
   height: 18,
@@ -16,9 +16,9 @@ export const COMING_SOON_CHIP_SX = {
   fontWeight: 600,
   letterSpacing: '0.01em',
   borderRadius: '5px',
-  backgroundColor: `${NEUTRAL}14`,
+  backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
   color: NEUTRAL,
-  border: `1px solid ${NEUTRAL}33`,
+  border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)`,
   '& .MuiChip-label': { px: 0.75 },
 } as const;
 

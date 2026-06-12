@@ -26,10 +26,19 @@ import {
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   getInterventionStatusLabel,
-  getInterventionStatusHex,
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
+import EmptyState from '../../components/EmptyState';
 import type { PropertyIntervention } from '../../hooks/usePropertyDetails';
+
+// Statut intervention → tokens sémantiques (pattern chips « texte couleur + fond -soft »).
+function interventionStatusTokens(status: string): { fg: string; bg: string } {
+  const lower = status.toLowerCase();
+  if (lower === 'completed' || lower === 'terminee' || lower === 'terminé') return { fg: 'var(--ok)', bg: 'var(--ok-soft)' };
+  if (lower === 'in_progress' || lower === 'en_cours') return { fg: 'var(--info)', bg: 'var(--info-soft)' };
+  if (lower === 'cancelled' || lower === 'annulee') return { fg: 'var(--muted)', bg: 'var(--hover)' };
+  return { fg: 'var(--warn)', bg: 'var(--warn-soft)' };
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -80,20 +89,23 @@ interface StatCardProps {
   icon: React.ReactNode;
   label: string;
   value: string | number;
-  color: string;
+  /** Couple de tokens { fg, bg } (ex. var(--ok) / var(--ok-soft)). */
+  fg: string;
+  bg: string;
 }
 
-function StatCard({ icon, label, value, color }: StatCardProps) {
+function StatCard({ icon, label, value, fg, bg }: StatCardProps) {
   return (
     <Paper
-      variant="outlined"
       sx={{
-        p: 1.5,
-        borderRadius: 2,
+        p: '14px 16px',
+        borderRadius: '13px',
+        border: '1px solid var(--line)',
+        bgcolor: 'var(--card)',
+        boxShadow: 'none',
         display: 'flex',
         alignItems: 'center',
         gap: 1.25,
-        borderColor: 'divider',
         minWidth: 0,
         flex: '1 1 0',
       }}
@@ -102,22 +114,22 @@ function StatCard({ icon, label, value, color }: StatCardProps) {
         sx={{
           width: 36,
           height: 36,
-          borderRadius: 1.5,
+          borderRadius: '11px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color,
-          bgcolor: `${color}15`,
+          color: fg,
+          bgcolor: bg,
           flexShrink: 0,
         }}
       >
         {icon}
       </Box>
       <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2 }}>
+        <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', lineHeight: 1.2 }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, lineHeight: 1.2 }}>
+        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em' }}>
           {value}
         </Typography>
       </Box>
@@ -195,20 +207,11 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
   // ─── Empty state ──────────────────────────────────────────────────────────
   if (interventions.length === 0) {
     return (
-      <Paper
-        variant="outlined"
-        sx={{ borderStyle: 'dashed', borderRadius: 2, p: 4, textAlign: 'center' }}
-      >
-        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}>
-          <Build size={36} strokeWidth={1.5} />
-        </Box>
-        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: 'text.secondary' }}>
-          {t('properties.noInterventions')}
-        </Typography>
-        <Typography sx={{ fontSize: '0.8125rem', color: 'text.disabled', mt: 0.5 }}>
-          Les interventions planifiées apparaîtront ici sur un calendrier
-        </Typography>
-      </Paper>
+      <EmptyState
+        icon={<Build />}
+        title={t('properties.noInterventions')}
+        description="Les interventions planifiées apparaîtront ici sur un calendrier"
+      />
     );
   }
 
@@ -220,31 +223,31 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           icon={<Build size={18} strokeWidth={1.75} />}
           label="Total"
           value={stats.total}
-          color="#6B8A9A"
+          fg="var(--accent)" bg="var(--accent-soft)"
         />
         <StatCard
           icon={<HourglassEmpty size={18} strokeWidth={1.75} />}
           label="En attente"
           value={stats.pending}
-          color="#f59e0b"
+          fg="var(--warn)" bg="var(--warn-soft)"
         />
         <StatCard
           icon={<PlayArrow size={18} strokeWidth={1.75} />}
           label="En cours"
           value={stats.inProgress}
-          color="#0ea5e9"
+          fg="var(--info)" bg="var(--info-soft)"
         />
         <StatCard
           icon={<CheckCircle size={18} strokeWidth={1.75} />}
           label="Terminées"
           value={stats.completed}
-          color="#10b981"
+          fg="var(--ok)" bg="var(--ok-soft)"
         />
         <StatCard
           icon={<Euro size={18} strokeWidth={1.75} />}
           label="Revenus"
           value={`${stats.revenue}€`}
-          color="#8b5cf6"
+          fg="var(--accent)" bg="var(--accent-soft)"
         />
       </Box>
 
@@ -256,20 +259,28 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           onChange={(_, v) => v && setView(v)}
           size="small"
           sx={{
+            bgcolor: 'var(--field)',
+            border: '1px solid var(--field-line)',
+            borderRadius: '10px',
+            p: '3px',
+            gap: '2px',
             '& .MuiToggleButton-root': {
               textTransform: 'none',
-              fontSize: '0.8125rem',
-              fontWeight: 500,
+              fontSize: '12px',
+              fontWeight: 600,
               px: 1.5,
-              py: 0.5,
+              py: 0.4,
               gap: 0.5,
-              border: '1px solid',
-              borderColor: 'divider',
+              border: 'none',
+              borderRadius: '8px !important',
+              color: 'var(--muted)',
+              transition: 'background-color .14s, color .14s',
+              '&:hover': { bgcolor: 'transparent', color: 'var(--body)' },
             },
             '& .Mui-selected': {
-              bgcolor: 'primary.main !important',
-              color: 'primary.contrastText !important',
-              borderColor: 'primary.main !important',
+              bgcolor: 'var(--card) !important',
+              color: 'var(--accent) !important',
+              boxShadow: '0 1px 3px rgba(21,36,45,.12)',
             },
           }}
         >
@@ -311,19 +322,19 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
       {view === 'calendar' && (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.5fr 1fr' }, gap: 2 }}>
           {/* Calendar grid */}
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+          <Paper sx={{ p: 2, borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none' }}>
             {/* Weekday header */}
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 1 }}>
               {DAY_LABELS_FR.map((d, i) => (
                 <Typography
                   key={i}
                   sx={{
-                    fontSize: '0.6875rem',
+                    fontSize: '10.5px',
                     fontWeight: 700,
-                    color: 'text.secondary',
+                    color: 'var(--faint)',
                     textAlign: 'center',
                     textTransform: 'uppercase',
-                    letterSpacing: 0.5,
+                    letterSpacing: '.05em',
                   }}
                 >
                   {d}
@@ -346,59 +357,59 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                     onClick={() => setSelectedDay(d)}
                     sx={{
                       minHeight: 56,
-                      borderRadius: 1.5,
+                      borderRadius: '8px',
                       p: 0.75,
                       display: 'flex',
                       flexDirection: 'column',
                       cursor: 'pointer',
                       bgcolor: isSelected
-                        ? 'primary.main'
+                        ? 'var(--accent)'
                         : hasItems
-                          ? 'action.hover'
+                          ? 'var(--accent-soft)'
                           : 'transparent',
-                      color: isSelected ? 'primary.contrastText' : 'inherit',
+                      color: isSelected ? 'var(--on-accent)' : 'inherit',
                       border: '1px solid',
-                      borderColor: isToday && !isSelected ? 'primary.main' : 'transparent',
+                      borderColor: isToday && !isSelected ? 'var(--accent)' : 'transparent',
                       opacity: inMonth ? 1 : 0.35,
-                      transition: 'background-color 150ms, border-color 150ms',
+                      transition: 'background-color .14s, border-color .14s',
                       '&:hover': {
-                        bgcolor: isSelected ? 'primary.main' : 'action.selected',
+                        bgcolor: isSelected ? 'var(--accent)' : 'var(--hover)',
                       },
+                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
                     }}
                   >
                     <Typography
                       sx={{
-                        fontSize: '0.75rem',
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '12px',
                         fontWeight: isToday || isSelected ? 700 : 500,
                         textAlign: 'right',
                         lineHeight: 1.2,
+                        fontVariantNumeric: 'tabular-nums',
                       }}
                     >
                       {d.getDate()}
                     </Typography>
                     {hasItems && (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25, mt: 'auto' }}>
-                        {items.slice(0, 3).map((iv) => {
-                          const c = getInterventionStatusHex(iv.status);
-                          return (
-                            <Box
-                              key={iv.id}
-                              sx={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                bgcolor: isSelected ? '#fff' : c,
-                                opacity: isSelected ? 0.9 : 1,
-                              }}
-                            />
-                          );
-                        })}
+                        {items.slice(0, 3).map((iv) => (
+                          <Box
+                            key={iv.id}
+                            sx={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '3px',
+                              bgcolor: isSelected ? 'var(--on-accent)' : interventionStatusTokens(iv.status).fg,
+                              opacity: isSelected ? 0.9 : 1,
+                            }}
+                          />
+                        ))}
                         {items.length > 3 && (
                           <Typography
                             sx={{
                               fontSize: '0.5625rem',
                               fontWeight: 700,
-                              color: isSelected ? 'primary.contrastText' : 'text.secondary',
+                              color: isSelected ? 'var(--on-accent)' : 'var(--muted)',
                             }}
                           >
                             +{items.length - 3}
@@ -412,23 +423,23 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
             </Box>
 
             {/* Legend */}
-            <Box sx={{ display: 'flex', gap: 1.5, mt: 2, pt: 1.5, borderTop: '1px solid', borderColor: 'divider', flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 2, pt: 1.5, borderTop: '1px solid var(--line)', flexWrap: 'wrap' }}>
               {[
-                { label: 'En attente', color: '#f59e0b' },
-                { label: 'En cours', color: '#0ea5e9' },
-                { label: 'Terminée', color: '#10b981' },
-                { label: 'Annulée', color: '#9e9e9e' },
+                { label: 'En attente', color: 'var(--warn)' },
+                { label: 'En cours', color: 'var(--info)' },
+                { label: 'Terminée', color: 'var(--ok)' },
+                { label: 'Annulée', color: 'var(--muted)' },
               ].map((leg) => (
                 <Box key={leg.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: leg.color }} />
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>{leg.label}</Typography>
+                  <Box sx={{ width: 9, height: 9, borderRadius: '3px', bgcolor: leg.color }} />
+                  <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>{leg.label}</Typography>
                 </Box>
               ))}
             </Box>
           </Paper>
 
           {/* Selected day details */}
-          <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, display: 'flex', flexDirection: 'column' }}>
+          <Paper sx={{ p: 2, borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
               <Box
                 sx={{
@@ -438,8 +449,8 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  bgcolor: isSameDay(selectedDay, today) ? 'primary.main' : 'action.hover',
-                  color: isSameDay(selectedDay, today) ? 'primary.contrastText' : 'text.primary',
+                  bgcolor: isSameDay(selectedDay, today) ? 'var(--accent)' : 'var(--accent-soft)',
+                  color: isSameDay(selectedDay, today) ? 'var(--on-accent)' : 'var(--accent)',
                 }}
               >
                 <CalendarMonth size={16} strokeWidth={1.75} />
@@ -476,33 +487,20 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {selectedDayItems.map((iv) => {
-                  const c = getInterventionStatusHex(iv.status);
+                  const tk = interventionStatusTokens(iv.status);
                   return (
                     <Box
                       key={iv.id}
                       onClick={() => navigate(`/interventions/${iv.id}`)}
                       sx={{
                         p: 1.25,
-                        borderRadius: 1.5,
-                        border: '1px solid',
-                        borderColor: 'divider',
+                        borderRadius: '11px',
+                        border: '1px solid var(--line)',
                         cursor: 'pointer',
-                        transition: 'border-color 150ms, background-color 150ms',
+                        transition: 'border-color .14s, background-color .14s',
                         '&:hover': {
-                          borderColor: c,
-                          bgcolor: `${c}08`,
-                        },
-                        position: 'relative',
-                        pl: 1.5,
-                        '&::before': {
-                          content: '""',
-                          position: 'absolute',
-                          left: 0,
-                          top: 6,
-                          bottom: 6,
-                          width: 3,
-                          borderRadius: 2,
-                          bgcolor: c,
+                          borderColor: 'var(--line-2)',
+                          bgcolor: 'var(--hover)',
                         },
                       }}
                     >
@@ -511,19 +509,16 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           {getInterventionTypeLabel(iv.type, t)}
                         </Typography>
                         <Chip
-                          icon={statusIcon(iv.status, 12, c)}
+                          icon={statusIcon(iv.status, 12, tk.fg)}
                           label={getInterventionStatusLabel(iv.status, t)}
                           size="small"
                           sx={{
                             height: 20,
-                            fontSize: '0.625rem',
-                            fontWeight: 600,
-                            bgcolor: `${c}15`,
-                            color: c,
-                            border: `1px solid ${c}30`,
-                            borderRadius: '6px',
-                            '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: `${c} !important` },
-                            '& .MuiChip-label': { px: 0.75 },
+                            bgcolor: tk.bg,
+                            color: tk.fg,
+                            border: 'none',
+                            '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: `${tk.fg} !important` },
+                            '& .MuiChip-label': { px: 1 },
                           }}
                         />
                       </Box>
@@ -546,10 +541,10 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         {iv.cost != null && iv.cost > 0 ? (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
                               <Euro size={12} strokeWidth={1.75} />
                             </Box>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'primary.main' }}>
+                            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                               {iv.cost}€
                             </Typography>
                           </Box>
@@ -573,7 +568,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
 
       {/* ─── List view ───────────────────────────────────────────────────── */}
       {view === 'list' && (
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Paper sx={{ borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', overflow: 'hidden' }}>
           {(() => {
             // Group by month-year
             const groups = new Map<string, PropertyIntervention[]>();
@@ -595,9 +590,8 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                     sx={{
                       px: 2,
                       py: 1,
-                      bgcolor: 'action.hover',
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
+                      bgcolor: 'var(--surface-2)',
+                      borderBottom: '1px solid var(--line)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -606,7 +600,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                       zIndex: 1,
                     }}
                   >
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
+                    <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
                       {MONTH_NAMES_FR[m]} {y}
                     </Typography>
                     <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
@@ -614,7 +608,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                     </Typography>
                   </Box>
                   {items.map((iv) => {
-                    const c = getInterventionStatusHex(iv.status);
+                    const tk = interventionStatusTokens(iv.status);
                     return (
                       <Box
                         key={iv.id}
@@ -627,15 +621,14 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           px: 2,
                           py: 1.25,
                           cursor: 'pointer',
-                          borderBottom: '1px solid',
-                          borderColor: 'divider',
+                          borderBottom: '1px solid var(--line)',
                           '&:last-child': { borderBottom: 'none' },
-                          '&:hover': { bgcolor: 'action.hover' },
-                          transition: 'background-color 150ms',
+                          '&:hover': { bgcolor: 'var(--hover)' },
+                          transition: 'background-color .14s',
                         }}
                       >
                         <Box sx={{ textAlign: 'center' }}>
-                          <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, lineHeight: 1 }}>
+                          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 600, lineHeight: 1, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
                             {new Date(iv.scheduledDate).getDate()}
                           </Typography>
                           <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.3 }}>
@@ -653,23 +646,19 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           )}
                         </Box>
                         <Chip
-                          icon={statusIcon(iv.status, 12, c)}
+                          icon={statusIcon(iv.status, 12, tk.fg)}
                           label={getInterventionStatusLabel(iv.status, t)}
                           size="small"
                           sx={{
-                            height: 22,
-                            fontSize: '0.6875rem',
-                            fontWeight: 600,
-                            bgcolor: `${c}15`,
-                            color: c,
-                            border: `1px solid ${c}30`,
-                            borderRadius: '6px',
+                            bgcolor: tk.bg,
+                            color: tk.fg,
+                            border: 'none',
                             display: { xs: 'none', sm: 'inline-flex' },
-                            '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: `${c} !important` },
-                            '& .MuiChip-label': { px: 0.75 },
+                            '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: `${tk.fg} !important` },
+                            '& .MuiChip-label': { px: 1 },
                           }}
                         />
-                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'primary.main', textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
+                        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'right', display: { xs: 'none', sm: 'block' }, fontVariantNumeric: 'tabular-nums' }}>
                           {iv.cost != null && iv.cost > 0 ? `${iv.cost}€` : '—'}
                         </Typography>
                         <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: 'text.disabled' }}>

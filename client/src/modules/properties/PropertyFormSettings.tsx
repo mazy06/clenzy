@@ -143,14 +143,14 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       gap: 1.5,
                       py: 1,
                       px: 1.5,
-                      borderRadius: 1.5,
-                      bgcolor: field.value ? 'success.50' : 'grey.50',
+                      borderRadius: '11px',
+                      bgcolor: field.value ? 'var(--ok-soft)' : 'var(--field)',
                       border: '1px solid',
-                      borderColor: field.value ? 'success.200' : 'grey.200',
-                      transition: 'all 0.2s ease',
+                      borderColor: field.value ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'var(--field-line)',
+                      transition: 'background-color .14s, border-color .14s',
                     }}
                   >
-                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'success.main' : 'text.disabled' }}><Language size={18} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'var(--ok)' : 'var(--muted)' }}><Language size={18} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
                         {t('properties.bookingEngineVisible')}
@@ -185,14 +185,14 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       gap: 1.5,
                       py: 1,
                       px: 1.5,
-                      borderRadius: 1.5,
-                      bgcolor: field.value ? 'success.50' : 'grey.50',
+                      borderRadius: '11px',
+                      bgcolor: field.value ? 'var(--ok-soft)' : 'var(--field)',
                       border: '1px solid',
-                      borderColor: field.value ? 'success.200' : 'grey.200',
-                      transition: 'all 0.2s ease',
+                      borderColor: field.value ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'var(--field-line)',
+                      transition: 'background-color .14s, border-color .14s',
                     }}
                   >
-                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'success.main' : 'text.disabled' }}>
+                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'var(--ok)' : 'var(--muted)' }}>
                       <Language size={18} strokeWidth={1.75} />
                     </Box>
                     <Box sx={{ flex: 1 }}>
@@ -229,7 +229,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     helperText={fieldState.error?.message}
                     InputLabelProps={{ shrink: true }}
                     InputProps={{
-                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'rgba(0,0,0,0.6)' }} />,
+                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'var(--muted)' }} />,
                     }}
                     inputProps={{ step: 900 }}
                   />
@@ -252,7 +252,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     helperText={fieldState.error?.message}
                     InputLabelProps={{ shrink: true }}
                     InputProps={{
-                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'rgba(0,0,0,0.6)' }} />,
+                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'var(--muted)' }} />,
                     }}
                     inputProps={{ step: 900 }}
                   />
@@ -396,16 +396,16 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     gap: 1,
                     py: 1.25,
                     px: 1.5,
-                    borderRadius: 1.5,
-                    bgcolor: 'primary.50',
+                    borderRadius: '11px',
+                    bgcolor: 'var(--accent-soft)',
                     border: '1px solid',
-                    borderColor: fieldState.error ? 'error.main' : 'primary.100',
+                    borderColor: fieldState.error ? 'var(--err)' : 'color-mix(in srgb, var(--accent) 30%, transparent)',
                     minHeight: 80,
                     transition: 'border-color 0.15s ease',
                   }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.main', mb: 0.5 }}>
+                      <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent)', mb: 0.5 }}>
                         {t('properties.cleaningNotes')}
                       </Typography>
                       <TextField

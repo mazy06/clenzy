@@ -57,9 +57,9 @@ import IntegrationConfigDialog from './IntegrationConfigDialog';
  * + Body. Aucune divergence visuelle avec le reste de l'ecran.</p>
  */
 
-const ACCENT = '#4A9B8E';
-const DANGER = '#C97A7A';
-const NEUTRAL = '#8A8378';
+const ACCENT = 'var(--ok)';
+const DANGER = 'var(--err)';
+const NEUTRAL = 'var(--muted)';
 
 const statusChipSx = (color: string) => ({
   height: 22,
@@ -68,9 +68,9 @@ const statusChipSx = (color: string) => ({
   letterSpacing: '0.01em',
   borderRadius: '6px',
   px: 0.25,
-  backgroundColor: `${color}14`,
+  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
   color,
-  border: `1px solid ${color}33`,
+  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
   '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
   '& .MuiChip-label': { px: 0.875 },
 });
@@ -252,7 +252,7 @@ export default function OtaInfoDialog({
                 sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
               />
             ) : (
-              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
+              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--on-accent)' }}>
                 {ota.name.slice(0, 2).toUpperCase()}
               </Typography>
             )}
@@ -267,9 +267,9 @@ export default function OtaInfoDialog({
                   height: 18,
                   fontSize: '0.62rem',
                   fontWeight: 600,
-                  bgcolor: `${ACCENT}14`,
+                  bgcolor: 'var(--ok-soft)',
                   color: ACCENT,
-                  border: `1px solid ${ACCENT}33`,
+                  border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
                   '& .MuiChip-label': { px: 0.625 },
                 }}
               />
@@ -377,7 +377,7 @@ export default function OtaInfoDialog({
                       borderRadius: '8px',
                       borderColor: 'divider',
                       color: 'text.primary',
-                      '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+                      '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
                     }}
                   >
                     Modifier la connexion
@@ -397,7 +397,7 @@ export default function OtaInfoDialog({
                       borderRadius: '8px',
                       borderColor: 'divider',
                       color: 'text.primary',
-                      '&:hover': { borderColor: `${DANGER}66`, backgroundColor: `${DANGER}0F`, color: DANGER },
+                      '&:hover': { borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)', backgroundColor: 'var(--err-soft)', color: DANGER },
                     }}
                   >
                     {disconnectMutation.isPending ? 'Déconnexion...' : `Déconnecter ${ota.name}`}
@@ -432,19 +432,10 @@ export default function OtaInfoDialog({
                 <Button
                   variant="contained"
                   size="small"
-                  startIcon={airbnbConnectMutation.isPending ? <CircularProgress size={12} sx={{ color: '#fff' }} /> : <LinkIcon size={14} strokeWidth={2} />}
+                  startIcon={airbnbConnectMutation.isPending ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
                   onClick={handleAirbnbConnect}
                   disabled={airbnbConnectMutation.isPending}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    borderRadius: '8px',
-                    bgcolor: ACCENT,
-                    color: '#fff',
-                    boxShadow: 'none',
-                    '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
-                  }}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
                   {airbnbConnectMutation.isPending ? 'Redirection...' : 'Se connecter via Airbnb'}
                 </Button>
@@ -523,7 +514,7 @@ export default function OtaInfoDialog({
                     borderRadius: '8px',
                     borderColor: 'divider',
                     color: 'text.primary',
-                    '&:hover': { borderColor: `${ACCENT}66`, backgroundColor: `${ACCENT}0F`, color: ACCENT },
+                    '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
                   }}
                 >
                   {testMutation.isPending ? 'Test en cours...' : 'Tester'}
@@ -532,18 +523,9 @@ export default function OtaInfoDialog({
                   type="submit"
                   variant="contained"
                   size="small"
-                  startIcon={connectMutation.isPending ? <CircularProgress size={12} sx={{ color: '#fff' }} /> : <LinkIcon size={14} strokeWidth={2} />}
+                  startIcon={connectMutation.isPending ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
                   disabled={!isFormValid || connectMutation.isPending}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    borderRadius: '8px',
-                    bgcolor: ACCENT,
-                    color: '#fff',
-                    boxShadow: 'none',
-                    '&:hover': { bgcolor: ACCENT, filter: 'brightness(0.94)' },
-                  }}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
                   {connectMutation.isPending ? 'Connexion...' : `Connecter ${ota.name}`}
                 </Button>

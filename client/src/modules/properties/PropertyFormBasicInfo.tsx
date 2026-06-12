@@ -97,10 +97,10 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
                   gap: 1,
                   py: 1.25,
                   px: 1.5,
-                  borderRadius: 1.5,
-                  bgcolor: 'grey.50',
+                  borderRadius: '11px',
+                  bgcolor: 'var(--field)',
                   border: '1px solid',
-                  borderColor: fieldState.error ? 'error.main' : 'grey.200',
+                  borderColor: fieldState.error ? 'var(--err)' : 'var(--field-line)',
                   minHeight: 80,
                   transition: 'border-color 0.15s ease',
                 }}>
