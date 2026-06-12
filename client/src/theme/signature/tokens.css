@@ -129,6 +129,35 @@
 }
 
 /* ============================================================
+   SIDEBAR (--nav-*) — extension issue de la référence utilisateur
+   « Référence de la barre latérale.html » (Baitly PMS sidebar).
+   Valeurs EXACTES de la référence, clair + sombre. Consommées par
+   Sidebar.tsx / SidebarNavItem.tsx uniquement.
+   ============================================================ */
+
+:root {
+  --nav-bg:     #FFFFFF;
+  --nav-bg2:    #FBFCFC;
+  --nav-line:   #E7ECEF;
+  --nav-txt:    #3B4951;
+  --nav-strong: #15242D;
+  --nav-faint:  #98A4AB;
+  --nav-hover:  #F1F5F6;
+  --nav-userbg: #F5F8F9;
+}
+
+[data-theme="dark"] {
+  --nav-bg:     #11181F;
+  --nav-bg2:    #0C1218;
+  --nav-line:   #222C35;
+  --nav-txt:    #BCC6CD;
+  --nav-strong: #EAF0F3;
+  --nav-faint:  #5E6A73;
+  --nav-hover:  rgba(255,255,255,.05);
+  --nav-userbg: rgba(255,255,255,.04);
+}
+
+/* ============================================================
    SÉLECTION DE TEINTE  —  data-accent sur la racine
    Pur CSS, aucun JS requis. Exemples :
      <html data-accent="violet">                  (clair · violet)
