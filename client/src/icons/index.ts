@@ -62,6 +62,8 @@ export {
   ChevronRight,
   ChevronUp,
   ChevronDown,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronDown as ExpandMore,
   ChevronUp as ExpandLess,
   Menu as MenuIcon,

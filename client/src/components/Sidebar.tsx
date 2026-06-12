@@ -10,16 +10,13 @@ import {
   Avatar,
   Menu,
   MenuItem as MuiMenuItem,
-  Badge,
   useTheme,
-  useMediaQuery,
 } from '@mui/material';
 import {
-  ChevronLeft,
-  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Logout,
   Notifications,
-  NotificationsNone,
   Language as LanguageIcon,
   Check as CheckIcon,
 } from '../icons';
@@ -75,7 +72,6 @@ export default function Sidebar({
   const [accent, setAccentState] = useState<AccentName>(getSavedAccent);
   const theme = useTheme();
   const isRtl = theme.direction === 'rtl';
-  const isXl = useMediaQuery(theme.breakpoints.up('xl'));
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -101,17 +97,32 @@ export default function Sidebar({
   const grouped = useMemo(() => groupMenuItems(menuItems), [menuItems]);
   const collapsed = isCollapsed && !isMobile;
 
-  // Responsive sizes — comfortable on xl+, compact on lg
-  // logoHeight + logoMaxWidth ne sont plus utilisees : le BaitlyMarkLogo
-  // gere son propre dimensionnement via la prop size (cf. plus bas).
-  const headerHeight = isXl ? 48 : 40;
-  const avatarSize = collapsed ? 26 : isXl ? 30 : 26;
-  const avatarFontSize = collapsed ? '0.6875rem' : isXl ? '0.75rem' : '0.6875rem';
-  const userNameFontSize = isXl ? '0.75rem' : '0.6875rem';
-  const userEmailFontSize = isXl ? '0.625rem' : '0.5625rem';
-  const userRoleFontSize = isXl ? '0.5625rem' : '0.5rem';
-  const groupLabelFontSize = isXl ? '0.625rem' : '0.5625rem';
-  const actionIconSize = isXl ? 15 : 14;
+  // Peau « référence sidebar » : valeurs FIXES issues de la référence
+  // utilisateur (plus de paliers responsive — la réf est à tailles fixes).
+  const footerIconSize = 16;
+
+  // Carte utilisateur : nom affiché + initiales (réf : 2 lettres, ex. « TM »)
+  const displayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
+    user?.username ||
+    t('navigation.defaultUser');
+  const userInitials =
+    `${user?.firstName?.charAt(0) ?? ''}${user?.lastName?.charAt(0) ?? ''}`.toUpperCase() ||
+    user?.username?.charAt(0)?.toUpperCase() ||
+    'U';
+
+  // Bouton de footer (.s-fbtn) : height 32, radius 8, faint → hover strong.
+  // En réduit : colonne, boutons 40px de large.
+  const footBtnSx = {
+    flex: collapsed ? 'none' : 1,
+    width: collapsed ? 40 : 'auto',
+    height: 32,
+    borderRadius: '8px',
+    color: 'var(--nav-faint)',
+    position: 'relative' as const,
+    transition: 'background .14s, color .14s',
+    '&:hover': { backgroundColor: 'var(--nav-hover)', color: 'var(--nav-strong)' },
+  };
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -171,81 +182,89 @@ export default function Sidebar({
         overflow: 'hidden',
       }}
     >
-      {/* ── Logo ─────────────────────────────────────────────────────── */}
+      {/* ── Logo (.s-logo) : hauteur 62, padding 0 18, gap 11 ──────────── */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
-          height: headerHeight,
-          px: collapsed ? 1 : isXl ? 2 : 1.5,
+          gap: '11px',
+          height: 62,
+          px: collapsed ? 0 : '18px',
           flexShrink: 0,
           cursor: 'pointer',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
           '&:hover': { opacity: 0.8 },
           transition: 'opacity 150ms',
         }}
         onClick={() => handleNavigation('/dashboard')}
       >
-        {/* Logo Baitly adapte au state du sidebar :
-            - Collapsed (64px) : mark seul, anime (idle scan + breathe).
-              Seul element visuel dans la column = on lui laisse de la vie.
-              size=36 dans 64px = 56% du width, lisible, 14px padding total.
-            - Expanded (240px) : mark + wordmark "clenzy", statique. Plein
-              d'autres elements UI visibles = inutile d'ajouter du mouvement.
-              size=28 = mark 28px + wordmark fontSize 16px proportionnel. */}
+        {/* Référence : mark 26px + wordmark Space Grotesk 600 20px.
+            BaitlyMarkLogo couple mark et wordmark (fontSize = 32×size/56) :
+            on rend donc 2 instances — mark size=26 (26px exact) et
+            wordmark size=35 (32×35/56 = 20px exact), gap 11px via le parent.
+            Réduit = mark seul centré (idle animation conservée). */}
         {collapsed ? (
-          <BaitlyMarkLogo variant="mark" size={36} />
+          <BaitlyMarkLogo variant="mark" size={26} />
         ) : (
-          <BaitlyMarkLogo variant="full" size={28} idleAnimation={false} />
+          <>
+            <BaitlyMarkLogo variant="mark" size={26} idleAnimation={false} />
+            <BaitlyMarkLogo variant="wordmark" size={35} />
+          </>
         )}
       </Box>
 
-      {/* ── Navigation groups ────────────────────────────────────────── */}
+      {/* ── Navigation (.s-nav) : padding 8 12 (réduit 8 10) ───────────── */}
       <Box
         sx={{
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          py: 1,
+          p: collapsed ? '8px 10px' : '8px 12px',
           scrollbarWidth: 'none',           // Firefox
           '&::-webkit-scrollbar': { display: 'none' },  // Chrome/Safari
         }}
       >
-        {GROUP_ORDER.map((groupKey, groupIndex) => {
+        {GROUP_ORDER.map((groupKey) => {
           const items = grouped[groupKey];
           if (!items || items.length === 0) return null;
 
           return (
             <React.Fragment key={groupKey}>
-              {/* Group separator */}
-              {groupIndex > 0 && (
-                collapsed ? (
-                  <Divider sx={{ my: 1, mx: 1.5 }} />
-                ) : (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      px: isXl ? 2.5 : 2,
-                      pt: groupIndex === 0 ? 0.5 : isXl ? 2 : 1.5,
-                      pb: 0.5,
-                      fontSize: groupLabelFontSize,
-                      fontWeight: 700,
-                      color: 'var(--faint)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.06em',
-                      userSelect: 'none',
-                    }}
-                  >
-                    {t(NAV_GROUP_TRANSLATION_KEYS[groupKey])}
-                  </Typography>
-                )
+              {/* Label de groupe (.s-grp) — en réduit : point médian centré */}
+              {collapsed ? (
+                <Typography
+                  sx={{
+                    p: '10px 0 4px',
+                    textAlign: 'center',
+                    fontSize: '15px',
+                    lineHeight: 1,
+                    color: 'var(--nav-faint)',
+                    userSelect: 'none',
+                  }}
+                >
+                  ·
+                </Typography>
+              ) : (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    p: '15px 10px 6px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: 'var(--nav-faint)',
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                  }}
+                >
+                  {t(NAV_GROUP_TRANSLATION_KEYS[groupKey])}
+                </Typography>
               )}
 
               {/* Group items */}
-              <List disablePadding sx={{ py: 0.25 }}>
+              <List disablePadding>
                 {items.map((item) => (
                   <SidebarNavItem
                     key={item.id}
@@ -262,186 +281,145 @@ export default function Sidebar({
       </Box>
 
       {/* ── User profile + actions ───────────────────────────────────── */}
-      <Box
-        sx={{
-          flexShrink: 0,
-          borderTop: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        {/* User badge — cliquable vers /settings */}
-        <Box
-          onClick={() => handleNavigation('/settings')}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: isXl ? 1.5 : 1,
-            px: collapsed ? 0 : isXl ? 2 : 1.5,
-            py: isXl ? 1.5 : 1,
-            cursor: 'pointer',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            '&:hover': { backgroundColor: 'var(--hover)' },
-            transition: 'background-color 150ms',
-          }}
+      <Box sx={{ flexShrink: 0 }}>
+        {/* Carte utilisateur (.s-user) — cliquable vers /settings.
+            Réf = nom + rôle ; l'email est conservé dans le Tooltip. */}
+        <Tooltip
+          title={
+            collapsed
+              ? [displayName, user?.email].filter(Boolean).join(' — ')
+              : (user?.email ?? '')
+          }
+          placement="right"
         >
-          <Tooltip title={collapsed ? (user?.firstName || user?.username || '') : ''} placement="right">
+          <Box
+            onClick={() => handleNavigation('/settings')}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '11px',
+              m: collapsed ? '8px' : '8px 12px 10px',
+              p: collapsed ? '5px' : '10px',
+              borderRadius: '12px',
+              backgroundColor: collapsed ? 'transparent' : 'var(--nav-userbg)',
+              border: collapsed ? 'none' : '1px solid var(--nav-line)',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              flexShrink: 0,
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: 'var(--nav-hover)' },
+              transition: 'background-color 150ms',
+            }}
+          >
+            {/* Avatar (.s-av) : 34px, radius 10, bg accent, initiales
+                Space Grotesk 600 13px — la photo garde le même cadre. */}
             <Avatar
               src={userAvatarSrc(user)}
               sx={{
-                width: avatarSize,
-                height: avatarSize,
-                bgcolor: 'secondary.main',
-                fontSize: avatarFontSize,
-                fontWeight: 700,
-                border: '2px solid',
-                borderColor: 'secondary.light',
+                width: 34,
+                height: 34,
+                borderRadius: '10px',
+                bgcolor: 'var(--accent)',
+                color: '#fff',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 600,
+                fontSize: '13px',
                 flexShrink: 0,
-                transition: 'all 200ms',
               }}
             >
-              {user?.firstName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
+              {userInitials}
             </Avatar>
-          </Tooltip>
-          {!collapsed && (
-            <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-              <Typography
-                variant="body2"
-                fontWeight={600}
-                sx={{
-                  color: 'text.primary',
-                  fontSize: userNameFontSize,
-                  lineHeight: 1.3,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {user?.firstName || user?.username || t('navigation.defaultUser')}
-              </Typography>
-              {user?.email && (
+            {!collapsed && (
+              <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                 <Typography
-                  variant="caption"
                   sx={{
-                    color: 'text.secondary',
-                    fontSize: userEmailFontSize,
+                    fontWeight: 600,
+                    color: 'var(--nav-strong)',
+                    fontSize: '13px',
                     lineHeight: 1.2,
-                    display: 'block',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {user.email}
+                  {displayName}
                 </Typography>
-              )}
-              {user?.roles && user.roles.length > 0 && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: 'var(--accent)',
-                    fontSize: userRoleFontSize,
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.03em',
-                  }}
-                >
-                  {t(`navigation.roles.${user.roles[0]}`) || user.roles[0]}
-                </Typography>
-              )}
-            </Box>
-          )}
-        </Box>
+                {user?.roles && user.roles.length > 0 && (
+                  <Typography
+                    sx={{
+                      fontSize: '10.5px',
+                      color: 'var(--nav-faint)',
+                      letterSpacing: '0.02em',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {t(`navigation.roles.${user.roles[0]}`) || user.roles[0]}
+                  </Typography>
+                )}
+              </Box>
+            )}
+          </Box>
+        </Tooltip>
 
-        {/* Action icons row */}
+        {/* Footer d'actions (.s-foot) : 4 boutons — globe, cloche,
+            déconnexion, réduire. Réduit : colonne, boutons 40px. */}
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'space-evenly',
             flexDirection: collapsed ? 'column' : 'row',
-            gap: collapsed ? 0.5 : 0,
-            px: 1,
-            pb: 1,
-            pt: 0.5,
+            gap: '4px',
+            p: collapsed ? '0 0 10px' : '0 14px 12px',
+            flexShrink: 0,
           }}
         >
-          {/* Language & Currency */}
+          {/* Langue / devise / Apparence — menu existant conservé */}
           <Tooltip title={t('navigation.languageAndCurrency')} placement={collapsed ? 'right' : 'top'}>
-            <IconButton
-              size="small"
-              onClick={handleSettingsOpen}
-              sx={{
-                color: 'var(--muted)',
-                '&:hover': { backgroundColor: 'var(--hover)' },
-              }}
-            >
-              <LanguageIcon size={actionIconSize} strokeWidth={1.75} />
+            <IconButton size="small" onClick={handleSettingsOpen} sx={footBtnSx}>
+              <LanguageIcon size={footerIconSize} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
 
-          {/* Notifications */}
+          {/* Cloche — point 7px var(--err) si non-lus (remplace le compteur) */}
           <Tooltip title={t('notifications.title')} placement={collapsed ? 'right' : 'top'}>
-            <IconButton
-              size="small"
-              onClick={() => handleNavigation('/notifications')}
-              sx={{
-                color: 'var(--muted)',
-                '&:hover': { backgroundColor: 'var(--hover)' },
-              }}
-            >
-              <Badge
-                badgeContent={unreadCount}
-                color="error"
-                max={99}
-                sx={{
-                  '& .MuiBadge-badge': {
-                    fontSize: '0.6rem',
-                    height: 14,
-                    minWidth: 14,
-                    padding: '0 3px',
-                  },
-                }}
-              >
-                {unreadCount > 0 ? (
-                  <Notifications size={actionIconSize} strokeWidth={1.75} />
-                ) : (
-                  <NotificationsNone size={actionIconSize} strokeWidth={1.75} />
-                )}
-              </Badge>
+            <IconButton size="small" onClick={() => handleNavigation('/notifications')} sx={footBtnSx}>
+              <Notifications size={footerIconSize} strokeWidth={1.75} />
+              {unreadCount > 0 && (
+                <Box
+                  component="span"
+                  sx={{
+                    position: 'absolute',
+                    top: 5,
+                    insetInlineEnd: 8,
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--err)',
+                    boxShadow: '0 0 0 2px var(--nav-bg)',
+                  }}
+                />
+              )}
             </IconButton>
           </Tooltip>
 
-          {/* Logout */}
+          {/* Déconnexion */}
           <Tooltip title={t('navigation.logout')} placement={collapsed ? 'right' : 'top'}>
-            <IconButton
-              size="small"
-              onClick={handleLogout}
-              sx={{
-                color: 'error.main',
-                '&:hover': { backgroundColor: 'rgba(201, 122, 122, 0.08)' },
-              }}
-            >
-              <Logout size={actionIconSize} strokeWidth={1.75} />
+            <IconButton size="small" onClick={handleLogout} sx={footBtnSx}>
+              <Logout size={footerIconSize} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
 
-          {/* Collapse toggle (desktop only) — inline avec les autres icones d'action */}
+          {/* Réduire / étendre (desktop only) — chevrons doubles (réf) */}
           {!isMobile && (
             <Tooltip
               title={collapsed ? t('common.expandMenu') : t('common.collapseMenu')}
               placement={collapsed ? 'right' : 'top'}
             >
-              <IconButton
-                size="small"
-                onClick={onToggleCollapsed}
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
-                }}
-              >
+              <IconButton size="small" onClick={onToggleCollapsed} sx={footBtnSx}>
                 {collapsed
-                  ? (isRtl ? <ChevronLeft size={actionIconSize} strokeWidth={1.75} /> : <ChevronRight size={actionIconSize} strokeWidth={1.75} />)
-                  : (isRtl ? <ChevronRight size={actionIconSize} strokeWidth={1.75} /> : <ChevronLeft size={actionIconSize} strokeWidth={1.75} />)
+                  ? (isRtl ? <ChevronsLeft size={footerIconSize} strokeWidth={1.75} /> : <ChevronsRight size={footerIconSize} strokeWidth={1.75} />)
+                  : (isRtl ? <ChevronsRight size={footerIconSize} strokeWidth={1.75} /> : <ChevronsLeft size={footerIconSize} strokeWidth={1.75} />)
                 }
               </IconButton>
             </Tooltip>
@@ -659,8 +637,8 @@ export default function Sidebar({
           '& .MuiDrawer-paper': {
             width: Math.min(SIDEBAR_WIDTH_EXPANDED, 280),
             maxWidth: '80vw',
-            backgroundColor: 'var(--card)',
-            borderRight: '1px solid var(--line)',
+            background: 'linear-gradient(180deg, var(--nav-bg), var(--nav-bg2))',
+            borderRight: '1px solid var(--nav-line)',
             boxShadow: 'none',
             borderRadius: 0,
           },
@@ -681,11 +659,11 @@ export default function Sidebar({
         flexShrink: 0,
         '& .MuiDrawer-paper': {
           width: collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED,
-          transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'width .2s ease',
           overflowX: 'hidden',
-          borderRight: '1px solid var(--line)',
+          background: 'linear-gradient(180deg, var(--nav-bg), var(--nav-bg2))',
+          borderRight: '1px solid var(--nav-line)',
           boxShadow: 'none',
-          backgroundColor: 'var(--card)',
           borderRadius: 0,
         },
       }}
