@@ -2,40 +2,33 @@ import { Tooltip, tooltipClasses, styled } from '@mui/material';
 import type { TooltipProps } from '@mui/material';
 
 /**
- * Theme-aware Tooltip:
- *  - Light mode → white background, subtle shadow
- *  - Dark mode  → bleu-gris profond (#1D2B3D), deeper shadow
+ * Tooltip « riche » (contenu large) — peau popover Signature : panneau
+ * hairline `--line`, r12, `--shadow-pop` (les tokens gèrent le dark mode).
+ * Pour les tooltips texte courts, le MuiTooltip global (encre/fond inversés)
+ * suffit — ce composant est réservé aux contenus composés.
  *
  * Usage: drop-in replacement for MUI <Tooltip>.
  */
 const ThemedTooltip = styled(({ className, ...props }: TooltipProps) => (
   <Tooltip {...props} classes={{ popper: className }} />
-))(({ theme }) => {
-  const isLight = theme.palette.mode === 'light';
-  const bg = isLight ? '#fff' : '#1D2B3D';
-  const border = isLight
-    ? theme.palette.divider
-    : 'rgba(138, 170, 196, 0.12)';
-
-  return {
-    [`& .${tooltipClasses.tooltip}`]: {
-      backgroundColor: `${bg} !important`,
-      color: `${theme.palette.text.primary} !important`,
-      border: `1px solid ${border} !important`,
-      borderRadius: '10px !important',
-      padding: '10px 12px !important',
-      maxWidth: '360px !important',
-      boxShadow: isLight
-        ? '0 4px 16px rgba(0,0,0,0.10) !important'
-        : '0 4px 16px rgba(0,0,0,0.40) !important',
+))({
+  [`& .${tooltipClasses.tooltip}`]: {
+    backgroundColor: 'var(--card)',
+    color: 'var(--body)',
+    border: '1px solid var(--line)',
+    borderRadius: '12px',
+    padding: '10px 12px',
+    maxWidth: '360px',
+    fontSize: '11.5px',
+    fontWeight: 500,
+    boxShadow: 'var(--shadow-pop)',
+  },
+  [`& .${tooltipClasses.arrow}`]: {
+    color: 'var(--card)',
+    '&::before': {
+      border: '1px solid var(--line)',
     },
-    [`& .${tooltipClasses.arrow}`]: {
-      color: `${bg} !important`,
-      '&::before': {
-        border: `1px solid ${border} !important`,
-      },
-    },
-  };
+  },
 });
 
 export default ThemedTooltip;

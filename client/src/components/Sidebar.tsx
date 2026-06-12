@@ -122,7 +122,18 @@ export default function Sidebar({
     position: 'relative' as const,
     transition: 'background .14s, color .14s',
     '&:hover': { backgroundColor: 'var(--nav-hover)', color: 'var(--nav-strong)' },
+    '&.Mui-focusVisible': {
+      outline: '2px solid var(--accent)',
+      outlineOffset: '2px',
+      backgroundColor: 'var(--nav-hover)',
+      color: 'var(--nav-strong)',
+    },
+    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
   };
+
+  // Tooltips latéraux : la sidebar est ancrée à droite en RTL (MUI flippe
+  // l'anchor du Drawer) → le popper doit s'ouvrir vers l'intérieur.
+  const sidePlacement = isRtl ? ('left' as const) : ('right' as const);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -184,6 +195,9 @@ export default function Sidebar({
     >
       {/* ── Logo (.s-logo) : hauteur 62, padding 0 18, gap 11 ──────────── */}
       <Box
+        role="button"
+        tabIndex={0}
+        aria-label={t('navigation.dashboard')}
         sx={{
           display: 'flex',
           alignItems: 'center',
@@ -194,9 +208,17 @@ export default function Sidebar({
           flexShrink: 0,
           cursor: 'pointer',
           '&:hover': { opacity: 0.8 },
+          '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '-2px' },
           transition: 'opacity 150ms',
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         }}
         onClick={() => handleNavigation('/dashboard')}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleNavigation('/dashboard');
+          }
+        }}
       >
         {/* Référence : mark 26px + wordmark Space Grotesk 600 20px.
             BaitlyMarkLogo couple mark et wordmark (fontSize = 32×size/56) :
@@ -290,10 +312,19 @@ export default function Sidebar({
               ? [displayName, user?.email].filter(Boolean).join(' — ')
               : (user?.email ?? '')
           }
-          placement="right"
+          placement={sidePlacement}
         >
           <Box
+            role="button"
+            tabIndex={0}
+            aria-label={displayName}
             onClick={() => handleNavigation('/settings')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleNavigation('/settings');
+              }
+            }}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -307,7 +338,9 @@ export default function Sidebar({
               flexShrink: 0,
               cursor: 'pointer',
               '&:hover': { backgroundColor: 'var(--nav-hover)' },
+              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
               transition: 'background-color 150ms',
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             }}
           >
             {/* Avatar (.s-av) : 34px, radius 10, bg accent, initiales
@@ -319,7 +352,7 @@ export default function Sidebar({
                 height: 34,
                 borderRadius: '10px',
                 bgcolor: 'var(--accent)',
-                color: '#fff',
+                color: 'var(--on-accent)',
                 fontFamily: 'var(--font-display)',
                 fontWeight: 600,
                 fontSize: '13px',
@@ -375,14 +408,14 @@ export default function Sidebar({
           }}
         >
           {/* Langue / devise / Apparence — menu existant conservé */}
-          <Tooltip title={t('navigation.languageAndCurrency')} placement={collapsed ? 'right' : 'top'}>
+          <Tooltip title={t('navigation.languageAndCurrency')} placement={collapsed ? sidePlacement : 'top'}>
             <IconButton size="small" onClick={handleSettingsOpen} sx={footBtnSx}>
               <LanguageIcon size={footerIconSize} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
 
           {/* Cloche — point 7px var(--err) si non-lus (remplace le compteur) */}
-          <Tooltip title={t('notifications.title')} placement={collapsed ? 'right' : 'top'}>
+          <Tooltip title={t('notifications.title')} placement={collapsed ? sidePlacement : 'top'}>
             <IconButton size="small" onClick={() => handleNavigation('/notifications')} sx={footBtnSx}>
               <Notifications size={footerIconSize} strokeWidth={1.75} />
               {unreadCount > 0 && (
@@ -404,7 +437,7 @@ export default function Sidebar({
           </Tooltip>
 
           {/* Déconnexion */}
-          <Tooltip title={t('navigation.logout')} placement={collapsed ? 'right' : 'top'}>
+          <Tooltip title={t('navigation.logout')} placement={collapsed ? sidePlacement : 'top'}>
             <IconButton size="small" onClick={handleLogout} sx={footBtnSx}>
               <Logout size={footerIconSize} strokeWidth={1.75} />
             </IconButton>
@@ -414,7 +447,7 @@ export default function Sidebar({
           {!isMobile && (
             <Tooltip
               title={collapsed ? t('common.expandMenu') : t('common.collapseMenu')}
-              placement={collapsed ? 'right' : 'top'}
+              placement={collapsed ? sidePlacement : 'top'}
             >
               <IconButton size="small" onClick={onToggleCollapsed} sx={footBtnSx}>
                 {collapsed
@@ -434,19 +467,9 @@ export default function Sidebar({
           anchorOrigin={{ vertical: 'top', horizontal: isRtl ? 'left' : 'right' }}
           transformOrigin={{ vertical: 'bottom', horizontal: isRtl ? 'right' : 'left' }}
           slotProps={{
-            paper: {
-              elevation: 0,
-              sx: {
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: '6px',
-                minWidth: 200,
-                boxShadow: (th) =>
-                  th.palette.mode === 'dark'
-                    ? '0 4px 12px rgba(0,0,0,0.3)'
-                    : '0 4px 12px rgba(0,0,0,0.08)',
-              },
-            },
+            // Peau menu = thème global Signature (hairline --line, r12,
+            // --shadow-pop) — aucun override local.
+            paper: { elevation: 0, sx: { minWidth: 200 } },
           }}
         >
           {/* ── Section: Apparence (Signature — teinte d'accent + mode) ── */}
@@ -660,6 +683,7 @@ export default function Sidebar({
         '& .MuiDrawer-paper': {
           width: collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED,
           transition: 'width .2s ease',
+          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
           overflowX: 'hidden',
           background: 'linear-gradient(180deg, var(--nav-bg), var(--nav-bg2))',
           borderRight: '1px solid var(--nav-line)',

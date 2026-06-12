@@ -24,8 +24,13 @@ import {
 } from '../../../icons';
 import type { PlanningEvent } from '../types';
 import type { Reservation } from '../../../services/api';
-import { RESERVATION_STATUS_COLORS, RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
+import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
+import { RESERVATION_STATUS_TOKEN_COLORS } from '../constants';
 import type { ReservationStatus, ReservationSource } from '../../../services/api';
+
+/** Couleur Signature du statut (mêmes constantes que les briques du planning). */
+const statusTokenColor = (status: string): string =>
+  RESERVATION_STATUS_TOKEN_COLORS[status] ?? 'var(--muted)';
 
 interface GuestCardDialogProps {
   open: boolean;
@@ -144,7 +149,6 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 2 } }}
     >
       <DialogTitle
         sx={{
@@ -155,7 +159,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Person size={'1.25rem'} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={20} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
             Fiche client
           </Typography>
@@ -169,18 +173,21 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {/* Header — Avatar + Name + Contact */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+            {/* Avatar initiales : pattern messagerie (carré arrondi r13, accent,
+                initiales display) — pas de rond plein */}
             <Box
               sx={{
                 width: 52,
                 height: 52,
-                borderRadius: '50%',
-                bgcolor: 'primary.main',
+                borderRadius: '13px',
+                bgcolor: 'var(--accent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'white',
+                color: 'var(--on-accent)',
+                fontFamily: 'var(--font-display)',
                 fontSize: '1.125rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 flexShrink: 0,
                 mt: 0.5,
               }}
@@ -217,7 +224,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     px: 0.5,
                     mx: -0.5,
                     '&:hover': onUpdateGuestInfo ? {
-                      bgcolor: 'action.hover',
+                      bgcolor: 'var(--hover)',
                       '& .edit-hint': { opacity: 1 },
                     } : {},
                   }}
@@ -228,7 +235,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                   {onUpdateGuestInfo && (
                     <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></Box>
                   )}
-                  {saved === 'name' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={14} strokeWidth={1.75} /></Box>}
+                  {saved === 'name' && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={14} strokeWidth={1.75} /></Box>}
                 </Box>
               )}
 
@@ -252,7 +259,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     />
                     {saving ? <CircularProgress size={12} /> : (
                       <IconButton size="small" onClick={commitEdit} sx={{ p: 0.25 }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={14} strokeWidth={1.75} /></Box>
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={14} strokeWidth={1.75} /></Box>
                       </IconButton>
                     )}
                   </Box>
@@ -269,7 +276,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       mx: -0.5,
                       py: 0.25,
                       '&:hover': onUpdateGuestInfo ? {
-                        bgcolor: 'action.hover',
+                        bgcolor: 'var(--hover)',
                         '& .edit-hint': { opacity: 1 },
                       } : {},
                     }}
@@ -281,7 +288,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     {onUpdateGuestInfo && (
                       <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></Box>
                     )}
-                    {saved === 'email' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={12} strokeWidth={1.75} /></Box>}
+                    {saved === 'email' && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={12} strokeWidth={1.75} /></Box>}
                   </Box>
                 )}
 
@@ -317,7 +324,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       mx: -0.5,
                       py: 0.25,
                       '&:hover': onUpdateGuestInfo ? {
-                        bgcolor: 'action.hover',
+                        bgcolor: 'var(--hover)',
                         '& .edit-hint': { opacity: 1 },
                       } : {},
                     }}
@@ -329,7 +336,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     {onUpdateGuestInfo && (
                       <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></Box>
                     )}
-                    {saved === 'phone' && <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Check size={12} strokeWidth={1.75} /></Box>}
+                    {saved === 'phone' && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={12} strokeWidth={1.75} /></Box>}
                   </Box>
                 )}
               </Box>
@@ -373,11 +380,10 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
             </Typography>
             <Box
               sx={{
-                border: '2px solid',
-                borderColor: 'primary.main',
-                borderRadius: 1,
+                border: '1px solid var(--accent)',
+                borderRadius: '10px',
                 p: 1.25,
-                bgcolor: 'rgba(107, 138, 154, 0.04)',
+                bgcolor: 'var(--accent-soft)',
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -415,6 +421,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       </Typography>
                     )}
                   </Box>
+                  {/* Statut : texte couleur + fond soft (jamais d'aplat plein) */}
                   <Chip
                     label={
                       RESERVATION_STATUS_LABELS[reservation.status as ReservationStatus] ||
@@ -422,12 +429,11 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     }
                     size="small"
                     sx={{
-                      fontSize: '0.5625rem',
+                      fontSize: '10.5px',
                       height: 20,
-                      fontWeight: 600,
-                      bgcolor:
-                        RESERVATION_STATUS_COLORS[reservation.status as ReservationStatus] || '#757575',
-                      color: '#fff',
+                      fontWeight: 700,
+                      bgcolor: `color-mix(in srgb, ${statusTokenColor(reservation.status)} 14%, transparent)`,
+                      color: statusTokenColor(reservation.status),
                     }}
                   />
                 </Box>
@@ -477,8 +483,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          border: '1px solid',
-                          borderColor: 'divider',
+                          border: '1px solid var(--line)',
                           borderRadius: 0.75,
                           px: 1,
                           py: 0.5,
@@ -502,12 +507,11 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                             }
                             size="small"
                             sx={{
-                              fontSize: '0.5625rem',
+                              fontSize: '10.5px',
                               height: 18,
-                              bgcolor: `${RESERVATION_STATUS_COLORS[r.status as ReservationStatus] ?? '#757575'}20`,
-                              color:
-                                RESERVATION_STATUS_COLORS[r.status as ReservationStatus] ??
-                                '#757575',
+                              fontWeight: 700,
+                              bgcolor: `color-mix(in srgb, ${statusTokenColor(r.status)} 14%, transparent)`,
+                              color: statusTokenColor(r.status),
                             }}
                           />
                         </Box>
@@ -559,9 +563,8 @@ function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
     <Box
       sx={{
         flex: 1,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
+        border: '1px solid var(--line)',
+        borderRadius: '10px',
         px: 1,
         py: 0.75,
         textAlign: 'center',
@@ -569,15 +572,16 @@ function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
     >
       <Typography
         sx={{
-          fontSize: '0.5625rem',
-          color: 'text.secondary',
+          fontSize: '10.5px',
+          color: 'var(--faint)',
           textTransform: 'uppercase',
-          fontWeight: 500,
+          letterSpacing: '0.05em',
+          fontWeight: 700,
         }}
       >
         {label}
       </Typography>
-      <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mt: 0.25 }}>
+      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem', fontWeight: 600, mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Typography>
     </Box>

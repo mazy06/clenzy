@@ -135,10 +135,11 @@ const TAG_SX = {
   height: 22,
   fontSize: '0.6875rem',
   fontWeight: 500,
-  color: 'text.secondary',
+  color: 'var(--muted)',
   borderWidth: 1,
-  borderColor: 'grey.200',
-  '& .MuiChip-icon': { fontSize: 12, ml: 0.25, color: 'primary.main' },
+  borderColor: 'var(--line-2)',
+  backgroundColor: 'var(--card)',
+  '& .MuiChip-icon': { fontSize: 12, ml: 0.25, color: 'var(--accent)' },
   '& .MuiChip-label': { px: 0.5 },
 } as const;
 
@@ -648,12 +649,12 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 2, maxHeight: '85vh' } }}
+      PaperProps={{ sx: { maxHeight: '85vh' } }}
     >
       {/* ── Title ── */}
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Send size={20} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Send size={20} strokeWidth={1.75} /></Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
             Nouvelle demande de service
           </Typography>
@@ -665,15 +666,15 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
       <DialogContent sx={{ px: 2.5, pt: 0, pb: 0 }}>
         {/* ── Header: Property info + Title + Requestor ── */}
-        <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid var(--line)' }}>
           {/* Property name + address */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Home size={16} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
+            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>
               {propertyName}
             </Typography>
             {selectedProperty && (
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+              <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
                 — {selectedProperty.address}, {selectedProperty.city}
               </Typography>
             )}
@@ -713,7 +714,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
             {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
             <Box sx={{ flex: 5 }}>
-              <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', mb: 0.5, ml: 0.25 }}>
+              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, ml: 0.25 }}>
                 Demandeur
               </Typography>
               <Box sx={{
@@ -722,14 +723,13 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                 gap: 0.75,
                 px: 1.25,
                 py: 0.75,
-                borderRadius: 1,
-                bgcolor: 'grey.50',
-                border: '1px solid',
-                borderColor: 'grey.200',
+                borderRadius: '11px',
+                bgcolor: 'var(--field)',
+                border: '1px solid var(--field-line)',
                 minHeight: 40,
               }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Person size={16} strokeWidth={1.75} /></Box>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary', flex: 1 }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)', flex: 1 }}>
                   {currentUserLabel}
                 </Typography>
                 {currentUserRole && (
@@ -738,11 +738,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                     size="small"
                     sx={{
                       height: 20,
-                      fontSize: '0.5625rem',
-                      fontWeight: 600,
-                      bgcolor: isAdmin() ? 'error.50' : isManager() ? 'warning.50' : 'primary.50',
-                      color: isAdmin() ? 'error.main' : isManager() ? 'warning.dark' : 'primary.main',
-                      borderRadius: 0.75,
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      bgcolor: isAdmin() ? 'var(--err-soft)' : isManager() ? 'var(--warn-soft)' : 'var(--accent-soft)',
+                      color: isAdmin() ? 'var(--err)' : isManager() ? 'var(--warn)' : 'var(--accent)',
                       '& .MuiChip-label': { px: 0.75 },
                     }}
                   />
@@ -799,42 +798,41 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                     mt: 2,
                     px: 1.5,
                     py: 1,
-                    borderRadius: 1.5,
-                    border: '1px solid',
-                    borderColor: 'primary.100',
-                    bgcolor: 'primary.50',
+                    borderRadius: '10px',
+                    border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
+                    bgcolor: 'var(--accent-soft)',
                   }}>
                     {/* Durée estimée */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Timer size={18} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
                       <Box>
-                        <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
+                        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
                           Durée estimée
                         </Typography>
-                        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.3 }}>
+                        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
                           {formatDuration(estimatedDuration)}
                         </Typography>
                       </Box>
                     </Box>
 
                     {/* Séparateur */}
-                    <Box sx={{ width: 1, height: 28, bgcolor: 'primary.200', borderRadius: 1, flexShrink: 0 }} />
+                    <Box sx={{ width: 1, height: 28, bgcolor: 'color-mix(in srgb, var(--accent) 25%, transparent)', borderRadius: 1, flexShrink: 0 }} />
 
                     {/* Prix estimé */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Euro size={18} strokeWidth={1.75} /></Box>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Euro size={18} strokeWidth={1.75} /></Box>
                       <Box>
-                        <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
+                        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
                           Prix estimé
                         </Typography>
                         {priceRange ? (
-                          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.3 }}>
+                          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
                             {priceRange.min === priceRange.max
                               ? convertAndFormat(priceRange.min, 'EUR')
                               : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
                           </Typography>
                         ) : (
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1.3 }}>
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--faint)', lineHeight: 1.3 }}>
                             Non disponible
                           </Typography>
                         )}
@@ -844,17 +842,18 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                     {/* Forfait sélectionné */}
                     {selectedForfait && (
                       <>
-                        <Box sx={{ width: 1, height: 28, bgcolor: 'primary.200', borderRadius: 1, flexShrink: 0 }} />
+                        <Box sx={{ width: 1, height: 28, bgcolor: 'color-mix(in srgb, var(--accent) 25%, transparent)', borderRadius: 1, flexShrink: 0 }} />
                         <Chip
                           label={selectedForfait.label}
                           size="small"
                           variant="outlined"
-                          color="primary"
                           sx={{
                             height: 22,
                             fontSize: '0.625rem',
                             fontWeight: 600,
-                            borderRadius: 1,
+                            color: 'var(--accent)',
+                            borderColor: 'var(--accent)',
+                            backgroundColor: 'var(--card)',
                             '& .MuiChip-label': { px: 1 },
                           }}
                         />
@@ -931,11 +930,11 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                       <Box sx={{ mt: 0.5, pl: 0.5 }}>
                         {conflictMembers.map((member) => (
                           <Box key={member.userId} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'success.main' : 'error.main' }}><Person size={12} strokeWidth={1.75} /></Box>
+                            <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--err)' }}><Person size={12} strokeWidth={1.75} /></Box>
                             <Typography sx={{ fontSize: '0.6875rem' }}>
                               {member.firstName} {member.lastName}
                               {!member.available && (
-                                <Typography component="span" sx={{ fontSize: '0.6875rem', color: 'error.main', fontWeight: 600 }}>
+                                <Typography component="span" sx={{ fontSize: '0.6875rem', color: 'var(--err)', fontWeight: 600 }}>
                                   {' '}— {member.conflictCount} conflit{member.conflictCount > 1 ? 's' : ''}
                                 </Typography>
                               )}

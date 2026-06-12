@@ -54,8 +54,8 @@ function buildStaticMapUrl(
 // alourdir le tooltip total.
 
 const TITLE_FS = '0.8125rem';
-const BODY_FS  = '0.6875rem';
-const LABEL_FS = '0.5625rem';
+const BODY_FS  = '11.5px';
+const LABEL_FS = '10.5px';
 const ICON_SIZE = 11;
 const TOOLTIP_WIDTH = 264;
 const HEADER_HEIGHT = 100;
@@ -89,11 +89,11 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           sx={{
             width: '100%',
             height: HEADER_HEIGHT,
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
             overflow: 'hidden',
             mb: 1.25,
-            bgcolor: 'action.hover',
+            bgcolor: 'var(--hover)',
           }}
         >
           <Box
@@ -117,11 +117,11 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
             position: 'relative',
             width: '100%',
             height: HEADER_HEIGHT,
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
             overflow: 'hidden',
             mb: 1.25,
-            bgcolor: 'action.hover',
+            bgcolor: 'var(--hover)',
           }}
         >
           <Box
@@ -148,18 +148,17 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
               height: 16,
               fontSize: LABEL_FS,
               fontWeight: 600,
-              bgcolor: 'background.paper',
-              color: 'text.primary',
-              border: '1px solid',
-              borderColor: 'divider',
-              '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: 'warning.main' },
+              bgcolor: 'var(--card)',
+              color: 'var(--ink)',
+              border: '1px solid var(--line)',
+              '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: 'var(--warn)' },
               '& .MuiChip-label': { px: 0.5 },
             }}
           />
         </Box>
       )}
       <Box sx={{ px: 1.5, pb: 1.5, pt: hasHeader ? 0.25 : 1.5 }}>
-        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 600, lineHeight: 1.3, color: 'text.primary' }}>
+        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 600, lineHeight: 1.3, color: 'var(--ink)' }}>
           {property.name}
         </Typography>
         {property.type && (
@@ -181,10 +180,10 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {(property.address || property.city) && (
           <Box sx={{ display: 'flex', gap: 0.625, mt: 1, alignItems: 'flex-start' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.15 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', mt: 0.15 }}>
               <LocationOn size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', lineHeight: 1.4 }}>
+            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', lineHeight: 1.4 }}>
               {[property.address, property.city].filter(Boolean).join(', ')}
             </Typography>
           </Box>
@@ -192,16 +191,16 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {property.ownerName && (
           <Box sx={{ display: 'flex', gap: 0.625, mt: 0.625, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
               <Person size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
               {property.ownerName}
             </Typography>
           </Box>
         )}
 
-        <Divider sx={{ my: 1.25 }} />
+        <Divider sx={{ my: 1.25, borderColor: 'var(--line)' }} />
 
         {/* Stats grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1 }}>
@@ -239,21 +238,21 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: 0.75, flexWrap: 'wrap' }}>
             {property.defaultCheckInTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}>
                   <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
                 </Box>
-                <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
-                  Check-in <Box component="strong" sx={{ color: 'text.primary' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
+                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+                  Check-in <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
                 </Typography>
               </Box>
             )}
             {property.defaultCheckOutTime && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
                   <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
                 </Box>
-                <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
-                  Check-out <Box component="strong" sx={{ color: 'text.primary' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
+                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+                  Check-out <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
                 </Typography>
               </Box>
             )}
@@ -262,11 +261,11 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
 
         {property.cleaningFrequency && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
               <CalendarMonth size={ICON_SIZE} strokeWidth={1.75} />
             </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary' }}>
-              Fréquence ménage : <Box component="strong" sx={{ color: 'text.primary' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
+            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+              Fréquence ménage : <Box component="strong" sx={{ color: 'var(--ink)' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
             </Typography>
           </Box>
         )}
@@ -283,14 +282,15 @@ function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
             mt: 1.25,
             pt: 1,
             borderTop: '1px dashed',
-            borderColor: 'divider',
+            borderColor: 'var(--line)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             cursor: 'pointer',
-            color: 'primary.main',
+            color: 'var(--accent)',
             transition: 'color 150ms',
-            '&:hover': { color: 'primary.dark' },
+            '&:hover': { color: 'var(--accent-deep)' },
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
           }}
         >
           <Typography sx={{ fontSize: LABEL_FS, fontWeight: 600, color: 'inherit' }}>
@@ -333,7 +333,7 @@ function StatPill({
           {label}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: highlight ? 'var(--ok)' : 'var(--ink)', lineHeight: 1.2 }}>
+      <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: highlight ? 'var(--ok)' : 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Typography>
     </Box>
@@ -476,27 +476,23 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             leaveDelay={100}
             slotProps={{
               tooltip: {
-                sx: (theme) => ({
-                  bgcolor: 'background.paper',
-                  color: 'text.primary',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2,
+                // Carte riche : peau popover Signature (hairline, r12, shadow-pop)
+                sx: {
+                  bgcolor: 'var(--card)',
+                  color: 'var(--ink)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '12px',
                   p: 0,
                   maxWidth: 'none',
-                  boxShadow:
-                    theme.palette.mode === 'dark'
-                      ? '0 12px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35)'
-                      : '0 12px 32px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.08)',
+                  boxShadow: 'var(--shadow-pop)',
                   '& .MuiTooltip-arrow': {
-                    color: theme.palette.background.paper,
+                    color: 'var(--card)',
                     '&::before': {
-                      border: '1px solid',
-                      borderColor: theme.palette.divider,
-                      backgroundColor: theme.palette.background.paper,
+                      border: '1px solid var(--line)',
+                      backgroundColor: 'var(--card)',
                     },
                   },
-                }),
+                },
               },
               popper: {
                 modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],

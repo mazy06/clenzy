@@ -84,9 +84,9 @@ const CenteredSpinner: React.FC<{ size: number; message?: string; minHeight: str
     minHeight={minHeight}
     gap={1.5}
   >
-    <CircularProgress size={size} />
+    <CircularProgress size={size} thickness={3.5} sx={{ color: 'var(--accent)' }} />
     {message && (
-      <Typography variant="body2" color="text.secondary">
+      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
         {message}
       </Typography>
     )}
@@ -101,15 +101,26 @@ const ErrorDisplay: React.FC<{
 }> = ({ error, onRetry, onClearError }) => (
   <Alert
     severity="error"
-    sx={{ mb: 2, py: 1 }}
+    sx={{
+      mb: 2,
+      py: 1,
+      // Alerte -soft hairline (pattern .rm-conflict)
+      bgcolor: 'var(--err-soft)',
+      border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
+      borderRadius: '12px',
+      color: 'var(--body)',
+      fontSize: '12.5px',
+      '& .MuiAlert-icon': { color: 'var(--err)' },
+    }}
     onClose={onClearError}
     action={
       onRetry ? (
         <Button
           color="inherit"
           size="small"
+          variant="text"
           onClick={onRetry}
-          startIcon={<RefreshIcon size={16} strokeWidth={1.75} />}
+          startIcon={<RefreshIcon size={13} strokeWidth={1.75} />}
         >
           Réessayer
         </Button>

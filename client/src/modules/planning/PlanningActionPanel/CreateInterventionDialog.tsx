@@ -192,11 +192,10 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ sx: { borderRadius: 2 } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Add size={22} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Add size={20} strokeWidth={1.75} /></Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
             Nouvelle intervention
           </Typography>
@@ -280,7 +279,7 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
             {teamOptions.map((opt) => (
               <MenuItem key={makeKey(opt)} value={makeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={16} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={16} strokeWidth={1.75} /></Box>
                   <Box>
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
                       {opt.label}

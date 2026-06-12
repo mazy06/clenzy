@@ -46,11 +46,12 @@ export default function InboxListItem({
         px: 1.5,
         py: 1.25,
         cursor: 'pointer',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        bgcolor: active ? 'action.selected' : 'transparent',
-        transition: 'background-color 0.15s ease',
-        '&:hover': { bgcolor: active ? 'action.selected' : 'action.hover' },
+        borderBottom: '1px solid var(--line)',
+        // Actif — pattern .mg-conv (messagerie) : fond accent-soft, pas de side-stripe
+        bgcolor: active ? 'var(--accent-soft)' : 'transparent',
+        transition: 'background-color .14s',
+        '&:hover': { bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)' },
+        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
       }}
     >
       <Box sx={{ flexShrink: 0, mt: 0.125 }}>{avatar}</Box>
@@ -60,8 +61,9 @@ export default function InboxListItem({
           <Typography
             component="div"
             sx={{
-              fontSize: '0.8125rem',
+              fontSize: '13px',
               fontWeight: unread ? 700 : 600,
+              color: 'var(--ink)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -73,7 +75,7 @@ export default function InboxListItem({
           {time && (
             <Typography
               component="div"
-              sx={{ fontSize: '0.625rem', color: 'text.secondary', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
+              sx={{ fontSize: '10.5px', color: 'var(--faint)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
             >
               {time}
             </Typography>
@@ -91,8 +93,8 @@ export default function InboxListItem({
             <Typography
               component="div"
               sx={{
-                fontSize: '0.6875rem',
-                color: unread ? 'text.primary' : 'text.secondary',
+                fontSize: '11.5px',
+                color: unread ? 'var(--body)' : 'var(--muted)',
                 fontWeight: unread ? 600 : 400,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',

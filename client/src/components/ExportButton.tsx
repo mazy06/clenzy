@@ -30,21 +30,23 @@ interface ExportButtonProps {
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const BUTTON_SX = {
-  textTransform: 'none',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  height: 28,
-  px: 1.5,
-  '& .MuiButton-startIcon': { mr: 0.5 },
-  '& .MuiSvgIcon-root': { fontSize: 14 },
-} as const;
-
 const MENU_ITEM_SX = {
-  fontSize: '0.8125rem',
+  fontSize: '12.5px',
   py: 0.5,
   minHeight: 32,
+} as const;
+
+// Snackbar succès — alerte -soft hairline flottante (fond opaque + couche ok-soft)
+const SNACKBAR_ALERT_SX = {
+  width: '100%',
+  fontSize: '12.5px',
+  bgcolor: 'var(--card)',
+  backgroundImage: 'linear-gradient(var(--ok-soft), var(--ok-soft))',
+  border: '1px solid color-mix(in srgb, var(--ok) 30%, transparent)',
+  borderRadius: '12px',
+  color: 'var(--body)',
+  boxShadow: 'var(--shadow-pop)',
+  '& .MuiAlert-icon': { color: 'var(--ok)' },
 } as const;
 
 export default function ExportButton({
@@ -87,7 +89,7 @@ export default function ExportButton({
       onClose={() => setSnackbarOpen(false)}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
     >
-      <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled" sx={{ width: '100%', fontSize: '0.75rem' }}>
+      <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={SNACKBAR_ALERT_SX}>
         {t('export.success')}
       </Alert>
     </Snackbar>
@@ -104,15 +106,14 @@ export default function ExportButton({
               size="small"
               sx={{
                 p: 0.5,
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-                color: 'text.secondary',
-                '&:hover': { bgcolor: 'rgba(107,138,154,0.08)', borderColor: 'primary.main', color: 'primary.main' },
-                '& .MuiSvgIcon-root': { fontSize: 18 },
+                borderRadius: '9px',
+                border: '1px solid var(--line-2)',
+                color: 'var(--muted)',
+                '&:hover': { bgcolor: 'var(--hover)', borderColor: 'var(--faint)', color: 'var(--ink)' },
+                '&.Mui-disabled': { opacity: 0.45 },
               }}
             >
-              <DownloadIcon size={18} strokeWidth={1.75} />
+              <DownloadIcon size={16} strokeWidth={1.75} />
             </IconButton>
           </span>
         </Tooltip>
@@ -129,10 +130,9 @@ export default function ExportButton({
             <Button
               variant="outlined"
               size="small"
-              startIcon={<DownloadIcon size={18} strokeWidth={1.75} />}
+              startIcon={<DownloadIcon size={13} strokeWidth={1.75} />}
               onClick={handleMenuOpen}
               disabled={isDisabled}
-              sx={BUTTON_SX}
             >
               {t('export.button')}
             </Button>
@@ -165,10 +165,9 @@ export default function ExportButton({
           <Button
             variant="outlined"
             size="small"
-            startIcon={<DownloadIcon size={18} strokeWidth={1.75} />}
+            startIcon={<DownloadIcon size={13} strokeWidth={1.75} />}
             onClick={handleExportCSV}
             disabled={isDisabled}
-            sx={BUTTON_SX}
             title={t('export.button')}
           >
             {t('export.button')}
