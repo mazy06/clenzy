@@ -90,6 +90,17 @@ export interface BaitlyMarkLogoProps {
    * screenshots, tests visuels, ou contextes ou tout mouvement est interdit.
    */
   disableAnimation?: boolean;
+  /**
+   * Source de couleur du mark :
+   *   - {@code "accent"} (defaut) : suit la teinte selectionnee
+   *     ({@code var(--accent)}) — le logo se reteinte quand l'utilisateur change
+   *     d'accent. Pour les usages « brand » sur surface neutre/soft (sidebar,
+   *     header badge, FAB).
+   *   - {@code "inherit"} : suit la couleur du parent ({@code currentColor}).
+   *     A utiliser quand le mark est pose sur un fond colore qui impose sa
+   *     couleur de texte (ex : item de menu ACTIF a fond accent → mark blanc).
+   */
+  colorMode?: 'accent' | 'inherit';
 }
 
 const OCTAGON_NODES: ReadonlyArray<{ x: number; y: number }> = [
@@ -129,6 +140,7 @@ export default function BaitlyMarkLogo({
   active = false,
   idleAnimation = true,
   disableAnimation = false,
+  colorMode = 'accent',
 }: BaitlyMarkLogoProps) {
   const theme = useTheme();
   const uid = useId().replace(/:/g, '-');
@@ -136,9 +148,30 @@ export default function BaitlyMarkLogo({
   const resolvedTone =
     tone === 'auto' ? (theme.palette.mode === 'dark' ? 'dark' : 'light') : tone;
 
-  const palette = resolvedTone === 'dark'
-    ? { nodes: '#89B1C2', center: '#FFFFFF', lines: '#89B1C2', wordmark: '#FFFFFF', linesOpacity: 0.4 }
-    : { nodes: '#6B8A9A', center: '#4A6B7B', lines: '#6B8A9A', wordmark: theme.palette.text.primary, linesOpacity: 0.35 };
+  // Couleur du mark :
+  //  - colorMode 'inherit' → currentColor (suit la couleur du parent : utile sur
+  //    fond coloré, ex item de menu actif accent → mark blanc).
+  //  - sinon, tone 'auto' → suit l'accent sélectionné (var(--accent)/-deep) →
+  //    le logo se reteinte en direct au changement de teinte.
+  //  - tone FORCÉ (login photo-hero sombre) → palette fixe à fort contraste.
+  // NB : les var()/currentColor passent par `style` inline (cf. SVG plus bas) ;
+  // elles ne résolvent pas de façon fiable dans les attributs fill/stroke.
+  const inherit = colorMode === 'inherit';
+  const followAccent = tone === 'auto';
+  const fixedDark = resolvedTone === 'dark';
+  const markColor = inherit
+    ? 'currentColor'
+    : followAccent ? 'var(--accent)' : (fixedDark ? '#89B1C2' : '#6B8A9A');
+  const centerColor = inherit
+    ? 'currentColor'
+    : followAccent ? 'var(--accent-deep)' : (fixedDark ? '#FFFFFF' : '#4A6B7B');
+  const palette = {
+    nodes: markColor,
+    lines: markColor,
+    center: centerColor,
+    wordmark: inherit ? 'currentColor' : (fixedDark ? '#FFFFFF' : theme.palette.text.primary),
+    linesOpacity: fixedDark ? 0.4 : 0.35,
+  };
 
   // size override scale s'il est defini (pour matcher l'API icone-style ou
   // l'injection via React.cloneElement de la Sidebar).
@@ -173,7 +206,7 @@ export default function BaitlyMarkLogo({
     >
       {/* Group lines : boot animation deportee ici (fade-in opacity) pour
           eviter le conflit animation/transition sur <line>. */}
-      <g className={cls.linesGroup} stroke={palette.lines} strokeWidth="1">
+      <g className={cls.linesGroup} strokeWidth="1" style={{ stroke: palette.lines }}>
         {OCTAGON_NODES.map((n, i) => (
           <line
             key={`l-${i}`}
@@ -186,7 +219,7 @@ export default function BaitlyMarkLogo({
           le <g> (transform-origin: 28px 28px = centre du mark). Sans ce
           wrapper il aurait fallu animer chaque node individuellement avec
           des keyframes calcules en coordonnees polaires. */}
-      <g className={cls.nodesGroup} fill={palette.nodes}>
+      <g className={cls.nodesGroup} style={{ fill: palette.nodes }}>
         {OCTAGON_NODES.map((n, i) => (
           <circle
             key={`n-${i}`}
@@ -195,7 +228,7 @@ export default function BaitlyMarkLogo({
           />
         ))}
       </g>
-      <circle className={cls.center} cx={CENTER.x} cy={CENTER.y} r="4.5" fill={palette.center} />
+      <circle className={cls.center} cx={CENTER.x} cy={CENTER.y} r="4.5" style={{ fill: palette.center }} />
     </svg>
   );
 

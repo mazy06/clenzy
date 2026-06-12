@@ -103,8 +103,11 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
     item: {
       // Sidebar injecte size via React.cloneElement (size matches autres icones).
       // disableAnimation : pas d'orbit/scan dans la sidebar (visual noise constant
-      // sur un element toujours visible). L'icone est statique mais brand-color.
-      icon: <BaitlyMarkLogo variant="mark" disableAnimation />,
+      // sur un element toujours visible). colorMode 'inherit' : le mark suit la
+      // couleur de l'item (blanc sur fond accent quand actif, gris sinon) comme
+      // les autres icones de nav — sinon var(--accent) serait invisible sur le
+      // fond accent de l'item actif.
+      icon: <BaitlyMarkLogo variant="mark" disableAnimation colorMode="inherit" />,
       path: '/assistant',
       roles: ['all'],
       permission: 'ai:view',
