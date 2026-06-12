@@ -54,7 +54,7 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           Etes-vous sur de vouloir retirer <strong>{memberName}</strong> de l'organisation ?
         </Typography>
-        <Typography variant="body2" color="error.main">
+        <Typography variant="body2" sx={{ color: 'var(--err)' }}>
           Cette action retirera son acces a toutes les ressources de l'organisation.
         </Typography>
 

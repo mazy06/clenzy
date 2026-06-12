@@ -29,18 +29,22 @@ import {
   GppGood,
   Email,
 } from '../../icons';
-import { softChipSx } from '../../utils/statusUtils';
+// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
+// Remplace l'ancienne palette hex Baitly : bleu doux → info, teal → ok,
+// warm → warn, rouge doux → err, primary/violet → accent, warm-gray → muted.
 
-// ─── Palette Baitly (accents valides) ────────────────────────────────────────
-// On evite les couleurs MUI brutes (#1976d2, #2e7d32, #e65100...) au profit
-// des accents du produit pour eviter le rendu "templated" generique.
-const PRIMARY = '#6B8A9A';        // bleu-gris Baitly
-const ACCENT_TEAL = '#4A9B8E';    // teal
-const SOFT_BLUE = '#7BA3C2';      // bleu doux
-const WARM = '#D4A574';           // warm sand
-const NEUTRAL = '#8A8378';        // warm-gray
-const VIOLET = '#8b5cf6';         // violet (categorie distincte)
-const DANGER_SOFT = '#C97A7A';    // rouge doux (action critique)
+interface Tone { c: string; bg: string }
+
+const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
+  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
+  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
+  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
+  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
+  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
+  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
+};
+
+const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
 
 // ─── Définition de tous les tags disponibles (miroir de TagResolverService.java) ───
 
@@ -56,7 +60,7 @@ interface TagCategory {
   label: string;
   description: string;
   icon: React.ReactNode;
-  color: string;
+  tone: Tone;
   tags: TagDefinition[];
 }
 
@@ -66,7 +70,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Messagerie guest',
     description: 'Variables pour les templates de messagerie envoyés aux voyageurs. Syntaxe : {variable}',
     icon: <Email />,
-    color: SOFT_BLUE,
+    tone: TONES.info,
     tags: [
       { tag: '{guestName}', description: 'Nom complet du voyageur', example: 'Jean Dupont', type: 'text' },
       { tag: '{guestFirstName}', description: 'Prénom du voyageur', example: 'Jean', type: 'text' },
@@ -94,7 +98,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Système',
     description: 'Tags automatiques générés à chaque document. Syntaxe : ${category.field}',
     icon: <Computer />,
-    color: NEUTRAL,
+    tone: TONES.muted,
     tags: [
       { tag: 'system.date', description: 'Date du jour', example: '15/01/2025', type: 'date' },
       { tag: 'system.datetime', description: 'Date et heure', example: '15/01/2025 14:30', type: 'date' },
@@ -107,7 +111,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Entreprise',
     description: 'Informations de votre société (configurées dans application.yml)',
     icon: <Business />,
-    color: PRIMARY,
+    tone: TONES.accent,
     tags: [
       { tag: 'entreprise.nom', description: 'Nom de la société', example: 'Baitly', type: 'text' },
       { tag: 'entreprise.adresse', description: 'Adresse complète', example: '12 rue de la Paix, 75002 Paris', type: 'text' },
@@ -121,7 +125,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Client',
     description: 'Informations du client (propriétaire, demandeur ou utilisateur référencé)',
     icon: <Person />,
-    color: ACCENT_TEAL,
+    tone: TONES.ok,
     tags: [
       { tag: 'client.nom', description: 'Nom de famille', example: 'Dupont', type: 'text' },
       { tag: 'client.prenom', description: 'Prénom', example: 'Jean', type: 'text' },
@@ -139,7 +143,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Technicien',
     description: 'Informations du technicien assigné (mêmes champs que Client)',
     icon: <Person />,
-    color: VIOLET,
+    tone: TONES.accent,
     tags: [
       { tag: 'technicien.nom', description: 'Nom de famille', example: 'Martin', type: 'text' },
       { tag: 'technicien.prenom', description: 'Prénom', example: 'Pierre', type: 'text' },
@@ -157,7 +161,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Propriété',
     description: 'Informations du bien immobilier concerné',
     icon: <Home />,
-    color: WARM,
+    tone: TONES.warn,
     tags: [
       { tag: 'property.nom', description: 'Nom du bien', example: 'Appartement Marais', type: 'text' },
       { tag: 'property.adresse', description: 'Adresse complète', example: '5 rue des Rosiers', type: 'text' },
@@ -180,7 +184,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Intervention',
     description: "Détails de l'intervention (ménage, maintenance, réparation...)",
     icon: <Build />,
-    color: DANGER_SOFT,
+    tone: TONES.err,
     tags: [
       { tag: 'intervention.id', description: 'Identifiant unique', example: '1042', type: 'number' },
       { tag: 'intervention.titre', description: "Titre de l'intervention", example: 'Ménage post-départ', type: 'text' },
@@ -207,7 +211,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Demande de service',
     description: 'Informations de la demande de service',
     icon: <Assignment />,
-    color: PRIMARY,
+    tone: TONES.accent,
     tags: [
       { tag: 'demande.id', description: 'Identifiant unique', example: '507', type: 'number' },
       { tag: 'demande.titre', description: 'Titre de la demande', example: 'Réparation chauffe-eau', type: 'text' },
@@ -228,7 +232,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Paiement',
     description: "Informations de paiement liées à l'intervention",
     icon: <Payment />,
-    color: ACCENT_TEAL,
+    tone: TONES.ok,
     tags: [
       { tag: 'paiement.statut', description: 'Statut du paiement', example: 'PAID', type: 'text' },
       { tag: 'paiement.montant', description: 'Montant payé', example: '165,00 €', type: 'money' },
@@ -241,7 +245,7 @@ const TAG_CATEGORIES: TagCategory[] = [
     label: 'Conformité NF',
     description: 'Tags de conformité NF injectés automatiquement pour FACTURE et DEVIS',
     icon: <GppGood />,
-    color: WARM,
+    tone: TONES.warn,
     tags: [
       { tag: 'nf.numero_legal', description: 'Numéro légal séquentiel (sans trou)', example: 'FAC-2025-00001', type: 'text' },
       { tag: 'nf.date_emission', description: "Date d'émission du document", example: '18/01/2025', type: 'date' },
@@ -252,12 +256,12 @@ const TAG_CATEGORIES: TagCategory[] = [
   },
 ];
 
-// Couleurs des types alignees sur la palette Baitly via softChipSx.
-const TYPE_COLORS: Record<string, string> = {
-  text:   NEUTRAL,       // texte = valeur generique
-  date:   SOFT_BLUE,     // date = info temporelle
-  money:  ACCENT_TEAL,   // montant = financier
-  number: PRIMARY,       // nombre = compteur
+// Tons des types — sémantique tokens (texte = neutre, date = info, montant = ok, nombre = accent).
+const TYPE_TONES: Record<string, Tone> = {
+  text:   TONES.muted,
+  date:   TONES.info,
+  money:  TONES.ok,
+  number: TONES.accent,
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -301,14 +305,14 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
   const totalTags = TAG_CATEGORIES.reduce((sum, c) => sum + c.tags.length, 0);
 
   // Style cohérent partagé pour les chips ${...} (memes proportions que
-  // TemplateCatalogAccordions : monospace, primary tinted, font 0.7rem).
+  // TemplateCatalogAccordions : monospace, accent tinted, font 0.7rem).
   const codeChipSx = {
     fontFamily: '"SF Mono", Menlo, Consolas, monospace',
     fontSize: '0.7rem',
-    color: PRIMARY,
-    backgroundColor: `${PRIMARY}0F`,
+    color: 'var(--accent)',
+    backgroundColor: 'var(--accent-soft)',
     border: '1px solid',
-    borderColor: `${PRIMARY}26`,
+    borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
     borderRadius: '4px',
     px: 0.625,
     py: '2px',
@@ -330,10 +334,10 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
         sx={{
           mb: 3,
           borderRadius: 1.5,
-          borderColor: `${SOFT_BLUE}40`,
-          backgroundColor: `${SOFT_BLUE}0A`,
+          borderColor: 'color-mix(in srgb, var(--info) 30%, transparent)',
+          backgroundColor: 'var(--info-soft)',
           color: 'text.primary',
-          '& .MuiAlert-icon': { color: SOFT_BLUE },
+          '& .MuiAlert-icon': { color: 'var(--info)' },
         }}
       >
         <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.6 }}>
@@ -343,7 +347,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
           . Par exemple{' '}
           <Box component="code" sx={codeChipSx}>{'${client.nom}'}</Box>{' '}
           sera remplacé par le nom du client. Cliquez sur l&apos;icône{' '}
-          <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle', color: SOFT_BLUE, mx: 0.25 }}>
+          <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle', color: 'var(--info)', mx: 0.25 }}>
             <ContentCopy size={13} strokeWidth={1.75} />
           </Box>{' '}
           à droite de chaque ligne pour copier un tag prêt à coller.
@@ -391,8 +395,8 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  bgcolor: `${category.color}14`,
-                  color: category.color,
+                  bgcolor: category.tone.bg,
+                  color: category.tone.c,
                   flexShrink: 0,
                 }}
               >
@@ -414,7 +418,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
               <Chip
                 label={`${category.tags.length} tags`}
                 size="small"
-                sx={softChipSx(category.color)}
+                sx={chipSx(category.tone)}
               />
             </Box>
           </AccordionSummary>
@@ -466,7 +470,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                         <Chip
                           label={TYPE_LABELS[tagDef.type]}
                           size="small"
-                          sx={softChipSx(TYPE_COLORS[tagDef.type])}
+                          sx={chipSx(TYPE_TONES[tagDef.type])}
                         />
                       </TableCell>
                       <TableCell>
@@ -482,9 +486,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                             aria-label={`Copier le tag ${tagDef.tag}`}
                             sx={{
                               cursor: 'pointer',
-                              color: copiedTag === tagDef.tag ? ACCENT_TEAL : 'text.secondary',
+                              color: copiedTag === tagDef.tag ? 'var(--ok)' : 'text.secondary',
                               transition: 'color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                              '&:hover': { color: PRIMARY, backgroundColor: `${PRIMARY}0F` },
+                              '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
                             }}
                           >
                             <ContentCopy size={15} strokeWidth={1.75} />

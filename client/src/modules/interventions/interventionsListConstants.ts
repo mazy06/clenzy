@@ -5,18 +5,18 @@ import type { Intervention } from './useInterventionsList';
 export const PAGINATION_SX = {
   position: 'sticky',
   bottom: 0,
-  bgcolor: 'background.paper',
+  bgcolor: 'var(--card)',
   borderTop: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'var(--line)',
   mt: 2,
-  borderRadius: 1,
+  borderRadius: '9px',
 } as const;
 
 export const LIST_PAPER_SX = {
   border: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'var(--line)',
   boxShadow: 'none',
-  borderRadius: 1.5,
+  borderRadius: '14px',
 } as const;
 
 export const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];

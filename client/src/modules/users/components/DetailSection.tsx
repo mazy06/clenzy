@@ -1,10 +1,10 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, alpha, useTheme } from '@mui/material';
+import { Box, Card, CardContent, Typography, alpha } from '@mui/material';
 
 interface DetailSectionProps {
   /** Overline title — uppercase, short. */
   title: string;
-  /** Optional accent color (hex). Drives the icon badge bg + a 1px top filet. */
+  /** Optional accent color (hex). Drives the icon badge bg. */
   accentColor?: string;
   /** Optional icon for the small badge (kept varied across sections to avoid the
    *  "icon-badge over every heading" template). */
@@ -25,7 +25,7 @@ interface DetailSectionProps {
  *
  * <h4>Design rules respected</h4>
  * <ul>
- *   <li>Impeccable: no side-stripe color &gt; 1px; 1px top accent filet is allowed.</li>
+ *   <li>Impeccable: no side-stripe, carte plate hairline (baseline Signature).</li>
  *   <li>Subtle hover: border tone shift, no transform on width/height.</li>
  *   <li>Reduced-motion respected.</li>
  *   <li>tabular-nums + balance handled by `DetailField`.</li>
@@ -39,31 +39,21 @@ const DetailSection: React.FC<DetailSectionProps> = ({
   disableGrid = false,
   children,
 }) => {
-  const theme = useTheme();
-  const accent = accentColor ?? theme.palette.primary.main;
+  const accent = accentColor ?? '#6B8A9A';
 
   return (
     <Card
       variant="outlined"
       sx={{
         position: 'relative',
-        borderRadius: 2,
-        borderColor: 'divider',
+        borderRadius: 'var(--radius-lg)',
+        bgcolor: 'var(--card)',
+        borderColor: 'var(--line)',
         overflow: 'hidden',
-        transition: 'border-color 200ms ease, box-shadow 200ms ease',
+        transition: 'border-color 200ms ease',
         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
         '&:hover': {
-          borderColor: alpha(accent, 0.4),
-          boxShadow: `0 1px 3px ${alpha(accent, 0.12)}`,
-        },
-        // 1 px top accent — single allowed filet (no side stripe).
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0, left: 0, right: 0,
-          height: '1px',
-          bgcolor: accent,
-          opacity: 0.45,
+          borderColor: 'var(--line-2)',
         },
       }}
     >
@@ -89,11 +79,11 @@ const DetailSection: React.FC<DetailSectionProps> = ({
           )}
           <Typography
             sx={{
-              fontSize: '0.6875rem',
+              fontSize: '10.5px',
               fontWeight: 700,
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
-              color: 'text.secondary',
+              color: 'var(--faint)',
               flex: 1,
             }}
           >

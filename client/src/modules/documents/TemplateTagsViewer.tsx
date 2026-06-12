@@ -14,28 +14,38 @@ import {
 } from '@mui/material';
 import { ExpandMore } from '../../icons';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
-import { softChipSx } from '../../utils/statusUtils';
 
 interface TemplateTagsViewerProps {
   tags: DocumentTemplateTag[];
 }
 
-// Palette Baitly (alignee sur les accents valides) — primary bleu-gris,
-// teal pour propriete/intervention, warm sand pour DEVIS, neutral pour SYSTEM.
-const CATEGORY_COLORS: Record<string, string> = {
-  CLIENT: '#7BA3C2',       // bleu doux
-  PROPERTY: '#4A9B8E',     // teal Baitly
-  INTERVENTION: '#D4A574', // warm sand
-  DEVIS: '#8b5cf6',        // violet (reste branche pour les docs commerciaux)
-  FACTURE: '#C97A7A',      // rouge doux Baitly
-  PAIEMENT: '#ec4899',     // pink (documents financiers)
-  ENTREPRISE: '#6B8A9A',   // primary Baitly
-  SYSTEM: '#8A8378',       // neutral warm-gray Baitly
+// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
+
+interface Tone { c: string; bg: string }
+
+const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
+  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
+  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
+  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
+  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
+  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
+  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
 };
 
-const NEUTRAL = '#8A8378';
-const WARM = '#D4A574';
-const PRIMARY = '#6B8A9A';
+const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
+
+// Mapping catégorie → ton sémantique (remplace l'ancienne palette hex Baitly :
+// bleu doux → info, teal → ok, warm → warn, rouge doux → err, primary/violet → accent).
+const CATEGORY_TONES: Record<string, Tone> = {
+  CLIENT: TONES.info,
+  PROPERTY: TONES.ok,
+  INTERVENTION: TONES.warn,
+  DEVIS: TONES.accent,
+  FACTURE: TONES.err,
+  PAIEMENT: TONES.ok,
+  ENTREPRISE: TONES.accent,
+  SYSTEM: TONES.muted,
+};
 
 const CATEGORY_LABELS: Record<string, string> = {
   CLIENT: 'Client',
@@ -91,10 +101,10 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
   };
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, boxShadow: 'none' }}>
+    <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Tags détectés</Typography>
-        <Chip label={`${tags.length} tags`} size="small" sx={softChipSx(PRIMARY)} />
+        <Chip label={`${tags.length} tags`} size="small" sx={chipSx(TONES.accent)} />
       </Box>
 
       {categories.length === 0 ? (
@@ -112,7 +122,7 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{
                   width: 12, height: 12, borderRadius: '50%',
-                  bgcolor: CATEGORY_COLORS[cat] || '#6b7280',
+                  bgcolor: (CATEGORY_TONES[cat] ?? TONES.muted).c,
                 }} />
                 <Typography fontWeight={500}>
                   {CATEGORY_LABELS[cat] || cat}
@@ -120,7 +130,7 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
                 <Chip
                   label={groupedTags[cat].length}
                   size="small"
-                  sx={{ ml: 1, ...softChipSx(CATEGORY_COLORS[cat] || NEUTRAL) }}
+                  sx={{ ml: 1, ...chipSx(CATEGORY_TONES[cat] ?? TONES.muted) }}
                 />
               </Box>
             </AccordionSummary>
@@ -129,19 +139,19 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
                 <TableBody>
                   {groupedTags[cat].map((tag) => (
                     <TableRow key={tag.id ?? `${cat}-${tag.tagName}`}>
-                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem', color: CATEGORY_COLORS[cat] || '#6b7280' }}>
+                      <TableCell sx={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace', fontSize: '0.85rem', color: (CATEGORY_TONES[cat] ?? TONES.muted).c }}>
                         {'${' + tag.tagName + '}'}
                       </TableCell>
                       <TableCell>
                         <Chip
                           label={TYPE_LABELS[tag.tagType] || tag.tagType}
                           size="small"
-                          sx={softChipSx(NEUTRAL)}
+                          sx={chipSx(TONES.muted)}
                         />
                       </TableCell>
                       <TableCell>
                         {tag.required && (
-                          <Chip label="Requis" size="small" sx={softChipSx(WARM)} />
+                          <Chip label="Requis" size="small" sx={chipSx(TONES.warn)} />
                         )}
                       </TableCell>
                     </TableRow>

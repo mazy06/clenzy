@@ -39,8 +39,34 @@ import {
 } from '../icons';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { AuditLogEntry, AuditLogPage } from '../services/api/monitoringApi';
-import { semanticToHex, softChipSx } from '../utils/statusUtils';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+
+/** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
+const chipSx = (fg: string, bg: string) => ({
+  color: fg,
+  backgroundColor: bg,
+  '& .MuiChip-icon': { color: fg },
+});
+
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+
+// Type d'evenement → tokens semantiques
+const EVENT_TOKEN: Record<string, { fg: string; bg: string }> = {
+  LOGIN_SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  LOGIN_FAILURE: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  PERMISSION_DENIED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  SUSPICIOUS_ACTIVITY: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  DATA_ACCESS: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  ADMIN_ACTION: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  SECRET_ROTATION: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+};
+
+// Resultat → tokens semantiques (SUCCESS --ok, DENIED/ERROR --err)
+const RESULT_TOKEN: Record<string, { fg: string; bg: string }> = {
+  SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  DENIED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  ERROR: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+};
 
 interface AuditLogFilters {
   eventType: string;
@@ -127,53 +153,26 @@ const AuditLogging: React.FC = () => {
   const getEventTypeIcon = (eventType: string) => {
     switch (eventType) {
       case 'LOGIN_SUCCESS':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
       case 'LOGIN_FAILURE':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Warning size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
       case 'PERMISSION_DENIED':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Lock size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Lock size={20} strokeWidth={1.75} /></Box>;
       case 'DATA_ACCESS':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Visibility size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Visibility size={20} strokeWidth={1.75} /></Box>;
       case 'ADMIN_ACTION':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><AdminPanelSettings size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><AdminPanelSettings size={20} strokeWidth={1.75} /></Box>;
       case 'SECRET_ROTATION':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><VpnKey size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><VpnKey size={20} strokeWidth={1.75} /></Box>;
       case 'SUSPICIOUS_ACTIVITY':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><ReportProblem size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ReportProblem size={20} strokeWidth={1.75} /></Box>;
       default:
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Info size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
     }
   };
 
-  const getEventTypeColor = (eventType: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    switch (eventType) {
-      case 'LOGIN_SUCCESS':
-        return 'success';
-      case 'LOGIN_FAILURE':
-        return 'warning';
-      case 'PERMISSION_DENIED':
-      case 'SUSPICIOUS_ACTIVITY':
-        return 'error';
-      case 'DATA_ACCESS':
-      case 'ADMIN_ACTION':
-      case 'SECRET_ROTATION':
-        return 'info';
-      default:
-        return 'default';
-    }
-  };
-
-  const getResultColor = (result: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    switch (result?.toUpperCase()) {
-      case 'SUCCESS':
-        return 'success';
-      case 'DENIED':
-      case 'ERROR':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  const eventToken = (eventType: string) => EVENT_TOKEN[eventType] ?? NEUTRAL_TOKEN;
+  const resultToken = (result: string) => RESULT_TOKEN[result?.toUpperCase()] ?? NEUTRAL_TOKEN;
 
   const formatEventType = (eventType: string) => {
     return eventType.replace(/_/g, ' ');
@@ -206,9 +205,9 @@ const AuditLogging: React.FC = () => {
   return (
     <Box>
       {/* Filtres */}
-      <Card sx={{ mb: 3 }}>
+      <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
             Filtres
           </Typography>
           <Grid container spacing={2}>
@@ -270,17 +269,17 @@ const AuditLogging: React.FC = () => {
       </Card>
 
       {/* Logs */}
-      <Card>
+      <Card variant="outlined">
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">
+            <Typography variant="h6" sx={{ color: 'var(--ink)' }}>
               Logs d'audit ({totalElements} entrées)
             </Typography>
             {totalPages > 1 && (
               <Chip
                 label={`Page ${currentPage + 1} sur ${totalPages}`}
                 size="small"
-                sx={softChipSx(semanticToHex('primary'))}
+                sx={{ ...chipSx('var(--accent)', 'var(--accent-soft)'), fontVariantNumeric: 'tabular-nums' }}
               />
             )}
           </Box>
@@ -304,13 +303,13 @@ const AuditLogging: React.FC = () => {
                           <Chip
                             label={formatEventType(log.eventType)}
                             size="small"
-                            sx={softChipSx(semanticToHex(getEventTypeColor(log.eventType)))}
+                            sx={chipSx(eventToken(log.eventType).fg, eventToken(log.eventType).bg)}
                           />
                           {log.result && (
                             <Chip
                               label={log.result}
                               size="small"
-                              sx={softChipSx(semanticToHex(getResultColor(log.result)))}
+                              sx={chipSx(resultToken(log.result).fg, resultToken(log.result).bg)}
                             />
                           )}
                         </Box>
@@ -318,24 +317,37 @@ const AuditLogging: React.FC = () => {
                       secondary={
                         <Box mt={1}>
                           {log.details && (
-                            <Typography variant="body2" color="text.primary" gutterBottom>
+                            <Typography variant="body2" sx={{ color: 'var(--body)' }} gutterBottom>
                               {log.details}
                             </Typography>
                           )}
-                          <Box display="flex" gap={2} flexWrap="wrap" mt={1}>
+                          {/* Meta technique : mono compact sur fond --field */}
+                          <Box
+                            sx={{
+                              display: 'inline-flex',
+                              gap: 2,
+                              flexWrap: 'wrap',
+                              mt: 0.5,
+                              px: 1,
+                              py: 0.5,
+                              bgcolor: 'var(--field)',
+                              border: '1px solid var(--field-line)',
+                              borderRadius: '8px',
+                            }}
+                          >
                             {log.actorEmail && (
-                              <Typography variant="caption" color="text.secondary">
-                                <strong>Utilisateur:</strong> {log.actorEmail}
+                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>
+                                {log.actorEmail}
                               </Typography>
                             )}
                             {log.actorIp && (
-                              <Typography variant="caption" color="text.secondary">
-                                <strong>IP:</strong> {log.actorIp}
+                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>
+                                IP {log.actorIp}
                               </Typography>
                             )}
                             {log.timestamp && (
-                              <Typography variant="caption" color="text.secondary">
-                                <strong>Date:</strong> {new Date(log.timestamp).toLocaleString()}
+                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                                {new Date(log.timestamp).toLocaleString()}
                               </Typography>
                             )}
                           </Box>

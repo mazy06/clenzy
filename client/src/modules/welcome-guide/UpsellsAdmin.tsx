@@ -332,7 +332,7 @@ const UpsellsAdmin: React.FC = () => {
               title={t('upsells.commissions.title', 'Commissions activités')}
               actions={
                 <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#4A9B8E', lineHeight: 1.15 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--ok)', lineHeight: 1.15 }}>
                     {commissionSummary.totalHostShare.toFixed(2)} {commissionSummary.currency}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>

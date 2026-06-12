@@ -194,7 +194,7 @@ export default function InscriptionConfirm() {
           {/* Loading */}
           {status === 'loading' && (
             <Box sx={{ py: 4 }}>
-              <CircularProgress sx={{ color: '#6B8A9A', mb: 2 }} />
+              <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
               <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.secondary' }}>
                 {t('auth.inscriptionConfirm.loadingLink', 'Verification du lien...')}
               </Typography>
@@ -337,14 +337,14 @@ export default function InscriptionConfirm() {
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
                 {t('auth.inscriptionConfirm.successBody', 'Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...')}
               </Typography>
-              <CircularProgress size={24} sx={{ color: '#6B8A9A' }} />
+              <CircularProgress size={24} sx={{ color: 'primary.main' }} />
             </Box>
           )}
 
           {/* Deja finalise */}
           {status === 'already_completed' && (
             <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mb: 2 }}><CheckCircleIcon size={64} strokeWidth={1.75} color='#6B8A9A' /></Box>
+              <Box component="span" sx={{ display: 'inline-flex', mb: 2, color: 'primary.main' }}><CheckCircleIcon size={64} strokeWidth={1.75} color='currentColor' /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                 {t('auth.inscriptionConfirm.alreadyCompletedTitle', 'Inscription deja finalisee')}
               </Typography>

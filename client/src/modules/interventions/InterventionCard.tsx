@@ -32,11 +32,10 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { formatShortDate, formatTimeFromDate, formatDuration } from '../../utils/formatUtils';
 import {
   getInterventionStatusLabel,
-  getInterventionStatusHex,
   getInterventionPriorityLabel,
-  getInterventionPriorityHex,
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
+import { getStatusTokens, getPriorityTokens } from './interventionUtils';
 
 interface Intervention {
   id: number;
@@ -115,11 +114,12 @@ const styles = {
     flexDirection: 'column',
     overflow: 'hidden',
     cursor: 'pointer',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'border-color .15s, box-shadow .15s',
     '&:hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: '0 12px 28px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08)',
+      borderColor: 'var(--line-2)',
+      boxShadow: 'var(--shadow-card)',
     },
+    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
   },
   typeLabelBox: {
     position: 'absolute',
@@ -150,7 +150,7 @@ const styles = {
     bgcolor: 'rgba(255,255,255,0.06)',
     backdropFilter: 'blur(8px)',
     border: '1px solid rgba(255,255,255,0.08)',
-    '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' },
+    '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', color: 'var(--on-accent)' },
     width: 28,
     height: 28,
   },
@@ -160,9 +160,9 @@ const styles = {
     justifyContent: 'space-between',
     px: 1.5,
     py: 0.75,
-    bgcolor: 'grey.50',
+    bgcolor: 'var(--surface-2)',
     borderBottom: '1px solid',
-    borderColor: 'grey.100',
+    borderColor: 'var(--line)',
     gap: 0.75,
     minHeight: 34,
   },
@@ -223,7 +223,7 @@ const styles = {
   progressBar: {
     height: 5,
     borderRadius: 3,
-    bgcolor: 'grey.200',
+    bgcolor: 'var(--hover)',
     '& .MuiLinearProgress-bar': {
       borderRadius: 3,
     },
@@ -238,13 +238,6 @@ const styles = {
   detailsButton: {
     fontSize: '0.72rem',
     py: 0.5,
-    borderColor: 'grey.300',
-    color: 'text.secondary',
-    '&:hover': {
-      borderColor: 'primary.main',
-      color: 'primary.main',
-      bgcolor: 'rgba(107, 138, 154, 0.04)',
-    },
   },
 } as const;
 
@@ -309,18 +302,18 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       <Box sx={styles.badgeBar}>
         {/* Gauche : statut + priorité */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          {(() => { const c = getInterventionStatusHex(intervention.status); return (
+          {(() => { const tk = getStatusTokens(intervention.status); return (
             <Chip
               label={getInterventionStatusLabel(intervention.status, t)}
               size="small"
-              sx={{ ...styles.statusChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+              sx={{ ...styles.statusChip, backgroundColor: tk.bg, color: tk.color, borderRadius: '6px' }}
             />
           ); })()}
-          {(() => { const c = getInterventionPriorityHex(intervention.priority); return (
+          {(() => { const tk = getPriorityTokens(intervention.priority); return (
             <Chip
               label={getInterventionPriorityLabel(intervention.priority, t)}
               size="small"
-              sx={{ ...styles.priorityChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+              sx={{ ...styles.priorityChip, backgroundColor: tk.bg, color: tk.color, borderRadius: '6px' }}
             />
           ); })()}
         </Box>
@@ -336,7 +329,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       </Box>
 
       {/* ─── Barre de progression (dans la même zone badges) ─── */}
-      <Box sx={{ px: 1.5, py: 0.5, bgcolor: 'grey.50', borderBottom: '1px solid', borderColor: 'grey.100', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+      <Box sx={{ px: 1.5, py: 0.5, bgcolor: 'var(--surface-2)', borderBottom: '1px solid', borderColor: 'var(--line)', display: 'flex', alignItems: 'center', gap: 0.75 }}>
         <LinearProgress
           variant="determinate"
           value={intervention.progressPercentage}
@@ -415,9 +408,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
             icon={<AccessTime size={12} strokeWidth={1.75} />}
             label={`~${formatDuration(intervention.estimatedDurationHours)}`}
             size="small"
-            color="info"
-            variant="outlined"
-            sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, flexShrink: 0 }}
+            sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, backgroundColor: 'var(--info-soft)', color: 'var(--info)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: 'var(--info)' }, flexShrink: 0 }}
           />
         </Box>
       </CardContent>

@@ -14,8 +14,6 @@ import {
   Alert,
   CircularProgress,
   Autocomplete,
-  alpha,
-  useTheme,
 } from '@mui/material';
 import {
   Save,
@@ -35,7 +33,20 @@ import { usersApi, type User, type UserFormData } from '../../services/api';
 import { organizationsApi, OrganizationDto } from '../../services/api/organizationsApi';
 import PageHeader from '../../components/PageHeader';
 import type { ChipColor } from '../../types';
-import { semanticToHex, softChipSx } from '../../utils/statusUtils';
+
+// Couleur semantique → tokens (chips -soft : texte couleur + fond -soft)
+const SEM_TOKEN: Partial<Record<ChipColor, { fg: string; bg: string }>> = {
+  success: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  warning: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  error: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  info: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  primary: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+};
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const semChipSx = (color: ChipColor) => {
+  const tk = SEM_TOKEN[color] ?? NEUTRAL_TOKEN;
+  return { backgroundColor: tk.bg, color: tk.fg };
+};
 import DetailSection from './components/DetailSection';
 import AvatarUploader from './components/AvatarUploader';
 import { USER_ROLES, getRoleEntry, RoleIconBadge } from './components/userRoleCatalog';
@@ -64,7 +75,6 @@ const userStatuses: Array<{ value: string; label: string; color: ChipColor }> = 
 const UserEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const theme = useTheme();
   const { hasPermissionAsync } = useAuth();
 
   const [canManageUsers, setCanManageUsers] = useState(false);
@@ -476,7 +486,7 @@ const UserEdit: React.FC = () => {
                       <Chip
                         label={s.label}
                         size="small"
-                        sx={softChipSx(semanticToHex(s.color))}
+                        sx={semChipSx(s.color)}
                       />
                     );
                   }}
@@ -486,7 +496,7 @@ const UserEdit: React.FC = () => {
                       <Chip
                         label={status.label}
                         size="small"
-                        sx={softChipSx(semanticToHex(status.color))}
+                        sx={semChipSx(status.color)}
                       />
                     </MenuItem>
                   ))}
@@ -503,10 +513,9 @@ const UserEdit: React.FC = () => {
                 sx={{
                   mt: 2,
                   p: 1.5,
-                  borderRadius: 1.5,
-                  bgcolor: alpha(theme.palette.primary.main, 0.04),
-                  border: '1px solid',
-                  borderColor: 'divider',
+                  borderRadius: '12px',
+                  bgcolor: 'var(--accent-soft)',
+                  border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1.25,
@@ -598,13 +607,13 @@ const UserEdit: React.FC = () => {
                 <Chip
                   label="Les mots de passe correspondent"
                   size="small"
-                  sx={softChipSx(semanticToHex('success'))}
+                  sx={semChipSx('success')}
                 />
               ) : passwordsMismatch ? (
                 <Chip
                   label="Les mots de passe ne correspondent pas"
                   size="small"
-                  sx={softChipSx(semanticToHex('error'))}
+                  sx={semChipSx('error')}
                 />
               ) : undefined
             }

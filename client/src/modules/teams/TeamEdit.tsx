@@ -321,7 +321,7 @@ const TeamEdit: React.FC = () => {
       <Card>
         <CardContent sx={{ p: 4 }}>
           <form onSubmit={handleSubmit}>
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="h6" sx={{ mb: 3, color: 'var(--ink)' }}>
               Informations de base
             </Typography>
 
@@ -357,7 +357,7 @@ const TeamEdit: React.FC = () => {
               </Grid>
             </Grid>
 
-            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>Description</Typography>
+            <Typography variant="h6" sx={{ mb: 2, color: 'var(--ink)' }}>Description</Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12}>
@@ -375,7 +375,7 @@ const TeamEdit: React.FC = () => {
 
             {/* ─── Coverage Zones ─────────────────────────────────────── */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6" sx={{ color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="h6" sx={{ color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <MapIcon size={20} strokeWidth={1.75} />
                 Zones de couverture
               </Typography>
@@ -503,7 +503,7 @@ const TeamEdit: React.FC = () => {
               </Box>
             )}
 
-            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>Membres de l'équipe</Typography>
+            <Typography variant="h6" sx={{ mb: 2, color: 'var(--ink)' }}>Membres de l'équipe</Typography>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} md={4}>
@@ -564,7 +564,7 @@ const TeamEdit: React.FC = () => {
                     <React.Fragment key={member.userId}>
                       <ListItem sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
                         <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'primary.main' }}>
+                          <Avatar sx={{ bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px' }}>
                             {member.firstName.charAt(0)}{member.lastName.charAt(0)}
                           </Avatar>
                         </ListItemAvatar>

@@ -697,8 +697,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                     minWidth: 0,
                     cursor: 'pointer',
                     '&:focus-visible': {
-                      outline: '2px solid',
-                      outlineColor: 'primary.main',
+                      outline: '2px solid var(--accent)',
                       outlineOffset: '-2px',
                     },
                   }}
@@ -1724,7 +1723,7 @@ const WelcomeGuideAdmin: React.FC = () => {
         ) : (
           <Stack spacing={1.5}>
             {curatedActivities.map((a, idx) => (
-              <Card key={a.id} variant="outlined" sx={a.featured ? { borderColor: '#D4A574' } : undefined}>
+              <Card key={a.id} variant="outlined" sx={a.featured ? { borderColor: 'var(--warn)' } : undefined}>
                 <CardContent sx={{ '&:last-child': { pb: 2 } }}>
                   <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                     <Box sx={{ flex: 1 }}>
@@ -1947,9 +1946,10 @@ const WelcomeGuideAdmin: React.FC = () => {
             borderRadius: '34px',
             overflow: 'hidden',
             border: '10px solid',
-            borderColor: '#1B2A35',
-            boxShadow: '0 28px 70px -28px rgba(27,42,53,0.55)',
-            bgcolor: '#000',
+            // Bezel téléphone : tons chrome (pas de #000 pur — ban baseline).
+            borderColor: 'var(--chrome-1)',
+            boxShadow: '0 28px 70px -28px rgba(21,36,45,0.55)',
+            bgcolor: 'var(--chrome-2)',
           }}
         >
           <WelcomeBookView
@@ -2076,7 +2076,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                     {e.rating ? (
                       <Box sx={{ display: 'flex', gap: 0.25 }}>
                         {Array.from({ length: e.rating }).map((_, i) => (
-                          <Star key={i} size={14} strokeWidth={1.75} fill="currentColor" style={{ color: '#D4A574' }} />
+                          <Star key={i} size={14} strokeWidth={1.75} fill="currentColor" style={{ color: 'var(--warn)' }} />
                         ))}
                       </Box>
                     ) : null}

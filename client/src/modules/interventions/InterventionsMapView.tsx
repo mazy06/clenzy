@@ -8,12 +8,10 @@ import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyM
 import type { Intervention } from './useInterventionsList';
 import {
   getInterventionStatusLabel,
-  getInterventionStatusHex,
   getInterventionPriorityLabel,
-  getInterventionPriorityHex,
   getInterventionTypeLabel,
-  getInterventionTypeHex,
 } from '../../utils/statusUtils';
+import { getStatusTokens, getPriorityTokens, getTypeTokens } from './interventionUtils';
 import { LIST_PAPER_SX, stripPropertySuffix, getProgress } from './interventionsListConstants';
 
 interface InterventionsMapViewProps {
@@ -64,7 +62,7 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
           </Typography>
 
           {viewportInterventions.length === 0 ? (
-            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2, textAlign: 'center' }}>
+            <Paper sx={{ border: '1px solid', borderColor: 'var(--line)', boxShadow: 'none', borderRadius: '14px', p: 2, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
                 Aucune intervention dans cette zone. Déplacez ou dézoomez la carte.
               </Typography>
@@ -72,25 +70,26 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
           ) : (
             <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
               {viewportInterventions.map((intervention) => {
-                const statusColor = getInterventionStatusHex(intervention.status);
-                const typeColor = getInterventionTypeHex(intervention.type);
-                const priorityColor = getInterventionPriorityHex(intervention.priority);
+                const statusTokens = getStatusTokens(intervention.status);
+                const typeTokens = getTypeTokens(intervention.type);
+                const priorityTokens = getPriorityTokens(intervention.priority);
                 return (
                   <Paper
                     key={intervention.id}
                     sx={{
                       border: '1px solid',
-                      borderColor: 'divider',
+                      borderColor: 'var(--line)',
                       boxShadow: 'none',
-                      borderRadius: 1.5,
+                      borderRadius: '14px',
                       p: 1.5,
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
+                      transition: 'border-color .15s, box-shadow .15s',
                       flexShrink: 0,
                       '&:hover': {
-                        borderColor: 'primary.main',
-                        bgcolor: 'action.hover',
+                        borderColor: 'var(--line-2)',
+                        boxShadow: 'var(--shadow-card)',
                       },
+                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                     }}
                     onClick={() => navigate(`/interventions/${intervention.id}`)}
                   >
@@ -122,9 +121,8 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                           label={getInterventionTypeLabel(intervention.type, t)}
                           size="small"
                           sx={{
-                            backgroundColor: `${typeColor}18`,
-                            color: typeColor,
-                            border: `1px solid ${typeColor}40`,
+                            backgroundColor: typeTokens.bg,
+                            color: typeTokens.color,
                             borderRadius: '6px',
                             fontWeight: 600,
                             fontSize: '0.62rem',
@@ -136,9 +134,8 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                           label={getInterventionStatusLabel(intervention.status, t)}
                           size="small"
                           sx={{
-                            backgroundColor: `${statusColor}18`,
-                            color: statusColor,
-                            border: `1px solid ${statusColor}40`,
+                            backgroundColor: statusTokens.bg,
+                            color: statusTokens.color,
                             borderRadius: '6px',
                             fontWeight: 600,
                             fontSize: '0.62rem',
@@ -150,9 +147,8 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                           label={getInterventionPriorityLabel(intervention.priority, t)}
                           size="small"
                           sx={{
-                            backgroundColor: `${priorityColor}18`,
-                            color: priorityColor,
-                            border: `1px solid ${priorityColor}40`,
+                            backgroundColor: priorityTokens.bg,
+                            color: priorityTokens.color,
                             borderRadius: '6px',
                             fontWeight: 600,
                             fontSize: '0.62rem',
@@ -172,15 +168,15 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                               flex: 1,
                               height: 5,
                               borderRadius: 3,
-                              bgcolor: 'grey.200',
+                              bgcolor: 'var(--hover)',
                               '& .MuiLinearProgress-bar': {
                                 borderRadius: 3,
-                                bgcolor: getProgress(intervention) === 100 ? 'success.main'
-                                  : getProgress(intervention) >= 50 ? 'info.main' : 'warning.main',
+                                bgcolor: getProgress(intervention) === 100 ? 'var(--ok)'
+                                  : getProgress(intervention) >= 50 ? 'var(--info)' : 'var(--warn)',
                               },
                             }}
                           />
-                          <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 24 }}>
+                          <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 24, fontVariantNumeric: 'tabular-nums' }}>
                             {getProgress(intervention)}%
                           </Typography>
                         </Box>

@@ -645,7 +645,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           <>
             <DialogTitle sx={{ pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><People size={20} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><People size={20} strokeWidth={1.75} /></Box>
                 <Box>
                   <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
                     Membres de {membersDialogOrg.name}

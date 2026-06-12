@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha, Chip, LinearProgress } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
+import { Box, Typography, Chip, LinearProgress } from '@mui/material';
 import {
   TrendingUp as TrendUpIcon,
   TrendingDown as TrendDownIcon,
@@ -66,11 +65,10 @@ interface PortfolioOverviewWidgetProps {
  *   <li>Patterns detectes : items avec icone par type + chip severity</li>
  * </ol>
  *
- * <p>Borderless, bg tonal, aligne au reste du chat.</p>
+ * <p>Pattern « Signature » : tokens var(--…), labels overline 10.5px
+ * {@code --faint}, valeurs display tabular-nums, fonds {@code -soft}.</p>
  */
 export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = ({ data }) => {
-  const theme = useTheme();
-
   const total = data.totalProperties ?? 0;
   const active = data.activeProperties ?? 0;
   const revenue = data.totalRevenue ?? 0;
@@ -84,11 +82,11 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
     return (
       <Box sx={{ mt: 1, mb: 1.5 }}>
         <Box sx={{
-          p: 3, borderRadius: 2,
-          bgcolor: alpha(theme.palette.warning.main, 0.08),
+          p: 3, borderRadius: '12px',
+          bgcolor: 'var(--warn-soft)',
           textAlign: 'center',
         }}>
-          <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.warning.dark }}>
+          <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--warn)' }}>
             Aucune propriete dans le portefeuille — ajoute-en une pour commencer.
           </Typography>
         </Box>
@@ -99,10 +97,10 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
   return (
     <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {data.title && (
-        <Typography variant="caption" sx={{
-          display: 'block', fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          display: 'block', fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title}
         </Typography>
@@ -145,7 +143,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
           <SectionHeader
             label="Top performers"
             icon={<TrendUpIcon size={14} />}
-            color={theme.palette.success.main}
+            color="var(--ok)"
           />
           <Box
             sx={{
@@ -167,7 +165,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
           <SectionHeader
             label={`Sous-performants (${underPerformers.length})`}
             icon={<TrendDownIcon size={14} />}
-            color={theme.palette.warning.main}
+            color="var(--warn)"
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             {underPerformers.map((p) => (
@@ -183,7 +181,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
           <SectionHeader
             label="Patterns detectes"
             icon={<WarningIcon size={14} />}
-            color={theme.palette.error.main}
+            color="var(--err)"
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             {patterns.map((pat, idx) => (
@@ -204,37 +202,37 @@ const StatTile: React.FC<{
   hint?: string;
   accent?: 'positive' | 'negative' | 'neutral';
 }> = ({ label, value, hint, accent = 'neutral' }) => {
-  const theme = useTheme();
-  const tileColor =
-    accent === 'positive' ? theme.palette.success.main
-    : accent === 'negative' ? theme.palette.warning.main
-    : theme.palette.primary.main;
+  const tileBg =
+    accent === 'positive' ? 'var(--ok-soft)'
+    : accent === 'negative' ? 'var(--warn-soft)'
+    : 'var(--field)';
 
   return (
     <Box
       sx={{
         px: 1.25,
         py: 1,
-        borderRadius: 1.5,
-        bgcolor: alpha(tileColor, accent === 'neutral' ? 0.04 : 0.08),
+        borderRadius: '10px',
+        bgcolor: tileBg,
       }}
     >
       <Typography
-        variant="caption"
         sx={{
-          display: 'block', color: theme.palette.text.secondary,
-          fontSize: '0.7rem', mb: 0.25,
+          display: 'block', color: 'var(--faint)',
+          fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em', mb: 0.25,
         }}
       >
         {label}
       </Typography>
       <Typography
         sx={{
+          fontFamily: 'var(--font-display)',
           fontSize: '1.15rem',
           fontWeight: 600,
           lineHeight: 1.2,
           fontVariantNumeric: 'tabular-nums',
-          color: theme.palette.text.primary,
+          color: 'var(--ink)',
           letterSpacing: '-0.01em',
         }}
       >
@@ -242,10 +240,9 @@ const StatTile: React.FC<{
       </Typography>
       {hint && (
         <Typography
-          variant="caption"
           sx={{
-            display: 'block', color: theme.palette.text.disabled,
-            fontSize: '0.65rem', mt: 0.25,
+            display: 'block', color: 'var(--muted)',
+            fontSize: '10.5px', mt: 0.25,
           }}
         >
           {hint}
@@ -263,10 +260,9 @@ const SectionHeader: React.FC<{
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
     <Box sx={{ display: 'inline-flex', color }}>{icon}</Box>
     <Typography
-      variant="caption"
       sx={{
-        fontSize: '0.7rem', fontWeight: 700,
-        textTransform: 'uppercase', letterSpacing: '0.04em',
+        fontSize: '10.5px', fontWeight: 700,
+        textTransform: 'uppercase', letterSpacing: '.05em',
         color,
       }}
     >
@@ -276,21 +272,20 @@ const SectionHeader: React.FC<{
 );
 
 const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) => {
-  const theme = useTheme();
   const occupancyPct = Math.round(performer.occupancy * 100);
 
   return (
     <Box
       sx={{
         px: 1.25, py: 1,
-        borderRadius: 1.5,
-        bgcolor: alpha(theme.palette.success.main, 0.06),
+        borderRadius: '10px',
+        bgcolor: 'var(--ok-soft)',
       }}
     >
       <Typography
         sx={{
-          fontSize: '0.8125rem', fontWeight: 600,
-          color: theme.palette.text.primary,
+          fontSize: '13.5px', fontWeight: 600,
+          color: 'var(--ink)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}
       >
@@ -298,8 +293,7 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
       </Typography>
       {performer.city && (
         <Typography
-          variant="caption"
-          sx={{ display: 'block', color: theme.palette.text.secondary, fontSize: '0.7rem' }}
+          sx={{ display: 'block', color: 'var(--muted)', fontSize: '11.5px' }}
         >
           {performer.city}
         </Typography>
@@ -307,14 +301,15 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mt: 0.5 }}>
         <Typography
           sx={{
+            fontFamily: 'var(--font-display)',
             fontSize: '1rem', fontWeight: 600,
             fontVariantNumeric: 'tabular-nums',
-            color: theme.palette.success.dark,
+            color: 'var(--ok)',
           }}
         >
           {formatCurrency(performer.revenue)}
         </Typography>
-        <Typography variant="caption" sx={{ color: theme.palette.text.disabled, fontSize: '0.7rem' }}>
+        <Typography sx={{ color: 'var(--faint)', fontSize: '11.5px' }}>
           {performer.reservations} resa
         </Typography>
       </Box>
@@ -324,18 +319,17 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
           value={occupancyPct}
           sx={{
             height: 4, borderRadius: 2,
-            bgcolor: alpha(theme.palette.success.main, 0.12),
+            bgcolor: 'color-mix(in srgb, var(--ok) 14%, transparent)',
             '& .MuiLinearProgress-bar': {
-              bgcolor: theme.palette.success.main,
+              bgcolor: 'var(--ok)',
               borderRadius: 2,
             },
           }}
         />
         <Typography
-          variant="caption"
           sx={{
-            display: 'block', fontSize: '0.65rem', mt: 0.25,
-            color: theme.palette.text.secondary,
+            display: 'block', fontSize: '10.5px', mt: 0.25,
+            color: 'var(--muted)',
             fontVariantNumeric: 'tabular-nums',
           }}
         >
@@ -347,13 +341,12 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
 };
 
 const UnderPerformerRow: React.FC<{ performer: UnderPerformer }> = ({ performer }) => {
-  const theme = useTheme();
   return (
     <Box
       sx={{
         px: 1.25, py: 1,
-        borderRadius: 1.5,
-        bgcolor: alpha(theme.palette.warning.main, 0.06),
+        borderRadius: '10px',
+        bgcolor: 'var(--warn-soft)',
         display: 'flex',
         gap: 1,
         alignItems: 'flex-start',
@@ -362,35 +355,36 @@ const UnderPerformerRow: React.FC<{ performer: UnderPerformer }> = ({ performer 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
           <Typography sx={{
-            fontSize: '0.8125rem', fontWeight: 600,
-            color: theme.palette.text.primary,
+            fontSize: '13.5px', fontWeight: 600,
+            color: 'var(--ink)',
           }}>
             {performer.name}
           </Typography>
           {performer.city && (
-            <Typography variant="caption" sx={{
-              color: theme.palette.text.secondary, fontSize: '0.7rem',
+            <Typography sx={{
+              color: 'var(--muted)', fontSize: '11.5px',
             }}>
               {performer.city}
             </Typography>
           )}
         </Box>
-        <Typography variant="caption" sx={{
-          display: 'block', color: theme.palette.warning.dark, fontSize: '0.72rem', mt: 0.25,
+        <Typography sx={{
+          display: 'block', color: 'var(--warn)', fontSize: '11.5px', fontWeight: 600, mt: 0.25,
         }}>
           {performer.reason}
         </Typography>
-        <Typography variant="caption" sx={{
-          display: 'block', color: theme.palette.text.secondary, fontSize: '0.72rem',
+        <Typography sx={{
+          display: 'block', color: 'var(--muted)', fontSize: '11.5px',
           fontStyle: 'italic', mt: 0.25,
         }}>
           → {performer.recommendation}
         </Typography>
       </Box>
       <Typography sx={{
+        fontFamily: 'var(--font-display)',
         fontSize: '0.85rem', fontWeight: 600,
         fontVariantNumeric: 'tabular-nums',
-        color: theme.palette.warning.dark,
+        color: 'var(--warn)',
         whiteSpace: 'nowrap',
       }}>
         {Math.round(performer.occupancy * 100)}%
@@ -400,16 +394,15 @@ const UnderPerformerRow: React.FC<{ performer: UnderPerformer }> = ({ performer 
 };
 
 const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
-  const theme = useTheme();
-  const sevColor = severityColor(pattern.severity, theme);
+  const [sevColor, sevSoft] = severityColors(pattern.severity);
   const Icon = patternIcon(pattern.type);
 
   return (
     <Box
       sx={{
         px: 1.25, py: 1,
-        borderRadius: 1.5,
-        bgcolor: alpha(sevColor, 0.06),
+        borderRadius: '10px',
+        bgcolor: sevSoft,
         display: 'flex',
         gap: 1,
         alignItems: 'flex-start',
@@ -423,8 +416,8 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
           <Typography sx={{
-            fontSize: '0.8125rem', fontWeight: 600,
-            color: theme.palette.text.primary,
+            fontSize: '13.5px', fontWeight: 600,
+            color: 'var(--ink)',
           }}>
             {pattern.title}
           </Typography>
@@ -432,22 +425,24 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
             label={pattern.severity}
             size="small"
             sx={{
-              height: 18, fontSize: '0.65rem', fontWeight: 600,
-              bgcolor: alpha(sevColor, 0.12),
+              height: 18, fontSize: '10.5px', fontWeight: 700,
+              letterSpacing: '.04em', textTransform: 'uppercase',
+              bgcolor: 'var(--card)',
               color: sevColor,
+              border: 'none',
               '& .MuiChip-label': { px: 0.75 },
             }}
           />
         </Box>
-        <Typography variant="caption" sx={{
-          display: 'block', color: theme.palette.text.secondary, fontSize: '0.72rem',
+        <Typography sx={{
+          display: 'block', color: 'var(--muted)', fontSize: '11.5px',
         }}>
           {pattern.description}
         </Typography>
         {pattern.items && pattern.items.length > 0 && (
-          <Typography variant="caption" sx={{
-            display: 'block', color: theme.palette.text.disabled,
-            fontSize: '0.7rem', mt: 0.25,
+          <Typography sx={{
+            display: 'block', color: 'var(--faint)',
+            fontSize: '11.5px', mt: 0.25,
           }}>
             {pattern.items.join(' · ')}
           </Typography>
@@ -467,16 +462,16 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function severityColor(severity: string, theme: Theme): string {
+function severityColors(severity: string): [string, string] {
   switch (severity?.toUpperCase()) {
     case 'CRITICAL':
     case 'HIGH':
-      return theme.palette.error.main;
+      return ['var(--err)', 'var(--err-soft)'];
     case 'MEDIUM':
-      return theme.palette.warning.main;
+      return ['var(--warn)', 'var(--warn-soft)'];
     case 'LOW':
     default:
-      return theme.palette.info.main;
+      return ['var(--info)', 'var(--info-soft)'];
   }
 }
 

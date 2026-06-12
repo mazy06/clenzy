@@ -26,8 +26,7 @@ const BILLING_PERIOD_LABELS: Record<string, string> = {
   BIENNIAL: 'Bisannuel',
 };
 
-const ACCENT = '#4A9B8E';
-const PRIMARY = '#6B8A9A';
+
 
 export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 }: Props) {
   const { t } = useTranslation();
@@ -86,14 +85,8 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
       label={BILLING_PERIOD_LABELS[summary.billingPeriod] || summary.billingPeriod}
       size="small"
       sx={{
-        height: 22,
-        fontSize: '0.6875rem',
-        fontWeight: 600,
-        letterSpacing: '0.02em',
-        backgroundColor: `${PRIMARY}14`,
-        color: PRIMARY,
-        border: `1px solid ${PRIMARY}33`,
-        borderRadius: '6px',
+        backgroundColor: 'var(--accent-soft)',
+        color: 'var(--accent)',
         '& .MuiChip-label': { px: 0.875 },
       }}
     />
@@ -160,7 +153,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
             fontWeight: 700,
             fontVariantNumeric: 'tabular-nums',
             letterSpacing: '-0.01em',
-            color: hasDiscount ? 'text.disabled' : ACCENT,
+            color: hasDiscount ? 'text.disabled' : 'var(--ok)',
             ...(hasDiscount && { textDecoration: 'line-through' }),
           }}
         >
@@ -172,7 +165,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
       {hasDiscount && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: ACCENT }}>
+            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ok)' }}>
               {t('billing.effectiveMonthly')}
             </Typography>
             <Chip
@@ -181,12 +174,8 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
               sx={{
                 height: 18,
                 fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-                backgroundColor: `${ACCENT}1F`,
-                color: ACCENT,
-                border: `1px solid ${ACCENT}40`,
-                borderRadius: '5px',
+                backgroundColor: 'var(--ok-soft)',
+                color: 'var(--ok)',
                 fontVariantNumeric: 'tabular-nums',
                 '& .MuiChip-label': { px: 0.625 },
               }}
@@ -196,7 +185,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
             sx={{
               fontSize: '0.95rem',
               fontWeight: 700,
-              color: ACCENT,
+              color: 'var(--ok)',
               fontVariantNumeric: 'tabular-nums',
               letterSpacing: '-0.01em',
             }}

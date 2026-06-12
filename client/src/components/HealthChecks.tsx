@@ -34,11 +34,37 @@ import {
   Storage as StorageIcon,
   Memory,
 } from '../icons';
-import type { ChipColor } from '../types';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { HealthCheckService, SystemMetrics } from '../services/api/monitoringApi';
-import { semanticToHex, softChipSx } from '../utils/statusUtils';
+import StatTile from './StatTile';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+
+/** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
+const chipSx = (fg: string, bg: string) => ({
+  color: fg,
+  backgroundColor: bg,
+  '& .MuiChip-icon': { color: fg },
+});
+
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+
+// Statut sante → tokens semantiques (UP --ok, DOWN --err, DEGRADED --warn)
+const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
+  UP: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  DOWN: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  DEGRADED: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+};
+
+const statusToken = (status: string) => STATUS_TOKEN[status] ?? NEUTRAL_TOKEN;
+
+// Equivalents hex de la palette validee (requis par l'API StatTile)
+const STATUS_HEX: Record<string, string> = {
+  UP: '#4A9B8E',
+  DOWN: '#C97A7A',
+  DEGRADED: '#D4A574',
+};
+
+const statusHex = (status: string) => STATUS_HEX[status] ?? '#7BA3C2';
 
 const HealthChecks: React.FC = () => {
   const [healthChecks, setHealthChecks] = useState<HealthCheckService[]>([]);
@@ -109,26 +135,13 @@ const HealthChecks: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'UP':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
       case 'DOWN':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><ErrorIcon size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ErrorIcon size={20} strokeWidth={1.75} /></Box>;
       case 'DEGRADED':
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Warning size={20} strokeWidth={1.75} /></Box>;
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
       default:
-        return <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Info size={20} strokeWidth={1.75} /></Box>;
-    }
-  };
-
-  const getStatusColor = (status: string): ChipColor => {
-    switch (status) {
-      case 'UP':
-        return 'success';
-      case 'DOWN':
-        return 'error';
-      case 'DEGRADED':
-        return 'warning';
-      default:
-        return 'default';
+        return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
     }
   };
 
@@ -155,10 +168,10 @@ const HealthChecks: React.FC = () => {
     }
   };
 
-  const getResponseTimeColor = (responseTime: number): ChipColor => {
-    if (responseTime <= 100) return 'success';
-    if (responseTime <= 300) return 'warning';
-    return 'error';
+  const responseTimeToken = (responseTime: number) => {
+    if (responseTime <= 100) return STATUS_TOKEN.UP;
+    if (responseTime <= 300) return STATUS_TOKEN.DEGRADED;
+    return STATUS_TOKEN.DOWN;
   };
 
   const formatUptime = (seconds: number): string => {
@@ -201,111 +214,78 @@ const HealthChecks: React.FC = () => {
 
   return (
     <Box>
-      {/* Vue d'ensemble */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><HealthAndSafety size={20} strokeWidth={1.75} /></Box>
-                Statut Global
-              </Typography>
-              <Box display="flex" alignItems="center" gap={2} mb={2}>
-                {getStatusIcon(overallStatus)}
-                <Typography variant="h4" color={`${getStatusColor(overallStatus)}.main`}>
-                  {overallStatus}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                {healthChecks.filter(check => check.status === 'UP').length} sur {healthChecks.length} services opérationnels
-              </Typography>
-            </CardContent>
-          </Card>
+      {/* Vue d'ensemble — StatTile (carte plate hairline, valeur display) */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6}>
+          <StatTile
+            icon={<HealthAndSafety />}
+            label="Statut Global"
+            value={overallStatus}
+            color={statusHex(overallStatus)}
+            hint={`${healthChecks.filter(check => check.status === 'UP').length} sur ${healthChecks.length} services opérationnels`}
+          />
         </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'error.main' }}><Security size={20} strokeWidth={1.75} /></Box>
-                Services Critiques
-              </Typography>
-              <Box display="flex" alignItems="center" gap={2} mb={2}>
-                {getStatusIcon(criticalStatus)}
-                <Typography variant="h4" color={`${getStatusColor(criticalStatus)}.main`}>
-                  {criticalStatus}
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                {criticalChecks.filter(check => check.status === 'UP').length} sur {criticalChecks.length} services critiques opérationnels
-              </Typography>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6}>
+          <StatTile
+            icon={<Security />}
+            label="Services Critiques"
+            value={criticalStatus}
+            color={statusHex(criticalStatus)}
+            hint={`${criticalChecks.filter(check => check.status === 'UP').length} sur ${criticalChecks.length} services critiques opérationnels`}
+          />
         </Grid>
       </Grid>
 
-      {/* Métriques système */}
+      {/* Métriques système — valeurs display tabular-nums + barres tokens */}
       {systemMetrics && (
-        <Card sx={{ mb: 3 }}>
+        <Card variant="outlined" sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
               Métriques Système
             </Typography>
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={2}>
-                <Box textAlign="center">
-                  <Typography variant="h6" color="primary.main">
-                    {systemMetrics.cpuUsage}%
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    CPU
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(systemMetrics.cpuUsage, 100)}
-                    color={systemMetrics.cpuUsage > 80 ? 'error' : systemMetrics.cpuUsage > 60 ? 'warning' : 'primary'}
-                    sx={{ mt: 1 }}
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <Box textAlign="center">
-                  <Typography variant="h6" color="primary.main">
-                    {systemMetrics.memoryUsage}%
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Mémoire ({systemMetrics.heapUsedMb}/{systemMetrics.heapMaxMb} MB)
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(systemMetrics.memoryUsage, 100)}
-                    color={systemMetrics.memoryUsage > 80 ? 'error' : systemMetrics.memoryUsage > 60 ? 'warning' : 'primary'}
-                    sx={{ mt: 1 }}
-                  />
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <Box textAlign="center">
-                  <Typography variant="h6" color="primary.main">
-                    {systemMetrics.diskUsage}%
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Disque
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(systemMetrics.diskUsage, 100)}
-                    color={systemMetrics.diskUsage > 80 ? 'error' : systemMetrics.diskUsage > 60 ? 'warning' : 'primary'}
-                    sx={{ mt: 1 }}
-                  />
-                </Box>
-              </Grid>
+              {([
+                { label: 'CPU', value: systemMetrics.cpuUsage, suffix: '%' },
+                { label: `Mémoire (${systemMetrics.heapUsedMb}/${systemMetrics.heapMaxMb} MB)`, value: systemMetrics.memoryUsage, suffix: '%' },
+                { label: 'Disque', value: systemMetrics.diskUsage, suffix: '%' },
+              ] as const).map((metric) => {
+                const barColor = metric.value > 80 ? 'var(--err)' : metric.value > 60 ? 'var(--warn)' : 'var(--accent)';
+                return (
+                  <Grid item xs={12} sm={6} md={2} key={metric.label}>
+                    <Box textAlign="center">
+                      <Typography
+                        variant="h6"
+                        sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ink)' }}
+                      >
+                        {metric.value}{metric.suffix}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+                        {metric.label}
+                      </Typography>
+                      <LinearProgress
+                        variant="determinate"
+                        value={Math.min(metric.value, 100)}
+                        sx={{
+                          mt: 1,
+                          height: 4,
+                          borderRadius: 2,
+                          bgcolor: 'var(--hover)',
+                          '& .MuiLinearProgress-bar': { bgcolor: barColor, borderRadius: 2 },
+                        }}
+                      />
+                    </Box>
+                  </Grid>
+                );
+              })}
               <Grid item xs={12} sm={6} md={3}>
                 <Box textAlign="center">
-                  <Typography variant="h6" color="success.main">
+                  <Typography
+                    variant="h6"
+                    sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ok)' }}
+                  >
                     {formatUptime(systemMetrics.uptimeSeconds)}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
                     Uptime JVM
                   </Typography>
                 </Box>
@@ -316,9 +296,9 @@ const HealthChecks: React.FC = () => {
       )}
 
       {/* Vérifications détaillées */}
-      <Card>
+      <Card variant="outlined">
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
             Vérifications Détaillées ({healthChecks.length} services)
           </Typography>
 
@@ -338,19 +318,19 @@ const HealthChecks: React.FC = () => {
                         <Chip
                           label={check.status}
                           size="small"
-                          sx={softChipSx(semanticToHex(getStatusColor(check.status)))}
+                          sx={chipSx(statusToken(check.status).fg, statusToken(check.status).bg)}
                         />
                         <Chip
                           label={check.category}
                           size="small"
                           icon={getCategoryIcon(check.category)}
-                          sx={softChipSx(semanticToHex('default'))}
+                          sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
                         />
                         {check.critical && (
                           <Chip
                             label="CRITIQUE"
                             size="small"
-                            sx={softChipSx(semanticToHex('error'))}
+                            sx={chipSx('var(--err)', 'var(--err-soft)')}
                           />
                         )}
                       </Box>
@@ -363,7 +343,7 @@ const HealthChecks: React.FC = () => {
                             <Chip
                               label={`${check.responseTimeMs}ms`}
                               size="small"
-                              sx={{ ...softChipSx(semanticToHex(getResponseTimeColor(check.responseTimeMs))), ml: 1 }}
+                              sx={{ ...chipSx(responseTimeToken(check.responseTimeMs).fg, responseTimeToken(check.responseTimeMs).bg), ml: 1, fontVariantNumeric: 'tabular-nums' }}
                             />
                           </Typography>
                           {check.lastCheck && (
@@ -374,8 +354,9 @@ const HealthChecks: React.FC = () => {
                         </Box>
 
                         <Collapse in={expandedChecks.has(check.name)}>
-                          <Box mt={1} p={2} bgcolor="grey.50" borderRadius={1}>
-                            <Typography variant="body2" color="text.primary">
+                          {/* Détails techniques : mono compact sur fond --field */}
+                          <Box mt={1} px={1.5} py={1} sx={{ bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '8px' }}>
+                            <Typography sx={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--body)', wordBreak: 'break-word' }}>
                               {check.details}
                             </Typography>
                           </Box>

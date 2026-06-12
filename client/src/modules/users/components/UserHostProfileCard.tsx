@@ -96,10 +96,11 @@ const CALENDAR_SYNC_LABELS: Record<string, string> = {
   non: 'Pas de calendrier',
 };
 
-const CALENDAR_SYNC_COLORS: Record<string, 'primary' | 'info' | 'default'> = {
-  sync: 'primary',
-  manuel: 'info',
-  non: 'default',
+// Mode de synchronisation → tokens (chips -soft : texte couleur + fond -soft)
+const CALENDAR_SYNC_TOKEN: Record<string, { fg: string; bg: string }> = {
+  sync: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+  manuel: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  non: { fg: 'var(--muted)', bg: 'var(--hover)' },
 };
 
 const hasHostData = (user: UserDetailsData): boolean =>
@@ -121,11 +122,11 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
   if (!hasHostData(user)) return null;
 
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2, borderColor: 'divider' }}>
+    <Card variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
       <CardContent sx={{ p: 2 }}>
         <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+        <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
           Profil proprietaire
         </Typography>
       </Grid>
@@ -143,10 +144,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
           <Chip
             icon={<Star />}
             label={user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}
-            color="primary"
-            variant="outlined"
             size="small"
-            sx={{ mt: 0.5, mb: 2 }}
+            sx={{ mt: 0.5, mb: 2, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', '& .MuiChip-icon': { color: 'var(--accent)' } }}
           />
         </Grid>
       )}
@@ -215,10 +214,13 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
           <Typography variant="subtitle2" color="text.secondary">Synchronisation calendrier</Typography>
           <Chip
             label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync}
-            color={CALENDAR_SYNC_COLORS[user.calendarSync] || 'default'}
-            variant="outlined"
             size="small"
-            sx={{ mt: 0.5, mb: 2 }}
+            sx={{
+              mt: 0.5,
+              mb: 2,
+              color: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).fg,
+              backgroundColor: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).bg,
+            }}
           />
         </Grid>
       )}
@@ -232,8 +234,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 key={s}
                 label={SERVICE_LABELS[s.trim()] || s.trim()}
                 size="small"
-                color="primary"
-                variant="outlined"
+                sx={{ color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' }}
               />
             ))}
           </Box>
@@ -249,8 +250,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 key={s}
                 label={SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}
                 size="small"
-                color="warning"
-                variant="outlined"
+                sx={{ color: 'var(--warn)', backgroundColor: 'var(--warn-soft)' }}
               />
             ))}
           </Box>
@@ -260,7 +260,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {/* Toggle paiement differe (ADMIN/MANAGER uniquement) */}
       {isAdminOrManager && (
         <Grid item xs={12}>
-          <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2, mb: 1 }}>
+          <Box sx={{ border: '1px solid var(--line)', borderRadius: '12px', p: 2, mb: 1 }}>
             <FormControlLabel
               control={
                 <Switch
@@ -288,7 +288,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {/* Carte cumul impayes */}
       {isAdminOrManager && (
         <Grid item xs={12}>
-          <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
+          <Box sx={{ border: '1px solid var(--line)', borderRadius: '12px', p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Payment size={20} strokeWidth={1.75} /></Box>
@@ -298,13 +298,12 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 <Chip
                   icon={<Warning size={14} strokeWidth={1.75} />}
                   label={`${balance.totalUnpaid.toFixed(2)} EUR`}
-                  color="error"
                   size="small"
-                  sx={{ fontWeight: 700 }}
+                  sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--err)', backgroundColor: 'var(--err-soft)', '& .MuiChip-icon': { color: 'var(--err)' } }}
                 />
               )}
               {balance && balance.totalUnpaid === 0 && (
-                <Chip label="Aucun impaye" color="success" size="small" variant="outlined" />
+                <Chip label="Aucun impaye" size="small" sx={{ color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' }} />
               )}
             </Box>
 
@@ -320,10 +319,10 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Propriete</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Interventions</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Montant</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Details</TableCell>
+                        <TableCell>Propriete</TableCell>
+                        <TableCell align="center">Interventions</TableCell>
+                        <TableCell align="right">Montant</TableCell>
+                        <TableCell align="center">Details</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -332,7 +331,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                           <TableRow>
                             <TableCell sx={{ fontSize: '0.8rem' }}>{prop.propertyName}</TableCell>
                             <TableCell align="center" sx={{ fontSize: '0.8rem' }}>{prop.interventionCount}</TableCell>
-                            <TableCell align="right" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                            <TableCell align="right" sx={{ fontSize: '0.8rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                               {prop.unpaidAmount.toFixed(2)} EUR
                             </TableCell>
                             <TableCell align="center">
@@ -349,7 +348,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                             </TableCell>
                           </TableRow>
                           {expandedProperty === prop.propertyId && prop.interventions.map((iv) => (
-                            <TableRow key={iv.id} sx={{ bgcolor: 'action.hover' }}>
+                            <TableRow key={iv.id} sx={{ bgcolor: 'var(--hover)' }}>
                               <TableCell sx={{ fontSize: '0.75rem', pl: 4 }}>{iv.title}</TableCell>
                               <TableCell align="center" sx={{ fontSize: '0.75rem' }}>
                                 {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString('fr-FR') : '-'}
@@ -361,9 +360,12 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                                 <Chip
                                   label={iv.paymentStatus || 'N/A'}
                                   size="small"
-                                  color={iv.paymentStatus === 'PAID' ? 'success' : iv.paymentStatus === 'PROCESSING' ? 'info' : 'default'}
-                                  variant="outlined"
-                                  sx={{ height: 20, fontSize: '0.65rem' }}
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.65rem',
+                                    color: iv.paymentStatus === 'PAID' ? 'var(--ok)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info)' : 'var(--muted)',
+                                    backgroundColor: iv.paymentStatus === 'PAID' ? 'var(--ok-soft)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info-soft)' : 'var(--hover)',
+                                  }}
                                 />
                               </TableCell>
                             </TableRow>

@@ -339,8 +339,8 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       <Box sx={{ mb: 2 }}>
         <FilterChipRow
           options={[
-            { value: 'messages', label: t('documents.history.filterMessages'), color: '#7BA3C2', count: messageLogs.length },
-            { value: 'documents', label: t('documents.history.filterDocuments'), color: '#6B8A9A', count: docTotalElements },
+            { value: 'messages', label: t('documents.history.filterMessages'), color: 'var(--info)', count: messageLogs.length },
+            { value: 'documents', label: t('documents.history.filterDocuments'), color: 'var(--accent)', count: docTotalElements },
           ]}
           value={filter === 'all' ? '' : filter}
           onChange={(v) => setFilter((v === '' ? 'all' : v) as HistoryFilter)}
