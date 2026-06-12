@@ -4,7 +4,7 @@ import { ArrowBack as ArrowBackIcon } from '../icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIconSize } from '../hooks/useResponsiveSize';
 import { useAuth } from '../hooks/useAuth';
-import { getHubScreenContext, type HubAccess } from '../config/navigationHubs';
+import { getScreenIdentity, type HubAccess } from '../config/navigationHubs';
 import HubScreenSwitcher from './HubScreenSwitcher';
 
 interface PageHeaderProps {
@@ -69,16 +69,16 @@ export default function PageHeader({
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
   const badgeIconSize = useIconSize('badge');
 
-  // Mode « switcher intégré » (Direction A) : sur une page-RACINE de hub, le
-  // bloc titre est remplacé par le contrôle segmenté des écrans frères. Les
-  // pages de détail et les écrans hors hub gardent le header classique.
-  const hubContext = useMemo(() => {
+  // Mode « identité » (Direction A) : sur tout écran-MENU (hub multi-écrans OU
+  // écran autonome), le bloc titre est remplacé par la signature pastille +
+  // pilule(s). Les pages de détail (/properties/123…) gardent le titre classique.
+  const screenIdentity = useMemo(() => {
     const access: HubAccess = {
       permissions: user?.permissions ?? [],
       isAdmin: isAdmin(),
       isManager: isManager(),
     };
-    return getHubScreenContext(location.pathname, access);
+    return getScreenIdentity(location.pathname, access);
   }, [location.pathname, user?.permissions, isAdmin, isManager]);
 
   const handleBack = () => {
@@ -135,11 +135,34 @@ export default function PageHeader({
   return (
     <Box mb={1.5}>
       <Box display="flex" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
-        {hubContext ? (
-          /* Mode switcher intégré : le segmented des écrans frères tient lieu de
-             titre (Direction A). Le sous-titre est volontairement omis (densité). */
+        {screenIdentity ? (
+          /* Mode identité : pastille + pilule(s) tiennent lieu de titre (Direction A).
+             Hubs multi-écrans → switcher sans sous-titre (densité). Écran autonome →
+             pilule unique + sous-titre conservé s'il porte une info utile
+             (ex : mois synchronisé du Planning). */
           <Box sx={{ minWidth: 0, flex: 1, mr: 1 }}>
-            <HubScreenSwitcher context={hubContext} />
+            <HubScreenSwitcher identity={screenIdentity} />
+            {screenIdentity.kind === 'single' && subtitle && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  mt: 0.5,
+                  ml: '40px',
+                  color: 'var(--muted)',
+                  fontSize: '11.5px',
+                  lineHeight: 1.3,
+                  ...(isCompact && {
+                    ml: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }),
+                }}
+              >
+                {subtitle}
+              </Typography>
+            )}
           </Box>
         ) : (
         /* Titre et sous-titre (avec optionally iconBadge) */
