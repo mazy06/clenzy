@@ -5,6 +5,7 @@ import {
   AutoAwesome as SparklesIcon,
   Description as TemplateIcon,
   Link as LinkIcon,
+  Person as PersonIcon,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -17,6 +18,7 @@ import { useAiSuggestResponse } from '../../../hooks/useAi';
 import type { ConversationDto } from '../../../services/api/conversationApi';
 import AttachReservationDialog from '../../channels/AttachReservationDialog';
 import SendWhatsAppTemplateDialog from '../../channels/SendWhatsAppTemplateDialog';
+import GuestProfileDialog from '../../channels/GuestProfileDialog';
 import ThreadView, { composeToolSx, type ThreadAction } from './ThreadView';
 import { type ThreadMessage, getChannelBadge } from './unified';
 
@@ -38,6 +40,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
   const [draft, setDraft] = useState('');
   const [attachOpen, setAttachOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [guestOpen, setGuestOpen] = useState(false);
 
   const { data: messagesData, isLoading } = useConversationMessages(conv.id);
   const sendMessageMutation = useSendMessage();
@@ -106,6 +109,14 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
 
   const badge = getChannelBadge(conv.channel);
   const actions: ThreadAction[] = [];
+  if (conv.guestId != null) {
+    actions.push({
+      key: 'guest',
+      title: t('messagingHub.guestProfile', 'Fiche voyageur'),
+      icon: <PersonIcon size={16} strokeWidth={1.75} />,
+      onClick: () => setGuestOpen(true),
+    });
+  }
   if (!conv.reservationId) {
     actions.push({
       key: 'attach',
@@ -142,6 +153,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         sending={sendTemplateMutation.isPending}
         error={sendTemplateMutation.isError}
       />
+      <GuestProfileDialog guestId={conv.guestId} open={guestOpen} onClose={() => setGuestOpen(false)} />
       <ThreadView
         title={conv.guestName || badge.label}
         subtitle={

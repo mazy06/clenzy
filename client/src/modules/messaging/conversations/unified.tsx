@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Chat as ChatIcon,
   Email as EmailIcon,
@@ -6,12 +7,15 @@ import {
   Hub as AirbnbIcon,
   Hotel as BookingIcon,
   Groups as GroupsIcon,
+  Description as FormIcon,
 } from '../../../icons';
 import { useContactThreads } from '../../../hooks/useContactMessages';
 import { useChannelInbox } from '../../../hooks/useConversations';
+import { receivedFormsKeys } from '../../../hooks/useReceivedForms';
 import { conversationTitle } from '../../channels/channelConfig';
 import type { ConversationDto } from '../../../services/api/conversationApi';
 import type { ContactThreadSummary } from '../../../services/api/contactApi';
+import { receivedFormsApi, type ReceivedForm } from '../../../services/api/receivedFormsApi';
 
 // ─── Pastilles canal (référence .mg-chn — couleurs spécifiées) ───────────────
 
@@ -25,9 +29,10 @@ const CHANNEL_BADGES: Record<string, ChannelBadge> = {
   WHATSAPP: { color: '#25A36F', Icon: ChatIcon, label: 'WhatsApp' },
   EMAIL: { color: '#7BA3C2', Icon: EmailIcon, label: 'Email' },
   SMS: { color: '#C28A52', Icon: MessageIcon, label: 'SMS' },
-  AIRBNB: { color: '#E0735A', Icon: AirbnbIcon, label: 'Airbnb' },
-  BOOKING: { color: '#4A6B9A', Icon: BookingIcon, label: 'Booking.com' },
+  AIRBNB: { color: 'var(--airbnb)', Icon: AirbnbIcon, label: 'Airbnb' },
+  BOOKING: { color: 'var(--booking)', Icon: BookingIcon, label: 'Booking.com' },
   INTERNAL: { color: 'var(--accent)', Icon: GroupsIcon, label: 'Interne' },
+  FORM: { color: 'var(--accent)', Icon: FormIcon, label: 'Formulaire' },
 };
 
 export function getChannelBadge(channel: string): ChannelBadge {
@@ -84,14 +89,14 @@ export function formatMsgTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-// ─── Conversation unifiée (threads internes + conversations canal) ───────────
+// ─── Conversation unifiée (threads internes + canal + formulaires reçus) ─────
 
 export interface UnifiedConversation {
-  /** Clé de sélection stable : `ch-<id>` (canal) ou `in-<keycloakId>` (interne). */
+  /** Clé de sélection stable : `ch-<id>` (canal), `in-<keycloakId>` (interne) ou `form-<id>`. */
   key: string;
-  kind: 'channel' | 'internal';
+  kind: 'channel' | 'internal' | 'form';
   name: string;
-  /** Ligne accent sous le nom : propriété (canal) ou « Chat interne ». */
+  /** Ligne accent sous le nom : propriété (canal), « Chat interne » ou type de formulaire. */
   context: string;
   channel: string;
   preview: string;
@@ -101,6 +106,8 @@ export interface UnifiedConversation {
   conv?: ConversationDto;
   /** Présent quand kind === 'internal'. */
   thread?: ContactThreadSummary;
+  /** Présent quand kind === 'form'. */
+  form?: ReceivedForm;
 }
 
 function fromChannelConversation(conv: ConversationDto): UnifiedConversation {
@@ -134,36 +141,117 @@ function fromInternalThread(thread: ContactThreadSummary): UnifiedConversation {
   };
 }
 
+const FORM_TYPE_LABELS: Record<ReceivedForm['formType'], string> = {
+  DEVIS: 'Demande de devis',
+  MAINTENANCE: 'Maintenance',
+  SUPPORT: 'Support',
+};
+
+function fromReceivedForm(form: ReceivedForm): UnifiedConversation {
+  return {
+    key: `form-${form.id}`,
+    kind: 'form',
+    name: form.fullName || 'Anonyme',
+    context: [FORM_TYPE_LABELS[form.formType], form.city].filter(Boolean).join(' · '),
+    channel: 'FORM',
+    preview: form.subject || `Formulaire #${form.id}`,
+    lastAt: form.createdAt,
+    unreadCount: form.status === 'NEW' ? 1 : 0,
+    form,
+  };
+}
+
+function byLastActivityDesc(a: UnifiedConversation, b: UnifiedConversation): number {
+  const ta = a.lastAt ? new Date(a.lastAt).getTime() : 0;
+  const tb = b.lastAt ? new Date(b.lastAt).getTime() : 0;
+  return tb - ta;
+}
+
 /**
- * Inbox unifiée « tout dans un seul chat » : fusionne les threads internes
- * (contactApi) et les conversations canal — WhatsApp / Email / OTA —
- * (conversationApi), triées par date du dernier message. Réutilise les hooks
- * existants : aucune nouvelle API.
+ * Formulaires reçus pour l'inbox agrégée — même clé de cache que
+ * `useReceivedForms({ page: 0, size: 50 })` (les invalidations de
+ * `useUpdateFormStatus` s'appliquent), avec gating par rôle (`enabled`).
  */
-export function useUnifiedInbox(canAccessChannels: boolean) {
+const FORMS_INBOX_PARAMS = { page: 0, size: 50 } as const;
+
+function useReceivedFormsInbox(enabled: boolean) {
+  return useQuery({
+    queryKey: receivedFormsKeys.list(FORMS_INBOX_PARAMS),
+    queryFn: () => receivedFormsApi.list(FORMS_INBOX_PARAMS),
+    staleTime: 30_000,
+    enabled,
+  });
+}
+
+/**
+ * Inbox unifiée « tout dans un seul visuel » : fusionne les threads internes
+ * (contactApi), les conversations canal — WhatsApp / Email / SMS / OTA —
+ * (conversationApi) et les formulaires reçus non archivés (receivedFormsApi),
+ * triés par dernière activité. Réutilise les hooks/API existants.
+ */
+export function useUnifiedInbox(canAccessChannels: boolean, includeForms: boolean) {
   const { data: threads, isLoading: threadsLoading, error: threadsError } = useContactThreads(false);
   const {
     data: inboxPage,
     isLoading: inboxLoading,
     error: inboxError,
   } = useChannelInbox([], 0, 50, undefined, canAccessChannels);
+  const {
+    data: formsPage,
+    isLoading: formsLoading,
+    error: formsError,
+  } = useReceivedFormsInbox(includeForms);
 
   const items = useMemo(() => {
     const merged: UnifiedConversation[] = [
       ...(threads ?? []).map(fromInternalThread),
       ...(inboxPage?.content ?? []).map(fromChannelConversation),
+      ...(formsPage?.content ?? [])
+        .filter((form) => form.status !== 'ARCHIVED')
+        .map(fromReceivedForm),
     ];
-    return merged.sort((a, b) => {
-      const ta = a.lastAt ? new Date(a.lastAt).getTime() : 0;
-      const tb = b.lastAt ? new Date(b.lastAt).getTime() : 0;
-      return tb - ta;
-    });
-  }, [threads, inboxPage]);
+    return merged.sort(byLastActivityDesc);
+  }, [threads, inboxPage, formsPage]);
 
   return {
     items,
-    isLoading: threadsLoading || (canAccessChannels && inboxLoading),
-    error: threadsError || inboxError,
+    isLoading:
+      threadsLoading || (canAccessChannels && inboxLoading) || (includeForms && formsLoading),
+    error: threadsError || inboxError || formsError,
+  };
+}
+
+/**
+ * Éléments archivés (filtre « Archivés ») : conversations canal
+ * `status === 'ARCHIVED'` + formulaires reçus `ARCHIVED`. Requêtes lazy —
+ * déclenchées uniquement quand le filtre est actif.
+ */
+export function useArchivedInbox(enabled: boolean, includeForms: boolean) {
+  const {
+    data: archivedPage,
+    isLoading: convsLoading,
+    error: convsError,
+  } = useChannelInbox([], 0, 50, 'ARCHIVED', enabled);
+  const {
+    data: formsPage,
+    isLoading: formsLoading,
+    error: formsError,
+  } = useReceivedFormsInbox(enabled && includeForms);
+
+  const items = useMemo(() => {
+    const merged: UnifiedConversation[] = [
+      ...(archivedPage?.content ?? []).map(fromChannelConversation),
+      ...(formsPage?.content ?? [])
+        .filter((form) => form.status === 'ARCHIVED')
+        .map(fromReceivedForm),
+    ];
+    return merged.sort(byLastActivityDesc);
+  }, [archivedPage, formsPage]);
+
+  return {
+    items,
+    isLoading: enabled && (convsLoading || (includeForms && formsLoading)),
+    error: convsError || formsError,
   };
 }
 

@@ -1,4 +1,4 @@
-import type { ReceivedForm } from '../../../../services/api/receivedFormsApi';
+import type { ReceivedForm } from '../../../services/api/receivedFormsApi';
 
 /**
  * Formatage des formulaires reçus (devis / maintenance / support).
