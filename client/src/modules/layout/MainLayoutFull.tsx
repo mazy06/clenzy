@@ -7,7 +7,6 @@ import { useSidebarState } from '../../hooks/useSidebarState';
 import { useFormsStats } from '../../hooks/useReceivedForms';
 import { useAuth } from '../../hooks/useAuth';
 import Sidebar from '../../components/Sidebar';
-import HubTabsBar from '../../components/HubTabsBar';
 import { LoadingStates } from '../../components/LoadingStates';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
@@ -144,9 +143,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             overflow: 'auto',
           }}
         >
-          {/* Onglets de niveau 1 des hubs (Exploitation, Contacts, Finances…) —
-              visibles uniquement quand la route appartient à un hub. */}
-          <HubTabsBar />
+          {/* Navigation de niveau 1 des hubs : le switcher segmenté (Direction A)
+              est rendu DANS le PageHeader de chaque page-racine de hub
+              (cf. HubScreenSwitcher), pas comme un bandeau séparé. */}
           {children}
         </Box>
       </Box>
