@@ -14,8 +14,8 @@ import {
   Schedule as ClockIcon,
   Handyman as HandymanIcon,
   PriorityHigh as UrgencyIcon,
-} from '../../../../icons';
-import type { ReceivedForm } from '../../../../services/api/receivedFormsApi';
+} from '../../../icons';
+import type { ReceivedForm } from '../../../services/api/receivedFormsApi';
 import { formatFieldValue, toList } from './formatters';
 
 // ─── Primitives .fr-* (référence « Messagerie Formulaires », section B) ──────
