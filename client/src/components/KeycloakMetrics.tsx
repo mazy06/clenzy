@@ -23,8 +23,31 @@ import {
 } from '../icons';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { KeycloakMetricsResponse, TestCoverageMetrics } from '../services/api/monitoringApi';
-import { semanticToHex, softChipSx } from '../utils/statusUtils';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
+
+/** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
+const chipSx = (fg: string, bg: string) => ({
+  color: fg,
+  backgroundColor: bg,
+  '& .MuiChip-icon': { color: fg },
+});
+
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const INFO_TOKEN = { fg: 'var(--info)', bg: 'var(--info-soft)' };
+
+// Niveau semantique → token couleur (texte des grosses valeurs + chips)
+const SEM_TOKEN: Record<'success' | 'warning' | 'error', { fg: string; bg: string }> = {
+  success: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  warning: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  error: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+};
+
+/** Grosse valeur de carte : display + tabular-nums (pattern StatTile) */
+const displayValueSx = (color: string) => ({
+  fontFamily: 'var(--font-display)',
+  fontVariantNumeric: 'tabular-nums',
+  color,
+});
 
 const KeycloakMetrics: React.FC = () => {
   const [metrics, setMetrics] = useState<KeycloakMetricsResponse | null>(null);
@@ -129,16 +152,16 @@ const KeycloakMetrics: React.FC = () => {
       <Grid container spacing={3}>
         {/* Utilisateurs */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card variant="outlined">
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Group size={20} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><Group size={20} strokeWidth={1.75} /></Box>
                 Utilisateurs
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h4" color="primary.main">
+                    <Typography variant="h4" sx={displayValueSx('var(--ink)')}>
                       {metrics.users.total}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -148,7 +171,7 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h4" color="success.main">
+                    <Typography variant="h4" sx={displayValueSx('var(--ok)')}>
                       {metrics.users.active}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -162,12 +185,12 @@ const KeycloakMetrics: React.FC = () => {
                       label={`${metrics.users.newThisWeek} nouveaux`}
                       size="small"
                       icon={<TrendingUp size={16} strokeWidth={1.75} />}
-                      sx={softChipSx(semanticToHex('info'))}
+                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
                     />
                     <Chip
                       label={`${metrics.users.inactive} inactifs`}
                       size="small"
-                      sx={softChipSx(semanticToHex('default'))}
+                      sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
                     />
                   </Box>
                 </Grid>
@@ -178,16 +201,16 @@ const KeycloakMetrics: React.FC = () => {
 
         {/* Sessions / Tokens */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card variant="outlined">
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Wifi size={20} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><Wifi size={20} strokeWidth={1.75} /></Box>
                 Tokens JWT
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h4" color="primary.main">
+                    <Typography variant="h4" sx={displayValueSx('var(--ink)')}>
                       {metrics.sessions.totalTokens}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -197,7 +220,7 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h4" color="success.main">
+                    <Typography variant="h4" sx={displayValueSx('var(--ok)')}>
                       {metrics.sessions.validTokens}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -210,12 +233,12 @@ const KeycloakMetrics: React.FC = () => {
                     <Chip
                       label={`${metrics.sessions.cacheHits} cache hits`}
                       size="small"
-                      sx={softChipSx(semanticToHex('info'))}
+                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
                     />
                     <Chip
                       label={`${metrics.sessions.revokedTokens} révoqués`}
                       size="small"
-                      sx={softChipSx(semanticToHex('default'))}
+                      sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
                     />
                   </Box>
                 </Grid>
@@ -226,16 +249,16 @@ const KeycloakMetrics: React.FC = () => {
 
         {/* Performance */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card variant="outlined">
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><TrendingUp size={20} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><TrendingUp size={20} strokeWidth={1.75} /></Box>
                 Performance API
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h6" color={getPerformanceColor(metrics.performance.avgResponseTimeMs, true)}>
+                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getPerformanceColor(metrics.performance.avgResponseTimeMs, true)].fg)}>
                       {metrics.performance.avgResponseTimeMs}ms
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -245,7 +268,7 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h6" color={getPerformanceColor(metrics.performance.uptimePercent)}>
+                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getPerformanceColor(metrics.performance.uptimePercent)].fg)}>
                       {metrics.performance.uptimePercent}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -258,12 +281,12 @@ const KeycloakMetrics: React.FC = () => {
                     <Chip
                       label={`${metrics.performance.totalRequests} requêtes`}
                       size="small"
-                      sx={softChipSx(semanticToHex('info'))}
+                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
                     />
                     <Chip
                       label={`${metrics.performance.errorRate}% erreurs`}
                       size="small"
-                      sx={softChipSx(semanticToHex(getPerformanceColor(100 - metrics.performance.errorRate)))}
+                      sx={chipSx(SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].fg, SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].bg)}
                     />
                   </Box>
                 </Grid>
@@ -274,16 +297,16 @@ const KeycloakMetrics: React.FC = () => {
 
         {/* Sécurité */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card variant="outlined">
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><Security size={20} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><Security size={20} strokeWidth={1.75} /></Box>
                 Sécurité (7 derniers jours)
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h6" color={getStatusColor(metrics.security.failedLogins, 20)}>
+                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getStatusColor(metrics.security.failedLogins, 20)].fg)}>
                       {metrics.security.failedLogins}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -293,7 +316,7 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h6" color={getStatusColor(metrics.security.permissionDenied, 10)}>
+                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getStatusColor(metrics.security.permissionDenied, 10)].fg)}>
                       {metrics.security.permissionDenied}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -306,13 +329,13 @@ const KeycloakMetrics: React.FC = () => {
                     <Chip
                       label={`${metrics.security.suspiciousActivity} activité suspecte`}
                       size="small"
-                      sx={softChipSx(semanticToHex(metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'))}
+                      sx={chipSx(SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].fg, SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].bg)}
                     />
                     {metrics.security.lastIncident && (
                       <Chip
                         label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`}
                         size="small"
-                        sx={softChipSx(semanticToHex('default'))}
+                        sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
                       />
                     )}
                   </Box>
@@ -324,16 +347,16 @@ const KeycloakMetrics: React.FC = () => {
         {/* Couverture de tests */}
         {coverage && coverage.available && (
           <Grid item xs={12}>
-            <Card>
+            <Card variant="outlined">
               <CardContent>
                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'primary.main' }}><BugReport size={20} strokeWidth={1.75} /></Box>
+                  <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><BugReport size={20} strokeWidth={1.75} /></Box>
                   Couverture de Tests
                   {coverage.reportDate && (
                     <Chip
                       label={`Rapport du ${new Date(coverage.reportDate).toLocaleDateString()}`}
                       size="small"
-                      sx={{ ...softChipSx(semanticToHex('default')), ml: 2 }}
+                      sx={{ ...chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg), ml: 2 }}
                     />
                   )}
                 </Typography>
@@ -342,7 +365,7 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.linePercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <Box textAlign="center">
-                        <Typography variant="h4" color={`${getCoverageColor(coverage.linePercent)}.main`}>
+                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.linePercent)].fg)}>
                           {coverage.linePercent}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -364,7 +387,7 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.branchPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <Box textAlign="center">
-                        <Typography variant="h4" color={`${getCoverageColor(coverage.branchPercent)}.main`}>
+                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.branchPercent)].fg)}>
                           {coverage.branchPercent}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -386,7 +409,7 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.instructionPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <Box textAlign="center">
-                        <Typography variant="h4" color={`${getCoverageColor(coverage.instructionPercent)}.main`}>
+                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.instructionPercent)].fg)}>
                           {coverage.instructionPercent}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -408,7 +431,7 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.methodPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <Box textAlign="center">
-                        <Typography variant="h4" color={`${getCoverageColor(coverage.methodPercent)}.main`}>
+                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.methodPercent)].fg)}>
                           {coverage.methodPercent}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -430,7 +453,7 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.classPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <Box textAlign="center">
-                        <Typography variant="h4" color={`${getCoverageColor(coverage.classPercent)}.main`}>
+                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.classPercent)].fg)}>
                           {coverage.classPercent}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -452,7 +475,7 @@ const KeycloakMetrics: React.FC = () => {
                   {coverage.complexityPercent != null && (
                     <Grid item xs={12} sm={6} md={2}>
                       <Box textAlign="center">
-                        <Typography variant="h4" color={`${getCoverageColor(coverage.complexityPercent)}.main`}>
+                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.complexityPercent)].fg)}>
                           {coverage.complexityPercent}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary" gutterBottom>

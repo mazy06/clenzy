@@ -35,7 +35,7 @@ const CURRENCY_COLORS: Record<string, string> = {
   GBP: '#C97A7A',
 };
 
-const currencyHex = (code: string): string => CURRENCY_COLORS[code] ?? '#757575';
+const currencyHex = (code: string): string => CURRENCY_COLORS[code] ?? '#8A8378';
 
 /** Chip -soft : texte couleur + fond soft (pilule/typo via thème global MuiChip) */
 const chipSx = (fg: string, bg: string) => ({

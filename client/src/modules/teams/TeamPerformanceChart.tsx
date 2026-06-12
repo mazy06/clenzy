@@ -92,34 +92,34 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
     {
       label: t('teams.performance.totalCompleted'),
       value: totalCompleted.toString(),
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><TrendingUp size={22} strokeWidth={1.75} /></Box>,
-      color: 'success.main',
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><TrendingUp size={22} strokeWidth={1.75} /></Box>,
+      color: 'var(--ok)',
     },
     {
       label: t('teams.performance.averagePerMonth'),
       value: averagePerMonth.toString(),
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><CalendarMonth size={22} strokeWidth={1.75} /></Box>,
-      color: 'info.main',
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><CalendarMonth size={22} strokeWidth={1.75} /></Box>,
+      color: 'var(--info)',
     },
     {
       label: t('teams.performance.completionRate'),
       value: `${completionRate}%`,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Speed size={22} strokeWidth={1.75} /></Box>,
-      color: 'primary.main',
+      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Speed size={22} strokeWidth={1.75} /></Box>,
+      color: 'var(--accent)',
     },
   ];
 
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600, mb: 2 }}>
+        <Typography variant="h6" sx={{ color: 'var(--ink)', fontWeight: 600, mb: 2 }}>
           {t('teams.performance.title')}
         </Typography>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {summaryStats.map((stat, index) => (
             <Grid item xs={4} key={index}>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 1, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: '12px', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }}>
                 {stat.icon}
                 <Typography variant="h5" fontWeight={700} sx={{ color: stat.color, mt: 0.5 }}>
                   {stat.value}
@@ -146,9 +146,9 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
               <Line
                 type="monotone"
                 dataKey="completed"
-                stroke="#4CAF50"
+                stroke="#4A9B8E"
                 strokeWidth={2}
-                dot={{ fill: '#4CAF50', r: 4 }}
+                dot={{ fill: '#4A9B8E', r: 4 }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>

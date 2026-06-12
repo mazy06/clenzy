@@ -12,7 +12,7 @@ const PaymentCancel: React.FC = () => {
     <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
       <Card>
         <CardContent sx={{ textAlign: 'center', p: 4 }}>
-          <Box component="span" sx={{ display: "inline-flex", color: "error.main", mb: 2 }}><Cancel size={80} strokeWidth={1.5} /></Box>
+          <Box component="span" sx={{ display: "inline-flex", color: "var(--err)", mb: 2 }}><Cancel size={80} strokeWidth={1.5} /></Box>
           <Typography variant="h4" gutterBottom>
             Paiement annulé
           </Typography>

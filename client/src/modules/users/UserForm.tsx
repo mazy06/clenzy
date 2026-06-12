@@ -247,7 +247,7 @@ const UserForm: React.FC = () => {
         <CardContent sx={{ p: 2 }}>
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Informations personnelles */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
               Informations personnelles
             </Typography>
 
@@ -284,7 +284,7 @@ const UserForm: React.FC = () => {
             </Grid>
 
             {/* Informations de contact */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
               Informations de contact
             </Typography>
 
@@ -322,7 +322,7 @@ const UserForm: React.FC = () => {
             </Grid>
 
             {/* Sécurité */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
               Sécurité
             </Typography>
 
@@ -369,7 +369,7 @@ const UserForm: React.FC = () => {
             </Grid>
 
             {/* Rôle et statut */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
               Rôle et statut
             </Typography>
 
@@ -436,7 +436,7 @@ const UserForm: React.FC = () => {
 
             {/* Aperçu du rôle sélectionné */}
             {watchedRole && (
-              <Box sx={{ mb: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Box sx={{ mb: 2, p: 1.5, bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '8px' }}>
                 <Typography variant="caption" color="primary" sx={{ mb: 0.75, fontWeight: 600, fontSize: '0.75rem' }}>
                   📋 Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
                 </Typography>
@@ -454,7 +454,7 @@ const UserForm: React.FC = () => {
             )}
 
             {/* Organisation */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
               Organisation
             </Typography>
 

@@ -825,9 +825,10 @@ export default function Inscription() {
                     <Box sx={{
                       width: 36, height: 36, borderRadius: '50%',
                       bgcolor: 'rgba(166,192,206,0.15)',
+                      color: 'primary.main',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <CartIcon size={18} strokeWidth={1.75} color='#6B8A9A' />
+                      <CartIcon size={18} strokeWidth={1.75} color='currentColor' />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       {t('auth.inscription.summary', 'Recapitulatif')}

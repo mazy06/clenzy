@@ -26,14 +26,29 @@ export interface GenerationsListRef {
   openGenerate: () => void;
 }
 
-const STATUS_HEX: Record<string, string> = {
-  PENDING: '#757575',
-  GENERATING: '#0288d1',
-  COMPLETED: '#4A9B8E',
-  FAILED: '#d32f2f',
-  SENT: '#4A9B8E',
-  LOCKED: '#ED6C02',
-  ARCHIVED: '#757575',
+// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
+
+interface Tone { c: string; bg: string }
+
+const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
+  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
+  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
+  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
+  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
+  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
+  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
+};
+
+const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
+
+const STATUS_TONE: Record<string, Tone> = {
+  PENDING: TONES.muted,
+  GENERATING: TONES.info,
+  COMPLETED: TONES.ok,
+  FAILED: TONES.err,
+  SENT: TONES.ok,
+  LOCKED: TONES.warn,
+  ARCHIVED: TONES.muted,
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -125,7 +140,7 @@ const GenerationsList = forwardRef<GenerationsListRef>((_, ref) => {
         </Box>
       ) : (
         <>
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)' }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -157,12 +172,12 @@ const GenerationsList = forwardRef<GenerationsListRef>((_, ref) => {
                       <TableCell>
                         {gen.legalNumber ? (
                           <Tooltip title={gen.locked ? `Verrouillé${gen.documentHash ? ' — SHA-256: ' + gen.documentHash.substring(0, 16) + '...' : ''}` : 'Non verrouillé'}>
-                            {(() => { const c = gen.locked ? '#ED6C02' : '#757575'; return (
+                            {(() => { const tone = gen.locked ? TONES.warn : TONES.muted; return (
                             <Chip
-                              icon={gen.locked ? <Lock size={14} strokeWidth={1.75} color={c} /> : undefined}
+                              icon={gen.locked ? <Lock size={14} strokeWidth={1.75} /> : undefined}
                               label={gen.legalNumber}
                               size="small"
-                              sx={{ fontFamily: 'monospace', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                              sx={{ ...chipSx(tone), fontFamily: '"SF Mono", Menlo, Consolas, monospace', fontWeight: 600, '& .MuiChip-label': { px: 0.75 } }}
                             />
                             ); })()}
                           </Tooltip>
@@ -171,8 +186,7 @@ const GenerationsList = forwardRef<GenerationsListRef>((_, ref) => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Chip label={gen.documentType} size="small"
-                          sx={{ backgroundColor: '#1976d218', color: '#1976d2', border: '1px solid #1976d240', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
+                        <Chip label={gen.documentType} size="small" sx={chipSx(TONES.accent)} />
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
@@ -186,24 +200,20 @@ const GenerationsList = forwardRef<GenerationsListRef>((_, ref) => {
                       </TableCell>
                       <TableCell>{formatFileSize(gen.fileSize)}</TableCell>
                       <TableCell>
-                        {(() => { const c = STATUS_HEX[gen.status] ?? '#757575'; return (
                         <Chip
                           label={STATUS_LABELS[gen.status] || gen.status}
                           size="small"
-                          sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
+                          sx={chipSx(STATUS_TONE[gen.status] ?? TONES.muted)}
                         />
-                        ); })()}
                       </TableCell>
                       <TableCell>
                         {gen.emailTo ? (
                           <Tooltip title={gen.emailTo}>
-                            {(() => { const c = gen.emailStatus === 'SENT' ? '#4A9B8E' : gen.emailStatus === 'FAILED' ? '#d32f2f' : '#757575'; return (
                             <Chip
                               label={gen.emailStatus === 'SENT' ? 'Envoyé' : gen.emailStatus || 'En attente'}
                               size="small"
-                              sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
+                              sx={chipSx(gen.emailStatus === 'SENT' ? TONES.ok : gen.emailStatus === 'FAILED' ? TONES.err : TONES.muted)}
                             />
-                            ); })()}
                           </Tooltip>
                         ) : '—'}
                       </TableCell>

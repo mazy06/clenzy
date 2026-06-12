@@ -1,7 +1,7 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
+import { Box, Typography } from '@mui/material';
 import { BarChartWidget } from './charts/BarChartWidget';
+import { CHART_PRIMARY } from './charts/chartConstants';
 
 interface ScenarioPayload {
   label: string;
@@ -58,7 +58,8 @@ interface SimulationWidgetProps {
  *   <li>{@code calendar_block} : KPI perte + alternatives</li>
  * </ul>
  *
- * <p>Borderless, bg tonal. Deltas avec tabular-nums et couleurs semantiques.</p>
+ * <p>Pattern « Signature » : tokens var(--…), deltas display tabular-nums et
+ * couleurs semantiques {@code --ok}/{@code --err}/{@code --warn}.</p>
  */
 export const SimulationWidget: React.FC<SimulationWidgetProps> = ({ data }) => {
   if (data && typeof data === 'object' && 'kind' in data) {
@@ -74,18 +75,21 @@ export const SimulationWidget: React.FC<SimulationWidgetProps> = ({ data }) => {
 
 // ─── Pricing change ──────────────────────────────────────────────────────────
 
+// Couleur « Avant » du bar chart : neutre slate aligné AXIS_TICK (couleurs
+// data chart = hex, alignées Dashboard finalisé — voir chartConstants).
+const CHART_BASELINE_GREY = '#94A3B8';
+
 const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) => {
-  const theme = useTheme();
   const positive = data.pctRevenueChange > 0.005;
   const negative = data.pctRevenueChange < -0.005;
 
   return (
     <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
       {data.title && (
-        <Typography variant="caption" sx={{
-          display: 'block', fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          display: 'block', fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title}
         </Typography>
@@ -95,33 +99,35 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
       <Box
         sx={{
           px: 1.5, py: 1.25,
-          borderRadius: 1.5,
+          borderRadius: '12px',
           bgcolor: positive
-            ? alpha(theme.palette.success.main, 0.1)
+            ? 'var(--ok-soft)'
             : negative
-              ? alpha(theme.palette.error.main, 0.1)
-              : alpha(theme.palette.text.primary, 0.04),
+              ? 'var(--err-soft)'
+              : 'var(--field)',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
           <Typography sx={{
-            fontSize: '1.5rem', fontWeight: 700,
-            color: deltaColor(data.pctRevenueChange, theme),
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.5rem', fontWeight: 600,
+            color: deltaColor(data.pctRevenueChange),
             fontVariantNumeric: 'tabular-nums',
             lineHeight: 1,
           }}>
             {formatPctSigned(data.pctRevenueChange)}
           </Typography>
-          <Typography variant="caption" sx={{
-            fontSize: '0.75rem', fontWeight: 600,
-            color: theme.palette.text.secondary,
-            textTransform: 'uppercase', letterSpacing: '0.04em',
+          <Typography sx={{
+            fontSize: '10.5px', fontWeight: 700,
+            color: 'var(--faint)',
+            textTransform: 'uppercase', letterSpacing: '.05em',
           }}>
             Revenue projete
           </Typography>
           <Typography sx={{
+            fontFamily: 'var(--font-display)',
             fontSize: '0.85rem', fontWeight: 600,
-            color: deltaColor(data.deltaRevenue, theme),
+            color: deltaColor(data.deltaRevenue),
             fontVariantNumeric: 'tabular-nums',
             ml: 'auto',
           }}>
@@ -154,8 +160,8 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
             { name: 'Nuits', Avant: data.baseline.bookedNights, Apres: data.scenario.bookedNights },
           ],
           series: [
-            { key: 'Avant', label: 'Avant', color: alpha(theme.palette.text.primary, 0.45) },
-            { key: 'Apres', label: 'Apres', color: theme.palette.primary.main },
+            { key: 'Avant', label: 'Avant', color: CHART_BASELINE_GREY },
+            { key: 'Apres', label: 'Apres', color: CHART_PRIMARY },
           ],
         }}
       />
@@ -163,19 +169,19 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
       {data.recommendation && (
         <Box sx={{
           px: 1.5, py: 1.25,
-          borderRadius: 1.5,
-          bgcolor: alpha(theme.palette.primary.main, 0.06),
+          borderRadius: '12px',
+          bgcolor: 'var(--accent-soft)',
         }}>
-          <Typography variant="caption" sx={{
-            display: 'block', fontSize: '0.65rem', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.05em',
-            color: theme.palette.primary.dark, mb: 0.25,
+          <Typography sx={{
+            display: 'block', fontSize: '10.5px', fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '.05em',
+            color: 'var(--accent)', mb: 0.25,
           }}>
             Recommandation
           </Typography>
-          <Typography variant="body2" sx={{
-            fontSize: '0.8125rem',
-            color: theme.palette.text.primary,
+          <Typography sx={{
+            fontSize: '12.5px',
+            color: 'var(--body)',
             lineHeight: 1.45,
           }}>
             {data.recommendation}
@@ -191,30 +197,30 @@ const ScenarioCard: React.FC<{
   scenario: ScenarioPayload;
   variant: 'neutral' | 'positive' | 'negative';
 }> = ({ label, scenario, variant }) => {
-  const theme = useTheme();
-  const color =
-    variant === 'positive' ? theme.palette.success.main
-    : variant === 'negative' ? theme.palette.error.main
-    : theme.palette.primary.main;
+  const bg =
+    variant === 'positive' ? 'var(--ok-soft)'
+    : variant === 'negative' ? 'var(--err-soft)'
+    : 'var(--field)';
 
   return (
     <Box
       sx={{
         px: 1.25, py: 1,
-        borderRadius: 1.5,
-        bgcolor: alpha(color, variant === 'neutral' ? 0.04 : 0.08),
+        borderRadius: '10px',
+        bgcolor: bg,
       }}
     >
-      <Typography variant="caption" sx={{
-        display: 'block', fontSize: '0.65rem', fontWeight: 700,
-        textTransform: 'uppercase', letterSpacing: '0.05em',
-        color: theme.palette.text.secondary, mb: 0.5,
+      <Typography sx={{
+        display: 'block', fontSize: '10.5px', fontWeight: 700,
+        textTransform: 'uppercase', letterSpacing: '.05em',
+        color: 'var(--faint)', mb: 0.5,
       }}>
         {label}
       </Typography>
       <Typography sx={{
-        fontSize: '1.35rem', fontWeight: 700,
-        color: theme.palette.text.primary,
+        fontFamily: 'var(--font-display)',
+        fontSize: '1.35rem', fontWeight: 600,
+        color: 'var(--ink)',
         fontVariantNumeric: 'tabular-nums',
         letterSpacing: '-0.01em',
         lineHeight: 1.1,
@@ -223,7 +229,7 @@ const ScenarioCard: React.FC<{
       </Typography>
       <Box sx={{
         display: 'flex', gap: 1.5, mt: 0.5, flexWrap: 'wrap',
-        color: theme.palette.text.secondary,
+        color: 'var(--muted)',
       }}>
         <MetricInline label="ADR" value={`${Math.round(scenario.adr)} €`} />
         <MetricInline label="Occ." value={`${Math.round(scenario.occupancyRate * 100)}%`} />
@@ -233,38 +239,34 @@ const ScenarioCard: React.FC<{
   );
 };
 
-const MetricInline: React.FC<{ label: string; value: string }> = ({ label, value }) => {
-  const theme = useTheme();
-  return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.4 }}>
-      <Typography variant="caption" sx={{
-        fontSize: '0.65rem', color: theme.palette.text.disabled,
-        textTransform: 'uppercase', letterSpacing: '0.04em',
-      }}>
-        {label}
-      </Typography>
-      <Typography variant="caption" sx={{
-        fontSize: '0.78rem', fontWeight: 600,
-        color: theme.palette.text.primary,
-        fontVariantNumeric: 'tabular-nums',
-      }}>
-        {value}
-      </Typography>
-    </Box>
-  );
-};
+const MetricInline: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <Box sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.4 }}>
+    <Typography sx={{
+      fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)',
+      textTransform: 'uppercase', letterSpacing: '.04em',
+    }}>
+      {label}
+    </Typography>
+    <Typography sx={{
+      fontSize: '12.5px', fontWeight: 600,
+      color: 'var(--ink)',
+      fontVariantNumeric: 'tabular-nums',
+    }}>
+      {value}
+    </Typography>
+  </Box>
+);
 
 // ─── Calendar block ──────────────────────────────────────────────────────────
 
 const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) => {
-  const theme = useTheme();
   return (
     <Box sx={{ mt: 1, mb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
       {data.title && (
-        <Typography variant="caption" sx={{
-          display: 'block', fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: theme.palette.text.secondary,
+        <Typography sx={{
+          display: 'block', fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--faint)',
         }}>
           {data.title}
         </Typography>
@@ -272,28 +274,29 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
 
       <Box sx={{
         px: 1.5, py: 1.25,
-        borderRadius: 1.5,
-        bgcolor: alpha(theme.palette.warning.main, 0.08),
+        borderRadius: '12px',
+        bgcolor: 'var(--warn-soft)',
         display: 'flex', flexDirection: 'column', gap: 0.5,
       }}>
-        <Typography variant="caption" sx={{
-          fontSize: '0.65rem', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.05em',
-          color: theme.palette.warning.dark,
+        <Typography sx={{
+          fontSize: '10.5px', fontWeight: 700,
+          textTransform: 'uppercase', letterSpacing: '.05em',
+          color: 'var(--warn)',
         }}>
           Perte estimee de revenue
         </Typography>
         <Typography sx={{
-          fontSize: '1.75rem', fontWeight: 700,
-          color: theme.palette.warning.dark,
+          fontFamily: 'var(--font-display)',
+          fontSize: '1.75rem', fontWeight: 600,
+          color: 'var(--warn)',
           fontVariantNumeric: 'tabular-nums',
           letterSpacing: '-0.02em',
           lineHeight: 1,
         }}>
           {formatCurrency(data.estimatedLostRevenue)}
         </Typography>
-        <Typography variant="caption" sx={{
-          fontSize: '0.75rem', color: theme.palette.text.secondary, mt: 0.25,
+        <Typography sx={{
+          fontSize: '11.5px', color: 'var(--muted)', mt: 0.25,
         }}>
           sur {data.daysBlocked} jour(s){data.reference ? ` · base sur ${data.reference}` : ''}
         </Typography>
@@ -313,21 +316,21 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
       {data.alternativeSuggestions && data.alternativeSuggestions.length > 0 && (
         <Box sx={{
           px: 1.5, py: 1.25,
-          borderRadius: 1.5,
-          bgcolor: alpha(theme.palette.primary.main, 0.06),
+          borderRadius: '12px',
+          bgcolor: 'var(--accent-soft)',
         }}>
-          <Typography variant="caption" sx={{
-            display: 'block', fontSize: '0.65rem', fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.05em',
-            color: theme.palette.primary.dark, mb: 0.5,
+          <Typography sx={{
+            display: 'block', fontSize: '10.5px', fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '.05em',
+            color: 'var(--accent)', mb: 0.5,
           }}>
             Alternatives suggerees
           </Typography>
           <Box component="ul" sx={{ pl: 2.5, m: 0, my: 0.25 }}>
             {data.alternativeSuggestions.map((s, i) => (
               <Box component="li" key={i} sx={{
-                fontSize: '0.8125rem',
-                color: theme.palette.text.primary,
+                fontSize: '12.5px',
+                color: 'var(--body)',
                 lineHeight: 1.45,
                 mb: 0.25,
               }}>
@@ -341,49 +344,45 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
   );
 };
 
-const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) => {
-  const theme = useTheme();
-  return (
-    <Box sx={{
-      px: 1.25, py: 1,
-      borderRadius: 1.5,
-      bgcolor: alpha(theme.palette.text.primary, 0.04),
+const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <Box sx={{
+    px: 1.25, py: 1,
+    borderRadius: '10px',
+    bgcolor: 'var(--field)',
+  }}>
+    <Typography sx={{
+      display: 'block', fontSize: '10.5px', fontWeight: 700,
+      textTransform: 'uppercase', letterSpacing: '.05em',
+      color: 'var(--faint)', mb: 0.25,
     }}>
-      <Typography variant="caption" sx={{
-        display: 'block', fontSize: '0.7rem',
-        color: theme.palette.text.secondary, mb: 0.25,
-      }}>
-        {label}
-      </Typography>
-      <Typography sx={{
-        fontSize: '1rem', fontWeight: 600,
-        color: theme.palette.text.primary,
-        fontVariantNumeric: 'tabular-nums',
-      }}>
-        {value}
-      </Typography>
-    </Box>
-  );
-};
+      {label}
+    </Typography>
+    <Typography sx={{
+      fontFamily: 'var(--font-display)',
+      fontSize: '1rem', fontWeight: 600,
+      color: 'var(--ink)',
+      fontVariantNumeric: 'tabular-nums',
+    }}>
+      {value}
+    </Typography>
+  </Box>
+);
 
 // ─── Fallback ────────────────────────────────────────────────────────────────
 
-const FallbackUnknown: React.FC = () => {
-  const theme = useTheme();
-  return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
-      <Box sx={{
-        p: 2, borderRadius: 2,
-        bgcolor: alpha(theme.palette.text.primary, 0.04),
-        textAlign: 'center',
-      }}>
-        <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-          Simulation non interpretable.
-        </Typography>
-      </Box>
+const FallbackUnknown: React.FC = () => (
+  <Box sx={{ mt: 1, mb: 1.5 }}>
+    <Box sx={{
+      p: 2, borderRadius: '12px',
+      bgcolor: 'var(--field)',
+      textAlign: 'center',
+    }}>
+      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+        Simulation non interpretable.
+      </Typography>
     </Box>
-  );
-};
+  </Box>
+);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -403,8 +402,8 @@ function formatPctSigned(frac: number): string {
   return (pct > 0 ? '+' : pct < 0 ? '−' : '') + Math.abs(pct) + '%';
 }
 
-function deltaColor(value: number, theme: Theme): string {
-  if (value > 0.005) return theme.palette.success.dark;
-  if (value < -0.005) return theme.palette.error.dark;
-  return theme.palette.text.primary;
+function deltaColor(value: number): string {
+  if (value > 0.005) return 'var(--ok)';
+  if (value < -0.005) return 'var(--err)';
+  return 'var(--ink)';
 }

@@ -6,11 +6,21 @@ import {
   CardContent,
   Chip,
   Typography,
-  alpha,
-  useTheme,
 } from '@mui/material';
 import { Mail as MailIcon, Phone as PhoneIcon, Business } from '../../../icons';
-import { semanticToHex, softChipSx } from '../../../utils/statusUtils';
+import { semanticToHex } from '../../../utils/statusUtils';
+import type { ChipColor } from '../../../types';
+
+// Couleur semantique → tokens (chips -soft : texte couleur + fond -soft)
+const SEM_TOKEN: Partial<Record<ChipColor, { fg: string; bg: string }>> = {
+  success: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
+  warning: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+  error: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  info: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  primary: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+};
+
+const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 import { usersApi } from '../../../services/api/usersApi';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
 import { getRoleInfo, getStatusInfo } from './userDetailsTypes';
@@ -34,7 +44,6 @@ interface UserProfileCardProps {
  * </ul>
  */
 const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses }) => {
-  const theme = useTheme();
   const roleInfo = getRoleInfo(user.role, roles);
   const statusInfo = getStatusInfo(user.status, statuses);
   const isActive = user.status === 'ACTIVE';
@@ -48,12 +57,11 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
       variant="outlined"
       sx={{
         mb: 2,
-        borderRadius: 2,
-        borderColor: 'divider',
+        borderRadius: 'var(--radius-lg)',
+        bgcolor: 'var(--card)',
+        borderColor: 'var(--line)',
         overflow: 'hidden',
         position: 'relative',
-        // Subtle brand wash on the background, anchored top-right — avoids the flat grey hero.
-        backgroundImage: `radial-gradient(circle at top right, ${alpha(theme.palette.primary.main, 0.06)}, transparent 60%)`,
       }}
     >
       <CardContent sx={{ p: { xs: 2, md: 2.75 }, '&:last-child': { pb: { xs: 2, md: 2.75 } } }}>
@@ -75,12 +83,10 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
                   width: 60,
                   height: 60,
                   fontSize: '1.25rem',
-                  fontWeight: 700,
-                  color: 'primary.contrastText',
-                  // Brand gradient fallback when no photo is set.
-                  backgroundImage: photoUrl
-                    ? 'none'
-                    : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${alpha(theme.palette.primary.main, 0.75)} 100%)`,
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 600,
+                  color: 'var(--on-accent)',
+                  bgcolor: photoUrl ? 'transparent' : 'var(--accent)',
                   letterSpacing: '0.04em',
                 }}
               >
@@ -97,7 +103,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
                     width: 12,
                     height: 12,
                     borderRadius: '50%',
-                    bgcolor: '#22C55E',
+                    bgcolor: 'var(--ok)',
                     border: '2px solid',
                     borderColor: 'background.paper',
                   }}
@@ -146,12 +152,19 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
               }
               label={roleInfo.label}
               size="small"
-              sx={softChipSx(semanticToHex(roleInfo.color))}
+              sx={{
+                backgroundColor: `${semanticToHex(roleInfo.color)}18`,
+                color: semanticToHex(roleInfo.color),
+                '& .MuiChip-icon': { color: semanticToHex(roleInfo.color) },
+              }}
             />
             <Chip
               label={statusInfo.label}
               size="small"
-              sx={softChipSx(semanticToHex(statusInfo.color))}
+              sx={{
+                backgroundColor: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).bg,
+                color: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).fg,
+              }}
             />
           </Box>
         </Box>
@@ -209,7 +222,7 @@ const MetaItem: React.FC<{
         minWidth: 0,
         transition: 'color 150ms ease',
         '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        '&:hover': href ? { color: 'primary.main' } : undefined,
+        '&:hover': href ? { color: 'var(--accent)' } : undefined,
       }}
     >
       <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>

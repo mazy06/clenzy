@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, useTheme, alpha } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 interface EmptyChartProps {
   label?: string;
@@ -19,21 +19,18 @@ export const EmptyChart: React.FC<EmptyChartProps> = ({
   label,
   message = 'Aucune donnee a afficher',
 }) => {
-  const theme = useTheme();
-
   return (
     <Box sx={{ mt: 1, mb: 1.5 }}>
       {label && (
         <Typography
-          variant="caption"
           sx={{
             display: 'block',
             mb: 1,
-            fontSize: '0.7rem',
+            fontSize: '10.5px',
             fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: theme.palette.text.secondary,
+            letterSpacing: '.05em',
+            color: 'var(--faint)',
           }}
         >
           {label}
@@ -42,12 +39,12 @@ export const EmptyChart: React.FC<EmptyChartProps> = ({
       <Box
         sx={{
           p: 3,
-          borderRadius: 2,
-          bgcolor: alpha(theme.palette.text.primary, 0.025),
+          borderRadius: '12px',
+          bgcolor: 'var(--field)',
           textAlign: 'center',
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
           {message}
         </Typography>
       </Box>

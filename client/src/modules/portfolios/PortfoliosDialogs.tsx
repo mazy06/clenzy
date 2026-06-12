@@ -67,8 +67,7 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          borderRadius: '18px',
         },
       }}
     >
@@ -103,11 +102,11 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
               gap: 1.5,
               mb: 2.5,
               p: 1.5,
-              bgcolor: 'grey.50',
+              bgcolor: 'var(--field)',
               borderRadius: 2,
             }}
           >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.78rem' }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px', fontSize: '0.78rem' }}>
               {client.firstName?.[0]}{client.lastName?.[0]}
             </Avatar>
             <Box>

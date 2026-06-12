@@ -63,19 +63,21 @@ interface ProspectCategory {
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
+// Statuts → palette Baitly desaturee (a contacter = ambre, discussion = bleu info, partenaire = vert, rejete = neutre)
 const STATUS_CONFIG: Record<ProspectStatus, { label: string; color: string }> = {
-  TO_CONTACT: { label: 'A contacter', color: '#ED6C02' },
-  IN_DISCUSSION: { label: 'En discussion', color: '#0288d1' },
+  TO_CONTACT: { label: 'A contacter', color: '#D4A574' },
+  IN_DISCUSSION: { label: 'En discussion', color: '#7BA3C2' },
   PARTNER: { label: 'Partenaire', color: '#4A9B8E' },
-  REJECTED: { label: 'Rejete', color: '#9e9e9e' },
+  REJECTED: { label: 'Rejete', color: '#8A8378' },
 };
 
+// Couleurs data par categorie — palette Baitly desaturee
 const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ReactElement; color: string }> = {
-  CONCIERGERIES: { label: 'Conciergeries & Agences', icon: <Business size={20} strokeWidth={1.75} />, color: '#0288d1' },
-  MENAGE: { label: 'Societes de menage', icon: <CleaningServices size={20} strokeWidth={1.75} />, color: '#9B7FC4' },
+  CONCIERGERIES: { label: 'Conciergeries & Agences', icon: <Business size={20} strokeWidth={1.75} />, color: '#7BA3C2' },
+  MENAGE: { label: 'Societes de menage', icon: <CleaningServices size={20} strokeWidth={1.75} />, color: '#7B68A8' },
   ARTISANS: { label: 'Artisans & Travaux', icon: <Handyman size={20} strokeWidth={1.75} />, color: '#7EBAD0' },
-  ENTRETIEN: { label: 'Entretien exterieur', icon: <Yard size={20} strokeWidth={1.75} />, color: '#66BB6A' },
-  BLANCHISSERIES: { label: 'Blanchisseries', icon: <LocalLaundryService size={20} strokeWidth={1.75} />, color: '#AB47BC' },
+  ENTRETIEN: { label: 'Entretien exterieur', icon: <Yard size={20} strokeWidth={1.75} />, color: '#4A9B8E' },
+  BLANCHISSERIES: { label: 'Blanchisseries', icon: <LocalLaundryService size={20} strokeWidth={1.75} />, color: '#9A7FA3' },
 };
 
 const CATEGORY_ORDER = ['CONCIERGERIES', 'MENAGE', 'ARTISANS', 'ENTRETIEN', 'BLANCHISSERIES'];
@@ -117,7 +119,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
     return CATEGORY_ORDER
       .filter((key) => grouped.has(key) || categoryFilter === 'all')
       .map((key) => {
-        const cfg = CATEGORY_CONFIG[key] || { label: key, icon: <Business size={20} strokeWidth={1.75} />, color: '#757575' };
+        const cfg = CATEGORY_CONFIG[key] || { label: key, icon: <Business size={20} strokeWidth={1.75} />, color: '#8A8378' };
         return {
           key,
           label: cfg.label,
@@ -335,7 +337,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                       height: 22,
                       backgroundColor: `${cat.color}18`,
                       color: cat.color,
-                      border: `1px solid ${cat.color}40`,
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   />
                   <IconButton size="small" sx={{ ml: 0.5 }}>
@@ -456,8 +458,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                     backgroundColor: `${sc.color}18`,
                                     color: sc.color,
                                     fontWeight: 600,
-                                    border: `1px solid ${sc.color}40`,
-                                    borderRadius: '6px',
+                                    borderRadius: '999px',
                                     '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                                   }}
                                 >

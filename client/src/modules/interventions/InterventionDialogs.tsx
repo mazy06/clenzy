@@ -231,7 +231,7 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
     >
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
-          <Box component="span" sx={{ display: 'inline-flex', color: photoType === 'before' ? 'primary.main' : 'success.main' }}><PhotoCameraIcon size={20} strokeWidth={1.75} /></Box>
+          <Box component="span" sx={{ display: 'inline-flex', color: photoType === 'before' ? 'var(--accent)' : 'var(--ok)' }}><PhotoCameraIcon size={20} strokeWidth={1.75} /></Box>
           <Typography variant="h6">
             {photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
           </Typography>

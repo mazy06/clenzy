@@ -25,14 +25,15 @@ import {
 } from '../../icons';
 import type { LucideIcon } from 'lucide-react';
 
-const STATUS_STYLE: Record<string, { label: string; color: string; Icon?: LucideIcon }> = {
-  PENDING: { label: 'En attente', color: '#D4A574', Icon: ClockIcon },
-  ACCEPTED: { label: 'Acceptée', color: '#4A9B8E', Icon: CheckCircle },
-  EXPIRED: { label: 'Expirée', color: '#8A8378', Icon: HourglassEmpty },
-  CANCELLED: { label: 'Annulée', color: '#C97A7A', Icon: CancelIcon },
+// Statut d'invitation → tokens semantiques (envoyee --info, acceptee --ok, expiree muted, annulee --err)
+const STATUS_STYLE: Record<string, { label: string; fg: string; bg: string; Icon?: LucideIcon }> = {
+  PENDING: { label: 'En attente', fg: 'var(--info)', bg: 'var(--info-soft)', Icon: ClockIcon },
+  ACCEPTED: { label: 'Acceptée', fg: 'var(--ok)', bg: 'var(--ok-soft)', Icon: CheckCircle },
+  EXPIRED: { label: 'Expirée', fg: 'var(--muted)', bg: 'var(--hover)', Icon: HourglassEmpty },
+  CANCELLED: { label: 'Annulée', fg: 'var(--err)', bg: 'var(--err-soft)', Icon: CancelIcon },
 };
 
-const DEFAULT_STATUS_STYLE = { label: '', color: '#8A8378' };
+const DEFAULT_STATUS_STYLE = { label: '', fg: 'var(--muted)', bg: 'var(--hover)' };
 
 // ─── Styles partagés pour les IconButton d'actions ──────────────────────────
 
@@ -40,49 +41,30 @@ const ACTION_BTN_BASE_SX = {
   width: 28,
   height: 28,
   borderRadius: '7px',
-  color: 'text.secondary',
-  border: '1px solid',
-  borderColor: 'divider',
-  backgroundColor: 'background.paper',
+  color: 'var(--muted)',
+  border: '1px solid var(--line-2)',
+  backgroundColor: 'var(--card)',
   transition:
-    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
 } as const;
 
-const ACTION_BTN_PRIMARY_SX = {
-  ...ACTION_BTN_BASE_SX,
-  '&:hover': {
-    color: '#6B8A9A',
-    borderColor: '#6B8A9A66',
-    backgroundColor: '#6B8A9A0F',
-    boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04)',
-  },
-  '&:focus-visible': { outline: '2px solid #6B8A9A', outlineOffset: 2 },
-  '&.Mui-disabled': { borderColor: 'divider' },
-} as const;
+/** Variante de bouton d'action : hover teinte (texte couleur, bord 40%, fond -soft) */
+const actionBtnSx = (fg: string, bg: string) =>
+  ({
+    ...ACTION_BTN_BASE_SX,
+    '&:hover': {
+      color: fg,
+      borderColor: `color-mix(in srgb, ${fg} 40%, transparent)`,
+      backgroundColor: bg,
+    },
+    '&:focus-visible': { outline: `2px solid ${fg}`, outlineOffset: 2 },
+    '&.Mui-disabled': { borderColor: 'var(--line)' },
+  }) as const;
 
-const ACTION_BTN_WARM_SX = {
-  ...ACTION_BTN_BASE_SX,
-  '&:hover': {
-    color: '#D4A574',
-    borderColor: '#D4A57466',
-    backgroundColor: '#D4A5740F',
-    boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04)',
-  },
-  '&:focus-visible': { outline: '2px solid #D4A574', outlineOffset: 2 },
-  '&.Mui-disabled': { borderColor: 'divider' },
-} as const;
-
-const ACTION_BTN_DANGER_SX = {
-  ...ACTION_BTN_BASE_SX,
-  '&:hover': {
-    color: '#C97A7A',
-    borderColor: '#C97A7A66',
-    backgroundColor: '#C97A7A0F',
-    boxShadow: '0 1px 2px rgba(45, 55, 72, 0.04)',
-  },
-  '&:focus-visible': { outline: '2px solid #C97A7A', outlineOffset: 2 },
-  '&.Mui-disabled': { borderColor: 'divider' },
-} as const;
+const ACTION_BTN_PRIMARY_SX = actionBtnSx('var(--accent)', 'var(--accent-soft)');
+const ACTION_BTN_WARM_SX = actionBtnSx('var(--warn)', 'var(--warn-soft)');
+const ACTION_BTN_DANGER_SX = actionBtnSx('var(--err)', 'var(--err-soft)');
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
@@ -170,28 +152,16 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   const getStatusChip = (status: string) => {
     const style = STATUS_STYLE[status] ?? { ...DEFAULT_STATUS_STYLE, label: status };
-    const { Icon, color, label } = style;
+    const { Icon, fg, bg, label } = style;
     return (
       <Chip
         icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined}
         label={label}
         size="small"
         sx={{
-          height: 22,
-          fontSize: '0.6875rem',
-          fontWeight: 600,
-          letterSpacing: '0.01em',
-          backgroundColor: `${color}14`,
-          color,
-          border: `1px solid ${color}33`,
-          borderRadius: '6px',
-          px: 0.25,
-          '& .MuiChip-icon': {
-            color: `${color} !important`,
-            ml: '6px',
-            mr: '-2px',
-          },
-          '& .MuiChip-label': { px: 0.875 },
+          backgroundColor: bg,
+          color: fg,
+          '& .MuiChip-icon': { color: fg, ml: '6px', mr: '-2px' },
         }}
       />
     );
@@ -240,7 +210,8 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
   } as const;
   // Email cell : shrinkable + ellipsis pour eviter de pousser la table et clipper les actions
   const CELL_EMAIL_SX = { fontSize: '0.75rem', py: 0.75, px: 1, maxWidth: 0, width: '100%' } as const;
-  const CELL_ACTIONS_SX = { ...CELL_SX, fontWeight: 600, pr: 1.25 } as const;
+  // Entete : l'overline vient du theme global (MuiTableCell head) — on ne garde que l'espacement
+  const HEAD_CELL_SX = { whiteSpace: 'nowrap', py: 0.75, px: 1 } as const;
 
   // Invitation associee au modal pour personnaliser le message (email destinataire).
   const pendingInvitation =
@@ -252,12 +223,12 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
       <Table size="small" sx={{ tableLayout: 'auto', width: '100%' }}>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Email</TableCell>
-            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Role</TableCell>
-            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Statut</TableCell>
-            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Envoyee</TableCell>
-            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Expire</TableCell>
-            <TableCell align="right" sx={CELL_ACTIONS_SX}>Actions</TableCell>
+            <TableCell sx={HEAD_CELL_SX}>Email</TableCell>
+            <TableCell sx={HEAD_CELL_SX}>Role</TableCell>
+            <TableCell sx={HEAD_CELL_SX}>Statut</TableCell>
+            <TableCell sx={HEAD_CELL_SX}>Envoyee</TableCell>
+            <TableCell sx={HEAD_CELL_SX}>Expire</TableCell>
+            <TableCell align="right" sx={{ ...HEAD_CELL_SX, pr: 1.25 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -288,21 +259,9 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                       label={getRoleLabel(inv.roleInvited)}
                       size="small"
                       sx={{
-                        height: 22,
-                        fontSize: '0.6875rem',
-                        fontWeight: 600,
-                        letterSpacing: '0.01em',
-                        backgroundColor: `${roleColor}14`,
+                        backgroundColor: `${roleColor}18`,
                         color: roleColor,
-                        border: `1px solid ${roleColor}33`,
-                        borderRadius: '6px',
-                        px: 0.25,
-                        '& .MuiChip-icon': {
-                          color: `${roleColor} !important`,
-                          ml: '6px',
-                          mr: '-2px',
-                        },
-                        '& .MuiChip-label': { px: 0.875 },
+                        '& .MuiChip-icon': { color: roleColor, ml: '6px', mr: '-2px' },
                       }}
                     />
                   );
@@ -312,12 +271,12 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                 {getStatusChip(inv.status)}
               </TableCell>
               <TableCell sx={CELL_SX}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
                   {formatShortDate(inv.createdAt)}
                 </Typography>
               </TableCell>
               <TableCell sx={CELL_SX}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
                   {formatShortDate(inv.expiresAt)}
                 </Typography>
               </TableCell>

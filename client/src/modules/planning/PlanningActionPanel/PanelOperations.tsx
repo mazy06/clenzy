@@ -819,11 +819,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 size="small"
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                sx={{ p: 0.25, color: 'success.main' }}
+                sx={{ p: 0.25, color: 'var(--ok)' }}
               >
                 {saving ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
               </IconButton>
-              <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'error.main' }}>
+              <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'var(--err)' }}>
                 <Close size={16} strokeWidth={1.75} />
               </IconButton>
             </Box>
@@ -932,7 +932,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             )}
 
             {hasChanges && intv.linkedReservationId && !validationError && (
-              <Typography variant="caption" color="warning.main" sx={{ fontSize: '0.625rem' }}>
+              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'var(--warn)' }}>
                 L'intervention sera deliee de sa reservation si les dates sont modifiees.
               </Typography>
             )}
@@ -1103,8 +1103,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: '#75757518', color: '#757575',
-                            border: '1px solid #75757540', borderRadius: '6px',
+                            backgroundColor: NEUTRAL_TOKENS.bg, color: NEUTRAL_TOKENS.color,
+                            borderRadius: '6px',
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
@@ -1120,14 +1120,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         />
                         {assigneeName && (
                           <Chip
-                            icon={<Groups size={10} strokeWidth={1.75} color="#0288d1" />}
+                            icon={<Groups size={10} strokeWidth={1.75} />}
                             label={assigneeName}
                             size="small"
                             sx={{
                               fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                              backgroundColor: '#0288d118', color: '#0288d1',
-                              border: '1px solid #0288d140', borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
+                              backgroundColor: INFO_TOKENS.bg, color: INFO_TOKENS.color,
+                              borderRadius: '6px',
+                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: INFO_TOKENS.color },
                               '& .MuiChip-label': { px: 0.5 },
                             }}
                           />
@@ -1165,7 +1165,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                               </>
                             )}
                             {sr.autoAssignStatus === 'exhausted' && (
-                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'warning.main', fontStyle: 'italic' }}>
+                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'var(--warn)', fontStyle: 'italic' }}>
                                 Aucune equipe disponible — assignation manuelle requise
                               </Typography>
                             )}
@@ -1237,7 +1237,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                               setDeleteSrTarget(sr);
                               setDeleteSrDialogOpen(true);
                             }}
-                            sx={{ color: 'error.main', ml: 'auto', p: 0.5 }}
+                            sx={{ color: 'var(--err)', ml: 'auto', p: 0.5 }}
                           >
                             <DeleteOutline size={16} strokeWidth={1.75} />
                           </IconButton>
@@ -1275,9 +1275,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   const isPaid = li.paymentStatus === 'PAID';
                   const noCost = cost <= 0;
                   const isOnPlanning = isAssigned && (isPaid || noCost);
-                  const statusCfg = INTERVENTION_STATUS_CONFIG[li.status] || { label: li.status, color: '#757575' };
+                  const statusCfg = INTERVENTION_STATUS_CONFIG[li.status] || { label: li.status, tokens: NEUTRAL_TOKENS };
                   const payStatusCfg = li.paymentStatus
-                    ? (PAYMENT_STATUS_CONFIG[li.paymentStatus] || { label: li.paymentStatus, color: '#757575' })
+                    ? (PAYMENT_STATUS_CONFIG[li.paymentStatus] || { label: li.paymentStatus, tokens: NEUTRAL_TOKENS })
                     : null;
 
                   const steps = new Set((li.completedSteps || '').split(',').filter(Boolean));
@@ -1295,8 +1295,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         p: 1,
                         borderRadius: 1.5,
                         border: '1px solid',
-                        borderColor: isOnPlanning ? '#4A9B8E40' : 'divider',
-                        backgroundColor: isOnPlanning ? '#4A9B8E06' : 'transparent',
+                        borderColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'divider',
+                        backgroundColor: isOnPlanning ? 'var(--ok-soft)' : 'transparent',
                         transition: 'all 0.15s ease',
                       }}
                     >
@@ -1309,11 +1309,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           '&:hover .drill-arrow': { opacity: 1, transform: 'translateX(2px)' },
                         }}
                       >
-                        {li.type === 'cleaning' ? (
-                          <AutoAwesome size={14} strokeWidth={1.75} color='#9B7FC4' />
-                        ) : (
-                          <Handyman size={14} strokeWidth={1.75} color='#7EBAD0' />
-                        )}
+                        <Box component="span" sx={{ display: 'inline-flex', color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+                          {li.type === 'cleaning' ? (
+                            <AutoAwesome size={14} strokeWidth={1.75} />
+                          ) : (
+                            <Handyman size={14} strokeWidth={1.75} />
+                          )}
+                        </Box>
                         <Typography variant="caption" sx={{ flex: 1, fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {li.title}
                         </Typography>
@@ -1341,31 +1343,31 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         {/* Assignment status */}
                         <Chip
                           icon={isAssigned
-                            ? <CheckCircle size={10} strokeWidth={1.75} color="#4A9B8E" />
-                            : <HourglassEmpty size={10} strokeWidth={1.75} color="#ED6C02" />}
+                            ? <CheckCircle size={10} strokeWidth={1.75} />
+                            : <HourglassEmpty size={10} strokeWidth={1.75} />}
                           label={isAssigned ? li.assigneeName : 'Non assigne'}
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: isAssigned ? '#4A9B8E18' : '#ED6C0218',
-                            color: isAssigned ? '#4A9B8E' : '#ED6C02',
-                            border: `1px solid ${isAssigned ? '#4A9B8E40' : '#ED6C0240'}`,
+                            backgroundColor: isAssigned ? OK_TOKENS.bg : WARN_TOKENS.bg,
+                            color: isAssigned ? OK_TOKENS.color : WARN_TOKENS.color,
                             borderRadius: '6px',
-                            '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
+                            '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: isAssigned ? OK_TOKENS.color : WARN_TOKENS.color },
                             '& .MuiChip-label': { px: 0.5 },
                           }}
                         />
                         {/* Payment status (only if cost > 0) */}
                         {cost > 0 && payStatusCfg && (
                           <Chip
-                            icon={<Payment size={10} strokeWidth={1.75} color={payStatusCfg.tokens.color} />}
+                            icon={<Payment size={10} strokeWidth={1.75} />}
                             label={`${payStatusCfg.label} (${cost.toFixed(0)}€)`}
                             size="small"
                             sx={{
                               fontSize: '0.5625rem', height: 20, fontWeight: 600,
                               backgroundColor: payStatusCfg.tokens.bg, color: payStatusCfg.tokens.color,
                               borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
+                              fontVariantNumeric: 'tabular-nums',
+                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: payStatusCfg.tokens.color },
                               '& .MuiChip-label': { px: 0.5 },
                             }}
                           />
@@ -1374,17 +1376,16 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         <Tooltip title={isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}>
                           <Chip
                             icon={isOnPlanning
-                              ? <Visibility size={10} strokeWidth={1.75} color="#4A9B8E" />
-                              : <VisibilityOff size={10} strokeWidth={1.75} color="#9e9e9e" />}
+                              ? <Visibility size={10} strokeWidth={1.75} />
+                              : <VisibilityOff size={10} strokeWidth={1.75} />}
                             label={isOnPlanning ? 'Planning' : 'Masque'}
                             size="small"
                             sx={{
                               fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                              backgroundColor: isOnPlanning ? '#4A9B8E18' : '#9e9e9e18',
-                              color: isOnPlanning ? '#4A9B8E' : '#9e9e9e',
-                              border: `1px solid ${isOnPlanning ? '#4A9B8E40' : '#9e9e9e40'}`,
+                              backgroundColor: isOnPlanning ? OK_TOKENS.bg : NEUTRAL_TOKENS.bg,
+                              color: isOnPlanning ? OK_TOKENS.color : NEUTRAL_TOKENS.color,
                               borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25 },
+                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: isOnPlanning ? OK_TOKENS.color : NEUTRAL_TOKENS.color },
                               '& .MuiChip-label': { px: 0.5 },
                             }}
                           />
@@ -1398,10 +1399,10 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             variant="determinate"
                             value={progress}
                             sx={{
-                              height: 4, borderRadius: 2, backgroundColor: 'action.hover',
+                              height: 4, borderRadius: 2, backgroundColor: 'var(--hover)',
                               '& .MuiLinearProgress-bar': {
                                 borderRadius: 2,
-                                backgroundColor: progress === 100 ? 'success.main' : 'primary.main',
+                                backgroundColor: progress === 100 ? 'var(--ok)' : 'var(--accent)',
                               },
                             }}
                           />
@@ -1574,8 +1575,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {assignMode === 'service_request'
-              ? <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><PersonAdd size={20} strokeWidth={1.75} /></Box>
-              : <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={20} strokeWidth={1.75} /></Box>}
+              ? <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><PersonAdd size={20} strokeWidth={1.75} /></Box>
+              : <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={20} strokeWidth={1.75} /></Box>}
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               {assignMode === 'service_request' ? 'Assigner la demande' : 'Assigner intervention'}
             </Typography>
@@ -1608,13 +1609,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 mb: 1.5,
                 borderRadius: 1.5,
                 border: '1px solid',
-                borderColor: assignAutoMode ? 'primary.main' : 'divider',
-                backgroundColor: assignAutoMode ? 'primary.50' : 'transparent',
+                borderColor: assignAutoMode ? 'var(--accent)' : 'divider',
+                backgroundColor: assignAutoMode ? 'var(--accent-soft)' : 'transparent',
                 transition: 'all 0.2s ease',
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: assignAutoMode ? 'primary.main' : 'text.secondary' }}><AutoFixHigh size={18} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: assignAutoMode ? 'var(--accent)' : 'var(--muted)' }}><AutoFixHigh size={18} strokeWidth={1.75} /></Box>
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.2 }}>
                     Assignation automatique
@@ -1695,7 +1696,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               .map((opt) => (
                 <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Groups size={16} strokeWidth={1.75} /></Box>
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
                         {opt.label}
@@ -1786,11 +1787,11 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           py: 0.75,
                           borderBottom: idx < teamMembers.length - 1 ? '1px solid' : 'none',
                           borderColor: 'divider',
-                          backgroundColor: member.available ? 'transparent' : 'action.hover',
+                          backgroundColor: member.available ? 'transparent' : 'var(--hover)',
                         }}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'success.main' : 'text.disabled' }}><Person size={15} strokeWidth={1.75} /></Box>
+                          <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--faint)' }}><Person size={15} strokeWidth={1.75} /></Box>
                           <Box>
                             <Typography
                               variant="body2"
@@ -1867,7 +1868,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><PriorityHigh size={20} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><PriorityHigh size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Definir la priorite
             </Typography>
@@ -1940,7 +1941,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={20} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircleOutline size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Checklist operationnelle
             </Typography>
@@ -2006,7 +2007,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><NotificationsActive size={20} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><NotificationsActive size={20} strokeWidth={1.75} /></Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
               Ajouter un rappel
             </Typography>

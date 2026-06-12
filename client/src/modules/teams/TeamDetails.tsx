@@ -147,13 +147,13 @@ const TeamDetails: React.FC = () => {
             <Chip
               label={getInterventionTypeLabel(team.interventionType, t)}
               size="medium"
-              sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, '& .MuiChip-label': { px: 1 } }}
+              sx={{ backgroundColor: `${c}18`, color: c, fontWeight: 600, '& .MuiChip-label': { px: 1 } }}
             />
             ); })()}
           </Box>
 
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
-            <Typography variant="subtitle2" color="primary.main" sx={{ mb: 1, fontWeight: 600 }}>
+          <Box sx={{ mb: 3, p: 2, bgcolor: 'var(--field)', borderRadius: '12px', border: '1px solid var(--field-line)' }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'var(--accent)' }}>
               Description de l'équipe
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -178,8 +178,8 @@ const TeamDetails: React.FC = () => {
             </Grid>
           </Grid>
 
-          <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
-            <Typography variant="subtitle2" color="primary.main" sx={{ mb: 1, fontWeight: 600 }}>
+          <Box sx={{ p: 2, bgcolor: 'var(--field)', borderRadius: '12px', border: '1px solid var(--field-line)' }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'var(--accent)' }}>
               Informations de l'équipe
             </Typography>
             <Grid container spacing={2}>

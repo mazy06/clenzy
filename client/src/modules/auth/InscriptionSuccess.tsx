@@ -94,7 +94,7 @@ export default function InscriptionSuccess() {
 
           {status === 'loading' && (
             <Box sx={{ py: 4 }}>
-              <CircularProgress sx={{ color: '#6B8A9A', mb: 2 }} />
+              <CircularProgress sx={{ color: 'primary.main', mb: 2 }} />
               <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.secondary' }}>
                 {t('auth.inscriptionSuccess.loading', 'Finalisation de votre paiement...')}
               </Typography>
@@ -105,7 +105,7 @@ export default function InscriptionSuccess() {
             <Box sx={{ py: 3 }}>
               <Box component="span" sx={{
                 display: 'inline-flex',
-                color: '#6B8A9A',
+                color: 'primary.main',
                 mb: 2,
                 animation: 'scaleIn 0.4s ease-out',
                 '@keyframes scaleIn': {

@@ -34,7 +34,7 @@ const STATUS_META: Record<ContractStatus, StatusMeta> = {
   EXPIRED:    { label: 'Expiré',    color: 'var(--err)',   soft: 'var(--err-soft)' },
 };
 
-const FILTER_ALL_COLOR = '#6B8A9A';
+const FILTER_ALL_COLOR = 'var(--accent)';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 

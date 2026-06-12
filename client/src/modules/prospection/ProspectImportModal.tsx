@@ -165,13 +165,14 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
           }}
           onDragLeave={() => setDragOver(false)}
           sx={{
-            border: '2px dashed',
-            borderColor: dragOver ? 'primary.main' : 'divider',
-            borderRadius: 2,
+            border: '1px dashed',
+            borderColor: dragOver ? 'var(--accent)' : 'var(--line-2)',
+            borderRadius: '12px',
             p: 4,
             textAlign: 'center',
-            bgcolor: dragOver ? 'action.hover' : 'background.default',
-            transition: 'all 0.2s',
+            bgcolor: dragOver ? 'var(--accent-soft)' : 'var(--field)',
+            transition: 'border-color 0.2s, background-color 0.2s',
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
             cursor: 'pointer',
           }}
           onClick={() => document.getElementById('csv-file-input')?.click()}

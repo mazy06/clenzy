@@ -8,11 +8,29 @@ import {
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
-import { softChipSx } from '../../../utils/statusUtils';
 import type { ConnectedDevice } from '../types';
 
-const CODE_STATUS_COLOR: Record<string, string> = {
-  ACTIVE: '#4A9B8E', USED: '#7BA3C2', EXPIRED: '#8A8378', CANCELLED: '#C97A7A',
+// Statuts de code : tokens sémantiques désaturés (texte couleur + fond `-soft`) —
+// actif = --ok, utilisé = --info, expiré = neutre, annulé = --err.
+const CODE_STATUS_TOKENS: Record<string, { color: string; soft: string }> = {
+  ACTIVE: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
+  USED: { color: 'var(--info)', soft: 'var(--info-soft)' },
+  EXPIRED: { color: 'var(--muted)', soft: 'var(--hover)' },
+  CANCELLED: { color: 'var(--err)', soft: 'var(--err-soft)' },
+};
+/** Pilule soft : fond doux + texte couleur (pattern chips statut baseline §2). */
+const codeStatusPillSx = (status: string) => {
+  const { color, soft } = CODE_STATUS_TOKENS[status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
+  return {
+    height: 22,
+    fontSize: '0.6875rem',
+    fontWeight: 600,
+    backgroundColor: soft,
+    color,
+    border: 'none',
+    borderRadius: 'var(--radius-pill)',
+    '& .MuiChip-label': { px: 1 },
+  } as const;
 };
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -166,7 +184,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                           </TableCell>
                           <TableCell>{c.guestName || '—'}</TableCell>
                           <TableCell>
-                            <Chip size="small" label={c.status} sx={softChipSx(CODE_STATUS_COLOR[c.status] ?? '#8A8378')} />
+                            <Chip size="small" label={c.status} sx={codeStatusPillSx(c.status)} />
                           </TableCell>
                           <TableCell align="right">
                             {c.status === 'ACTIVE' && (
