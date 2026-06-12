@@ -188,12 +188,64 @@ export function signatureOverrides(isDark: boolean): ThemeOptions {
           },
         },
       },
-      // Modales : rayon carte (14) + hairline, comme .s-modal
+      // Modales : peau .s-modal-ovl/.s-modal (référence « Modale Nouvelle Réservation »)
+      // Backdrop scopé au Dialog (pas MuiBackdrop global : Drawer/Popover non concernés).
       MuiDialog: {
         styleOverrides: {
+          root: {
+            '& .MuiBackdrop-root': {
+              backgroundColor: 'rgba(10,18,24,.5)',
+              backdropFilter: 'blur(3px)',
+            },
+          },
           paper: {
-            borderRadius: 14,
+            borderRadius: 18,
             border: '1px solid var(--line)',
+            // Ombre ink-teintée littérale (le voile sombre vient du backdrop)
+            boxShadow: '0 30px 70px -24px rgba(21,36,45,.5)',
+            backgroundImage: 'none',
+            // Entrée .s-modal : translateY(12px) scale(.985) → none (cohabite avec le Fade MUI)
+            '@keyframes signatureModalIn': {
+              from: { transform: 'translateY(12px) scale(.985)' },
+              to: { transform: 'none' },
+            },
+            animation: 'signatureModalIn .22s cubic-bezier(.16,1,.3,1)',
+            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+          },
+        },
+      },
+      // Entête modale (.rm-head) : titre display, hairline basse
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            fontFamily: 'var(--font-display)',
+            fontSize: 18,
+            fontWeight: 600,
+            color: 'var(--ink)',
+            letterSpacing: '-.01em',
+            padding: '18px 22px',
+            borderBottom: '1px solid var(--line)',
+          },
+        },
+      },
+      // Corps modale (.rm-col)
+      MuiDialogContent: {
+        styleOverrides: {
+          root: { padding: '22px' },
+          dividers: {
+            borderTopColor: 'var(--line)',
+            borderBottomColor: 'var(--line)',
+          },
+        },
+      },
+      // Pied modale (.rm-foot) : surface sur-élevée + hairline haute
+      MuiDialogActions: {
+        styleOverrides: {
+          root: {
+            padding: '14px 22px',
+            borderTop: '1px solid var(--line)',
+            backgroundColor: 'var(--surface-2)',
+            gap: 10,
           },
         },
       },
