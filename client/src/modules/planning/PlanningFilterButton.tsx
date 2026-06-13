@@ -189,19 +189,8 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
       <Tooltip title="Filtres" arrow>
         <IconButton
           aria-label="Filtres"
-          size="small"
           onClick={(e) => setFilterAnchor(e.currentTarget)}
-          sx={{
-            width: 28,
-            height: 28,
-            p: 0.25,
-            borderRadius: '9px',
-            color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--muted)',
-            bgcolor: filterOpen || activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--card)',
-            border: '1px solid',
-            borderColor: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--line-2)',
-            '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
-          }}
+          sx={{ color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : undefined }}
         >
           <Badge
             badgeContent={activeFilterCount}
@@ -215,7 +204,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               },
             }}
           >
-            <FilterListIcon size={14} strokeWidth={1.75} />
+            <FilterListIcon size={18} strokeWidth={1.85} />
           </Badge>
         </IconButton>
       </Tooltip>
