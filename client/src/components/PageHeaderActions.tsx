@@ -18,7 +18,7 @@ import { useTranslation } from '../hooks/useTranslation';
  * slot, donc le contenu apparaît à l'ouverture du dropdown).
  */
 
-/** Masque le libellé des boutons à icône → icon-only carré. */
+/** Masque le libellé des boutons à icône → icon-only carré + hover à la teinte. */
 const ICON_ONLY_SX = {
   '& .MuiButton-root:has(.MuiButton-startIcon), & .MuiButton-root:has(.MuiButton-endIcon)': {
     fontSize: 0,
@@ -27,6 +27,9 @@ const ICON_ONLY_SX = {
     '& .MuiButton-startIcon': { margin: 0 },
     '& .MuiButton-endIcon': { margin: 0 },
   },
+  // Survol des icônes d'action à la TEINTE configurée (var(--accent)) au lieu
+  // du --ink global → rangée d'actions cohérente avec la couleur du site.
+  '& .MuiIconButton-root:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
 } as const;
 
 /** Dans le dropdown : boutons pleine largeur, libellé visible, alignés à gauche. */
