@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Box, CircularProgress, Alert, Typography, Button, Tooltip, IconButton } from '@mui/material';
-import { CalendarMonth, Add, CloudDownload } from '../../icons';
+import { CalendarMonth, Add, CloudDownload, Lock, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
 import HeaderSearchField from '../../components/HeaderSearchField';
 import PlanningToolbar from './PlanningToolbar';
+import PlanningFilterButton from './PlanningFilterButton';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
 import PlanningQuickCreateDialog from './PlanningQuickCreateDialog';
@@ -459,6 +460,34 @@ const PlanningPage: React.FC = () => {
             }
             actions={
               <>
+                <PlanningFilterButton
+                  filters={filters}
+                  density={nav.density}
+                  hasActiveFilters={hasActiveFilters}
+                  onDensityChange={nav.setDensity}
+                  onShowInterventionsChange={setShowInterventions}
+                  onShowPricesChange={setShowPrices}
+                  onStatusFilter={setStatusFilter}
+                  onClearFilters={clearFilters}
+                  urgencyAnimation={urgencyAnimation}
+                  onUrgencyAnimationChange={setUrgencyAnimation}
+                />
+                <Tooltip title="Bloquer une période (indisponible)" arrow>
+                  <IconButton
+                    aria-label="Bloquer une période"
+                    onClick={() => setBlockDialogOpen(true)}
+                  >
+                    <Lock size={18} strokeWidth={1.75} />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'} arrow>
+                  <IconButton
+                    aria-label={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+                    onClick={nav.toggleFullscreen}
+                  >
+                    {nav.isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
                   <IconButton
                     aria-label="Importer iCal"
@@ -501,7 +530,6 @@ const PlanningPage: React.FC = () => {
         <PlanningToolbar
           currentDate={visibleMonthDate}
           zoom={nav.zoom}
-          density={nav.density}
           isFullscreen={nav.isFullscreen}
           filters={filters}
           hasActiveFilters={hasActiveFilters}
@@ -509,20 +537,13 @@ const PlanningPage: React.FC = () => {
           onGoToday={nav.goToday}
           onGoNext={nav.goNext}
           onZoomChange={nav.setZoom}
-          onDensityChange={nav.setDensity}
           onToggleFullscreen={nav.toggleFullscreen}
           onShowInterventionsChange={setShowInterventions}
-          onShowPricesChange={setShowPrices}
-          onStatusFilter={setStatusFilter}
-          onClearFilters={clearFilters}
           activeChannels={activeChannels}
           onToggleChannel={toggleChannel}
           activeStatuses={activeStatuses}
           onToggleStatus={toggleStatus}
-          onBlockPeriod={() => setBlockDialogOpen(true)}
           leftOffset={propertyColWidth}
-          urgencyAnimation={urgencyAnimation}
-          onUrgencyAnimationChange={setUrgencyAnimation}
         />
       </Box>
 
