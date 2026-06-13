@@ -29,7 +29,13 @@ export default function HeaderSearchField({ value, onChange, placeholder }: Head
         <IconButton
           aria-label={ph}
           onClick={() => setOpen(true)}
-          sx={{ flexShrink: 0, position: 'relative', color: active ? 'var(--accent)' : undefined }}
+          sx={{
+            flexShrink: 0,
+            position: 'relative',
+            color: active ? 'var(--accent)' : undefined,
+            // Survol à la TEINTE configurée (var(--accent)) au lieu du --ink global.
+            '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
+          }}
         >
           <Search size={18} strokeWidth={2} />
           {active && (
