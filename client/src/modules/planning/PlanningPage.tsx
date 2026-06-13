@@ -532,7 +532,6 @@ const PlanningPage: React.FC = () => {
           onToggleChannel={toggleChannel}
           activeStatuses={activeStatuses}
           onToggleStatus={toggleStatus}
-          leftOffset={propertyColWidth}
         />
       </Box>
 
