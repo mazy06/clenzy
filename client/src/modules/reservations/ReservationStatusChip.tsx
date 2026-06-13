@@ -8,6 +8,7 @@ import {
 } from '../planning/constants';
 import { getSourceLogo } from '../planning/utils/sourceLogos';
 import { useTranslation } from '../../hooks/useTranslation';
+import { toneTokensSx } from '../../components/StatusChip';
 
 // ─── Statuts : couleurs VALIDÉES planning (constantes locales planning) ──────
 //
@@ -22,16 +23,10 @@ const STATUS_SOFT: Record<string, string> = {
   cancelled: 'var(--hover)',
 };
 
-/** Pilule soft : fond doux + texte couleur (rayon/typo portés par le thème). */
+/** Pilule soft : tons partagés (toneTokensSx) + rayon pilule conservé. */
 const chipSx = (bg: string, color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-  border: 'none',
+  ...toneTokensSx({ color, bg }),
   borderRadius: 'var(--radius-pill)',
-  '& .MuiChip-label': { px: 1 },
 });
 
 // ─── Status Chip ─────────────────────────────────────────────────────────────
