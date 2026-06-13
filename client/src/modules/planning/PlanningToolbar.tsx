@@ -48,8 +48,6 @@ interface PlanningToolbarProps {
   /** Statuts visibles (rangée Statuts) — tout sélectionné par défaut. */
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
-  /** Decalage gauche (px) pour aligner les controles avec la grille de dates. */
-  leftOffset?: number;
 }
 
 const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
@@ -183,7 +181,6 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onToggleChannel,
   activeStatuses,
   onToggleStatus,
-  leftOffset = 0,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('lg'));
@@ -207,12 +204,11 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
     >
       {/* ── Rangée 1 : navigation + mois + segmented + recherche + actions ── */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.875 }}>
-        {/* Spacer : aligne nav + mois + zoom sur la grille de dates (apres
-            la colonne logements). Compensation = padding left du toolbar (px:1.25 = 10px).
-            Disparait si leftOffset = 0. */}
-        {leftOffset > 0 && (
-          <Box sx={{ width: leftOffset - 10, flexShrink: 0 }} aria-hidden />
-        )}
+        {/* Spacer de tête flex:1 — centre le groupe nav+mois+Aujourd'hui+zoom
+            dans la zone planning. Symétrique au spacer de queue → centrage qui
+            s'adapte à la largeur de contenu (donc à l'écran ET à l'état de la
+            sidebar, le contenu étant un flex-sibling de la sidebar). */}
+        <Box sx={{ flex: 1, minWidth: 8 }} aria-hidden />
 
         {/* Navigation */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
