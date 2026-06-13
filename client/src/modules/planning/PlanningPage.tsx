@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, CircularProgress, Alert, Typography, TextField, InputAdornment, Chip, Button, Tooltip } from '@mui/material';
-import { CalendarMonth, Search, CalendarToday as CalendarTodayIcon, Add } from '../../icons';
+import { Box, CircularProgress, Alert, Typography, Button, Tooltip, IconButton } from '@mui/material';
+import { CalendarMonth, Add, CloudDownload } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
+import HeaderSearchField from '../../components/HeaderSearchField';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
@@ -450,63 +451,21 @@ const PlanningPage: React.FC = () => {
             subtitle={headerSubtitle}
             showBackButton={false}
             filters={
-              <TextField
-                size="small"
-                placeholder="Rechercher..."
+              <HeaderSearchField
                 value={filters.searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><Search size={14} strokeWidth={1.75} /></Box>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  width: 180,
-                  '& .MuiOutlinedInput-root': {
-                    height: 28,
-                    fontSize: '0.6875rem',
-                    borderRadius: '9px',
-                    backgroundColor: 'var(--field)',
-                    color: 'var(--body)',
-                    '& fieldset': { borderColor: 'var(--field-line)' },
-                    '&:hover fieldset': { borderColor: 'var(--faint)' },
-                    '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: 1 },
-                    '&.Mui-focused': { boxShadow: '0 0 0 3px var(--accent-soft)' },
-                  },
-                  '& .MuiOutlinedInput-input': {
-                    py: 0.25,
-                    '&::placeholder': { color: 'var(--faint)', opacity: 1 },
-                  },
-                }}
+                onChange={setSearchQuery}
+                placeholder="Rechercher..."
               />
             }
             actions={
               <>
                 <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
-                  <Chip
-                    icon={<CalendarTodayIcon size={14} strokeWidth={1.75} />}
-                    label="Import iCal"
-                    size="small"
-                    variant="outlined"
+                  <IconButton
+                    aria-label="Importer iCal"
                     onClick={() => setIcalModalOpen(true)}
-                    sx={{
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      height: 28,
-                      borderRadius: '9px',
-                      cursor: 'pointer',
-                      backgroundColor: 'var(--card)',
-                      borderColor: 'var(--line-2)',
-                      color: 'var(--body)',
-                      '& .MuiChip-icon': { fontSize: 14, color: 'var(--muted)' },
-                      '&:hover': {
-                        backgroundColor: 'var(--hover)',
-                        borderColor: 'var(--faint)',
-                      },
-                    }}
-                  />
+                  >
+                    <CloudDownload size={18} strokeWidth={1.85} />
+                  </IconButton>
                 </Tooltip>
                 <Button
                   variant="outlined"

@@ -139,32 +139,9 @@ export default function PageHeader({
       <Box display="flex" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
         {screenIdentity ? (
           /* Mode identité : pastille + pilule(s) tiennent lieu de titre (Direction A).
-             Hubs multi-écrans → switcher sans sous-titre (densité). Écran autonome →
-             pilule unique + sous-titre conservé s'il porte une info utile
-             (ex : mois synchronisé du Planning). */
+             Plus de sous-titre/description (choix produit : header dense). */
           <Box sx={{ minWidth: 0, flex: 1, mr: 1 }}>
             <HubScreenSwitcher identity={screenIdentity} />
-            {screenIdentity.kind === 'single' && subtitle && (
-              <Typography
-                variant="caption"
-                sx={{
-                  display: 'block',
-                  mt: 0.5,
-                  ml: '40px',
-                  color: 'var(--muted)',
-                  fontSize: '11.5px',
-                  lineHeight: 1.3,
-                  ...(isCompact && {
-                    ml: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }),
-                }}
-              >
-                {subtitle}
-              </Typography>
-            )}
           </Box>
         ) : (
         /* Titre et sous-titre (avec optionally iconBadge) */
