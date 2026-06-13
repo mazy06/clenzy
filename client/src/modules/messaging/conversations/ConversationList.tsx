@@ -13,6 +13,7 @@ import {
   avatarColor,
   initials,
   formatConvTime,
+  conversationRawId,
 } from './unified';
 
 /** Filtres de la liste agrégée (.mg-subtab) — « archived » bascule la source. */
@@ -57,6 +58,7 @@ function ConversationRow({
   return (
     <Box
       onClick={onSelect}
+      data-highlight-id={conversationRawId(item) || undefined}
       sx={{
         display: 'flex',
         gap: 1.5,

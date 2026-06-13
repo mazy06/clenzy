@@ -86,7 +86,7 @@ export default function HeaderSearchField({ value, onChange, placeholder }: Head
                 boxShadow: '0 0 0 3px var(--accent-soft)',
               },
               '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'var(--faint)',
+                borderColor: 'var(--accent)',
               },
             }}
             InputProps={{

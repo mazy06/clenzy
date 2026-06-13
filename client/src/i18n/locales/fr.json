@@ -1,4 +1,18 @@
 {
+  "channexGuided": {
+    "title": "Distribuez vos logements",
+    "subtitle": "Mettez vos annonces sur Airbnb, Booking, Vrbo… et synchronisez tout depuis Baitly.",
+    "intro": "Distribuez vos logements sur Airbnb, Booking, Vrbo… en quelques clics.",
+    "importTitle": "Importer mes annonces existantes",
+    "importDesc": "Depuis Airbnb, Booking ou Vrbo — infos pré-remplies.",
+    "connectTitle": "Connecter un de mes logements",
+    "connectDesc": "Un logement déjà dans Baitly, publié sur les plateformes.",
+    "manageTitle": "Gérer mes OTA connectés",
+    "manageDesc": "Voir et déconnecter vos plateformes reliées.",
+    "techToggleShow": "État technique de la connexion",
+    "techToggleHide": "Masquer l'état technique",
+    "configuringNote": "La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de même préparer vos logements ci-dessous."
+  },
   "guestExperience": {
     "navLabel": "Réservation & accueil",
     "title": "Réservation & accueil",
@@ -396,7 +410,8 @@
     "refresh": "Actualiser",
     "expandMenu": "Ouvrir le menu",
     "collapseMenu": "Réduire le menu",
-    "ratesAt": "Taux au"
+    "ratesAt": "Taux au",
+    "download": "Télécharger"
   },
   "connectedObjects": {
     "previewBadge": "Aperçu",
@@ -725,7 +740,14 @@
       "viewAll": "Voir tous les contrats",
       "moreContracts": "+{{count}} autre(s)",
       "noPayouts": "Aucun cycle de paiement",
-      "avgRate": "Taux moyen"
+      "avgRate": "Taux moyen",
+      "mergedTitle": "Gestion & reversements",
+      "reversed": "Reversé",
+      "toReverse": "À reverser",
+      "inTransit": "En cours",
+      "nextPayoutPrefix": "Prochain reversement le",
+      "noNextPayout": "Aucun reversement planifié",
+      "viewPayouts": "Voir les reversements"
     },
     "miniPlanning": {
       "title": "Planning 7 jours",
@@ -1332,6 +1354,21 @@
         "DEEP_CLEANING": "En profondeur"
       }
     },
+    "kpi": {
+      "occupancy": "occup.",
+      "adr": "ADR",
+      "revenue": "revenu"
+    },
+    "ops": {
+      "occupied": "Occupé",
+      "available": "Disponible",
+      "checkout": "Check-out",
+      "cleaning": "Ménage",
+      "maintenance": "Maintenance",
+      "inProgress": "en cours",
+      "today": "aujourd'hui",
+      "tomorrow": "demain"
+    },
     "cleaningEstimate": "Estimation ménage",
     "cleaningEstimateTooltip": "Calculé en temps réel à partir de la configuration tarifaire du ménage (surface, chambres, salles de bain, étages, prestations). Ce montant peut différer du coût figé sur les interventions.",
     "cleaningDurationTooltip": "Durée estimée de l'intervention ménage basée sur les caractéristiques du logement. La durée réelle peut varier.",
@@ -1342,6 +1379,25 @@
     "addressAutocomplete": "Rechercher une adresse..."
   },
   "serviceRequests": {
+    "detail": {
+      "contextLabel": "Demande de service"
+    },
+    "progressLabels": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "inProgress": "En cours",
+      "completed": "Terminé"
+    },
+    "layout": {
+      "timeDetail": "Détail du temps",
+      "propertyCleaningDuration": "Durée ménage (propriété)",
+      "bedroomsShort": "ch.",
+      "bathroomsShort": "SDB",
+      "guestsShort": "voyag.",
+      "floorsShort": "étages",
+      "exterior": "Extérieur",
+      "laundry": "Linge"
+    },
     "title": "Demandes de service",
     "subtitle": "Gestion des demandes de maintenance et nettoyage",
     "create": "Nouvelle demande",
@@ -1506,6 +1562,18 @@
     "approvedDateShort": "Approuvé le"
   },
   "interventions": {
+    "due": {
+      "overdue": "En retard de {{count}} j",
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "inDays": "Dans {{count}} j"
+    },
+    "kpi": {
+      "due": "Échéance",
+      "cost": "Coût est.",
+      "duration": "Durée",
+      "progress": "Avancement"
+    },
     "title": "Interventions",
     "subtitle": "Liste de toutes les interventions de votre organisation, filtrable par type, statut, priorité, équipe ou propriété. Création, planification et suivi en temps réel.",
     "create": "Nouvelle intervention",
@@ -1639,6 +1707,8 @@
     "detail": {
       "title": "Détails de l'intervention",
       "subtitle": "Consultation et gestion des informations de l'intervention",
+      "contextLabel": "Intervention",
+      "workflowTitle": "Suivi de l'intervention",
       "backToList": "Retour aux interventions",
       "editButton": "Modifier",
       "unauthorized": "Accès non autorisé",
@@ -3408,6 +3478,9 @@
       "searchTag": "Rechercher un tag..."
     },
     "history": {
+      "pdfPreview": "Aperçu du document",
+      "pdfNotSupported": "Votre navigateur ne supporte pas la visualisation PDF.",
+      "pdfLoadError": "Erreur lors du chargement du document",
       "filterAll": "Tous",
       "filterMessages": "Messages",
       "filterDocuments": "Documents",

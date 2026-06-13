@@ -184,3 +184,15 @@
 [data-theme="dark"][data-accent="violet"]     { --accent:#A77FE8; --accent-deep:#9168DC; --accent-soft:rgba(167,127,232,.18); }
 [data-theme="dark"][data-accent="ocean"]      { --accent:#5C90EE; --accent-deep:#4A7DE6; --accent-soft:rgba(92,144,238,.18); }
 [data-theme="dark"][data-accent="slate"]      { --accent:#7FA3B1; --accent-deep:#6E91A0; --accent-soft:rgba(127,163,177,.18); }
+
+/* ───────────────────────────────────────────────────────────────────────
+   ACCENT DE MARQUE FIGÉ  —  pages publiques (login, inscription, landing)
+   ──────────────────────────────────────────────────────────────────────
+   Avant connexion il n'y a PAS d'utilisateur : l'accent per-user hérité de
+   <html data-accent> (résidu localStorage du dernier compte connecté sur ce
+   device) ne doit pas teinter ces écrans. On fige la teinte de marque
+   (slate bleu-gris #5F7E8C, cohérente avec le logo / le hero / les liens) sur
+   tout le sous-arbre, quel que soit data-accent. Appliqué via
+   className="brand-accent" sur la racine AuthLayout. */
+.brand-accent           { --accent:#5F7E8C; --accent-deep:#4E6E7C; --accent-soft:rgba(95,126,140,.10); }
+[data-theme="dark"] .brand-accent { --accent:#7FA3B1; --accent-deep:#6E91A0; --accent-soft:rgba(127,163,177,.18); }

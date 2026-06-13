@@ -5,7 +5,7 @@ import {
   SquareFoot as RulerIcon,
   People as UsersIcon,
   LocationCity as BuildingIcon,
-  CleaningServices as SparklesIcon,
+  AutoAwesome as SparklesIcon,
   Description as FileTextIcon,
   RequestQuote as FilePenIcon,
   Check as CheckIcon,

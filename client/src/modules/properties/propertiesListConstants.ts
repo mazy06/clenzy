@@ -65,3 +65,54 @@ export const FIELD_CHIP_SX = {
   border: '1px solid var(--field-line)',
   '& .MuiChip-icon': { color: 'var(--accent)' },
 } as const;
+
+// ─── Vignette « Signature » : dégradé déterministe par logement ──────────────
+// La maquette propriétés (.pr-img / .pr-lthumb) utilise un dégradé 135° propre
+// à chaque logement (placeholder). On le dérive d'un hash stable de l'identité
+// du logement : teinte unique reproductible, palette terre/slate sourde (faible
+// saturation, luminosité moyenne) pour rester sobre derrière l'icône blanche.
+// Ces hex sont des couleurs « data » de vignette placeholder (pas des tokens UI) :
+// quand une vraie photo existe, elle se superpose au dégradé (fallback).
+
+/** Hash 32-bit déterministe (djb2) d'une chaîne — stable, sans dépendance. */
+function hashString(input: string): number {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) + hash + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+/** Convertit H(0-360) S(%) L(%) en hex. */
+function hslToHex(h: number, s: number, l: number): string {
+  const sat = s / 100;
+  const lum = l / 100;
+  const a = sat * Math.min(lum, 1 - lum);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const c = lum - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+/**
+ * Deux teintes désaturées (terre/slate) dérivées de l'identité du logement,
+ * pour un dégradé `linear-gradient(135deg, hueA, hueB)` reproductible.
+ * Saturation basse (18-26%), luminosité moyenne (52-62%) → sobre, façon les
+ * 8 `hue` de la maquette. Renvoie `[hueA, hueB]`.
+ */
+export function propertyGradientHues(seed: string): [string, string] {
+  const h = hashString(seed);
+  const baseHue = h % 360;
+  const sat = 18 + (h % 9); // 18-26 %
+  const lightA = 60;
+  const lightB = 48;
+  return [hslToHex(baseHue, sat, lightA), hslToHex((baseHue + 18) % 360, sat + 4, lightB)];
+}
+
+/** CSS du dégradé de vignette « Signature » pour un logement (seed = id/nom). */
+export function propertyGradientCss(seed: string): string {
+  const [a, b] = propertyGradientHues(seed);
+  return `linear-gradient(135deg, ${a}, ${b})`;
+}

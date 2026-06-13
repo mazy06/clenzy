@@ -2,7 +2,6 @@ package com.clenzy.service;
 
 import com.clenzy.exception.DocumentGenerationException;
 import com.clenzy.model.DocumentTemplate;
-import com.clenzy.model.DocumentTemplateTag;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.Property;
@@ -10,7 +9,6 @@ import com.clenzy.model.ProviderExpense;
 import com.clenzy.model.ReceivedForm;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.ServiceRequest;
-import com.clenzy.model.TagType;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
@@ -128,8 +126,9 @@ public class DocumentPreviewService {
                 context.put("nf", nfTags);
             }
 
-            // Placeholder pour les tags non resolus (evite le crash Freemarker)
-            ensurePreviewTagsPresent(template, context);
+            // Placeholder pour les tags non resolus (evite le crash Freemarker).
+            // Variante visible : champ manquant -> "—" pour que la preview montre les zones a remplir.
+            renderer.fillMissingTags(template, context, true);
 
             byte[] filledOdt = renderer.fillTemplate(templateContent, context);
             return conversionService.convertToPdf(filledOdt, template.getOriginalFilename());
@@ -153,7 +152,7 @@ public class DocumentPreviewService {
      * <p>
      * Defensive : si TagResolverService leve (donnees corrompues, FK manquante),
      * on log warn et on continue avec un contexte vide — la preview reste
-     * generable avec des placeholders via {@code ensurePreviewTagsPresent}.
+     * generable avec des placeholders via {@link DocumentTemplateRenderer#fillMissingTags}.
      */
     private Map<String, Object> buildPreviewContext(DocumentTemplate template) {
         DocumentType type = template.getDocumentType();
@@ -178,6 +177,9 @@ public class DocumentPreviewService {
                 template.getName(), type);
         return new LinkedHashMap<>();
     }
+
+    // NB : le remplissage tolerant des tags manquants (placeholders typees) est
+    // delegue a DocumentTemplateRenderer.fillMissingTags(..., true) — voir generatePreview().
 
     /**
      * Ordre de preference des types de reference pour generer un preview
@@ -218,46 +220,4 @@ public class DocumentPreviewService {
         };
     }
 
-    /**
-     * Pour les tags non resolus par TagResolverService, injecte une valeur
-     * placeholder typee (List vide, Boolean false, "—") afin que Freemarker
-     * ne plante pas. Variant non-throwing de
-     * {@link DocumentTemplateRenderer#ensureTemplateTagsPresent} — en preview on
-     * veut produire un PDF visible, pas remonter une erreur.
-     */
-    @SuppressWarnings("unchecked")
-    private void ensurePreviewTagsPresent(DocumentTemplate template, Map<String, Object> context) {
-        List<DocumentTemplateTag> tags = template.getTags();
-        if (tags == null || tags.isEmpty()) return;
-
-        for (DocumentTemplateTag tag : tags) {
-            String tagName = tag.getTagName();
-            if (tagName == null || !tagName.contains(".")) continue;
-            int dotIndex = tagName.indexOf('.');
-            String group = tagName.substring(0, dotIndex);
-            String field = tagName.substring(dotIndex + 1);
-            TagType tagType = tag.getTagType() != null ? tag.getTagType() : TagType.SIMPLE;
-
-            Object groupObj = context.get(group);
-            Map<String, Object> groupMap;
-            if (groupObj instanceof Map) {
-                groupMap = (Map<String, Object>) groupObj;
-            } else {
-                groupMap = new LinkedHashMap<>();
-                context.put(group, groupMap);
-            }
-            if (!groupMap.containsKey(field)) {
-                groupMap.put(field, previewPlaceholderForType(tagType));
-            }
-        }
-    }
-
-    private Object previewPlaceholderForType(TagType type) {
-        return switch (type) {
-            case LIST -> List.of();
-            case CONDITIONAL -> Boolean.FALSE;
-            case IMAGE -> "";
-            default -> "—";
-        };
-    }
 }

@@ -297,6 +297,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
 
   return (
     <Box
+      // brand-accent : fige l'accent sur la teinte de marque par défaut
+      // (émeraude) — pas de couleur per-user avant connexion (cf. tokens.css).
+      className="brand-accent"
       sx={{
         minHeight: '100vh',
         display: 'flex',

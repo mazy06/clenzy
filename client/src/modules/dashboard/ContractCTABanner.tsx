@@ -58,7 +58,14 @@ interface ContractRow {
 
 interface SummaryData {
   totalCommissions: number;
-  totalOwnerPayouts: number;
+  /** Net déjà reversé aux propriétaires (statut PAID). */
+  reversed: number;
+  /** Net dû aux propriétaires, généré mais pas encore versé (PENDING + APPROVED). */
+  toReverse: number;
+  /** Net en cours de versement (statut PROCESSING). */
+  inTransit: number;
+  /** Échéance du prochain reversement planifié (periodEnd ISO le plus proche) ou null. */
+  nextDate: string | null;
   hasPayoutData: boolean;
   avgRate: number;
   rows: ContractRow[];
@@ -69,46 +76,62 @@ function computeSummary(
   payouts: OwnerPayout[],
   propertyMap: Map<number, string>,
 ): SummaryData {
-  // Group payouts by ownerId → total commission & net amounts
-  const payoutByOwner = new Map<number, { commission: number; net: number }>();
-  for (const p of payouts) {
-    const prev = payoutByOwner.get(p.ownerId) ?? { commission: 0, net: 0 };
-    payoutByOwner.set(p.ownerId, {
-      commission: prev.commission + p.commissionAmount,
-      net: prev.net + p.netAmount,
-    });
+  // Périmètre = propriétaires sous contrat actif (un payout est par-owner par-période).
+  const ownersWithContract = new Set(contracts.map((c) => c.ownerId));
+  const scoped = payouts.filter((p) => ownersWithContract.has(p.ownerId));
+
+  // Commission cumulée par owner (toutes périodes) → lignes + total commissions.
+  const commissionByOwner = new Map<number, number>();
+  for (const p of scoped) {
+    commissionByOwner.set(p.ownerId, (commissionByOwner.get(p.ownerId) ?? 0) + p.commissionAmount);
   }
 
-  const hasPayoutData = payouts.length > 0;
-
-  const rows: ContractRow[] = contracts.map((c) => {
-    const ownerData = payoutByOwner.get(c.ownerId);
-    return {
-      id: c.id,
-      propertyName: propertyMap.get(c.propertyId) ?? c.contractNumber,
-      commissionRate: c.commissionRate,
-      commissionAmount: ownerData?.commission ?? null,
-    };
-  });
-
-  // Totals are summed per distinct owner — a payout is per-owner per-period, so an
-  // owner with several contracts/properties must only be counted once (double-count fix).
-  const ownersWithContract = new Set(contracts.map((c) => c.ownerId));
-  let totalCommissions = 0;
-  let totalOwnerPayouts = 0;
-  for (const ownerId of ownersWithContract) {
-    const ownerData = payoutByOwner.get(ownerId);
-    if (ownerData) {
-      totalCommissions += ownerData.commission;
-      totalOwnerPayouts += ownerData.net;
+  // Net reversé ventilé par statut (source unique : les payouts déjà chargés).
+  let reversed = 0;
+  let toReverse = 0;
+  let inTransit = 0;
+  let nextDate: string | null = null;
+  for (const p of scoped) {
+    if (p.status === 'PAID') {
+      reversed += p.netAmount;
+    } else if (p.status === 'PENDING' || p.status === 'APPROVED') {
+      toReverse += p.netAmount;
+      // periodEnd la plus proche = prochaine échéance de reversement.
+      if (!nextDate || p.periodEnd < nextDate) nextDate = p.periodEnd;
+    } else if (p.status === 'PROCESSING') {
+      inTransit += p.netAmount;
     }
+  }
+
+  const hasPayoutData = scoped.length > 0;
+
+  const rows: ContractRow[] = contracts.map((c) => ({
+    id: c.id,
+    propertyName: propertyMap.get(c.propertyId) ?? c.contractNumber,
+    commissionRate: c.commissionRate,
+    commissionAmount: commissionByOwner.has(c.ownerId) ? commissionByOwner.get(c.ownerId)! : null,
+  }));
+
+  let totalCommissions = 0;
+  for (const ownerId of ownersWithContract) {
+    totalCommissions += commissionByOwner.get(ownerId) ?? 0;
   }
 
   const avgRate = contracts.length > 0
     ? contracts.reduce((s, c) => s + c.commissionRate, 0) / contracts.length
     : 0;
 
-  return { totalCommissions, totalOwnerPayouts, hasPayoutData, avgRate, rows };
+  return { totalCommissions, reversed, toReverse, inTransit, nextDate, hasPayoutData, avgRate, rows };
+}
+
+/** Échéance ISO yyyy-MM-dd → libellé FR lisible (ou null si pas de date). */
+function formatNextDate(iso: string | null): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(`${iso}T00:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return iso;
+  }
 }
 
 // ─── Formatting helpers ────────────────────────────────────────────────────
@@ -193,104 +216,90 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
     const visibleRows = summary.rows.slice(0, MAX_VISIBLE);
     const remaining = summary.rows.length - MAX_VISIBLE;
 
+    // KPI fusionnés : commissions agence + ventilation des reversements par statut.
+    const kpis = [
+      { label: t('dashboard.contractCta.commissions'), value: summary.totalCommissions },
+      { label: t('dashboard.contractCta.reversed', 'Reversé'), value: summary.reversed },
+      { label: t('dashboard.contractCta.toReverse', 'À reverser'), value: summary.toReverse },
+      { label: t('dashboard.contractCta.inTransit', 'En cours'), value: summary.inTransit },
+    ];
+    const nextLabel = summary.nextDate
+      ? `${t('dashboard.contractCta.nextPayoutPrefix', 'Prochain reversement le')} ${formatNextDate(summary.nextDate)}`
+      : t('dashboard.contractCta.noNextPayout', 'Aucun reversement planifié');
+
     return (
       <Box
         sx={{
-          bgcolor: 'var(--card)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius-lg)',
-          p: 2,
+          background: 'linear-gradient(135deg, var(--chrome-1), var(--chrome-2))',
+          border: '1px solid var(--chrome-line)',
+          borderRadius: '14px',
+          p: '18px',
+          color: '#fff',
           display: 'flex',
           flexDirection: 'column',
-          gap: 1.25,
+          gap: '14px',
         }}
       >
         {/* ── Header ──────────────────────────────────────────────── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: C.success }}><Handshake size={16} strokeWidth={1.75} /></Box>
-            <Typography
-              sx={{
-                fontSize: '10.5px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--faint)',
-              }}
-            >
-              {t('dashboard.contractCta.activeTitle')}
-            </Typography>
-          </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: '#fff' }}><Handshake size={15} strokeWidth={2} /></Box>
+          <Typography component="span" sx={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--chrome-text)' }}>
+            {t('dashboard.contractCta.mergedTitle', 'Gestion & reversements')}
+          </Typography>
           <Chip
             label={contracts.length}
             size="small"
             sx={{
+              ml: 'auto',
               height: 20,
               fontSize: '0.65rem',
               fontWeight: 700,
               fontVariantNumeric: 'tabular-nums',
-              bgcolor: 'var(--ok-soft)',
-              color: C.success,
+              bgcolor: 'rgba(255,255,255,.12)',
+              color: '#fff',
             }}
           />
         </Box>
 
-        {/* ── Financial summary (only if payouts exist) ───────────── */}
+        {/* ── Synthèse financière ─────────────────────────────────── */}
         {summary.hasPayoutData ? (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {/* Commissions */}
-            <Box
-              sx={{
-                flex: 1,
-                p: 1,
-                borderRadius: 'var(--radius-md)',
-                bgcolor: 'var(--ok-soft)',
-              }}
-            >
-              <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', fontWeight: 600, mb: 0.25 }}>
-                {t('dashboard.contractCta.commissions')}
-              </Typography>
-              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', fontWeight: 600, color: C.success, fontVariantNumeric: 'tabular-nums' }}>
-                {fmtCurrency(summary.totalCommissions)}
-              </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              {kpis.map((kpi) => (
+                <Box
+                  key={kpi.label}
+                  sx={{
+                    minWidth: 0,
+                    backgroundColor: 'rgba(255,255,255,.05)',
+                    border: '1px solid var(--chrome-line)',
+                    borderRadius: '10px',
+                    p: '10px 12px',
+                  }}
+                >
+                  <Typography sx={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--chrome-faint)' }}>
+                    {kpi.label}
+                  </Typography>
+                  <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, mt: '3px', fontVariantNumeric: 'tabular-nums' }}>
+                    {fmtCurrency(kpi.value)}
+                  </Typography>
+                </Box>
+              ))}
             </Box>
-            {/* Owner payouts */}
-            <Box
-              sx={{
-                flex: 1,
-                p: 1,
-                borderRadius: 'var(--radius-md)',
-                bgcolor: 'var(--accent-soft)',
-              }}
-            >
-              <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', fontWeight: 600, mb: 0.25 }}>
-                {t('dashboard.contractCta.ownerPayouts')}
-              </Typography>
-              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', fontWeight: 600, color: C.primary, fontVariantNumeric: 'tabular-nums' }}>
-                {fmtCurrency(summary.totalOwnerPayouts)}
-              </Typography>
-            </Box>
+            <Typography sx={{ fontSize: '12px', color: 'var(--chrome-text)' }}>{nextLabel}</Typography>
           </Box>
         ) : (
-          <Box
-            sx={{
-              p: 1,
-              borderRadius: 'var(--radius-md)',
-              bgcolor: 'var(--hover)',
-              textAlign: 'center',
-            }}
-          >
-            <Typography sx={{ fontSize: '0.65rem', color: 'text.disabled', fontWeight: 500 }}>
+          <Box sx={{ p: '11px 12px', borderRadius: '10px', backgroundColor: 'rgba(255,255,255,.05)', border: '1px solid var(--chrome-line)', textAlign: 'center' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: 'var(--chrome-faint)', fontWeight: 500 }}>
               {t('dashboard.contractCta.noPayouts')}
             </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontWeight: 600, mt: 0.25 }}>
+            <Typography sx={{ fontSize: '0.75rem', color: '#fff', fontWeight: 600, mt: 0.25 }}>
               {t('dashboard.contractCta.avgRate')}: {fmtPercent(summary.avgRate)}
             </Typography>
           </Box>
         )}
 
-        {/* ── Contract rows ───────────────────────────────────────── */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        {/* ── Lignes de contrat (clic → /contracts) ───────────────── */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
           {visibleRows.map((row) => (
             <Tooltip key={row.id} title={row.propertyName} placement="left" arrow>
               <Box
@@ -301,12 +310,11 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
                   gap: 0.75,
                   px: 1,
                   py: 0.5,
-                  borderRadius: 'var(--radius-sm)',
+                  borderRadius: '8px',
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: 'var(--hover)' },
+                  '&:hover': { backgroundColor: 'rgba(255,255,255,.06)' },
                 }}
               >
-                {/* Color dot */}
                 <Box
                   sx={{
                     width: 7,
@@ -316,13 +324,12 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
                     flexShrink: 0,
                   }}
                 />
-                {/* Property name */}
                 <Typography
                   sx={{
                     flex: 1,
                     fontSize: '0.68rem',
                     fontWeight: 600,
-                    color: 'text.primary',
+                    color: 'rgba(255,255,255,.92)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -330,25 +337,16 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
                 >
                   {row.propertyName}
                 </Typography>
-                {/* Rate chip */}
-                <Typography
-                  sx={{
-                    fontSize: '0.6rem',
-                    fontWeight: 600,
-                    color: 'text.disabled',
-                    flexShrink: 0,
-                  }}
-                >
+                <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--chrome-faint)', flexShrink: 0 }}>
                   {fmtPercent(row.commissionRate)}
                 </Typography>
-                {/* Amount */}
                 {row.commissionAmount != null && (
                   <Typography
                     sx={{
                       fontFamily: 'var(--font-display)',
                       fontSize: '0.68rem',
                       fontWeight: 600,
-                      color: C.success,
+                      color: '#fff',
                       fontVariantNumeric: 'tabular-nums',
                       flexShrink: 0,
                     }}
@@ -361,33 +359,33 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
           ))}
 
           {remaining > 0 && (
-            <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', textAlign: 'center', mt: 0.25 }}>
+            <Typography sx={{ fontSize: '0.6rem', color: 'var(--chrome-faint)', textAlign: 'center', mt: 0.25 }}>
               {t('dashboard.contractCta.moreContracts', { count: remaining })}
             </Typography>
           )}
         </Box>
 
-        {/* ── Footer ──────────────────────────────────────────────── */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 'auto' }}>
-          <Button
-            size="small"
-            onClick={() => navigate('/contracts')}
-            endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
-            sx={{
-              fontSize: '0.68rem',
-              fontWeight: 600,
-              textTransform: 'none',
-              color: C.success,
-              px: 1,
-              py: 0.25,
-              minWidth: 0,
-              borderRadius: 'var(--radius-sm)',
-              '&:hover': { bgcolor: 'var(--ok-soft)' },
-            }}
-          >
-            {t('dashboard.contractCta.viewAll')}
-          </Button>
-        </Box>
+        {/* ── Footer : accès aux reversements ─────────────────────── */}
+        <Button
+          onClick={() => navigate('/billing')}
+          disableRipple
+          endIcon={<ArrowForward size={14} strokeWidth={2} />}
+          sx={{
+            mt: 'auto',
+            width: '100%',
+            height: 38,
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontSize: '12.5px',
+            fontWeight: 600,
+            color: '#fff',
+            backgroundColor: 'rgba(255,255,255,.1)',
+            border: 0,
+            '&:hover': { backgroundColor: 'rgba(255,255,255,.16)' },
+          }}
+        >
+          {t('dashboard.contractCta.viewPayouts', 'Voir les reversements')}
+        </Button>
       </Box>
     );
   }

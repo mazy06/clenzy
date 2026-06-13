@@ -33,6 +33,7 @@ import {
 } from '@mui/material';
 import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
+import { useTranslation } from '../../../hooks/useTranslation';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import {
   channexApi,
@@ -56,6 +57,14 @@ import { OTA_LOGO_BY_CODE } from './OtaSyncBadges';
 interface ChannexMappingDialogProps {
   open: boolean;
   onClose: () => void;
+  /**
+   * Mode guide (end-user) : utilise depuis le dashboard. Reformule l'ecran de
+   * choix initial de maniere plus chaleureuse, masque le diagnostic technique
+   * derriere un toggle discret, et degrade gracieusement si l'API Channex
+   * (incomplete) echoue (les 3 cards restent cliquables). Defaut false =
+   * comportement identique a l'integration Settings (inchange).
+   */
+  guided?: boolean;
 }
 
 interface ConnectFormState {
@@ -115,7 +124,19 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
   );
 }
 
-export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDialogProps) {
+export default function ChannexMappingDialog({ open, onClose, guided = false }: ChannexMappingDialogProps) {
+  const { t } = useTranslation();
+  /**
+   * Mode guide : le diagnostic technique (ChannexPreflightBanner) est masque
+   * par defaut et expose derriere ce toggle discret. Jamais de HTTP 401 /
+   * CHANNEX_API_KEY auto-affiche a l'utilisateur final.
+   */
+  const [showTechStatus, setShowTechStatus] = useState(false);
+  /**
+   * Mode guide : si un appel channexApi echoue (API incomplete), on n'affiche
+   * pas d'erreur effrayante mais une note calme. Les 3 cards restent cliquables.
+   */
+  const [guidedDegraded, setGuidedDegraded] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const [mappings, setMappings] = useState<Map<number, ChannexMappingDto>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -183,6 +204,9 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
   useEffect(() => {
     if (open) {
       setView('CHOICE');
+      // Mode guide : on repart d'un etat propre (diagnostic replie, pas de note degradee)
+      setShowTechStatus(false);
+      setGuidedDegraded(false);
     }
   }, [open]);
 
@@ -194,13 +218,20 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
       const list = await channexApi.listConnectedOtas();
       setConnectedOtas(list);
     } catch (err) {
-      setOtasError(err instanceof Error
-        ? err.message
-        : 'Impossible de charger la liste des OTAs connectes.');
+      // Mode guide : on n'affiche pas d'erreur technique. La vue MANAGE_OTAS
+      // retombe sur son etat vide naturel (liste vide) + note calme.
+      if (guided) {
+        setConnectedOtas([]);
+        setGuidedDegraded(true);
+      } else {
+        setOtasError(err instanceof Error
+          ? err.message
+          : 'Impossible de charger la liste des OTAs connectes.');
+      }
     } finally {
       setOtasLoading(false);
     }
-  }, []);
+  }, [guided]);
 
   useEffect(() => {
     if (open && view === 'MANAGE_OTAS') {
@@ -251,13 +282,21 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
       for (const m of mappingsRes) map.set(m.clenzyPropertyId, m);
       setMappings(map);
     } catch (err) {
-      setGlobalError(err instanceof Error ? err.message : 'Erreur lors du chargement.');
+      // Mode guide : degradation gracieuse. Le chargement des mappings peut
+      // echouer (API Channex incomplete) alors que la liste des proprietes a
+      // pu charger ; on conserve ce qu'on a et on affiche une note calme au
+      // lieu d'une erreur technique. Les 3 cards restent cliquables.
+      if (guided) {
+        setGuidedDegraded(true);
+      } else {
+        setGlobalError(err instanceof Error ? err.message : 'Erreur lors du chargement.');
+      }
     } finally {
       setLoading(false);
     }
     // Fetch parallele du compteur de drifts (best-effort, ne bloque pas le main)
     void refreshDriftsCount();
-  }, [refreshDriftsCount]);
+  }, [refreshDriftsCount, guided]);
 
   useEffect(() => {
     if (open) refresh();
@@ -419,6 +458,37 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
 
   const ACCENT = 'var(--accent)';
 
+  // Carte d'action « choix » — style Signature (tokens, hover accent, sans
+  // transform). NB : `${ACCENT}1A` était invalide (var() + alpha) → on utilise
+  // les tokens dédiés var(--accent-soft).
+  const choiceCardSx = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1.5,
+    width: '100%',
+    p: '14px 16px',
+    borderRadius: '12px',
+    border: '1px solid var(--line)',
+    bgcolor: 'var(--card)',
+    textAlign: 'left',
+    cursor: 'pointer',
+    transition: 'border-color .15s, background-color .15s',
+    '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
+    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+  } as const;
+  const choiceIconSx = {
+    width: 40,
+    height: 40,
+    borderRadius: '10px',
+    bgcolor: 'var(--accent-soft)',
+    color: 'var(--accent)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  } as const;
+
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -448,12 +518,16 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography sx={{ fontSize: '0.95rem', fontWeight: 700 }}>
                 {view === 'CHOICE'
-                  ? 'Distribution OTA — Que voulez-vous faire ?'
+                  ? (guided
+                    ? t('channexGuided.title', 'Distribuez vos logements')
+                    : 'Distribution OTA — Que voulez-vous faire ?')
                   : 'Connecter mes proprietes aux OTAs'}
               </Typography>
               <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                 {view === 'CHOICE'
-                  ? 'Choisissez si vous voulez importer une propriete deja en ligne, ou connecter une propriete deja dans Baitly.'
+                  ? (guided
+                    ? t('channexGuided.subtitle', 'Mettez vos annonces sur Airbnb, Booking, Vrbo… et synchronisez tout depuis Baitly.')
+                    : 'Choisissez si vous voulez importer une propriete deja en ligne, ou connecter une propriete deja dans Baitly.')
                   : 'Selectionnez une propriete pour l\'enregistrer dans le hub puis y brancher Airbnb, Booking, etc.'}
               </Typography>
             </Box>
@@ -466,24 +540,50 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
         <DialogContent sx={{ pt: 2 }}>
           {view === 'CHOICE' ? (
             <Stack spacing={1.5}>
-              {/* Quick Win #3 : Pre-flight diagnostic — verifie API, hub, capabilities
-                  AVANT que l'utilisateur n'investisse 5 minutes dans un wizard OAuth. */}
-              <ChannexPreflightBanner defaultCollapsed />
+              {/* Mode guide (end-user) : on masque le diagnostic technique et le
+                  health panel par defaut (trop techniques) et on les expose
+                  derriere un toggle discret. En mode Integrations (non guide),
+                  comportement 100% inchange. */}
+              {guided ? (
+                <>
+                  {/* Note calme de degradation gracieuse : si un appel Channex a
+                      echoue (API incomplete), on ne montre PAS d'erreur technique. */}
+                  {guidedDegraded && (
+                    <Alert
+                      severity="info"
+                      variant="outlined"
+                      icon={<Clock size={16} />}
+                      sx={{ fontSize: '0.78rem', alignItems: 'center' }}
+                    >
+                      {t(
+                        'channexGuided.configuringNote',
+                        'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
+                      )}
+                    </Alert>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Quick Win #3 : Pre-flight diagnostic — verifie API, hub, capabilities
+                      AVANT que l'utilisateur n'investisse 5 minutes dans un wizard OAuth. */}
+                  <ChannexPreflightBanner defaultCollapsed />
 
-              {/* Phase 2 : Health summary — counts par status + items meritant attention,
-                  click sur un item ouvre le diagnose pour cette property. */}
-              <ChannexHealthSummaryPanel
-                onAttentionItemClick={(item) => setDiagnoseTarget({
-                  propertyId: item.clenzyPropertyId,
-                  propertyName: item.propertyName,
-                })}
-              />
+                  {/* Phase 2 : Health summary — counts par status + items meritant attention,
+                      click sur un item ouvre le diagnose pour cette property. */}
+                  <ChannexHealthSummaryPanel
+                    onAttentionItemClick={(item) => setDiagnoseTarget({
+                      propertyId: item.clenzyPropertyId,
+                      propertyName: item.propertyName,
+                    })}
+                  />
+                </>
+              )}
 
               {/* Phase 5 audit O1 : bouton ouverture du dialog Price Drifts.
                   Phase 5 audit UX fix : masque le bouton tant qu'il n'y a aucun
                   drift actif — un bouton orange visible suggererait un probleme
                   alors qu'il n'y en a pas. Affiche le count en suffixe quand > 0. */}
-              {activeDriftsCount > 0 && (
+              {!guided && activeDriftsCount > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button
                     size="small"
@@ -500,68 +600,38 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                 </Box>
               )}
 
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', lineHeight: 1.5, mb: 0.5 }}
-              >
-                Deux scenarios possibles selon votre situation :
-              </Typography>
+              {!guided && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', lineHeight: 1.5, mb: 0.5 }}
+                >
+                  Deux scenarios possibles selon votre situation :
+                </Typography>
+              )}
 
               {/* Card 1 : Importer une propriete deja en ligne dans un OTA */}
               <ButtonBase
                 onClick={() => setImportDialogOpen(true)}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 2,
-                  width: '100%',
-                  p: 2,
-                  borderRadius: 1.5,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  '&:hover': {
-                    borderColor: ACCENT,
-                    bgcolor: `${ACCENT}06`,
-                    transform: 'translateX(2px)',
-                  },
-                  '&:focus-visible': {
-                    outline: `2px solid ${ACCENT}`,
-                    outlineOffset: 2,
-                  },
-                }}
+                sx={choiceCardSx}
               >
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 1.5,
-                    bgcolor: `${ACCENT}1A`,
-                    color: ACCENT,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
+                <Box sx={choiceIconSx}>
                   <Globe size={22} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="body2" fontWeight={700} sx={{ mb: 0.25 }}>
-                    Importer une propriete deja en ligne
+                    {guided
+                      ? t('channexGuided.importTitle', 'Importer mes annonces existantes')
+                      : 'Importer une propriete deja en ligne'}
                   </Typography>
                   <Typography
                     variant="caption"
                     color="text.secondary"
                     sx={{ display: 'block', lineHeight: 1.5 }}
                   >
-                    Vous avez deja des listings sur Airbnb / Booking / Vrbo qui ne sont pas
-                    encore dans Baitly. Detectez et importez-les en masse avec leurs metadonnees
-                    (nom, devise, capacite) deja pre-remplies.
+                    {guided
+                      ? t('channexGuided.importDesc', 'Depuis Airbnb, Booking ou Vrbo — infos pré-remplies.')
+                      : 'Vous avez deja des listings sur Airbnb / Booking / Vrbo qui ne sont pas encore dans Baitly. Detectez et importez-les en masse avec leurs metadonnees (nom, devise, capacite) deja pre-remplies.'}
                   </Typography>
                 </Box>
                 <Box sx={{ color: 'text.disabled', flexShrink: 0, alignSelf: 'center' }}>
@@ -572,57 +642,25 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
               {/* Card 2 : Connecter une propriete deja dans le PMS */}
               <ButtonBase
                 onClick={() => setView('CONNECT_EXISTING')}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 2,
-                  width: '100%',
-                  p: 2,
-                  borderRadius: 1.5,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  '&:hover': {
-                    borderColor: ACCENT,
-                    bgcolor: `${ACCENT}06`,
-                    transform: 'translateX(2px)',
-                  },
-                  '&:focus-visible': {
-                    outline: `2px solid ${ACCENT}`,
-                    outlineOffset: 2,
-                  },
-                }}
+                sx={choiceCardSx}
               >
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 1.5,
-                    bgcolor: `${ACCENT}1A`,
-                    color: ACCENT,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
+                <Box sx={choiceIconSx}>
                   <Home size={22} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="body2" fontWeight={700} sx={{ mb: 0.25 }}>
-                    Connecter une propriete deja dans Baitly
+                    {guided
+                      ? t('channexGuided.connectTitle', 'Connecter un de mes logements')
+                      : 'Connecter une propriete deja dans Baitly'}
                   </Typography>
                   <Typography
                     variant="caption"
                     color="text.secondary"
                     sx={{ display: 'block', lineHeight: 1.5 }}
                   >
-                    Vous avez une propriete dans Baitly que vous voulez distribuer sur Airbnb,
-                    Booking, Vrbo, etc. Connectez-la au hub puis branchez les OTAs en quelques
-                    clics.
+                    {guided
+                      ? t('channexGuided.connectDesc', 'Un logement déjà dans Baitly, publié sur les plateformes.')
+                      : 'Vous avez une propriete dans Baitly que vous voulez distribuer sur Airbnb, Booking, Vrbo, etc. Connectez-la au hub puis branchez les OTAs en quelques clics.'}
                   </Typography>
                 </Box>
                 <Box sx={{ color: 'text.disabled', flexShrink: 0, alignSelf: 'center' }}>
@@ -633,66 +671,75 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
               {/* Card 3 : Gerer les OTAs connectes (voir/deconnecter Airbnb, Booking, etc.) */}
               <ButtonBase
                 onClick={() => setView('MANAGE_OTAS')}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 2,
-                  width: '100%',
-                  p: 2,
-                  borderRadius: 1.5,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  '&:hover': {
-                    borderColor: ACCENT,
-                    bgcolor: `${ACCENT}06`,
-                    transform: 'translateX(2px)',
-                  },
-                  '&:focus-visible': {
-                    outline: `2px solid ${ACCENT}`,
-                    outlineOffset: 2,
-                  },
-                }}
+                sx={choiceCardSx}
               >
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 1.5,
-                    bgcolor: `${ACCENT}1A`,
-                    color: ACCENT,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
+                <Box sx={choiceIconSx}>
                   <Link2 size={22} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="body2" fontWeight={700} sx={{ mb: 0.25 }}>
-                    Gerer les OTAs connectes
+                    {guided
+                      ? t('channexGuided.manageTitle', 'Gerer mes OTA connectes')
+                      : 'Gerer les OTAs connectes'}
                   </Typography>
                   <Typography
                     variant="caption"
                     color="text.secondary"
                     sx={{ display: 'block', lineHeight: 1.5 }}
                   >
-                    Voir tous les OTAs (Airbnb, Booking, Vrbo, ...) actuellement connectes au hub,
-                    et les deconnecter si besoin (supprime le channel + les tokens OAuth).
+                    {guided
+                      ? t('channexGuided.manageDesc', 'Voir et déconnecter vos plateformes reliées.')
+                      : 'Voir tous les OTAs (Airbnb, Booking, Vrbo, ...) actuellement connectes au hub, et les deconnecter si besoin (supprime le channel + les tokens OAuth).'}
                   </Typography>
                 </Box>
                 <Box sx={{ color: 'text.disabled', flexShrink: 0, alignSelf: 'center' }}>
                   <ChevronRight size={18} />
                 </Box>
               </ButtonBase>
+
+              {/* Mode guide : diagnostic technique masque derriere un toggle
+                  discret. Jamais auto-affiche (pas de HTTP 401 / CHANNEX_API_KEY
+                  jete a l'utilisateur final). Le banner reste replie au mount. */}
+              {guided && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', pt: 0.5 }}>
+                  <Button
+                    size="small"
+                    onClick={() => setShowTechStatus((v) => !v)}
+                    sx={{
+                      textTransform: 'none',
+                      fontSize: '0.72rem',
+                      fontWeight: 500,
+                      color: 'text.secondary',
+                      cursor: 'pointer',
+                      '&:hover': { color: 'var(--accent)', backgroundColor: 'transparent' },
+                    }}
+                  >
+                    {showTechStatus
+                      ? t('channexGuided.techToggleHide', 'Masquer l\'etat technique')
+                      : t('channexGuided.techToggleShow', 'Etat technique de la connexion')}
+                  </Button>
+                </Box>
+              )}
+              {guided && showTechStatus && <ChannexPreflightBanner defaultCollapsed />}
             </Stack>
           ) : view === 'MANAGE_OTAS' ? (
             <Stack spacing={1.5}>
-              {otasError && (
+              {/* Mode guide : si la liste des OTAs n'a pas pu charger (API
+                  incomplete), note calme au lieu d'une erreur technique. */}
+              {guided && guidedDegraded && (
+                <Alert
+                  severity="info"
+                  variant="outlined"
+                  icon={<Clock size={16} />}
+                  sx={{ fontSize: '0.78rem', alignItems: 'center' }}
+                >
+                  {t(
+                    'channexGuided.configuringNote',
+                    'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
+                  )}
+                </Alert>
+              )}
+              {!guided && otasError && (
                 <Alert severity="error" variant="outlined" sx={{ fontSize: '0.78rem' }}>
                   {otasError}
                 </Alert>
@@ -709,7 +756,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                       width: 56,
                       height: 56,
                       borderRadius: '50%',
-                      bgcolor: `${ACCENT}10`,
+                      bgcolor: 'var(--accent-soft)',
                       color: ACCENT,
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1125,7 +1172,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                 borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider',
                 borderRadius: 1.5,
                 cursor: 'pointer',
-                backgroundColor: connectForm.mode === 'AUTO_CREATE' ? `${ACCENT}10` : 'background.paper',
+                backgroundColor: connectForm.mode === 'AUTO_CREATE' ? 'var(--accent-soft)' : 'background.paper',
                 transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
                 '&:hover': { borderColor: ACCENT },
               }}
@@ -1161,7 +1208,7 @@ export default function ChannexMappingDialog({ open, onClose }: ChannexMappingDi
                 borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider',
                 borderRadius: 1.5,
                 cursor: 'pointer',
-                backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? `${ACCENT}10` : 'background.paper',
+                backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? 'var(--accent-soft)' : 'background.paper',
                 transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
                 '&:hover': { borderColor: ACCENT },
               }}

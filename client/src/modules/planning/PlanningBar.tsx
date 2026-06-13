@@ -318,6 +318,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const nights = isReservation ? getNights(event.startDate, event.endDate) : 0;
   const sourceLogo = isReservation ? getSourceLogo(event.reservation?.source) : null;
 
+  // Avatar voyageur (rond initiales) — affiché si la brique est assez large.
+  const showAvatar = isReservation && displayWidth > 90 && height >= 32;
+
   // ── Indicateurs (paiement, info manquante) ────────────────────────────────
   const missingEmail = isReservation && !!event.reservation && !event.reservation.guestEmail && !isCancelled;
   const paymentTooltip = event.paymentBadgeStatus === 'FAILED'
@@ -420,15 +423,6 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         }]
       : []),
   ];
-
-  // Avatar voyageur (rond, bord clair, 30px — spec .s-brick__av) — si la
-  // place le permet. La taille ne varie PAS : variante étroite = masqué.
-  const showAvatar = isReservation && displayWidth > 90 && height >= 32;
-  // Pastille d'alerte sur l'avatar (spec .s-brick__alert) : err = paiement,
-  // warn = info voyageur manquante. Purement visuelle (tooltips sur badges).
-  const avatarAlertColor = !isCancelled
-    ? (event.needsPaymentBadge ? 'var(--err)' : missingEmail ? 'var(--warn)' : null)
-    : null;
 
   // Only reduce opacity for move drag, not resize
   const draggedOpacity = isDragging ? 0.3 : 1;
@@ -577,49 +571,31 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           }}
         >
           {/* Avatar voyageur : rond 26px (spec .pl-bar__av), bord clair,
-              initiales 9.5px fw700. La pastille d'alerte 10px se pose en
-              haut-gauche de l'avatar. */}
+              initiales 9.5px fw700. Pas de pastille d'alerte dessus (les
+              alertes sont portées par les pastilles à droite). */}
           {showAvatar && (
-            <Box sx={{ position: 'relative', display: 'flex', flexShrink: 0 }}>
-              <Box
-                sx={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: '50%',
-                  flexShrink: 0,
-                  border: '1.5px solid rgba(255,255,255,.55)',
-                  backgroundColor: 'rgba(255,255,255,.22)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '9.5px',
-                  fontWeight: 700,
-                  color: isCancelled ? 'var(--muted)' : '#fff',
-                  ...(isCancelled && {
-                    filter: 'grayscale(1)',
-                    opacity: 0.6,
-                    borderColor: 'var(--line-2)',
-                  }),
-                }}
-              >
-                {getInitials(event.label)}
-              </Box>
-              {avatarAlertColor && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: '2px',
-                    left: '2px',
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    border: '1.6px solid #fff',
-                    backgroundColor: avatarAlertColor,
-                    zIndex: 2,
-                    pointerEvents: 'none',
-                  }}
-                />
-              )}
+            <Box
+              sx={{
+                width: 26,
+                height: 26,
+                borderRadius: '50%',
+                flexShrink: 0,
+                border: '1.5px solid rgba(255,255,255,.55)',
+                backgroundColor: 'rgba(255,255,255,.22)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '9.5px',
+                fontWeight: 700,
+                color: isCancelled ? 'var(--muted)' : '#fff',
+                ...(isCancelled && {
+                  filter: 'grayscale(1)',
+                  opacity: 0.6,
+                  borderColor: 'var(--line-2)',
+                }),
+              }}
+            >
+              {getInitials(event.label)}
             </Box>
           )}
           {/* Spec .s-brick__t : colonne centrée, line-height 1.2. */}

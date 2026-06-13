@@ -125,7 +125,7 @@ public class GuestMessagingScheduler {
                         "La réservation #" + reservation.getId()
                             + " (" + reservation.getProperty().getName() + ")"
                             + " n'a pas d'email voyageur configuré. Le message automatique ne peut pas être envoyé.",
-                        "/reservations/" + reservation.getId()
+                        "/reservations?highlight=" + reservation.getId()
                     );
                 }
                 continue;
@@ -180,7 +180,7 @@ public class GuestMessagingScheduler {
                         "La réservation #" + reservation.getId()
                             + " (" + reservation.getProperty().getName() + ")"
                             + " n'a pas d'email voyageur configuré. Le message automatique ne peut pas être envoyé.",
-                        "/reservations/" + reservation.getId()
+                        "/reservations?highlight=" + reservation.getId()
                     );
                 }
                 continue;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   Button,
@@ -31,6 +31,7 @@ import {
   ArrowForward as ArrowRightIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 import { guestMessagingApi, type GuestMessageLog } from '../../services/api/guestMessagingApi';
 import { guestsApi } from '../../services/api/guestsApi';
 import { documentsApi, type DocumentGeneration } from '../../services/api/documentsApi';
@@ -128,6 +129,11 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   const [verifyResult, setVerifyResult] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Apercu PDF in-app (deep-link notification + clic « Apercu » document).
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   // Message logs (non-paginated)
   const [messageLogs, setMessageLogs] = useState<GuestMessageLog[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -149,6 +155,10 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
   const generations = docData?.content ?? [];
   const docTotalElements = docData?.totalElements ?? 0;
+
+  // Deep-link notification : surligne la ligne ciblee (?highlight=<generationId>)
+  // ET ouvre l'apercu PDF du document genere correspondant (demande principale).
+  const highlightId = useHighlightParam();
 
   const loadMessages = useCallback(async () => {
     try {
@@ -234,6 +244,28 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       setActionError('Erreur lors du telechargement');
     }
   };
+
+  const openPdfPreview = useCallback(async (generationId: number) => {
+    setPdfLoading(true);
+    setPdfDialogOpen(true);
+    setPdfUrl(null);
+    try {
+      const blobUrl = await documentsApi.fetchGenerationBlobUrl(generationId);
+      setPdfUrl(blobUrl);
+    } catch {
+      setActionError(t('documents.history.pdfLoadError', 'Erreur lors du chargement du document'));
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [t]);
+
+  const handleClosePdf = useCallback(() => {
+    setPdfDialogOpen(false);
+    if (pdfUrl) {
+      window.URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+  }, [pdfUrl]);
 
   const handleVerify = async (gen: DocumentGeneration) => {
     try {
@@ -322,6 +354,22 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
   const isLoading = messagesLoading || docsLoading;
 
+  // Scroll + flash de la ligne ciblee (cf. data-highlight-id sur les rangees doc/message).
+  useHighlightTarget(highlightId, !isLoading && unifiedRows.length > 0);
+
+  // Ouvre l'apercu PDF de la generation ciblee des qu'elle est chargee — une seule fois.
+  const openedHighlightRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!highlightId || docsLoading) return;
+    if (openedHighlightRef.current === highlightId) return;
+    const gen = generations.find((g) => String(g.id) === highlightId);
+    if (!gen) return;
+    if (['COMPLETED', 'SENT', 'LOCKED'].includes(gen.status)) {
+      openedHighlightRef.current = highlightId;
+      openPdfPreview(gen.id);
+    }
+  }, [highlightId, docsLoading, generations, openPdfPreview]);
+
   return (
     <Box>
       {actionError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{actionError}</Alert>}
@@ -376,9 +424,15 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 row.fileSize ? formatFileSize(row.fileSize) : '',
               ].filter(Boolean).join(' · ');
 
+              // ID brut de l'entite (= celui pose par le backend dans ?highlight=).
+              const rawId = row.kind === 'document'
+                ? String(row.documentGeneration?.id ?? '')
+                : String(row.messageLog?.id ?? '');
+
               return (
                 <Box
                   key={row.id}
+                  data-highlight-id={rawId || undefined}
                   sx={{
                     display: 'flex', alignItems: 'center', gap: '12px', p: '13px 15px',
                     border: '1px solid', borderColor: isFailed ? 'var(--err)' : 'var(--line)',
@@ -700,6 +754,44 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           >
             {editEmailLoading ? <CircularProgress size={20} /> : 'Enregistrer et renvoyer'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Apercu PDF (deep-link notification document) ── */}
+      <Dialog
+        open={pdfDialogOpen}
+        onClose={handleClosePdf}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { height: '85vh' } }}
+      >
+        <DialogTitle>{t('documents.history.pdfPreview', 'Apercu du document')}</DialogTitle>
+        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          {pdfLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+              <CircularProgress thickness={3.5} sx={{ color: 'var(--accent)' }} />
+            </Box>
+          ) : pdfUrl ? (
+            <object data={pdfUrl} type="application/pdf" width="100%" style={{ flex: 1, border: 'none', minHeight: 0 }}>
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: 'var(--muted)', mb: 2 }}>
+                  {t('documents.history.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
+                </Typography>
+                <Button variant="contained" href={pdfUrl} download="document.pdf" startIcon={<Download size={16} strokeWidth={1.75} />}>
+                  {t('common.download', 'Telecharger')}
+                </Button>
+              </Box>
+            </object>
+          ) : (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+                {t('documents.history.pdfLoadError', 'Erreur lors du chargement du document')}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePdf}>{t('common.close', 'Fermer')}</Button>
         </DialogActions>
       </Dialog>
 

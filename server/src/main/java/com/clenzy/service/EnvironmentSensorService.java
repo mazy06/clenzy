@@ -43,7 +43,6 @@ public class EnvironmentSensorService {
     /** Cooldown entre deux notifications pour un meme capteur (minutes). */
     private static final long SMOKE_COOLDOWN_MIN = 10;
     private static final long MOTION_COOLDOWN_MIN = 15;
-    private static final String HUB_URL = "/properties?tab=connected-objects";
 
     private final EnvironmentSensorRepository sensorRepository;
     private final PropertyRepository propertyRepository;
@@ -278,18 +277,22 @@ public class EnvironmentSensorService {
 
         String property = propertyRepository.findById(sensor.getPropertyId())
                 .map(Property::getName).orElse("un logement");
+        // Deep-link vers la vue objets connectes de la propriete concernee, avec
+        // highlight du capteur ayant declenche l'alerte.
+        String actionUrl = "/connected-objects/property/" + sensor.getPropertyId()
+                + "?highlight=" + sensor.getId();
         try {
             if (type == SensorType.SMOKE) {
                 notificationService.notifyAdminsAndManagersByOrgId(orgId, NotificationKey.IOT_SMOKE_DETECTED,
                         "Fumee detectee",
                         sensor.getName() + " — " + property + " a detecte de la fumee ou de la vapeur.",
-                        HUB_URL);
+                        actionUrl);
                 log.warn("Alerte FUMEE : capteur={} property={} org={}", sensor.getId(), sensor.getPropertyId(), orgId);
             } else {
                 notificationService.notifyAdminsAndManagersByOrgId(orgId, NotificationKey.IOT_MOTION_DETECTED,
                         "Mouvement detecte",
                         sensor.getName() + " — " + property + " a detecte un mouvement.",
-                        HUB_URL);
+                        actionUrl);
                 log.info("Alerte MOUVEMENT : capteur={} property={} org={}", sensor.getId(), sensor.getPropertyId(), orgId);
             }
         } catch (Exception e) {

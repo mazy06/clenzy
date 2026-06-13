@@ -217,11 +217,7 @@ public class ChannexRatesReconciliationScheduler {
                     + (newOrUpdatedDrifts > 1 ? "s" : "")
                     + " avec un prix Clenzy different du prix OTA. "
                     + "Verifier le tableau de conflits pour resoudre.",
-                // Phase 5 audit fix : la route /properties/{id}?tab=pricing-drifts
-                // n'existe pas frontend. On utilise le deep-link diagnose existant
-                // (handled by PropertiesList useEffect) en attendant qu'une vraie
-                // page de resolution de drifts soit livree.
-                "/properties?diagnoseChannex=" + property.getId(),
+                "/channels",
                 property.getOrganizationId()
             );
         } catch (Exception e) {

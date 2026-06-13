@@ -90,7 +90,7 @@ public class PayoutWebhookService {
                 NotificationKey.PAYOUT_FAILED,
                 revertTitle,
                 revertMessage,
-                "/billing");
+                "/billing?tab=payouts&highlight=" + payout.getId());
             return;
         }
         OwnerPayout saved = payoutRepository.findById(payout.getId()).orElse(payout);

@@ -146,7 +146,7 @@ public class ConversationService {
                 NotificationKey.CONVERSATION_NEW_MESSAGE,
                 "Nouveau message de " + senderName,
                 truncate(content, 100),
-                null
+                "/contact?highlight=" + conversation.getId()
             );
         }
 
@@ -267,7 +267,7 @@ public class ConversationService {
             NotificationKey.CONVERSATION_ASSIGNED,
             "Conversation assignee",
             "Vous avez ete assigne a une conversation" + (conv.getSubject() != null ? " : " + conv.getSubject() : ""),
-            null
+            "/contact?highlight=" + conv.getId()
         );
 
         return conv;

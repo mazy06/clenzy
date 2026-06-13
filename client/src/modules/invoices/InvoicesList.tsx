@@ -55,6 +55,7 @@ import type { InvoiceStatus, InvoiceType, Invoice } from '../../services/api/inv
 import { formatCurrency } from '../../utils/currencyUtils';
 import { API_CONFIG } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
+import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -145,6 +146,10 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
     () => (invoices ?? []).filter((i) => !typeFilter || i.invoiceType === typeFilter),
     [invoices, typeFilter],
   );
+  // Deep-link notification (?highlight=<invoiceId>) — surligne la ligne ciblee.
+  const highlightId = useHighlightParam();
+  useHighlightTarget(highlightId, !isLoading && displayedInvoices.length > 0);
+
   const { data: templateStatus } = useTemplateStatus();
   const issueMutation = useIssueInvoice();
   const markPaidMutation = useMarkInvoicePaid();
@@ -433,7 +438,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                 const source = getSourceType(inv);
                 const statusToken = STATUS_TOKEN[inv.status] ?? STATUS_TOKEN.DRAFT;
                 return (
-                  <TableRow key={inv.id}>
+                  <TableRow key={inv.id} data-highlight-id={String(inv.id)}>
                     {/* ─── N° + DUPLICATA badge ─── */}
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>

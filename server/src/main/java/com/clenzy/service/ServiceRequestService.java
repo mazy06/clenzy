@@ -105,7 +105,7 @@ public class ServiceRequestService {
                 NotificationKey.SERVICE_REQUEST_CREATED,
                 "Nouvelle demande de service",
                 "Demande \"" + entity.getTitle() + "\" creee",
-                "/service-requests/" + entity.getId()
+                "/interventions?tab=service-requests&highlight=" + entity.getId()
             );
         } catch (Exception e) {
             log.warn("Notification error SERVICE_REQUEST_CREATED: {}", e.getMessage());
@@ -143,7 +143,7 @@ public class ServiceRequestService {
                 NotificationKey.SERVICE_REQUEST_CREATED,
                 "Assignation refusee",
                 "L'equipe/utilisateur a refuse la demande \"" + sr.getTitle() + "\". Reassignation necessaire.",
-                "/service-requests/" + sr.getId()
+                "/interventions?tab=service-requests&highlight=" + sr.getId()
             );
         } catch (Exception e) {
             log.warn("Notification error REFUSE: {}", e.getMessage());
@@ -288,7 +288,7 @@ public class ServiceRequestService {
                     NotificationKey.SERVICE_REQUEST_REJECTED,
                     "Demande de service refusee",
                     "Votre demande \"" + entity.getTitle() + "\" a ete refusee",
-                    "/service-requests/" + entity.getId()
+                    "/interventions?tab=service-requests&highlight=" + entity.getId()
                 );
             }
         } catch (Exception e) {
@@ -640,7 +640,7 @@ public class ServiceRequestService {
                         NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Demande auto-assignee",
                         "La demande \"" + sr.getTitle() + "\" a ete auto-assignee a " + teamName,
-                        "/service-requests/" + sr.getId()
+                        "/interventions?tab=service-requests&highlight=" + sr.getId()
                     );
                     notifyHost(sr, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Equipe assignee",
@@ -670,7 +670,7 @@ public class ServiceRequestService {
                             NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE,
                             "Aucune equipe disponible",
                             "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee. Retry automatique dans 15 min.",
-                            "/service-requests/" + sr.getId()
+                            "/interventions?tab=service-requests&highlight=" + sr.getId()
                         );
                         notifyHost(sr, NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE,
                             "Recherche en cours",
@@ -689,7 +689,7 @@ public class ServiceRequestService {
                             NotificationKey.SERVICE_REQUEST_ESCALATION,
                             "ACTION REQUISE — Assignation manuelle",
                             "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee apres " + MAX_AUTO_ASSIGN_RETRIES + " tentatives. Assignation manuelle necessaire.",
-                            "/service-requests/" + sr.getId()
+                            "/interventions?tab=service-requests&highlight=" + sr.getId()
                         );
                         notifyHost(sr, NotificationKey.SERVICE_REQUEST_ESCALATION,
                             "Assignation impossible",
@@ -742,7 +742,7 @@ public class ServiceRequestService {
                         NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Demande auto-assignee (retry)",
                         "La demande \"" + sr.getTitle() + "\" a ete auto-assignee a " + teamName,
-                        "/service-requests/" + sr.getId()
+                        "/interventions?tab=service-requests&highlight=" + sr.getId()
                     );
                     notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
                         "Equipe assignee",
@@ -773,7 +773,7 @@ public class ServiceRequestService {
                             NotificationKey.SERVICE_REQUEST_ESCALATION,
                             "ACTION REQUISE — Assignation manuelle",
                             "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee apres " + MAX_AUTO_ASSIGN_RETRIES + " tentatives.",
-                            "/service-requests/" + sr.getId()
+                            "/interventions?tab=service-requests&highlight=" + sr.getId()
                         );
                         notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_ESCALATION,
                             "Assignation impossible",
@@ -812,14 +812,14 @@ public class ServiceRequestService {
     private void notifyHost(ServiceRequest sr, NotificationKey key, String title, String msg) {
         if (sr.getUser() != null && sr.getUser().getKeycloakId() != null) {
             notificationService.notify(sr.getUser().getKeycloakId(), key, title, msg,
-                "/service-requests/" + sr.getId());
+                "/interventions?tab=service-requests&highlight=" + sr.getId());
         }
     }
 
     private void notifyHostByOrgId(ServiceRequest sr, Long orgId, NotificationKey key, String title, String msg) {
         if (sr.getUser() != null && sr.getUser().getKeycloakId() != null) {
             notificationService.sendByOrgId(sr.getUser().getKeycloakId(), key, title, msg,
-                "/service-requests/" + sr.getId(), orgId);
+                "/interventions?tab=service-requests&highlight=" + sr.getId(), orgId);
         }
     }
 

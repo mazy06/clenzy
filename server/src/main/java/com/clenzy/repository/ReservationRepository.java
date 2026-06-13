@@ -231,6 +231,23 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findAllWithPayment(@Param("orgId") Long orgId);
 
     /**
+     * Reservations RESERVEES (non annulees, tous statuts sauf 'cancelled' : confirmed
+     * / checked_in / checked_out) dont le check-in tombe dans [from, to], pour l'org.
+     * Utilise par le widget « Revenus par canal » : on veut le revenu RESERVE par
+     * canal — y compris les resas iCal/manuelles SANS flag paymentStatus=PAID (le
+     * flux iCal ne transporte pas l'info de paiement) et les sejours passes
+     * (checked_out).
+     * (Distinct de findConfirmedByCheckInRange ci-dessus, strict status='confirmed'.)
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.checkIn >= :from AND r.checkIn <= :to "
+         + "AND r.status <> 'cancelled' "
+         + "AND r.hiddenFromPlanning = false AND r.organizationId = :orgId")
+    List<Reservation> findBookedByCheckInRange(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
+
+    /**
      * Reservations actives (non annulees) importees depuis un feed iCal donne.
      * Utilise par ICalImportService pour detecter les reservations orphelines
      * (presentes en DB mais disparues du feed = annulees cote OTA).

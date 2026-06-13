@@ -206,7 +206,7 @@ public class QuoteController {
                     NotificationKey.CONTACT_FORM_RECEIVED,
                     "Nouveau devis — " + dto.getFullName(),
                     "Demande de devis de " + dto.getFullName() + " (" + dto.getCity() + ") — Forfait : " + recommendedPackage,
-                    "/contact?tab=2"
+                    "/contact?highlight=" + savedFormId
             );
         } catch (Exception e) {
             log.error("Notification admins KO mais demande #{} sauvegardee en BDD : {}",

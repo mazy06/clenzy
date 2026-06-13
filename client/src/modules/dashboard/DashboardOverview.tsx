@@ -27,6 +27,15 @@ import ContractCTABanner from './ContractCTABanner';
 import MissingContractsDashboardAlert from './MissingContractsDashboardAlert';
 import ChannelHealthWidget from './ChannelHealthWidget';
 import ContextualTipsWidget from './ContextualTipsWidget';
+import BillingOverviewWidget from './BillingOverviewWidget';
+
+/**
+ * Widgets « legacy » de la colonne droite (Le saviez-vous / Canaux de réservation)
+ * conservés en réserve pour le futur dashboard MODULAIRE par utilisateur. Repassés
+ * à true quand l'utilisateur pourra composer ses widgets. Pour l'instant remplacés
+ * par BillingOverviewWidget (versement + revenus par canal).
+ */
+const SHOW_LEGACY_SIDEBAR_WIDGETS = false;
 import MiniPlanningWidget from './MiniPlanningWidget';
 import ActionCountersWidget from './ActionCountersWidget';
 import ServicesStatusWidget from './ServicesStatusWidget';
@@ -535,15 +544,25 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
               <ContractCTABanner onReady={onContractCtaReady} />
             </DashboardErrorBoundary>
 
-            {/* 2. Contextual Tips */}
-            <DashboardErrorBoundary widgetName="ContextualTips">
-              <ContextualTipsWidget />
+            {/* 2. Aperçu facturation : versement + revenus par canal (réf. maquette).
+                Remplace « Le saviez-vous » (ContextualTips) et « Canaux de réservation »
+                (ChannelHealth) — conservés en réserve ci-dessous. Reprend la clé de
+                readiness 'channelHealth' (signale onReady à la fin du fetch). */}
+            <DashboardErrorBoundary widgetName="BillingOverview">
+              <BillingOverviewWidget onReady={onChannelHealthReady} />
             </DashboardErrorBoundary>
 
-            {/* 3. Channel Health */}
-            <DashboardErrorBoundary widgetName="ChannelHealth">
-              <ChannelHealthWidget onReady={onChannelHealthReady} />
-            </DashboardErrorBoundary>
+            {/* En réserve pour le dashboard modulaire (cf. SHOW_LEGACY_SIDEBAR_WIDGETS). */}
+            {SHOW_LEGACY_SIDEBAR_WIDGETS && (
+              <>
+                <DashboardErrorBoundary widgetName="ContextualTips">
+                  <ContextualTipsWidget />
+                </DashboardErrorBoundary>
+                <DashboardErrorBoundary widgetName="ChannelHealth">
+                  <ChannelHealthWidget onReady={onChannelHealthReady} />
+                </DashboardErrorBoundary>
+              </>
+            )}
           </Box>
         )}
       </Box>
