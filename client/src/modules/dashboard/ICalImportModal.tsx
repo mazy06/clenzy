@@ -116,28 +116,67 @@ const SourceLogoIcon: React.FC<{ logo?: string; label: string; size?: number }> 
 
 const STEPS = ['Configuration', 'Aperçu', 'Résultat'];
 
-// ─── Stable sx ───────────────────────────────────────────────────────────────
+// ─── Stable sx — pattern « Signature » (champs à libellé flottant .rm-*) ───────
+//
+// Repris fidèlement de PlanningQuickCreateDialog (modale Signature de référence) :
+// fond var(--field), bordure var(--field-line), rayon 11, libellé flottant
+// var(--muted) → reste neutre au focus, bordure focus var(--accent) + halo
+// var(--accent-soft), 12.5-13px. Appliqué aux TextField ET aux Select/FormControl.
 
 const SX_FIELD = {
   '& .MuiOutlinedInput-root': {
-    borderRadius: '10px',
-    fontSize: '0.8125rem',
+    borderRadius: '11px',
+    backgroundColor: 'var(--field)',
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'var(--ink)',
+    transition: 'box-shadow .14s, background-color .14s',
+    '& fieldset': { borderColor: 'var(--field-line)', transition: 'border-color .14s' },
+    '&:hover fieldset': { borderColor: 'var(--field-line)' },
+    '&.Mui-focused': { backgroundColor: 'var(--card)', boxShadow: '0 0 0 3px var(--accent-soft)' },
+    '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: '1px' },
+    '&.Mui-disabled': { backgroundColor: 'var(--field)' },
   },
+  '& .MuiOutlinedInput-input::placeholder': { color: 'var(--faint)', fontWeight: 500, opacity: 1 },
+  '& .MuiOutlinedInput-input.Mui-disabled': { WebkitTextFillColor: 'var(--body)' },
   '& .MuiInputLabel-root': {
-    fontSize: '0.8125rem',
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'var(--muted)',
+    '&.Mui-focused': { color: 'var(--muted)' },
+    '&.Mui-disabled': { color: 'var(--muted)' },
   },
   '& .MuiFormHelperText-root': {
-    fontSize: '0.6875rem',
+    fontSize: '11px',
+    color: 'var(--muted)',
     mt: 0.5,
   },
 } as const;
 
 const SX_SELECT = {
-  borderRadius: '10px',
-  fontSize: '0.8125rem',
+  borderRadius: '11px',
+  backgroundColor: 'var(--field)',
+  fontSize: '13px',
+  fontWeight: 600,
+  color: 'var(--ink)',
+  transition: 'box-shadow .14s, background-color .14s',
   '& .MuiOutlinedInput-notchedOutline': {
-    borderRadius: '10px',
+    borderRadius: '11px',
+    borderColor: 'var(--field-line)',
+    transition: 'border-color .14s',
   },
+  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--field-line)' },
+  '&.Mui-focused': { backgroundColor: 'var(--card)', boxShadow: '0 0 0 3px var(--accent-soft)' },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)', borderWidth: '1px' },
+} as const;
+
+/** Toggle « Signature » (.rm-toggle) — accent quand coché, conserve la taille small. */
+const SWITCH_SX = {
+  '& .MuiSwitch-switchBase.Mui-checked': {
+    color: '#fff',
+    '& + .MuiSwitch-track': { backgroundColor: 'var(--accent)', opacity: 1 },
+  },
+  '& .MuiSwitch-track': { backgroundColor: 'var(--line-2)', opacity: 1, transition: 'background-color .18s' },
 } as const;
 
 // ─── Step indicator component ────────────────────────────────────────────────
@@ -154,7 +193,7 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
               sx={{
                 width: 48,
                 height: 2,
-                backgroundColor: isDone ? 'primary.main' : 'divider',
+                backgroundColor: isDone ? 'var(--accent)' : 'var(--line)',
                 mx: 0.5,
                 borderRadius: 1,
                 transition: 'background-color 0.3s',
@@ -174,19 +213,19 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
                 fontWeight: 700,
                 transition: 'all 0.3s',
                 ...(isActive && {
-                  backgroundColor: 'primary.main',
-                  color: 'primary.contrastText',
-                  boxShadow: '0 0 0 3px rgba(107, 138, 154, 0.2)',
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--on-accent)',
+                  boxShadow: '0 0 0 3px var(--accent-soft)',
                 }),
                 ...(isDone && {
-                  backgroundColor: 'primary.main',
-                  color: 'primary.contrastText',
+                  backgroundColor: 'var(--accent)',
+                  color: 'var(--on-accent)',
                 }),
                 ...(!isActive && !isDone && {
-                  backgroundColor: 'action.hover',
-                  color: 'text.disabled',
+                  backgroundColor: 'var(--field)',
+                  color: 'var(--muted)',
                   border: '1.5px solid',
-                  borderColor: 'divider',
+                  borderColor: 'var(--line-2)',
                 }),
               }}
             >
@@ -197,7 +236,7 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
               sx={{
                 fontSize: '0.625rem',
                 fontWeight: isActive ? 700 : 500,
-                color: isActive ? 'text.primary' : 'text.secondary',
+                color: isActive ? 'var(--ink)' : 'var(--muted)',
                 letterSpacing: '0.02em',
               }}
             >
@@ -395,18 +434,18 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           alignItems: 'flex-start',
           gap: 1.5,
           p: 1.5,
-          borderRadius: '10px',
-          backgroundColor: 'rgba(107, 138, 154, 0.06)',
+          borderRadius: '11px',
+          backgroundColor: 'var(--accent-soft)',
           border: '1px solid',
-          borderColor: 'rgba(107, 138, 154, 0.15)',
+          borderColor: 'var(--field-line)',
         }}
       >
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.25 }}><InfoIcon size={18} strokeWidth={1.75} /></Box>
+        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><InfoIcon size={18} strokeWidth={1.75} /></Box>
         <Box>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+          <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)' }}>
             Collez le lien iCal de votre calendrier externe pour importer vos réservations.
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6875rem' }}>
+          <Typography variant="caption" sx={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>
             Airbnb : Annonce &rarr; Tarification et disponibilité &rarr; Exporter le calendrier
           </Typography>
         </Box>
@@ -425,7 +464,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         size="small"
         sx={SX_FIELD}
         InputProps={{
-          startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>,
+          startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>,
         }}
       />
 
@@ -461,7 +500,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             sx={{
               ...SX_FIELD,
               '& .MuiInputBase-input.Mui-disabled': {
-                WebkitTextFillColor: 'rgba(0,0,0,0.6)',
+                WebkitTextFillColor: 'var(--body)',
               },
             }}
           />
@@ -477,7 +516,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           sx={{
             ...SX_FIELD,
             '& .MuiInputBase-input.Mui-disabled': {
-              WebkitTextFillColor: 'rgba(0,0,0,0.7)',
+              WebkitTextFillColor: 'var(--ink)',
               fontWeight: 600,
             },
           }}
@@ -538,15 +577,16 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               checked={autoCreateInterventions}
               onChange={(e) => setAutoCreateInterventions(e.target.checked)}
               disabled={!hasAccess}
-              color="primary"
               size="small"
+              disableRipple
+              sx={SWITCH_SX}
             />
           </span>
         </Tooltip>
-        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)' }}>
           Ménage automatique
         </Typography>
-        <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+        <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
           — Crée une demande de ménage le jour du checkout à l'heure de départ du voyageur
         </Typography>
       </Box>
@@ -578,18 +618,18 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             {preview.propertyName}
           </Typography>
           <Chip
-            icon={<EventIcon size={14} strokeWidth={1.75} color='#6B8A9A' />}
+            icon={<EventIcon size={14} strokeWidth={1.75} />}
             label={`${totalCount} réservation${totalCount > 1 ? 's' : ''}`}
             size="small"
             sx={{
-              backgroundColor: '#6B8A9A18',
-              color: '#6B8A9A',
-              border: '1px solid #6B8A9A40',
+              backgroundColor: 'var(--accent-soft)',
+              color: 'var(--accent)',
+              border: '1px solid var(--field-line)',
               borderRadius: '6px',
               fontWeight: 600,
               fontSize: '0.6875rem',
               height: 24,
-              '& .MuiChip-icon': { fontSize: 14 },
+              '& .MuiChip-icon': { fontSize: 14, color: 'var(--accent)' },
               '& .MuiChip-label': { px: 0.75 },
             }}
           />
@@ -655,14 +695,14 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               alignItems: 'flex-start',
               gap: 1.5,
               p: 1.5,
-              borderRadius: '10px',
-              backgroundColor: 'rgba(107, 138, 154, 0.06)',
+              borderRadius: '11px',
+              backgroundColor: 'var(--accent-soft)',
               border: '1px solid',
-              borderColor: 'rgba(107, 138, 154, 0.15)',
+              borderColor: 'var(--field-line)',
             }}
           >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
+            <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
               {totalCount} demande{totalCount > 1 ? 's' : ''} de service de ménage
               {totalCount > 1 ? ' seront' : ' sera'} automatiquement créée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
             </Typography>
@@ -760,15 +800,15 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             alignItems: 'flex-start',
             gap: 1.5,
             p: 1.5,
-            borderRadius: '10px',
-            backgroundColor: 'rgba(107, 138, 154, 0.06)',
+            borderRadius: '11px',
+            backgroundColor: 'var(--accent-soft)',
             border: '1px solid',
-            borderColor: 'rgba(107, 138, 154, 0.15)',
+            borderColor: 'var(--field-line)',
             width: '100%',
           }}
         >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
+          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
             Votre calendrier sera automatiquement re-synchronisé toutes les 3 heures.
             Les doublons sont ignorés automatiquement.
           </Typography>
@@ -789,10 +829,12 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: '14px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-          border: '1px solid',
-          borderColor: 'divider',
+          borderRadius: '18px',
+          backgroundColor: 'var(--card)',
+          backgroundImage: 'none',
+          color: 'var(--body)',
+          boxShadow: 'var(--shadow-pop)',
+          border: '1px solid var(--line)',
           overflow: 'hidden',
         },
       }}
@@ -805,8 +847,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           justifyContent: 'space-between',
           py: 1.5,
           px: 3,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
+          borderBottom: '1px solid var(--line)',
         }}
       >
         <Box display="flex" alignItems="center" gap={1}>
@@ -818,16 +859,16 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(107, 138, 154, 0.08)',
+              backgroundColor: 'var(--accent-soft)',
             }}
           >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>
           </Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--ink)' }}>
             Import Calendrier iCal
           </Typography>
         </Box>
-        <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary', '&:hover': { backgroundColor: 'action.hover' } }}>
+        <IconButton onClick={handleClose} size="small" sx={{ color: 'var(--muted)', '&:hover': { color: 'var(--err)', backgroundColor: 'var(--hover)' } }}>
           <CloseIcon size={18} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
@@ -851,8 +892,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           py: 1.5,
           gap: 1,
           justifyContent: 'flex-end',
-          borderTop: '1px solid',
-          borderColor: 'divider',
+          borderTop: '1px solid var(--line)',
+          backgroundColor: 'var(--surface-2)',
         }}
       >
         {activeStep === 0 && (
@@ -861,34 +902,18 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               onClick={handleClose}
               variant="outlined"
               size="small"
-              sx={{
-                borderRadius: '10px',
-                textTransform: 'none',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                px: 2.5,
-                borderColor: 'divider',
-                color: 'text.secondary',
-                '&:hover': { borderColor: 'text.secondary', backgroundColor: 'action.hover' },
-              }}
+              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
               Annuler
             </Button>
             <Button
               onClick={handlePreview}
               variant="contained"
+              color="primary"
               size="small"
               disabled={loading || !hasAccess || !url.trim() || !propertyId}
               startIcon={loading ? <CircularProgress size={16} /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
-              sx={{
-                borderRadius: '10px',
-                textTransform: 'none',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                px: 2.5,
-                boxShadow: 'none',
-                '&:hover': { boxShadow: 'none' },
-              }}
+              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
               {loading ? 'Chargement...' : 'Prévisualiser'}
             </Button>
@@ -903,34 +928,18 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               size="small"
               disabled={loading}
               startIcon={<ArrowBackIcon size={16} strokeWidth={1.75} />}
-              sx={{
-                borderRadius: '10px',
-                textTransform: 'none',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                px: 2.5,
-                borderColor: 'divider',
-                color: 'text.secondary',
-                '&:hover': { borderColor: 'text.secondary', backgroundColor: 'action.hover' },
-              }}
+              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
               Retour
             </Button>
             <Button
               onClick={handleImport}
               variant="contained"
+              color="primary"
               size="small"
               disabled={loading || !preview || totalPreviewEvents === 0}
               startIcon={loading ? <CircularProgress size={16} /> : <ImportIcon size={16} strokeWidth={1.75} />}
-              sx={{
-                borderRadius: '10px',
-                textTransform: 'none',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                px: 2.5,
-                boxShadow: 'none',
-                '&:hover': { boxShadow: 'none' },
-              }}
+              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
               {loading
                 ? 'Import en cours...'
