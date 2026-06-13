@@ -154,7 +154,7 @@ public class ChannexBookingService {
                 String.format("%s du %s au %s (%s %s)",
                     property.getName(), booking.arrivalDate(), booking.departureDate(),
                     booking.amount(), booking.currency()),
-                "/reservations/" + reservation.getId()
+                "/reservations?highlight=" + reservation.getId()
             );
         } catch (Exception e) {
             log.warn("ChannexBooking: notification echouee pour reservation #{}: {}",
@@ -272,7 +272,7 @@ public class ChannexBookingService {
                 NotificationKey.RESERVATION_CANCELLED,
                 "Reservation annulee via " + (booking.otaName() != null ? booking.otaName() : "Channex"),
                 "Reservation #" + reservation.getId() + " annulee depuis l'OTA. Calendrier libere automatiquement.",
-                "/reservations/" + reservation.getId()
+                "/reservations?highlight=" + reservation.getId()
             );
         } catch (Exception e) {
             log.warn("ChannexBooking: notification annulation echouee: {}", e.getMessage());

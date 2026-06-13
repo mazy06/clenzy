@@ -33,7 +33,7 @@ public class PayoutNotifier {
             NotificationKey.PAYOUT_EXECUTED,
             "Reversement execute",
             "Le reversement #" + payout.getId() + " (" + amount + ") a ete execute avec succes.",
-            "/billing"
+            "/billing?tab=payouts&highlight=" + payout.getId()
         );
         notifyOwner(payout, NotificationKey.PAYOUT_EXECUTED,
             "Reversement effectue",
@@ -47,7 +47,7 @@ public class PayoutNotifier {
             NotificationKey.PAYOUT_FAILED,
             "Echec du reversement",
             "Le reversement #" + payout.getId() + " a echoue: " + errorMessage,
-            "/billing"
+            "/billing?tab=payouts&highlight=" + payout.getId()
         );
         notifyOwner(payout, NotificationKey.PAYOUT_FAILED,
             "Echec du reversement",
@@ -72,7 +72,7 @@ public class PayoutNotifier {
             "Le reversement #" + payout.getId() + " (" + payout.getNetAmount() + " " + payout.getCurrency()
                 + ") a ete transfere (ref " + transferReference + ") mais son enregistrement a echoue. "
                 + "Verifier l'etat du payout avant tout re-essai (le re-essai est sans risque : idempotence du virement).",
-            "/billing"
+            "/billing?tab=payouts&highlight=" + payout.getId()
         );
     }
 
@@ -84,7 +84,7 @@ public class PayoutNotifier {
             "Virement SEPA a effectuer",
             "Le reversement #" + payout.getId() + " (" + payout.getNetAmount() + " " + payout.getCurrency()
                 + ") est pret pour virement SEPA.",
-            "/billing"
+            "/billing?tab=payouts&highlight=" + payout.getId()
         );
     }
 
@@ -93,7 +93,7 @@ public class PayoutNotifier {
             if (owner.getKeycloakId() != null) {
                 notificationService.sendByOrgId(
                     owner.getKeycloakId(), key, title, message,
-                    "/billing", payout.getOrganizationId()
+                    "/billing?tab=payouts&highlight=" + payout.getId(), payout.getOrganizationId()
                 );
             }
         });

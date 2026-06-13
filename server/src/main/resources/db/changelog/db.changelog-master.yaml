@@ -2357,3 +2357,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0235__drop_user_password.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0236-add-accent-to-user-preferences"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0236__add_accent_to_user_preferences.sql
+        relativeToChangelogFile: true

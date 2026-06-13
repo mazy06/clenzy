@@ -370,6 +370,15 @@ const PlanningPage: React.FC = () => {
     setVisibleMonthDate(nav.currentDate);
   }, [nav.currentDate]);
 
+  // « Aujourd'hui » : recale l'ancre ET force le scroll horizontal vers le jour
+  // courant. Sans ce scroll explicite, si le jour d'ancre est inchangé (l'on a
+  // seulement fait défiler le planning), le timeline ne se repositionne pas
+  // (l'effet de recentrage ne se déclenche qu'au changement de jour d'ancre).
+  const handleGoToday = useCallback(() => {
+    nav.goToday();
+    timeline.scrollToDate(new Date());
+  }, [nav, timeline]);
+
   // Throttle rAF : un seul calcul par frame, depuis scrollLeft / dayWidth.
   const handleTimelineScroll = useCallback(() => {
     timeline.handleScroll();
@@ -523,7 +532,7 @@ const PlanningPage: React.FC = () => {
           filters={filters}
           hasActiveFilters={hasActiveFilters}
           onGoPrev={nav.goPrev}
-          onGoToday={nav.goToday}
+          onGoToday={handleGoToday}
           onGoNext={nav.goNext}
           onZoomChange={nav.setZoom}
           onToggleFullscreen={nav.toggleFullscreen}

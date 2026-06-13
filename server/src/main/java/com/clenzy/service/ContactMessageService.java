@@ -269,12 +269,12 @@ public class ContactMessageService {
             notificationService.notify(recipient.keycloakId(), NotificationKey.CONTACT_MESSAGE_RECEIVED,
                     "Nouveau message de " + senderName,
                     normalizedSubject,
-                    "/contact");
+                    "/contact?highlight=" + contactMessage.getId());
         }
         notificationService.notify(actor.userId(), NotificationKey.CONTACT_MESSAGE_SENT,
                 "Message envoye",
                 "Votre message \"" + normalizedSubject + "\" a ete envoye avec succes",
-                "/contact?tab=1");
+                "/contact?highlight=" + contactMessage.getId());
 
         // Publication temps reel via WebSocket
         ContactMessageDto dto = ContactMessageDto.fromEntity(contactMessage);
@@ -343,7 +343,7 @@ public class ContactMessageService {
             notificationService.notify(reply.getRecipientKeycloakId(), NotificationKey.CONTACT_MESSAGE_REPLIED,
                     "Reponse de " + replySenderName,
                     reply.getSubject(),
-                    "/contact");
+                    "/contact?highlight=" + reply.getId());
         }
 
         // Publication temps reel via WebSocket
@@ -494,7 +494,7 @@ public class ContactMessageService {
         notificationService.notify(userId, NotificationKey.CONTACT_MESSAGE_ARCHIVED,
                 "Message archive",
                 "\"" + message.getSubject() + "\" a ete archive",
-                "/contact?tab=2");
+                "/contact?highlight=" + message.getId());
 
         return dto;
     }

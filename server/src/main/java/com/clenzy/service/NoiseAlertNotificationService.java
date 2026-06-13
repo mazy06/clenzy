@@ -107,8 +107,10 @@ public class NoiseAlertNotificationService {
 
             if (property != null && property.getOwner() != null
                     && property.getOwner().getKeycloakId() != null) {
+                String actionUrl = "/connected-objects/property/" + alert.getPropertyId()
+                        + "?highlight=" + alert.getId();
                 notificationService.send(
-                    property.getOwner().getKeycloakId(), key, title, message, null);
+                    property.getOwner().getKeycloakId(), key, title, message, actionUrl);
                 alert.setNotifiedInApp(true);
             }
         } catch (Exception e) {

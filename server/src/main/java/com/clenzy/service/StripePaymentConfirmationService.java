@@ -145,7 +145,7 @@ public class StripePaymentConfirmationService {
                 NotificationKey.INTERVENTION_AWAITING_VALIDATION,
                 "Action requise : assignation",
                 "L'intervention \"" + intervention.getTitle() + "\" est payee et en attente d'assignation d'equipe.",
-                "/interventions"
+                "/interventions/" + intervention.getId()
             );
         } catch (Exception e) {
             log.warn("Erreur notification PAYMENT_CONFIRMED: {}", e.getMessage());
@@ -249,7 +249,7 @@ public class StripePaymentConfirmationService {
                 "Paiement reservation confirme",
                 "Le paiement pour la reservation de " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
                     + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a ete confirme",
-                "/reservations/" + reservation.getId()
+                "/reservations?highlight=" + reservation.getId()
             );
         } catch (Exception e) {
             log.warn("Erreur notification PAYMENT_CONFIRMED (reservation): {}", e.getMessage());
@@ -314,7 +314,7 @@ public class StripePaymentConfirmationService {
                     "Echec paiement reservation",
                     "Le paiement pour la reservation de " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
                         + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a echoue",
-                    "/reservations/" + reservation.getId()
+                    "/reservations?highlight=" + reservation.getId()
                 );
             } catch (Exception e) {
                 log.warn("Erreur notification PAYMENT_FAILED (reservation): {}", e.getMessage());
@@ -464,14 +464,14 @@ public class StripePaymentConfirmationService {
                     NotificationKey.PAYMENT_CONFIRMED,
                     "Paiement confirme",
                     "Le paiement pour votre demande \"" + sr.getTitle() + "\" a ete confirme. L'intervention sera creee automatiquement.",
-                    "/service-requests/" + sr.getId()
+                    "/interventions?tab=service-requests&highlight=" + sr.getId()
                 );
             }
             notificationService.notifyAdminsAndManagers(
                 NotificationKey.PAYMENT_CONFIRMED,
                 "Paiement SR confirme",
                 "Le paiement pour la demande \"" + sr.getTitle() + "\" a ete confirme. Intervention creee.",
-                "/service-requests/" + sr.getId()
+                "/interventions?tab=service-requests&highlight=" + sr.getId()
             );
         } catch (Exception e) {
             log.warn("Erreur notification PAYMENT_CONFIRMED (SR): {}", e.getMessage());
@@ -500,14 +500,14 @@ public class StripePaymentConfirmationService {
                         NotificationKey.PAYMENT_FAILED,
                         "Echec du paiement",
                         "Le paiement pour votre demande \"" + sr.getTitle() + "\" a echoue. Vous pouvez reessayer.",
-                        "/service-requests/" + sr.getId()
+                        "/interventions?tab=service-requests&highlight=" + sr.getId()
                     );
                 }
                 notificationService.notifyAdminsAndManagers(
                     NotificationKey.PAYMENT_FAILED,
                     "Echec paiement SR",
                     "Le paiement pour la demande \"" + sr.getTitle() + "\" a echoue",
-                    "/service-requests/" + sr.getId()
+                    "/interventions?tab=service-requests&highlight=" + sr.getId()
                 );
             } catch (Exception e) {
                 log.warn("Erreur notification PAYMENT_FAILED (SR): {}", e.getMessage());
@@ -640,7 +640,7 @@ public class StripePaymentConfirmationService {
                 "Reconciliation ledger requise",
                 "Paiement confirme mais " + detail + " pour " + refType + " #" + refId
                     + ". Verifier les soldes wallets/ledger.",
-                "/billing"
+                "/billing?tab=wallets"
             );
         } catch (Exception notifyEx) {
             log.error("Impossible de notifier la reconciliation ledger requise pour {} #{}: {}",

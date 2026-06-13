@@ -6,6 +6,8 @@ export interface UserPreferencesDto {
   language: string;
   /** Mode d'affichage UI : 'light' | 'dark' | 'auto'. */
   themeMode: string;
+  /** Teinte d'accent Signature (emeraude, terracotta, ambre, indigo, violet, ocean, slate). */
+  accent: string;
   notifyEmail: boolean;
   notifyPush: boolean;
   notifySms: boolean;

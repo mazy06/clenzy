@@ -9,9 +9,6 @@ import {
   Box,
   IconButton,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
   MenuItem,
   Alert,
   Switch,
@@ -47,6 +44,7 @@ import {
   useICalPreview,
   useICalImport,
 } from './useICalImport';
+import { RM_FIELD_SX } from '../../components/rmFieldSx';
 
 // ─── Source logos ─────────────────────────────────────────────────────────────
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
@@ -116,59 +114,14 @@ const SourceLogoIcon: React.FC<{ logo?: string; label: string; size?: number }> 
 
 const STEPS = ['Configuration', 'Aperçu', 'Résultat'];
 
-// ─── Stable sx — pattern « Signature » (champs à libellé flottant .rm-*) ───────
+// ─── Stable sx — pattern « Signature » (champs à libellé notché .rm-field) ─────
 //
-// Repris fidèlement de PlanningQuickCreateDialog (modale Signature de référence) :
-// fond var(--field), bordure var(--field-line), rayon 11, libellé flottant
-// var(--muted) → reste neutre au focus, bordure focus var(--accent) + halo
-// var(--accent-soft), 12.5-13px. Appliqué aux TextField ET aux Select/FormControl.
+// Source de vérité unique partagée (RM_FIELD_SX, cf. components/rmFieldSx.ts),
+// reprise fidèlement de PlanningQuickCreateDialog. REQUIERT
+// `InputLabelProps={{ shrink: true }}` sur chaque champ pour que le libellé soit
+// TOUJOURS notché sur la bordure haute (sinon il flotte dans le champ).
 
-const SX_FIELD = {
-  '& .MuiOutlinedInput-root': {
-    borderRadius: '11px',
-    backgroundColor: 'var(--field)',
-    fontSize: '13px',
-    fontWeight: 600,
-    color: 'var(--ink)',
-    transition: 'box-shadow .14s, background-color .14s',
-    '& fieldset': { borderColor: 'var(--field-line)', transition: 'border-color .14s' },
-    '&:hover fieldset': { borderColor: 'var(--field-line)' },
-    '&.Mui-focused': { backgroundColor: 'var(--card)', boxShadow: '0 0 0 3px var(--accent-soft)' },
-    '&.Mui-focused fieldset': { borderColor: 'var(--accent)', borderWidth: '1px' },
-    '&.Mui-disabled': { backgroundColor: 'var(--field)' },
-  },
-  '& .MuiOutlinedInput-input::placeholder': { color: 'var(--faint)', fontWeight: 500, opacity: 1 },
-  '& .MuiOutlinedInput-input.Mui-disabled': { WebkitTextFillColor: 'var(--body)' },
-  '& .MuiInputLabel-root': {
-    fontSize: '13px',
-    fontWeight: 600,
-    color: 'var(--muted)',
-    '&.Mui-focused': { color: 'var(--muted)' },
-    '&.Mui-disabled': { color: 'var(--muted)' },
-  },
-  '& .MuiFormHelperText-root': {
-    fontSize: '11px',
-    color: 'var(--muted)',
-    mt: 0.5,
-  },
-} as const;
-
-const SX_SELECT = {
-  borderRadius: '11px',
-  backgroundColor: 'var(--field)',
-  fontSize: '13px',
-  fontWeight: 600,
-  color: 'var(--ink)',
-  transition: 'box-shadow .14s, background-color .14s',
-  '& .MuiOutlinedInput-notchedOutline': {
-    borderRadius: '11px',
-    borderColor: 'var(--field-line)',
-    transition: 'border-color .14s',
-  },
-  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--field-line)' },
-  '&.Mui-focused': { backgroundColor: 'var(--card)', boxShadow: '0 0 0 3px var(--accent-soft)' },
-  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)', borderWidth: '1px' },
-} as const;
+const SX_FIELD = RM_FIELD_SX;
 
 /** Toggle « Signature » (.rm-toggle) — accent quand coché, conserve la taille small. */
 const SWITCH_SX = {
@@ -461,8 +414,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         required
         disabled={!hasAccess}
         helperText="Copiez le lien iCal depuis votre plateforme de réservation"
-        size="small"
         sx={SX_FIELD}
+        InputLabelProps={{ shrink: true }}
         InputProps={{
           startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>,
         }}
@@ -472,31 +425,32 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
         {/* Proprietaire */}
         {canChangeOwner ? (
-          <FormControl fullWidth disabled={!hasAccess} size="small" sx={SX_FIELD}>
-            <InputLabel>Propriétaire</InputLabel>
-            <Select
-              value={ownerId}
-              label="Propriétaire"
-              onChange={(e) => {
-                setOwnerId(e.target.value as number);
-                setPropertyId('');
-              }}
-              sx={SX_SELECT}
-            >
-              {owners.map((owner) => (
-                <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
-                  {owner.firstName} {owner.lastName} — {owner.email}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <TextField
+            select
+            fullWidth
+            label="Propriétaire"
+            value={ownerId}
+            onChange={(e) => {
+              setOwnerId(e.target.value as unknown as number);
+              setPropertyId('');
+            }}
+            disabled={!hasAccess}
+            sx={SX_FIELD}
+            InputLabelProps={{ shrink: true }}
+          >
+            {owners.map((owner) => (
+              <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
+                {owner.firstName} {owner.lastName} — {owner.email}
+              </MenuItem>
+            ))}
+          </TextField>
         ) : (
           <TextField
             label="Propriétaire"
             value={getOwnerDisplayName()}
             fullWidth
             disabled
-            size="small"
+            InputLabelProps={{ shrink: true }}
             sx={{
               ...SX_FIELD,
               '& .MuiInputBase-input.Mui-disabled': {
@@ -512,7 +466,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           value={detectedSource.label}
           fullWidth
           disabled
-          size="small"
+          InputLabelProps={{ shrink: true }}
           sx={{
             ...SX_FIELD,
             '& .MuiInputBase-input.Mui-disabled': {
@@ -531,30 +485,32 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         />
 
         {/* Propriete */}
-        <FormControl fullWidth required disabled={!hasAccess || (canChangeOwner && !ownerId)} size="small" sx={SX_FIELD}>
-          <InputLabel>Propriété</InputLabel>
-          <Select
-            value={propertyId}
-            label="Propriété"
-            onChange={(e) => setPropertyId(e.target.value as number)}
-            sx={SX_SELECT}
-          >
-            {filteredProperties.map((p) => (
-              <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-                {p.name} — {p.city}
-              </MenuItem>
-            ))}
-            {filteredProperties.length === 0 && (
-              <MenuItem disabled value="">
-                <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.8125rem' }}>
-                  {canChangeOwner && !ownerId
-                    ? 'Sélectionnez d\'abord un propriétaire'
-                    : 'Aucune propriété disponible'}
-                </Typography>
-              </MenuItem>
-            )}
-          </Select>
-        </FormControl>
+        <TextField
+          select
+          fullWidth
+          required
+          label="Propriété"
+          value={propertyId}
+          onChange={(e) => setPropertyId(e.target.value as unknown as number)}
+          disabled={!hasAccess || (canChangeOwner && !ownerId)}
+          sx={SX_FIELD}
+          InputLabelProps={{ shrink: true }}
+        >
+          {filteredProperties.map((p) => (
+            <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
+              {p.name} — {p.city}
+            </MenuItem>
+          ))}
+          {filteredProperties.length === 0 && (
+            <MenuItem disabled value="">
+              <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.8125rem' }}>
+                {canChangeOwner && !ownerId
+                  ? 'Sélectionnez d\'abord un propriétaire'
+                  : 'Aucune propriété disponible'}
+              </Typography>
+            </MenuItem>
+          )}
+        </TextField>
       </Box>
 
       {/* Menage automatique — ligne inline legere */}

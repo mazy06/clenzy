@@ -43,6 +43,10 @@ public class UserPreferences {
     @Column(name = "theme_mode", nullable = false, length = 20)
     private String themeMode = "auto";
 
+    /** Teinte d'accent Signature choisie par l'utilisateur. Defaut "emeraude". */
+    @Column(nullable = false, length = 20)
+    private String accent = "emeraude";
+
     // ── Notification global toggles ──────────────────────────────────────
 
     @Column(name = "notify_email", nullable = false)
@@ -92,6 +96,9 @@ public class UserPreferences {
 
     public String getThemeMode() { return themeMode; }
     public void setThemeMode(String themeMode) { this.themeMode = themeMode; }
+
+    public String getAccent() { return accent; }
+    public void setAccent(String accent) { this.accent = accent; }
 
     public boolean isNotifyEmail() { return notifyEmail; }
     public void setNotifyEmail(boolean notifyEmail) { this.notifyEmail = notifyEmail; }

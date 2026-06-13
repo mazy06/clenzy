@@ -741,7 +741,7 @@ class TagResolverServiceTest {
         }
 
         @Test
-        void whenNoIntervention_thenTechnicienFallbackEmpty() {
+        void whenNoIntervention_thenInterventionAndTechnicienAbsent() {
             Reservation res = buildBaseReservation();
             res.setIntervention(null);
 
@@ -750,9 +750,9 @@ class TagResolverServiceTest {
             Map<String, Object> context = service.resolveTagsForDocument(
                     DocumentType.FACTURE, 50L, "reservation");
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> technicien = (Map<String, Object>) context.get("technicien");
-            assertThat(technicien.get("nom")).isEqualTo("");
+            // Sans intervention reelle : ni "intervention" ni "technicien" dans le contexte
+            // (has_intervention / has_technicien = false cote rendu).
+            assertThat(context).doesNotContainKeys("intervention", "technicien");
         }
 
         @Test
@@ -771,9 +771,7 @@ class TagResolverServiceTest {
                     DocumentType.FACTURE, 50L, "reservation");
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> intTags = (Map<String, Object>) context.get("intervention");
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> lignes = (List<Map<String, Object>>) intTags.get("lignes");
+            List<Map<String, Object>> lignes = (List<Map<String, Object>>) context.get("lignes");
             // hebergement + menage + taxe = 3
             assertThat(lignes).hasSize(3);
             assertThat(lignes.get(1).get("description")).isEqualTo("Frais de menage");
@@ -797,9 +795,7 @@ class TagResolverServiceTest {
                     DocumentType.FACTURE, 50L, "reservation");
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> intTags = (Map<String, Object>) context.get("intervention");
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> lignes = (List<Map<String, Object>>) intTags.get("lignes");
+            List<Map<String, Object>> lignes = (List<Map<String, Object>>) context.get("lignes");
             assertThat(lignes).hasSize(1);
         }
 

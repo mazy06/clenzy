@@ -4,15 +4,14 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
 } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
-import { Visibility, Edit, Sanitizer, Power, Delete } from '../../icons';
+import { Visibility, Edit, Sanitizer, Power, Delete, Business } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import ThemedTooltip from '../../components/ThemedTooltip';
-import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
-import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, softDataChipSx, FIELD_CHIP_SX } from './propertiesListConstants';
+import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, softDataChipSx, FIELD_CHIP_SX, propertyGradientCss } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import {
@@ -65,12 +64,16 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
           <TableHead>
             <TableRow
               sx={{
+                // .pr-lhead — entête overline sur surface sur-élevée (h42)
                 '& th': {
                   fontWeight: 700,
                   fontSize: '10.5px',
                   letterSpacing: '.05em',
                   textTransform: 'uppercase',
                   color: 'var(--faint)',
+                  bgcolor: 'var(--surface-2)',
+                  height: 42,
+                  py: 0,
                   borderBottom: '1px solid var(--line)',
                   whiteSpace: 'nowrap',
                 },
@@ -96,42 +99,85 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                   sx={{
                     cursor: 'pointer',
                     '& td': { borderBottom: '1px solid var(--line)', fontSize: '12.5px' },
-                    '&:hover': { bgcolor: 'var(--hover)' },
+                    // .pr-lrow:hover → fond accent doux (transition douce, pas de scale)
+                    transition: 'background-color .12s',
+                    '&:hover': { bgcolor: 'var(--accent-soft)' },
                     '&:last-child td': { borderBottom: 0 },
+                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
                   }}
                   onClick={() => navigate(`/properties/${property.id}`)}
                 >
-                  <TableCell sx={{ p: 0, pr: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-                      <PropertyImageCarousel photoUrls={property.photoUrls} alt={property.name} />
-                      <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, pl: 1.25, gap: 0.75 }}>
+                  <TableCell sx={{ py: 1, pr: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, gap: 1.25 }}>
+                      {/* .pr-lthumb — vignette dégradé déterministe + icône immeuble (photo en overlay si dispo) */}
+                      <Box
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: '11px',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'rgba(255,255,255,.8)',
+                          background: propertyGradientCss(property.id || property.name),
+                          ...(property.photoUrls && property.photoUrls.length > 0
+                            ? {
+                                backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.30)), url(${property.photoUrls[0]}), ${propertyGradientCss(property.id || property.name)}`,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                              }
+                            : {}),
+                        }}
+                      >
+                        <Business size={20} strokeWidth={1.75} />
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, gap: 0.75 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontFamily: 'var(--font-display)',
+                              fontWeight: 600,
+                              fontSize: '14px',
+                              color: 'var(--ink)',
+                              letterSpacing: '-.01em',
+                              minWidth: 0,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {property.name}
+                          </Typography>
+                          {/* Quick Win #4 : badge sante Channex (visible si mapping present) */}
+                          {channexMappings.get(Number(property.id)) && (
+                            <ChannexHealthBadge
+                              mapping={channexMappings.get(Number(property.id)) ?? null}
+                              size={9}
+                              variant="dot"
+                              onClick={() => navigate('/settings?tab=integrations')}
+                            />
+                          )}
+                          {canManageContracts && missingContractIds.has(Number(property.id)) && (
+                            <MissingContractChip
+                              onClick={(e) => { e.stopPropagation(); onMissingContractClick(Number(property.id)); }}
+                            />
+                          )}
+                        </Box>
+                        {/* .pr-lci — localisation (ville) sous le nom */}
                         <Typography
-                          variant="body2"
-                          fontWeight={600}
                           sx={{
-                            fontSize: '0.82rem',
-                            minWidth: 0,
+                            fontSize: '11.5px',
+                            color: 'var(--muted)',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            mt: '1px',
                           }}
                         >
-                          {property.name}
+                          {property.city}
                         </Typography>
-                        {/* Quick Win #4 : badge sante Channex (visible si mapping present) */}
-                        {channexMappings.get(Number(property.id)) && (
-                          <ChannexHealthBadge
-                            mapping={channexMappings.get(Number(property.id)) ?? null}
-                            size={9}
-                            variant="dot"
-                            onClick={() => navigate('/settings?tab=integrations')}
-                          />
-                        )}
-                        {canManageContracts && missingContractIds.has(Number(property.id)) && (
-                          <MissingContractChip
-                            onClick={(e) => { e.stopPropagation(); onMissingContractClick(Number(property.id)); }}
-                          />
-                        )}
                       </Box>
                     </Box>
                   </TableCell>

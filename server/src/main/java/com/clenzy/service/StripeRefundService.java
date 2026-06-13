@@ -188,7 +188,7 @@ public class StripeRefundService {
                 "Reconciliation ledger requise",
                 "Paiement confirme mais " + detail + " pour " + refType + " #" + refId
                     + ". Verifier les soldes wallets/ledger.",
-                "/billing"
+                "/billing?tab=wallets"
             );
         } catch (Exception notifyEx) {
             log.error("Impossible de notifier la reconciliation ledger requise pour {} #{}: {}",

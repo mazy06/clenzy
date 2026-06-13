@@ -147,7 +147,7 @@ public class PayoutGenerationScheduler {
                         NotificationKey.PAYOUT_BATCH_GENERATED,
                         "Reversements generes automatiquement",
                         totalGenerated + " reversement(s) ont ete genere(s) et sont en attente d'approbation.",
-                        "/billing"
+                        "/billing?tab=payouts"
                 );
             } catch (Exception e) {
                 log.warn("PayoutGenerationScheduler: erreur notification pour org={}: {}", orgId, e.getMessage());

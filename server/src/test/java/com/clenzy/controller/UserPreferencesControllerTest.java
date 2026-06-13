@@ -96,8 +96,8 @@ class UserPreferencesControllerTest {
             assertThat(dto.getCurrency()).isEqualTo("EUR");
             assertThat(dto.getLanguage()).isEqualTo("fr");
             assertThat(dto.getThemeMode()).isEqualTo("auto");
-            assertThat(dto.isNotifyEmail()).isTrue();
-            assertThat(dto.isNotifyPush()).isFalse();
+            assertThat(dto.getNotifyEmail()).isTrue();
+            assertThat(dto.getNotifyPush()).isFalse();
             verify(repository).save(any(UserPreferences.class));
         }
     }
@@ -114,7 +114,7 @@ class UserPreferencesControllerTest {
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
             UserPreferencesDto request = new UserPreferencesDto(
-                    "America/New_York", "MAD", "ar", "dark",
+                    "America/New_York", "MAD", "ar", "dark", "violet",
                     false, true, true);
 
             ResponseEntity<UserPreferencesDto> response = controller.updateMyPreferences(
@@ -127,9 +127,9 @@ class UserPreferencesControllerTest {
             assertThat(dto.getCurrency()).isEqualTo("MAD");
             assertThat(dto.getLanguage()).isEqualTo("ar");
             assertThat(dto.getThemeMode()).isEqualTo("dark");
-            assertThat(dto.isNotifyEmail()).isFalse();
-            assertThat(dto.isNotifyPush()).isTrue();
-            assertThat(dto.isNotifySms()).isTrue();
+            assertThat(dto.getNotifyEmail()).isFalse();
+            assertThat(dto.getNotifyPush()).isTrue();
+            assertThat(dto.getNotifySms()).isTrue();
         }
 
         @Test

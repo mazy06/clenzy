@@ -660,7 +660,7 @@ public class ReservationService {
 
     private void notifyReservationCreated(Reservation reservation) {
         try {
-            String actionUrl = "/planning";
+            String actionUrl = "/reservations?highlight=" + reservation.getId();
             String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
             String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
             String dates = reservation.getCheckIn() + " → " + reservation.getCheckOut();
@@ -685,7 +685,7 @@ public class ReservationService {
 
     public void notifyReservationUpdated(Reservation reservation) {
         try {
-            String actionUrl = "/planning";
+            String actionUrl = "/reservations?highlight=" + reservation.getId();
             String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
             String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
 
@@ -707,7 +707,7 @@ public class ReservationService {
 
     private void notifyReservationCancelled(Reservation reservation) {
         try {
-            String actionUrl = "/planning";
+            String actionUrl = "/reservations?highlight=" + reservation.getId();
             String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
             String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
 

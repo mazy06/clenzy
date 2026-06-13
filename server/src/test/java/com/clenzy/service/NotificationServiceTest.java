@@ -13,7 +13,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -56,7 +56,7 @@ class NotificationServiceTest {
         n.setId(1L);
         n.setActionUrl(ACTION_URL);
         n.setOrganizationId(ORG_ID);
-        n.setCreatedAt(LocalDateTime.of(2026, 2, 22, 10, 0));
+        n.setCreatedAt(Instant.parse("2026-02-22T10:00:00Z"));
         return n;
     }
 
@@ -208,7 +208,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(captor.capture())).thenAnswer(invocation -> {
                 Notification saved = invocation.getArgument(0);
                 saved.setId(10L);
-                saved.setCreatedAt(LocalDateTime.now());
+                saved.setCreatedAt(Instant.now());
                 return saved;
             });
 
@@ -245,7 +245,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
                 Notification saved = invocation.getArgument(0);
                 saved.setId(1L);
-                saved.setCreatedAt(LocalDateTime.now());
+                saved.setCreatedAt(Instant.now());
                 return saved;
             });
         }
@@ -332,7 +332,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(captor.capture())).thenAnswer(invocation -> {
                 Notification saved = invocation.getArgument(0);
                 saved.setId(7L);
-                saved.setCreatedAt(LocalDateTime.now());
+                saved.setCreatedAt(Instant.now());
                 return saved;
             });
 
@@ -391,7 +391,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
                 Notification saved = invocation.getArgument(0);
                 saved.setId(1L);
-                saved.setCreatedAt(LocalDateTime.now());
+                saved.setCreatedAt(Instant.now());
                 return saved;
             });
 
@@ -420,7 +420,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
                 Notification saved = invocation.getArgument(0);
                 saved.setId(1L);
-                saved.setCreatedAt(LocalDateTime.now());
+                saved.setCreatedAt(Instant.now());
                 return saved;
             });
 
@@ -473,7 +473,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
                 Notification saved = invocation.getArgument(0);
                 saved.setId(1L);
-                saved.setCreatedAt(LocalDateTime.now());
+                saved.setCreatedAt(Instant.now());
                 return saved;
             });
 
@@ -510,7 +510,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
                 Notification saved = invocation.getArgument(0);
                 saved.setId(1L);
-                saved.setCreatedAt(LocalDateTime.now());
+                saved.setCreatedAt(Instant.now());
                 return saved;
             });
 
@@ -553,7 +553,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(captor.capture())).thenAnswer(inv -> {
                 Notification n = inv.getArgument(0);
                 n.setId(99L);
-                n.setCreatedAt(LocalDateTime.now());
+                n.setCreatedAt(Instant.now());
                 return n;
             });
 
@@ -592,7 +592,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
                 Notification n = inv.getArgument(0);
                 n.setId(1L);
-                n.setCreatedAt(LocalDateTime.now());
+                n.setCreatedAt(Instant.now());
                 return n;
             });
 
@@ -624,7 +624,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
                 Notification n = inv.getArgument(0);
                 n.setId(1L);
-                n.setCreatedAt(LocalDateTime.now());
+                n.setCreatedAt(Instant.now());
                 return n;
             });
 
@@ -651,7 +651,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(captor.capture())).thenAnswer(inv -> {
                 Notification n = inv.getArgument(0);
                 n.setId(50L);
-                n.setCreatedAt(LocalDateTime.now());
+                n.setCreatedAt(Instant.now());
                 return n;
             });
 
@@ -694,7 +694,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
                 Notification n = inv.getArgument(0);
                 n.setId(1L);
-                n.setCreatedAt(LocalDateTime.now());
+                n.setCreatedAt(Instant.now());
                 return n;
             });
 
@@ -717,7 +717,7 @@ class NotificationServiceTest {
             when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
                 Notification n = inv.getArgument(0);
                 n.setId(1L);
-                n.setCreatedAt(LocalDateTime.now());
+                n.setCreatedAt(Instant.now());
                 return n;
             });
 

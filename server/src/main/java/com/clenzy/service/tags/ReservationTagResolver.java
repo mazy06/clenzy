@@ -20,7 +20,7 @@ import static com.clenzy.service.tags.TagFormatting.safeStr;
 
 /**
  * Tags d'une reservation : reservation.*, client.* (guest), property.*,
- * proprietaire.*, paiement.*, ligne.*, technicien.*, intervention.lignes.
+ * proprietaire.*, paiement.*, ligne.*, lignes (detail facture), technicien.*, intervention.*.
  */
 @Component
 public class ReservationTagResolver implements ReferenceTagResolver {
@@ -75,10 +75,15 @@ public class ReservationTagResolver implements ReferenceTagResolver {
             // Tags paiement
             context.put("paiement", paymentTags(reservation));
 
-            // Ligne de facturation (detail du sejour)
+            // Ligne de facturation (detail du sejour) — singulier, conserve pour back-compat
             context.put("ligne", ligneTags(reservation));
 
-            // Intervention liee
+            // Lignes de detail de la facture (toujours present) : boucle [#list lignes as ligne]
+            context.put("lignes", buildReservationLignes(reservation));
+
+            // Intervention liee — uniquement si une intervention reelle existe.
+            // Sans intervention : ni "intervention" ni "technicien" dans le contexte,
+            // donc has_intervention / has_technicien = false (les guards masquent ces sections).
             if (reservation.getIntervention() != null) {
                 Intervention intervention = reservation.getIntervention();
                 context.put("intervention", builders.interventionTags(intervention));
@@ -87,18 +92,6 @@ public class ReservationTagResolver implements ReferenceTagResolver {
                     context.put("technicien", builders.clientTags(intervention.getAssignedUser()));
                 }
             }
-
-            // Fallback technicien si absent (pas d'intervention ou pas d'assignedUser)
-            context.putIfAbsent("technicien", builders.emptyClientTags());
-
-            // Surcharger intervention.lignes avec les lignes de facturation du sejour
-            @SuppressWarnings("unchecked")
-            Map<String, Object> interventionMap = (Map<String, Object>) context.get("intervention");
-            if (interventionMap == null) {
-                interventionMap = new LinkedHashMap<>();
-                context.put("intervention", interventionMap);
-            }
-            interventionMap.put("lignes", buildReservationLignes(reservation));
         });
     }
 
@@ -187,7 +180,7 @@ public class ReservationTagResolver implements ReferenceTagResolver {
     /**
      * Construit la liste des lignes de facturation a partir d'une reservation.
      * Produit 1 a 3 lignes : hebergement, frais de menage, taxe de sejour.
-     * Utilisee pour alimenter intervention.lignes dans le contexte FACTURE/RESERVATION.
+     * Utilisee pour alimenter la liste top-level "lignes" (detail facture) du contexte FACTURE/RESERVATION.
      */
     private List<Map<String, Object>> buildReservationLignes(Reservation reservation) {
         List<Map<String, Object>> lignes = new ArrayList<>();

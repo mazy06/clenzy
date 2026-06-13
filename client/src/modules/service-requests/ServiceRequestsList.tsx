@@ -36,6 +36,7 @@ import {
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import { useCurrency } from '../../hooks/useCurrency';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
+import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import { ITEMS_PER_PAGE } from './serviceRequestsListConstants';
 import ServiceRequestsMapView from './ServiceRequestsMapView';
@@ -223,6 +224,23 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   useEffect(() => {
     setPage(0);
   }, [searchTerm, selectedType, selectedStatus, selectedPriority, viewMode]);
+
+  // Deep-link notification : surligne la demande ciblee (?highlight=<srId>).
+  // Force la vue liste (les cartes/lignes portent data-highlight-id, pas la carte) et
+  // ouvre la page qui contient la demande pour qu'elle soit visible avant le flash.
+  const highlightId = useHighlightParam();
+  const highlightApplied = useRef(false);
+  useEffect(() => {
+    if (!highlightId || loading || highlightApplied.current) return;
+    const idx = filteredServiceRequests.findIndex((r) => String(r.id) === highlightId);
+    if (idx < 0) return;
+    highlightApplied.current = true;
+    if (viewMode === 'map') setViewMode('list');
+    const size = viewMode === 'grid' ? ITEMS_PER_PAGE : rowsPerPage;
+    setPage(Math.floor(idx / size));
+  }, [highlightId, loading, filteredServiceRequests, viewMode, rowsPerPage, setViewMode]);
+
+  useHighlightTarget(highlightId, !loading && filteredServiceRequests.length > 0);
 
   const exportColumns: ExportColumn[] = useMemo(() => [
     { key: 'id', label: 'ID' },

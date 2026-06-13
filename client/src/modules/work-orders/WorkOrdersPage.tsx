@@ -60,7 +60,9 @@ const WorkOrdersPage: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <Box sx={{ flexShrink: 0 }}>
         <PageHeader
-          title={t('workOrders.title')}
+          /* Titre = libellé de l'onglet actif (Demandes de service / Interventions)
+             pour lever l'ambiguïté : le header indique clairement où l'on se trouve. */
+          title={tabs.find((tb) => tb.value === activeTab)?.label ?? t('workOrders.title')}
           subtitle={t('workOrders.subtitle')}
           backPath="/dashboard"
           showBackButton={false}

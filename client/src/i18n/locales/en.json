@@ -1,4 +1,18 @@
 {
+  "channexGuided": {
+    "title": "Distribute your properties",
+    "subtitle": "List your properties on Airbnb, Booking, Vrbo… and sync everything from Baitly.",
+    "intro": "Distribute your properties on Airbnb, Booking, Vrbo… in just a few clicks.",
+    "importTitle": "Import my existing listings",
+    "importDesc": "From Airbnb, Booking or Vrbo — details pre-filled.",
+    "connectTitle": "Connect one of my properties",
+    "connectDesc": "A property already in Baitly, published to the platforms.",
+    "manageTitle": "Manage my connected OTAs",
+    "manageDesc": "View and disconnect your linked platforms.",
+    "techToggleShow": "Connection technical status",
+    "techToggleHide": "Hide technical status",
+    "configuringNote": "The Channel Manager connection is being set up. You can still prepare your properties below."
+  },
   "guestExperience": {
     "navLabel": "Booking & welcome",
     "title": "Booking & welcome",
@@ -396,7 +410,8 @@
     "refresh": "Refresh",
     "expandMenu": "Expand menu",
     "collapseMenu": "Collapse menu",
-    "ratesAt": "Rates as of"
+    "ratesAt": "Rates as of",
+    "download": "Download"
   },
   "connectedObjects": {
     "previewBadge": "Preview",
@@ -714,7 +729,14 @@
       "viewAll": "View all contracts",
       "moreContracts": "+{{count}} more",
       "noPayouts": "No payout cycle yet",
-      "avgRate": "Avg. rate"
+      "avgRate": "Avg. rate",
+      "mergedTitle": "Management & payouts",
+      "reversed": "Paid out",
+      "toReverse": "To pay out",
+      "inTransit": "In transit",
+      "nextPayoutPrefix": "Next payout on",
+      "noNextPayout": "No payout scheduled",
+      "viewPayouts": "View payouts"
     },
     "miniPlanning": {
       "title": "7-Day Planning",
@@ -1308,6 +1330,21 @@
         "DEEP_CLEANING": "Deep clean"
       }
     },
+    "kpi": {
+      "occupancy": "occup.",
+      "adr": "ADR",
+      "revenue": "revenue"
+    },
+    "ops": {
+      "occupied": "Occupied",
+      "available": "Available",
+      "checkout": "Check-out",
+      "cleaning": "Cleaning",
+      "maintenance": "Maintenance",
+      "inProgress": "in progress",
+      "today": "today",
+      "tomorrow": "tomorrow"
+    },
     "cleaningEstimate": "Cleaning estimate",
     "cleaningEstimateTooltip": "Calculated in real-time from the cleaning pricing configuration (surface, bedrooms, bathrooms, floors, add-ons). This amount may differ from the fixed cost on interventions.",
     "cleaningDurationTooltip": "Estimated cleaning intervention duration based on property characteristics. Actual duration may vary.",
@@ -1318,6 +1355,25 @@
     "addressAutocomplete": "Search for an address..."
   },
   "serviceRequests": {
+    "detail": {
+      "contextLabel": "Service request"
+    },
+    "progressLabels": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "inProgress": "In progress",
+      "completed": "Completed"
+    },
+    "layout": {
+      "timeDetail": "Time details",
+      "propertyCleaningDuration": "Cleaning duration (property)",
+      "bedroomsShort": "bd",
+      "bathroomsShort": "ba",
+      "guestsShort": "guests",
+      "floorsShort": "floors",
+      "exterior": "Exterior",
+      "laundry": "Laundry"
+    },
     "title": "Service Requests",
     "subtitle": "Management of maintenance and cleaning requests",
     "create": "New request",
@@ -1482,6 +1538,18 @@
     "approvedDateShort": "Approved on"
   },
   "interventions": {
+    "due": {
+      "overdue": "{{count}}d overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "inDays": "In {{count}}d"
+    },
+    "kpi": {
+      "due": "Due",
+      "cost": "Est. cost",
+      "duration": "Duration",
+      "progress": "Progress"
+    },
     "title": "Interventions",
     "subtitle": "List of all interventions in your organization, filterable by type, status, priority, team or property. Real-time creation, scheduling and tracking.",
     "create": "New intervention",
@@ -1615,6 +1683,8 @@
     "detail": {
       "title": "Intervention Details",
       "subtitle": "View and manage intervention information",
+      "contextLabel": "Intervention",
+      "workflowTitle": "Intervention tracking",
       "backToList": "Back to interventions",
       "editButton": "Edit",
       "unauthorized": "Unauthorized Access",
@@ -3384,6 +3454,9 @@
       "searchTag": "Search a tag..."
     },
     "history": {
+      "pdfPreview": "Document preview",
+      "pdfNotSupported": "Your browser does not support PDF preview.",
+      "pdfLoadError": "Error loading the document",
       "filterAll": "All",
       "filterMessages": "Messages",
       "filterDocuments": "Documents",

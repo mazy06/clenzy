@@ -163,12 +163,15 @@ public class GuestUnlockService {
         try {
             String guestName = reservation != null && reservation.getGuestName() != null
                     ? reservation.getGuestName() : "Le voyageur";
+            String actionUrl = reservation != null
+                    ? "/reservations?highlight=" + reservation.getId()
+                    : "/properties/" + property.getId();
             notificationService.notifyAdminsAndManagersByOrgId(
                     guide.getOrganizationId(),
                     NotificationKey.GUEST_DOOR_UNLOCKED,
                     "Porte ouverte depuis le livret — " + property.getName(),
                     guestName + " a ouvert la porte de « " + property.getName() + " » depuis le livret d'accueil.",
-                    "/properties/" + property.getId());
+                    actionUrl);
         } catch (Exception e) {
             log.warn("Notification ouverture guest echouee: {}", e.getMessage());
         }

@@ -233,7 +233,7 @@ class EntityCoverageTest {
             n.setRead(false);
             n.setActionUrl("/interventions/1");
             n.setOrganizationId(1L);
-            n.setCreatedAt(LocalDateTime.now());
+            n.setCreatedAt(Instant.now());
 
             assertThat(n.getId()).isEqualTo(1L);
             assertThat(n.getTitle()).isEqualTo("Test");

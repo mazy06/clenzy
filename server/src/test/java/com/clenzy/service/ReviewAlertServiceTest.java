@@ -55,7 +55,7 @@ class ReviewAlertServiceTest {
             eq(NotificationKey.REVIEW_NEGATIVE_ALERT),
             eq("Avis negatif recu"),
             contains("Unhappy Guest"),
-            eq("/reviews")
+            eq("/channels/reviews?highlight=1")
         );
     }
 
