@@ -72,6 +72,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import CreateServiceRequestDialog from './CreateServiceRequestDialog';
 import MessagingAutomationStatus from './MessagingAutomationStatus';
+import { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
 
 // ── Assignee option (user or team) ──────────────────────────────────────────
 interface AssigneeOption {
@@ -81,13 +82,13 @@ interface AssigneeOption {
   sublabel?: string;    // Role or intervention type
 }
 
-type SoftTokens = { color: string; bg: string };
+type SoftTokens = ToneTokens;
 
-const OK_TOKENS: SoftTokens = { color: 'var(--ok)', bg: 'var(--ok-soft)' };
-const WARN_TOKENS: SoftTokens = { color: 'var(--warn)', bg: 'var(--warn-soft)' };
-const ERR_TOKENS: SoftTokens = { color: 'var(--err)', bg: 'var(--err-soft)' };
-const INFO_TOKENS: SoftTokens = { color: 'var(--info)', bg: 'var(--info-soft)' };
-const NEUTRAL_TOKENS: SoftTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
+const OK_TOKENS: SoftTokens = STATUS_TONES.ok;
+const WARN_TOKENS: SoftTokens = STATUS_TONES.warn;
+const ERR_TOKENS: SoftTokens = STATUS_TONES.err;
+const INFO_TOKENS: SoftTokens = STATUS_TONES.info;
+const NEUTRAL_TOKENS: SoftTokens = STATUS_TONES.neutral;
 
 const OVERLINE_SX = {
   fontSize: '0.625rem',
@@ -113,12 +114,8 @@ const CLOSE_BTN_SX = {
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
 const chipSx = (bg: string, color: string) => ({
+  ...toneTokensSx({ color, bg }, 'sm'),
   height: 20,
-  fontSize: '0.625rem',
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-  border: 'none',
   borderRadius: 'var(--radius-pill)',
   '& .MuiChip-label': { px: 0.75 },
   '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },

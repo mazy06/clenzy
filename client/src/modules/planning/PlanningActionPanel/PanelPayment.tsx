@@ -33,37 +33,32 @@ import type { PlanningIntervention } from '../../../services/api';
 import { useAuth } from '../../../hooks/useAuth';
 import { usePanelPayment } from './usePanelPayment';
 import PanelPaymentCart from './PanelPaymentCart';
+import { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type ActionResult = { success: boolean; error: string | null };
 
-/** Statuts paiement → tokens sémantiques (succès = ok, attente = warn, en cours = info, échec = err). */
-const STATUS_TOKENS: Record<string, { color: string; bg: string }> = {
-  PAID: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
-  PENDING: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
-  AWAITING_PAYMENT: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
-  PROCESSING: { color: 'var(--info)', bg: 'var(--info-soft)' },
-  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
-  REFUNDED: { color: 'var(--info)', bg: 'var(--info-soft)' },
-  CANCELLED: { color: 'var(--muted)', bg: 'var(--hover)' },
-  COMPLETED: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
-  SCHEDULED: { color: 'var(--info)', bg: 'var(--info-soft)' },
-  IN_PROGRESS: { color: 'var(--info)', bg: 'var(--info-soft)' },
+/** Statuts paiement → tons sémantiques partagés (REFUNDED = info ici, distinct de PanelFinancial). */
+const STATUS_TOKENS: Record<string, ToneTokens> = {
+  PAID: STATUS_TONES.ok,
+  PENDING: STATUS_TONES.warn,
+  AWAITING_PAYMENT: STATUS_TONES.warn,
+  PROCESSING: STATUS_TONES.info,
+  FAILED: STATUS_TONES.err,
+  REFUNDED: STATUS_TONES.info,
+  CANCELLED: STATUS_TONES.neutral,
+  COMPLETED: STATUS_TONES.ok,
+  SCHEDULED: STATUS_TONES.info,
+  IN_PROGRESS: STATUS_TONES.info,
 };
 
-const NEUTRAL_TOKENS = { color: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKENS = STATUS_TONES.neutral;
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
 const chipSx = (bg: string, color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-  border: 'none',
+  ...toneTokensSx({ color, bg }),
   borderRadius: 'var(--radius-pill)',
-  '& .MuiChip-label': { px: 1 },
 });
 
 const OVERLINE_SX = {

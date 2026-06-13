@@ -27,6 +27,7 @@ import type { ReservationStatus, ReservationSource } from '../../../services/api
 import { RESERVATION_STATUS_TOKEN_COLORS, PLANNING_DEPARTURE_VIOLET } from '../constants';
 import { getSourceLogo } from '../utils/sourceLogos';
 import { toDate } from '../utils/dateUtils';
+import { toneTokensSx } from '../../../components/StatusChip';
 
 // ─── Onglet Infos (maquette Signature) ───────────────────────────────────────
 //
@@ -121,14 +122,8 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
   };
 
   const chipSx = (bg: string, color: string) => ({
-    height: 22,
-    fontSize: '0.6875rem',
-    fontWeight: 600,
-    backgroundColor: bg,
-    color,
-    border: 'none',
+    ...toneTokensSx({ color, bg }),
     borderRadius: 'var(--radius-pill)',
-    '& .MuiChip-label': { px: 1 },
   });
 
   return (

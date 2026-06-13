@@ -9,6 +9,7 @@
  * Each entity domain (property, serviceRequest, intervention) has its own
  * mapping since they use different status values.
  */
+import { softChipSx as sharedSoftChipSx } from '../components/StatusChip';
 
 import type { ChipColor } from '../types';
 
@@ -426,17 +427,12 @@ export function semanticToHex(semantic: string | undefined): string {
   return SEMANTIC_HEX[semantic ?? 'default'] ?? SEMANTIC_HEX.default;
 }
 
-/** Soft-tinted chip styling — unified Baitly pattern (no pills, 6px radius). */
-export function softChipSx(hex: string) {
-  return {
-    backgroundColor: `${hex}18`,
-    color: hex,
-    border: `1px solid ${hex}40`,
-    borderRadius: '6px',
-    fontWeight: 600,
-    fontSize: '0.6875rem',
-    height: 22,
-    '& .MuiChip-icon': { color: hex },
-    '& .MuiChip-label': { px: 0.75 },
-  } as const;
+/**
+ * Soft-tinted chip styling — délègue à la primitive partagée (composants/
+ * StatusChip). Accepte hex OU var(--…) (color-mix). Conservé pour compat des
+ * ~10 call-sites historiques ; pour du code neuf, préférer `<StatusChip>` ou
+ * `statusToneSx(tone)` directement.
+ */
+export function softChipSx(color: string) {
+  return sharedSoftChipSx(color);
 }
