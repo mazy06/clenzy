@@ -496,29 +496,18 @@ const PlanningPage: React.FC = () => {
                     <CloudDownload size={18} strokeWidth={1.85} />
                   </IconButton>
                 </Tooltip>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Add size={14} strokeWidth={1.75} />}
-                  onClick={handleCreateReservation}
-                  disabled={properties.length === 0}
-                  sx={{
-                    height: 28,
-                    borderRadius: '9px',
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    px: 1.25,
-                    color: 'var(--accent)',
-                    borderColor: 'var(--accent)',
-                    '&:hover': {
-                      backgroundColor: 'var(--accent-soft)',
-                      borderColor: 'var(--accent)',
-                    },
-                  }}
-                >
-                  Réservation
-                </Button>
+                <Tooltip title="Nouvelle réservation" arrow>
+                  <span>
+                    <IconButton
+                      aria-label="Nouvelle réservation"
+                      onClick={handleCreateReservation}
+                      disabled={properties.length === 0}
+                      sx={{ color: 'var(--accent)' }}
+                    >
+                      <Add size={18} strokeWidth={1.85} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
               </>
             }
           />
