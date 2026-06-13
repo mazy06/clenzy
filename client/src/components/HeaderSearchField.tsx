@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, IconButton, Dialog, TextField, InputAdornment, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Dialog, TextField, InputAdornment, Tooltip } from '@mui/material';
 import { Search, Close as CloseIcon } from '../icons';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -49,12 +49,17 @@ export default function HeaderSearchField({ value, onChange, placeholder }: Head
         onClose={() => setOpen(false)}
         fullWidth
         maxWidth="sm"
+        // Backdrop transparent + sans flou : la recherche ne doit PAS assombrir
+        // ni flouter l'écran (style command-palette posé sur le contenu).
+        slotProps={{ backdrop: { sx: { backgroundColor: 'transparent', backdropFilter: 'none' } } }}
         sx={{
           '& .MuiDialog-container': { alignItems: 'flex-start' },
-          '& .MuiDialog-paper': { mt: '11vh', mx: 'auto', width: 'min(560px, 92vw)' },
+          '& .MuiBackdrop-root': { backgroundColor: 'transparent', backdropFilter: 'none' },
+          // Collée tout en haut de l'écran.
+          '& .MuiDialog-paper': { mt: '8px', mx: 'auto', width: 'min(560px, 92vw)' },
         }}
       >
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 1 }}>
           <TextField
             autoFocus
             fullWidth
@@ -80,12 +85,6 @@ export default function HeaderSearchField({ value, onChange, placeholder }: Head
               sx: { fontSize: '15px', height: 48 },
             }}
           />
-          <Typography
-            variant="caption"
-            sx={{ display: 'block', mt: 1, color: 'var(--faint)', fontSize: '11px' }}
-          >
-            {t('common.searchHint', 'Entrée ou Échap pour fermer')}
-          </Typography>
         </Box>
       </Dialog>
     </>
