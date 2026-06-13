@@ -69,6 +69,20 @@ export default function HeaderSearchField({ value, onChange, placeholder }: Head
             onKeyDown={(e) => {
               if (e.key === 'Escape' || e.key === 'Enter') setOpen(false);
             }}
+            // Focus à la TEINTE choisie (var(--accent), suit data-accent) + halo
+            // accent-soft. sx local = haute spécificité, garantit le rendu dans le portail.
+            sx={{
+              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'var(--accent)',
+                borderWidth: 1,
+              },
+              '& .MuiOutlinedInput-root.Mui-focused': {
+                boxShadow: '0 0 0 3px var(--accent-soft)',
+              },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'var(--faint)',
+              },
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
