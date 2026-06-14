@@ -1,10 +1,12 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.MarketingContactDto;
+import com.clenzy.exception.LeadCaptureDisabledException;
 import com.clenzy.model.MarketingContact;
 import com.clenzy.model.MarketingContactSource;
 import com.clenzy.model.MarketingContactStatus;
 import com.clenzy.repository.MarketingContactRepository;
+import com.clenzy.repository.OrganizationRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +24,14 @@ import java.util.Locale;
 public class LeadCaptureService {
 
     private final MarketingContactRepository repository;
+    private final OrganizationRepository organizationRepository;
     private final Clock clock;
 
-    public LeadCaptureService(MarketingContactRepository repository, Clock clock) {
+    public LeadCaptureService(MarketingContactRepository repository,
+                              OrganizationRepository organizationRepository,
+                              Clock clock) {
         this.repository = repository;
+        this.organizationRepository = organizationRepository;
         this.clock = clock;
     }
 
@@ -41,6 +47,10 @@ public class LeadCaptureService {
         }
         if (!consent) {
             throw new IllegalArgumentException("consentement RGPD requis pour la capture");
+        }
+        // Réglage org-level : la capture peut être désactivée pour toute l'organisation.
+        if (!organizationRepository.findLeadCaptureEnabledById(orgId).orElse(true)) {
+            throw new LeadCaptureDisabledException("Capture de leads désactivée pour cette organisation");
         }
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         MarketingContactSource src = source != null ? source : MarketingContactSource.OTHER;

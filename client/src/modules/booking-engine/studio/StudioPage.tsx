@@ -8,7 +8,6 @@ import {
   TrendingUp,
   Share2,
   Rocket,
-  type LucideIcon,
 } from 'lucide-react';
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
@@ -16,19 +15,20 @@ import DesignBuilder from './builder/DesignBuilder';
 import BookingSettingsPanel from './settings/BookingSettingsPanel';
 import ContentAiPanel from './settings/ContentAiPanel';
 import DistributionPanel from './settings/DistributionPanel';
+import GrowthSettingsPanel from './settings/GrowthSettingsPanel';
 import { useStudioConfig } from './useStudioConfig';
 
 /**
- * Baitly Studio — page hôte (F0) : assemble StudioShell + palette ⌘K + les 5 sections.
- * Le contenu réel de chaque section arrive aux phases F1-F5 ; F0 pose la coquille navigable.
+ * Baitly Studio — page hôte : assemble StudioShell + palette ⌘K + les 5 sections.
+ * Chaque section rend son panneau (Design builder, Contenu IA, Réservation, Croissance, Diffusion).
  */
 
-const SECTIONS: (StudioSection & { blurb: string })[] = [
-  { key: 'design', label: 'Design', icon: LayoutTemplate, blurb: 'Composez votre page par blocs et choisissez le thème.' },
-  { key: 'content', label: 'Contenu', icon: FileText, blurb: 'Propriétés affichées, pages, blog et contenu assisté par IA.' },
-  { key: 'booking', label: 'Réservation', icon: CalendarCheck, blurb: 'Devise, paiement, frais, fenêtre de réservation et politique.' },
-  { key: 'growth', label: 'Croissance', icon: TrendingUp, blurb: 'SEO, capture de leads, relance de panier et analytics.' },
-  { key: 'distribution', label: 'Diffusion', icon: Share2, blurb: 'Site hébergé, widget intégrable et accès SDK / API.' },
+const SECTIONS: StudioSection[] = [
+  { key: 'design', label: 'Design', icon: LayoutTemplate },
+  { key: 'content', label: 'Contenu', icon: FileText },
+  { key: 'booking', label: 'Réservation', icon: CalendarCheck },
+  { key: 'growth', label: 'Croissance', icon: TrendingUp },
+  { key: 'distribution', label: 'Diffusion', icon: Share2 },
 ];
 
 export default function StudioPage() {
@@ -101,35 +101,10 @@ export default function StudioPage() {
           />
         )}
         {active.key === 'distribution' && <DistributionPanel cfg={cfg} />}
-        {active.key === 'growth' && <SectionPlaceholder section={active} />}
+        {active.key === 'growth' && <GrowthSettingsPanel />}
       </StudioShell>
 
       <StudioCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
     </>
-  );
-}
-
-function SectionPlaceholder({ section }: { section: StudioSection & { blurb: string } }) {
-  const Icon: LucideIcon = section.icon;
-  return (
-    <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
-      <Box sx={{ textAlign: 'center', maxWidth: 360 }}>
-        <Box
-          sx={{
-            width: 56, height: 56, mx: 'auto', mb: 2,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 'var(--radius-lg)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-          }}
-        >
-          <Icon size={26} strokeWidth={1.85} />
-        </Box>
-        <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)', mb: 0.5 }}>
-          {section.label}
-        </Box>
-        <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', lineHeight: 1.5 }}>
-          {section.blurb}
-        </Box>
-      </Box>
-    </Box>
   );
 }
