@@ -23,7 +23,9 @@ public record BookingEngineConfigDto(
     boolean showTouristTax,
     String customCss,
     String customJs,
-    String componentConfig
+    String componentConfig,
+    // Page composée par blocs (builder) — rendue par la page publique hébergée.
+    String pageLayout
 ) {
     public static BookingEngineConfigDto from(BookingEngineConfig config) {
         return new BookingEngineConfigDto(
@@ -43,7 +45,8 @@ public record BookingEngineConfigDto(
             config.isShowTouristTax(),
             config.getCustomCss(),
             config.getCustomJs(),
-            config.getComponentConfig()
+            config.getComponentConfig(),
+            config.getPageLayout()
         );
     }
 }
