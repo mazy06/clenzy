@@ -107,9 +107,10 @@ CLENZY_V2 = {
         "Unified inbox / messaging cross-canal": "3",
     },
     "02-booking-engine.csv": {
-        "RTL / arabe (booking direct)": "2",
+        "RTL / arabe (booking direct)": "3",
         "Multi-langue interface booking": "3",
         "Email de confirmation de reservation": "3",
+        "Politiques d'annulation parametrables": "3",
     },
     "03-calendrier-multitenant.csv": {
         "Edition groupee (rates / min-stay / blocages)": "3",
@@ -700,7 +701,7 @@ def build_full():
                        "reste tracee dans backlog/HORS-PERIMETRE.md (HP-07 a HP-20).", BODY))
     try:
         ev = read_csv("60-evolution-scores.csv")
-        S += [Spacer(1, 6), evolution_callout(1.86, 2.10, "6e / 8", "3e / 8"), Spacer(1, 12),
+        S += [Spacer(1, 6), evolution_callout(1.86, 2.11, "6e / 8", "3e / 8"), Spacer(1, 12),
               Paragraph("Evolution par domaine (score 0-3)", H3), evolution_table(ev), Spacer(1, 4), LEGEND, Spacer(1, 10),
               Paragraph("Lecture", H3)]
         for t in ["<b>Finance &amp; Compta 2,2 -&gt; 2,5</b> : abstraction e-invoicing + 3 providers pays (Factur-X FR, DGI Maroc, "
@@ -711,12 +712,15 @@ def build_full():
                   "directes (gated) restent &lt; 3.",
                   "<b>Communication 1,6 -&gt; 2,1</b> : copilote IA de reponse ancre conversation + RAG/KB, sentiment/urgence + "
                   "auto-traduction on-demand, assignation durcie (validation org). SMS et autopilot restent hors scope (gated/sensible).",
+                  "<b>Booking engine 1,4 -&gt; 1,7</b> : politiques d'annulation desormais <b>appliquees</b> (moteur de remboursement "
+                  "presets + regles parametrables, timezone propriete) + emails de confirmation (paye + auto-confirm) + i18n/RTL "
+                  "booking-sdk (fr/en/ar, seul du panel sur l'arabe). SEO/builder no-code restent &lt; 3 (front/SSR hors scope backend).",
                   "<b>Reporting 1,7 -&gt; 2,0</b> : report builder (socle whitelist + CRUD), comparaison N/N-1 calculee serveur, "
                   "agregation multi-devise EUR/MAD/SAR.",
                   "<b>Admin &amp; conformite 1,6 -&gt; 1,9</b> : 2FA (policy org) + socle Country multi-pays + validation fail-fast au boot.",
-                  "<b>Global 1,86 -&gt; 2,10</b> : Clenzy passe du 6e au 3e rang en depassant le peloton resserre "
+                  "<b>Global 1,86 -&gt; 2,11</b> : Clenzy passe du 6e au 3e rang en depassant le peloton resserre "
                   "(Avantio 1,96 . Hospitable 1,92 . Smily 1,89) - sans rattraper Guesty (2,52) ni Hostaway (2,31).",
-                  "<b>Honnetete du barometre</b> : les domaines non travailles (Integrations, Mobile, Operations, Communication) "
+                  "<b>Honnetete du barometre</b> : les domaines non travailles (Integrations, Mobile, Operations) "
                   "restent inchanges - aucun gonflage. Le potentiel verrouille (IA) attend HP-12."]:
             S.append(bullet(t))
     except FileNotFoundError:
