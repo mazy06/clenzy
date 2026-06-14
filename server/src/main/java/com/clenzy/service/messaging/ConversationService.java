@@ -34,6 +34,7 @@ public class ConversationService {
     private final WhatsAppChannel whatsAppChannel;
     private final ReservationRepository reservationRepository;
     private final GuestRepository guestRepository;
+    private final com.clenzy.repository.UserRepository userRepository;
 
     public ConversationService(ConversationRepository conversationRepository,
                                ConversationMessageRepository messageRepository,
@@ -41,7 +42,8 @@ public class ConversationService {
                                NotificationService notificationService,
                                WhatsAppChannel whatsAppChannel,
                                ReservationRepository reservationRepository,
-                               GuestRepository guestRepository) {
+                               GuestRepository guestRepository,
+                               com.clenzy.repository.UserRepository userRepository) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.eventPublisher = eventPublisher;
@@ -49,6 +51,7 @@ public class ConversationService {
         this.whatsAppChannel = whatsAppChannel;
         this.reservationRepository = reservationRepository;
         this.guestRepository = guestRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -259,6 +262,13 @@ public class ConversationService {
     public Conversation assignConversation(Long conversationId, Long orgId, String keycloakId) {
         Conversation conv = conversationRepository.findByIdAndOrganizationId(conversationId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Conversation introuvable: " + conversationId));
+        // Securite : l'assigne doit appartenir a l'organisation (anti-assignation cross-org).
+        com.clenzy.model.User assignee = userRepository.findByKeycloakId(keycloakId)
+            .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable: " + keycloakId));
+        if (!orgId.equals(assignee.getOrganizationId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                "L'utilisateur n'appartient pas a l'organisation");
+        }
         conv.setAssignedToKeycloakId(keycloakId);
         conv = conversationRepository.save(conv);
 
