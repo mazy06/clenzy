@@ -57,7 +57,11 @@ class PublicBookingControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PublicBookingController(bookingService, serviceOptionsService, photoService, rateLimiter);
+        // Vrai service de conversion (converter mocké) : passthrough quand currency == null.
+        var displayCurrencyService = new com.clenzy.booking.service.BookingDisplayCurrencyService(
+            org.mockito.Mockito.mock(com.clenzy.service.CurrencyConverterService.class));
+        controller = new PublicBookingController(bookingService, serviceOptionsService, photoService, rateLimiter,
+            displayCurrencyService);
         lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
         lenient().when(rateLimiter.tryAcquireBatch(any())).thenReturn(true);
 
@@ -101,7 +105,7 @@ class PublicBookingControllerTest {
         when(bookingService.getProperties(ctx)).thenReturn(List.of(
                 mock(PublicPropertyDto.class), mock(PublicPropertyDto.class)));
 
-        ResponseEntity<List<PublicPropertyDto>> response = controller.getProperties("slug", request);
+        ResponseEntity<List<PublicPropertyDto>> response = controller.getProperties("slug", null, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(2);
     }
@@ -113,7 +117,7 @@ class PublicBookingControllerTest {
         PublicPropertyDetailDto detail = mock(PublicPropertyDetailDto.class);
         when(bookingService.getPropertyDetail(ctx, 10L)).thenReturn(detail);
 
-        ResponseEntity<PublicPropertyDetailDto> response = controller.getProperty("slug", 10L, request);
+        ResponseEntity<PublicPropertyDetailDto> response = controller.getProperty("slug", 10L, null, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
@@ -128,7 +132,7 @@ class PublicBookingControllerTest {
                 req.checkIn(), req.checkOut(), 2, List.of());
         when(bookingService.checkAvailability(ctx, req)).thenReturn(resp);
 
-        ResponseEntity<AvailabilityResponseDto> response = controller.checkAvailability("slug", req, request);
+        ResponseEntity<AvailabilityResponseDto> response = controller.checkAvailability("slug", null, req, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 

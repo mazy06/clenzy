@@ -33,6 +33,15 @@ public record AvailabilityResponseDto(
         String rateType
     ) {}
 
+    /** Copie avec montants convertis dans une devise d'affichage (CLZ Domaine 2 — multi-devise). */
+    public AvailabilityResponseDto withDisplayCurrency(BigDecimal newSubtotal, BigDecimal newCleaningFee,
+                                                       BigDecimal newTouristTax, BigDecimal newTotal,
+                                                       List<NightBreakdown> newBreakdown, String newCurrency) {
+        return new AvailabilityResponseDto(available, propertyId, propertyName, checkIn, checkOut, guests, nights,
+            newBreakdown, newSubtotal, newCleaningFee, newTouristTax, newTotal, newCurrency, minStay, maxGuests,
+            checkInTime, checkOutTime, violations);
+    }
+
     /**
      * Fabrique pour un resultat "non disponible".
      */
