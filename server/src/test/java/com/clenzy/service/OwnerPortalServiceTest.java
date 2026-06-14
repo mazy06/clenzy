@@ -45,10 +45,12 @@ class OwnerPortalServiceTest {
         property1 = new Property();
         property1.setId(100L);
         property1.setName("Beach House");
+        property1.setOrganizationId(ORG_ID); // requis : getDashboard filtre par org (anti-IDOR)
 
         property2 = new Property();
         property2.setId(200L);
         property2.setName("Mountain Chalet");
+        property2.setOrganizationId(ORG_ID);
 
         reservation1 = new Reservation();
         reservation1.setId(1L);

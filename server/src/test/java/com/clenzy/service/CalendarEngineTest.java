@@ -64,6 +64,9 @@ class CalendarEngineTest {
     @Mock
     private SyncMetrics syncMetrics;
 
+    @Mock
+    private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
+
     @InjectMocks
     private CalendarEngine calendarEngine;
 
