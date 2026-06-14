@@ -95,7 +95,7 @@ class RateManagerControllerTest {
     private RateManagerController buildController(YieldManagementScheduler scheduler) {
         ReservationService reservationService = new ReservationService(
                 null, userRepository, tenantContext, null, null, null, null, null,
-                null, null, null, null, null, null, propertyRepository, null, null);
+                null, null, null, null, null, null, propertyRepository, null, null, null);
         RateManagerService rateManagerService = new RateManagerService(
                 advancedRateManager, rateDistributionService, scheduler, priceEngine,
                 channelRateModifierRepository, lengthOfStayDiscountRepository,

@@ -55,6 +55,7 @@ public class StripePaymentConfirmationService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final PaymentStatusTransitionService paymentStatusTransitionService;
     private final BookingConfirmationEmailService bookingConfirmationEmailService;
+    private final WebhookEventPublisher webhookEventPublisher;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -70,7 +71,8 @@ public class StripePaymentConfirmationService {
                                             AutoInvoiceService autoInvoiceService,
                                             KafkaTemplate<String, Object> kafkaTemplate,
                                             PaymentStatusTransitionService paymentStatusTransitionService,
-                                            BookingConfirmationEmailService bookingConfirmationEmailService) {
+                                            BookingConfirmationEmailService bookingConfirmationEmailService,
+                                            WebhookEventPublisher webhookEventPublisher) {
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -83,6 +85,7 @@ public class StripePaymentConfirmationService {
         this.kafkaTemplate = kafkaTemplate;
         this.paymentStatusTransitionService = paymentStatusTransitionService;
         this.bookingConfirmationEmailService = bookingConfirmationEmailService;
+        this.webhookEventPublisher = webhookEventPublisher;
     }
 
     /**
@@ -235,6 +238,16 @@ public class StripePaymentConfirmationService {
         reservationRepository.save(reservation);
 
         log.info("Paiement de reservation confirme: reservationId={}, sessionId={}", reservation.getId(), sessionId);
+
+        // Webhook sortant PAYMENT_CONFIRMED : enfile dans la transaction, livraison HTTP apres commit (#2).
+        java.util.Map<String, Object> webhookData = new java.util.HashMap<>();
+        webhookData.put("reservationId", reservation.getId());
+        webhookData.put("status", reservation.getStatus());
+        webhookData.put("paymentStatus", reservation.getPaymentStatus() != null ? reservation.getPaymentStatus().name() : null);
+        webhookData.put("totalPrice", reservation.getTotalPrice());
+        webhookData.put("propertyId", reservation.getProperty() != null ? reservation.getProperty().getId() : null);
+        webhookEventPublisher.publish(com.clenzy.model.WebhookEventType.PAYMENT_CONFIRMED,
+                reservation.getOrganizationId(), webhookData);
 
         // Email de confirmation guest APRES COMMIT (audit #2 : aucun appel externe dans la
         // transaction). Best-effort : un echec d'envoi n'impacte pas la confirmation de
