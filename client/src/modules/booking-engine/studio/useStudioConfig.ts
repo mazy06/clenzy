@@ -24,6 +24,10 @@ export interface StudioConfigState {
   dirty: boolean;
   patch: (changes: Partial<BookingEngineConfig>) => void;
   save: () => Promise<void>;
+  /** Régénère la clé API (invalide l'ancienne immédiatement). */
+  regenerateKey: () => Promise<void>;
+  /** Active / désactive le booking engine. */
+  setEnabled: (enabled: boolean) => Promise<void>;
 }
 
 export function useStudioConfig(id: number | undefined): StudioConfigState {
@@ -65,7 +69,38 @@ export function useStudioConfig(id: number | undefined): StudioConfigState {
     }
   }, [config, id]);
 
+  // Met à jour un champ géré hors payload (apiKey/enabled) dans le brouillon ET la base,
+  // pour ne pas fausser l'état dirty ni écraser les autres éditions en cours.
+  const adoptManaged = useCallback((changes: Partial<BookingEngineConfig>) => {
+    setConfig((prev) => (prev ? { ...prev, ...changes } : prev));
+    setOriginal((prev) => (prev ? { ...prev, ...changes } : prev));
+  }, []);
+
+  const regenerateKey = useCallback(async () => {
+    if (!id) return;
+    setError(null);
+    try {
+      const updated = await bookingEngineApi.regenerateApiKey(id);
+      adoptManaged({ apiKey: updated.apiKey });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Régénération de la clé impossible');
+      throw e;
+    }
+  }, [id, adoptManaged]);
+
+  const setEnabled = useCallback(async (enabled: boolean) => {
+    if (!id) return;
+    setError(null);
+    try {
+      const updated = await bookingEngineApi.toggleEnabled(id, enabled);
+      adoptManaged({ enabled: updated.enabled });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Changement de statut impossible');
+      throw e;
+    }
+  }, [id, adoptManaged]);
+
   const dirty = config !== null && original !== null && JSON.stringify(config) !== JSON.stringify(original);
 
-  return { config, loading, error, saving, dirty, patch, save };
+  return { config, loading, error, saving, dirty, patch, save, regenerateKey, setEnabled };
 }
