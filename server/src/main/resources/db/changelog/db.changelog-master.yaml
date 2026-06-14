@@ -2429,3 +2429,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0244__add_min_stay_arrival_to_booking_restrictions.sql
         relativeToChangelogFile: true
+
+  # Mapping multi-rate-plan (Domaine 1) : rate plans additionnels cibles par la sync Channex.
+  - changeSet:
+      id: "0245-add-rate-plan-ids-to-channex-mapping"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0245__add_rate_plan_ids_to_channex_mapping.sql
+        relativeToChangelogFile: true

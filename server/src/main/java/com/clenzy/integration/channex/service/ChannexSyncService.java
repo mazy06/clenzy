@@ -315,22 +315,28 @@ public class ChannexSyncService {
                     mapping.getClenzyPropertyId(), from, to.plusDays(1),
                     mapping.getOrganizationId());
 
-            List<ChannexRateUpdate> updates = new ArrayList<>(prices.size());
-            for (Map.Entry<LocalDate, BigDecimal> entry : prices.entrySet()) {
-                if (entry.getValue() == null) continue;
-                LocalDate date = entry.getKey();
-                com.clenzy.model.BookingRestriction restriction = pickHighestPriorityFor(
-                    applicableRestrictions, date);
-                updates.add(new ChannexRateUpdate(
-                    mapping.getChannexPropertyId(),
-                    mapping.getChannexDefaultRatePlanId(),
-                    date,
-                    entry.getValue(),
-                    restriction != null ? restriction.getMinStay() : null,
-                    restriction != null ? restriction.getMinStayArrival() : null,
-                    restriction != null ? restriction.getClosedToArrival() : null,
-                    restriction != null ? restriction.getClosedToDeparture() : null
-                ));
+            // Fan-out multi-rate-plan : pousse les prix/restrictions sur chaque rate plan cible
+            // (le defaut + les additionnels mappes). getTargetRatePlanIds() renvoie [defaut] si
+            // aucun additionnel -> comportement mono-rate-plan preserve.
+            List<String> ratePlanIds = mapping.getTargetRatePlanIds();
+            List<ChannexRateUpdate> updates = new ArrayList<>(prices.size() * Math.max(1, ratePlanIds.size()));
+            for (String ratePlanId : ratePlanIds) {
+                for (Map.Entry<LocalDate, BigDecimal> entry : prices.entrySet()) {
+                    if (entry.getValue() == null) continue;
+                    LocalDate date = entry.getKey();
+                    com.clenzy.model.BookingRestriction restriction = pickHighestPriorityFor(
+                        applicableRestrictions, date);
+                    updates.add(new ChannexRateUpdate(
+                        mapping.getChannexPropertyId(),
+                        ratePlanId,
+                        date,
+                        entry.getValue(),
+                        restriction != null ? restriction.getMinStay() : null,
+                        restriction != null ? restriction.getMinStayArrival() : null,
+                        restriction != null ? restriction.getClosedToArrival() : null,
+                        restriction != null ? restriction.getClosedToDeparture() : null
+                    ));
+                }
             }
             channexClient.pushRates(updates);
             metrics.recordSyncSuccess("push_rates", System.currentTimeMillis() - startMs);
