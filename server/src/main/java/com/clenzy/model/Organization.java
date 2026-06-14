@@ -76,6 +76,10 @@ public class Organization {
     @Column(name = "has_voucher_contract", nullable = false)
     private boolean hasVoucherContract = false;
 
+    /** Politique 2FA (CLZ-P0-09) : exige une authentification a deux facteurs pour les membres de l'org. */
+    @Column(name = "mfa_required", nullable = false)
+    private boolean mfaRequired = false;
+
     // --- Timestamps ---
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -139,6 +143,9 @@ public class Organization {
 
     public boolean isHasVoucherContract() { return hasVoucherContract; }
     public void setHasVoucherContract(boolean hasVoucherContract) { this.hasVoucherContract = hasVoucherContract; }
+
+    public boolean isMfaRequired() { return mfaRequired; }
+    public void setMfaRequired(boolean mfaRequired) { this.mfaRequired = mfaRequired; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
