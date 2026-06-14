@@ -2389,3 +2389,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0239__create_einvoice_submission.sql
         relativeToChangelogFile: true
+
+  # Report builder (CLZ-P0-15) : vues de rapport sauvegardees org-scopees.
+  - changeSet:
+      id: "0240-create-report-view"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0240__create_report_view.sql
+        relativeToChangelogFile: true
