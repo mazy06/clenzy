@@ -63,6 +63,18 @@
 - **Risque résiduel** : **Moyen** pour le lancement MA/KSA (l'arabe doit être rendu RTL bout-en-bout dans les UIs).
 - **Effort estimé** : revue S · RTL PMS L · **Statut** : `Ouvert`
 
+### HP-08 — Reste de CLZ-P0-19 (Factur-X FR)
+- **Source** : CLZ-P0-19 (livré : `FrancePdpProvider` + `FacturXCiiBuilder` XML CII + `PdpTransmissionClient` non-configuré→PENDING)
+- **Description** : (1) **embarquement PDF/A-3** du XML CII dans le PDF de facture (iText) ; (2) **client PDP réel** (partenaire agréé) marqué `@Primary` + persistance du cycle de vie ; (3) **conformité EN 16931 stricte** (champs/ordre obligatoires complets) + validation par un validateur officiel ; (4) **branchement** dans le flux de génération de facture (après-commit, via `EInvoicingService`).
+- **Risque résiduel** : **Moyen** (échéance e-invoicing FR 09/2026 réception). Le XML est généré mais non transmis ni embarqué.
+- **Effort estimé** : L · **Statut** : `Ouvert`
+
+### HP-09 — Reste de CLZ-P0-15 (report builder)
+- **Source** : CLZ-P0-15 (livré : entité `ReportView` + whitelist `ReportFieldCatalog` + CRUD `ReportViewService` + controller)
+- **Description** : (1) **exécution** des agrégations (`ReportQueryService` : traduire dimensions/métriques whitelistées en agrégation SQL paramétrée sur réservations, métriques monétaires consolidées via `CurrencyConverterService` P0-14) ; (2) **share-link** public borné/révocable (pattern `/guide/:token`) ; (3) **front** module `report-builder` (sélection dimensions/métriques, colonnes réordonnables, sauvegarde de vue).
+- **Risque résiduel** : **Faible.** Le modèle + la whitelist anti-injection + le CRUD org-scopé sont livrés ; reste l'exécution et l'UI.
+- **Effort estimé** : exécution M · share-link S · front L · **Statut** : `Ouvert`
+
 ## Phase 2
 _(à alimenter)_
 
