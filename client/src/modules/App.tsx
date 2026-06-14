@@ -22,6 +22,7 @@ import PublicKeyVerification from '../pages/PublicKeyVerification';
 import PublicGuide from './welcome-guide/PublicGuide';
 import ContractSignPage from './contracts/public/ContractSignPage';
 import PublicBookingPage from './booking-engine/public/PublicBookingPage';
+import CancelBookingPage from './booking-engine/public/CancelBookingPage';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
 import { clearTokens } from '../services/storageService';
@@ -344,6 +345,7 @@ const App: React.FC = () => {
           <Route path="/sign/:token" element={<ContractSignPage />} />
 
           {/* Route publique hebergee du booking engine (page composee dans le Studio) */}
+          <Route path="/booking/:apiKey/cancel" element={<CancelBookingPage />} />
           <Route path="/booking/:apiKey" element={<PublicBookingPage />} />
         
         {/* Routes protégées */}

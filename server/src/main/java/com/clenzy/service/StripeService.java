@@ -353,4 +353,11 @@ public class StripeService {
     public void refundCheckoutSessionPayment(String sessionId, String reason) throws StripeException {
         refundService.refundCheckoutSessionPayment(sessionId, reason);
     }
+
+    /** Remboursement PARTIEL (annulation self-service selon politique). Idempotent via la cle fournie. */
+    @CircuitBreaker(name = "stripe-api")
+    public void refundCheckoutSessionPartial(String sessionId, long amountMinorUnits,
+                                             String idempotencyKey, String reason) throws StripeException {
+        refundService.refundCheckoutSessionPartial(sessionId, amountMinorUnits, idempotencyKey, reason);
+    }
 }
