@@ -2,6 +2,7 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.service.BookingDisplayCurrencyService;
 import com.clenzy.booking.service.BookingServiceOptionsService;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.booking.service.PublicBookingService.OrgContext;
@@ -49,15 +50,18 @@ public class PublicBookingController {
     private final BookingServiceOptionsService serviceOptionsService;
     private final com.clenzy.service.PropertyPhotoService photoService;
     private final com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
+    private final BookingDisplayCurrencyService displayCurrencyService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
                                     com.clenzy.service.PropertyPhotoService photoService,
-                                    com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter) {
+                                    com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter,
+                                    BookingDisplayCurrencyService displayCurrencyService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
         this.rateLimiter = rateLimiter;
+        this.displayCurrencyService = displayCurrencyService;
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -79,9 +83,22 @@ public class PublicBookingController {
      */
     @GetMapping("/properties")
     public ResponseEntity<List<PublicPropertyDto>> getProperties(
-            @PathVariable String slug, HttpServletRequest request) {
+            @PathVariable String slug,
+            @RequestParam(required = false) String currency,
+            HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
-        return ResponseEntity.ok(bookingService.getProperties(ctx));
+        List<PublicPropertyDto> props = bookingService.getProperties(ctx);
+        return ResponseEntity.ok(displayCurrencyService.convertProperties(props, currency, java.time.LocalDate.now()));
+    }
+
+    /**
+     * GET /{slug}/currencies
+     * Devises d'affichage disponibles (multi-devise). La conversion est indicative ;
+     * le débit s'effectue dans la devise de la propriété.
+     */
+    @GetMapping("/currencies")
+    public ResponseEntity<java.util.Set<String>> getSupportedCurrencies(@PathVariable String slug) {
+        return ResponseEntity.ok(displayCurrencyService.supportedCurrencies());
     }
 
     /**
@@ -92,9 +109,11 @@ public class PublicBookingController {
     public ResponseEntity<PublicPropertyDetailDto> getProperty(
             @PathVariable String slug,
             @PathVariable Long id,
+            @RequestParam(required = false) String currency,
             HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
-        return ResponseEntity.ok(bookingService.getPropertyDetail(ctx, id));
+        PublicPropertyDetailDto detail = bookingService.getPropertyDetail(ctx, id);
+        return ResponseEntity.ok(displayCurrencyService.convertDetail(detail, currency, java.time.LocalDate.now()));
     }
 
     /**
@@ -104,10 +123,13 @@ public class PublicBookingController {
     @PostMapping("/availability")
     public ResponseEntity<AvailabilityResponseDto> checkAvailability(
             @PathVariable String slug,
+            @RequestParam(required = false) String currency,
             @Valid @RequestBody AvailabilityRequestDto request,
             HttpServletRequest httpRequest) {
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.checkAvailability(ctx, request));
+        AvailabilityResponseDto resp = bookingService.checkAvailability(ctx, request);
+        java.time.LocalDate rateDate = resp.checkIn() != null ? resp.checkIn() : java.time.LocalDate.now();
+        return ResponseEntity.ok(displayCurrencyService.convertAvailability(resp, currency, rateDate));
     }
 
     // ─── Mutation endpoints ──────────────────────────────────────────────────────

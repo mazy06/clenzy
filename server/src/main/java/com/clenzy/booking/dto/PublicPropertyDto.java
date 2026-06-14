@@ -80,4 +80,11 @@ public record PublicPropertyDto(
             p.getDefaultCheckOutTime()
         );
     }
+
+    /** Copie avec montants convertis dans une devise d'affichage (CLZ Domaine 2 — multi-devise). */
+    public PublicPropertyDto withDisplayCurrency(BigDecimal newPriceFrom, BigDecimal newCleaningFee, String newCurrency) {
+        return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
+            squareMeters, newPriceFrom, newCleaningFee, minimumNights, newCurrency, mainPhotoUrl, photoUrls,
+            amenities, checkInTime, checkOutTime);
+    }
 }
