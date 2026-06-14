@@ -56,6 +56,7 @@ public class PublicBookingController {
     private final BookingDisplayCurrencyService displayCurrencyService;
     private final PublicBookingCalendarService calendarService;
     private final com.clenzy.service.LeadCaptureService leadCaptureService;
+    private final com.clenzy.booking.service.PublicCancellationService cancellationService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
@@ -63,7 +64,8 @@ public class PublicBookingController {
                                     com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter,
                                     BookingDisplayCurrencyService displayCurrencyService,
                                     PublicBookingCalendarService calendarService,
-                                    com.clenzy.service.LeadCaptureService leadCaptureService) {
+                                    com.clenzy.service.LeadCaptureService leadCaptureService,
+                                    com.clenzy.booking.service.PublicCancellationService cancellationService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
@@ -71,6 +73,7 @@ public class PublicBookingController {
         this.displayCurrencyService = displayCurrencyService;
         this.calendarService = calendarService;
         this.leadCaptureService = leadCaptureService;
+        this.cancellationService = cancellationService;
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -250,6 +253,24 @@ public class PublicBookingController {
             HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
         return ResponseEntity.ok(bookingService.getConfirmation(ctx, code));
+    }
+
+    /**
+     * POST /{slug}/booking/{code}/cancellation-preview
+     * Aperçu self-service du remboursement applicable (politique d'annulation), sans annuler.
+     * Auth : code de confirmation + email guest (corps). Rate-limité par IP.
+     */
+    @PostMapping("/booking/{code}/cancellation-preview")
+    public ResponseEntity<?> cancellationPreview(
+            @PathVariable String slug,
+            @PathVariable String code,
+            @Valid @RequestBody com.clenzy.booking.dto.BookingCancellationRequest request,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(cancellationService.preview(ctx.orgId(), code, request.email()));
     }
 
     // ─── Helper : resolution contexte ─────────────────────────────────────────────

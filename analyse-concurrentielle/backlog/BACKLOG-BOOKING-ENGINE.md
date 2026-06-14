@@ -2,7 +2,9 @@
 
 > Inventaire issu des 5 audits de code + [REFONTE-BOOKING-ENGINE.md](../REFONTE-BOOKING-ENGINE.md).
 > Échelle effort : S (jours) · M (1-2 sem) · L (3-5 sem) · XL (>5 sem). Impact : ⭐→⭐⭐⭐.
-> Statut : ❌ manquant · 🟡 trop simple · ✅ fait (rappel).
+> État (gap d'origine) : ❌ manquant · 🟡 trop simple.
+> **Statut (avancement)** : ⬜ à faire · 🔄 en cours / partiel · ✅ fait · ⏸️ bloqué (décision/infra/vérif externe).
+> Convention : à chaque item terminé, mettre à jour ce fichier + valider ✅/🔄.
 
 ## Principe de priorisation
 1. **Lever les verrous** (ce qui débloque plusieurs features).
@@ -14,15 +16,15 @@
 
 ## P0 — Démarrables maintenant (in-repo, fort impact)
 
-| # | Item | État | Impact | Effort | Dépend |
-|---|------|------|--------|--------|--------|
-| **0.1** | **Rendu public de la page composée** : route `/booking/:key` (hors auth) qui réutilise `PagePreview` + expose `pageLayout` au DTO public. Répare l'URL hébergée qui 404. | ❌ | ⭐⭐⭐ | M | — |
-| 0.2 | Avis publics sur le site + JSON-LD `AggregateRating` (backend reviews existe) | 🟡 | ⭐⭐ | M | 0.1 |
-| 0.3 | Caution Stripe (HP-19) : `SecurityDeposit` → pré-autorisation `capture_method=manual` (hors-tx + afterCommit + idempotency) | 🟡 | ⭐⭐⭐ | M | — |
-| 0.4 | Annulation / modification self-service voyageur (`/cancel` + `/modify`, remboursement serveur) | ❌ | ⭐⭐⭐ | M | — |
-| 0.5 | Multi-devise au checkout (câbler `CurrencyConverterService`, devise choisie) | 🟡 | ⭐⭐ | S/M | — |
-| 0.6 | Anti-fraude : Stripe Radar (règles défaut) + 3DS/SCA | ❌ | ⭐⭐ | S | — |
-| 0.7 | Acompte / paiement partiel (% ou fixe, échéancier) | ❌ | ⭐⭐ | M | — |
+| # | Item | État | Impact | Effort | Dépend | Statut |
+|---|------|------|--------|--------|--------|--------|
+| **0.1** | **Rendu public de la page composée** : route `/booking/:key` (hors auth) qui réutilise `PagePreview` + expose `pageLayout` au DTO public. Répare l'URL hébergée qui 404. | ❌ | ⭐⭐⭐ | M | — | ✅ **fait** — route `/booking/:apiKey` + page bookable (widget monté). SEO=P1, blocs interactifs (PropertyGrid réel) = finition différée. |
+| 0.2 | Avis publics sur le site + JSON-LD `AggregateRating` (backend reviews existe) | 🟡 | ⭐⭐ | M | 0.1 | ⬜ |
+| 0.3 | Caution Stripe (HP-19) : `SecurityDeposit` → pré-autorisation `capture_method=manual` (hors-tx + afterCommit + idempotency) | 🟡 | ⭐⭐⭐ | M | — | ⬜ |
+| 0.4 | Annulation / modification self-service voyageur (`/cancel` + `/modify`, remboursement serveur) | ❌ | ⭐⭐⭐ | M | — | 🔄 **inc.1 fait** (aperçu remboursement public `/cancellation-preview`, vérifié mvn). Reste inc.2 : action annuler + refund Stripe partiel + page guest (⏸️ vérif Stripe test-mode requise). |
+| 0.5 | Multi-devise au checkout (câbler `CurrencyConverterService`, devise choisie) | 🟡 | ⭐⭐ | S/M | — | ⬜ |
+| 0.6 | Anti-fraude : Stripe Radar (règles défaut) + 3DS/SCA | ❌ | ⭐⭐ | S | — | ⬜ |
+| 0.7 | Acompte / paiement partiel (% ou fixe, échéancier) | ❌ | ⭐⭐ | M | — | ⬜ |
 
 ## P1 — Fondation SSR (infra — débloque SEO / site / blog)
 
