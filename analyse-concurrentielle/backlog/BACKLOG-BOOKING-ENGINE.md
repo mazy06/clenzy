@@ -22,7 +22,7 @@
 | 0.2 | Avis publics sur le site + JSON-LD `AggregateRating` (backend reviews existe) | 🟡 | ⭐⭐ | M | 0.1 | ✅ **fait** — endpoint public `/reviews` (agrégat org + récents, `isPublic=true`) + section preuve sociale sur la page. JSON-LD différé au SSR (P1, exige le nom métier). |
 | 0.3 | Caution Stripe (HP-19) : `SecurityDeposit` → pré-autorisation `capture_method=manual` (hors-tx + afterCommit + idempotency) | 🟡 | ⭐⭐⭐ | M | — | ⬜ |
 | 0.4 | Annulation / modification self-service voyageur (`/cancel` + `/modify`, remboursement serveur) | ❌ | ⭐⭐⭐ | M | — | 🔄 **code complet** — aperçu `/cancellation-preview` + action `/cancel` (libère calendrier, refund Stripe **partiel** selon politique, afterCommit + idempotency + CAS) + page guest `/booking/:key/cancel`. **⏸️ vérif Stripe test-mode requise** (refund non exécutable par moi). Modification de séjour = non couverte (annulation seule). |
-| 0.5 | Multi-devise au checkout (câbler `CurrencyConverterService`, devise choisie) | 🟡 | ⭐⭐ | S/M | — | ⬜ |
+| 0.5 | Multi-devise au checkout (câbler `CurrencyConverterService`, devise choisie) | 🟡 | ⭐⭐ | S/M | — | 🔄 **affichage déjà couvert** — `BookingDisplayCurrencyService` convertit les réponses publiques (calendar/availability/detail) + endpoint `/currencies` + sélecteur widget. Reste **différé** : charge Stripe dans la devise choisie (règlement multi-devise) — non fait (risque settlement). |
 | 0.6 | Anti-fraude : Stripe Radar (règles défaut) + 3DS/SCA | ❌ | ⭐⭐ | S | — | ⏸️ **config dashboard** — 3DS/SCA + Radar déjà automatiques via Stripe Checkout ; pas de code (règles Radar = dashboard Stripe). |
 | 0.7 | Acompte / paiement partiel (% ou fixe, échéancier) | ❌ | ⭐⭐ | M | — | ⬜ |
 
