@@ -2413,3 +2413,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0242__create_zatca_invoice_chain.sql
         relativeToChangelogFile: true
+
+  # Caution / depot de garantie (Phase 4) : cycle de vie par CAS, unicite (org, reservation).
+  - changeSet:
+      id: "0243-create-security-deposit"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0243__create_security_deposit.sql
+        relativeToChangelogFile: true
