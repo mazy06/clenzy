@@ -57,6 +57,8 @@ export interface WidgetState {
   availability: Map<string, DayAvailability>;
   pricing: PriceBreakdown | null;
   pricingLoading: boolean;
+  // Panier multi-séjours (BE-L0-6)
+  cart: CartStay[];
   loading: boolean;
   error: string | null;
   guestForm: GuestFormData;
@@ -65,6 +67,16 @@ export interface WidgetState {
   selectedPropertyType: string | null;
   propertyTypes: PropertyTypeInfo[];
   addons: SelectedAddon[];
+}
+
+export interface CartStay {
+  propertyId: number;
+  propertyName: string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  total: number;
+  currency: string;
 }
 
 export interface WidgetProperty {

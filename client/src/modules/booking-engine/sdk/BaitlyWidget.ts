@@ -13,6 +13,7 @@ import { createCTAButton } from './components/CTAButton';
 import { createGuestForm } from './components/GuestForm';
 import { createPropertyList } from './components/PropertyList';
 import { createCurrencySelector } from './components/CurrencySelector';
+import { createCartList } from './components/CartList';
 
 // CSS (imported as strings by bundler)
 import resetCSS from './styles/reset.css?raw';
@@ -147,12 +148,25 @@ export class BaitlyWidget {
     // Récapitulatif prix (depuis /availability)
     page.appendChild(createPriceSummary(this.state, this.i18n));
 
-    // CTA → formulaire (seulement si propriété + dates choisies)
+    // CTA → formulaire (réservation simple, si propriété + dates choisies)
     page.appendChild(createCTAButton(this.state, this.i18n, () => {
       const s = this.state.get();
       if (s.selectedPropertyId && s.checkIn && s.checkOut) {
         this.state.set({ page: 'form' }, 'pageChange');
       }
+    }));
+
+    // Ajouter au panier (multi-séjours) : ajoute le séjour courant + réinitialise la sélection.
+    const addToCart = document.createElement('button');
+    addToCart.type = 'button';
+    addToCart.className = 'cb-cta cb-cta--secondary cb-add-to-cart';
+    addToCart.textContent = this.i18n.t('cart.addStay');
+    addToCart.addEventListener('click', () => this.addCurrentStayToCart());
+    page.appendChild(addToCart);
+
+    // Panier multi-séjours : liste + total + "Continuer".
+    page.appendChild(createCartList(this.state, this.i18n, () => {
+      this.state.set({ page: 'form' }, 'pageChange');
     }));
 
     return page;
@@ -304,10 +318,41 @@ export class BaitlyWidget {
     }
   }
 
+  /** Ajoute le séjour courant (propriété + dates + prix) au panier, puis réinitialise la sélection. */
+  private addCurrentStayToCart(): void {
+    const s = this.state.get();
+    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut || !s.pricing) return;
+    const prop = s.properties.find(p => p.id === s.selectedPropertyId);
+    const item = {
+      propertyId: s.selectedPropertyId,
+      propertyName: prop?.name ?? '',
+      checkIn: s.checkIn,
+      checkOut: s.checkOut,
+      guests: s.adults + s.children,
+      total: s.pricing.total,
+      currency: s.pricing.currency,
+    };
+    this.state.set({
+      cart: [...s.cart, item],
+      selectedPropertyId: null,
+      checkIn: null,
+      checkOut: null,
+      pricing: null,
+    }, 'stateChange');
+  }
+
   private async handleCheckout(): Promise<void> {
     const s = this.state.get();
-    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut) return;
     const name = `${s.guestForm.firstName} ${s.guestForm.lastName}`.trim();
+    const guest = { name, email: s.guestForm.email, phone: s.guestForm.phone || undefined };
+
+    // Panier multi-séjours : reserve-batch puis paiement item par item.
+    if (s.cart.length > 0) {
+      await this.handleBatchCheckout(s, guest);
+      return;
+    }
+
+    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut) return;
 
     try {
       this.state.set({ loading: true });
@@ -316,7 +361,7 @@ export class BaitlyWidget {
         checkIn: s.checkIn,
         checkOut: s.checkOut,
         guests: s.adults + s.children,
-        guest: { name, email: s.guestForm.email, phone: s.guestForm.phone || undefined },
+        guest,
         notes: s.guestForm.message || undefined,
       });
 
@@ -338,6 +383,46 @@ export class BaitlyWidget {
         checkOut: s.checkOut,
         total: reservation.total,
         currency: reservation.currency,
+      });
+    } catch (err) {
+      this.state.set({ loading: false, error: msg(err) }, 'error');
+      this.config.onError?.({ code: 'CHECKOUT_ERROR', message: msg(err) });
+    }
+  }
+
+  /** Panier multi-séjours : crée les N réservations (reserve-batch) puis paie item par item. */
+  private async handleBatchCheckout(
+    s: WidgetState,
+    guest: { name: string; email: string; phone?: string },
+  ): Promise<void> {
+    try {
+      this.state.set({ loading: true });
+      const items = s.cart.map(c => ({
+        propertyId: c.propertyId,
+        checkIn: c.checkIn,
+        checkOut: c.checkOut,
+        guests: c.guests,
+      }));
+      const batch = await this.api.reserveBatch({ items, guest });
+
+      if (batch.requiresPayment && batch.reservations.length > 0) {
+        // Paiement item par item : on démarre le checkout du premier séjour.
+        const checkout = await this.api.checkout(batch.reservations[0].reservationCode);
+        if (checkout.checkoutUrl) {
+          window.location.href = checkout.checkoutUrl;
+          return;
+        }
+        throw new Error('checkout URL manquante');
+      }
+
+      this.state.set({ page: 'confirmation', cart: [], loading: false }, 'pageChange');
+      this.config.onBook?.({
+        reservationId: batch.batchCode,
+        status: 'confirmed',
+        checkIn: s.cart[0].checkIn,
+        checkOut: s.cart[s.cart.length - 1].checkOut,
+        total: batch.grandTotal,
+        currency: batch.currency,
       });
     } catch (err) {
       this.state.set({ loading: false, error: msg(err) }, 'error');
