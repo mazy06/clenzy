@@ -266,3 +266,29 @@ export const BLOCK_ORDER: BlockType[] = ['hero', 'propertyGrid', 'amenities', 'r
 export function getBlockDef(type: BlockType): BlockDef {
   return BLOCK_REGISTRY[type];
 }
+
+/** Bloc prêt au rendu (structurellement identique à BlockInstance du builder). */
+export interface ParsedBlock {
+  id: string;
+  type: BlockType;
+  props: BlockProps;
+}
+
+/**
+ * Parse un layout JSON persisté (liste de {type, props}) en blocs prêts au rendu.
+ * Tolérant : entrées invalides ou types inconnus ignorés ; props complétées par les défauts.
+ * Utilisé par le rendu public (page hébergée) et réutilisable par le builder.
+ */
+export function parsePageLayout(json: string | null | undefined): ParsedBlock[] {
+  if (!json) return [];
+  try {
+    const arr: unknown = JSON.parse(json);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((b): b is { type: BlockType; props?: BlockProps } =>
+        !!b && typeof (b as { type?: unknown }).type === 'string' && (b as { type: string }).type in BLOCK_REGISTRY)
+      .map((b, i) => ({ id: `p${i}`, type: b.type, props: { ...getBlockDef(b.type).defaultProps, ...(b.props ?? {}) } }));
+  } catch {
+    return [];
+  }
+}
