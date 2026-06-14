@@ -155,7 +155,17 @@
 - Activation Country KSA `enabled=TRUE` = **décision de déploiement** : le `MultiCountryStartupValidator` exigera la résolution des providers ; e-invoicing ZATCA n'est conforme qu'**après HP-10** (signature + clearance) → ne pas activer KSA en prod avant. RTL arabe = **HP-07** (front, cœur KSA).
 
 ## Phase 4
-_(à alimenter)_
+
+> **Nature de la Phase 4 (différenciation continue, 12+ mois)** : paris au-delà de la parité, **majoritairement externes** (multi-agent GA/LLM, market data, OTAs), **infra** (CM natif, Kafka) ou **front** (no-code builder) — pas des incréments chirurgicaux vérifiables en repo. Livrable concret choisi et livré : **caution / dépôt de garantie** (gap audit « caution ABSENTE »).
+
+### HP-19 — Reste de la caution (Stripe hold + politique + front)
+- **Source** : caution Phase 4 (livré : `SecurityDeposit` + `SecurityDepositStatus` + `SecurityDepositRepository` CAS + `SecurityDepositService` cycle de vie + DTO/requests + `SecurityDepositController` + migration 0243 ; 9 tests + ArchUnit).
+- **Description** : (1) **hold/capture/release réel Stripe** (pré-autorisation manuelle `capture_method=manual`, capture partielle, release) — **hors transaction** + `afterCommit` + idempotency key (audit #2) via `StripeGateway` ; brancher sur `markHeld`/`capture`/`release` (le journal d'états est prêt) ; (2) **politique de caution par bien** (montant depuis `Property`/policy au lieu du paramètre de requête — durcir audit #1) ; (3) **front** : écran caution dans la réservation (créer, voir le statut, capturer/relâcher) ; (4) **expiration auto** du hold (Stripe ~7 j) + relance/notification.
+- **Risque résiduel** : **Faible** en l'état (machine à états dormante, zéro mouvement d'argent tant que Stripe non branché). La valeur métier (blocage de fonds) arrive avec le point 1.
+- **Effort estimé** : Stripe M · politique S · front M · expiration S · **Statut** : `Ouvert`
+
+### Reste Phase 4 (paris non démarrés, long terme)
+- Multi-agent GA, `AnomalyDetectionService`, market data pricing, marketplace ouvert, CM natif top-tier, no-code report builder, SOC 2 Type II. Voir CSV `data/40-feature-evolution.csv` filtré `Cible=Differenciation` (64 features). Externe/infra/front pour l'essentiel → hors incréments chirurgicaux in-repo.
 
 ---
 
@@ -166,3 +176,4 @@ _(à alimenter)_
 | 2026-06-14 | Phase 1 | HP-07 → promu **Phase 2** (RTL cœur MA/KSA) ; HP-10 → promu **Phase 3** (ZATCA crypto, cœur KSA) | HP-05, HP-06, HP-08, HP-09, HP-11, HP-12 (IA pricing), HP-13/HP-14/HP-15 (channel infra/OTA) — front/infra/externe non vérifiable en repo | — |
 | 2026-06-14 | Phase 2 | CLZ-P0-MA (`MoroccoDgiProvider`) livré — comblait le seul gros gap e-invoicing MA ; fondation MA (tax/compliance/seeds/MAD) déjà présente | HP-16 (API Simpl-TVA réelle + chaîne ICE par-org), HP-17 (soumission DGSN gated), HP-07 (RTL front) | — |
 | 2026-06-14 | Phase 3 | CLZ-P0-21 (chaîne PIH/ICV ZATCA) livré — point 3 de HP-10 résolu (logique+structure) ; SaudiTaxCalculator/ComplianceStrategy déjà fonctionnels | HP-10 reste (signature XAdES/CSID/QR 6-9/clearance Fatoora + Testcontainers atomicité), HP-18 (Absher gated), CLZ-P0-08 (OTAs MENA, externe), HP-07 (RTL front) | — |
+| 2026-06-14 | Phase 4 | Caution / dépôt de garantie livré (gap audit « caution ABSENTE ») : cycle de vie CAS + service + API + migration 0243 | HP-19 (hold/capture Stripe réel + politique par bien + front), reste paris long terme (multi-agent GA, AnomalyDetection, market data, marketplace, CM natif, SOC2) — externe/infra/front | — |
