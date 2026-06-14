@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
+import DesignBuilder from './builder/DesignBuilder';
 
 /**
  * Baitly Studio — page hôte (F0) : assemble StudioShell + palette ⌘K + les 5 sections.
@@ -92,7 +93,9 @@ export default function StudioPage() {
         onOpenCommand={() => setPaletteOpen(true)}
         onBack={() => navigate('/booking-engine')}
       >
-        <SectionPlaceholder section={active} />
+        {active.key === 'design'
+          ? <DesignBuilder breakpoint={breakpoint} />
+          : <SectionPlaceholder section={active} />}
       </StudioShell>
 
       <StudioCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
