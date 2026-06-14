@@ -1,9 +1,11 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.CancellationRefundPreviewDto;
 import com.clenzy.dto.InterventionResponse;
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Reservation;
+import com.clenzy.service.CancellationRefundService;
 import com.clenzy.service.InterventionMapper;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationPaymentService;
@@ -37,15 +39,18 @@ public class ReservationController {
     private final ReservationMapper reservationMapper;
     private final ReservationPaymentService reservationPaymentService;
     private final InterventionMapper interventionMapper;
+    private final CancellationRefundService cancellationRefundService;
 
     public ReservationController(ReservationService reservationService,
                                  ReservationMapper reservationMapper,
                                  ReservationPaymentService reservationPaymentService,
-                                 InterventionMapper interventionMapper) {
+                                 InterventionMapper interventionMapper,
+                                 CancellationRefundService cancellationRefundService) {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
         this.reservationPaymentService = reservationPaymentService;
         this.interventionMapper = interventionMapper;
+        this.cancellationRefundService = cancellationRefundService;
     }
 
     // ── GET : interventions liees a une reservation ─────────────────────────
@@ -126,6 +131,15 @@ public class ReservationController {
     public ResponseEntity<ReservationDto> getById(@PathVariable Long id) {
         Reservation reservation = reservationService.getByIdFetchAll(id);
         return ResponseEntity.ok(reservationMapper.toDto(reservation));
+    }
+
+    // ── GET : apercu du remboursement en cas d'annulation ────────────────────
+
+    @GetMapping("/{id}/cancellation-refund-preview")
+    @Operation(summary = "Apercu du remboursement si la reservation etait annulee maintenant",
+            description = "Applique la politique d'annulation de la propriete (preset ou regles parametrables).")
+    public ResponseEntity<CancellationRefundPreviewDto> cancellationRefundPreview(@PathVariable Long id) {
+        return ResponseEntity.ok(cancellationRefundService.preview(id));
     }
 
     // ── POST : creation ─────────────────────────────────────────────────────

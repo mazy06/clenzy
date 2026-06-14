@@ -51,6 +51,7 @@ class ReservationControllerUpdateTest {
     @Mock private ReservationMapper reservationMapper;
     @Mock private ReservationPaymentService reservationPaymentService;
     @Mock private InterventionMapper interventionMapper;
+    @Mock private com.clenzy.service.CancellationRefundService cancellationRefundService;
     // Conserves uniquement pour les assertions "le controller n'ecrit plus en direct"
     @Mock private ReservationRepository reservationRepository;
     @Mock private InterventionRepository interventionRepository;
@@ -61,7 +62,7 @@ class ReservationControllerUpdateTest {
     void setUp() {
         controller = new ReservationController(
                 reservationService, reservationMapper,
-                reservationPaymentService, interventionMapper);
+                reservationPaymentService, interventionMapper, cancellationRefundService);
     }
 
     private Jwt createJwt(String sub) {

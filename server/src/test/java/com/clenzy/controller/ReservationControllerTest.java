@@ -52,6 +52,7 @@ class ReservationControllerTest {
     @Mock private ReservationMapper reservationMapper;
     @Mock private ReservationPaymentService reservationPaymentService;
     @Mock private InterventionMapper interventionMapper;
+    @Mock private com.clenzy.service.CancellationRefundService cancellationRefundService;
     // Conserve uniquement pour les assertions "le controller n'ecrit plus en direct"
     @Mock private ReservationRepository reservationRepository;
 
@@ -86,7 +87,7 @@ class ReservationControllerTest {
     @BeforeEach
     void setUp() {
         controller = new ReservationController(reservationService, reservationMapper,
-                reservationPaymentService, interventionMapper);
+                reservationPaymentService, interventionMapper, cancellationRefundService);
     }
 
     @Nested
