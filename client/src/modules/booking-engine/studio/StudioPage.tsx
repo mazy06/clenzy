@@ -14,6 +14,7 @@ import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell'
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
 import DesignBuilder from './builder/DesignBuilder';
 import BookingSettingsPanel from './settings/BookingSettingsPanel';
+import ContentAiPanel from './settings/ContentAiPanel';
 import { useStudioConfig } from './useStudioConfig';
 
 /**
@@ -86,6 +87,7 @@ export default function StudioPage() {
         onBack={() => navigate('/booking-engine')}
       >
         {active.key === 'design' && <DesignBuilder breakpoint={breakpoint} />}
+        {active.key === 'content' && <ContentAiPanel />}
         {active.key === 'booking' && (
           <BookingSettingsPanel
             config={cfg.config}
@@ -97,7 +99,7 @@ export default function StudioPage() {
             onSave={() => { cfg.save().catch(() => { /* erreur déjà exposée par le hook */ }); }}
           />
         )}
-        {active.key !== 'design' && active.key !== 'booking' && <SectionPlaceholder section={active} />}
+        {active.key !== 'design' && active.key !== 'booking' && active.key !== 'content' && <SectionPlaceholder section={active} />}
       </StudioShell>
 
       <StudioCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
