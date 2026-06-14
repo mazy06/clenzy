@@ -91,6 +91,25 @@ public class StripeGateway {
         return PaymentIntent.create(params, requestOptions(null));
     }
 
+    /** Cree un PaymentIntent avec cle d'idempotence (pre-autorisation / hold de caution). */
+    public PaymentIntent createPaymentIntent(PaymentIntentCreateParams params, String idempotencyKey)
+            throws StripeException {
+        return PaymentIntent.create(params, requestOptions(idempotencyKey));
+    }
+
+    /** Capture (totale ou partielle) un PaymentIntent en pre-autorisation manuelle. */
+    public PaymentIntent capturePaymentIntent(PaymentIntent paymentIntent,
+                                              com.stripe.param.PaymentIntentCaptureParams params,
+                                              String idempotencyKey) throws StripeException {
+        return paymentIntent.capture(params, requestOptions(idempotencyKey));
+    }
+
+    /** Annule un PaymentIntent (libere un hold de caution). */
+    public PaymentIntent cancelPaymentIntent(PaymentIntent paymentIntent, String idempotencyKey)
+            throws StripeException {
+        return paymentIntent.cancel(requestOptions(idempotencyKey));
+    }
+
     public PaymentIntent retrievePaymentIntent(String paymentIntentId) throws StripeException {
         return PaymentIntent.retrieve(paymentIntentId, requestOptions(null));
     }

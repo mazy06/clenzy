@@ -36,6 +36,7 @@ class PendingReservationCleanupSchedulerTest {
     @Mock private BookingPendingReservationRepository pendingReservationRepository;
     @Mock private CalendarEngine calendarEngine;
     @Mock private StripeService stripeService;
+    @Mock private com.clenzy.service.AbandonedBookingService abandonedBookingService;
     @Mock private PlatformTransactionManager transactionManager;
 
     private PendingReservationCleanupScheduler scheduler;
@@ -47,7 +48,7 @@ class PendingReservationCleanupSchedulerTest {
         lenient().when(transactionManager.getTransaction(any()))
             .thenReturn(new SimpleTransactionStatus());
         scheduler = new PendingReservationCleanupScheduler(
-            pendingReservationRepository, calendarEngine, stripeService, transactionManager);
+            pendingReservationRepository, calendarEngine, stripeService, abandonedBookingService, transactionManager);
     }
 
     private Reservation buildExpiredReservation(Long id, String stripeSessionId) {

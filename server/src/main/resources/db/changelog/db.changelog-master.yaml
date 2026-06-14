@@ -2445,3 +2445,19 @@ databaseChangeLog:
       sqlFile:
         path: changes/0246__create_webhook_deliveries.sql
         relativeToChangelogFile: true
+
+  # Capture de leads / email marketing (Domaine 2) : contacts marketing (consentement RGPD).
+  - changeSet:
+      id: "0247-create-marketing-contacts"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0247__create_marketing_contacts.sql
+        relativeToChangelogFile: true
+
+  # Recuperation de panier abandonne (Domaine 2) : snapshot resa pending expiree + relance email.
+  - changeSet:
+      id: "0248-create-abandoned-bookings"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0248__create_abandoned_bookings.sql
+        relativeToChangelogFile: true
