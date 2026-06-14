@@ -102,6 +102,7 @@ CLENZY_V2 = {
     "01-channel-management.csv": {
         "Sync temps reel dispo/prix (2-way)": "3",
         "Sync restrictions (min stay/rules)": "3",
+        "Mapping / multi-listing": "3",
     },
     "02-booking-engine.csv": {
         "RTL / arabe (booking direct)": "2",
@@ -690,17 +691,18 @@ def build_full():
                        "reste tracee dans backlog/HORS-PERIMETRE.md (HP-07 a HP-20).", BODY))
     try:
         ev = read_csv("60-evolution-scores.csv")
-        S += [Spacer(1, 6), evolution_callout(1.86, 2.01, "6e / 8", "3e / 8"), Spacer(1, 12),
+        S += [Spacer(1, 6), evolution_callout(1.86, 2.03, "6e / 8", "3e / 8"), Spacer(1, 12),
               Paragraph("Evolution par domaine (score 0-3)", H3), evolution_table(ev), Spacer(1, 4), LEGEND, Spacer(1, 10),
               Paragraph("Lecture", H3)]
         for t in ["<b>Finance &amp; Compta 2,2 -&gt; 2,5</b> : abstraction e-invoicing + 3 providers pays (Factur-X FR, DGI Maroc, "
                   "ZATCA KSA) + chaine PIH/ICV atomique + caution/depot (gap \"absent\" comble) + consolidation multi-devise.",
-                  "<b>Channel Management 2,0 -&gt; 2,2</b> : sync 2-way fiabilisee (DLT propagee, audit #7) + sync restrictions "
-                  "completee (min_stay_arrival) et reconciliee (watchdog de divergence Clenzy ↔ OTA).",
+                  "<b>Channel Management 2,0 -&gt; 2,3</b> : sync 2-way fiabilisee (DLT propagee, audit #7) + sync restrictions "
+                  "completee (min_stay_arrival) et reconciliee (watchdog de divergence) + mapping avance (auto-suggestion, "
+                  "validateur d'integrite, multi-rate-plan). Hors connexions OTA directes (gated) volontairement &lt; 3.",
                   "<b>Reporting 1,7 -&gt; 2,0</b> : report builder (socle whitelist + CRUD), comparaison N/N-1 calculee serveur, "
                   "agregation multi-devise EUR/MAD/SAR.",
                   "<b>Admin &amp; conformite 1,6 -&gt; 1,9</b> : 2FA (policy org) + socle Country multi-pays + validation fail-fast au boot.",
-                  "<b>Global 1,86 -&gt; 2,01</b> : Clenzy passe du 6e au 3e rang en depassant le peloton resserre "
+                  "<b>Global 1,86 -&gt; 2,03</b> : Clenzy passe du 6e au 3e rang en depassant le peloton resserre "
                   "(Avantio 1,96 . Hospitable 1,92 . Smily 1,89) - sans rattraper Guesty (2,52) ni Hostaway (2,31).",
                   "<b>Honnetete du barometre</b> : les domaines non travailles (Integrations, Mobile, Operations, Communication) "
                   "restent inchanges - aucun gonflage. Le potentiel verrouille (IA) attend HP-12."]:

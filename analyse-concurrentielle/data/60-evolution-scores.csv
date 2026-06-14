@@ -1,5 +1,5 @@
 Domaine,Avant,Apres,Realisations
-1. Channel Management,2.0,2.2,Sync 2-way (DLT propagee/audit 7) + sync restrictions (minStayArrival + reconciliation/watchdog de divergence)
+1. Channel Management,2.0,2.3,Sync 2-way (DLT/audit 7) + sync restrictions (minStayArrival + reconciliation/watchdog) + mapping avance (auto-suggestion + validateur d'integrite + multi-rate-plan)
 2. Booking engine & site direct,1.4,1.6,i18n/RTL booking-sdk (fr/en/ar) + emails de confirmation (paye + auto-confirm)
 3. Calendrier & multi-tenant,2.6,2.7,Edition groupee + durcissement isolation (requireSameOrganization) + detection double-booking
 4. Tarification / Yield,1.7,1.9,Recommandation de prix CAS-safe + simulation TTC par pays (TVA + taxe de sejour)
@@ -12,4 +12,4 @@ Domaine,Avant,Apres,Realisations
 11. Application mobile,2.5,2.5,Inchange
 12. Admin securite & conformite,1.6,1.9,2FA (policy org mfaRequired) + socle Country multi-pays + validation fail-fast au boot
 13. IA & automatisation,1.2,1.4,Detection d'anomalies (double-booking) + architecture reco de prix (IA pricing : deverrouillage differe HP-12)
-SCORE GLOBAL PONDERE,1.86,2.01,Hausse tiree par Finance (e-invoicing multi-pays + caution), Reporting et Channel (sync 2-way + restrictions) ; passe du 6e au 3e rang
+SCORE GLOBAL PONDERE,1.86,2.03,Hausse tiree par Finance (e-invoicing multi-pays + caution), Reporting et Channel (sync 2-way + restrictions + mapping) ; passe du 6e au 3e rang
