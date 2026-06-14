@@ -97,71 +97,70 @@ public class ChannexSyncService {
     /**
      * Consomme les events emis par CalendarEngine / PriceEngine via OutboxRelay.
      *
-     * <p>Filtre les properties qui n'ont PAS de mapping Channex actif (skip silencieux).
-     * Les erreurs reseau sont catch et logguees : on n'echoue pas le consumer Kafka
-     * pour eviter de bloquer le topic. Les retries sont gerees par le client HTTP
-     * (backoff exponentiel) et le scheduler {@link #retryFailedMappings()}.</p>
+     * <p>Skip silencieux (return normal) si la property n'a pas de mapping Channex actif.
+     * Les echecs de push OTA sont enregistres en statut ERROR sur le mapping
+     * ({@code updateMappingStatus}) puis rejoues par {@link #retryFailedMappings()}. Toute
+     * autre erreur de traitement <b>se propage</b> : le DefaultErrorHandler Kafka rejoue
+     * (backoff) puis route vers la DLT {@code calendar.updates.DLT} — jamais d'avalage
+     * silencieux qui neutraliserait la DLT (audit #7).</p>
      */
     @SuppressWarnings("unchecked")
     @Transactional
     @KafkaListener(topics = KafkaConfig.TOPIC_CALENDAR_UPDATES, groupId = KAFKA_GROUP_ID)
     public void onCalendarUpdate(Object payload) {
-        try {
-            Map<String, Object> event = unwrapPayload(payload);
-            if (event == null) return;
+        Map<String, Object> event = unwrapPayload(payload);
+        if (event == null) return;
 
-            Long propertyId = extractLong(event, "propertyId");
-            Long orgId = extractLong(event, "orgId");
-            String action = (String) event.get("action");
-            LocalDate from = parseDate(event, "from");
-            LocalDate to = parseDate(event, "to");
+        Long propertyId = extractLong(event, "propertyId");
+        Long orgId = extractLong(event, "orgId");
+        String action = (String) event.get("action");
+        LocalDate from = parseDate(event, "from");
+        LocalDate to = parseDate(event, "to");
 
-            if (propertyId == null || orgId == null || from == null || to == null) {
-                log.debug("ChannexSync: event incomplet, skip (propertyId={}, orgId={}, from={}, to={})",
-                    propertyId, orgId, from, to);
-                return;
-            }
-
-            Optional<ChannexPropertyMapping> mappingOpt =
-                mappingRepository.findByClenzyPropertyId(propertyId, orgId);
-            if (mappingOpt.isEmpty()) {
-                // Property non geree par Channex — silence (les connectors directs s'en chargent)
-                return;
-            }
-
-            ChannexPropertyMapping mapping = mappingOpt.get();
-            ChannexSyncStatus status = mapping.getSyncStatus();
-            if (status == ChannexSyncStatus.DISABLED) {
-                log.debug("ChannexSync: mapping {} disabled, skip", mapping.getId());
-                return;
-            }
-
-            // Gate OTA : meme regle que pushProperty() — pas de push tant qu'aucun
-            // OTA n'est branche cote Channex (sinon les events Kafka generent des
-            // appels API gaspilles vers Channex sans aucune distribution OTA).
-            try {
-                if (!channexClient.hasActiveOtaChannel(mapping.getChannexPropertyId())) {
-                    log.debug("ChannexSync: event skip property={} (aucun OTA actif cote Channex)",
-                        propertyId);
-                    return;
-                }
-            } catch (Exception e) {
-                // En cas d'erreur sur le check : continuer le push (preferable a un skip silencieux)
-                log.warn("ChannexSync: check OTA actif KO ({}), push tente quand meme", e.getMessage());
-            }
-
-            log.info("ChannexSync: push declenche action={} property={} period=[{},{}]",
-                action, propertyId, from, to);
-
-            // Push availability + rates (les 2 sont independants — un echec n'impacte pas l'autre)
-            boolean availabilityOk = pushAvailabilityForRange(mapping, from, to);
-            boolean ratesOk = pushRatesForRange(mapping, from, to);
-
-            updateMappingStatus(mapping, availabilityOk && ratesOk, null);
-        } catch (Exception e) {
-            log.error("ChannexSync: erreur traitement event (NON propagee pour ne pas bloquer le topic): {}",
-                e.getMessage(), e);
+        if (propertyId == null || orgId == null || from == null || to == null) {
+            log.debug("ChannexSync: event incomplet, skip (propertyId={}, orgId={}, from={}, to={})",
+                propertyId, orgId, from, to);
+            return;
         }
+
+        Optional<ChannexPropertyMapping> mappingOpt =
+            mappingRepository.findByClenzyPropertyId(propertyId, orgId);
+        if (mappingOpt.isEmpty()) {
+            // Property non geree par Channex — silence (les connectors directs s'en chargent)
+            return;
+        }
+
+        ChannexPropertyMapping mapping = mappingOpt.get();
+        ChannexSyncStatus status = mapping.getSyncStatus();
+        if (status == ChannexSyncStatus.DISABLED) {
+            log.debug("ChannexSync: mapping {} disabled, skip", mapping.getId());
+            return;
+        }
+
+        // Gate OTA : meme regle que pushProperty() — pas de push tant qu'aucun
+        // OTA n'est branche cote Channex (sinon les events Kafka generent des
+        // appels API gaspilles vers Channex sans aucune distribution OTA).
+        try {
+            if (!channexClient.hasActiveOtaChannel(mapping.getChannexPropertyId())) {
+                log.debug("ChannexSync: event skip property={} (aucun OTA actif cote Channex)",
+                    propertyId);
+                return;
+            }
+        } catch (Exception e) {
+            // En cas d'erreur sur le check : continuer le push (preferable a un skip silencieux)
+            log.warn("ChannexSync: check OTA actif KO ({}), push tente quand meme", e.getMessage());
+        }
+
+        log.info("ChannexSync: push declenche action={} property={} period=[{},{}]",
+            action, propertyId, from, to);
+
+        // Push availability + rates (les 2 sont independants — un echec n'impacte pas l'autre).
+        // Les echecs OTA sont catch dans les methodes de push et enregistres en ERROR (rejoues par
+        // retryFailedMappings). Toute autre erreur se propage -> retry Kafka -> DLT (audit #7).
+        boolean availabilityOk = pushAvailabilityForRange(mapping, from, to);
+        boolean ratesOk = pushRatesForRange(mapping, from, to);
+
+        updateMappingStatus(mapping, availabilityOk && ratesOk, null);
     }
 
     // ─── Push methods (visibles tests + appelables manuellement) ────────────
@@ -583,14 +582,19 @@ public class ChannexSyncService {
     // ─── Payload helpers (factorises avec ChannelSyncService) ───────────────
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> unwrapPayload(Object payload) throws Exception {
+    private Map<String, Object> unwrapPayload(Object payload) {
         if (payload instanceof Map) return (Map<String, Object>) payload;
-        if (payload instanceof ConsumerRecord<?, ?> record) {
-            Object value = record.value();
-            if (value instanceof Map) return (Map<String, Object>) value;
-            if (value instanceof String s) return objectMapper.readValue(s, Map.class);
+        try {
+            if (payload instanceof ConsumerRecord<?, ?> record) {
+                Object value = record.value();
+                if (value instanceof Map) return (Map<String, Object>) value;
+                if (value instanceof String s) return objectMapper.readValue(s, Map.class);
+            }
+            if (payload instanceof String s) return objectMapper.readValue(s, Map.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            // Payload JSON illisible = erreur de traitement -> propagee (retry Kafka -> DLT, audit #7)
+            throw new IllegalStateException("ChannexSync: payload JSON illisible", e);
         }
-        if (payload instanceof String s) return objectMapper.readValue(s, Map.class);
         log.debug("ChannexSync: payload type inattendu {}, skip", payload != null ? payload.getClass().getName() : "null");
         return null;
     }

@@ -132,6 +132,18 @@ class ChannexSyncServiceTest {
     }
 
     @Test
+    @DisplayName("erreur de traitement inattendue -> propagee (declenche la DLT), plus d'avalage (audit #7)")
+    void propagatesUnexpectedErrorToTriggerDlt() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenThrow(new RuntimeException("DB indisponible"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "BOOKING_CREATED",
+            "from", "2026-06-01", "to", "2026-06-03"
+        ))).isInstanceOf(RuntimeException.class).hasMessageContaining("DB indisponible");
+    }
+
+    @Test
     @DisplayName("event valide -> push availability + rates avec status ACTIVE final")
     void pushesAvailabilityAndRatesWhenMappingActive() {
         when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
