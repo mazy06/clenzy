@@ -65,6 +65,7 @@ public class ChannexSyncService {
     private final com.clenzy.repository.OccupancyPricingRepository occupancyPricingRepository;
     private final com.clenzy.repository.LengthOfStayDiscountRepository lengthOfStayDiscountRepository;
     private final com.clenzy.repository.RatePlanRepository ratePlanRepository;
+    private final com.clenzy.integration.channel.ChannelRoutingStrategy routingStrategy;
 
     public ChannexSyncService(ChannexClient channexClient,
                                 ChannexPropertyMappingRepository mappingRepository,
@@ -77,7 +78,8 @@ public class ChannexSyncService {
                                 com.clenzy.repository.BookingRestrictionRepository bookingRestrictionRepository,
                                 com.clenzy.repository.OccupancyPricingRepository occupancyPricingRepository,
                                 com.clenzy.repository.LengthOfStayDiscountRepository lengthOfStayDiscountRepository,
-                                com.clenzy.repository.RatePlanRepository ratePlanRepository) {
+                                com.clenzy.repository.RatePlanRepository ratePlanRepository,
+                                com.clenzy.integration.channel.ChannelRoutingStrategy routingStrategy) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.calendarDayRepository = calendarDayRepository;
@@ -90,6 +92,7 @@ public class ChannexSyncService {
         this.occupancyPricingRepository = occupancyPricingRepository;
         this.lengthOfStayDiscountRepository = lengthOfStayDiscountRepository;
         this.ratePlanRepository = ratePlanRepository;
+        this.routingStrategy = routingStrategy;
     }
 
     // ─── Kafka consumer ─────────────────────────────────────────────────────
@@ -134,6 +137,13 @@ public class ChannexSyncService {
         ChannexSyncStatus status = mapping.getSyncStatus();
         if (status == ChannexSyncStatus.DISABLED) {
             log.debug("ChannexSync: mapping {} disabled, skip", mapping.getId());
+            return;
+        }
+
+        // Routage CM natif (anti double-push) : si la propriete a un mapping DIRECT actif, le
+        // connecteur natif s'en charge (prioritaire) — Channex ne pousse pas pour eviter le doublon.
+        if (routingStrategy.resolve(propertyId, orgId) != com.clenzy.integration.channel.ChannelRoute.CHANNEX) {
+            log.debug("ChannexSync: property={} routee en direct (natif prioritaire), skip Channex", propertyId);
             return;
         }
 

@@ -68,12 +68,18 @@ class ChannexSyncServicePricingPushTest {
 
     @BeforeEach
     void setUp() {
+        com.clenzy.integration.channel.ChannelRoutingStrategy routing =
+            org.mockito.Mockito.mock(com.clenzy.integration.channel.ChannelRoutingStrategy.class);
+        org.mockito.Mockito.lenient().when(routing.resolve(org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(com.clenzy.integration.channel.ChannelRoute.CHANNEX);
         service = new ChannexSyncService(
             channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper(),
             new ChannexMetrics(new SimpleMeterRegistry()),
             syncLogService, propertyRepository,
             bookingRestrictionRepository, occupancyPricingRepository,
-            lengthOfStayDiscountRepository, ratePlanRepository
+            lengthOfStayDiscountRepository, ratePlanRepository,
+            routing
         );
     }
 

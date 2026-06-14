@@ -50,6 +50,7 @@ class ChannexSyncServiceTest {
 
     private ChannexSyncService service;
     private ChannexPropertyMapping mapping;
+    private com.clenzy.integration.channel.ChannelRoutingStrategy routing;
 
     @BeforeEach
     void setUp() {
@@ -79,12 +80,17 @@ class ChannexSyncServiceTest {
             org.mockito.Mockito.mock(com.clenzy.repository.LengthOfStayDiscountRepository.class);
         com.clenzy.repository.RatePlanRepository rpRepo =
             org.mockito.Mockito.mock(com.clenzy.repository.RatePlanRepository.class);
+        routing = org.mockito.Mockito.mock(com.clenzy.integration.channel.ChannelRoutingStrategy.class);
+        org.mockito.Mockito.lenient().when(routing.resolve(org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(com.clenzy.integration.channel.ChannelRoute.CHANNEX);
         service = new ChannexSyncService(
             channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper(),
             new ChannexMetrics(new SimpleMeterRegistry()),
             noopLogs,
             propertyRepo,
-            brRepo, opRepo, losRepo, rpRepo
+            brRepo, opRepo, losRepo, rpRepo,
+            routing
         );
 
         mapping = new ChannexPropertyMapping();
@@ -129,6 +135,20 @@ class ChannexSyncServiceTest {
         ));
 
         verify(channexClient, never()).pushAvailability(anyList());
+    }
+
+    @Test
+    @DisplayName("property routee en direct (mapping natif) -> Channex skip (anti double-push, CM natif)")
+    void skipsWhenRoutedToDirect() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L))).thenReturn(Optional.of(mapping));
+        when(routing.resolve(100L, 42L)).thenReturn(com.clenzy.integration.channel.ChannelRoute.DIRECT);
+
+        service.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "PRICE_UPDATED",
+            "from", "2026-06-01", "to", "2026-06-03"));
+
+        verify(channexClient, never()).pushAvailability(anyList());
+        verify(channexClient, never()).pushRates(anyList());
     }
 
     @Test
