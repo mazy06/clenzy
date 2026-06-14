@@ -67,7 +67,7 @@ export default function PublicBookingPage() {
       headers: { 'X-Booking-Key': apiKey },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error())))
-      .then((data: PublicReviews) => { if (alive) setReviews(data); })
+      .then((data: PublicReviews) => { if (alive && data && data.stats) setReviews(data); })
       .catch(() => { /* avis indisponibles : section masquée */ });
     return () => { alive = false; };
   }, [apiKey]);
@@ -116,7 +116,7 @@ export default function PublicBookingPage() {
       {blocks.map((b) => <Box key={b.id}>{getBlockDef(b.type).render(b.props)}</Box>)}
 
       {/* Preuve sociale : avis publics (affichée seulement s'il y en a). */}
-      {reviews && reviews.stats.totalCount > 0 && <ReviewsSection data={reviews} />}
+      {reviews?.stats && reviews.stats.totalCount > 0 && <ReviewsSection data={reviews} />}
 
       {/* Section de réservation : widget fonctionnel (Shadow DOM, styles isolés). */}
       <Box id="reserver" sx={{ maxWidth: 1040, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
