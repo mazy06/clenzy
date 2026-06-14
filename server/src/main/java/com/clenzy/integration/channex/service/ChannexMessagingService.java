@@ -97,6 +97,17 @@ public class ChannexMessagingService {
         Long orgId = mapping.getOrganizationId();
         ConversationChannel channel = mapToConversationChannel(channelName);
 
+        // Idempotence reelle : un meme message OTA peut arriver via plusieurs chemins (adapter
+        // direct + Channex) ou etre re-livre par webhook. On dedup par (org, canal, id externe).
+        if (messageId != null) {
+            Optional<ConversationMessage> existing = messageRepository
+                .findByOrganizationIdAndChannelSourceAndExternalMessageId(orgId, channel, messageId);
+            if (existing.isPresent()) {
+                log.debug("ChannexMessaging: message {} deja ingere (idempotence), skip", messageId);
+                return existing;
+            }
+        }
+
         // Upsert Conversation (idempotent par external_conversation_id)
         Conversation conversation = conversationRepository
             .findByOrganizationIdAndChannelAndExternalConversationId(orgId, channel, threadId)
@@ -115,7 +126,7 @@ public class ChannexMessagingService {
         conversation.setUnread(true);
         conversation = conversationRepository.save(conversation);
 
-        // Persiste le message en utilisant external_message_id pour idempotence
+        // Persiste le message (idempotence deja verifiee ci-dessus via external_message_id)
         ConversationMessage msg = new ConversationMessage();
         msg.setOrganizationId(orgId);
         msg.setConversation(conversation);
