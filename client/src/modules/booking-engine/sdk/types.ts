@@ -4,6 +4,8 @@ export interface BaitlyBookingConfig {
   container: string | HTMLElement;
   apiKey: string;
   baseUrl?: string;
+  /** Slug de l'org dans le path public ; placeholder (l'org est resolue par la cle API X-Booking-Key). */
+  slug?: string;
   theme?: BaitlyTheme;
   language?: 'fr' | 'en' | 'ar';
   currency?: string;
@@ -46,16 +48,42 @@ export interface WidgetState {
   calendarOpen: boolean;
   calendarBaseMonth: string; // YYYY-MM
   guestsOpen: boolean;
-  selectedPropertyType: string | null;
+  // Property-first : liste + propriete selectionnee
+  properties: WidgetProperty[];
+  selectedPropertyId: number | null;
+  // Multi-devise (BE-L0-1)
+  displayCurrency: string;
+  currencies: string[];
   availability: Map<string, DayAvailability>;
-  propertyTypes: PropertyTypeInfo[];
   pricing: PriceBreakdown | null;
   pricingLoading: boolean;
-  addons: SelectedAddon[];
   loading: boolean;
   error: string | null;
   guestForm: GuestFormData;
   guestFormErrors: Partial<Record<keyof GuestFormData, string>>;
+  // Champs conserves pour compat composants legacy (PropertyFilter/AddonsPanel), hors flux property-first
+  selectedPropertyType: string | null;
+  propertyTypes: PropertyTypeInfo[];
+  addons: SelectedAddon[];
+}
+
+export interface WidgetProperty {
+  id: number;
+  name: string;
+  type: string | null;
+  city: string | null;
+  country: string | null;
+  bedroomCount: number | null;
+  bathroomCount: number | null;
+  maxGuests: number | null;
+  priceFrom: number | null;
+  cleaningFee: number | null;
+  minimumNights: number | null;
+  currency: string;
+  mainPhotoUrl: string | null;
+  amenities: string[] | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
 }
 
 export interface DayAvailability {
