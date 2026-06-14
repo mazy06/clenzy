@@ -2397,3 +2397,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0240__create_report_view.sql
         relativeToChangelogFile: true
+
+  # Recommandations de prix (CLZ-P0-17) : shadow/reco/auto, transition de statut par CAS.
+  - changeSet:
+      id: "0241-create-price-recommendation"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0241__create_price_recommendation.sql
+        relativeToChangelogFile: true
