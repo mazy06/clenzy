@@ -277,6 +277,24 @@ public class PublicBookingController {
     }
 
     /**
+     * POST /{slug}/booking/{code}/cancel
+     * Annulation self-service : libère le calendrier + émet le remboursement applicable (politique).
+     * Auth : code de confirmation + email guest. Rate-limité par IP. Idempotent.
+     */
+    @PostMapping("/booking/{code}/cancel")
+    public ResponseEntity<?> cancelBooking(
+            @PathVariable String slug,
+            @PathVariable String code,
+            @Valid @RequestBody com.clenzy.booking.dto.BookingCancellationRequest request,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(cancellationService.cancel(ctx.orgId(), code, request.email(), request.reason()));
+    }
+
+    /**
      * GET /{slug}/reviews?limit=6
      * Avis publics agrégés (org) + avis récents — preuve sociale sur la page publique.
      */
