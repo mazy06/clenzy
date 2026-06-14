@@ -10,6 +10,7 @@ import com.clenzy.model.*;
 import com.clenzy.model.voucher.VoucherChannelScope;
 import com.clenzy.repository.*;
 import com.clenzy.service.*;
+import com.clenzy.service.email.BookingConfirmationEmailService;
 import com.clenzy.service.voucher.VoucherApplyResult;
 import com.clenzy.service.voucher.VoucherEngine;
 import com.clenzy.service.voucher.VoucherValidationResult;
@@ -80,6 +81,7 @@ public class PublicBookingService {
     private final VoucherEngine voucherEngine;
     private final NotificationService notificationService;
     private final BookingServiceOptionsService serviceOptionsService;
+    private final BookingConfirmationEmailService bookingConfirmationEmailService;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -96,7 +98,8 @@ public class PublicBookingService {
             GuestReviewRepository guestReviewRepository,
             VoucherEngine voucherEngine,
             NotificationService notificationService,
-            BookingServiceOptionsService serviceOptionsService) {
+            BookingServiceOptionsService serviceOptionsService,
+            BookingConfirmationEmailService bookingConfirmationEmailService) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -112,6 +115,7 @@ public class PublicBookingService {
         this.voucherEngine = voucherEngine;
         this.notificationService = notificationService;
         this.serviceOptionsService = serviceOptionsService;
+        this.bookingConfirmationEmailService = bookingConfirmationEmailService;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -481,6 +485,21 @@ public class PublicBookingService {
         String status = reservation.getStatus().toUpperCase();
         log.info("Booking Engine: reservation {} {} creee pour property {} (org {}, requiresPayment={})",
             status, reservation.getConfirmationCode(), req.propertyId(), orgId, requiresPayment);
+
+        // HP-03.1 : email de confirmation pour les reservations confirmees SANS paiement
+        // (le chemin paye envoie l'email au webhook Stripe via confirmReservationPayment).
+        // APRES COMMIT (audit #2), best-effort : un echec d'envoi n'impacte pas la reservation.
+        if (!requiresPayment && "confirmed".equalsIgnoreCase(reservation.getStatus())) {
+            final Long confirmedReservationId = reservation.getId();
+            runAfterCommit(() -> {
+                try {
+                    bookingConfirmationEmailService.sendForReservation(confirmedReservationId);
+                } catch (Exception e) {
+                    log.warn("Email de confirmation (booking direct) non envoye pour la reservation {}: {}",
+                            confirmedReservationId, e.getMessage());
+                }
+            });
+        }
 
         // Construction du DTO via helpers explicites pour exposer l'etat du
         // voucher au guest (succes / refus / pas demande).

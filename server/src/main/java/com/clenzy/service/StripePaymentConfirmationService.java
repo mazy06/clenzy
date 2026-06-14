@@ -15,11 +15,14 @@ import com.clenzy.model.WalletType;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
+import com.clenzy.service.email.BookingConfirmationEmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -51,6 +54,7 @@ public class StripePaymentConfirmationService {
     private final AutoInvoiceService autoInvoiceService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final PaymentStatusTransitionService paymentStatusTransitionService;
+    private final BookingConfirmationEmailService bookingConfirmationEmailService;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -65,7 +69,8 @@ public class StripePaymentConfirmationService {
                                             SplitPaymentService splitPaymentService,
                                             AutoInvoiceService autoInvoiceService,
                                             KafkaTemplate<String, Object> kafkaTemplate,
-                                            PaymentStatusTransitionService paymentStatusTransitionService) {
+                                            PaymentStatusTransitionService paymentStatusTransitionService,
+                                            BookingConfirmationEmailService bookingConfirmationEmailService) {
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -77,6 +82,7 @@ public class StripePaymentConfirmationService {
         this.autoInvoiceService = autoInvoiceService;
         this.kafkaTemplate = kafkaTemplate;
         this.paymentStatusTransitionService = paymentStatusTransitionService;
+        this.bookingConfirmationEmailService = bookingConfirmationEmailService;
     }
 
     /**
@@ -230,6 +236,19 @@ public class StripePaymentConfirmationService {
 
         log.info("Paiement de reservation confirme: reservationId={}, sessionId={}", reservation.getId(), sessionId);
 
+        // Email de confirmation guest APRES COMMIT (audit #2 : aucun appel externe dans la
+        // transaction). Best-effort : un echec d'envoi n'impacte pas la confirmation de
+        // paiement. Idempotent via l'early-return PAID en tete de methode.
+        final Long confirmedReservationId = reservation.getId();
+        runAfterCommit(() -> {
+            try {
+                bookingConfirmationEmailService.sendForReservation(confirmedReservationId);
+            } catch (Exception e) {
+                log.warn("Email de confirmation non envoye pour la reservation {}: {}",
+                        confirmedReservationId, e.getMessage());
+            }
+        });
+
         // ─── Wallet creation + ledger entry + split (ManagementContract-aware) ──
         Long ownerId = (reservation.getProperty() != null && reservation.getProperty().getOwner() != null)
                 ? reservation.getProperty().getOwner().getId() : null;
@@ -293,6 +312,24 @@ public class StripePaymentConfirmationService {
             autoInvoiceService.generateForReservation(reservation);
         } catch (Exception e) {
             log.warn("Auto-invoice failed for reservation {}: {}", reservation.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Execute une action APRES le commit de la transaction courante (effets externes
+     * hors transaction, audit #2). Hors contexte transactionnel (tests), execute
+     * immediatement.
+     */
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
         }
     }
 

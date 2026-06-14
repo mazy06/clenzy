@@ -66,7 +66,8 @@ class PublicBookingServiceTest {
                 reservationRepository, calendarDayRepository, priceEngine,
                 restrictionEngine, calendarEngine, guestService, touristTaxService,
                 stripeService, guestReviewRepository, voucherEngine, notificationService,
-                serviceOptionsService);
+                serviceOptionsService,
+                org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class));
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────
