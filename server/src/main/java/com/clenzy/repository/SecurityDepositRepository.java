@@ -14,6 +14,8 @@ public interface SecurityDepositRepository extends JpaRepository<SecurityDeposit
 
     Optional<SecurityDeposit> findByOrganizationIdAndReservationId(Long organizationId, Long reservationId);
 
+    Optional<SecurityDeposit> findByIdAndOrganizationId(Long id, Long organizationId);
+
     /**
      * Transition de statut atomique (CAS, audit #8) : ne modifie que si encore dans
      * {@code expectedStatus} et appartenant à l'org. Renvoie le nombre de lignes affectées

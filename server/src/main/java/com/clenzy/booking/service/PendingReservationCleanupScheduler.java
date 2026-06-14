@@ -46,15 +46,18 @@ public class PendingReservationCleanupScheduler {
     private final BookingPendingReservationRepository pendingReservationRepository;
     private final CalendarEngine calendarEngine;
     private final StripeService stripeService;
+    private final com.clenzy.service.AbandonedBookingService abandonedBookingService;
     private final TransactionTemplate transactionTemplate;
 
     public PendingReservationCleanupScheduler(BookingPendingReservationRepository pendingReservationRepository,
                                                CalendarEngine calendarEngine,
                                                StripeService stripeService,
+                                               com.clenzy.service.AbandonedBookingService abandonedBookingService,
                                                PlatformTransactionManager transactionManager) {
         this.pendingReservationRepository = pendingReservationRepository;
         this.calendarEngine = calendarEngine;
         this.stripeService = stripeService;
+        this.abandonedBookingService = abandonedBookingService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -121,6 +124,10 @@ public class PendingReservationCleanupScheduler {
         reservation.setStatus("cancelled");
         reservation.setPaymentStatus(PaymentStatus.CANCELLED);
         pendingReservationRepository.save(reservation);
+
+        // Capture du panier abandonne (relance ulterieure, CLZ Domaine 2) — insert DB dans la
+        // meme transaction, idempotent, no-op si pas d'email voyageur.
+        abandonedBookingService.recordIfAbsent(reservation);
 
         calendarEngine.cancel(
             reservation.getId(),

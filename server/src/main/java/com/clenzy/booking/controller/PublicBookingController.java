@@ -7,6 +7,7 @@ import com.clenzy.booking.service.BookingDisplayCurrencyService;
 import com.clenzy.booking.service.BookingServiceOptionsService;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.booking.service.PublicBookingService.OrgContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ import java.util.concurrent.TimeUnit;
  */
 @RestController
 @RequestMapping("/api/public/booking/{slug}")
+@Tag(name = "Booking Engine", description = "API publique du Booking Engine (reservation directe)")
 // Acces public : gere par SecurityConfigProd.java (.requestMatchers("/api/public/**").permitAll())
 public class PublicBookingController {
 
@@ -53,19 +55,22 @@ public class PublicBookingController {
     private final com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
     private final BookingDisplayCurrencyService displayCurrencyService;
     private final PublicBookingCalendarService calendarService;
+    private final com.clenzy.service.LeadCaptureService leadCaptureService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
                                     com.clenzy.service.PropertyPhotoService photoService,
                                     com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter,
                                     BookingDisplayCurrencyService displayCurrencyService,
-                                    PublicBookingCalendarService calendarService) {
+                                    PublicBookingCalendarService calendarService,
+                                    com.clenzy.service.LeadCaptureService leadCaptureService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
         this.rateLimiter = rateLimiter;
         this.displayCurrencyService = displayCurrencyService;
         this.calendarService = calendarService;
+        this.leadCaptureService = leadCaptureService;
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -103,6 +108,20 @@ public class PublicBookingController {
     @GetMapping("/currencies")
     public ResponseEntity<java.util.Set<String>> getSupportedCurrencies(@PathVariable String slug) {
         return ResponseEntity.ok(displayCurrencyService.supportedCurrencies());
+    }
+
+    /**
+     * POST /{slug}/leads
+     * Capture un lead (newsletter / waitlist / exit-intent) avec consentement RGPD obligatoire.
+     */
+    @PostMapping("/leads")
+    public ResponseEntity<com.clenzy.dto.MarketingContactDto> captureLead(
+            @PathVariable String slug,
+            @Valid @RequestBody com.clenzy.dto.CaptureLeadRequest request,
+            HttpServletRequest httpRequest) {
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(leadCaptureService.capture(
+            ctx.orgId(), request.email(), request.name(), request.source(), request.locale(), request.consent()));
     }
 
     /**

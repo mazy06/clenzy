@@ -3,7 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.SecurityDepositDto;
 import com.clenzy.dto.SecurityDepositRequests.Capture;
 import com.clenzy.dto.SecurityDepositRequests.Create;
-import com.clenzy.dto.SecurityDepositRequests.Hold;
+import com.clenzy.service.SecurityDepositPaymentService;
 import com.clenzy.service.SecurityDepositService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +20,14 @@ import org.springframework.web.bind.annotation.*;
 public class SecurityDepositController {
 
     private final SecurityDepositService service;
+    private final SecurityDepositPaymentService paymentService;
     private final TenantContext tenantContext;
 
-    public SecurityDepositController(SecurityDepositService service, TenantContext tenantContext) {
+    public SecurityDepositController(SecurityDepositService service,
+                                     SecurityDepositPaymentService paymentService,
+                                     TenantContext tenantContext) {
         this.service = service;
+        this.paymentService = paymentService;
         this.tenantContext = tenantContext;
     }
 
@@ -40,21 +44,22 @@ public class SecurityDepositController {
             service.getByReservation(tenantContext.getRequiredOrganizationId(), reservationId));
     }
 
+    /** Pré-autorise (hold Stripe) la caution. Le PaymentIntent est créé côté serveur. */
     @PostMapping("/{id}/hold")
-    public ResponseEntity<Void> hold(@PathVariable Long id, @RequestBody Hold request) {
-        service.markHeld(tenantContext.getRequiredOrganizationId(), id, request.externalRef());
+    public ResponseEntity<Void> hold(@PathVariable Long id) {
+        paymentService.placeHold(tenantContext.getRequiredOrganizationId(), id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/release")
     public ResponseEntity<Void> release(@PathVariable Long id) {
-        service.release(tenantContext.getRequiredOrganizationId(), id);
+        paymentService.releaseHold(tenantContext.getRequiredOrganizationId(), id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/capture")
     public ResponseEntity<Void> capture(@PathVariable Long id, @RequestBody Capture request) {
-        service.capture(tenantContext.getRequiredOrganizationId(), id, request.amount(), request.reason());
+        paymentService.captureHold(tenantContext.getRequiredOrganizationId(), id, request.amount(), request.reason());
         return ResponseEntity.noContent().build();
     }
 }
