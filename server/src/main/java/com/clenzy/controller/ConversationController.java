@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.AiSuggestedResponseDto;
 import com.clenzy.dto.ConversationDto;
 import com.clenzy.dto.ConversationMessageDto;
 import com.clenzy.dto.SendConversationMessageRequest;
@@ -7,6 +8,7 @@ import com.clenzy.model.Conversation;
 import com.clenzy.model.ConversationChannel;
 import com.clenzy.model.ConversationMessage;
 import com.clenzy.model.ConversationStatus;
+import com.clenzy.service.messaging.ConversationAiAssistService;
 import com.clenzy.service.messaging.ConversationService;
 import com.clenzy.service.messaging.WhatsAppTemplateSender;
 import com.clenzy.tenant.TenantContext;
@@ -30,14 +32,27 @@ public class ConversationController {
 
     private final ConversationService conversationService;
     private final WhatsAppTemplateSender whatsAppTemplateSender;
+    private final ConversationAiAssistService aiAssistService;
     private final TenantContext tenantContext;
 
     public ConversationController(ConversationService conversationService,
                                   WhatsAppTemplateSender whatsAppTemplateSender,
+                                  ConversationAiAssistService aiAssistService,
                                   TenantContext tenantContext) {
         this.conversationService = conversationService;
         this.whatsAppTemplateSender = whatsAppTemplateSender;
+        this.aiAssistService = aiAssistService;
         this.tenantContext = tenantContext;
+    }
+
+    /**
+     * Copilote IA (CLZ Domaine 6) : génère un brouillon de réponse ancré sur le dernier message
+     * du voyageur + la base de connaissances (RAG). N'envoie rien.
+     */
+    @PostMapping("/{id}/suggest-reply")
+    public ResponseEntity<AiSuggestedResponseDto> suggestReply(@PathVariable Long id) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(aiAssistService.suggestReply(orgId, id));
     }
 
     @GetMapping

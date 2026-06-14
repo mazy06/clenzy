@@ -42,6 +42,7 @@ class ConversationControllerTest {
 
     @Mock private ConversationService conversationService;
     @Mock private com.clenzy.service.messaging.WhatsAppTemplateSender whatsAppTemplateSender;
+    @Mock private com.clenzy.service.messaging.ConversationAiAssistService aiAssistService;
     @Mock private TenantContext tenantContext;
 
     private ConversationController controller;
@@ -52,7 +53,7 @@ class ConversationControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ConversationController(conversationService, whatsAppTemplateSender, tenantContext);
+        controller = new ConversationController(conversationService, whatsAppTemplateSender, aiAssistService, tenantContext);
         jwt = Jwt.withTokenValue("token")
             .header("alg", "RS256")
             .claim("sub", KEYCLOAK_ID)
