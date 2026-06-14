@@ -92,6 +92,8 @@ export class ClenzyBooking extends EventEmitter {
   private _loading = false;
   private _language: Language;
   private _currency: string;
+  /** Vrai si une devise d'affichage a été choisie explicitement (init ou setCurrency). */
+  private _displayCurrencySet: boolean;
   private _t: I18n;
 
   constructor(options: ClenzyBookingOptions) {
@@ -108,6 +110,7 @@ export class ClenzyBooking extends EventEmitter {
 
     this._language = options.language ?? 'fr';
     this._currency = options.currency ?? 'EUR';
+    this._displayCurrencySet = options.currency != null;
     this._t = createI18n(this._language);
   }
 
@@ -134,9 +137,20 @@ export class ClenzyBooking extends EventEmitter {
     this._t = createI18n(language);
   }
 
-  /** Switch the display currency (cosmetic; quotes/billing stay server-side). */
+  /**
+   * Switch the display currency. Les prochains appels getProperties/getProperty/checkAvailability
+   * passeront `?currency=` au serveur, qui renvoie les montants convertis (devises supportées :
+   * EUR/MAD/SAR ; repli serveur si taux indisponible). Le débit (réservation) reste dans la devise
+   * de la propriété.
+   */
   setCurrency(currency: string): void {
     this._currency = currency;
+    this._displayCurrencySet = true;
+  }
+
+  /** Devises d'affichage supportées par le serveur (multi-devise). */
+  async getSupportedCurrencies(): Promise<string[]> {
+    return this.api.get<string[]>(this.path('/currencies'));
   }
 
   /** Translate a key with the active language (graceful fallback + {var} interpolation). */
@@ -179,7 +193,7 @@ export class ClenzyBooking extends EventEmitter {
    */
   async getProperties(): Promise<Property[]> {
     return this.withLoading(async () => {
-      const properties = await this.api.get<Property[]>(this.path('/properties'));
+      const properties = await this.api.get<Property[]>(this.path('/properties') + this.currencyParam());
       this.emit('properties:loaded', properties);
       return properties;
     });
@@ -190,7 +204,7 @@ export class ClenzyBooking extends EventEmitter {
    */
   async getProperty(propertyId: number): Promise<PropertyDetail> {
     return this.withLoading(async () => {
-      const property = await this.api.get<PropertyDetail>(this.path(`/properties/${propertyId}`));
+      const property = await this.api.get<PropertyDetail>(this.path(`/properties/${propertyId}`) + this.currencyParam());
       this.emit('property:loaded', property);
       return property;
     });
@@ -203,7 +217,7 @@ export class ClenzyBooking extends EventEmitter {
    */
   async checkAvailability(request: AvailabilityRequest): Promise<AvailabilityResult> {
     return this.withLoading(async () => {
-      const result = await this.api.post<AvailabilityResult>(this.path('/availability'), request);
+      const result = await this.api.post<AvailabilityResult>(this.path('/availability') + this.currencyParam(), request);
       this.emit('availability:checked', result);
       return result;
     });
@@ -317,6 +331,11 @@ export class ClenzyBooking extends EventEmitter {
 
   private path(endpoint: string): string {
     return `/api/public/booking/${this.org}${endpoint}`;
+  }
+
+  /** `?currency=XXX` si une devise d'affichage a été choisie, sinon chaîne vide. */
+  private currencyParam(prefix: '?' | '&' = '?'): string {
+    return this._displayCurrencySet ? `${prefix}currency=${encodeURIComponent(this._currency)}` : '';
   }
 
   private async withLoading<T>(fn: () => Promise<T>): Promise<T> {
