@@ -2364,3 +2364,28 @@ databaseChangeLog:
       sqlFile:
         path: changes/0236__add_accent_to_user_preferences.sql
         relativeToChangelogFile: true
+
+  # Socle multi-pays (CLZ-P0-01) : referentiel pays (FR/MA/SA) + seed idempotent.
+  # CREATE + INSERT ... ON CONFLICT DO NOTHING ; pas de PL/pgSQL -> options par defaut.
+  - changeSet:
+      id: "0237-create-countries-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0237__create_countries_table.sql
+        relativeToChangelogFile: true
+
+  # 2FA (CLZ-P0-09) : policy mfa_required par organisation. DDL idempotent simple.
+  - changeSet:
+      id: "0238-add-mfa-required-to-organizations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0238__add_mfa_required_to_organizations.sql
+        relativeToChangelogFile: true
+
+  # E-invoicing (CLZ-P0-04) : suivi de soumission par facture, socle Factur-X/DGI/ZATCA.
+  - changeSet:
+      id: "0239-create-einvoice-submission"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0239__create_einvoice_submission.sql
+        relativeToChangelogFile: true
