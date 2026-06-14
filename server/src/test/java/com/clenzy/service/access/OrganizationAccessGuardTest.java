@@ -87,4 +87,54 @@ class OrganizationAccessGuardTest {
 
         assertThatCode(() -> guard.requireSameOrganization(2L, "msg")).doesNotThrowAnyException();
     }
+
+    // --- Surcharge a org explicite (CLZ-P0-02 : flux HTTP ET arriere-plan CalendarEngine) ---
+
+    @Test
+    @DisplayName("explicite : orgs egales -> autorise")
+    void whenExplicitOrgsMatch_thenAllowed() {
+        assertThatCode(() -> guard.requireSameOrganization(7L, 7L, "ok")).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("explicite : orgs differentes -> refus")
+    void whenExplicitOrgsDiffer_thenAccessDenied() {
+        assertThatThrownBy(() -> guard.requireSameOrganization(7L, 9L, "cross-org"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("explicite fail-closed : org entite NULL -> refus")
+    void whenExplicitEntityOrgNull_thenAccessDenied() {
+        assertThatThrownBy(() -> guard.requireSameOrganization(null, 7L, "msg"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("explicite fail-closed : org attendue NULL -> refus")
+    void whenExplicitExpectedOrgNull_thenAccessDenied() {
+        assertThatThrownBy(() -> guard.requireSameOrganization(7L, null, "msg"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    @DisplayName("explicite : flux arriere-plan (tenant org NULL) mais orgs explicites egales -> autorise")
+    void whenBackgroundContextAndExplicitOrgsMatch_thenAllowed() {
+        // TenantContext non resolu (Kafka/scheduler) : seule l'org explicite passee fait foi.
+        assertThatCode(() -> guard.requireSameOrganization(5L, 5L, "bg")).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("explicite bypass : SUPER_ADMIN cross-org autorise")
+    void whenSuperAdminExplicitDiffer_thenBypass() {
+        tenantContext.setSuperAdmin(true);
+        assertThatCode(() -> guard.requireSameOrganization(7L, 9L, "msg")).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("explicite bypass : org SYSTEM cross-org autorise")
+    void whenSystemOrgExplicitDiffer_thenBypass() {
+        tenantContext.setSystemOrg(true);
+        assertThatCode(() -> guard.requireSameOrganization(7L, 9L, "msg")).doesNotThrowAnyException();
+    }
 }

@@ -300,7 +300,8 @@ class CalendarControllerTest {
                 .thenReturn(List.of(day));
 
             ResponseEntity<List<Map<String, Object>>> response = controller.getBlockedDays(
-                List.of(10L, 11L), LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31));
+                List.of(10L, 11L), LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31),
+                org.mockito.Mockito.mock(org.springframework.security.oauth2.jwt.Jwt.class));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).hasSize(1);
