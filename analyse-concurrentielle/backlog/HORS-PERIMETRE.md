@@ -164,8 +164,14 @@
 - **Risque résiduel** : **Faible** en l'état (machine à états dormante, zéro mouvement d'argent tant que Stripe non branché). La valeur métier (blocage de fonds) arrive avec le point 1.
 - **Effort estimé** : Stripe M · politique S · front M · expiration S · **Statut** : `Ouvert`
 
+### HP-20 — Extensions du moteur d'anomalies
+- **Source** : `AnomalyDetectionService` livré (Phase 4) — contrôle **double-booking** (chevauchement de réservations confirmées, fonction pure + requête org-scopée) + `AnomalyDto`/`AnomalyType`/`AnomalySeverity` + `AnomalyController` + 5 tests.
+- **Description** : (1) contrôles additionnels : **caution manquante** (réservation à forte valeur sans `SecurityDeposit` — cohérent avec la feature caution), **outlier de prix** (tarif très éloigné du `nightlyPrice` du bien), trous de chaîne (numérotation/ICV) ; (2) **scan org-wide** (tous les biens) + **scheduler** + **alerte** (notification admin) ; (3) front (tableau de bord santé).
+- **Risque résiduel** : **Faible.** Le contrôle d'intégrité le plus critique (double-booking) est livré et testé ; le reste est de l'extension.
+- **Effort estimé** : contrôles M · scan/scheduler/alerte M · front M · **Statut** : `Ouvert`
+
 ### Reste Phase 4 (paris non démarrés, long terme)
-- Multi-agent GA, `AnomalyDetectionService`, market data pricing, marketplace ouvert, CM natif top-tier, no-code report builder, SOC 2 Type II. Voir CSV `data/40-feature-evolution.csv` filtré `Cible=Differenciation` (64 features). Externe/infra/front pour l'essentiel → hors incréments chirurgicaux in-repo.
+- Multi-agent GA, market data pricing, marketplace ouvert, CM natif top-tier, no-code report builder, SOC 2 Type II. Voir CSV `data/40-feature-evolution.csv` filtré `Cible=Differenciation` (64 features). Externe/infra/front pour l'essentiel → hors incréments chirurgicaux in-repo.
 
 ---
 
