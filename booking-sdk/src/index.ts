@@ -11,6 +11,8 @@ import type {
   AvailabilityResult,
   ReserveRequest,
   ReserveResult,
+  BatchReserveRequest,
+  BatchReserveResult,
   CheckoutResult,
   BookingConfirmation,
   BookingError,
@@ -30,6 +32,9 @@ export type {
   NightBreakdown,
   ReserveRequest,
   ReserveResult,
+  BatchReserveItem,
+  BatchReserveRequest,
+  BatchReserveResult,
   GuestInfo,
   CheckoutResult,
   BookingConfirmation,
@@ -234,6 +239,16 @@ export class ClenzyBooking extends EventEmitter {
       const result = await this.api.post<ReserveResult>(this.path('/reserve'), request);
       this.emit('reservation:created', result);
       return result;
+    });
+  }
+
+  /**
+   * Crée un panier multi-séjours : N réservations PENDING en un appel (atomique). Le paiement
+   * se fait ensuite item par item via {@link checkout} (pas de session Stripe groupée).
+   */
+  async reserveBatch(request: BatchReserveRequest): Promise<BatchReserveResult> {
+    return this.withLoading(async () => {
+      return this.api.post<BatchReserveResult>(this.path('/reserve-batch'), request);
     });
   }
 

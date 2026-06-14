@@ -81,6 +81,14 @@ export interface ApiCheckoutResult {
   sessionId: string | null;
 }
 
+export interface ApiBatchReserveResult {
+  batchCode: string;
+  reservations: ApiReserveResult[];
+  grandTotal: number;
+  currency: string;
+  requiresPayment: boolean;
+}
+
 export interface ReserveGuestInfo {
   name: string;
   email: string;
@@ -159,5 +167,13 @@ export class BookingApi {
       method: 'POST',
       body: JSON.stringify({ reservationCode }),
     });
+  }
+
+  /** Panier multi-séjours : crée N réservations PENDING (paiement item par item ensuite). */
+  reserveBatch(params: {
+    items: { propertyId: number; checkIn: string; checkOut: string; guests: number; notes?: string }[];
+    guest: ReserveGuestInfo;
+  }): Promise<ApiBatchReserveResult> {
+    return this.request('/reserve-batch', { method: 'POST', body: JSON.stringify(params) });
   }
 }

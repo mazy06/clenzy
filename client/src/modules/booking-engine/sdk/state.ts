@@ -22,6 +22,7 @@ export function createInitialState(defaults?: Partial<WidgetState>): WidgetState
     availability: new Map(),
     pricing: null,
     pricingLoading: false,
+    cart: [],
     loading: false,
     error: null,
     selectedPropertyType: null,

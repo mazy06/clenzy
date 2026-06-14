@@ -149,6 +149,35 @@ export interface GuestInfo {
   phone?: string;
 }
 
+/** Un séjour du panier multi-séjours (multi-propriétés / multi-créneaux). */
+export interface BatchReserveItem {
+  propertyId: number;
+  checkIn: string; // 'YYYY-MM-DD'
+  checkOut: string; // 'YYYY-MM-DD'
+  guests: number;
+  notes?: string;
+}
+
+/** Panier multi-séjours : un seul voyageur, N séjours. */
+export interface BatchReserveRequest {
+  items: BatchReserveItem[];
+  guest: GuestInfo;
+}
+
+/**
+ * Résultat d'un panier : N réservations PENDING créées atomiquement. Le paiement se fait
+ * item par item via {@link ClenzyBooking.checkout} (pas de session Stripe groupée — le
+ * {@code batchCode} sert de corrélation).
+ */
+export interface BatchReserveResult {
+  batchCode: string;
+  reservations: ReserveResult[];
+  grandTotal: number;
+  currency: string;
+  expiresAt: string;
+  requiresPayment: boolean;
+}
+
 export interface ReserveResult {
   reservationCode: string;
   status: string;
