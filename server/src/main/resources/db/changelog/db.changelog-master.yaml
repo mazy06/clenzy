@@ -2469,3 +2469,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0249__add_page_layout_to_booking_engine_config.sql
         relativeToChangelogFile: true
+
+  # Booking engine : reglages de croissance org-level (capture leads / relance panier), enforced.
+  - changeSet:
+      id: "0250-add-growth-settings-to-organizations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0250__add_growth_settings_to_organizations.sql
+        relativeToChangelogFile: true

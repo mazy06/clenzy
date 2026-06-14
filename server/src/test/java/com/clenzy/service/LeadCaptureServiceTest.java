@@ -1,10 +1,12 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.MarketingContactDto;
+import com.clenzy.exception.LeadCaptureDisabledException;
 import com.clenzy.model.MarketingContact;
 import com.clenzy.model.MarketingContactSource;
 import com.clenzy.model.MarketingContactStatus;
 import com.clenzy.repository.MarketingContactRepository;
+import com.clenzy.repository.OrganizationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +34,7 @@ import static org.mockito.Mockito.when;
 class LeadCaptureServiceTest {
 
     @Mock private MarketingContactRepository repository;
+    @Mock private OrganizationRepository organizationRepository;
 
     private LeadCaptureService service;
 
@@ -39,7 +43,20 @@ class LeadCaptureServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new LeadCaptureService(repository, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new LeadCaptureService(repository, organizationRepository, Clock.fixed(NOW, ZoneOffset.UTC));
+        // Capture activée par défaut (réglage org-level) ; lenient car les tests d'erreur amont ne l'atteignent pas.
+        lenient().when(organizationRepository.findLeadCaptureEnabledById(ORG)).thenReturn(Optional.of(true));
+    }
+
+    @Test
+    void capture_whenLeadCaptureDisabledForOrg_throwsAndDoesNotSave() {
+        when(organizationRepository.findLeadCaptureEnabledById(ORG)).thenReturn(Optional.of(false));
+
+        assertThatThrownBy(() -> service.capture(ORG, "alice@example.com", "Alice",
+                MarketingContactSource.NEWSLETTER, "fr", true))
+            .isInstanceOf(LeadCaptureDisabledException.class);
+
+        verify(repository, never()).save(any());
     }
 
     @Test

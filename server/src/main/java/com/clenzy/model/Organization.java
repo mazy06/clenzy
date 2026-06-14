@@ -80,6 +80,16 @@ public class Organization {
     @Column(name = "mfa_required", nullable = false)
     private boolean mfaRequired = false;
 
+    // --- Booking engine : croissance (org-level, defaut active) ---
+
+    /** Autorise la capture de leads (newsletter / waitlist) sur les booking engines de l'org. */
+    @Column(name = "lead_capture_enabled", nullable = false)
+    private boolean leadCaptureEnabled = true;
+
+    /** Active la relance automatique des paniers abandonnes pour l'org. */
+    @Column(name = "abandoned_cart_recovery_enabled", nullable = false)
+    private boolean abandonedCartRecoveryEnabled = true;
+
     // --- Timestamps ---
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -146,6 +156,12 @@ public class Organization {
 
     public boolean isMfaRequired() { return mfaRequired; }
     public void setMfaRequired(boolean mfaRequired) { this.mfaRequired = mfaRequired; }
+
+    public boolean isLeadCaptureEnabled() { return leadCaptureEnabled; }
+    public void setLeadCaptureEnabled(boolean leadCaptureEnabled) { this.leadCaptureEnabled = leadCaptureEnabled; }
+
+    public boolean isAbandonedCartRecoveryEnabled() { return abandonedCartRecoveryEnabled; }
+    public void setAbandonedCartRecoveryEnabled(boolean abandonedCartRecoveryEnabled) { this.abandonedCartRecoveryEnabled = abandonedCartRecoveryEnabled; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

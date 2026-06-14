@@ -2,6 +2,7 @@ package com.clenzy.scheduler;
 
 import com.clenzy.model.AbandonedBooking;
 import com.clenzy.repository.AbandonedBookingRepository;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.service.AbandonedBookingService;
 import com.clenzy.service.EmailService;
 import com.clenzy.util.StringUtils;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Relance des paniers abandonnés (CLZ Domaine 2) : envoie un email de récupération unique pour
@@ -30,15 +32,18 @@ public class AbandonedBookingRecoveryScheduler {
     private final AbandonedBookingRepository repository;
     private final AbandonedBookingService abandonedBookingService;
     private final EmailService emailService;
+    private final OrganizationRepository organizationRepository;
     private final Clock clock;
 
     public AbandonedBookingRecoveryScheduler(AbandonedBookingRepository repository,
                                              AbandonedBookingService abandonedBookingService,
                                              EmailService emailService,
+                                             OrganizationRepository organizationRepository,
                                              Clock clock) {
         this.repository = repository;
         this.abandonedBookingService = abandonedBookingService;
         this.emailService = emailService;
+        this.organizationRepository = organizationRepository;
         this.clock = clock;
     }
 
@@ -49,8 +54,13 @@ public class AbandonedBookingRecoveryScheduler {
         if (due.isEmpty()) {
             return;
         }
+        // Réglage org-level : ne pas relancer pour les organisations qui ont désactivé la relance.
+        Set<Long> recoveryDisabledOrgs = organizationRepository.findIdsWithAbandonedCartRecoveryDisabled();
         log.info("Relance de {} panier(s) abandonne(s)", due.size());
         for (AbandonedBooking ab : due) {
+            if (recoveryDisabledOrgs.contains(ab.getOrganizationId())) {
+                continue;
+            }
             try {
                 emailService.sendSimpleHtmlEmail(ab.getGuestEmail(), subject(ab), body(ab));
                 abandonedBookingService.markRecoverySent(ab);
