@@ -61,7 +61,8 @@ class PublicBookingControllerTest {
         var displayCurrencyService = new com.clenzy.booking.service.BookingDisplayCurrencyService(
             org.mockito.Mockito.mock(com.clenzy.service.CurrencyConverterService.class));
         controller = new PublicBookingController(bookingService, serviceOptionsService, photoService, rateLimiter,
-            displayCurrencyService);
+            displayCurrencyService,
+            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicBookingCalendarService.class));
         lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
         lenient().when(rateLimiter.tryAcquireBatch(any())).thenReturn(true);
 

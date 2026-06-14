@@ -2,6 +2,7 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.service.PublicBookingCalendarService;
 import com.clenzy.booking.service.BookingDisplayCurrencyService;
 import com.clenzy.booking.service.BookingServiceOptionsService;
 import com.clenzy.booking.service.PublicBookingService;
@@ -51,17 +52,20 @@ public class PublicBookingController {
     private final com.clenzy.service.PropertyPhotoService photoService;
     private final com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
     private final BookingDisplayCurrencyService displayCurrencyService;
+    private final PublicBookingCalendarService calendarService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
                                     com.clenzy.service.PropertyPhotoService photoService,
                                     com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter,
-                                    BookingDisplayCurrencyService displayCurrencyService) {
+                                    BookingDisplayCurrencyService displayCurrencyService,
+                                    PublicBookingCalendarService calendarService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
         this.rateLimiter = rateLimiter;
         this.displayCurrencyService = displayCurrencyService;
+        this.calendarService = calendarService;
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -114,6 +118,29 @@ public class PublicBookingController {
         OrgContext ctx = resolveContext(slug, request);
         PublicPropertyDetailDto detail = bookingService.getPropertyDetail(ctx, id);
         return ResponseEntity.ok(displayCurrencyService.convertDetail(detail, currency, java.time.LocalDate.now()));
+    }
+
+    /**
+     * GET /{slug}/properties/{id}/calendar?month=YYYY-MM&months=2&currency=MAD
+     * Grille de calendrier (disponibilité + prix nuitée + min-nights) pour la sélection de dates.
+     */
+    @GetMapping("/properties/{id}/calendar")
+    public ResponseEntity<PropertyCalendarDto> getPropertyCalendar(
+            @PathVariable String slug,
+            @PathVariable Long id,
+            @RequestParam(required = false) String month,
+            @RequestParam(defaultValue = "2") int months,
+            @RequestParam(required = false) String currency,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        java.time.YearMonth ym;
+        try {
+            ym = (month != null && !month.isBlank()) ? java.time.YearMonth.parse(month) : java.time.YearMonth.now();
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("Parametre 'month' invalide (attendu YYYY-MM)");
+        }
+        PropertyCalendarDto calendar = calendarService.getCalendar(ctx, id, ym, months);
+        return ResponseEntity.ok(displayCurrencyService.convertCalendar(calendar, currency, java.time.LocalDate.now()));
     }
 
     /**

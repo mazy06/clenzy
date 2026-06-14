@@ -2,6 +2,8 @@ package com.clenzy.booking.service;
 
 import com.clenzy.booking.dto.AvailabilityResponseDto;
 import com.clenzy.booking.dto.AvailabilityResponseDto.NightBreakdown;
+import com.clenzy.booking.dto.PropertyCalendarDto;
+import com.clenzy.booking.dto.PropertyCalendarDto.CalendarDayDto;
 import com.clenzy.booking.dto.PublicPropertyDetailDto;
 import com.clenzy.booking.dto.PublicPropertyDto;
 import com.clenzy.service.CurrencyConverterService;
@@ -123,6 +125,21 @@ class BookingDisplayCurrencyServiceTest {
         assertThat(out.breakdown()).hasSize(1);
         assertThat(out.breakdown().get(0).price()).isEqualByComparingTo("1100.00");
         assertThat(out.breakdown().get(0).rateType()).isEqualTo("BASE");
+    }
+
+    @Test
+    void convertCalendar_convertsPerDayPrices() {
+        stubEurToMad();
+        PropertyCalendarDto cal = new PropertyCalendarDto(1L, "EUR", List.of(
+            new CalendarDayDto(DATE, true, new BigDecimal("100.00"), 2, false, false),
+            new CalendarDayDto(DATE.plusDays(1), false, null, 2, false, false)));
+
+        PropertyCalendarDto out = service().convertCalendar(cal, "MAD", DATE);
+
+        assertThat(out.currency()).isEqualTo("MAD");
+        assertThat(out.days().get(0).price()).isEqualByComparingTo("1100.00");
+        assertThat(out.days().get(0).available()).isTrue();
+        assertThat(out.days().get(1).price()).isNull(); // jour non tarifé : reste null
     }
 
     @Test

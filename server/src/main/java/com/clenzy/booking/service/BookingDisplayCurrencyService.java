@@ -2,6 +2,8 @@ package com.clenzy.booking.service;
 
 import com.clenzy.booking.dto.AvailabilityResponseDto;
 import com.clenzy.booking.dto.AvailabilityResponseDto.NightBreakdown;
+import com.clenzy.booking.dto.PropertyCalendarDto;
+import com.clenzy.booking.dto.PropertyCalendarDto.CalendarDayDto;
 import com.clenzy.booking.dto.PublicPropertyDetailDto;
 import com.clenzy.booking.dto.PublicPropertyDto;
 import com.clenzy.service.CurrencyConverterService;
@@ -97,6 +99,27 @@ public class BookingDisplayCurrencyService {
         String from = dto.currency();
         try {
             return dto.withDisplayCurrency(conv(dto.nightlyPrice(), from, to, date), to);
+        } catch (Exception e) {
+            log.warn("Conversion d'affichage {}->{} indisponible: {}", from, to, e.getMessage());
+            return dto;
+        }
+    }
+
+    public PropertyCalendarDto convertCalendar(PropertyCalendarDto dto, String requested, LocalDate date) {
+        if (dto == null) {
+            return null;
+        }
+        String to = resolveTarget(requested, dto.currency());
+        if (to == null) {
+            return dto;
+        }
+        String from = dto.currency();
+        try {
+            List<CalendarDayDto> days = dto.days() == null ? null : dto.days().stream()
+                .map(d -> new CalendarDayDto(d.date(), d.available(), conv(d.price(), from, to, date),
+                    d.minNights(), d.checkInOnly(), d.checkOutOnly()))
+                .toList();
+            return dto.withDisplayCurrency(days, to);
         } catch (Exception e) {
             log.warn("Conversion d'affichage {}->{} indisponible: {}", from, to, e.getMessage());
             return dto;
