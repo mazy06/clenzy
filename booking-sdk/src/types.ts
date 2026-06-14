@@ -1,3 +1,5 @@
+import type { Language } from './i18n';
+
 // ─── SDK Configuration ───────────────────────────────────────────────────────
 
 export interface ClenzyBookingOptions {
@@ -9,6 +11,10 @@ export interface ClenzyBookingOptions {
   baseUrl?: string;
   /** Request timeout in ms. Defaults to 15000 */
   timeout?: number;
+  /** UI language for the embedded i18n pack (fr/en/ar). Defaults to 'fr'. */
+  language?: Language;
+  /** Display currency (EUR/MAD/SAR…). Cosmetic only — quotes/billing stay server-side. Defaults to 'EUR'. */
+  currency?: string;
 }
 
 // ─── Config ──────────────────────────────────────────────────────────────────

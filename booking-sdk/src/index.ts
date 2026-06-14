@@ -1,5 +1,7 @@
 import { ApiClient } from './api-client';
 import { EventEmitter } from './events';
+import { createI18n, getDirection, formatCurrency, formatDate } from './i18n';
+import type { I18n, Language } from './i18n';
 import type {
   ClenzyBookingOptions,
   BookingConfig,
@@ -40,6 +42,21 @@ export type {
   VoucherValidationResponse,
 } from './types';
 
+// Re-export i18n / RTL / formatting utilities (CLZ-P0-12)
+export {
+  createI18n,
+  getDirection,
+  isRtl,
+  localeTag,
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  fr as frMessages,
+  en as enMessages,
+  ar as arMessages,
+} from './i18n';
+export type { I18n, Language } from './i18n';
+
 const DEFAULT_BASE_URL = 'https://api.clenzy.fr';
 const DEFAULT_TIMEOUT = 15_000;
 
@@ -73,6 +90,9 @@ export class ClenzyBooking extends EventEmitter {
   private readonly api: ApiClient;
   private readonly org: string;
   private _loading = false;
+  private _language: Language;
+  private _currency: string;
+  private _t: I18n;
 
   constructor(options: ClenzyBookingOptions) {
     super();
@@ -85,6 +105,53 @@ export class ClenzyBooking extends EventEmitter {
     const timeout = options.timeout || DEFAULT_TIMEOUT;
 
     this.api = new ApiClient(baseUrl, options.apiKey, timeout);
+
+    this._language = options.language ?? 'fr';
+    this._currency = options.currency ?? 'EUR';
+    this._t = createI18n(this._language);
+  }
+
+  // ─── i18n / RTL / formatting (CLZ-P0-12) ──────────────────────────────────
+
+  /** Active UI language. */
+  get language(): Language {
+    return this._language;
+  }
+
+  /** Active display currency. */
+  get currency(): string {
+    return this._currency;
+  }
+
+  /** Reading direction for the active language ('rtl' for Arabic) — apply via `dir`. */
+  get direction(): 'rtl' | 'ltr' {
+    return getDirection(this._language);
+  }
+
+  /** Switch the UI language (rebuilds the embedded translator). */
+  setLanguage(language: Language): void {
+    this._language = language;
+    this._t = createI18n(language);
+  }
+
+  /** Switch the display currency (cosmetic; quotes/billing stay server-side). */
+  setCurrency(currency: string): void {
+    this._currency = currency;
+  }
+
+  /** Translate a key with the active language (graceful fallback + {var} interpolation). */
+  t(key: string, vars?: Record<string, string | number>): string {
+    return this._t(key, vars);
+  }
+
+  /** Format an amount in the active (or given) currency + active language. */
+  formatPrice(amount: number, currency?: string): string {
+    return formatCurrency(amount, currency ?? this._currency, this._language);
+  }
+
+  /** Format a date in the active language. */
+  formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
+    return formatDate(date, this._language, options);
   }
 
   /** Whether the SDK is currently loading data. */
