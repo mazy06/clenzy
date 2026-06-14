@@ -2421,3 +2421,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0243__create_security_deposit.sql
         relativeToChangelogFile: true
+
+  # Restrictions de sejour (Domaine 1) : min_stay_arrival (sync OTA complete via Channex).
+  - changeSet:
+      id: "0244-add-min-stay-arrival-to-booking-restrictions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0244__add_min_stay_arrival_to_booking_restrictions.sql
+        relativeToChangelogFile: true
