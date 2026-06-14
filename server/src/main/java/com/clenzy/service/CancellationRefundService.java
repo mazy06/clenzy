@@ -55,6 +55,15 @@ public class CancellationRefundService {
             throw new AccessDeniedException("Reservation " + reservationId + " hors organisation");
         }
 
+        return computePreview(reservation, orgId);
+    }
+
+    /**
+     * Calcule l'apercu de remboursement pour une reservation deja chargee ET autorisee.
+     * Sans TenantContext : l'org provient de l'appelant (reservation.getOrganizationId() pour le
+     * flux public guest, ou l'org du tenant pour l'admin). L'appelant garantit l'autorisation.
+     */
+    public CancellationRefundPreviewDto computePreview(Reservation reservation, Long orgId) {
         Property property = reservation.getProperty();
         Long propertyId = property != null ? property.getId() : null;
         PolicyResolution resolution = resolvePolicy(propertyId, orgId);
@@ -73,7 +82,7 @@ public class CancellationRefundService {
                 ? property.getDefaultCurrency() : "EUR";
 
         return new CancellationRefundPreviewDto(
-                reservationId,
+                reservation.getId(),
                 result.policyType().name(),
                 result.refundPercentage(),
                 result.refundAmount(),

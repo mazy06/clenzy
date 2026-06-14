@@ -63,7 +63,8 @@ class PublicBookingControllerTest {
         controller = new PublicBookingController(bookingService, serviceOptionsService, photoService, rateLimiter,
             displayCurrencyService,
             org.mockito.Mockito.mock(com.clenzy.booking.service.PublicBookingCalendarService.class),
-            org.mockito.Mockito.mock(com.clenzy.service.LeadCaptureService.class));
+            org.mockito.Mockito.mock(com.clenzy.service.LeadCaptureService.class),
+            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicCancellationService.class));
         lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
         lenient().when(rateLimiter.tryAcquireBatch(any())).thenReturn(true);
 
