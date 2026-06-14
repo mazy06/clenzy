@@ -80,6 +80,8 @@ export interface BookingEngineConfig {
   customCss: string | null;
   customJs: string | null;
   componentConfig: string | null;
+  // Site builder (page composée par blocs, JSON)
+  pageLayout: string | null;
   // AI Design Analysis
   designTokens: string | null;
   sourceWebsiteUrl: string | null;

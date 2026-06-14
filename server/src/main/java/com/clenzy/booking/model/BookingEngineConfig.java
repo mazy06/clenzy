@@ -108,6 +108,11 @@ public class BookingEngineConfig {
     @Column(name = "component_config", columnDefinition = "TEXT")
     private String componentConfig;
 
+    // ─── Site builder (page composée par blocs, JSON) ───────────────────
+
+    @Column(name = "page_layout", columnDefinition = "TEXT")
+    private String pageLayout;
+
     // ─── AI Design Analysis ───────────────────────────────────────────
 
     @Column(name = "design_tokens", columnDefinition = "TEXT")
@@ -216,6 +221,9 @@ public class BookingEngineConfig {
 
     public String getComponentConfig() { return componentConfig; }
     public void setComponentConfig(String componentConfig) { this.componentConfig = componentConfig; }
+
+    public String getPageLayout() { return pageLayout; }
+    public void setPageLayout(String pageLayout) { this.pageLayout = pageLayout; }
 
     public String getDesignTokens() { return designTokens; }
     public void setDesignTokens(String designTokens) { this.designTokens = designTokens; }

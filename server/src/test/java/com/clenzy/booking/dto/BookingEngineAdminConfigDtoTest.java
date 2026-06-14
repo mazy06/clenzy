@@ -20,6 +20,7 @@ class BookingEngineAdminConfigDtoTest {
                 "https://example.com",
                 true, false, true, false,
                 "body { color: red }", "console.log('hi')", "{\"layout\":\"grid\"}",
+                "[{\"type\":\"hero\"}]",
                 "{\"primary\":\"#FF\"}", "https://source", analysisAt,
                 "bottom", "target", "after",
                 "Acme Corp"
@@ -49,6 +50,7 @@ class BookingEngineAdminConfigDtoTest {
         assertEquals("body { color: red }", dto.customCss());
         assertEquals("console.log('hi')", dto.customJs());
         assertEquals("{\"layout\":\"grid\"}", dto.componentConfig());
+        assertEquals("[{\"type\":\"hero\"}]", dto.pageLayout());
         assertEquals("{\"primary\":\"#FF\"}", dto.designTokens());
         assertEquals("https://source", dto.sourceWebsiteUrl());
         assertEquals(analysisAt, dto.aiAnalysisAt());
@@ -88,6 +90,7 @@ class BookingEngineAdminConfigDtoTest {
         assertEquals("css", dto.customCss());
         assertEquals("js", dto.customJs());
         assertEquals("cfg", dto.componentConfig());
+        assertEquals("layout-json", dto.pageLayout());
         assertEquals("tokens", dto.designTokens());
         assertEquals("https://source.example", dto.sourceWebsiteUrl());
         assertEquals("inline", dto.widgetPosition());
@@ -115,6 +118,7 @@ class BookingEngineAdminConfigDtoTest {
                 "origin2",
                 true, true, false, true,
                 "css-new", "js-new", "cfg-new",
+                "layout-new",
                 "tokens-new", "https://new.source", null,
                 "inline", "elem", "after",
                 null
@@ -142,6 +146,7 @@ class BookingEngineAdminConfigDtoTest {
         assertEquals("css-new", target.getCustomCss());
         assertEquals("js-new", target.getCustomJs());
         assertEquals("cfg-new", target.getComponentConfig());
+        assertEquals("layout-new", target.getPageLayout());
         assertEquals("tokens-new", target.getDesignTokens());
         assertEquals("https://new.source", target.getSourceWebsiteUrl());
         assertEquals("inline", target.getWidgetPosition());
@@ -164,7 +169,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
-                null, null, null,
+                null, null, null, null,
                 null, null, null,
                 null, null, null,
                 null
@@ -187,7 +192,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null
         );
         BookingEngineAdminConfigDto b = new BookingEngineAdminConfigDto(
@@ -195,7 +200,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null
         );
         assertEquals(a, b);
@@ -230,6 +235,7 @@ class BookingEngineAdminConfigDtoTest {
         config.setCustomCss("css");
         config.setCustomJs("js");
         config.setComponentConfig("cfg");
+        config.setPageLayout("layout-json");
         config.setDesignTokens("tokens");
         config.setSourceWebsiteUrl("https://source.example");
         config.setWidgetPosition("inline");

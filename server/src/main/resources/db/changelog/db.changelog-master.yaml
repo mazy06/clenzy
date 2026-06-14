@@ -2461,3 +2461,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0248__create_abandoned_bookings.sql
         relativeToChangelogFile: true
+
+  # Baitly Studio : persistance de la page composee par blocs (builder F2).
+  - changeSet:
+      id: "0249-add-page-layout-to-booking-engine-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0249__add_page_layout_to_booking_engine_config.sql
+        relativeToChangelogFile: true
