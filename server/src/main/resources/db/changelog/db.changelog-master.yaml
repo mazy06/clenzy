@@ -2405,3 +2405,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0241__create_price_recommendation.sql
         relativeToChangelogFile: true
+
+  # Chaine PIH/ICV ZATCA (CLZ-P0-21, KSA) : sequence + hash chaine, double unicite (audit #8).
+  - changeSet:
+      id: "0242-create-zatca-invoice-chain"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0242__create_zatca_invoice_chain.sql
+        relativeToChangelogFile: true
