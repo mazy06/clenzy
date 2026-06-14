@@ -57,6 +57,7 @@ public class PublicBookingController {
     private final PublicBookingCalendarService calendarService;
     private final com.clenzy.service.LeadCaptureService leadCaptureService;
     private final com.clenzy.booking.service.PublicCancellationService cancellationService;
+    private final com.clenzy.booking.service.PublicReviewService reviewService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
@@ -65,7 +66,8 @@ public class PublicBookingController {
                                     BookingDisplayCurrencyService displayCurrencyService,
                                     PublicBookingCalendarService calendarService,
                                     com.clenzy.service.LeadCaptureService leadCaptureService,
-                                    com.clenzy.booking.service.PublicCancellationService cancellationService) {
+                                    com.clenzy.booking.service.PublicCancellationService cancellationService,
+                                    com.clenzy.booking.service.PublicReviewService reviewService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
@@ -74,6 +76,7 @@ public class PublicBookingController {
         this.calendarService = calendarService;
         this.leadCaptureService = leadCaptureService;
         this.cancellationService = cancellationService;
+        this.reviewService = reviewService;
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -271,6 +274,19 @@ public class PublicBookingController {
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
         return ResponseEntity.ok(cancellationService.preview(ctx.orgId(), code, request.email()));
+    }
+
+    /**
+     * GET /{slug}/reviews?limit=6
+     * Avis publics agrégés (org) + avis récents — preuve sociale sur la page publique.
+     */
+    @GetMapping("/reviews")
+    public ResponseEntity<com.clenzy.booking.dto.PublicReviewsResponse> getReviews(
+            @PathVariable String slug,
+            @RequestParam(required = false, defaultValue = "6") int limit,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        return ResponseEntity.ok(reviewService.getReviews(ctx.orgId(), limit));
     }
 
     // ─── Helper : resolution contexte ─────────────────────────────────────────────
