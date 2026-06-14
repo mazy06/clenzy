@@ -15,19 +15,43 @@ const FRAME_WIDTH: Record<Breakpoint, number | string> = {
   mobile: 390,
 };
 
+export interface CanvasTheme {
+  primaryColor: string;
+  fontFamily: string | null;
+}
+
 export interface BuilderCanvasProps {
   blocks: BlockInstance[];
   selectedId: string | null;
   breakpoint: Breakpoint;
   onSelect: (id: string) => void;
+  theme?: CanvasTheme;
 }
 
-export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect }: BuilderCanvasProps) {
+/** Surcharge les CSS vars de marque sur le cadre pour un aperçu fidèle au thème choisi. */
+function themeStyle(theme?: CanvasTheme): React.CSSProperties {
+  if (!theme) return {};
+  const c = theme.primaryColor || '#5453D6';
+  const style: Record<string, string> = {
+    '--accent': c,
+    '--accent-deep': `color-mix(in srgb, ${c} 84%, #000)`,
+    '--accent-soft': `color-mix(in srgb, ${c} 12%, transparent)`,
+    '--on-accent': '#ffffff',
+  };
+  if (theme.fontFamily) {
+    style['--font-display'] = theme.fontFamily;
+    style.fontFamily = theme.fontFamily;
+  }
+  return style as React.CSSProperties;
+}
+
+export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect, theme }: BuilderCanvasProps) {
   const width = FRAME_WIDTH[breakpoint];
 
   return (
     <Box sx={{ flex: 1, minWidth: 0, height: '100%', overflowY: 'auto', bgcolor: 'var(--bg-2, var(--bg))', display: 'flex', justifyContent: 'center', p: breakpoint === 'desktop' ? 0 : 3 }}>
       <Box
+        style={themeStyle(theme)}
         sx={{
           width, maxWidth: '100%', minHeight: '100%', bgcolor: 'var(--card)',
           ...(breakpoint !== 'desktop' && {

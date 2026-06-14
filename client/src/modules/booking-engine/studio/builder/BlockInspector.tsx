@@ -1,11 +1,11 @@
 import { Box, InputBase, Switch } from '@mui/material';
-import { SlidersHorizontal } from 'lucide-react';
 import { getBlockDef, type BlockProps, type FieldDef } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 
 /**
- * Inspector (pane droite du builder F2). Édite les props du bloc sélectionné via les champs
- * déclarés dans le registre. Aucun bloc sélectionné → enseigne d'invite.
+ * Corps de l'inspecteur de bloc (onglet « Bloc » du pane droit, F2). Édite les props du bloc
+ * sélectionné via les champs déclarés dans le registre. Aucun bloc → invite. Le chrome du pane
+ * (largeur, bordure, switch Bloc/Thème) est fourni par DesignBuilder.
  */
 
 export interface BlockInspectorProps {
@@ -14,26 +14,23 @@ export interface BlockInspectorProps {
 }
 
 export default function BlockInspector({ block, onChange }: BlockInspectorProps) {
-  return (
-    <Box sx={{ width: 296, flexShrink: 0, borderLeft: '1px solid var(--line)', bgcolor: 'var(--card)', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, height: 48, borderBottom: '1px solid var(--line)' }}>
-        <SlidersHorizontal size={15} strokeWidth={2} color="var(--muted)" />
-        <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>
-          {block ? getBlockDef(block.type).label : 'Inspecteur'}
-        </Box>
+  if (!block) {
+    return (
+      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 3, color: 'var(--muted)', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
+        Sélectionne un bloc dans la page ou dans l’arbre pour modifier son contenu.
       </Box>
+    );
+  }
 
-      {!block ? (
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 3, color: 'var(--muted)', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
-          Sélectionne un bloc dans la page ou dans l’arbre pour modifier son contenu.
-        </Box>
-      ) : (
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {getBlockDef(block.type).fields.map((field) => (
-            <Field key={field.key} field={field} value={block.props[field.key]} onChange={(v) => onChange(block.id, field.key, v)} />
-          ))}
-        </Box>
-      )}
+  const def = getBlockDef(block.type);
+  return (
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>
+        {def.label}
+      </Box>
+      {def.fields.map((field) => (
+        <Field key={field.key} field={field} value={block.props[field.key]} onChange={(v) => onChange(block.id, field.key, v)} />
+      ))}
     </Box>
   );
 }
