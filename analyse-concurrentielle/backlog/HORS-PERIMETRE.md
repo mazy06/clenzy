@@ -80,13 +80,13 @@
 - **Description** : sous-tâches crypto/réseau non vérifiables en repo seul (nécessitent onboarding ZATCA réel) :
   1. **Onboarding CSID** : génération CSR, obtention du Compliance/Production CSID via l'API d'onboarding (sandbox puis prod).
   2. **Signature XAdES** de l'UBL (clé du CSID) + **hash de facture** + insertion `UBLExtensions`.
-  3. **Chaîne PIH/ICV** : Previous Invoice Hash + Invoice Counter Value persistés et chaînés par dispositif/séquence.
+  3. ~~**Chaîne PIH/ICV**~~ → **LIVRÉ (CLZ-P0-21)** : `ZatcaInvoiceChain` + `ZatcaChainService` (ICV monotone, PIH SHA-256 Base64, genesis = Base64(SHA-256("0")), verrou pessimiste + double unique constraint, idempotent) + migration 0242 + 4 tests. **Reste pour ce point** : (a) vérif d'atomicité concurrente via **Testcontainers** (non exécutable sans Docker) ; (b) le hash devra porter sur le **document signé** une fois XAdES branché (aujourd'hui sur l'UBL) ; (c) ICV **par EGS unit** (vs par org).
   4. **QR complet tags 6-9** (hash facture, signature ECDSA, clé publique, signature cachet) — l'encoder actuel ne fait que les tags 1-5 (B2C simplifié sans crypto).
   5. **Client API réel** (`@Primary`) : `clearance` (B2B, synchrone, &lt; immédiat) + `reporting` (B2C, &lt; 24h) Fatoora + persistance du cycle de vie dans `EInvoiceSubmission`.
-  6. **Branchement** dans le flux de génération de facture (après-commit, via `EInvoicingService`, comme HP-08 côté FR).
-- **Risque résiduel** : **Moyen** pour le lancement KSA (conformité ZATCA obligatoire B2B/B2C). L'UBL + le QR simplifié sont générés mais **non signés ni transmis** → non conformes en l'état pour une émission réelle. Aucun effet runtime tant que `UnconfiguredZatcaApiClient` reste actif (→ PENDING).
+  6. **Branchement** dans le flux de génération de facture (après-commit, via `EInvoicingService`, comme HP-08 côté FR) : appeler `ZatcaChainService.append` puis injecter ICV/PIH dans l'UBL + QR.
+- **Risque résiduel** : **Moyen** pour le lancement KSA (conformité ZATCA obligatoire B2B/B2C). L'UBL + le QR simplifié + la **chaîne PIH/ICV** sont générés ; restent la **signature** et la **transmission**. Aucun effet runtime tant que `UnconfiguredZatcaApiClient` reste actif (→ PENDING) + KSA `enabled=FALSE`.
 - **Référence** : `tech/ZATCA-implementation-spec.md` (spec détaillée crypto/CSID/PIH/QR).
-- **Effort estimé** : L (crypto XAdES + onboarding + chaîne PIH) · **Statut** : `À traiter (Phase 3)` — cœur conformité KSA (avec CLZ-P0-21/22/23).
+- **Effort estimé** : L (crypto XAdES + onboarding CSID + QR 6-9 + API Fatoora ; chaîne PIH déjà faite) · **Statut** : `À traiter (Phase 3)` — cœur conformité KSA. Chaîne PIH (P0-21) faite ; reste crypto/API.
 
 ### HP-11 — Reste de CLZ-P0-18 (taxes par pays dans la simulation)
 - **Source** : CLZ-P0-18 (livré : `PriceSimulationService` orchestrant `PriceEngine` → TVA + taxe de séjour via `FiscalEngine` → `PriceBreakdownDto` ; endpoint `POST /api/pricing/simulate` ; tests 5/5 + ArchUnit)
@@ -141,7 +141,18 @@
 - Passer Country MA `enabled=TRUE` est une **décision de déploiement** (pas un écart) : le `MultiCountryStartupValidator` (CLZ-P0-03) validera alors que MA résout son `TaxCalculator` (✓) ; e-invoicing/registration providers résolvent (DgiProvider ✓ ; DGSN = connexion ✓, soumission HP-17). RTL = **HP-07** (promu Phase 2).
 
 ## Phase 3
-_(à alimenter)_
+
+> **Constat clé Phase 3 (KSA)** : `SaudiTaxCalculator` (TVA 15 % + municipality fee) et `SaudiComplianceStrategy` (mentions + numérotation séquentielle FACTURE, date ISO) sont **déjà fonctionnels** (les TODO « QR/Fatoora » de la strategy sont couverts par le package `einvoicing/zatca` ou différés HP-10). Livrables ZATCA vérifiables en repo : **CLZ-P0-20** (UBL 2.1 + QR TLV 1-5 + provider, Phase 1) et **CLZ-P0-21** (chaîne PIH/ICV) — faits. Le reste (signature/CSID/QR 6-9/clearance Fatoora) = HP-10, et Absher/MENA = externe gated.
+
+### HP-18 — Déclaration voyageurs KSA (Absher / MOI) — soumission réelle
+- **Source** : revue Phase 3. L'infra de connexion existe (`integration/compliance/` : `ComplianceProviderType.ABSHER_KSA` + strategy registry + stub), comme pour le Maroc (HP-17).
+- **Description** : soumission réelle des déclarations voyageur à Absher/MOI (+ Tawakkalna). Dates en `Asia/Riyadh` (audit #9). **Ne PAS dupliquer** l'abstraction (réutiliser `integration/compliance/`).
+- **Risque résiduel** : **Moyen** (obligation légale KSA). API **gated, pas de sandbox public** → dérisquer l'accès contractuel avant le dev. Non vérifiable en repo sans sandbox.
+- **Effort estimé** : XL (dont accès API) · **Statut** : `Ouvert`
+
+### Note Phase 3 — OTAs MENA + activation KSA
+- **CLZ-P0-08** (Gathern/Stay.sa/Mabeet) : enums `ChannelName` présents, **aucun adapter** ; APIs gated → dépend du **routage channel HP-13** + accès contractuel. Différé (externe, comme HP-15).
+- Activation Country KSA `enabled=TRUE` = **décision de déploiement** : le `MultiCountryStartupValidator` exigera la résolution des providers ; e-invoicing ZATCA n'est conforme qu'**après HP-10** (signature + clearance) → ne pas activer KSA en prod avant. RTL arabe = **HP-07** (front, cœur KSA).
 
 ## Phase 4
 _(à alimenter)_
@@ -154,3 +165,4 @@ _(à alimenter)_
 | 2026-06-14 | Phase 0 | HP-01, HP-02, HP-03.1 (faits) ; HP-04 handoff produit | HP-03.2-5 (rappels/template/opt-out/AR-RTL) | — |
 | 2026-06-14 | Phase 1 | HP-07 → promu **Phase 2** (RTL cœur MA/KSA) ; HP-10 → promu **Phase 3** (ZATCA crypto, cœur KSA) | HP-05, HP-06, HP-08, HP-09, HP-11, HP-12 (IA pricing), HP-13/HP-14/HP-15 (channel infra/OTA) — front/infra/externe non vérifiable en repo | — |
 | 2026-06-14 | Phase 2 | CLZ-P0-MA (`MoroccoDgiProvider`) livré — comblait le seul gros gap e-invoicing MA ; fondation MA (tax/compliance/seeds/MAD) déjà présente | HP-16 (API Simpl-TVA réelle + chaîne ICE par-org), HP-17 (soumission DGSN gated), HP-07 (RTL front) | — |
+| 2026-06-14 | Phase 3 | CLZ-P0-21 (chaîne PIH/ICV ZATCA) livré — point 3 de HP-10 résolu (logique+structure) ; SaudiTaxCalculator/ComplianceStrategy déjà fonctionnels | HP-10 reste (signature XAdES/CSID/QR 6-9/clearance Fatoora + Testcontainers atomicité), HP-18 (Absher gated), CLZ-P0-08 (OTAs MENA, externe), HP-07 (RTL front) | — |
