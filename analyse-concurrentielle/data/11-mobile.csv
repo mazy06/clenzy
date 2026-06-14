@@ -1,0 +1,11 @@
+Fonctionnalite,Clenzy,Hostaway,Guesty,Smoobu,Lodgify,Hospitable,Avantio,Smily,Confiance
+App native iOS + Android,3,3,3,2,3,3,2,3,Confirme
+Couverture gestionnaire (gestion nomade),3,2,3,2,2,2,2,2,Confirme
+Couverture terrain (cleaner/tech dedie),3,2,2,1,2,1,1,2,Probable
+Mode offline (lecture + mutations),3,1,1,1,1,1,1,1,A verifier
+Notifications push,3,2,2,2,2,2,2,2,Confirme
+Mises a jour OTA (sans store),3,1,1,1,1,1,1,1,A verifier
+Capture de signature mobile,2,1,1,0,1,0,1,1,A verifier
+Biometrie (login/verrou),1,1,1,0,1,1,0,1,A verifier
+Token au repos securise (Keychain/Keystore),2,2,2,2,2,2,2,2,Probable
+Qualite/polish percu (avis stores),2,3,3,2,2,2,1,2,Probable

@@ -1,0 +1,15 @@
+Fonctionnalite,Clenzy,Hostaway,Guesty,Smoobu,Lodgify,Hospitable,Avantio,Smily,Confiance
+Inbox unifiee multi-canal,3,3,3,2,3,3,3,3,Confirme
+Messagerie OTA native (Airbnb/Booking/Vrbo),2,3,3,2,2,3,3,3,Confirme
+Automatisations (declencheurs + templates),2,3,3,2,2,3,3,2,Confirme
+Templates de messages + interpolation variables,2,3,3,3,3,3,3,3,Confirme
+SMS (envoi/reception natif),0,3,2,2,3,1,2,1,Probable
+WhatsApp Business,3,3,3,1,3,1,2,2,Probable
+Reponses IA / suggestions (copilote draft),1,3,3,0,2,3,2,3,Confirme
+Auto-reply / autopilot IA (envoi auto),0,2,3,0,1,3,1,2,Probable
+Auto-traduction des messages,2,2,2,1,1,2,2,3,Probable
+Scheduling / envoi programme,2,3,3,2,2,3,2,2,Probable
+Messages hors-heures / horaires d'ouverture,1,2,2,1,1,2,1,1,A verifier
+Analyse de sentiment / detection urgence,1,2,2,0,1,2,1,2,Probable
+Assignation + collaboration equipe (inbox),2,3,3,1,2,2,3,2,Probable
+Knowledge base / FAQ pour reponses IA,1,3,2,0,1,3,1,2,Probable

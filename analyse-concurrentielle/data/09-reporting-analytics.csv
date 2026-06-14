@@ -1,0 +1,19 @@
+Fonctionnalite,Clenzy,Hostaway,Guesty,Smoobu,Lodgify,Hospitable,Avantio,Smily,Confiance
+Dashboards KPI temps reel,2,3,3,2,2,3,2,2,0.8
+Revenu / occupation par bien,2,3,3,2,3,3,2,2,0.8
+RevPAR / ADR natifs,2,2,3,1,3,2,2,2,0.7
+Performance par canal OTA,2,3,3,2,3,3,2,2,0.7
+Reporting proprietaire (owner statements),2,3,3,1,3,3,3,2,0.8
+Portail proprietaire dedie,2,3,3,1,2,3,3,2,0.7
+Reporting fiscal (TVA / declarations),3,2,2,1,2,1,2,2,0.6
+Exports PDF,2,3,2,2,3,2,2,2,0.7
+Exports CSV / Excel,2,3,3,3,3,3,3,3,0.8
+Export FEC (norme DGFiP France),3,0,0,0,0,0,1,1,0.5
+Comparaisons periodiques (N vs N-1),1,2,3,1,2,3,2,3,0.6
+Forecast CA / occupation (previsions),1,2,2,0,1,2,1,1,0.5
+Donnees marche / comparables (Key Data / Transparent),0,2,3,0,2,1,3,1,0.6
+Integration BI externe (Metabase / Tableau / Looker),0,1,2,0,1,1,1,1,0.5
+Report builder / rapports personnalisables,1,3,3,1,2,3,2,2,0.7
+Rapports planifies / envoi automatique,1,2,3,1,3,2,2,2,0.6
+Insights IA / analytics IA,2,2,3,0,1,1,1,0,0.6
+API analytics,2,2,3,2,1,2,2,2,0.6

@@ -1,0 +1,21 @@
+Fonctionnalite,Clenzy,TouchStay,Duve,Chekin,EnsoConnect,HostfullyGuidebooks,Hostaway,Guesty,Confiance
+Livret/guidebook numerique personnalise (marque),3,3,3,1,3,3,2,2,Confirme
+Carte POI structuree + photos d'acces,3,2,3,1,3,3,1,2,Probable
+Multi-langue du contenu,1,1,3,2,3,3,2,3,Confirme
+RTL / arabe natif (mise en page),0,0,1,1,1,2,1,1,Probable
+Consultation hors-ligne (PWA),1,1,1,0,1,0,0,0,A verifier
+Chatbot IA ancre sur le livret,2,2,2,0,3,2,2,3,Probable
+Check-in en ligne,2,0,3,3,3,1,2,3,Confirme
+Verification d'identite (KYC verifie : OCR/selfie/biometrie),1,0,3,3,3,0,2,2,Confirme
+Collecte de caution / depot (pre-autorisation),0,0,3,3,3,0,2,3,Confirme
+Upsells / boutique payante (Stripe),3,2,3,2,3,3,3,3,Confirme
+Activites affiliees live + commission (Viator/GYG),1,0,2,1,3,3,1,2,Probable
+Taxe de sejour (calcul + collecte),2,0,2,3,2,1,2,3,Probable
+Declaration police / registration voyageurs,0,0,1,3,2,0,1,1,Confirme
+Contrats / CGV signes par le voyageur (e-sign),1,0,3,2,3,1,2,2,Probable
+Reviews / sollicitation d'avis OTA,1,2,2,0,2,1,3,3,Probable
+Marque blanche (domaine/app guest custom),1,2,3,1,2,2,2,3,Probable
+Web app vs app native voyageur,2,2,3,2,2,2,3,3,Confirme
+Analytics du livret / engagement,3,3,3,1,3,3,2,2,Probable
+Livre d'or / avis interne,2,1,1,0,1,0,1,1,A verifier
+Integration PMS native (zero double-saisie),3,1,2,1,2,2,3,3,Confirme

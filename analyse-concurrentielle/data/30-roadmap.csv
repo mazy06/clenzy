@@ -1,0 +1,54 @@
+Titre,Domaine,Categorie,Reach,Impact,Confiance,Effort,RICE,Horizon
+Activer IA suggestion de reponse + RAG inbox,Communication/IA,Differenciation,3,3,0.9,S,8.1,Now
+Brancher email de confirmation booking direct,Booking,Rattrapage,3,3,0.7,S,6.3,Now
+Synchro OTA au socle + Yield IA en add-on,Packaging,Optimisation,3,2,0.9,S,5.4,Now
+Exposer comparaison N vs N-1,Reporting,Rattrapage,3,2,0.8,S,4.8,Now
+2FA/TOTP obligatoire (Keycloak),Securite,Rattrapage,3,2,0.8,S,4.8,Now
+Connecteur Zapier/Make,Integrations,Rattrapage,3,3,0.7,S,4.2,Now
+Programme partenaire conciergerie,GTM,Differenciation,3,2,0.7,S,4.2,Now
+Module SEO du site direct,Booking,Differenciation,3,3,0.9,M,4.05,Now
+Caution via pre-autorisation Stripe,Finance/GuestExp,Rattrapage,3,3,0.9,M,4.05,Now
+Aligner pitch & pricing sur le code,GTM,Optimisation,2,2,0.95,S,3.8,Now
+Cabler/retirer biometrie mobile,Mobile,Optimisation,2,2,0.9,S,3.6,Now
+Mapping restrictions Channex + tests,Channel,Rattrapage,3,3,0.8,M,3.6,Now
+Declaration voyageurs FR via Chekin,Conformite,Rattrapage,3,3,0.8,M,3.6,Now
+Capacite de reception Factur-X,Conformite,Rattrapage,3,3,0.78,M,3.5,Now
+Activites affiliees live (Viator) + reporting,GuestExp,Innovation,2,2,0.8,S,3.2,Now
+Livrer insight IA reporting (flag analytics-ai),Reporting/IA,Rattrapage,2,2,0.7,S,2.8,Now
+Releve proprietaire transparent (PDF + portail),Finance/GTM,Differenciation,3,3,0.8,M,3.6,Next
+Ticket anomalie de 1er ordre (Issue->bon de travail),Operations,Rattrapage,3,3,0.8,M,3.6,Next
+Activer IA de tarification (shadow/reco),Pricing/IA,Differenciation,3,3,0.7,M,3.15,Next
+Auto-traduction bidirectionnelle inbox,Communication,Optimisation,2,2,0.8,S,3.2,Next
+OTA longue traine via Channex,Channel,Optimisation,2,2,0.7,S,2.8,Next
+Canal SMS natif,Communication,Rattrapage,3,2,0.9,M,2.7,Next
+Grille de commission degressive (ManagementContract),Finance,Optimisation,2,2,0.65,S,2.6,Next
+Bascule pricing per-listing hybride + grandfathering,Business model,Differenciation,3,3,0.8,L,2.4,Next
+Generateur Factur-X + pont PDP (emission),Conformite,Differenciation,3,3,0.8,L,2.4,Next
+Edition groupee (bulk) depuis le planning,Calendrier,Optimisation,3,2,0.8,M,2.4,Next
+Checklists custom par unite + photos de reference,Operations,Optimisation,3,2,0.8,M,2.4,Next
+Brancher KYC reel (Sumsub) au check-in,Conformite/GuestExp,Rattrapage,2,3,0.8,M,2.4,Next
+Orphan-day / gap-fill explicite avec reco,Pricing,Optimisation,2,2,0.6,S,2.4,Next
+Paliers degressifs + minimum mensuel (Business),Pricing,Optimisation,2,3,0.75,M,2.25,Next
+Report builder leger (vues sauvegardables + partage),Reporting,Rattrapage,2,3,0.7,M,2.1,Next
+Multi-agent IA en beta encadree,IA,Differenciation,2,3,0.7,M,2.1,Next
+Finaliser adapter Airbnb (host-profile) + partenaire,Channel,Rattrapage,3,2,0.7,M,2.1,Next
+Catalogue add-ons aligne marche,Monetisation,Optimisation,3,2,0.7,M,2.1,Next
+Injecter taxes/frais dans simulation de prix,Pricing,Optimisation,3,2,0.6,M,1.8,Next
+Sync reelle QuickBooks + Xero,Finance,Rattrapage,2,2,0.85,M,1.7,Next
+Connecteur Beyond Pricing,Pricing,Optimisation,2,2,0.8,M,1.6,Next
+KB messagerie branchee a l'IA (RAG),Communication/IA,Differenciation,2,2,0.8,M,1.6,Next
+Website builder no-code + templates STR,Booking,Differenciation,3,3,0.8,L,2.4,Later
+Detection anomalies / fraude paiement,IA/Securite,Rattrapage,2,3,0.8,L,1.6,Later
+Autopilot guest IA avec garde-fous,IA,Differenciation,2,3,0.7,L,1.4,Later
+Dashboard sante connectivite OTA (watchdog UI),Channel,Differenciation,2,2,0.7,M,1.4,Later
+Vision metier + resumes IA,IA,Optimisation,2,2,0.7,M,1.4,Later
+Multi-langue auto-traduit + RTL guest,GuestExp,Differenciation,2,2,0.7,M,1.4,Later
+Approfondir portail proprietaire cote calendrier,Calendrier,Differenciation,2,2,0.7,M,1.4,Later
+Completer le forecast (projection CA + horizon),Reporting,Differenciation,2,2,0.6,M,1.2,Later
+Optimisation de tournee (ordonnancement geo),Operations/Mobile,Optimisation,2,2,0.6,M,1.2,Later
+Connectivite OTA MENA (Almosafer/Cleartrip/Hala),Channel,Innovation,2,3,0.6,L,1.2,Later
+Trajectoire SOC 2 Type I->II,Securite,Differenciation,2,3,0.6,L,1.2,Later
+Marketplace ouvert (portail dev + self-service),Integrations,Differenciation,2,2,0.6,L,0.8,Later
+Declaration/registration voyageurs MENA,Conformite,Differenciation,2,2,0.6,L,0.8,Later
+Connecteur donnees marche (Key Data),Reporting,Differenciation,2,2,0.5,L,0.67,Later
+Rapprochement bancaire via Open Banking,Finance,Differenciation,1,2,0.6,L,0.4,Later

@@ -1,0 +1,16 @@
+Fonctionnalite,Clenzy,Hostaway,Guesty,Smoobu,Lodgify,Hospitable,Avantio,Smily,Confiance
+Moteur de prix structure multi-niveaux,3,2,2,1,2,2,2,1,0.7
+Regles de yield automatiques (occupancy / lead time / gap),3,2,2,1,2,3,1,1,0.6
+Moteur IA proprietaire livre en prod,1,3,3,0,2,3,1,0,0.7
+Connecteur PriceLabs natif,3,3,3,3,3,3,3,3,0.9
+Connecteur Beyond Pricing,0,3,3,3,2,0,3,2,0.8
+Connecteur Wheelhouse,0,3,3,3,2,3,2,2,0.7
+Connecteur DPGO / autres moteurs tiers,0,2,2,1,1,1,2,1,0.5
+Min / max nights,3,3,3,3,3,3,3,3,0.8
+Gap nights / orphan-day rules,2,2,2,1,2,3,1,1,0.6
+Lead time / regles de delai avant arrivee,3,3,3,1,2,3,2,1,0.6
+Bulk update des prix,3,3,3,2,2,2,3,2,0.6
+Recommandations occupancy-based / market data,1,3,3,1,2,3,2,1,0.6
+Donnees marche / comparables (comps) natifs,0,2,3,0,2,2,2,1,0.5
+Frais / depots configurables,2,3,3,2,3,3,3,2,0.6
+Taxes auto (sejour / TVA) integrees,2,3,3,2,3,2,3,2,0.6

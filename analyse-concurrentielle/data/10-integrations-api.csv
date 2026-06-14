@@ -1,0 +1,13 @@
+Fonctionnalite,Clenzy,Hostaway,Guesty,Smoobu,Lodgify,Hospitable,Avantio,Smily,Confiance
+Marketplace / app-store d'integrations,1,3,3,2,2,2,2,2,Confirme
+Nombre d'integrations catalogue,1,3,3,2,2,2,2,2,Confirme
+API publique developpeur (cles + doc),2,3,3,2,2,3,2,3,Confirme
+Webhooks sortants,2,3,3,2,2,3,2,2,Confirme
+Connecteur Zapier/Make natif,0,2,3,2,3,3,1,1,Confirme
+Serrures connectees (Nuki/Yale/August/Igloohome),3,2,3,2,2,3,2,2,Confirme
+Capteurs bruit (Minut/NoiseAware),2,2,2,1,1,2,1,1,Probable
+Cameras / streaming video,2,1,1,0,0,1,1,0,Probable
+OTA partenaires non-channel (HomeToGo/GYG/Klook),0,2,2,1,1,1,3,2,Probable
+Connecteurs comptables (QuickBooks/Xero/Pennylane),2,2,2,1,2,2,2,2,Probable
+Outils menage tiers (Turno/Breezeway/Properly),2,3,3,2,2,2,2,3,Confirme
+Self-service partenaire (rejoindre le marketplace),0,3,3,1,1,1,2,2,Probable
