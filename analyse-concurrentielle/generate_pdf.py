@@ -140,6 +140,9 @@ CLENZY_V2 = {
         "Comparaisons periodiques (N vs N-1)": "3",
         "Report builder / rapports personnalisables": "2",
     },
+    "10-integrations-api.csv": {
+        "Webhooks sortants": "3",
+    },
     "12-admin-securite.csv": {
         "2FA / MFA": "2",
     },
@@ -718,10 +721,14 @@ def build_full():
                   "<b>Reporting 1,7 -&gt; 2,0</b> : report builder (socle whitelist + CRUD), comparaison N/N-1 calculee serveur, "
                   "agregation multi-devise EUR/MAD/SAR.",
                   "<b>Admin &amp; conformite 1,6 -&gt; 1,9</b> : 2FA (policy org) + socle Country multi-pays + validation fail-fast au boot.",
+                  "<b>Integrations 1,4 -&gt; 1,5</b> : webhooks sortants livres bout-en-bout (file persistee + retry/backoff + "
+                  "signature HMAC, hors transaction, cables a 3 evenements). Le reste (marketplace, Zapier, OTA non-channel, "
+                  "connecteurs comptables) reste gated / partenariats externes.",
                   "<b>Global 1,86 -&gt; 2,11</b> : Clenzy passe du 6e au 3e rang en depassant le peloton resserre "
                   "(Avantio 1,96 . Hospitable 1,92 . Smily 1,89) - sans rattraper Guesty (2,52) ni Hostaway (2,31).",
-                  "<b>Honnetete du barometre</b> : les domaines non travailles (Integrations, Mobile, Operations) "
-                  "restent inchanges - aucun gonflage. Le potentiel verrouille (IA) attend HP-12."]:
+                  "<b>Honnetete du barometre</b> : les domaines non travailles (Mobile, Operations) restent inchanges - "
+                  "aucun gonflage. Integrations ne monte que d'un cran (webhooks) car le reste depend de partenariats. "
+                  "Le potentiel verrouille (IA) attend HP-12."]:
             S.append(bullet(t))
     except FileNotFoundError:
         S.append(Paragraph("(donnees d'evolution absentes : data/60-evolution-scores.csv)", SMALL))

@@ -8,8 +8,8 @@ Domaine,Avant,Apres,Realisations
 7. Guest Experience & Livret,1.6,1.8,Caution/depot (cycle de vie CAS) + taxe de sejour (simulation par pays)
 8. Finance & Compta,2.2,2.5,Abstraction e-invoicing + providers FR/MA/KSA + chaine PIH ZATCA + caution/depot + consolidation multi-devise
 9. Reporting & Analytics,1.7,2.0,Report builder (socle whitelist+CRUD) + comparaison N/N-1 serveur + agregation multi-devise
-10. Integrations & API / IoT,1.4,1.4,Inchange (integrations externes differees)
+10. Integrations & API / IoT,1.4,1.5,Webhooks sortants livres bout-en-bout (file de livraison persistee + retry/backoff + signature HMAC, cables a 3 evenements reels) ; reste gated (marketplace, Zapier, OTA non-channel, comptables)
 11. Application mobile,2.5,2.5,Inchange
 12. Admin securite & conformite,1.6,1.9,2FA (policy org mfaRequired) + socle Country multi-pays + validation fail-fast au boot
 13. IA & automatisation,1.2,1.4,Detection d'anomalies (double-booking) + architecture reco de prix (IA pricing : deverrouillage differe HP-12)
-SCORE GLOBAL PONDERE,1.86,2.11,Hausse tiree par Finance, Channel (sync/restrictions/mapping/CM natif/inbox), Communication (copilote IA/RAG, sentiment, traduction) et Booking (annulation appliquee, i18n/RTL) ; passe du 6e au 3e rang
+SCORE GLOBAL PONDERE,1.86,2.11,Hausse tiree par Finance, Channel (sync/restrictions/mapping/CM natif/inbox), Communication (copilote IA/RAG, sentiment, traduction), Booking (annulation appliquee, i18n/RTL) et Integrations (webhooks sortants) ; passe du 6e au 3e rang
