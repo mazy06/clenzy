@@ -39,6 +39,7 @@ function buildConfigPayload(name: string, preset: DesignPreset | null): BookingE
     customJs: null,
     componentConfig: null,
     pageLayout: null,
+    featuredPropertyIds: null,
     designTokens: preset ? JSON.stringify(preset.tokens) : null,
     sourceWebsiteUrl: null,
     aiAnalysisAt: null,

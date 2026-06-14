@@ -163,10 +163,32 @@ public class PublicBookingService {
     // ─── Properties ──────────────────────────────────────────────────────────────
 
     public List<PublicPropertyDto> getProperties(OrgContext ctx) {
+        // Curation « propriétés affichées » : si le booking engine a une sélection, on s'y restreint
+        // (vide/NULL = toutes les propriétés visibles). Curation d'affichage, pas de contrôle d'accès.
+        java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
         return propertyRepository.findBookingEngineVisible(ctx.orgId())
             .stream()
+            .filter(p -> featured.isEmpty() || featured.contains(p.getId()))
             .map(PublicPropertyDto::from)
             .toList();
+    }
+
+    /** Parse une liste d'IDs de propriétés en CSV de façon défensive (entrées non numériques ignorées). */
+    private static java.util.Set<Long> parseFeaturedPropertyIds(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return java.util.Set.of();
+        }
+        java.util.Set<Long> ids = new java.util.LinkedHashSet<>();
+        for (String token : csv.split(",")) {
+            String t = token.trim();
+            if (t.isEmpty()) continue;
+            try {
+                ids.add(Long.parseLong(t));
+            } catch (NumberFormatException ignored) {
+                // entrée corrompue : ignorée, ne casse pas le listing public
+            }
+        }
+        return ids;
     }
 
     /**
