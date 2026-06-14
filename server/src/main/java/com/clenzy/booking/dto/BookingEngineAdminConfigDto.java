@@ -40,6 +40,8 @@ public record BookingEngineAdminConfigDto(
     String customCss,
     String customJs,
     String componentConfig,
+    // Site builder (page composée par blocs, JSON)
+    String pageLayout,
     // AI Design Analysis
     String designTokens,
     String sourceWebsiteUrl,
@@ -82,6 +84,7 @@ public record BookingEngineAdminConfigDto(
             config.getCustomCss(),
             config.getCustomJs(),
             config.getComponentConfig(),
+            config.getPageLayout(),
             config.getDesignTokens(),
             config.getSourceWebsiteUrl(),
             config.getAiAnalysisAt(),
@@ -117,6 +120,7 @@ public record BookingEngineAdminConfigDto(
         config.setCustomCss(customCss);
         config.setCustomJs(customJs);
         config.setComponentConfig(componentConfig);
+        config.setPageLayout(pageLayout);
         config.setDesignTokens(designTokens);
         config.setSourceWebsiteUrl(sourceWebsiteUrl);
         config.setWidgetPosition(widgetPosition);
