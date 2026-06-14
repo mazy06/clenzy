@@ -107,6 +107,7 @@ import ExchangeRateHistoryPage from './admin/ExchangeRateHistoryPage';
 import ChannelsPage from './channels/ChannelsPage';
 import ReviewsPage from './channels/ReviewsPage';
 import GuestExperiencePage from './guest-experience/GuestExperiencePage';
+import StudioPage from './booking-engine/studio/StudioPage';
 
 // Messaging — pages now merged into Documents module (redirected via Navigate)
 // import MessageTemplatesPage from './messaging/MessageTemplatesPage';
@@ -484,6 +485,15 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="properties:view">
             <ErrorBoundary>
               <GuestExperiencePage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Baitly Studio (refonte frontend — F0 coquille navigable) */}
+        <Route path="/booking-engine/studio" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <StudioPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />
