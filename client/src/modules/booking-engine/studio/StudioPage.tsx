@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box } from '@mui/material';
-import { bookingEngineApi } from '../../../services/api/bookingEngineApi';
 import {
   LayoutTemplate,
   FileText,
@@ -14,6 +13,8 @@ import {
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
 import DesignBuilder from './builder/DesignBuilder';
+import BookingSettingsPanel from './settings/BookingSettingsPanel';
+import { useStudioConfig } from './useStudioConfig';
 
 /**
  * Baitly Studio — page hôte (F0) : assemble StudioShell + palette ⌘K + les 5 sections.
@@ -21,17 +22,18 @@ import DesignBuilder from './builder/DesignBuilder';
  */
 
 const SECTIONS: (StudioSection & { blurb: string })[] = [
-  { key: 'design', label: 'Design', icon: LayoutTemplate, blurb: 'Builder par blocs, thème & templates (F2).' },
-  { key: 'content', label: 'Contenu', icon: FileText, blurb: 'Propriétés affichées, blog, pages, IA contenu (F4).' },
-  { key: 'booking', label: 'Réservation', icon: CalendarCheck, blurb: 'Devises, annulation, caution, panier, upsells (F3).' },
-  { key: 'growth', label: 'Croissance', icon: TrendingUp, blurb: 'SEO, leads & email, abandoned-cart, analytics (F3).' },
-  { key: 'distribution', label: 'Diffusion', icon: Share2, blurb: 'Site hébergé · widget · SDK/API (F5).' },
+  { key: 'design', label: 'Design', icon: LayoutTemplate, blurb: 'Composez votre page par blocs et choisissez le thème.' },
+  { key: 'content', label: 'Contenu', icon: FileText, blurb: 'Propriétés affichées, pages, blog et contenu assisté par IA.' },
+  { key: 'booking', label: 'Réservation', icon: CalendarCheck, blurb: 'Devise, paiement, frais, fenêtre de réservation et politique.' },
+  { key: 'growth', label: 'Croissance', icon: TrendingUp, blurb: 'SEO, capture de leads, relance de panier et analytics.' },
+  { key: 'distribution', label: 'Diffusion', icon: Share2, blurb: 'Site hébergé, widget intégrable et accès SDK / API.' },
 ];
 
 export default function StudioPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [projectName, setProjectName] = useState('Mon booking engine');
+  const cfg = useStudioConfig(id ? Number(id) : undefined);
+  const projectName = cfg.config?.name ?? 'Mon booking engine';
   const [activeSection, setActiveSection] = useState('design');
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
   const [previewLang, setPreviewLang] = useState('fr');
@@ -49,16 +51,6 @@ export default function StudioPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-
-  // Nom réel du projet dans la topbar (best-effort).
-  useEffect(() => {
-    if (!id) return;
-    let alive = true;
-    bookingEngineApi.getConfigById(Number(id))
-      .then((c) => { if (alive && c?.name) setProjectName(c.name); })
-      .catch(() => { /* best-effort : on garde le nom par défaut */ });
-    return () => { alive = false; };
-  }, [id]);
 
   const commands = useMemo<StudioCommand[]>(() => {
     const navCmds: StudioCommand[] = SECTIONS.map((s) => ({
@@ -93,9 +85,19 @@ export default function StudioPage() {
         onOpenCommand={() => setPaletteOpen(true)}
         onBack={() => navigate('/booking-engine')}
       >
-        {active.key === 'design'
-          ? <DesignBuilder breakpoint={breakpoint} />
-          : <SectionPlaceholder section={active} />}
+        {active.key === 'design' && <DesignBuilder breakpoint={breakpoint} />}
+        {active.key === 'booking' && (
+          <BookingSettingsPanel
+            config={cfg.config}
+            loading={cfg.loading}
+            error={cfg.error}
+            saving={cfg.saving}
+            dirty={cfg.dirty}
+            patch={cfg.patch}
+            onSave={() => { cfg.save().catch(() => { /* erreur déjà exposée par le hook */ }); }}
+          />
+        )}
+        {active.key !== 'design' && active.key !== 'booking' && <SectionPlaceholder section={active} />}
       </StudioShell>
 
       <StudioCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
