@@ -49,6 +49,11 @@ public class BookingRestriction {
     @Column(name = "min_stay")
     private Integer minStay;
 
+    /** Durée minimale de séjour si l'arrivée tombe ce jour (min_stay_arrival OTA), distincte de
+     * {@link #minStay} (min_stay_through). Nullable = pas de contrainte spécifique à l'arrivée. */
+    @Column(name = "min_stay_arrival")
+    private Integer minStayArrival;
+
     @Column(name = "max_stay")
     private Integer maxStay;
 
@@ -124,6 +129,9 @@ public class BookingRestriction {
 
     public Integer getMinStay() { return minStay; }
     public void setMinStay(Integer minStay) { this.minStay = minStay; }
+
+    public Integer getMinStayArrival() { return minStayArrival; }
+    public void setMinStayArrival(Integer minStayArrival) { this.minStayArrival = minStayArrival; }
 
     public Integer getMaxStay() { return maxStay; }
     public void setMaxStay(Integer maxStay) { this.maxStay = maxStay; }

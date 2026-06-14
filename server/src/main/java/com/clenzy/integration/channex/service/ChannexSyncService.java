@@ -327,7 +327,7 @@ public class ChannexSyncService {
                     date,
                     entry.getValue(),
                     restriction != null ? restriction.getMinStay() : null,
-                    null, // minStayArrival : pas modelise dans BookingRestriction
+                    restriction != null ? restriction.getMinStayArrival() : null,
                     restriction != null ? restriction.getClosedToArrival() : null,
                     restriction != null ? restriction.getClosedToDeparture() : null
                 ));

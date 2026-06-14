@@ -266,6 +266,7 @@ class ChannexSyncServicePricingPushTest {
         br.setStartDate(d1);
         br.setEndDate(d3);
         br.setMinStay(3);
+        br.setMinStayArrival(2);
         br.setClosedToArrival(false);
         br.setClosedToDeparture(true);
         br.setPriority(10);
@@ -281,6 +282,7 @@ class ChannexSyncServicePricingPushTest {
         java.util.List<com.clenzy.integration.channex.dto.ChannexRateUpdate> sent = captor.getValue();
         assertThat(sent).allSatisfy(u -> {
             assertThat(u.minStayThrough()).isEqualTo(3);
+            assertThat(u.minStayArrival()).isEqualTo(2);
             assertThat(u.closedToArrival()).isFalse();
             assertThat(u.closedToDeparture()).isTrue();
         });
