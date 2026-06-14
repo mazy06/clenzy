@@ -3,6 +3,7 @@ import { Box, ButtonBase } from '@mui/material';
 import { Check } from 'lucide-react';
 import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
+import PagePreview from './PagePreview';
 import BlockInspector from './BlockInspector';
 import ThemeInspector from './ThemeInspector';
 import { BLOCK_REGISTRY, getBlockDef, type BlockProps, type BlockType } from './blockRegistry';
@@ -65,6 +66,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [blocks, setBlocks] = useState<BlockInstance[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>('block');
+  const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [hydrated, setHydrated] = useState(false);
 
   const { patch } = cfg;
@@ -122,27 +124,44 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     );
   }
 
+  const theme = cfg.config ? { primaryColor: cfg.config.primaryColor, fontFamily: cfg.config.fontFamily } : undefined;
+
   return (
-    <Box sx={{ display: 'flex', height: '100%', minHeight: 0 }}>
-      <BlockTree
-        blocks={blocks}
-        selectedId={selectedId}
-        onSelect={onSelectBlock}
-        onAdd={handleAdd}
-        onMove={handleMove}
-        onRemove={handleRemove}
-      />
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* Barre : bascule Éditer / Aperçu. */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', px: 1.5, height: 44, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+        <Segmented
+          value={mode}
+          onChange={setMode}
+          options={[{ value: 'edit', label: 'Éditer' }, { value: 'preview', label: 'Aperçu' }]}
+        />
+      </Box>
 
-      <BuilderCanvas
-        blocks={blocks}
-        selectedId={selectedId}
-        breakpoint={breakpoint}
-        onSelect={onSelectBlock}
-        theme={cfg.config ? { primaryColor: cfg.config.primaryColor, fontFamily: cfg.config.fontFamily } : undefined}
-      />
+      {mode === 'preview' ? (
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <PagePreview blocks={blocks} theme={theme} breakpoint={breakpoint} />
+        </Box>
+      ) : (
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <BlockTree
+            blocks={blocks}
+            selectedId={selectedId}
+            onSelect={onSelectBlock}
+            onAdd={handleAdd}
+            onMove={handleMove}
+            onRemove={handleRemove}
+          />
 
-      {/* Pane droit : onglets Bloc / Thème + corps + barre de sauvegarde. */}
-      <Box sx={{ width: 296, flexShrink: 0, borderLeft: '1px solid var(--line)', bgcolor: 'var(--card)', display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <BuilderCanvas
+            blocks={blocks}
+            selectedId={selectedId}
+            breakpoint={breakpoint}
+            onSelect={onSelectBlock}
+            theme={theme}
+          />
+
+          {/* Pane droit : onglets Bloc / Thème + corps + barre de sauvegarde. */}
+          <Box sx={{ width: 296, flexShrink: 0, borderLeft: '1px solid var(--line)', bgcolor: 'var(--card)', display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', px: 1, height: 48, borderBottom: '1px solid var(--line)' }}>
           <Segmented
             value={rightTab}
@@ -179,7 +198,9 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             </ButtonBase>
           </Box>
         )}
-      </Box>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 }

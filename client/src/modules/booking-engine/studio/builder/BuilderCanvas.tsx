@@ -9,7 +9,7 @@ import type { Breakpoint } from '../StudioShell';
  * actif reçoit un halo accent. Vide → enseigne d'amorçage.
  */
 
-const FRAME_WIDTH: Record<Breakpoint, number | string> = {
+export const FRAME_WIDTH: Record<Breakpoint, number | string> = {
   desktop: '100%',
   tablet: 834,
   mobile: 390,
@@ -29,7 +29,7 @@ export interface BuilderCanvasProps {
 }
 
 /** Surcharge les CSS vars de marque sur le cadre pour un aperçu fidèle au thème choisi. */
-function themeStyle(theme?: CanvasTheme): React.CSSProperties {
+export function themeStyle(theme?: CanvasTheme): React.CSSProperties {
   if (!theme) return {};
   const c = theme.primaryColor || '#5453D6';
   const style: Record<string, string> = {
