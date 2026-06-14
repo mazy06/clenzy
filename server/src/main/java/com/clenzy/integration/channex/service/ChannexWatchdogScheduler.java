@@ -149,7 +149,8 @@ public class ChannexWatchdogScheduler {
                     "Sync Channex en erreur",
                     "« " + item.propertyName() + " » : " + item.reason()
                         + (item.lastSyncError() != null ? " — " + truncate(item.lastSyncError(), 120) : ""),
-                    "/channels",
+                    // Deep-link vers le diagnostic de la propriete (PropertiesList lit ?diagnoseChannex=<id>)
+                    "/properties?diagnoseChannex=" + propertyId,
                     item.organizationId()
                 );
                 log.warn("ChannexWatchdog: notification ERROR envoyee property={} org={}",
@@ -180,7 +181,7 @@ public class ChannexWatchdogScheduler {
                     "Sync Channex retablie",
                     "La synchronisation pour la propriete #" + propertyId
                         + " fonctionne a nouveau.",
-                    "/channels",
+                    "/properties?diagnoseChannex=" + propertyId,
                     orgId
                 );
                 log.info("ChannexWatchdog: notification RECOVERED envoyee property={} org={}",
