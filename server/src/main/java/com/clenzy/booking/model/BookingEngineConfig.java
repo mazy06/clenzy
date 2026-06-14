@@ -113,6 +113,10 @@ public class BookingEngineConfig {
     @Column(name = "page_layout", columnDefinition = "TEXT")
     private String pageLayout;
 
+    /** Propriétés affichées (curation) : IDs en CSV ; NULL/vide = toutes les propriétés visibles. */
+    @Column(name = "featured_property_ids", columnDefinition = "TEXT")
+    private String featuredPropertyIds;
+
     // ─── AI Design Analysis ───────────────────────────────────────────
 
     @Column(name = "design_tokens", columnDefinition = "TEXT")
@@ -224,6 +228,9 @@ public class BookingEngineConfig {
 
     public String getPageLayout() { return pageLayout; }
     public void setPageLayout(String pageLayout) { this.pageLayout = pageLayout; }
+
+    public String getFeaturedPropertyIds() { return featuredPropertyIds; }
+    public void setFeaturedPropertyIds(String featuredPropertyIds) { this.featuredPropertyIds = featuredPropertyIds; }
 
     public String getDesignTokens() { return designTokens; }
     public void setDesignTokens(String designTokens) { this.designTokens = designTokens; }

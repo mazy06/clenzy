@@ -13,7 +13,7 @@ import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell'
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
 import DesignBuilder from './builder/DesignBuilder';
 import BookingSettingsPanel from './settings/BookingSettingsPanel';
-import ContentAiPanel from './settings/ContentAiPanel';
+import ContentSection from './settings/ContentSection';
 import DistributionPanel from './settings/DistributionPanel';
 import GrowthSettingsPanel from './settings/GrowthSettingsPanel';
 import { useStudioConfig } from './useStudioConfig';
@@ -88,7 +88,7 @@ export default function StudioPage() {
         onBack={() => navigate('/booking-engine')}
       >
         {active.key === 'design' && <DesignBuilder breakpoint={breakpoint} cfg={cfg} />}
-        {active.key === 'content' && <ContentAiPanel />}
+        {active.key === 'content' && <ContentSection cfg={cfg} />}
         {active.key === 'booking' && (
           <BookingSettingsPanel
             config={cfg.config}

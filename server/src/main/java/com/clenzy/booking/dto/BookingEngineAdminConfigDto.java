@@ -42,6 +42,8 @@ public record BookingEngineAdminConfigDto(
     String componentConfig,
     // Site builder (page composée par blocs, JSON)
     String pageLayout,
+    // Propriétés affichées (curation) : IDs en CSV
+    String featuredPropertyIds,
     // AI Design Analysis
     String designTokens,
     String sourceWebsiteUrl,
@@ -85,6 +87,7 @@ public record BookingEngineAdminConfigDto(
             config.getCustomJs(),
             config.getComponentConfig(),
             config.getPageLayout(),
+            config.getFeaturedPropertyIds(),
             config.getDesignTokens(),
             config.getSourceWebsiteUrl(),
             config.getAiAnalysisAt(),
@@ -121,6 +124,7 @@ public record BookingEngineAdminConfigDto(
         config.setCustomJs(customJs);
         config.setComponentConfig(componentConfig);
         config.setPageLayout(pageLayout);
+        config.setFeaturedPropertyIds(featuredPropertyIds);
         config.setDesignTokens(designTokens);
         config.setSourceWebsiteUrl(sourceWebsiteUrl);
         config.setWidgetPosition(widgetPosition);

@@ -2477,3 +2477,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0250__add_growth_settings_to_organizations.sql
         relativeToChangelogFile: true
+
+  # Booking engine : proprietes affichees (curation par booking engine), CSV d'IDs.
+  - changeSet:
+      id: "0251-add-featured-property-ids-to-booking-engine-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0251__add_featured_property_ids_to_booking_engine_config.sql
+        relativeToChangelogFile: true

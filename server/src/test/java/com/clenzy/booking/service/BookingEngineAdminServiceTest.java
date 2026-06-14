@@ -70,6 +70,7 @@ class BookingEngineAdminServiceTest {
                 true, false, true, true,
                 "css", "js", "{}",
                 "[]",
+                "1,2",
                 "{}", "https://src", null,
                 "bottom", "tgt", "after",
                 null

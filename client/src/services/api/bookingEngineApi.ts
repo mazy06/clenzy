@@ -82,6 +82,8 @@ export interface BookingEngineConfig {
   componentConfig: string | null;
   // Site builder (page composée par blocs, JSON)
   pageLayout: string | null;
+  // Propriétés affichées (curation) : IDs en CSV ; null/vide = toutes
+  featuredPropertyIds: string | null;
   // AI Design Analysis
   designTokens: string | null;
   sourceWebsiteUrl: string | null;
