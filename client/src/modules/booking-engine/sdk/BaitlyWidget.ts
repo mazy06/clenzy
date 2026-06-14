@@ -132,7 +132,7 @@ export class BaitlyWidget {
     page.appendChild(createCurrencySelector(this.state));
 
     // Liste de propriétés (sélection property-first)
-    page.appendChild(createPropertyList(this.state, this.i18n));
+    page.appendChild(createPropertyList(this.state, this.i18n, this.config.baseUrl || window.location.origin));
 
     // Sélection des dates (date picker + calendrier alimenté par /calendar de la propriété)
     page.appendChild(createDatePicker(this.state, this.i18n));
