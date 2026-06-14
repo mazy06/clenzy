@@ -7,6 +7,7 @@ import com.clenzy.config.ai.AiResponse;
 import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.dto.AiInsightDto;
 import com.clenzy.dto.OccupancyForecastDto;
+import com.clenzy.dto.PeriodComparisonDto;
 import com.clenzy.dto.RevenueAnalyticsDto;
 import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
@@ -47,6 +48,7 @@ class AiAnalyticsServiceTest {
     @Mock private AiAnonymizationService anonymizationService;
     @Mock private AiTokenBudgetService tokenBudgetService;
     @Spy  private ObjectMapper objectMapper = new ObjectMapper();
+    @Mock private CurrencyConverterService currencyConverter;
     @InjectMocks private AiAnalyticsService service;
 
     private static final Long ORG_ID = 1L;
@@ -129,6 +131,69 @@ class AiAnalyticsServiceTest {
 
             assertThrows(IllegalArgumentException.class,
                 () -> service.getAnalytics(PROPERTY_ID, ORG_ID, LocalDate.now(), LocalDate.now().plusDays(7)));
+        }
+
+        @Test
+        void computesYearOverYearComparisonServerSide() {
+            when(propertyRepository.findById(PROPERTY_ID))
+                .thenReturn(Optional.of(createProperty(new BigDecimal("100"))));
+
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 11);
+            LocalDate prevFrom = from.minusYears(1);
+            LocalDate prevTo = to.minusYears(1);
+
+            // Periode courante : 750 de revenu
+            when(reservationRepository.findByPropertyIdsAndDateRange(any(), eq(from), eq(to), eq(ORG_ID)))
+                .thenReturn(List.of(
+                    createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 4), new BigDecimal("300"), "airbnb"),
+                    createReservation(LocalDate.of(2026, 3, 6), LocalDate.of(2026, 3, 9), new BigDecimal("450"), "booking")));
+            // Periode N-1 : 500 de revenu
+            when(reservationRepository.findByPropertyIdsAndDateRange(any(), eq(prevFrom), eq(prevTo), eq(ORG_ID)))
+                .thenReturn(List.of(
+                    createReservation(LocalDate.of(2025, 3, 1), LocalDate.of(2025, 3, 6), new BigDecimal("500"), "airbnb")));
+
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to);
+
+            PeriodComparisonDto cmp = result.comparison();
+            assertNotNull(cmp);
+            assertEquals("YEAR_OVER_YEAR", cmp.basis());
+            assertEquals(prevFrom, cmp.previousFrom());
+            assertEquals(0, new BigDecimal("750").compareTo(cmp.revenue().current()));
+            assertEquals(0, new BigDecimal("500").compareTo(cmp.revenue().previous()));
+            // delta = (750-500)/500*100 = 50.00
+            assertEquals(0, new BigDecimal("50.00").compareTo(cmp.revenue().growthPct()));
+        }
+
+        @Test
+        void consolidatesMultiCurrencyRevenueToReportingCurrency() {
+            when(propertyRepository.findById(PROPERTY_ID))
+                .thenReturn(Optional.of(createProperty(new BigDecimal("100"))));
+
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 11);
+
+            Reservation eur = createReservation(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 4),
+                new BigDecimal("300"), "airbnb");
+            eur.setCurrency("EUR");
+            Reservation mad = createReservation(LocalDate.of(2026, 3, 5), LocalDate.of(2026, 3, 8),
+                new BigDecimal("1000"), "booking");
+            mad.setCurrency("MAD");
+
+            when(reservationRepository.findByPropertyIdsAndDateRange(any(), eq(from), eq(to), eq(ORG_ID)))
+                .thenReturn(List.of(eur, mad));
+            when(reservationRepository.findByPropertyIdsAndDateRange(
+                    any(), eq(from.minusYears(1)), eq(to.minusYears(1)), eq(ORG_ID)))
+                .thenReturn(List.of());
+            // MAD -> EUR a la date de la reservation MAD ; l'EUR ne passe pas par le converter (identite).
+            when(currencyConverter.convert(eq(new BigDecimal("1000")), eq("MAD"), eq("EUR"), any()))
+                .thenReturn(new BigDecimal("100.00"));
+
+            RevenueAnalyticsDto result = service.getAnalytics(PROPERTY_ID, ORG_ID, from, to, "EUR");
+
+            assertEquals("EUR", result.reportingCurrency());
+            // 300 (EUR, identite) + 100 (MAD->EUR) = 400
+            assertEquals(0, new BigDecimal("400.00").compareTo(result.totalRevenue()));
         }
     }
 

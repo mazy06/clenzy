@@ -21,5 +21,7 @@ public record RevenueAnalyticsDto(
     Map<String, Double> occupancyByMonth,
     Map<String, BigDecimal> revenueByMonth,
     Map<String, Integer> bookingsBySource,
-    List<OccupancyForecastDto> forecast
+    List<OccupancyForecastDto> forecast,
+    PeriodComparisonDto comparison,   // N vs N-1 calculé serveur (CLZ-P0-13)
+    String reportingCurrency          // devise de consolidation EUR/MAD/SAR (CLZ-P0-14)
 ) {}
