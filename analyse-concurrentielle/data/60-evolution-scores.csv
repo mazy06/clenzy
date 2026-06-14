@@ -1,0 +1,15 @@
+Domaine,Avant,Apres,Realisations
+1. Channel Management,2.0,2.0,Routage multi-pays evalue (livraison differee HP-13/14/15 : infra Kafka + OTAs gated)
+2. Booking engine & site direct,1.4,1.6,i18n/RTL booking-sdk (fr/en/ar) + emails de confirmation (paye + auto-confirm)
+3. Calendrier & multi-tenant,2.6,2.7,Edition groupee + durcissement isolation (requireSameOrganization) + detection double-booking
+4. Tarification / Yield,1.7,1.9,Recommandation de prix CAS-safe + simulation TTC par pays (TVA + taxe de sejour)
+5. Operations menage/maintenance,2.2,2.2,Inchange
+6. Communication voyageurs,1.6,1.6,Inchange (l'email de confirmation est compte dans Booking engine)
+7. Guest Experience & Livret,1.6,1.8,Caution/depot (cycle de vie CAS) + taxe de sejour (simulation par pays)
+8. Finance & Compta,2.2,2.5,Abstraction e-invoicing + providers FR/MA/KSA + chaine PIH ZATCA + caution/depot + consolidation multi-devise
+9. Reporting & Analytics,1.7,2.0,Report builder (socle whitelist+CRUD) + comparaison N/N-1 serveur + agregation multi-devise
+10. Integrations & API / IoT,1.4,1.4,Inchange (integrations externes differees)
+11. Application mobile,2.5,2.5,Inchange
+12. Admin securite & conformite,1.6,1.9,2FA (policy org mfaRequired) + socle Country multi-pays + validation fail-fast au boot
+13. IA & automatisation,1.2,1.4,Detection d'anomalies (double-booking) + architecture reco de prix (IA pricing : deverrouillage differe HP-12)
+SCORE GLOBAL PONDERE,1.86,1.99,Hausse tiree par Finance (e-invoicing multi-pays + caution) et Reporting ; passe du 6e au 3e rang

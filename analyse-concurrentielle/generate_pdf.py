@@ -70,6 +70,10 @@ def read_csv(name):
 
 def on_page(canvas, doc):
     canvas.saveState()
+    # Fond blanc explicite : sans lui, le fond de page est transparent et un lecteur PDF en
+    # mode sombre l'affiche en noir (texte fonce invisible -> ecran noir).
+    canvas.setFillColor(colors.white)
+    canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
     canvas.setFillColor(PRIMARY)
     canvas.rect(0, A4[1] - 6 * mm, A4[0], 6 * mm, fill=1, stroke=0)
     canvas.setFillColor(MUTED)
@@ -91,22 +95,71 @@ ABBR = {"Clenzy":"Clenzy","Hostaway":"Hwy","Guesty":"Gst","Smoobu":"Smo","Lodgif
         "Hospitable":"Hsp","Avantio":"Avo","Smily":"Sly","TouchStay":"Touch","Duve":"Duve",
         "Chekin":"Chekin","EnsoConnect":"Enso","HostfullyGuidebooks":"Hostf"}
 
-def matrix_table(rows):
+# Colonne "Clenzy V2" : nouveau score (post Phases 0-4) des SEULES fonctionnalites reellement
+# ameliorees. Cle = libelle exact de la fonctionnalite (col 0 du CSV). Les autres = inchangees.
+# Honnete : socle livre & teste ; la finition externe (APIs)/front reste tracee en HORS-PERIMETRE.
+CLENZY_V2 = {
+    "02-booking-engine.csv": {
+        "RTL / arabe (booking direct)": "2",
+        "Multi-langue interface booking": "3",
+        "Email de confirmation de reservation": "3",
+    },
+    "03-calendrier-multitenant.csv": {
+        "Edition groupee (rates / min-stay / blocages)": "3",
+    },
+    "04-pricing-yield.csv": {
+        "Moteur IA proprietaire livre en prod": "2",
+        "Recommandations occupancy-based / market data": "2",
+        "Taxes auto (sejour / TVA) integrees": "3",
+    },
+    "07-guest-experience.csv": {
+        "Collecte de caution / depot (pre-autorisation)": "2",
+        "Taxe de sejour (calcul + collecte)": "3",
+    },
+    "08-finance-compta.csv": {
+        "Gestion depot de garantie/caution (auth-hold)": "2",
+        "E-invoicing Factur-X / pont PDP (reforme FR)": "2",
+        "Multi-devise": "3",
+    },
+    "09-reporting-analytics.csv": {
+        "Comparaisons periodiques (N vs N-1)": "3",
+        "Report builder / rapports personnalisables": "2",
+    },
+    "12-admin-securite.csv": {
+        "2FA / MFA": "2",
+    },
+    "13-ia-automatisation.csv": {
+        "IA de pricing / revenue management": "2",
+        "Detection d'anomalies / fraude paiement": "2",
+    },
+}
+
+def matrix_table(rows, v2_overrides=None):
+    """Insere une colonne 'Clenzy V2' (post Phases 0-4) juste apres la colonne Clenzy.
+    Colonnes rendues : Fonctionnalite | Clenzy | Clenzy V2 | <autres acteurs> | (Conf)."""
+    v2_overrides = v2_overrides or {}
     header = rows[0]
     has_conf = header[-1].strip().lower().startswith("confiance")
     actor_cols = list(range(1, len(header) - 1)) if has_conf else list(range(1, len(header)))
-    nfeat = USABLE_W * 0.30
-    nconf = USABLE_W * 0.115 if has_conf else 0
-    awidth = (USABLE_W - nfeat - nconf) / len(actor_cols)
-    colw = [nfeat] + [awidth] * len(actor_cols) + ([nconf] if has_conf else [])
-    hdr = [Paragraph("<b>Fonctionnalite</b>", CELLB)]
-    for ci in actor_cols:
+    clenzy_ci = actor_cols[0]
+    other_cols = actor_cols[1:]
+    n_render = 2 + len(other_cols)  # Clenzy + Clenzy V2 + autres
+    nfeat = USABLE_W * 0.28
+    nconf = USABLE_W * 0.10 if has_conf else 0
+    aw = (USABLE_W - nfeat - nconf) / n_render
+    colw = [nfeat, aw, aw] + [aw] * len(other_cols) + ([nconf] if has_conf else [])
+    hc = ParagraphStyle("hh", parent=CELLB, alignment=TA_CENTER, fontSize=6.6)
+    hdr = [Paragraph("<b>Fonctionnalite</b>", CELLB),
+           Paragraph("<b>Clenzy</b>", hc),
+           Paragraph("<b>Clenzy V2</b>", ParagraphStyle("hv2", parent=hc, textColor=colors.white))]
+    for ci in other_cols:
         name = header[ci].strip()
-        hdr.append(Paragraph("<b>%s</b>" % ABBR.get(name, name), ParagraphStyle("hh", parent=CELLB, alignment=TA_CENTER, fontSize=6.8)))
+        hdr.append(Paragraph("<b>%s</b>" % ABBR.get(name, name), hc))
     if has_conf:
-        hdr.append(Paragraph("<b>Conf.</b>", ParagraphStyle("hh2", parent=CELLB, alignment=TA_CENTER, fontSize=6.8)))
+        hdr.append(Paragraph("<b>Conf.</b>", hc))
     data = [hdr]
     style = [("BACKGROUND", (0, 0), (-1, 0), PRIMARY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+             ("BACKGROUND", (2, 0), (2, 0), ACCENT),  # en-tete V2 a la teinte d'accent
              ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("GRID", (0, 0), (-1, -1), 0.4, colors.white),
              ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
              ("TOPPADDING", (0, 0), (-1, -1), 2.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5)]
@@ -115,19 +168,40 @@ def matrix_table(rows):
         if not row or not row[0].strip():
             continue
         ri += 1
+        feat = row[0].strip()
         line = [Paragraph(row[0], CELL)]
-        for j, ci in enumerate(actor_cols, start=1):
+        cval = row[clenzy_ci].strip() if clenzy_ci < len(row) else ""
+        # Clenzy (col 1)
+        cc = score_color(cval)
+        cst = ParagraphStyle("cc", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.2)
+        if cc is not None:
+            cst = ParagraphStyle("cc", parent=cst, textColor=text_on(cc))
+            style.append(("BACKGROUND", (1, ri), (1, ri), cc))
+        line.append(Paragraph(cval, cst))
+        # Clenzy V2 (col 2)
+        v2 = v2_overrides.get(feat, cval)
+        changed = (v2 != cval)
+        vc = score_color(v2)
+        vst = ParagraphStyle("v2", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.2)
+        if vc is not None:
+            vst = ParagraphStyle("v2", parent=vst, textColor=text_on(vc))
+            style.append(("BACKGROUND", (2, ri), (2, ri), vc))
+        line.append(Paragraph(v2, vst))
+        if changed:
+            style.append(("BOX", (2, ri), (2, ri), 1.1, ACCENT))
+        # autres acteurs (cols 3..)
+        for k, ci in enumerate(other_cols, start=3):
             val = row[ci].strip() if ci < len(row) else ""
             c = score_color(val)
-            st = ParagraphStyle("cc", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.4)
+            st = ParagraphStyle("oc", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.2)
             if c is not None:
-                st = ParagraphStyle("cc", parent=st, textColor=text_on(c))
-                style.append(("BACKGROUND", (j, ri), (j, ri), c))
+                st = ParagraphStyle("oc", parent=st, textColor=text_on(c))
+                style.append(("BACKGROUND", (k, ri), (k, ri), c))
             line.append(Paragraph(val, st))
         if has_conf:
             idx = actor_cols[-1] + 1
             conf = row[idx].strip() if idx < len(row) else ""
-            line.append(Paragraph(conf, ParagraphStyle("conf", parent=CELL, alignment=TA_CENTER, fontSize=6.6, textColor=MUTED)))
+            line.append(Paragraph(conf, ParagraphStyle("conf", parent=CELL, alignment=TA_CENTER, fontSize=6.4, textColor=MUTED)))
         data.append(line)
         style.append(("BACKGROUND", (0, ri), (0, ri), LIGHT if ri % 2 else colors.white))
     t = Table(data, colWidths=colw, repeatRows=1)
@@ -255,6 +329,65 @@ def roadmap_table(roadmap_rows, top=22):
 def bullet(txt, style=BODY):
     return Paragraph("- " + txt, style)
 
+def evolution_callout(g_before, g_after, rank_before, rank_after):
+    """Bandeau avant -> apres du score global pondere + rang."""
+    def cell(label, value, sub):
+        return [Paragraph("<b>%s</b>" % label, ParagraphStyle("el", parent=CELL, fontSize=8, textColor=colors.white, alignment=TA_CENTER)),
+                Paragraph("<b>%s</b>" % value, ParagraphStyle("ev", parent=CELL, fontSize=22, textColor=colors.white, alignment=TA_CENTER, leading=24)),
+                Paragraph(sub, ParagraphStyle("es", parent=CELL, fontSize=7, textColor=colors.white, alignment=TA_CENTER))]
+    arrow = [Paragraph("", CELL), Paragraph("->", ParagraphStyle("ar", parent=CELL, fontSize=20, textColor=ACCENT, alignment=TA_CENTER)), Paragraph("", CELL)]
+    data = [[cell("Score global - AVANT", "%.2f" % g_before, "/3 . rang %s" % rank_before),
+             arrow,
+             cell("Score global - APRES", "%.2f" % g_after, "/3 . rang %s" % rank_after)]]
+    t = Table(data, colWidths=[USABLE_W * 0.42, USABLE_W * 0.16, USABLE_W * 0.42])
+    t.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, 0), MUTED), ("BACKGROUND", (2, 0), (2, 0), colors.HexColor("#2C8059")),
+                           ("BACKGROUND", (1, 0), (1, 0), colors.white), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                           ("BOX", (1, 0), (1, 0), 0.6, LINE),
+                           ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
+    return t
+
+def evolution_table(rows):
+    """rows = CSV 60-evolution-scores : Domaine, Avant, Apres, Realisations (derniere = total)."""
+    head = [Paragraph("<b>%s</b>" % h, ParagraphStyle("th", parent=CELLB, fontSize=7.4, textColor=colors.white,
+            alignment=(TA_CENTER if h in ("Avant", "Apres", "Δ") else TA_LEFT)))
+            for h in ["Domaine", "Avant", "Apres", "Δ", "Realisations (Phases 0-4)"]]
+    data = [head]
+    style = [("BACKGROUND", (0, 0), (-1, 0), PRIMARY), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+             ("GRID", (0, 0), (-1, -1), 0.4, colors.white),
+             ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+             ("TOPPADDING", (0, 0), (-1, -1), 2.6), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.6)]
+    body = rows[1:]
+    last = len(body) - 1
+    for i, r in enumerate(body):
+        is_total = (i == last)
+        before, after = float(r[1]), float(r[2])
+        delta = after - before
+        cb, ca = score_color(before), score_color(after)
+        dtxt = ("+%.1f" % delta) if delta > 0.001 else ("0" if abs(delta) <= 0.001 else "%.1f" % delta)
+        dcol = colors.HexColor("#2C8059") if delta > 0.001 else MUTED
+        if is_total:
+            line = [Paragraph("<b>%s</b>" % r[0], ParagraphStyle("d", parent=CELL, fontSize=7.6, textColor=colors.white)),
+                    Paragraph("<b>%.2f</b>" % before, ParagraphStyle("a", parent=CELL, alignment=TA_CENTER, fontSize=7.8, textColor=colors.white)),
+                    Paragraph("<b>%.2f</b>" % after, ParagraphStyle("b", parent=CELL, alignment=TA_CENTER, fontSize=7.8, textColor=colors.white)),
+                    Paragraph("<b>%s</b>" % dtxt, ParagraphStyle("dd", parent=CELL, alignment=TA_CENTER, fontSize=7.8, textColor=colors.white)),
+                    Paragraph(r[3], ParagraphStyle("rz", parent=CELL, fontSize=6.8, textColor=colors.white))]
+            data.append(line)
+            style.append(("BACKGROUND", (0, i + 1), (-1, i + 1), colors.HexColor("#27323A")))
+            continue
+        line = [Paragraph(r[0], ParagraphStyle("d", parent=CELL, fontSize=7.2)),
+                Paragraph("%.1f" % before, ParagraphStyle("a", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.4, textColor=text_on(cb))),
+                Paragraph("%.1f" % after, ParagraphStyle("b", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.4, textColor=text_on(ca))),
+                Paragraph("<b>%s</b>" % dtxt, ParagraphStyle("dd", parent=CELL, alignment=TA_CENTER, fontSize=7.4, textColor=dcol)),
+                Paragraph(r[3], ParagraphStyle("rz", parent=CELL, fontSize=6.6, textColor=INK, leading=8))]
+        data.append(line)
+        style.append(("BACKGROUND", (1, i + 1), (1, i + 1), cb))
+        style.append(("BACKGROUND", (2, i + 1), (2, i + 1), ca))
+        style.append(("BACKGROUND", (0, i + 1), (0, i + 1), LIGHT if i % 2 else colors.white))
+        style.append(("BACKGROUND", (4, i + 1), (4, i + 1), LIGHT if i % 2 else colors.white))
+    t = Table(data, colWidths=[USABLE_W * x for x in (0.26, 0.08, 0.08, 0.07, 0.51)], repeatRows=1)
+    t.setStyle(TableStyle(style))
+    return t
+
 def build_full():
     doc = make_doc(os.path.join(PDF, "analyse-concurrentielle.pdf"))
     S = [Spacer(1, 60), Paragraph("Analyse concurrentielle", TIT), Paragraph("du PMS <b>Clenzy</b>", TIT), Spacer(1, 14),
@@ -281,7 +414,8 @@ def build_full():
                "5. Matrices detaillees par domaine (13)", "6. Axes strategiques",
                "7. Roadmap priorisee (RICE) - Now / Next / Later",
                "8. Plan multi-pays &amp; execution technique (amendement 2026-06-14)",
-               "9. Annexe - sources datees &amp; reserves"]:
+               "9. Evolution post-implementation (Phases 0-4) - avant / apres",
+               "10. Annexe - sources datees &amp; reserves"]:
         S.append(Paragraph(it, ParagraphStyle("toc", parent=BODY, fontSize=10.5, spaceAfter=7, leftIndent=6)))
     S.append(PageBreak())
 
@@ -307,36 +441,61 @@ def build_full():
     S.append(PageBreak())
 
     S.append(Paragraph("2. Matrice de comparaison globale", H1))
-    S.append(Paragraph("Score par domaine (0-3) et score global pondere. Vert = avance, rouge = absent.", BODY))
+    S.append(Paragraph("Score par domaine (0-3) et score global pondere. Vert = avance, rouge = absent. La colonne "
+                       "<b>Clenzy V2</b> (en-tete a la teinte d'accent) = score apres les Phases 0-4 (detail section 9) ; "
+                       "cellules encadrees = domaines ameliores.", BODY))
     rows = read_csv("00-matrice-globale.csv")
     last = len(rows) - 1
-    hdr2 = [Paragraph("<b>Domaine</b>", CELLB), Paragraph("<b>Pds</b>", ParagraphStyle("p", parent=CELLB, alignment=TA_CENTER, fontSize=7))]
-    for nm in rows[0][2:]:
-        hdr2.append(Paragraph("<b>%s</b>" % ABBR.get(nm, nm), ParagraphStyle("p", parent=CELLB, alignment=TA_CENTER, fontSize=6.8)))
+    ev = read_csv("60-evolution-scores.csv")
+    v2map = {r[0].strip(): r[2].strip() for r in ev[1:] if r}
+    n_actors = len(rows[0]) - 2  # acteurs (Clenzy + concurrents)
+    hc = ParagraphStyle("p", parent=CELLB, alignment=TA_CENTER, fontSize=6.8)
+    hdr2 = [Paragraph("<b>Domaine</b>", CELLB),
+            Paragraph("<b>Pds</b>", ParagraphStyle("pw", parent=hc, fontSize=7))]
+    for idx, nm in enumerate(rows[0][2:]):
+        hdr2.append(Paragraph("<b>%s</b>" % ABBR.get(nm, nm), hc))
+        if idx == 0:  # apres Clenzy
+            hdr2.append(Paragraph("<b>Clenzy V2</b>", ParagraphStyle("pv2", parent=hc, fontSize=6.2, textColor=colors.white)))
     gh = [hdr2]
-    style = [("BACKGROUND", (0, 0), (-1, 0), PRIMARY), ("FONTSIZE", (0, 0), (-1, -1), 7.6),
+    style = [("BACKGROUND", (0, 0), (-1, 0), PRIMARY), ("FONTSIZE", (0, 0), (-1, -1), 7.4),
+             ("BACKGROUND", (3, 0), (3, 0), ACCENT),  # en-tete V2
              ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("GRID", (0, 0), (-1, -1), 0.4, colors.white),
              ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
              ("TOPPADDING", (0, 0), (-1, -1), 3.2), ("BOTTOMPADDING", (0, 0), (-1, -1), 3.2)]
     for ri, r in enumerate(rows[1:], start=1):
         is_total = ri == last
         tcol = colors.white if is_total else INK
-        line = [Paragraph(("<b>%s</b>" if is_total else "%s") % r[0], ParagraphStyle("gd", parent=CELL, fontSize=7.4, textColor=tcol)),
+        line = [Paragraph(("<b>%s</b>" if is_total else "%s") % r[0], ParagraphStyle("gd", parent=CELL, fontSize=7.2, textColor=tcol)),
                 Paragraph(r[1], ParagraphStyle("gw", parent=CELL, alignment=TA_CENTER, fontSize=7, textColor=tcol))]
-        for ci in range(2, len(r)):
-            val = r[ci]
+        col = 2
+        for j, val in enumerate(r[2:]):
             c = score_color(val) if not is_total else None
-            st = ParagraphStyle("gc", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.6,
+            st = ParagraphStyle("gc", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.4,
                                 textColor=(colors.white if is_total else INK))
             if c is not None:
                 st = ParagraphStyle("gc", parent=st, textColor=text_on(c))
-                style.append(("BACKGROUND", (ci, ri), (ci, ri), c))
+                style.append(("BACKGROUND", (col, ri), (col, ri), c))
             line.append(Paragraph(val, st))
+            col += 1
+            if j == 0:  # inserer Clenzy V2 juste apres Clenzy
+                v2val = v2map.get(r[0].strip(), val)
+                changed = (v2val != val)
+                vc = score_color(v2val) if not is_total else None
+                vst = ParagraphStyle("gv2", parent=CELL, alignment=TA_CENTER, fontName="Helvetica-Bold", fontSize=7.4,
+                                     textColor=(colors.white if is_total else INK))
+                if vc is not None:
+                    vst = ParagraphStyle("gv2", parent=vst, textColor=text_on(vc))
+                    style.append(("BACKGROUND", (col, ri), (col, ri), vc))
+                line.append(Paragraph(v2val, vst))
+                if changed and not is_total:
+                    style.append(("BOX", (col, ri), (col, ri), 1.1, ACCENT))
+                col += 1
         gh.append(line)
         if is_total:
             style.append(("BACKGROUND", (0, ri), (-1, ri), colors.HexColor("#27323A")))
             style.append(("TEXTCOLOR", (0, ri), (-1, ri), colors.white))
-    cw = [USABLE_W * 0.30, USABLE_W * 0.07] + [USABLE_W * 0.63 / 8] * 8
+    nc = n_actors + 1  # +1 pour Clenzy V2
+    cw = [USABLE_W * 0.30, USABLE_W * 0.06] + [USABLE_W * 0.64 / nc] * nc
     gt = Table(gh, colWidths=cw, repeatRows=1)
     gt.setStyle(TableStyle(style))
     S += [gt, Spacer(1, 4), LEGEND, Spacer(1, 12), Paragraph("Classement global (score pondere /3)", H3)]
@@ -382,7 +541,10 @@ def build_full():
 
     S.append(Paragraph("5. Matrices detaillees par domaine", H1))
     S.append(Paragraph("Comparaison a la fonctionnalite pres (score 0-3 + niveau de confiance). "
-                       "Source : rapports benchmark/ et CSV data/.", BODY))
+                       "Source : rapports benchmark/ et CSV data/. La colonne <b>Clenzy V2</b> (en-tete a la teinte d'accent) "
+                       "donne le score <b>apres les Phases 0-4</b> ; les cellules <b>encadrees</b> marquent une fonctionnalite "
+                       "amelioree (les autres = identiques a Clenzy V1). Re-evaluation interne honnete : seules les "
+                       "fonctionnalites reellement livrees &amp; testees bougent.", BODY))
     S += [Spacer(1, 2), LEGEND]
     domains = [("01-channel-management.csv", "Domaine 1 - Channel Management"),
                ("02-booking-engine.csv", "Domaine 2 - Moteur de reservation &amp; site direct"),
@@ -402,7 +564,7 @@ def build_full():
             rws = read_csv(fname)
         except FileNotFoundError:
             continue
-        S += [Spacer(1, 8), Paragraph(title, H2), matrix_table(rws)]
+        S += [Spacer(1, 8), Paragraph(title, H2), matrix_table(rws, CLENZY_V2.get(fname))]
     S.append(PageBreak())
 
     S.append(Paragraph("6. Axes strategiques", H1))
@@ -514,7 +676,34 @@ def build_full():
         pass
     S.append(PageBreak())
 
-    S.append(Paragraph("9. Annexe - sources datees &amp; reserves", H1))
+    # ===== 9. Evolution post-implementation (avant / apres) =====
+    S.append(Paragraph("9. Evolution post-implementation (Phases 0-4)", H1))
+    S.append(Paragraph("<b>Etat livre au 2026-06-14.</b> Apres execution du plan multi-pays (Phases 0 a 4), "
+                       "ce barometre compare le niveau de Clenzy <b>avant</b> (matrice de la section 2, veille 2026-06-13) "
+                       "et <b>apres</b> les chantiers livres et verifies en repo. Re-evaluation <b>interne</b> des seuls "
+                       "domaines reellement impactes ; les scores concurrents sont inchanges. Les hausses refletent un "
+                       "<b>socle livre &amp; teste</b> - la finition externe (APIs PDP/DGI/Fatoora, hold Stripe) et front (RTL, UIs) "
+                       "reste tracee dans backlog/HORS-PERIMETRE.md (HP-07 a HP-20).", BODY))
+    try:
+        ev = read_csv("60-evolution-scores.csv")
+        S += [Spacer(1, 6), evolution_callout(1.86, 1.99, "6e / 8", "3e / 8"), Spacer(1, 12),
+              Paragraph("Evolution par domaine (score 0-3)", H3), evolution_table(ev), Spacer(1, 4), LEGEND, Spacer(1, 10),
+              Paragraph("Lecture", H3)]
+        for t in ["<b>Finance &amp; Compta 2,2 -&gt; 2,5</b> : abstraction e-invoicing + 3 providers pays (Factur-X FR, DGI Maroc, "
+                  "ZATCA KSA) + chaine PIH/ICV atomique + caution/depot (gap \"absent\" comble) + consolidation multi-devise.",
+                  "<b>Reporting 1,7 -&gt; 2,0</b> : report builder (socle whitelist + CRUD), comparaison N/N-1 calculee serveur, "
+                  "agregation multi-devise EUR/MAD/SAR.",
+                  "<b>Admin &amp; conformite 1,6 -&gt; 1,9</b> : 2FA (policy org) + socle Country multi-pays + validation fail-fast au boot.",
+                  "<b>Global 1,86 -&gt; 1,99</b> : Clenzy passe du 6e au 3e rang en depassant le peloton resserre "
+                  "(Avantio 1,96 . Hospitable 1,92 . Smily 1,89) - sans rattraper Guesty (2,52) ni Hostaway (2,31).",
+                  "<b>Honnetete du barometre</b> : les domaines a forte dependance externe/infra/front (Channel, Integrations, "
+                  "Mobile, Operations) restent inchanges - aucun gonflage. Le potentiel verrouille (IA) attend HP-12."]:
+            S.append(bullet(t))
+    except FileNotFoundError:
+        S.append(Paragraph("(donnees d'evolution absentes : data/60-evolution-scores.csv)", SMALL))
+    S.append(PageBreak())
+
+    S.append(Paragraph("10. Annexe - sources datees &amp; reserves", H1))
     S.append(Paragraph("Faits reglementaires structurants (confiance Confirme sauf mention)", H3))
     for t in ["<b>Loi Le Meur</b> (n.2024-1039, 19 nov. 2024, FR) : enregistrement + n. sur annonces, registre national au plus "
               "tard 20/05/2026, plafond 120 nuits (90 a Paris), micro-BIC rabote, DPE.",
