@@ -1,11 +1,15 @@
 package com.clenzy.service.messaging;
 
 import com.clenzy.dto.AiSuggestedResponseDto;
+import com.clenzy.dto.ConversationAnalysisDto;
+import com.clenzy.dto.ConversationTranslationDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Conversation;
 import com.clenzy.model.ConversationMessage;
 import com.clenzy.model.MessageDirection;
 import com.clenzy.service.AiMessagingService;
+import com.clenzy.service.SentimentAnalysisService;
+import com.clenzy.service.SentimentAnalysisService.SentimentResult;
 import com.clenzy.service.agent.kb.KbSearchService;
 import com.clenzy.service.agent.kb.KbSearchService.KbSearchHit;
 import org.springframework.data.domain.Page;
@@ -32,13 +36,42 @@ public class ConversationAiAssistService {
     private final ConversationService conversationService;
     private final AiMessagingService aiMessagingService;
     private final KbSearchService kbSearchService;
+    private final SentimentAnalysisService sentimentAnalysisService;
+    private final TranslationService translationService;
 
     public ConversationAiAssistService(ConversationService conversationService,
                                        AiMessagingService aiMessagingService,
-                                       KbSearchService kbSearchService) {
+                                       KbSearchService kbSearchService,
+                                       SentimentAnalysisService sentimentAnalysisService,
+                                       TranslationService translationService) {
         this.conversationService = conversationService;
         this.aiMessagingService = aiMessagingService;
         this.kbSearchService = kbSearchService;
+        this.sentimentAnalysisService = sentimentAnalysisService;
+        this.translationService = translationService;
+    }
+
+    /**
+     * Analyse le dernier message voyageur : sentiment (keyword, gratuit) + urgence (CLZ Domaine 6).
+     */
+    public ConversationAnalysisDto analyzeLastInbound(Long orgId, Long conversationId) {
+        Conversation conversation = conversationService.getById(conversationId, orgId)
+            .orElseThrow(() -> new NotFoundException("Conversation not found: " + conversationId));
+        String text = lastInboundContent(conversationId, orgId, conversation);
+        SentimentResult sentiment = sentimentAnalysisService.analyze(text, null);
+        boolean urgent = aiMessagingService.isUrgent(text);
+        return new ConversationAnalysisDto(sentiment.label().name(), sentiment.score(), urgent);
+    }
+
+    /**
+     * Traduit le dernier message voyageur dans la langue cible (CLZ Domaine 6). Si la traduction
+     * n'est pas configurée (clé DeepL/Google absente), renvoie le texte original (pas d'echec).
+     */
+    public ConversationTranslationDto translateLastInbound(Long orgId, Long conversationId, String targetLanguage) {
+        Conversation conversation = conversationService.getById(conversationId, orgId)
+            .orElseThrow(() -> new NotFoundException("Conversation not found: " + conversationId));
+        String text = lastInboundContent(conversationId, orgId, conversation);
+        return new ConversationTranslationDto(targetLanguage, translationService.translate(text, targetLanguage));
     }
 
     /**

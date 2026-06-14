@@ -33,8 +33,11 @@ class ConversationAiAssistServiceTest {
     private final ConversationService conversationService = mock(ConversationService.class);
     private final AiMessagingService aiMessagingService = mock(AiMessagingService.class);
     private final KbSearchService kbSearchService = mock(KbSearchService.class);
-    private final ConversationAiAssistService service =
-        new ConversationAiAssistService(conversationService, aiMessagingService, kbSearchService);
+    private final com.clenzy.service.SentimentAnalysisService sentimentAnalysisService =
+        mock(com.clenzy.service.SentimentAnalysisService.class);
+    private final TranslationService translationService = mock(TranslationService.class);
+    private final ConversationAiAssistService service = new ConversationAiAssistService(
+        conversationService, aiMessagingService, kbSearchService, sentimentAnalysisService, translationService);
 
     private ConversationMessage inbound(String content) {
         ConversationMessage m = new ConversationMessage();
@@ -68,5 +71,38 @@ class ConversationAiAssistServiceTest {
 
         assertThatThrownBy(() -> service.suggestReply(42L, 404L))
             .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void analyzeLastInbound_returnsSentimentAndUrgency() {
+        Conversation conv = new Conversation();
+        when(conversationService.getById(5L, 42L)).thenReturn(Optional.of(conv));
+        when(conversationService.getMessages(eq(5L), eq(42L), any()))
+            .thenReturn(new PageImpl<>(List.of(inbound("C'est inadmissible, je veux un remboursement !"))));
+        when(sentimentAnalysisService.analyze(any(), isNull())).thenReturn(
+            new com.clenzy.service.SentimentAnalysisService.SentimentResult(
+                -0.8, com.clenzy.model.SentimentLabel.NEGATIVE, List.of()));
+        when(aiMessagingService.isUrgent(any())).thenReturn(true);
+
+        var dto = service.analyzeLastInbound(42L, 5L);
+
+        assertThat(dto.sentiment()).isEqualTo("NEGATIVE");
+        assertThat(dto.urgent()).isTrue();
+        assertThat(dto.score()).isEqualTo(-0.8);
+    }
+
+    @Test
+    void translateLastInbound_translatesViaTranslationService() {
+        Conversation conv = new Conversation();
+        when(conversationService.getById(5L, 42L)).thenReturn(Optional.of(conv));
+        when(conversationService.getMessages(eq(5L), eq(42L), any()))
+            .thenReturn(new PageImpl<>(List.of(inbound("What is the wifi code?"))));
+        when(translationService.translate("What is the wifi code?", "fr"))
+            .thenReturn("Quel est le code wifi ?");
+
+        var dto = service.translateLastInbound(42L, 5L, "fr");
+
+        assertThat(dto.targetLanguage()).isEqualTo("fr");
+        assertThat(dto.translatedText()).isEqualTo("Quel est le code wifi ?");
     }
 }

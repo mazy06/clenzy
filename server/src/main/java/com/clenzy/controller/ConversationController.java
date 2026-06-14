@@ -1,6 +1,8 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.AiSuggestedResponseDto;
+import com.clenzy.dto.ConversationAnalysisDto;
+import com.clenzy.dto.ConversationTranslationDto;
 import com.clenzy.dto.ConversationDto;
 import com.clenzy.dto.ConversationMessageDto;
 import com.clenzy.dto.SendConversationMessageRequest;
@@ -53,6 +55,21 @@ public class ConversationController {
     public ResponseEntity<AiSuggestedResponseDto> suggestReply(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return ResponseEntity.ok(aiAssistService.suggestReply(orgId, id));
+    }
+
+    /** Analyse du dernier message voyageur : sentiment + urgence (CLZ Domaine 6). */
+    @GetMapping("/{id}/analysis")
+    public ResponseEntity<ConversationAnalysisDto> analysis(@PathVariable Long id) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(aiAssistService.analyzeLastInbound(orgId, id));
+    }
+
+    /** Traduction à la volée du dernier message voyageur (CLZ Domaine 6). */
+    @PostMapping("/{id}/translate")
+    public ResponseEntity<ConversationTranslationDto> translate(@PathVariable Long id,
+                                                                @RequestParam(defaultValue = "fr") String target) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(aiAssistService.translateLastInbound(orgId, id, target));
     }
 
     @GetMapping
