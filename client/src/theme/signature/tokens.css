@@ -22,14 +22,14 @@
   --faint: #98A4AB;   /* tertiaire / labels */
 
   /* ---- Accent de marque — groupe THÉMABLE.
-     Défaut = Émeraude. La teinte se choisit sur la racine :
-       <html data-accent="terracotta|ambre|indigo|violet|ocean|slate">
+     Défaut = Indigo (« Baitly Signature »). La teinte se choisit sur la racine :
+       <html data-accent="emeraude|terracotta|ambre|violet|ocean|slate">
      (voir le bloc « SÉLECTION DE TEINTE » en bas du fichier).
      Tout élément d'accent NE DOIT lire QUE ces 3 variables —
      ainsi un changement de teinte couvre toute l'UI. ---- */
-  --accent:      #2E8B6F;
-  --accent-deep: #23705A;            /* hover bouton primaire */
-  --accent-soft: rgba(46,139,111,.10); /* fond doux / actif */
+  --accent:      #5453D6;            /* indigo-violet — signature Baitly */
+  --accent-deep: #4341BE;            /* hover bouton primaire */
+  --accent-soft: rgba(84,83,214,.10); /* fond doux / actif */
   --on-accent:   #FFFFFF;
 
   /* ---- Champs — gris neutre (dé-bleui) ---- */
@@ -103,10 +103,10 @@
   --muted: #869199;
   --faint: #647079;
 
-  /* accent éclairci pour le contraste sur fond sombre (défaut Émeraude) */
-  --accent:      #4FB394;
-  --accent-deep: #3E9C80;
-  --accent-soft: rgba(79,179,148,.18);
+  /* accent éclairci pour le contraste sur fond sombre (défaut Indigo — Baitly Signature) */
+  --accent:      #8584F0;
+  --accent-deep: #6F6EE6;
+  --accent-soft: rgba(133,132,240,.18);
 
   --field:      #1B252E;
   --field-line: #2B3742;
@@ -191,8 +191,8 @@
    Avant connexion il n'y a PAS d'utilisateur : l'accent per-user hérité de
    <html data-accent> (résidu localStorage du dernier compte connecté sur ce
    device) ne doit pas teinter ces écrans. On fige la teinte de marque
-   (slate bleu-gris #5F7E8C, cohérente avec le logo / le hero / les liens) sur
-   tout le sous-arbre, quel que soit data-accent. Appliqué via
+   (indigo-violet #5453D6 — signature Baitly, cohérente avec le logo / le hero /
+   les liens) sur tout le sous-arbre, quel que soit data-accent. Appliqué via
    className="brand-accent" sur la racine AuthLayout. */
-.brand-accent           { --accent:#5F7E8C; --accent-deep:#4E6E7C; --accent-soft:rgba(95,126,140,.10); }
-[data-theme="dark"] .brand-accent { --accent:#7FA3B1; --accent-deep:#6E91A0; --accent-soft:rgba(127,163,177,.18); }
+.brand-accent           { --accent:#5453D6; --accent-deep:#4341BE; --accent-soft:rgba(84,83,214,.10); }
+[data-theme="dark"] .brand-accent { --accent:#8584F0; --accent-deep:#6F6EE6; --accent-soft:rgba(133,132,240,.18); }
