@@ -75,7 +75,8 @@ class StripeServiceExtraTest {
         StripePaymentConfirmationService paymentConfirmationService = new StripePaymentConfirmationService(
             interventionRepository, reservationRepository, serviceRequestRepository,
             notificationService, serviceRequestService, walletService, ledgerService,
-            splitPaymentService, autoInvoiceService, kafkaTemplate, paymentStatusTransitionService);
+            splitPaymentService, autoInvoiceService, kafkaTemplate, paymentStatusTransitionService,
+            org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class));
         StripeRefundService refundService = new StripeRefundService(stripeGateway,
             paymentStatusTransitionService, org.mockito.Mockito.mock(PaymentLedgerReversalService.class),
             notificationService, kafkaTemplate);
