@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Box } from '@mui/material';
+import { bookingEngineApi } from '../../../services/api/bookingEngineApi';
 import {
   LayoutTemplate,
   FileText,
@@ -28,6 +29,8 @@ const SECTIONS: (StudioSection & { blurb: string })[] = [
 
 export default function StudioPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const [projectName, setProjectName] = useState('Mon booking engine');
   const [activeSection, setActiveSection] = useState('design');
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
   const [previewLang, setPreviewLang] = useState('fr');
@@ -45,6 +48,16 @@ export default function StudioPage() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // Nom réel du projet dans la topbar (best-effort).
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    bookingEngineApi.getConfigById(Number(id))
+      .then((c) => { if (alive && c?.name) setProjectName(c.name); })
+      .catch(() => { /* best-effort : on garde le nom par défaut */ });
+    return () => { alive = false; };
+  }, [id]);
 
   const commands = useMemo<StudioCommand[]>(() => {
     const navCmds: StudioCommand[] = SECTIONS.map((s) => ({
@@ -66,7 +79,7 @@ export default function StudioPage() {
   return (
     <>
       <StudioShell
-        projectName="Mon booking engine"
+        projectName={projectName}
         sections={SECTIONS}
         activeSection={activeSection}
         onSectionChange={setActiveSection}
