@@ -30,11 +30,27 @@ public record PublicPropertyDto(
     String checkInTime,
     String checkOutTime
 ) {
+    /**
+     * URL photo PUBLIQUE (img-friendly) : externalUrl (Channex/Airbnb, déjà absolue + publique)
+     * sinon endpoint public keyless /api/public/property-photos/{propertyId}/{photoId}.
+     * Relative ici ; le widget/page la rend absolue via sa baseUrl (cf. PropertyList).
+     */
+    private static String publicPhotoUrl(PropertyPhoto photo, Long propertyId) {
+        if (photo.getExternalUrl() != null && !photo.getExternalUrl().isBlank()) {
+            return photo.getExternalUrl();
+        }
+        if (photo.getStorageKey() != null || photo.getData() != null) {
+            return "/api/public/property-photos/" + propertyId + "/" + photo.getId();
+        }
+        return null;
+    }
+
     public static PublicPropertyDto from(Property p) {
         // Main photo = premiere par date de creation
         String mainPhoto = p.getPhotos() != null
             ? p.getPhotos().stream()
-                .map(PropertyPhoto::getUrl)
+                .map(ph -> publicPhotoUrl(ph, p.getId()))
+                .filter(java.util.Objects::nonNull)
                 .findFirst()
                 .orElse(null)
             : null;
@@ -54,9 +70,10 @@ public record PublicPropertyDto(
             }
         }
 
-        // All photo URLs
+        // All photo URLs (publiques, img-friendly)
         List<String> allPhotoUrls = p.getPhotos() != null
-            ? p.getPhotos().stream().map(PropertyPhoto::getUrl).toList()
+            ? p.getPhotos().stream().map(ph -> publicPhotoUrl(ph, p.getId()))
+                .filter(java.util.Objects::nonNull).toList()
             : List.of();
 
         return new PublicPropertyDto(

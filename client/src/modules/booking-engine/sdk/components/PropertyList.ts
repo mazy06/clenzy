@@ -5,18 +5,25 @@ interface I18n {
   t: (key: string) => string;
 }
 
+/** Rend une URL d'image absolue : telle quelle si http(s), sinon préfixée par la base API. */
+function absoluteUrl(url: string, baseUrl: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith('/')) return `${baseUrl.replace(/\/$/, '')}${url}`;
+  return url;
+}
+
 /** Liste de propriétés (property-first) : sélection d'un logement avant le choix des dates. */
-export function createPropertyList(state: StateManager, i18n: I18n): HTMLElement {
+export function createPropertyList(state: StateManager, i18n: I18n, baseUrl: string): HTMLElement {
   const container = document.createElement('div');
   container.className = 'cb-section cb-property-list';
 
-  state.on('*', (s: WidgetState) => render(container, s, i18n, state));
-  render(container, state.get(), i18n, state);
+  state.on('*', (s: WidgetState) => render(container, s, i18n, state, baseUrl));
+  render(container, state.get(), i18n, state, baseUrl);
 
   return container;
 }
 
-function render(container: HTMLElement, s: WidgetState, i18n: I18n, state: StateManager): void {
+function render(container: HTMLElement, s: WidgetState, i18n: I18n, state: StateManager, baseUrl: string): void {
   const key = `${s.properties.map(p => p.id).join(',')}:${s.selectedPropertyId}:${s.displayCurrency}`;
   if (container.dataset.key === key) return;
   container.dataset.key = key;
@@ -29,7 +36,7 @@ function render(container: HTMLElement, s: WidgetState, i18n: I18n, state: State
   container.hidden = false;
 
   s.properties.forEach(p => {
-    container.appendChild(card(p, p.id === s.selectedPropertyId, s.displayCurrency, i18n, state));
+    container.appendChild(card(p, p.id === s.selectedPropertyId, s.displayCurrency, i18n, state, baseUrl));
   });
 }
 
@@ -39,6 +46,7 @@ function card(
   currency: string,
   i18n: I18n,
   state: StateManager,
+  baseUrl: string,
 ): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
@@ -48,7 +56,7 @@ function card(
   if (p.mainPhotoUrl) {
     const img = document.createElement('img');
     img.className = 'cb-property-card__img';
-    img.src = p.mainPhotoUrl;
+    img.src = absoluteUrl(p.mainPhotoUrl, baseUrl);
     img.alt = p.name;
     img.loading = 'lazy';
     el.appendChild(img);
