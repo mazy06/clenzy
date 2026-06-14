@@ -207,6 +207,9 @@ public enum NotificationKey {
     RESERVATION_UPDATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true),
 
+    // ─── INTEGRATIONS (webhooks sortants) ─────────────────────────────────
+    WEBHOOK_DELIVERY_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+
     // ─── ASSISTANT (briefings proactifs) ──────────────────────────────────
     BRIEFING_READY(NotificationType.INFO, NotificationCategory.SYSTEM, true),
     VISION_USAGE_THRESHOLD_REACHED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),

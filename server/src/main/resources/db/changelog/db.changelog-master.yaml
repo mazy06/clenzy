@@ -2437,3 +2437,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0245__add_rate_plan_ids_to_channex_mapping.sql
         relativeToChangelogFile: true
+
+  # Webhooks sortants (Domaine 10) : file de livraison + journal (retry/backoff, HTTP hors-tx).
+  - changeSet:
+      id: "0246-create-webhook-deliveries"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0246__create_webhook_deliveries.sql
+        relativeToChangelogFile: true
