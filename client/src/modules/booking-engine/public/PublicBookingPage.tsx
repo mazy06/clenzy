@@ -5,6 +5,10 @@ import { AlertTriangle, Star } from 'lucide-react';
 import { getBlockDef, parsePageLayout } from '../studio/builder/blockRegistry';
 import { themeStyle } from '../studio/builder/BuilderCanvas';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
+import { API_CONFIG } from '../../../config/api';
+
+// Même résolution que le reste de l'app (VITE_API_BASE_URL) : pas de proxy /api en dev.
+const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
 
 /**
  * Page publique hébergée du booking engine (P0.1) — rend la PAGE COMPOSÉE dans le Studio
@@ -46,7 +50,7 @@ export default function PublicBookingPage() {
   useEffect(() => {
     if (!apiKey) { setError('Clé manquante'); return; }
     let alive = true;
-    fetch(`${window.location.origin}/api/public/booking/widget/config`, {
+    fetch(`${API_BASE}/public/booking/widget/config`, {
       headers: { 'X-Booking-Key': apiKey },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
@@ -59,7 +63,7 @@ export default function PublicBookingPage() {
   useEffect(() => {
     if (!apiKey) return;
     let alive = true;
-    fetch(`${window.location.origin}/api/public/booking/widget/reviews?limit=6`, {
+    fetch(`${API_BASE}/public/booking/widget/reviews?limit=6`, {
       headers: { 'X-Booking-Key': apiKey },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error())))
@@ -76,6 +80,7 @@ export default function PublicBookingPage() {
     const widget = new BaitlyWidget({
       container: widgetHostRef.current,
       apiKey,
+      baseUrl: API_CONFIG.BASE_URL,
       theme: {
         primaryColor: config.primaryColor,
         fontFamily: config.fontFamily ?? undefined,

@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, ButtonBase, CircularProgress, InputBase } from '@mui/material';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { API_CONFIG } from '../../../config/api';
+
+const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
 
 /**
  * Annulation self-service par le voyageur (P0.4). Route publique /booking/:apiKey/cancel (hors auth).
@@ -35,7 +38,7 @@ export default function CancelBookingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const base = `${window.location.origin}/api/public/booking/widget/booking`;
+  const base = `${API_BASE}/public/booking/widget/booking`;
   const headers = { 'Content-Type': 'application/json', 'X-Booking-Key': apiKey ?? '' };
 
   const fmt = (amount: number, currency: string | null) =>
