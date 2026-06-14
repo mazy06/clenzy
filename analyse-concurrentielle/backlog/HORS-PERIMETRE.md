@@ -122,7 +122,23 @@
 - **Effort estimé** : L (par adapter) · **Statut** : `Ouvert`
 
 ## Phase 2
-_(à alimenter)_
+
+> **Constat clé Phase 2 (Maroc)** : la fondation MA était **déjà à ~75 %** (audit agent 2026-06-14) — `MoroccoTaxCalculator` (TVA 20 % + ACCOMMODATION 10 % + taxe promotion touristique, via `TaxRuleRepository`), `MoroccoComplianceStrategy` (DGI, exigence ICE), seeds tax_rule MA (changesets 0077/0081), MAD (`ExchangeRate`/`CurrencyConverterService`), Country MA seedé. Le **seul gros gap e-invoicing était `MoroccoDgiProvider`** → livré (CLZ-P0-MA). Le reste ci-dessous = externe/front/refactor.
+
+### HP-16 — Reste de CLZ-P0-MA (MoroccoDgiProvider) : API Simpl-TVA + chaîne ICE
+- **Source** : CLZ-P0-MA (livré : `MoroccoDgiProvider` code `dgi_ma` mode DGI_CLEARANCE + `MoroccoUblMapper` UBL 2.1 MAD/TVA + `DgiClearanceClient` non-configuré→PENDING, branché sur l'abstraction P0-04 ; tests 6).
+- **Description** : (1) **client API Simpl-TVA réel** (`@Primary`) : auth, soumission, attente de clearance + persistance cycle de vie dans `EInvoiceSubmission` — **à caler sur la publication finale de l'API DGI** (specs en cours) ; (2) **chaîne ICE de bout en bout** : `FiscalProfile.ice` (champ + migration ; aujourd'hui `taxIdNumber` générique) + **rendre `TagResolverService.resolveEntrepriseTags()` par-org** (actuellement config globale mono-société : `nom/adresse/siret`, pas de `ice`, pas de FiscalProfile) pour que la mention `${entreprise.ice}` exigée par `MoroccoComplianceStrategy` se peuple ; (3) **branchement flux facture** (après-commit via `EInvoicingService`, comme HP-08 FR).
+- **Risque résiduel** : **Moyen** (e-invoicing MA obligatoire 2026). L'UBL est généré mais non transmis ; la mention ICE ne se peuple pas encore (gap conformité). Aucun effet runtime tant que `UnconfiguredDgiClearanceClient` reste actif (→ PENDING) + MA `enabled=FALSE`.
+- **Effort estimé** : client API L (gated) · chaîne ICE M (refactor TagResolver par-org) · branchement S · **Statut** : `Ouvert`
+
+### HP-17 — Déclaration voyageurs Maroc (DGSN/STDN) — soumission réelle
+- **Source** : audit Phase 2. L'infra de **connexion** existe (`integration/compliance/` : `ComplianceConnection` + `ComplianceProviderType.POLICE_MA` + `ComplianceConnectionTestStrategy` registry + stub) ; manque la **soumission réelle** des fiches d'identification voyageur à la DGSN (portail STDN).
+- **Description** : implémenter la soumission (fiche de police) + planification (déclaration avant 8h heure marocaine, `Asia`→`Africa/Casablanca`, audit #9) + réconciliation. **Ne PAS créer d'abstraction parallèle** (DRY/audit #14 : réutiliser `integration/compliance/`).
+- **Risque résiduel** : **Moyen** (obligation légale MA). API DGSN **gated, pas de sandbox public** → dérisquer l'accès contractuel avant le dev (comme OTAs MENA). Non vérifiable en repo sans sandbox.
+- **Effort estimé** : XL (dont accès API) · **Statut** : `Ouvert`
+
+### Note Phase 2 — activation Maroc
+- Passer Country MA `enabled=TRUE` est une **décision de déploiement** (pas un écart) : le `MultiCountryStartupValidator` (CLZ-P0-03) validera alors que MA résout son `TaxCalculator` (✓) ; e-invoicing/registration providers résolvent (DgiProvider ✓ ; DGSN = connexion ✓, soumission HP-17). RTL = **HP-07** (promu Phase 2).
 
 ## Phase 3
 _(à alimenter)_
@@ -137,3 +153,4 @@ _(à alimenter)_
 |------|-------------|---------------|----------------|------------------|
 | 2026-06-14 | Phase 0 | HP-01, HP-02, HP-03.1 (faits) ; HP-04 handoff produit | HP-03.2-5 (rappels/template/opt-out/AR-RTL) | — |
 | 2026-06-14 | Phase 1 | HP-07 → promu **Phase 2** (RTL cœur MA/KSA) ; HP-10 → promu **Phase 3** (ZATCA crypto, cœur KSA) | HP-05, HP-06, HP-08, HP-09, HP-11, HP-12 (IA pricing), HP-13/HP-14/HP-15 (channel infra/OTA) — front/infra/externe non vérifiable en repo | — |
+| 2026-06-14 | Phase 2 | CLZ-P0-MA (`MoroccoDgiProvider`) livré — comblait le seul gros gap e-invoicing MA ; fondation MA (tax/compliance/seeds/MAD) déjà présente | HP-16 (API Simpl-TVA réelle + chaîne ICE par-org), HP-17 (soumission DGSN gated), HP-07 (RTL front) | — |
