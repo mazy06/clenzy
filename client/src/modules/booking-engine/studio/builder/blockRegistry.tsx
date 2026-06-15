@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   LayoutPanelTop,
   LayoutGrid,
@@ -31,7 +31,7 @@ export type BlockType =
   | 'cta'
   | 'footer';
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'toggle';
+export type FieldType = 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'color' | 'url' | 'image';
 
 export interface FieldDef {
   key: string;
@@ -41,9 +41,39 @@ export interface FieldDef {
   min?: number;
   max?: number;
   placeholder?: string;
+  /** Pour `select` : choix proposés. */
+  options?: { value: string; label: string }[];
 }
 
 export type BlockProps = Record<string, string | number | boolean>;
+
+/** Options d'alignement réutilisées par les blocs. */
+const ALIGN_OPTIONS = [
+  { value: 'left', label: 'Gauche' },
+  { value: 'center', label: 'Centré' },
+  { value: 'right', label: 'Droite' },
+];
+
+/** Champs granulaires communs (alignement, fond) — édition par bloc (2.4). */
+const ALIGN_FIELD: FieldDef = { key: 'align', label: 'Alignement', type: 'select', options: ALIGN_OPTIONS };
+const BG_COLOR_FIELD: FieldDef = { key: 'bgColor', label: 'Couleur de fond', type: 'color' };
+
+/**
+ * Overrides inline par bloc à partir des props granulaires (align / bgColor / bgImage).
+ * Appliqués sur la racine `bkly-*` → priment sur les défauts de blockStyles.css.
+ */
+function sectionStyle(p: BlockProps): CSSProperties {
+  const style: CSSProperties = {};
+  if (p.align) style.textAlign = p.align as CSSProperties['textAlign'];
+  if (p.bgImage) {
+    style.backgroundImage = `url("${String(p.bgImage)}")`;
+    style.backgroundSize = 'cover';
+    style.backgroundPosition = 'center';
+  } else if (p.bgColor) {
+    style.background = String(p.bgColor);
+  }
+  return style;
+}
 
 export interface BlockDef {
   type: BlockType;
@@ -79,9 +109,12 @@ const HERO: BlockDef = {
     { key: 'title', label: 'Titre', type: 'text' },
     { key: 'subtitle', label: 'Accroche', type: 'textarea' },
     { key: 'showSearch', label: 'Afficher la recherche', type: 'toggle' },
+    ALIGN_FIELD,
+    BG_COLOR_FIELD,
+    { key: 'bgImage', label: 'Image de fond (URL)', type: 'image' },
   ],
   render: (p) => (
-    <div className="bkly-section bkly-hero">
+    <div className="bkly-section bkly-hero" style={sectionStyle(p)}>
       {p.eyebrow ? <div className="bkly-hero__eyebrow">{String(p.eyebrow)}</div> : null}
       <div className="bkly-hero__title">{String(p.title)}</div>
       {p.subtitle ? <div className="bkly-hero__subtitle">{String(p.subtitle)}</div> : null}
@@ -110,11 +143,12 @@ const PROPERTY_GRID: BlockDef = {
     { key: 'heading', label: 'Titre', type: 'text' },
     { key: 'subheading', label: 'Sous-titre', type: 'text' },
     { key: 'columns', label: 'Colonnes', type: 'number', min: 1, max: 4 },
+    BG_COLOR_FIELD,
   ],
   render: (p) => {
     const cols = Math.min(4, Math.max(1, Number(p.columns) || 3));
     return (
-      <div className="bkly-section bkly-property-grid">
+      <div className="bkly-section bkly-property-grid" style={sectionStyle(p)}>
         <div className="bkly-property-grid__heading">{String(p.heading)}</div>
         {p.subheading ? <div className="bkly-property-grid__subheading">{String(p.subheading)}</div> : null}
         <div className="bkly-property-grid__list" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
@@ -146,9 +180,10 @@ const AMENITIES: BlockDef = {
   fields: [
     { key: 'heading', label: 'Titre', type: 'text' },
     { key: 'items', label: 'Équipements (un par ligne)', type: 'textarea' },
+    BG_COLOR_FIELD,
   ],
   render: (p) => (
-    <div className="bkly-section bkly-amenities">
+    <div className="bkly-section bkly-amenities" style={sectionStyle(p)}>
       <div className="bkly-amenities__heading">{String(p.heading)}</div>
       <div className="bkly-amenities__list">
         {lines(p.items).map((item, i) => (
@@ -170,9 +205,13 @@ const RICH_TEXT: BlockDef = {
   defaultProps: {
     content: 'Décrivez votre maison, votre quartier, ce qui rend le séjour unique.',
   },
-  fields: [{ key: 'content', label: 'Contenu', type: 'textarea' }],
+  fields: [
+    { key: 'content', label: 'Contenu', type: 'textarea' },
+    ALIGN_FIELD,
+    BG_COLOR_FIELD,
+  ],
   render: (p) => (
-    <div className="bkly-section bkly-rich-text">
+    <div className="bkly-section bkly-rich-text" style={sectionStyle(p)}>
       <div className="bkly-rich-text__content">{String(p.content)}</div>
     </div>
   ),
@@ -190,9 +229,11 @@ const TESTIMONIAL: BlockDef = {
   fields: [
     { key: 'quote', label: 'Citation', type: 'textarea' },
     { key: 'author', label: 'Auteur', type: 'text' },
+    ALIGN_FIELD,
+    BG_COLOR_FIELD,
   ],
   render: (p) => (
-    <div className="bkly-section bkly-testimonial">
+    <div className="bkly-section bkly-testimonial" style={sectionStyle(p)}>
       <Quote size={28} strokeWidth={2} className="bkly-testimonial__icon" />
       <div className="bkly-testimonial__quote">« {String(p.quote)} »</div>
       {p.author ? <div className="bkly-testimonial__author">{String(p.author)}</div> : null}
@@ -212,11 +253,14 @@ const CTA: BlockDef = {
   fields: [
     { key: 'title', label: 'Titre', type: 'text' },
     { key: 'buttonLabel', label: 'Bouton', type: 'text' },
+    { key: 'buttonUrl', label: 'Lien du bouton (défaut : réservation)', type: 'url' },
+    ALIGN_FIELD,
+    BG_COLOR_FIELD,
   ],
   render: (p) => (
-    <div className="bkly-section bkly-cta">
+    <div className="bkly-section bkly-cta" style={sectionStyle(p)}>
       <div className="bkly-cta__title">{String(p.title)}</div>
-      <a href="#reserver" className="bkly-cta__button">{String(p.buttonLabel)}</a>
+      <a href={p.buttonUrl ? String(p.buttonUrl) : '#reserver'} className="bkly-cta__button">{String(p.buttonLabel)}</a>
     </div>
   ),
 };
@@ -229,9 +273,12 @@ const FOOTER: BlockDef = {
   defaultProps: {
     text: '© Votre conciergerie — Réservation directe sécurisée',
   },
-  fields: [{ key: 'text', label: 'Texte', type: 'text' }],
+  fields: [
+    { key: 'text', label: 'Texte', type: 'text' },
+    BG_COLOR_FIELD,
+  ],
   render: (p) => (
-    <div className="bkly-section bkly-footer">
+    <div className="bkly-section bkly-footer" style={sectionStyle(p)}>
       {String(p.text)}
     </div>
   ),

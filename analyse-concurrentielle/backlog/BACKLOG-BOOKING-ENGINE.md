@@ -41,7 +41,7 @@
 | 2.1 | Médiathèque + champ image (logo, galerie, avatars) | ❌ | ⭐⭐⭐ | M | — |
 | 2.2 | Multi-page (`SitePage[]` + nav + routing) | ❌ | ⭐⭐ | L | 1.1 |
 | 2.3 | + de blocs (Galerie/lightbox, Carte, FAQ, Formulaire, Table prix, Stats, Logos, Vidéo, Détail propriété) | 🟡 | ⭐⭐ | M | 2.1 |
-| 2.4 | Édition par bloc enrichie (color/url/image/align/spacing/select) + éditeur tokens complet (21) | 🟡 | ⭐⭐ | M | 2.1 | 🔄 **éditeur de tokens FAIT** (Thème : couleur, polices corps/titre, taille, rayon, ombre → designTokens, reflet live canvas+aperçu+public). Reste : édition granulaire **par bloc** (align/spacing/image/url) = étape 3. |
+| 2.4 ✅ | Édition par bloc enrichie (color/url/image/align/select) + éditeur tokens complet | ✅ | ⭐⭐ | M | — | **FAIT**. Éditeur de tokens (Thème) + **édition granulaire par bloc** : types de champ `select`/`color`/`url`/`image` (BlockInspector) + champs `align`/`bgColor`/`bgImage` (sections) + `buttonUrl` (CTA), consommés au rendu via `sectionStyle` (override inline sur la racine `bkly-*`, prime sur blockStyles.css). S'applique au canvas + aperçu + page publique React. *Reste : mirroir SSR `clenzy-sites/blocks.tsx` + médiathèque upload (2.1) pour le champ image.* |
 | 2.5 | Responsive : overrides + visibilité par breakpoint | 🟡 | ⭐⭐ | M | — |
 | 2.6 ✅ | **FAIT** — Templates de site par vertical : 6 designs réels (Lodge, Épuré, Bord de mer, Urbain, Riad/MENA, Nordique) = thème + composition de blocs + copy. Bouton « Modèles » dans le Studio + à la création ; « Page vierge » = custom. (Plus de blocs 2.3 enrichiront les compositions.) | 🟡 | ⭐⭐ | M | 2.3 |
 | 2.7 | Drag-and-drop + conteneurs lignes/colonnes ; undo/redo + autosave + draft/live | 🟡 | ⭐ | M | — |
