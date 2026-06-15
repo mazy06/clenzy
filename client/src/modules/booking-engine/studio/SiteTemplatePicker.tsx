@@ -1,10 +1,12 @@
+import { useState, type ChangeEvent } from 'react';
 import { Box, ButtonBase, Modal } from '@mui/material';
-import { X, Plus, LayoutTemplate } from 'lucide-react';
+import { X, Plus, LayoutTemplate, FileJson } from 'lucide-react';
 import { SITE_TEMPLATES, type SiteTemplate } from './siteTemplates';
 
 /**
  * Galerie de templates de site hébergé (Studio). Sélectionner un template applique son thème +
  * sa composition de blocs. « Page vierge » = repartir de zéro pour un design 100 % custom.
+ * « Importer un JSON » colle un template.json multi-page (sortie Claude Design).
  * Avertit que l'application remplace la page + le thème courants.
  */
 
@@ -13,9 +15,30 @@ export interface SiteTemplatePickerProps {
   onClose: () => void;
   /** template = appliquer ; null = page vierge (custom). */
   onSelect: (template: SiteTemplate | null) => void;
+  /** Import d'un template.json multi-page collé. Renvoie un message d'erreur, ou null si succès. */
+  onImport?: (jsonText: string) => Promise<string | null>;
 }
 
-export default function SiteTemplatePicker({ open, onClose, onSelect }: SiteTemplatePickerProps) {
+export default function SiteTemplatePicker({ open, onClose, onSelect, onImport }: SiteTemplatePickerProps) {
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  const runImport = async () => {
+    if (!onImport || !importText.trim() || importing) return;
+    setImporting(true);
+    setImportError(null);
+    const err = await onImport(importText);
+    setImporting(false);
+    if (err) {
+      setImportError(err);
+    } else {
+      setImportText('');
+      setImportOpen(false);
+    }
+  };
+
   return (
     <Modal open={open} onClose={onClose} aria-label="Choisir un template de site"
       sx={{ '& .MuiBackdrop-root': { bgcolor: 'rgba(21,36,45,.45)' } }}>
@@ -49,6 +72,49 @@ export default function SiteTemplatePicker({ open, onClose, onSelect }: SiteTemp
             <Card key={tpl.id} label={tpl.label} sublabel={tpl.description} swatch={tpl.preset.swatch} onClick={() => onSelect(tpl)} />
           ))}
         </Box>
+
+        {onImport ? (
+          <Box sx={{ borderTop: '1px solid var(--line)', p: 2.5, flexShrink: 0 }}>
+            {!importOpen ? (
+              <ButtonBase onClick={() => { setImportOpen(true); setImportError(null); }}
+                sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, px: 1.5, height: 38, borderRadius: 'var(--radius-md)',
+                  border: '1px dashed var(--line-2)', color: 'var(--body)', cursor: 'pointer',
+                  '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
+                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 } }}>
+                <FileJson size={16} strokeWidth={2} />
+                <Box component="span" sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)' }}>Importer un template (JSON)</Box>
+              </ButtonBase>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>
+                  Colle un <code>template.json</code> multi-page (sortie Claude Design). Remplace l'accueil + le thème.
+                </Box>
+                <Box component="textarea" value={importText}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setImportText(e.target.value)}
+                  placeholder='{ "id": "...", "name": "...", "theme": { ... }, "pages": [ ... ] }'
+                  spellCheck={false}
+                  sx={{ width: '100%', minHeight: 160, resize: 'vertical', p: 1.5, fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                    fontSize: 'var(--text-xs)', lineHeight: 1.5, color: 'var(--ink)', bgcolor: 'var(--field)',
+                    border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', outline: 'none',
+                    '&:focus': { borderColor: 'var(--accent)' } }} />
+                {importError ? (
+                  <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err)' }}>{importError}</Box>
+                ) : null}
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                  <ButtonBase onClick={() => { setImportOpen(false); setImportError(null); }}
+                    sx={{ px: 2, height: 38, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer',
+                      '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>Annuler</ButtonBase>
+                  <ButtonBase onClick={runImport} disabled={importing || !importText.trim()}
+                    sx={{ px: 2.5, height: 38, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
+                      fontWeight: 'var(--fw-semibold)', cursor: 'pointer', '&.Mui-disabled': { opacity: 0.5 },
+                      '&:hover': { bgcolor: 'var(--accent-deep, var(--accent))' } }}>
+                    {importing ? 'Import…' : 'Importer'}
+                  </ButtonBase>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        ) : null}
       </Box>
     </Modal>
   );
