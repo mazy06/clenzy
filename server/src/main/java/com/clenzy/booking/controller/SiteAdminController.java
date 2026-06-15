@@ -54,6 +54,12 @@ public class SiteAdminController {
         return ResponseEntity.ok(service.createSite(orgId(), req));
     }
 
+    /** Find-or-create du site rattaché à une config de widget (bootstrap multi-page du Studio). */
+    @PostMapping("/ensure-for-config/{configId}")
+    public ResponseEntity<SiteDto> ensureForConfig(@PathVariable Long configId) {
+        return ResponseEntity.ok(service.ensureSiteForConfig(orgId(), configId));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<SiteDto> update(@PathVariable Long id, @Valid @RequestBody SiteUpsertRequest req) {
         return ResponseEntity.ok(service.updateSite(orgId(), id, req));
