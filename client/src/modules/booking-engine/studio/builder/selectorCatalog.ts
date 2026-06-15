@@ -76,6 +76,22 @@ export const BLOCK_SELECTORS: Record<BlockType, SelectorDef[]> = {
     { sel: '.bkly-video__heading', label: 'Titre' },
     { sel: '.bkly-video__frame', label: 'Cadre vidéo' },
   ],
+  map: [
+    { sel: '.bkly-map', label: 'Carte (section)' },
+    { sel: '.bkly-map__heading', label: 'Titre' },
+    { sel: '.bkly-map__frame', label: 'Cadre carte' },
+  ],
+  pricing: [
+    { sel: '.bkly-pricing', label: 'Table de prix (section)' },
+    { sel: '.bkly-pricing__heading', label: 'Titre' },
+    { sel: '.bkly-pricing__row', label: 'Ligne de tarif' },
+    { sel: '.bkly-pricing__price', label: 'Prix' },
+  ],
+  logos: [
+    { sel: '.bkly-logos', label: 'Logos (section)' },
+    { sel: '.bkly-logos__heading', label: 'Titre' },
+    { sel: '.bkly-logos__img', label: 'Logo' },
+  ],
 };
 
 /** Sélecteurs clés du widget de réservation (Shadow DOM). Sous-ensemble curé des classes réelles. */

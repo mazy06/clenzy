@@ -13,6 +13,9 @@ import {
   Images,
   BarChart3,
   PlayCircle,
+  MapPin,
+  Table,
+  BadgeCheck,
   type LucideIcon,
 } from 'lucide-react';
 // Feuille de base des blocs : classes `bkly-*` surchargeables par du CSS custom (Phase A).
@@ -37,7 +40,10 @@ export type BlockType =
   | 'faq'
   | 'gallery'
   | 'stats'
-  | 'video';
+  | 'video'
+  | 'map'
+  | 'pricing'
+  | 'logos';
 
 export type FieldType = 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'color' | 'url' | 'image';
 
@@ -437,6 +443,94 @@ const VIDEO: BlockDef = {
   },
 };
 
+const MAP: BlockDef = {
+  type: 'map',
+  label: 'Carte',
+  description: 'Carte de localisation (adresse).',
+  icon: MapPin,
+  defaultProps: { heading: 'Où nous trouver', address: 'Paris, France' },
+  fields: [
+    { key: 'heading', label: 'Titre', type: 'text' },
+    { key: 'address', label: 'Adresse', type: 'text' },
+    BG_COLOR_FIELD,
+  ],
+  render: (p) => {
+    const addr = String(p.address ?? '').trim();
+    return (
+      <div className="bkly-section bkly-map" style={sectionStyle(p)}>
+        {p.heading ? <div className="bkly-map__heading">{String(p.heading)}</div> : null}
+        <div className="bkly-map__frame">
+          {addr ? (
+            <iframe className="bkly-map__iframe" title="Carte" loading="lazy"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(addr)}&output=embed`} />
+          ) : (
+            <div className="bkly-map__placeholder">Renseigne une adresse</div>
+          )}
+        </div>
+      </div>
+    );
+  },
+};
+
+const PRICING: BlockDef = {
+  type: 'pricing',
+  label: 'Table de prix',
+  description: 'Tarifs (une ligne : Libellé | Prix).',
+  icon: Table,
+  defaultProps: {
+    heading: 'Nos tarifs',
+    items: 'Basse saison|90 € / nuit\nHaute saison|140 € / nuit\nSemaine (7 nuits)|−10 %',
+  },
+  fields: [
+    { key: 'heading', label: 'Titre', type: 'text' },
+    { key: 'items', label: 'Tarifs (Libellé | Prix, un par ligne)', type: 'textarea' },
+    ALIGN_FIELD,
+    BG_COLOR_FIELD,
+  ],
+  render: (p) => (
+    <div className="bkly-section bkly-pricing" style={sectionStyle(p)}>
+      {p.heading ? <div className="bkly-pricing__heading">{String(p.heading)}</div> : null}
+      <div className="bkly-pricing__list">
+        {pairs(p.items).map((row, i) => (
+          <div key={i} className="bkly-pricing__row">
+            <span className="bkly-pricing__label">{row.a}</span>
+            <span className="bkly-pricing__price">{row.b}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ),
+};
+
+const LOGOS: BlockDef = {
+  type: 'logos',
+  label: 'Logos',
+  description: 'Bandeau de logos (une URL par ligne).',
+  icon: BadgeCheck,
+  defaultProps: { heading: 'Ils nous font confiance', images: '' },
+  fields: [
+    { key: 'heading', label: 'Titre', type: 'text' },
+    { key: 'images', label: 'Logos (une URL par ligne)', type: 'textarea' },
+    BG_COLOR_FIELD,
+  ],
+  render: (p) => {
+    const imgs = lines(p.images);
+    const cells = imgs.length ? imgs : ['', '', '', ''];
+    return (
+      <div className="bkly-section bkly-logos" style={sectionStyle(p)}>
+        {p.heading ? <div className="bkly-logos__heading">{String(p.heading)}</div> : null}
+        <div className="bkly-logos__row">
+          {cells.map((src, i) => (
+            src
+              ? <img key={i} className="bkly-logos__img" src={src} alt="" loading="lazy" />
+              : <div key={i} className="bkly-logos__img bkly-logos__img--empty" />
+          ))}
+        </div>
+      </div>
+    );
+  },
+};
+
 export const BLOCK_REGISTRY: Record<BlockType, BlockDef> = {
   hero: HERO,
   propertyGrid: PROPERTY_GRID,
@@ -449,10 +543,13 @@ export const BLOCK_REGISTRY: Record<BlockType, BlockDef> = {
   gallery: GALLERY,
   stats: STATS,
   video: VIDEO,
+  map: MAP,
+  pricing: PRICING,
+  logos: LOGOS,
 };
 
 /** Ordre d'apparition dans la bibliothèque de blocs. */
-export const BLOCK_ORDER: BlockType[] = ['hero', 'propertyGrid', 'gallery', 'amenities', 'stats', 'testimonial', 'faq', 'video', 'richText', 'cta', 'footer'];
+export const BLOCK_ORDER: BlockType[] = ['hero', 'propertyGrid', 'gallery', 'amenities', 'stats', 'pricing', 'testimonial', 'logos', 'faq', 'video', 'map', 'richText', 'cta', 'footer'];
 
 export function getBlockDef(type: BlockType): BlockDef {
   return BLOCK_REGISTRY[type];
