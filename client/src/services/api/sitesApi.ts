@@ -62,4 +62,13 @@ export const sitesApi = {
 
   deletePage: (siteId: number, pageId: number) =>
     apiClient.delete(`/sites/${siteId}/pages/${pageId}`),
+
+  /** Génère un titre + meta SEO (IA) pour une page à partir de son contenu (2.13). */
+  generatePageSeo: (siteId: number, pageId: number): Promise<GeneratedSeo> =>
+    apiClient.post<GeneratedSeo>(`/sites/${siteId}/pages/${pageId}/ai/seo`),
 };
+
+export interface GeneratedSeo {
+  seoTitle: string | null;
+  seoDescription: string | null;
+}
