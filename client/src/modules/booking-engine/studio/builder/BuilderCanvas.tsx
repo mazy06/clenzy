@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import { getBlockDef, visibilityClassName } from './blockRegistry';
+import { getBlockDef, visibilityClassName, type BlockRenderCtx } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 import type { Breakpoint } from '../StudioShell';
 import type { DesignTokens } from '../../../../services/api/bookingEngineApi';
@@ -57,6 +57,57 @@ export function themeStyle(theme?: CanvasTheme): React.CSSProperties {
   return style as React.CSSProperties;
 }
 
+/**
+ * Bloc rendu dans le canvas avec chrome d'édition (halo + libellé au survol/sélection). Récursif :
+ * un conteneur `columns` rend ses enfants via le même nœud (sélectionnables individuellement).
+ */
+function BlockNode({ block, selectedId, onSelect }: { block: BlockInstance; selectedId: string | null; onSelect: (id: string) => void }) {
+  const def = getBlockDef(block.type);
+  const isActive = block.id === selectedId;
+
+  let ctx: BlockRenderCtx | undefined;
+  if (block.type === 'columns' && block.children) {
+    ctx = {
+      columns: block.children.map((col) => (
+        <>{col.map((child) => <BlockNode key={child.id} block={child} selectedId={selectedId} onSelect={onSelect} />)}</>
+      )),
+    };
+  }
+
+  return (
+    <Box
+      className={visibilityClassName(block.props)}
+      // stopPropagation : sélectionner un bloc imbriqué ne sélectionne pas aussi le conteneur parent.
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSelect(block.id); }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Sélectionner le bloc ${def.label}`}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onSelect(block.id); } }}
+      sx={{
+        position: 'relative', cursor: 'pointer', outline: 'none',
+        '&::after': {
+          content: '""', position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
+          border: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+          transition: 'border-color var(--duration-fast) var(--ease-out)',
+        },
+        '&:hover::after': { borderColor: isActive ? 'var(--accent)' : 'var(--accent-soft)' },
+        '&:focus-visible::after': { borderColor: 'var(--accent)' },
+      }}
+    >
+      {isActive && (
+        <Box sx={{
+          position: 'absolute', top: 0, left: 0, zIndex: 2, px: 1, height: 20,
+          display: 'inline-flex', alignItems: 'center', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)',
+          bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderBottomRightRadius: 'var(--radius-sm)',
+        }}>
+          {def.label}
+        </Box>
+      )}
+      {def.render(block.props, ctx)}
+    </Box>
+  );
+}
+
 export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect, theme }: BuilderCanvasProps) {
   const width = FRAME_WIDTH[breakpoint];
 
@@ -78,42 +129,7 @@ export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect
             Ajoute des blocs depuis le panneau de gauche pour composer ta page.
           </Box>
         ) : (
-          blocks.map((b) => {
-            const def = getBlockDef(b.type);
-            const isActive = b.id === selectedId;
-            return (
-              <Box
-                key={b.id}
-                className={visibilityClassName(b.props)}
-                onClick={(e) => { e.preventDefault(); onSelect(b.id); }}
-                role="button"
-                tabIndex={0}
-                aria-label={`Sélectionner le bloc ${def.label}`}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSelect(b.id); } }}
-                sx={{
-                  position: 'relative', cursor: 'pointer', outline: 'none',
-                  '&::after': {
-                    content: '""', position: 'absolute', inset: 0, pointerEvents: 'none',
-                    border: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-                    transition: 'border-color var(--duration-fast) var(--ease-out)',
-                  },
-                  '&:hover::after': { borderColor: isActive ? 'var(--accent)' : 'var(--accent-soft)' },
-                  '&:focus-visible::after': { borderColor: 'var(--accent)' },
-                }}
-              >
-                {isActive && (
-                  <Box sx={{
-                    position: 'absolute', top: 0, left: 0, zIndex: 2, px: 1, height: 20,
-                    display: 'inline-flex', alignItems: 'center', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)',
-                    bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderBottomRightRadius: 'var(--radius-sm)',
-                  }}>
-                    {def.label}
-                  </Box>
-                )}
-                {def.render(b.props)}
-              </Box>
-            );
-          })
+          blocks.map((b) => <BlockNode key={b.id} block={b} selectedId={selectedId} onSelect={onSelect} />)
         )}
       </Box>
     </Box>
