@@ -18,6 +18,7 @@ import { useSitePages } from '../useSitePages';
 import SiteTemplatePicker from '../SiteTemplatePicker';
 import type { SiteTemplate } from '../siteTemplates';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
+import type { SitePageType } from '../../../../services/api/sitesApi';
 
 /**
  * Builder 3-pane du Baitly Studio (F2 + F2b) : arbre de blocs (gauche) · canvas WYSIWYG (centre) ·
@@ -91,6 +92,62 @@ function parseLayout(json: string | null | undefined): BlockInstance[] | null {
   } catch {
     return null;
   }
+}
+
+// ─── Import d'un template multi-page (JSON Claude Design) ─────────────────────────
+
+const VALID_PAGE_TYPES = new Set<SitePageType>(['HOME', 'PROPERTY_LIST', 'PROPERTY_DETAIL', 'BLOG', 'CUSTOM']);
+
+interface ImportedTemplatePage {
+  path: string;
+  type: SitePageType;
+  title?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  blocks: string; // normalisé (sérialisé)
+}
+interface ImportedTemplate {
+  theme?: { primaryColor?: string; fontFamily?: string; designTokens?: Record<string, unknown> };
+  pages: ImportedTemplatePage[];
+}
+
+/**
+ * Parse + valide + normalise un `template.json` (sortie Claude Design). Les blocs sont passés par
+ * parseLayout→serializeLayout → types/props inconnus retirés, défauts appliqués, `columns` gérées.
+ * Les pages PROPERTY_DETAIL (dynamiques) sont ignorées. Renvoie une erreur lisible si invalide.
+ */
+function parseImportedTemplate(text: string): { template: ImportedTemplate } | { error: string } {
+  let raw: unknown;
+  try { raw = JSON.parse(text); } catch { return { error: 'JSON invalide.' }; }
+  if (!raw || typeof raw !== 'object') return { error: 'Le template doit être un objet JSON.' };
+  const obj = raw as Record<string, unknown>;
+  if (!Array.isArray(obj.pages) || obj.pages.length === 0) {
+    return { error: 'Le template doit contenir au moins une page (champ "pages").' };
+  }
+  const pages: ImportedTemplatePage[] = [];
+  for (const p of obj.pages) {
+    if (!p || typeof p !== 'object') continue;
+    const pr = p as Record<string, unknown>;
+    const path = typeof pr.path === 'string' ? pr.path : null;
+    const type = typeof pr.type === 'string' && VALID_PAGE_TYPES.has(pr.type as SitePageType) ? (pr.type as SitePageType) : null;
+    if (!path || !type) return { error: 'Page invalide : "path" et "type" sont requis (type connu).' };
+    if (type === 'PROPERTY_DETAIL') continue; // dynamique → jamais composée
+    const blocksJson = Array.isArray(pr.blocks) ? JSON.stringify(pr.blocks) : '[]';
+    pages.push({
+      path,
+      type,
+      title: typeof pr.title === 'string' ? pr.title : undefined,
+      seoTitle: typeof pr.seoTitle === 'string' ? pr.seoTitle : undefined,
+      seoDescription: typeof pr.seoDescription === 'string' ? pr.seoDescription : undefined,
+      blocks: serializeLayout(parseLayout(blocksJson) ?? []),
+    });
+  }
+  if (!pages.some((p) => p.type === 'HOME')) {
+    return { error: 'Le template doit avoir une page d’accueil (type "HOME").' };
+  }
+  const themeRaw = obj.theme;
+  const theme = themeRaw && typeof themeRaw === 'object' ? (themeRaw as ImportedTemplate['theme']) : undefined;
+  return { template: { theme, pages } };
 }
 
 // ─── Helpers d'arbre (mutations tree-aware : top-level + blocs imbriqués dans les colonnes) ───
@@ -470,6 +527,50 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     }
   };
 
+  /**
+   * Importe un template multi-page (JSON Claude Design) : applique le thème + crée/maj les pages,
+   * puis hydrate l'accueil et bascule en aperçu. Renvoie un message d'erreur ou null (succès).
+   */
+  const handleImportTemplate = useCallback(async (text: string): Promise<string | null> => {
+    const parsed = parseImportedTemplate(text);
+    if ('error' in parsed) return parsed.error;
+    const { theme, pages: tplPages } = parsed.template;
+    const home = tplPages.find((p) => p.type === 'HOME')!;
+    const changes: Partial<BookingEngineConfig> = {};
+    if (theme?.primaryColor) changes.primaryColor = theme.primaryColor;
+    if (theme?.fontFamily) changes.fontFamily = theme.fontFamily;
+    if (theme?.designTokens && typeof theme.designTokens === 'object') {
+      changes.designTokens = JSON.stringify(theme.designTokens);
+    }
+    try {
+      if (pageMode) {
+        const res = await pages.importPages(tplPages);
+        if (!res) return 'Import impossible (site indisponible).';
+        changes.pageLayout = res.homeBlocks;
+        if (res.homeId != null) lastHydratedRef.current = res.homeId;
+        const parsedHome = parseLayout(res.homeBlocks) ?? [];
+        setBlocks(parsedHome);
+        setSelectedId(parsedHome[0]?.id ?? null);
+      } else {
+        // Repli mono-page (pas de site) : on applique l'accueil dans config.pageLayout.
+        changes.pageLayout = home.blocks;
+        const parsedHome = parseLayout(home.blocks) ?? [];
+        setBlocks(parsedHome);
+        setSelectedId(parsedHome[0]?.id ?? null);
+      }
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Import échoué.';
+    }
+    patch(changes);
+    setPast([]);
+    setFuture([]);
+    setPageDirty(false);
+    setTemplatesOpen(false);
+    setRightTab('block');
+    setMode('preview');
+    return null;
+  }, [pageMode, pages, patch]);
+
   if (!hydrated) {
     return (
       <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 'var(--text-md)' }}>
@@ -692,7 +793,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
         </Box>
       )}
 
-      <SiteTemplatePicker open={templatesOpen} onClose={() => setTemplatesOpen(false)} onSelect={applyTemplate} />
+      <SiteTemplatePicker open={templatesOpen} onClose={() => setTemplatesOpen(false)} onSelect={applyTemplate} onImport={handleImportTemplate} />
     </Box>
   );
 }
