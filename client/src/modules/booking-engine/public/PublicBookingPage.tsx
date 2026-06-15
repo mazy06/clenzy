@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { AlertTriangle, Star } from 'lucide-react';
 import { getBlockDef, parsePageLayout } from '../studio/builder/blockRegistry';
+import { themeStyle } from '../studio/builder/BuilderCanvas';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
 import type { BaitlyTheme } from '../sdk/types';
 import type { DesignTokens } from '../../../services/api/bookingEngineApi';
@@ -50,27 +51,6 @@ function widgetTheme(config: PublicBookingConfig, t: DesignTokens | null): Baitl
   };
 }
 
-/** CSS vars de marque + tokens appliquées au conteneur des blocs (surfaces, texte, rayon, typo). */
-function pageThemeStyle(config: PublicBookingConfig, t: DesignTokens | null): React.CSSProperties {
-  const accent = t?.primaryColor || config.primaryColor || '#5453D6';
-  const s: Record<string, string> = {
-    '--accent': accent,
-    '--accent-deep': `color-mix(in srgb, ${accent} 84%, #000)`,
-    '--accent-soft': `color-mix(in srgb, ${accent} 12%, transparent)`,
-    '--on-accent': '#ffffff',
-  };
-  const body = t?.bodyFontFamily || config.fontFamily;
-  if (body) { s.fontFamily = body; s['--font-display'] = t?.headingFontFamily || body; }
-  if (t?.backgroundColor) s['--bg'] = t.backgroundColor;
-  if (t?.surfaceColor) s['--card'] = t.surfaceColor;
-  if (t?.textColor) s['--ink'] = t.textColor;
-  if (t?.textSecondaryColor) s['--muted'] = t.textSecondaryColor;
-  if (t?.borderColor) s['--line'] = t.borderColor;
-  if (t?.cardBorderRadius || t?.borderRadius) s['--radius-lg'] = (t.cardBorderRadius || t.borderRadius)!;
-  if (t?.borderRadius) s['--radius-md'] = t.borderRadius;
-  if (t?.baseFontSize) s.fontSize = t.baseFontSize;
-  return s as React.CSSProperties;
-}
 
 interface PublicReview {
   guestName: string;
@@ -150,7 +130,7 @@ export default function PublicBookingPage() {
   }
 
   return (
-    <Box style={pageThemeStyle(config, tokens)}
+    <Box style={themeStyle({ primaryColor: config.primaryColor, fontFamily: config.fontFamily, tokens })}
       sx={{ minHeight: '100vh', bgcolor: 'var(--card)', color: 'var(--ink)' }}>
       {config.customCss && <style>{config.customCss}</style>}
 
