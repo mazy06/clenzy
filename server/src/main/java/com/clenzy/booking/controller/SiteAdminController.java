@@ -1,5 +1,6 @@
 package com.clenzy.booking.controller;
 
+import com.clenzy.booking.dto.BlogPostDto;
 import com.clenzy.booking.dto.SiteDomainDto;
 import com.clenzy.booking.dto.SiteDomainRequest;
 import com.clenzy.booking.dto.SiteDto;
@@ -103,6 +104,30 @@ public class SiteAdminController {
     @DeleteMapping("/{id}/domains/{domainId}")
     public ResponseEntity<Void> removeDomain(@PathVariable Long id, @PathVariable Long domainId) {
         service.removeDomain(orgId(), domainId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ─── Articles de blog (P1.3) ─────────────────────────────────────────────
+
+    @GetMapping("/{id}/posts")
+    public ResponseEntity<List<BlogPostDto>> listPosts(@PathVariable Long id) {
+        return ResponseEntity.ok(service.listPosts(orgId(), id));
+    }
+
+    @PostMapping("/{id}/posts")
+    public ResponseEntity<BlogPostDto> createPost(@PathVariable Long id, @RequestBody BlogPostDto req) {
+        return ResponseEntity.ok(service.createPost(orgId(), id, req));
+    }
+
+    @PutMapping("/{id}/posts/{postId}")
+    public ResponseEntity<BlogPostDto> updatePost(@PathVariable Long id, @PathVariable Long postId,
+                                                  @RequestBody BlogPostDto req) {
+        return ResponseEntity.ok(service.updatePost(orgId(), id, postId, req));
+    }
+
+    @DeleteMapping("/{id}/posts/{postId}")
+    public ResponseEntity<Void> deletePost(@PathVariable Long id, @PathVariable Long postId) {
+        service.deletePost(orgId(), id, postId);
         return ResponseEntity.noContent().build();
     }
 }
