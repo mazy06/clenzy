@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Box, ButtonBase, Menu, MenuItem, Tooltip } from '@mui/material';
 import { Plus, ChevronUp, ChevronDown, Trash2, PanelLeftClose, PanelLeftOpen, GripVertical } from 'lucide-react';
 import { BLOCK_ORDER, NESTABLE_BLOCK_ORDER, getBlockDef, columnCountOf, type BlockType } from './blockRegistry';
-import type { BlockInstance } from './DesignBuilder';
+import type { BlockInstance, DropTarget } from './DesignBuilder';
 
 /**
  * Arbre de blocs (pane gauche du builder F2) : liste ordonnée des blocs de la page,
- * sélection, réordonnancement (↑/↓ + glisser-déposer top-level), suppression, ajout.
- * Conteneurs `columns` (2.7) : leurs colonnes et blocs enfants sont affichés en retrait, avec
- * un « + » par colonne (réordonnancement enfant via ↑/↓). Réductible (`collapsed`).
+ * sélection, suppression, ajout, et glisser-déposer LIBRE (2.7) — y compris dans / entre les
+ * colonnes d'un conteneur `columns` et entre le niveau racine et les colonnes. Réordonnancement
+ * fin aussi via ↑/↓. Réductible (`collapsed`).
  */
 
 export interface BlockTreeProps {
@@ -19,8 +19,8 @@ export interface BlockTreeProps {
   /** Ajoute un bloc dans la colonne `colIndex` du conteneur `parentId`. */
   onAddToColumn: (parentId: string, colIndex: number, type: BlockType) => void;
   onMove: (id: string, dir: -1 | 1) => void;
-  /** Réordonnancement par glisser-déposer (top-level) : déplace le bloc de `from` vers `to`. */
-  onReorder: (from: number, to: number) => void;
+  /** Glisser-déposer : déplace le bloc `dragId` vers la cible (racine ou colonne). */
+  onMoveBlock: (dragId: string, target: DropTarget) => void;
   onRemove: (id: string) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -29,13 +29,39 @@ export interface BlockTreeProps {
 /** Cible d'ajout : null = top-level (fin de page) ; sinon une colonne d'un conteneur. */
 type AddTarget = { parentId: string; colIndex: number } | null;
 
-export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onAddToColumn, onMove, onReorder, onRemove, collapsed, onToggleCollapse }: BlockTreeProps) {
+const LINE_TOP = 'inset 0 2px 0 0 var(--accent)';
+const LINE_BOTTOM = 'inset 0 -2px 0 0 var(--accent)';
+
+export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onAddToColumn, onMove, onMoveBlock, onRemove, collapsed, onToggleCollapse }: BlockTreeProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [addTarget, setAddTarget] = useState<AddTarget>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 
-  const endDrag = () => { setDragIndex(null); setOverIndex(null); };
+  const startDrag = (e: React.DragEvent, id: string) => { setDragId(id); e.dataTransfer.effectAllowed = 'move'; };
+  const endDrag = () => { setDragId(null); setDropTarget(null); };
+  // Survol d'une ligne : insère avant elle ou avant la suivante (moitié haute/basse).
+  const overRow = (e: React.DragEvent, siblings: BlockInstance[], index: number, make: (beforeId: string | null) => DropTarget) => {
+    if (!dragId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const after = e.clientY > rect.top + rect.height / 2;
+    setDropTarget(make(after ? (siblings[index + 1]?.id ?? null) : siblings[index].id));
+  };
+  // Survol d'une zone de colonne (vide ou marge) : ajoute en fin de colonne.
+  const overColEnd = (e: React.DragEvent, parentId: string, colIndex: number) => {
+    if (!dragId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDropTarget({ kind: 'col', parentId, colIndex, beforeId: null });
+  };
+  const drop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragId && dropTarget) onMoveBlock(dragId, dropTarget);
+    endDrag();
+  };
 
   const openMenu = (e: React.MouseEvent<HTMLElement>, target: AddTarget) => {
     setAddTarget(target);
@@ -101,6 +127,9 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onAddTo
               </Tooltip>
             );
           }
+          const rootLine = dropTarget?.kind === 'root' && dropTarget.beforeId === b.id
+            ? LINE_TOP
+            : (dropTarget?.kind === 'root' && dropTarget.beforeId === null && i === blocks.length - 1 ? LINE_BOTTOM : 'none');
           return (
             <Box key={b.id}>
               <Box
@@ -109,19 +138,17 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onAddTo
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(b.id); } }}
-                onDragStart={(e) => { setDragIndex(i); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragStart={(e) => startDrag(e, b.id)}
                 onDragEnd={endDrag}
-                onDragOver={(e) => { if (dragIndex !== null) { e.preventDefault(); if (overIndex !== i) setOverIndex(i); } }}
-                onDrop={(e) => { e.preventDefault(); if (dragIndex !== null && dragIndex !== i) onReorder(dragIndex, i); endDrag(); }}
+                onDragOver={(e) => overRow(e, blocks, i, (beforeId) => ({ kind: 'root', beforeId }))}
+                onDrop={drop}
                 sx={{
                   display: 'flex', alignItems: 'center', gap: 0.75, px: 1, height: 38, mb: 0.25,
                   borderRadius: 'var(--radius-md)', cursor: 'pointer',
                   bgcolor: isActive ? 'var(--accent-soft)' : 'transparent',
                   color: isActive ? 'var(--ink)' : 'var(--body)',
-                  opacity: dragIndex === i ? 0.4 : 1,
-                  boxShadow: overIndex === i && dragIndex !== null && dragIndex !== i
-                    ? (dragIndex < i ? 'inset 0 -2px 0 0 var(--accent)' : 'inset 0 2px 0 0 var(--accent)')
-                    : 'none',
+                  opacity: dragId === b.id ? 0.4 : 1,
+                  boxShadow: rootLine,
                   transition: 'background var(--duration-fast) var(--ease-out)',
                   '&:hover': { bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)' },
                   '&:hover .blockTreeActions': { opacity: 1 },
@@ -154,13 +181,23 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onAddTo
                 </Box>
               </Box>
 
-              {/* Conteneur colonnes (2.7) : colonnes + blocs enfants en retrait. */}
+              {/* Conteneur colonnes (2.7) : colonnes + blocs enfants en retrait (drop zones). */}
               {b.type === 'columns' && (
                 <Box sx={{ ml: 1.25, pl: 1, borderLeft: '1px solid var(--line)', mb: 0.5 }}>
                   {Array.from({ length: columnCountOf(b.props) }, (_, ci) => {
                     const col = b.children?.[ci] ?? [];
+                    const isColTarget = dropTarget?.kind === 'col' && dropTarget.parentId === b.id && dropTarget.colIndex === ci;
                     return (
-                      <Box key={ci} sx={{ mb: 0.5 }}>
+                      <Box
+                        key={ci}
+                        onDragOver={(e) => overColEnd(e, b.id, ci)}
+                        onDrop={drop}
+                        sx={{
+                          mb: 0.5, borderRadius: 'var(--radius-md)',
+                          outline: isColTarget ? '2px dashed var(--accent)' : '2px dashed transparent',
+                          outlineOffset: 1, transition: 'outline-color var(--duration-fast) var(--ease-out)',
+                        }}
+                      >
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 0.5, height: 24 }}>
                           <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--faint)' }}>
                             Colonne {ci + 1}
@@ -173,20 +210,33 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onAddTo
                           </Tooltip>
                         </Box>
                         {col.length === 0 ? (
-                          <Box sx={{ px: 0.5, py: 0.5, fontSize: 'var(--text-2xs)', color: 'var(--faint)', fontStyle: 'italic' }}>Vide</Box>
+                          <Box sx={{ px: 0.5, py: 0.75, fontSize: 'var(--text-2xs)', color: 'var(--faint)', fontStyle: 'italic' }}>
+                            {isColTarget && dragId ? 'Déposer ici' : 'Vide'}
+                          </Box>
                         ) : (
-                          col.map((child, chIndex) => (
-                            <ChildRow
-                              key={child.id}
-                              block={child}
-                              isActive={child.id === selectedId}
-                              canUp={chIndex > 0}
-                              canDown={chIndex < col.length - 1}
-                              onSelect={onSelect}
-                              onMove={onMove}
-                              onRemove={onRemove}
-                            />
-                          ))
+                          col.map((child, chIndex) => {
+                            const line = isColTarget && dropTarget?.kind === 'col' && dropTarget.beforeId === child.id
+                              ? LINE_TOP
+                              : (isColTarget && dropTarget?.kind === 'col' && dropTarget.beforeId === null && chIndex === col.length - 1 ? LINE_BOTTOM : 'none');
+                            return (
+                              <ChildRow
+                                key={child.id}
+                                block={child}
+                                isActive={child.id === selectedId}
+                                canUp={chIndex > 0}
+                                canDown={chIndex < col.length - 1}
+                                isDragging={dragId === child.id}
+                                line={line}
+                                onSelect={onSelect}
+                                onMove={onMove}
+                                onRemove={onRemove}
+                                onDragStart={(e) => startDrag(e, child.id)}
+                                onDragOver={(e) => overRow(e, col, chIndex, (beforeId) => ({ kind: 'col', parentId: b.id, colIndex: ci, beforeId }))}
+                                onDrop={drop}
+                                onDragEnd={endDrag}
+                              />
+                            );
+                          })
                         )}
                       </Box>
                     );
@@ -235,29 +285,41 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onAddTo
   );
 }
 
-/** Ligne d'un bloc enfant d'une colonne (retrait, sans DnD ; réordonnancement par ↑/↓). */
-function ChildRow({ block, isActive, canUp, canDown, onSelect, onMove, onRemove }: {
-  block: BlockInstance; isActive: boolean; canUp: boolean; canDown: boolean;
+/** Ligne d'un bloc enfant d'une colonne (retrait ; ↑/↓ + glisser-déposer). */
+function ChildRow({ block, isActive, canUp, canDown, isDragging, line, onSelect, onMove, onRemove, onDragStart, onDragOver, onDrop, onDragEnd }: {
+  block: BlockInstance; isActive: boolean; canUp: boolean; canDown: boolean; isDragging: boolean; line: string;
   onSelect: (id: string) => void; onMove: (id: string, dir: -1 | 1) => void; onRemove: (id: string) => void;
+  onDragStart: (e: React.DragEvent) => void; onDragOver: (e: React.DragEvent) => void; onDrop: (e: React.DragEvent) => void; onDragEnd: () => void;
 }) {
   const def = getBlockDef(block.type);
   const Icon = def.icon;
   return (
     <Box
+      draggable
       onClick={() => onSelect(block.id)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(block.id); } }}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
       sx={{
         display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5, height: 32, mb: 0.25,
         borderRadius: 'var(--radius-md)', cursor: 'pointer',
         bgcolor: isActive ? 'var(--accent-soft)' : 'transparent',
         color: isActive ? 'var(--ink)' : 'var(--body)',
+        opacity: isDragging ? 0.4 : 1,
+        boxShadow: line,
         '&:hover': { bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)' },
         '&:hover .childRowActions': { opacity: 1 },
+        '&:hover .childRowGrip': { opacity: 1 },
         '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: -2 },
       }}
     >
+      <Box component="span" className="childRowGrip" aria-hidden="true" sx={{ display: 'inline-flex', color: 'var(--faint)', flexShrink: 0, cursor: 'grab', opacity: 0, transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
+        <GripVertical size={12} strokeWidth={2} />
+      </Box>
       <Box component="span" sx={{ display: 'inline-flex', color: isActive ? 'var(--accent)' : 'var(--muted)', flexShrink: 0 }}>
         <Icon size={14} strokeWidth={2} />
       </Box>

@@ -155,6 +155,46 @@ function resizeColumns(children: BlockInstance[][] | undefined, n: number): Bloc
   return kept;
 }
 
+/**
+ * Cible de glisser-déposer (2.7), exprimée par `beforeId` (insère AVANT ce bloc ; `null` = en fin de
+ * liste) → robuste aux décalages d'index causés par le retrait préalable du bloc déplacé.
+ */
+export type DropTarget =
+  | { kind: 'root'; beforeId: string | null }
+  | { kind: 'col'; parentId: string; colIndex: number; beforeId: string | null };
+
+/** Retire le bloc d'id `id` (et son sous-arbre) ; renvoie le bloc retiré + l'arbre sans lui. */
+function extractBlockById(blocks: BlockInstance[], id: string): { block: BlockInstance | null; rest: BlockInstance[] } {
+  let found: BlockInstance | null = null;
+  const walk = (list: BlockInstance[]): BlockInstance[] => {
+    const out: BlockInstance[] = [];
+    for (const b of list) {
+      if (b.id === id) { found = b; continue; }
+      out.push(b.children ? { ...b, children: b.children.map(walk) } : b);
+    }
+    return out;
+  };
+  const rest = walk(blocks);
+  return { block: found, rest };
+}
+
+/** Insère `block` dans `list` avant `beforeId` (ou en fin si `null`/introuvable). */
+function insertInList(list: BlockInstance[], block: BlockInstance, beforeId: string | null): BlockInstance[] {
+  const i = beforeId === null ? -1 : list.findIndex((b) => b.id === beforeId);
+  if (i < 0) return [...list, block];
+  const next = [...list];
+  next.splice(i, 0, block);
+  return next;
+}
+
+function insertAtTarget(blocks: BlockInstance[], block: BlockInstance, target: DropTarget): BlockInstance[] {
+  if (target.kind === 'root') return insertInList(blocks, block, target.beforeId);
+  return mapBlockById(blocks, target.parentId, (parent) => {
+    if (!parent.children) return parent;
+    return { ...parent, children: parent.children.map((col, ci) => (ci === target.colIndex ? insertInList(col, block, target.beforeId) : col)) };
+  });
+}
+
 type RightTab = 'block' | 'page' | 'theme' | 'css';
 
 /** Onglets du pane droit (icônes utilisées en mode replié). « Page » n'apparaît qu'en multi-page. */
@@ -344,13 +384,15 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     commit(moveBlockById(blocks, id, dir));
   };
 
-  // Réordonnancement par glisser-déposer (top-level uniquement) : déplace le bloc de `from` vers `to`.
-  const handleReorder = (from: number, to: number) => {
-    if (from === to || from < 0 || to < 0 || from >= blocks.length || to >= blocks.length) return;
-    const next = [...blocks];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    commit(next);
+  // Glisser-déposer (2.7) : déplace un bloc (top-level OU imbriqué) vers une cible (racine ou colonne).
+  const handleMoveBlock = (dragId: string, target: DropTarget) => {
+    if (target.beforeId === dragId) return; // dépôt juste avant soi-même = no-op
+    // Pas de conteneur DANS une colonne (pas d'imbrication de colonnes).
+    if (target.kind === 'col' && findBlockById(blocks, dragId)?.type === 'columns') return;
+    const { block, rest } = extractBlockById(blocks, dragId);
+    if (!block) return;
+    commit(insertAtTarget(rest, block, target));
+    setSelectedId(block.id);
   };
 
   const handleRemove = (id: string) => {
@@ -490,7 +532,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             onAdd={handleAdd}
             onAddToColumn={handleAddToColumn}
             onMove={handleMove}
-            onReorder={handleReorder}
+            onMoveBlock={handleMoveBlock}
             onRemove={handleRemove}
             collapsed={leftCollapsed}
             onToggleCollapse={() => setLeftCollapsed((v) => !v)}
