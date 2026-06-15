@@ -152,7 +152,8 @@ public class OnlineCheckInService {
             Property property = checkIn.getReservation().getProperty();
             if (property != null && property.getOwner() != null && property.getOwner().getKeycloakId() != null) {
                 notificationService.send(property.getOwner().getKeycloakId(), key,
-                    "Check-in en ligne", message, null);
+                    "Check-in en ligne", message,
+                    "/reservations?highlight=" + checkIn.getReservation().getId());
             }
         } catch (Exception e) {
             log.warn("Erreur notification check-in: {}", e.getMessage());

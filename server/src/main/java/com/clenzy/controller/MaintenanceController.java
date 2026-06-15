@@ -79,8 +79,9 @@ public class MaintenanceController {
         }
 
         // 3b. Sauvegarde en BDD (double écriture)
+        Long savedFormId = null;
         try {
-            receivedFormService.recordMaintenanceForm(dto, clientIp);
+            savedFormId = receivedFormService.recordMaintenanceForm(dto, clientIp);
         } catch (Exception e) {
             log.error("Erreur sauvegarde formulaire maintenance : {}", e.getMessage());
         }
@@ -89,11 +90,12 @@ public class MaintenanceController {
         try {
             int nbWorks = (dto.getSelectedWorks() != null ? dto.getSelectedWorks().size() : 0)
                     + (dto.getCustomNeed() != null && !dto.getCustomNeed().isBlank() ? 1 : 0);
+            String actionUrl = savedFormId != null ? "/contact?highlight=" + savedFormId : "/contact";
             notificationService.notifyAdminsAndManagers(
                     NotificationKey.CONTACT_FORM_RECEIVED,
                     "Nouveau devis maintenance — " + dto.getFullName(),
                     "Demande de " + dto.getFullName() + " — " + nbWorks + " intervention(s) — Urgence : " + dto.getUrgency(),
-                    "/contact?tab=2"
+                    actionUrl
             );
         } catch (Exception e) {
             log.error("Erreur notification formulaire maintenance : {}", e.getMessage());

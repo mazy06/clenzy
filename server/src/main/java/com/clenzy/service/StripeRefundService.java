@@ -96,6 +96,26 @@ public class StripeRefundService {
     }
 
     /**
+     * Rembourse PARTIELLEMENT (montant en unites mineures) le paiement d'une session Checkout,
+     * selon la politique d'annulation. Idempotent via la cle fournie : un re-essai (ex. retry
+     * afterCommit) ne produit pas de second remboursement. Montant nul/negatif -> no-op.
+     */
+    public void refundCheckoutSessionPartial(String sessionId, long amountMinorUnits,
+                                             String idempotencyKey, String reason) throws StripeException {
+        if (amountMinorUnits <= 0) {
+            log.info("Annulation session {} : remboursement nul (politique) — aucun refund Stripe", sessionId);
+            return;
+        }
+        String paymentIntentId = resolvePaymentIntentId(sessionId);
+        RefundCreateParams params = RefundCreateParams.builder()
+            .setPaymentIntent(paymentIntentId)
+            .setAmount(amountMinorUnits)
+            .build();
+        stripeGateway.createRefund(params, idempotencyKey);
+        log.warn("Remboursement partiel ({} u.m.) emis pour la session {} : {}", amountMinorUnits, sessionId, reason);
+    }
+
+    /**
      * Contre-passe les ecritures ledger du paiement rembourse (Z3-BUGS-06) :
      * sans cela, les credits ESCROW→PLATFORM et le split restaient en place
      * apres remboursement (soldes wallets surevalues). Best-effort assume : le
@@ -188,7 +208,7 @@ public class StripeRefundService {
                 "Reconciliation ledger requise",
                 "Paiement confirme mais " + detail + " pour " + refType + " #" + refId
                     + ". Verifier les soldes wallets/ledger.",
-                "/billing"
+                "/billing?tab=wallets"
             );
         } catch (Exception notifyEx) {
             log.error("Impossible de notifier la reconciliation ledger requise pour {} #{}: {}",

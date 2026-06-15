@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -41,6 +41,7 @@ import { FilterSearchBar } from '../../components/FilterSearchBar';
 
 import { useCurrency } from '../../hooks/useCurrency';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
+import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -188,6 +189,19 @@ const ReservationsList: React.FC = () => {
     page * rowsPerPage + rowsPerPage,
   );
 
+  // ─── Deep-link notification (?highlight=<reservationId>) ─────────
+  const highlightId = useHighlightParam();
+  const highlightApplied = useRef(false);
+  useEffect(() => {
+    if (!highlightId || isLoading || highlightApplied.current) return;
+    const idx = filteredReservations.findIndex((r) => String(r.id) === highlightId);
+    if (idx < 0) return;
+    highlightApplied.current = true;
+    setPage(Math.floor(idx / rowsPerPage));
+  }, [highlightId, isLoading, filteredReservations, rowsPerPage]);
+
+  useHighlightTarget(highlightId, !isLoading && filteredReservations.length > 0);
+
   // ─── Filter options for FilterSearchBar ─────────────────────────
   const statusOptions = useMemo(() => [
     { value: '', label: t('reservations.filters.allStatuses') },
@@ -299,6 +313,7 @@ const ReservationsList: React.FC = () => {
                 {paginatedReservations.map((r) => (
                   <TableRow
                     key={r.id}
+                    data-highlight-id={String(r.id)}
                     hover
                     sx={{ '&:last-child td': { borderBottom: 0 } }}
                   >

@@ -17,6 +17,7 @@ import { applyThemeAttributesAtBoot, applyThemeAttribute } from './theme/signatu
 import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
+import { AccentProvider } from './hooks/useAccent'
 import { CurrencyProvider } from './hooks/useCurrency'
 import { useGeoDetection } from './hooks/useGeoDetection'
 import { AuthProvider } from './contexts/AuthContext'
@@ -227,7 +228,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeModeProvider>
-        <AppWithTheme />
+        <AccentProvider>
+          <AppWithTheme />
+        </AccentProvider>
       </ThemeModeProvider>
     </QueryClientProvider>
   </React.StrictMode>

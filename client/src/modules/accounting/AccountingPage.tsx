@@ -65,6 +65,7 @@ import ExportPreviewDialog from './ExportPreviewDialog';
 import SepaTransferProcedureTooltip from './components/SepaTransferProcedureTooltip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency } from '../../hooks/useCurrency';
+import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -163,6 +164,10 @@ export const PayoutsTab: React.FC = () => {
   const ownerId = filterOwnerId === '' ? undefined : filterOwnerId;
   const status = filterStatus === '' ? undefined : filterStatus;
   const { data: payouts = [], isLoading, isError } = usePayouts(ownerId, status);
+
+  // Deep-link notification (?highlight=<payoutId>) — surligne la ligne ciblee.
+  const highlightId = useHighlightParam();
+  useHighlightTarget(highlightId, !isLoading && payouts.length > 0);
 
   // SEPA XML download
   const [sepaDownloading, setSepaDownloading] = useState(false);
@@ -372,7 +377,7 @@ export const PayoutsTab: React.FC = () => {
             </TableHead>
             <TableBody>
               {payouts.map((payout) => (
-                <TableRow key={payout.id} hover>
+                <TableRow key={payout.id} data-highlight-id={String(payout.id)} hover>
                   <TableCell sx={CELL_SX}>
                     {payout.ownerName ?? `${t('accounting.owner', 'Proprietaire')} #${payout.ownerId}`}
                   </TableCell>

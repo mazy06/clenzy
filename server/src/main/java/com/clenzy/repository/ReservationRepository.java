@@ -14,6 +14,24 @@ import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
+    /**
+     * Séjours directs terminés éligibles au gain de crédit fidélité (2.8) : réservation directe,
+     * confirmée, check-out passé (< cutoff). L'idempotence (déjà crédité) est vérifiée côté service.
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.guest WHERE r.organizationId = :orgId "
+        + "AND r.source = 'direct' AND r.status = 'confirmed' AND r.checkOut < :cutoff")
+    List<Reservation> findLoyaltyEligible(@Param("orgId") Long orgId, @Param("cutoff") LocalDate cutoff);
+
+    /**
+     * Réservations directes d'un voyageur (re-booking 1-clic, 2.11) : matching par email guest +
+     * org, source directe uniquement (les imports OTA ne sont pas re-réservables ici). Triées du
+     * plus récent au plus ancien ; le service borne le nombre via {@link Pageable}.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest "
+        + "WHERE r.organizationId = :orgId AND r.source = 'direct' AND LOWER(r.guest.email) = :email "
+        + "ORDER BY r.checkIn DESC")
+    List<Reservation> findGuestDirectBookings(@Param("orgId") Long orgId, @Param("email") String email, Pageable pageable);
+
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.id IN :propertyIds " +
            "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByPropertyIdsAndDateRange(
@@ -70,6 +88,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.property.id = :propertyId AND r.organizationId = :orgId")
     long countByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
+    /** Nombre de réservations par propriété (batch, preuve sociale honnête 2.9 — évite le N+1). */
+    @Query("SELECT r.property.id, COUNT(r) FROM Reservation r WHERE r.property.id IN :propertyIds AND r.organizationId = :orgId GROUP BY r.property.id")
+    List<Object[]> countByPropertyIds(@Param("propertyIds") List<Long> propertyIds, @Param("orgId") Long orgId);
 
     /**
      * Reservations confirmees avec check-in dans la plage donnee.
@@ -229,6 +251,23 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
            "AND r.organizationId = :orgId")
     List<Reservation> findAllWithPayment(@Param("orgId") Long orgId);
+
+    /**
+     * Reservations RESERVEES (non annulees, tous statuts sauf 'cancelled' : confirmed
+     * / checked_in / checked_out) dont le check-in tombe dans [from, to], pour l'org.
+     * Utilise par le widget « Revenus par canal » : on veut le revenu RESERVE par
+     * canal — y compris les resas iCal/manuelles SANS flag paymentStatus=PAID (le
+     * flux iCal ne transporte pas l'info de paiement) et les sejours passes
+     * (checked_out).
+     * (Distinct de findConfirmedByCheckInRange ci-dessus, strict status='confirmed'.)
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.checkIn >= :from AND r.checkIn <= :to "
+         + "AND r.status <> 'cancelled' "
+         + "AND r.hiddenFromPlanning = false AND r.organizationId = :orgId")
+    List<Reservation> findBookedByCheckInRange(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
 
     /**
      * Reservations actives (non annulees) importees depuis un feed iCal donne.

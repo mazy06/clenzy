@@ -90,14 +90,14 @@ public class DocumentGenerationFailureRecorder {
             failed.setOrganizationId(organizationId);
             failed.setErrorMessage(errorMessage);
             failed.setGenerationTimeMs(generationTimeMs);
-            generationRepository.save(failed);
+            failed = generationRepository.save(failed);
 
             String label = documentType != null ? documentType.getLabel() : "Document";
             notificationService.notifyAdminsAndManagers(
                     NotificationKey.DOCUMENT_GENERATION_FAILED,
                     "Echec generation document",
                     label + " : " + truncate(errorMessage),
-                    "/documents",
+                    "/documents?tab=history&highlight=" + failed.getId(),
                     organizationId
             );
 

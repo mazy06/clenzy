@@ -24,32 +24,30 @@ import {
   Apartment,
   Villa,
   Hotel,
+  Business,
   Person as PersonIcon,
   Bed as BedIcon,
   Bathroom as BathroomIcon,
   CleaningServices,
   Close,
   SquareFoot,
-  MoreVert,
-  Schedule,
-  Payments,
-  AutoAwesome,
-  Timer,
+  Build,
+  Logout,
+  CheckCircle,
 } from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
-import { formatDate } from '../../utils/formatUtils';
 import {
   getPropertyStatusLabel,
+  getPropertyStatusHex,
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
-  getCleaningFrequencyHex,
 } from '../../utils/statusUtils';
-import { propertyStatusChipSx, softDataChipSx, FIELD_CHIP_SX } from './propertiesListConstants';
+import { FIELD_CHIP_SX, propertyGradientCss } from './propertiesListConstants';
+import type { PropertyKpiSummary } from '../../services/api/propertyKpiApi';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import MissingContractChip from './MissingContractChip';
-import ThemedTooltip from '../../components/ThemedTooltip';
 
 // Interface pour les propriétés détaillées
 export interface PropertyDetails {
@@ -101,6 +99,12 @@ interface PropertyCardProps {
   missingContract?: boolean;
   /** Callback déclenché au clic sur le badge « Contrat manquant ». */
   onMissingContractClick?: () => void;
+  /**
+   * KPI opérationnels (occupation / ADR / revenu / statut / interventions) du
+   * mois courant. `undefined` tant que non chargé → la carte affiche un état
+   * neutre (placeholders « — »).
+   */
+  kpi?: PropertyKpiSummary;
 }
 
 // Styles alignés sur DESIGN_BASELINE + référence maquette .pr-card (screen-properties).
@@ -123,47 +127,62 @@ const styles = {
       '&:hover': { transform: 'none' },
     },
   },
+  // .pr-img — bandeau dégradé déterministe (h118), photo réelle en overlay (fallback),
+  // icône immeuble centrée + pastille statut (top-left) + slot canal/santé (top-right).
   bannerBox: {
     position: 'relative',
-    height: 110,
+    height: 118,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  badgeBar: {
+  bannerIcon: {
+    position: 'relative',
+    zIndex: 1,
+    display: 'inline-flex',
+    color: 'rgba(255,255,255,.7)',
+  },
+  // .pr-status — pastille statut top-left (fond translucide + blur, dot coloré + libellé).
+  statusPill: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    zIndex: 2,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 0.625,
+    fontSize: '10.5px',
+    fontWeight: 700,
+    px: '9px',
+    py: '4px',
+    borderRadius: '20px',
+    bgcolor: 'rgba(255,255,255,.92)',
+    backdropFilter: 'blur(4px)',
+    color: '#2A3942',
+    lineHeight: 1,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  // .pr-ch — slot canal/santé top-right.
+  channelSlot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 2,
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    px: 1.5,
-    py: 0.75,
-    bgcolor: 'var(--surface-2)',
-    borderBottom: '1px solid var(--line)',
-    gap: 0.75,
-    minHeight: 34,
-  },
-  // Géométrie pilule héritée du thème global MuiChip (r999, 10.5px, fw700, h22).
-  statusChip: {
-    '& .MuiChip-label': { px: 1 },
+    gap: 0.5,
   },
   priceChip: {
     color: 'var(--body)',
     borderColor: 'var(--line-2)',
     bgcolor: 'var(--card)',
     '& .MuiChip-label': { px: 1 },
-  },
-  dateBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.4,
-    flexShrink: 0,
-  },
-  dateText: {
-    color: 'var(--muted)',
-    fontWeight: 600,
-    fontSize: '11px',
-    lineHeight: 1,
-    fontVariantNumeric: 'tabular-nums',
   },
   infoContent: {
     flexGrow: 1,
@@ -220,6 +239,24 @@ const styles = {
     textTransform: 'uppercase',
     color: 'var(--faint)',
     mt: '1px',
+  },
+  // .pr-foot — pied de carte : icône accent + libellé fort + reste muted.
+  footRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.875,
+    fontSize: '11.5px',
+    color: 'var(--muted)',
+    minWidth: 0,
+  },
+  footIcon: {
+    display: 'inline-flex',
+    color: 'var(--accent)',
+    flexShrink: 0,
+  },
+  footStrong: {
+    color: 'var(--body)',
+    fontWeight: 600,
   },
   actionBar: {
     px: 1.75,
@@ -361,9 +398,28 @@ export function formatDuration(mins: number): string {
   return `${hours}h${String(remainder).padStart(2, '0')}`;
 }
 
+// ─── Libellé de check-out relatif (aujourd'hui / demain / date courte) ───────
+
+function relativeCheckoutLabel(
+  iso: string,
+  time: string | null,
+  t: (key: string) => string,
+): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(`${iso}T00:00:00`);
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86_400_000);
+  const when = diffDays <= 0
+    ? t('properties.ops.today')
+    : diffDays === 1
+      ? t('properties.ops.tomorrow')
+      : target.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  return time ? `${when} ${time}` : when;
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick, missingContract, onMissingContractClick }) => {
+const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView, channexMapping, onChannexBadgeClick, missingContract, onMissingContractClick, kpi }) => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
@@ -385,9 +441,39 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
     checkPermissions();
   }, [hasPermissionAsync]);
 
-  // Estimation du prix et de la durée de ménage
+  // Estimation du prix de ménage (utilisée dans le dialog des détails).
   const cleaningPrice = useMemo(() => estimateCleaningPrice(property), [property]);
-  const cleaningDuration = useMemo(() => estimateCleaningDuration(property), [property]);
+
+  // ── KPI opérationnels du mois courant (.pr-stats) ─────────────────────────
+  const fmtEuro = (v: number) => `${Math.round(v).toLocaleString('fr-FR')}€`;
+  const kpiCells = [
+    { value: kpi ? `${Math.round(kpi.occupancyRate * 100)}%` : '—', label: t('properties.kpi.occupancy') },
+    { value: kpi && kpi.adr > 0 ? fmtEuro(kpi.adr) : '—', label: t('properties.kpi.adr') },
+    { value: kpi && kpi.revenue > 0 ? fmtEuro(kpi.revenue) : '—', label: t('properties.kpi.revenue') },
+  ];
+
+  // Pastille de statut (top-left) : config (maintenance/inactif) prioritaire,
+  // sinon statut opérationnel dérivé des KPI (occupé / disponible).
+  const statusLc = (property.status || '').toLowerCase();
+  const pill = (statusLc.includes('maintenance') || statusLc.includes('inacti'))
+    ? { label: getPropertyStatusLabel(property.status, t), color: getPropertyStatusHex(property.status) }
+    : kpi?.operationalStatus === 'occupied'
+      ? { label: t('properties.ops.occupied'), color: 'var(--ok)' }
+      : kpi?.operationalStatus === 'available'
+        ? { label: t('properties.ops.available'), color: 'var(--info)' }
+        : { label: getPropertyStatusLabel(property.status, t), color: getPropertyStatusHex(property.status) };
+
+  // Pied opérationnel : intervention en cours > check-out (si occupé) > disponible.
+  const ops = kpi?.activeInterventionType === 'cleaning'
+    ? { icon: <CleaningServices size={13} strokeWidth={2} />, color: 'var(--accent)', strong: t('properties.ops.cleaning'), rest: t('properties.ops.inProgress') }
+    : kpi?.activeInterventionType === 'maintenance'
+      ? { icon: <Build size={13} strokeWidth={2} />, color: 'var(--warn)', strong: t('properties.ops.maintenance'), rest: t('properties.ops.inProgress') }
+      : (kpi?.operationalStatus === 'occupied' && kpi.currentCheckOut)
+        ? { icon: <Logout size={13} strokeWidth={2} />, color: 'var(--accent)', strong: t('properties.ops.checkout'),
+            rest: `· ${relativeCheckoutLabel(kpi.currentCheckOut, kpi.currentCheckOutTime ?? property.defaultCheckOutTime ?? null, t)}` }
+        : kpi?.operationalStatus === 'available'
+          ? { icon: <CheckCircle size={13} strokeWidth={2} />, color: 'var(--ok)', strong: t('properties.ops.available'), rest: '' }
+          : null;
 
   // Obtenir l'icône du type de propriété
   const getPropertyTypeIcon = (type: string, size: number = 48) => {
@@ -423,113 +509,52 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         sx={styles.cardRoot}
         onClick={handleViewDetails}
       >
-        {/* ─── Zone visuelle : Bandeau gradient ─── */}
+        {/* ─── .pr-img : bandeau dégradé déterministe + photo réelle en overlay ─── */}
         <Box
           sx={{
             ...styles.bannerBox,
-            backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.35)), url(${getPropertyTypeBannerUrl(property.propertyType)})`,
+            // Dégradé déterministe (placeholder) en base ; la vraie photo se
+            // superpose dessus en fallback (couvre le dégradé si dispo).
+            background: `${propertyGradientCss(property.id || property.name)}`,
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.32)), url(${getPropertyTypeBannerUrl(property.propertyType)}), ${propertyGradientCss(property.id || property.name)}`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         >
-        </Box>
-
-        {/* ─── Barre de badges (entre bandeau et contenu) ─── */}
-        <Box sx={styles.badgeBar}>
-          {/* Gauche : statut + prix nuit (si renseigné) */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-            <Chip
-              label={getPropertyStatusLabel(property.status, t)}
-              size="small"
-              sx={{ ...styles.statusChip, ...propertyStatusChipSx(property.status) }}
-            />
-            {property.nightlyPrice > 0 && (
-              <Chip
-                label={`${property.nightlyPrice}€/nuit`}
-                size="small"
-                variant="outlined"
-                sx={styles.priceChip}
-              />
-            )}
+          {/* Icône immeuble centrée (blanc .7) */}
+          <Box sx={styles.bannerIcon}>
+            <Business size={30} strokeWidth={1.75} />
           </Box>
 
-          {/* Droite : estimation ménage + date */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-            {cleaningPrice != null && (
-              <ThemedTooltip
-                title={
-                  <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.5 }}>
-                    {t('properties.cleaningEstimateTooltip')}
-                  </Typography>
-                }
-                arrow
-                placement="top"
-              >
-                <Chip
-                  icon={<Payments size={12} strokeWidth={1.75} />}
-                  label={`${cleaningPrice}€ estimé / ménage`}
-                  size="small"
-                  sx={{ color: 'var(--accent)', bgcolor: 'var(--accent-soft)', border: 'none', '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: 'var(--accent)' }, '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
-                />
-              </ThemedTooltip>
-            )}
-            {cleaningDuration != null && (
-              <ThemedTooltip
-                title={
-                  <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.5 }}>
-                    {t('properties.cleaningDurationTooltip')}
-                  </Typography>
-                }
-                arrow
-                placement="top"
-              >
-                <Chip
-                  icon={<Timer size={12} strokeWidth={1.75} />}
-                  label={`~${formatDuration(cleaningDuration)}`}
-                  size="small"
-                  sx={{ color: 'var(--info)', bgcolor: 'var(--info-soft)', border: 'none', '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: 'var(--info)' }, '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
-                />
-              </ThemedTooltip>
-            )}
-            {(property.defaultCheckOutTime || property.defaultCheckInTime) && (
-              <ThemedTooltip
-                title={
-                  <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.5 }}>
-                    {t('properties.defaultTimesTooltip', {
-                      checkOut: property.defaultCheckOutTime || '—',
-                      checkIn: property.defaultCheckInTime || '—',
-                    })}
-                  </Typography>
-                }
-                arrow
-                placement="top"
-              >
-                <Chip
-                  icon={<Schedule size={12} strokeWidth={1.75} />}
-                  label={`${property.defaultCheckOutTime || '—'} – ${property.defaultCheckInTime || '—'}`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ ...styles.priceChip, fontVariantNumeric: 'tabular-nums', '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: 'var(--muted)' }, cursor: 'default' }}
-                />
-              </ThemedTooltip>
-            )}
-            {(property.createdAt || property.nextCleaning || property.lastCleaning) && (
-              <Box sx={styles.dateBox}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={13} strokeWidth={1.75} /></Box>
-                <Typography
-                  variant="caption"
-                  sx={styles.dateText}
-                >
-                  {new Date(property.nextCleaning || property.lastCleaning || property.createdAt || '').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                </Typography>
-              </Box>
-            )}
+          {/* .pr-status — pastille statut opérationnel top-left (dot coloré + libellé) */}
+          <Box sx={styles.statusPill}>
+            <Box sx={{ ...styles.statusDot, bgcolor: pill.color }} />
+            {pill.label}
           </Box>
+
+          {/* .pr-ch — slot canal/santé top-right (badge santé Channex + contrat) */}
+          {(channexMapping || missingContract) && (
+            <Box sx={styles.channelSlot}>
+              {channexMapping && (
+                <ChannexHealthBadge
+                  mapping={channexMapping}
+                  size={10}
+                  variant="dot"
+                  onClick={onChannexBadgeClick}
+                />
+              )}
+              {missingContract && (
+                <MissingContractChip
+                  onClick={(e) => { e.stopPropagation(); onMissingContractClick?.(); }}
+                />
+              )}
+            </Box>
+          )}
         </Box>
 
         {/* ─── Zone info ─── */}
         <CardContent sx={styles.infoContent}>
-          {/* Nom + health badge Channex (Quick Win #4) */}
+          {/* Nom + prix/nuit (si renseigné) */}
           <Box
             sx={{
               display: 'flex',
@@ -546,17 +571,12 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             >
               {property.name}
             </Typography>
-            {channexMapping && (
-              <ChannexHealthBadge
-                mapping={channexMapping}
-                size={10}
-                variant="dot"
-                onClick={onChannexBadgeClick}
-              />
-            )}
-            {missingContract && (
-              <MissingContractChip
-                onClick={(e) => { e.stopPropagation(); onMissingContractClick?.(); }}
+            {property.nightlyPrice > 0 && (
+              <Chip
+                label={`${property.nightlyPrice}€/nuit`}
+                size="small"
+                variant="outlined"
+                sx={{ ...styles.priceChip, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
               />
             )}
           </Box>
@@ -574,14 +594,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             </Typography>
           </Box>
 
-          {/* Bande de stats (.pr-stats) — chiffres display tabular-nums */}
+          {/* Bande de KPI opérationnels (.pr-stats) — occupation / ADR / revenu */}
           <Box sx={styles.statsBand}>
-            {[
-              { value: property.bedrooms, label: 'ch.' },
-              { value: property.bathrooms, label: 'sdb' },
-              { value: `${property.surfaceArea}`, label: 'm²' },
-              { value: property.maxGuests, label: 'voy.' },
-            ].map((metric, idx) => (
+            {kpiCells.map((metric, idx) => (
               <Box key={idx} sx={styles.statCell}>
                 <Typography sx={styles.statValue}>{metric.value}</Typography>
                 <Typography sx={styles.statLabel}>{metric.label}</Typography>
@@ -589,58 +604,21 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             ))}
           </Box>
 
-          {/* Commodités — chips neutres « champ » (.fr-chip) */}
-          {property.amenities && property.amenities.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.25, minWidth: 0 }}>
-              {property.amenities.slice(0, 3).map((amenity, index) => (
-                <Chip
-                  key={index}
-                  label={t(`properties.amenities.items.${amenity}`)}
-                  size="small"
-                  sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
-                />
-              ))}
-              {property.amenities.length > 3 && (
-                <ThemedTooltip
-                  title={
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {property.amenities.map((a, i) => (
-                        <Chip
-                          key={i}
-                          label={t(`properties.amenities.items.${a}`)}
-                          size="small"
-                          sx={{ ...FIELD_CHIP_SX, height: 20, '& .MuiChip-label': { px: 1 } }}
-                        />
-                      ))}
-                    </Box>
-                  }
-                  arrow
-                  placement="top"
-                >
-                  <Chip
-                    label={`+${property.amenities.length - 3}`}
-                    size="small"
-                    sx={{ color: 'var(--muted)', bgcolor: 'var(--hover)', border: 'none', '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
-                  />
-                </ThemedTooltip>
-              )}
-            </Box>
-          )}
-
-          {/* Fréquence de nettoyage — chip -soft dérivé de la couleur de donnée */}
-          {(() => { const c = getCleaningFrequencyHex(property.cleaningFrequency); return (
-            <Chip
-              icon={<AutoAwesome size={12} strokeWidth={1.75} color={c} />}
-              label={getCleaningFrequencyLabel(property.cleaningFrequency, t)}
-              size="small"
-              sx={{
-                alignSelf: 'flex-start',
-                ...softDataChipSx(c),
-                '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: c },
-                '& .MuiChip-label': { px: 1 },
-              }}
-            />
-          ); })()}
+          {/* .pr-foot — pied opérationnel : statut dynamique du logement
+              (intervention en cours > check-out si occupé > disponible) */}
+          <Box sx={{ ...styles.footRow, minHeight: 18 }} onClick={(e) => e.stopPropagation()}>
+            {ops && (
+              <>
+                <Box component="span" sx={{ ...styles.footIcon, color: ops.color }}>{ops.icon}</Box>
+                <Box component="span" sx={styles.footStrong}>{ops.strong}</Box>
+                {ops.rest && (
+                  <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                    {ops.rest}
+                  </Box>
+                )}
+              </>
+            )}
+          </Box>
         </CardContent>
 
         {/* ─── Zone actions ─── */}

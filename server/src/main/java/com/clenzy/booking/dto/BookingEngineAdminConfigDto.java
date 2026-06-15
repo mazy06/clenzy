@@ -2,6 +2,7 @@ package com.clenzy.booking.dto;
 
 import com.clenzy.booking.model.BookingEngineConfig;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -36,10 +37,23 @@ public record BookingEngineAdminConfigDto(
     boolean autoConfirm,
     boolean showCleaningFee,
     boolean showTouristTax,
+    // Caution / dépôt de garantie (montant ; NULL = aucune)
+    BigDecimal securityDepositAmount,
+    // Acompte : % prélevé à la réservation (1–99 ; NULL = intégral) + délai du solde (jours avant arrivée)
+    Integer depositPercent,
+    Integer balanceDueDays,
+    // Book Direct & Save (2.8) : remise % réservation directe (1–100 ; NULL/0 = aucune)
+    Integer directBookingDiscountPercent,
+    // Tarif membre (2.8) : remise % pour voyageur connecté (le membre obtient max(directe, membre))
+    Integer memberDiscountPercent,
     // Custom CSS/JS + Component Config
     String customCss,
     String customJs,
     String componentConfig,
+    // Site builder (page composée par blocs, JSON)
+    String pageLayout,
+    // Propriétés affichées (curation) : IDs en CSV
+    String featuredPropertyIds,
     // AI Design Analysis
     String designTokens,
     String sourceWebsiteUrl,
@@ -79,9 +93,16 @@ public record BookingEngineAdminConfigDto(
             config.isAutoConfirm(),
             config.isShowCleaningFee(),
             config.isShowTouristTax(),
+            config.getSecurityDepositAmount(),
+            config.getDepositPercent(),
+            config.getBalanceDueDays(),
+            config.getDirectBookingDiscountPercent(),
+            config.getMemberDiscountPercent(),
             config.getCustomCss(),
             config.getCustomJs(),
             config.getComponentConfig(),
+            config.getPageLayout(),
+            config.getFeaturedPropertyIds(),
             config.getDesignTokens(),
             config.getSourceWebsiteUrl(),
             config.getAiAnalysisAt(),
@@ -114,9 +135,16 @@ public record BookingEngineAdminConfigDto(
         config.setAutoConfirm(autoConfirm);
         config.setShowCleaningFee(showCleaningFee);
         config.setShowTouristTax(showTouristTax);
+        config.setSecurityDepositAmount(securityDepositAmount);
+        config.setDepositPercent(depositPercent);
+        config.setBalanceDueDays(balanceDueDays);
+        config.setDirectBookingDiscountPercent(directBookingDiscountPercent);
+        config.setMemberDiscountPercent(memberDiscountPercent);
         config.setCustomCss(customCss);
         config.setCustomJs(customJs);
         config.setComponentConfig(componentConfig);
+        config.setPageLayout(pageLayout);
+        config.setFeaturedPropertyIds(featuredPropertyIds);
         config.setDesignTokens(designTokens);
         config.setSourceWebsiteUrl(sourceWebsiteUrl);
         config.setWidgetPosition(widgetPosition);

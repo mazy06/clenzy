@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Box, IconButton } from '@mui/material';
 import { Menu as MenuIcon } from '../../icons';
 import { useLayoutState } from '../../hooks/useLayoutState';
@@ -17,6 +18,11 @@ interface MainLayoutFullProps {
 }
 
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
+  // Éditeur Studio (/booking-engine/studio/:id) : full-bleed (sa propre coquille gère tout) →
+  // pas de padding ni de scroll du conteneur, pour ne pas perdre de place.
+  const { pathname } = useLocation();
+  const fullBleed = pathname.startsWith('/booking-engine/studio/');
+
   const layoutState = useLayoutState();
   const { menuItems, loading: menuLoading, error: menuError, refreshMenu } = useNavigationMenu();
 
@@ -135,12 +141,12 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             flexDirection: 'column',
             flexGrow: 1,
             minHeight: 0,
-            p: { xs: 1.5, md: 2 },
+            p: fullBleed ? 0 : { xs: 1.5, md: 2 },
             backgroundColor: 'background.default',
             // Les pages qui gèrent leur propre scroll (ex: Dashboard Planning)
             // utilisent flex: 1 + overflow interne.
             // Les pages classiques débordent et scrollent via ce container.
-            overflow: 'auto',
+            overflow: fullBleed ? 'hidden' : 'auto',
           }}
         >
           {/* Navigation de niveau 1 des hubs : le switcher segmenté (Direction A)

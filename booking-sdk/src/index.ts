@@ -1,5 +1,7 @@
 import { ApiClient } from './api-client';
 import { EventEmitter } from './events';
+import { createI18n, getDirection, formatCurrency, formatDate } from './i18n';
+import type { I18n, Language } from './i18n';
 import type {
   ClenzyBookingOptions,
   BookingConfig,
@@ -9,6 +11,8 @@ import type {
   AvailabilityResult,
   ReserveRequest,
   ReserveResult,
+  BatchReserveRequest,
+  BatchReserveResult,
   CheckoutResult,
   BookingConfirmation,
   BookingError,
@@ -28,6 +32,9 @@ export type {
   NightBreakdown,
   ReserveRequest,
   ReserveResult,
+  BatchReserveItem,
+  BatchReserveRequest,
+  BatchReserveResult,
   GuestInfo,
   CheckoutResult,
   BookingConfirmation,
@@ -39,6 +46,21 @@ export type {
   VoucherValidationRequest,
   VoucherValidationResponse,
 } from './types';
+
+// Re-export i18n / RTL / formatting utilities (CLZ-P0-12)
+export {
+  createI18n,
+  getDirection,
+  isRtl,
+  localeTag,
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  fr as frMessages,
+  en as enMessages,
+  ar as arMessages,
+} from './i18n';
+export type { I18n, Language } from './i18n';
 
 const DEFAULT_BASE_URL = 'https://api.clenzy.fr';
 const DEFAULT_TIMEOUT = 15_000;
@@ -73,6 +95,11 @@ export class ClenzyBooking extends EventEmitter {
   private readonly api: ApiClient;
   private readonly org: string;
   private _loading = false;
+  private _language: Language;
+  private _currency: string;
+  /** Vrai si une devise d'affichage a été choisie explicitement (init ou setCurrency). */
+  private _displayCurrencySet: boolean;
+  private _t: I18n;
 
   constructor(options: ClenzyBookingOptions) {
     super();
@@ -85,6 +112,65 @@ export class ClenzyBooking extends EventEmitter {
     const timeout = options.timeout || DEFAULT_TIMEOUT;
 
     this.api = new ApiClient(baseUrl, options.apiKey, timeout);
+
+    this._language = options.language ?? 'fr';
+    this._currency = options.currency ?? 'EUR';
+    this._displayCurrencySet = options.currency != null;
+    this._t = createI18n(this._language);
+  }
+
+  // ─── i18n / RTL / formatting (CLZ-P0-12) ──────────────────────────────────
+
+  /** Active UI language. */
+  get language(): Language {
+    return this._language;
+  }
+
+  /** Active display currency. */
+  get currency(): string {
+    return this._currency;
+  }
+
+  /** Reading direction for the active language ('rtl' for Arabic) — apply via `dir`. */
+  get direction(): 'rtl' | 'ltr' {
+    return getDirection(this._language);
+  }
+
+  /** Switch the UI language (rebuilds the embedded translator). */
+  setLanguage(language: Language): void {
+    this._language = language;
+    this._t = createI18n(language);
+  }
+
+  /**
+   * Switch the display currency. Les prochains appels getProperties/getProperty/checkAvailability
+   * passeront `?currency=` au serveur, qui renvoie les montants convertis (devises supportées :
+   * EUR/MAD/SAR ; repli serveur si taux indisponible). Le débit (réservation) reste dans la devise
+   * de la propriété.
+   */
+  setCurrency(currency: string): void {
+    this._currency = currency;
+    this._displayCurrencySet = true;
+  }
+
+  /** Devises d'affichage supportées par le serveur (multi-devise). */
+  async getSupportedCurrencies(): Promise<string[]> {
+    return this.api.get<string[]>(this.path('/currencies'));
+  }
+
+  /** Translate a key with the active language (graceful fallback + {var} interpolation). */
+  t(key: string, vars?: Record<string, string | number>): string {
+    return this._t(key, vars);
+  }
+
+  /** Format an amount in the active (or given) currency + active language. */
+  formatPrice(amount: number, currency?: string): string {
+    return formatCurrency(amount, currency ?? this._currency, this._language);
+  }
+
+  /** Format a date in the active language. */
+  formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
+    return formatDate(date, this._language, options);
   }
 
   /** Whether the SDK is currently loading data. */
@@ -112,7 +198,7 @@ export class ClenzyBooking extends EventEmitter {
    */
   async getProperties(): Promise<Property[]> {
     return this.withLoading(async () => {
-      const properties = await this.api.get<Property[]>(this.path('/properties'));
+      const properties = await this.api.get<Property[]>(this.path('/properties') + this.currencyParam());
       this.emit('properties:loaded', properties);
       return properties;
     });
@@ -123,7 +209,7 @@ export class ClenzyBooking extends EventEmitter {
    */
   async getProperty(propertyId: number): Promise<PropertyDetail> {
     return this.withLoading(async () => {
-      const property = await this.api.get<PropertyDetail>(this.path(`/properties/${propertyId}`));
+      const property = await this.api.get<PropertyDetail>(this.path(`/properties/${propertyId}`) + this.currencyParam());
       this.emit('property:loaded', property);
       return property;
     });
@@ -136,7 +222,7 @@ export class ClenzyBooking extends EventEmitter {
    */
   async checkAvailability(request: AvailabilityRequest): Promise<AvailabilityResult> {
     return this.withLoading(async () => {
-      const result = await this.api.post<AvailabilityResult>(this.path('/availability'), request);
+      const result = await this.api.post<AvailabilityResult>(this.path('/availability') + this.currencyParam(), request);
       this.emit('availability:checked', result);
       return result;
     });
@@ -153,6 +239,16 @@ export class ClenzyBooking extends EventEmitter {
       const result = await this.api.post<ReserveResult>(this.path('/reserve'), request);
       this.emit('reservation:created', result);
       return result;
+    });
+  }
+
+  /**
+   * Crée un panier multi-séjours : N réservations PENDING en un appel (atomique). Le paiement
+   * se fait ensuite item par item via {@link checkout} (pas de session Stripe groupée).
+   */
+  async reserveBatch(request: BatchReserveRequest): Promise<BatchReserveResult> {
+    return this.withLoading(async () => {
+      return this.api.post<BatchReserveResult>(this.path('/reserve-batch'), request);
     });
   }
 
@@ -250,6 +346,11 @@ export class ClenzyBooking extends EventEmitter {
 
   private path(endpoint: string): string {
     return `/api/public/booking/${this.org}${endpoint}`;
+  }
+
+  /** `?currency=XXX` si une devise d'affichage a été choisie, sinon chaîne vide. */
+  private currencyParam(prefix: '?' | '&' = '?'): string {
+    return this._displayCurrencySet ? `${prefix}currency=${encodeURIComponent(this._currency)}` : '';
   }
 
   private async withLoading<T>(fn: () => Promise<T>): Promise<T> {

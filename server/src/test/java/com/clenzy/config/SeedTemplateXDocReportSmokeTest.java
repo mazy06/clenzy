@@ -67,14 +67,17 @@ class SeedTemplateXDocReportSmokeTest {
     }
 
     private static Map<String, Object> interventionModel() {
-        return Map.of(
-            "entreprise", Map.of("nom", "Clenzy", "adresse", "12 rue X, 75001 Paris",
-                    "siret", "12345678900012", "email", "info@clenzy.fr", "telephone", "07 49 24 54 66"),
-            "client", Map.of("nom_complet", "Toufik Mazy", "societe", "Acme", "email", "t@x.fr",
-                    "telephone", "06 00 00 00 00", "code_postal", "75001", "ville", "Paris"),
-            "property", Map.of("nom", "Appartement Paris", "adresse", "1 rue Y", "code_postal", "75001",
-                    "ville", "Paris", "type", "Appartement", "surface", "110"),
-            "intervention", Map.ofEntries(
+        List<Map<String, Object>> lignes = List.of(
+                Map.of("description", "Menage", "quantite", "1",
+                        "prix_unitaire", "100 EUR", "total", "100 EUR"));
+        return Map.ofEntries(
+            Map.entry("entreprise", Map.of("nom", "Clenzy", "adresse", "12 rue X, 75001 Paris",
+                    "siret", "12345678900012", "email", "info@clenzy.fr", "telephone", "07 49 24 54 66")),
+            Map.entry("client", Map.of("nom_complet", "Toufik Mazy", "societe", "Acme", "email", "t@x.fr",
+                    "telephone", "06 00 00 00 00", "code_postal", "75001", "ville", "Paris")),
+            Map.entry("property", Map.of("nom", "Appartement Paris", "adresse", "1 rue Y", "code_postal", "75001",
+                    "ville", "Paris", "type", "Appartement", "surface", "110")),
+            Map.entry("intervention", Map.ofEntries(
                     Map.entry("id", "123"), Map.entry("titre", "Menage complet"),
                     Map.entry("description", "Menage + linge"), Map.entry("type", "MENAGE"),
                     Map.entry("statut", "COMPLETED"), Map.entry("date_debut", "01/06/2026"),
@@ -82,16 +85,21 @@ class SeedTemplateXDocReportSmokeTest {
                     Map.entry("duree_reelle", "3h"), Map.entry("cout_estime", "90 EUR"),
                     Map.entry("cout_reel", "100 EUR"), Map.entry("notes", "RAS"),
                     Map.entry("notes_technicien", "OK"),
-                    Map.entry("lignes", List.of(
-                            Map.of("description", "Menage", "quantite", "1",
-                                    "prix_unitaire", "100 EUR", "total", "100 EUR")))),
-            "technicien", Map.of("nom_complet", "Jean Tech", "email", "jean@x.fr", "telephone", "06 11 11 11 11"),
-            "paiement", Map.of("statut", "Paye", "montant", "100 EUR",
-                    "date_paiement", "02/06/2026", "reference_stripe", "pi_123"),
-            "nf", Map.of("conditions_paiement", "Paiement a 30 jours",
+                    // intervention.lignes : encore utilise par les 6 autres templates type-intervention.
+                    Map.entry("lignes", lignes))),
+            // lignes (top-level) + has_intervention/has_technicien : alimentent le nouveau
+            // facture-clenzy.odt ([#list lignes] + guards [#if has_intervention]/[#if has_technicien]).
+            // fill() ne passe pas par fillMissingTags : on fournit ces cles a la main.
+            Map.entry("lignes", lignes),
+            Map.entry("has_intervention", true),
+            Map.entry("has_technicien", true),
+            Map.entry("technicien", Map.of("nom_complet", "Jean Tech", "email", "jean@x.fr", "telephone", "06 11 11 11 11")),
+            Map.entry("paiement", Map.of("statut", "Paye", "montant", "100 EUR",
+                    "date_paiement", "02/06/2026", "reference_stripe", "pi_123")),
+            Map.entry("nf", Map.of("conditions_paiement", "Paiement a 30 jours",
                     "legal_mention_1", "TVA non applicable, art. 293 B du CGI",
-                    "legal_mention_2", "Penalites de retard : 3x taux legal"),
-            "system", Map.of("numero_auto", "DOC-2026-001", "date", "03/06/2026"));
+                    "legal_mention_2", "Penalites de retard : 3x taux legal")),
+            Map.entry("system", Map.of("numero_auto", "DOC-2026-001", "date", "03/06/2026")));
     }
 
     private static Map<String, Object> devisModel() {

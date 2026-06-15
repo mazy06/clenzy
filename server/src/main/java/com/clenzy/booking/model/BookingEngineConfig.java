@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -97,6 +98,26 @@ public class BookingEngineConfig {
     @Column(name = "show_tourist_tax")
     private boolean showTouristTax = true;
 
+    /** Caution / dépôt de garantie pré-autorisé sur la carte du voyageur (NULL/0 = pas de caution). */
+    @Column(name = "security_deposit_amount", precision = 12, scale = 2)
+    private BigDecimal securityDepositAmount;
+
+    /** Acompte : % prélevé à la réservation (1–99 ; NULL/0/100 = paiement intégral). */
+    @Column(name = "deposit_percent")
+    private Integer depositPercent;
+
+    /** Acompte : nombre de jours avant l'arrivée où le solde devient dû. */
+    @Column(name = "balance_due_days")
+    private Integer balanceDueDays;
+
+    /** Book Direct & Save (2.8) : remise % appliquée aux réservations directes (1–100 ; NULL/0 = aucune). */
+    @Column(name = "direct_booking_discount_percent")
+    private Integer directBookingDiscountPercent;
+
+    /** Tarif membre (2.8) : remise % pour un voyageur CONNECTÉ (le membre obtient max(directe, membre)). */
+    @Column(name = "member_discount_percent")
+    private Integer memberDiscountPercent;
+
     // ─── Custom CSS/JS ──────────────────────────────────────────────────
 
     @Column(name = "custom_css", columnDefinition = "TEXT")
@@ -107,6 +128,15 @@ public class BookingEngineConfig {
 
     @Column(name = "component_config", columnDefinition = "TEXT")
     private String componentConfig;
+
+    // ─── Site builder (page composée par blocs, JSON) ───────────────────
+
+    @Column(name = "page_layout", columnDefinition = "TEXT")
+    private String pageLayout;
+
+    /** Propriétés affichées (curation) : IDs en CSV ; NULL/vide = toutes les propriétés visibles. */
+    @Column(name = "featured_property_ids", columnDefinition = "TEXT")
+    private String featuredPropertyIds;
 
     // ─── AI Design Analysis ───────────────────────────────────────────
 
@@ -208,6 +238,21 @@ public class BookingEngineConfig {
     public boolean isShowTouristTax() { return showTouristTax; }
     public void setShowTouristTax(boolean showTouristTax) { this.showTouristTax = showTouristTax; }
 
+    public BigDecimal getSecurityDepositAmount() { return securityDepositAmount; }
+    public void setSecurityDepositAmount(BigDecimal securityDepositAmount) { this.securityDepositAmount = securityDepositAmount; }
+
+    public Integer getDepositPercent() { return depositPercent; }
+    public void setDepositPercent(Integer depositPercent) { this.depositPercent = depositPercent; }
+
+    public Integer getBalanceDueDays() { return balanceDueDays; }
+    public void setBalanceDueDays(Integer balanceDueDays) { this.balanceDueDays = balanceDueDays; }
+
+    public Integer getDirectBookingDiscountPercent() { return directBookingDiscountPercent; }
+    public void setDirectBookingDiscountPercent(Integer directBookingDiscountPercent) { this.directBookingDiscountPercent = directBookingDiscountPercent; }
+
+    public Integer getMemberDiscountPercent() { return memberDiscountPercent; }
+    public void setMemberDiscountPercent(Integer memberDiscountPercent) { this.memberDiscountPercent = memberDiscountPercent; }
+
     public String getCustomCss() { return customCss; }
     public void setCustomCss(String customCss) { this.customCss = customCss; }
 
@@ -216,6 +261,12 @@ public class BookingEngineConfig {
 
     public String getComponentConfig() { return componentConfig; }
     public void setComponentConfig(String componentConfig) { this.componentConfig = componentConfig; }
+
+    public String getPageLayout() { return pageLayout; }
+    public void setPageLayout(String pageLayout) { this.pageLayout = pageLayout; }
+
+    public String getFeaturedPropertyIds() { return featuredPropertyIds; }
+    public void setFeaturedPropertyIds(String featuredPropertyIds) { this.featuredPropertyIds = featuredPropertyIds; }
 
     public String getDesignTokens() { return designTokens; }
     public void setDesignTokens(String designTokens) { this.designTokens = designTokens; }

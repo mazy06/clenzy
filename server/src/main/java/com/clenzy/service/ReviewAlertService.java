@@ -41,7 +41,7 @@ public class ReviewAlertService {
                     NotificationKey.REVIEW_NEGATIVE_ALERT,
                     "Avis negatif recu",
                     message,
-                    "/reviews"
+                    "/channels/reviews?highlight=" + review.getId()
                 );
                 alertCount++;
             } catch (Exception e) {

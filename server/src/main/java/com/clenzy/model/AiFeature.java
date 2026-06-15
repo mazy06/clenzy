@@ -10,6 +10,8 @@ public enum AiFeature {
     MESSAGING,
     ANALYTICS,
     SENTIMENT,
+    /** Generation de contenu marketing (descriptions de biens, meta SEO) multilingue. */
+    CONTENT,
     /**
      * Assistant conversationnel (chat orchestrator + specialists) + briefings.
      * Tracking par tour user : 1 record AiTokenUsage par message assistant

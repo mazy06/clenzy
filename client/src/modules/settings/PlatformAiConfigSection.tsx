@@ -137,13 +137,16 @@ const PROVIDER_IDS = Object.keys(PROVIDER_LABELS);
 
 // ─── Feature Config ────────────────────────────────────────────────────────
 
+// Palette catégorielle par feature IA — hex DÉSATURÉS alignés sur les tokens
+// Signature (= valeurs de --ok/--warn/--err/--info + mauve planning + slate).
+// En hex littéral (non var()) car consommés via MUI alpha() (qui rejette var()).
 const AI_FEATURES = [
-  { key: 'ASSISTANT_CHAT', label: 'Assistant IA', desc: 'Orchestrator multi-agent + specialists du chat + briefings', icon: <AutoAwesome />, color: '#6B8A9A' },
-  { key: 'DESIGN', label: 'Design IA', desc: 'Generation CSS/JS du booking engine', icon: <Palette />, color: '#7C3AED' },
-  { key: 'PRICING', label: 'Tarification IA', desc: 'Recommandations de prix', icon: <AttachMoney />, color: '#059669' },
-  { key: 'MESSAGING', label: 'Messagerie IA', desc: 'Detection intention + reponses', icon: <Chat />, color: '#2563EB' },
-  { key: 'ANALYTICS', label: 'Analytics IA', desc: 'Insights performance', icon: <BarChart />, color: '#D97706' },
-  { key: 'SENTIMENT', label: 'Sentiment IA', desc: 'Analyse avis guests', icon: <StarRate />, color: '#DC2626' },
+  { key: 'ASSISTANT_CHAT', label: 'Assistant IA', desc: 'Orchestrator multi-agent + specialists du chat + briefings', icon: <AutoAwesome />, color: '#6B8A9A' }, // slate
+  { key: 'DESIGN', label: 'Design IA', desc: 'Generation CSS/JS du booking engine', icon: <Palette />, color: '#9A7FA3' }, // mauve (= PLANNING_DEPARTURE_VIOLET)
+  { key: 'PRICING', label: 'Tarification IA', desc: 'Recommandations de prix', icon: <AttachMoney />, color: '#4A9B8E' }, // = --ok
+  { key: 'MESSAGING', label: 'Messagerie IA', desc: 'Detection intention + reponses', icon: <Chat />, color: '#7BA3C2' }, // = --info
+  { key: 'ANALYTICS', label: 'Analytics IA', desc: 'Insights performance', icon: <BarChart />, color: '#C28A52' }, // = --warn
+  { key: 'SENTIMENT', label: 'Sentiment IA', desc: 'Analyse avis guests', icon: <StarRate />, color: '#C97A7A' }, // = --err
 ];
 
 // En-tete de groupe dans le selecteur de modele (providers connectes / modeles plateforme).
@@ -240,7 +243,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   };
 
   const models = MODELS_BY_PROVIDER[provider] || [];
-  const accent = PROVIDER_COLORS[provider] || '#8B5CF6';
+  const accent = PROVIDER_COLORS[provider] || '#9A7FA3';
   const canSave = name.trim() && provider && modelId && apiKey.trim();
 
   return (

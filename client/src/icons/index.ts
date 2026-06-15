@@ -164,7 +164,7 @@ export {
   WifiOff,
   ParkingCircle as LocalParking,
   Snowflake as AcUnit,
-  Sparkles as CleaningServices,
+  BrushCleaning as CleaningServices,
   Ruler as SquareFoot,
   Moon as NightsStay,
   Euro,

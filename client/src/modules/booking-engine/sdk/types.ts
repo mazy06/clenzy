@@ -4,7 +4,16 @@ export interface BaitlyBookingConfig {
   container: string | HTMLElement;
   apiKey: string;
   baseUrl?: string;
+  /** Slug de l'org dans le path public ; placeholder (l'org est resolue par la cle API X-Booking-Key). */
+  slug?: string;
   theme?: BaitlyTheme;
+  /**
+   * CSS custom de l'organisation, injecté DANS le Shadow DOM du widget (en dernier → surcharge
+   * les `.cb-*` de base). Le CSS posé sur la page hôte ne pénètre PAS le shadow : c'est l'unique
+   * moyen de styler le module de réservation. Même chaîne que le CSS de page ; les sélecteurs
+   * `.bkly-*` y sont simplement inertes (aucun élément correspondant dans le shadow).
+   */
+  customCss?: string;
   language?: 'fr' | 'en' | 'ar';
   currency?: string;
   defaultGuests?: { adults: number; children: number };
@@ -15,6 +24,12 @@ export interface BaitlyBookingConfig {
   showPropertyFilter?: boolean;
   showAddons?: boolean;
   showReviews?: boolean;
+  /** Capture de lead par exit-intent (2.12). Défaut activé ; mettre `false` pour désactiver. */
+  leadCapture?: boolean;
+  /** Id numérique de l'organisation (2.11) — requis pour le compte voyageur (login/wishlist). */
+  organizationId?: number;
+  /** Parrainage (2.11) : code de parrainage à rattacher après réservation (sinon lu depuis `?ref=`). */
+  referralCode?: string;
   onBook?: (reservation: BookingResult) => void;
   onError?: (error: BookingError) => void;
   onPriceChange?: (price: PriceBreakdown) => void;
@@ -33,6 +48,12 @@ export interface BaitlyTheme {
   fontFamily?: string;
   borderRadius?: string;
   shadow?: string;
+  /** Taille de police de base (ex. '16px') — met à l'échelle tout le texte du widget. */
+  fontSize?: string;
+  /** Densité d'espacement : met à l'échelle les paddings/gaps du widget. */
+  density?: 'compact' | 'normal' | 'spacious';
+  /** Style des boutons d'action. */
+  buttonStyle?: 'filled' | 'outlined';
 }
 
 // ─── Internal State ──────────────────────────────────────────────────────────
@@ -46,16 +67,62 @@ export interface WidgetState {
   calendarOpen: boolean;
   calendarBaseMonth: string; // YYYY-MM
   guestsOpen: boolean;
-  selectedPropertyType: string | null;
+  // Property-first : liste + propriete selectionnee
+  properties: WidgetProperty[];
+  selectedPropertyId: number | null;
+  // Multi-devise (BE-L0-1)
+  displayCurrency: string;
+  currencies: string[];
   availability: Map<string, DayAvailability>;
-  propertyTypes: PropertyTypeInfo[];
   pricing: PriceBreakdown | null;
   pricingLoading: boolean;
-  addons: SelectedAddon[];
+  // Panier multi-séjours (BE-L0-6)
+  cart: CartStay[];
   loading: boolean;
   error: string | null;
   guestForm: GuestFormData;
   guestFormErrors: Partial<Record<keyof GuestFormData, string>>;
+  // Compte voyageur (2.11) — session in-memory (jamais en localStorage, cf. règle #7) + favoris.
+  guestToken: string | null;
+  guestEmail: string | null;
+  wishlist: number[];
+  // Champs conserves pour compat composants legacy (PropertyFilter/AddonsPanel), hors flux property-first
+  selectedPropertyType: string | null;
+  propertyTypes: PropertyTypeInfo[];
+  addons: SelectedAddon[];
+}
+
+export interface CartStay {
+  propertyId: number;
+  propertyName: string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  total: number;
+  currency: string;
+}
+
+export interface WidgetProperty {
+  id: number;
+  name: string;
+  type: string | null;
+  city: string | null;
+  country: string | null;
+  bedroomCount: number | null;
+  bathroomCount: number | null;
+  maxGuests: number | null;
+  priceFrom: number | null;
+  cleaningFee: number | null;
+  minimumNights: number | null;
+  currency: string;
+  mainPhotoUrl: string | null;
+  amenities: string[] | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  /** Preuve sociale honnête (2.9) : nombre de réservations. */
+  totalBookings: number | null;
+  /** Urgence honnête (2.9) : jours disponibles sur 30 jours. */
+  availableDays30: number | null;
 }
 
 export interface DayAvailability {

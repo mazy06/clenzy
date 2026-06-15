@@ -331,4 +331,15 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     @Query("SELECT i FROM Intervention i WHERE i.serviceRequest.reservationId = :reservationId " +
            "AND i.organizationId = :orgId ORDER BY i.scheduledDate ASC")
     List<Intervention> findByReservationId(@Param("reservationId") Long reservationId, @Param("orgId") Long orgId);
+
+    /**
+     * Interventions actives (par statut) pour un lot de proprietes, dans l'org.
+     * Utilise par le widget KPI des cartes de la liste de proprietes pour signaler
+     * une intervention en cours (menage / maintenance) sur la carte.
+     */
+    @Query("SELECT i FROM Intervention i WHERE i.property.id IN :propertyIds " +
+           "AND i.status IN :statuses AND i.organizationId = :orgId")
+    List<Intervention> findActiveByPropertyIds(@Param("propertyIds") List<Long> propertyIds,
+            @Param("statuses") List<InterventionStatus> statuses,
+            @Param("orgId") Long orgId);
 }

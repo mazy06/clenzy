@@ -19,7 +19,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,6 +54,7 @@ public class UpsellService {
     private final LedgerService ledgerService;
     private final MonetizationConfigService monetizationConfigService;
     private final ManagementContractService managementContractService;
+    private final Clock clock;
 
     public UpsellService(UpsellOfferRepository offerRepository,
                          UpsellOrderRepository orderRepository,
@@ -58,7 +65,8 @@ public class UpsellService {
                          WalletService walletService,
                          LedgerService ledgerService,
                          MonetizationConfigService monetizationConfigService,
-                         ManagementContractService managementContractService) {
+                         ManagementContractService managementContractService,
+                         Clock clock) {
         this.offerRepository = offerRepository;
         this.orderRepository = orderRepository;
         this.tokenRepository = tokenRepository;
@@ -69,6 +77,7 @@ public class UpsellService {
         this.ledgerService = ledgerService;
         this.monetizationConfigService = monetizationConfigService;
         this.managementContractService = managementContractService;
+        this.clock = clock;
     }
 
     // ─── Admin (hôte) ──────────────────────────────────────────────────────────
@@ -118,6 +127,61 @@ public class UpsellService {
         offer.setImageUrl(req.imageUrl());
         if (req.active() != null) offer.setActive(req.active());
         if (req.sortOrder() != null) offer.setSortOrder(req.sortOrder());
+        offer.setMinNights(req.minNights());
+        offer.setLeadTimeHours(req.leadTimeHours());
+        offer.setBundleOfferIds(req.bundleOfferIds());
+    }
+
+    /**
+     * Conditions de productisation (2.10) : l'offre n'est proposée que si le séjour atteint le nombre
+     * de nuits minimal ET si l'arrivée est assez lointaine (fenêtre horaire de commande). Sans contexte
+     * de réservation (preview livret), aucune condition n'est appliquée. Dates en timezone de la
+     * propriété (repli Europe/Paris — audit #9).
+     */
+    private boolean matchesStayConditions(UpsellOffer offer, Reservation reservation) {
+        if (offer.getMinNights() == null && offer.getLeadTimeHours() == null) {
+            return true;
+        }
+        if (reservation == null || reservation.getCheckIn() == null) {
+            return true;
+        }
+        if (offer.getMinNights() != null && reservation.getCheckOut() != null) {
+            long nights = ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
+            if (nights < offer.getMinNights()) {
+                return false;
+            }
+        }
+        if (offer.getLeadTimeHours() != null) {
+            ZoneId zone = resolvePropertyZone(reservation.getProperty());
+            ZonedDateTime checkInAt = reservation.getCheckIn().atTime(parseCheckInTime(reservation.getCheckInTime())).atZone(zone);
+            long hoursUntil = ChronoUnit.HOURS.between(ZonedDateTime.now(clock.withZone(zone)), checkInAt);
+            if (hoursUntil < offer.getLeadTimeHours()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private ZoneId resolvePropertyZone(Property property) {
+        try {
+            if (property != null && property.getTimezone() != null && !property.getTimezone().isBlank()) {
+                return ZoneId.of(property.getTimezone());
+            }
+        } catch (DateTimeException ignored) {
+            // timezone invalide en base → repli documenté
+        }
+        return ZoneId.of("Europe/Paris");
+    }
+
+    private LocalTime parseCheckInTime(String raw) {
+        if (raw != null && raw.trim().length() >= 5) {
+            try {
+                return LocalTime.parse(raw.trim().substring(0, 5));
+            } catch (DateTimeException ignored) {
+                // format inattendu → repli 15:00
+            }
+        }
+        return LocalTime.of(15, 0);
     }
 
     private static UpsellType parseType(String raw) {
@@ -146,12 +210,39 @@ public class UpsellService {
         Long propertyId = resolvePropertyId(tok);
         // Sélection par livret : null = tous les services applicables ; sinon uniquement ces ids.
         java.util.Set<Long> selected = parseOfferIds(tok.getGuide().getUpsellOfferIds());
-        return offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(tok.getOrganizationId())
-            .stream()
+        Reservation reservation = tok.getReservation();
+        List<UpsellOffer> all = offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(tok.getOrganizationId());
+        // Map id → titre, pour résoudre les éléments inclus des bundles (2.10).
+        java.util.Map<Long, String> titlesById = new java.util.HashMap<>();
+        for (UpsellOffer o : all) {
+            titlesById.put(o.getId(), o.getTitle());
+        }
+        return all.stream()
             .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
             .filter(o -> selected == null || selected.contains(o.getId()))
-            .map(PublicUpsellDto::from)
+            .filter(o -> matchesStayConditions(o, reservation))
+            .map(o -> PublicUpsellDto.from(o, resolveBundleItems(o, titlesById)))
             .toList();
+    }
+
+    /** Résout les titres des offres incluses dans un bundle (CSV d'ids → titres connus). */
+    private List<String> resolveBundleItems(UpsellOffer offer, java.util.Map<Long, String> titlesById) {
+        String csv = offer.getBundleOfferIds();
+        if (csv == null || csv.isBlank()) {
+            return List.of();
+        }
+        List<String> items = new java.util.ArrayList<>();
+        for (String token : csv.split(",")) {
+            String t = token.trim();
+            if (t.isEmpty()) continue;
+            try {
+                String title = titlesById.get(Long.parseLong(t));
+                if (title != null) items.add(title);
+            } catch (NumberFormatException ignored) {
+                // id corrompu : ignoré
+            }
+        }
+        return items;
     }
 
     /**

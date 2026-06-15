@@ -161,6 +161,18 @@ function fromReceivedForm(form: ReceivedForm): UnifiedConversation {
   };
 }
 
+/**
+ * ID brut de l'entite sous-jacente (= valeur posee par le backend dans
+ * `/contact?highlight=<id>`) : id de conversation canal, id de formulaire recu,
+ * ou keycloakId du correspondant interne. Sert d'ancre de surlignage (data-highlight-id)
+ * et de cle de resolution du deep-link notification.
+ */
+export function conversationRawId(item: UnifiedConversation): string {
+  if (item.kind === 'channel') return String(item.conv?.id ?? '');
+  if (item.kind === 'form') return String(item.form?.id ?? '');
+  return item.thread?.counterpartKeycloakId ?? '';
+}
+
 function byLastActivityDesc(a: UnifiedConversation, b: UnifiedConversation): number {
   const ta = a.lastAt ? new Date(a.lastAt).getTime() : 0;
   const tb = b.lastAt ? new Date(b.lastAt).getTime() : 0;

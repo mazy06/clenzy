@@ -1,15 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 import { useAuth } from '../../hooks/useAuth';
 import { useMarkAsRead, useUpdateConversationStatus } from '../../hooks/useConversations';
 import { useArchiveThread, useMarkThreadAsRead } from '../../hooks/useContactMessages';
 import { useUpdateFormStatus } from '../../hooks/useReceivedForms';
-import { useUnifiedInbox, useArchivedInbox, type UnifiedConversation } from './conversations/unified';
+import { useUnifiedInbox, useArchivedInbox, conversationRawId, type UnifiedConversation } from './conversations/unified';
 import ConversationList, { type InboxFilter } from './conversations/ConversationList';
 import ChannelThread from './conversations/ChannelThread';
 import InternalThread from './conversations/InternalThread';
@@ -50,6 +51,10 @@ export default function MessagingHubPage() {
 
   const [filter, setFilter] = useState<InboxFilter>('all');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  // Deep-link notification (?highlight=<messageId>) : ouvre + surligne la conversation/formulaire.
+  const highlightId = useHighlightParam();
+  const highlightApplied = useRef(false);
 
   // Compat : les anciens ?tab= sélectionnent le filtre correspondant de la
   // vue unique, puis le paramètre est retiré de l'URL.
@@ -98,6 +103,20 @@ export default function MessagingHubPage() {
       updateFormStatusMutation.mutate({ id: item.form.id, status: 'READ' });
     }
   };
+
+  // Resout le deep-link une fois la liste chargee : selectionne l'element cible
+  // (ouvre le volet droit + marque comme lu) puis laisse useHighlightTarget le flasher.
+  useEffect(() => {
+    if (!highlightId || source.isLoading || highlightApplied.current) return;
+    const target = source.items.find(
+      (item) => conversationRawId(item) === highlightId || item.key === highlightId,
+    );
+    if (!target) return;
+    highlightApplied.current = true;
+    handleSelect(target);
+  }, [highlightId, source.isLoading, source.items]);
+
+  useHighlightTarget(highlightId, !source.isLoading && source.items.length > 0);
 
   // Archivage branché sur les API existantes : status ARCHIVED (canal /
   // formulaire), archive du thread (interne).

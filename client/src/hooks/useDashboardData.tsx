@@ -3,6 +3,7 @@ import apiClient from '../services/apiClient';
 import type { AuthUser } from './useAuth';
 import type { InterventionReportData, FinancialReportData } from '../services/api/reportsApi';
 import type { DashboardPeriod } from '../modules/dashboard/DashboardDateFilter';
+import { parseApiDate } from '../utils/formatUtils';
 import type {
   TranslationFn,
   DashboardPaginatedResponse as PaginatedResponse,
@@ -73,9 +74,10 @@ export function formatGrowth(growth: number): { value: string; type: 'up' | 'dow
   return { value: '0%', type: 'neutral' };
 }
 
-function formatTimeAgo(date: Date, translationFn?: TranslationFn): string {
+function formatTimeAgo(date: Date | string, translationFn?: TranslationFn): string {
+  const d = typeof date === 'string' ? parseApiDate(date) : date;
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = now.getTime() - d.getTime();
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHours / 24);
 
@@ -281,7 +283,7 @@ function filterByPeriod<T>(items: T[], dateAccessor: (item: T) => string | undef
   return items.filter((item) => {
     const dateStr = dateAccessor(item);
     if (!dateStr) return false;
-    return new Date(dateStr) >= cutoff;
+    return parseApiDate(dateStr) >= cutoff;
   });
 }
 
@@ -460,7 +462,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
             id: String(prop.id),
             type: t('dashboard.activities.newPropertyCreated'),
             property: prop.name || t('properties.title'),
-            time: formatTimeAgo(new Date(prop.createdAt || prop.updatedAt || ''), t),
+            time: formatTimeAgo(prop.createdAt || prop.updatedAt || '', t),
             status: 'created',
             timestamp: prop.createdAt || prop.updatedAt || '',
             category: 'property',
@@ -515,7 +517,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
             id: req.id,
             type: activityType,
             property: req.propertyName || req.property?.name || t('properties.title'),
-            time: formatTimeAgo(new Date(req.createdAt), t),
+            time: formatTimeAgo(req.createdAt, t),
             status: (req.status?.toLowerCase() || 'pending') as ActivityItem['status'],
             timestamp: req.createdAt,
             category: 'service-request',
@@ -551,7 +553,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
             id: int.id,
             type: `${interventionLabel} - ${int.type}`,
             property: int.propertyName || t('properties.title'),
-            time: formatTimeAgo(new Date(int.scheduledDate || int.createdAt || ''), t),
+            time: formatTimeAgo(int.scheduledDate || int.createdAt || '', t),
             status: int.status.toLowerCase() as ActivityItem['status'],
             timestamp: int.scheduledDate || int.createdAt || '',
             category: 'intervention',
@@ -577,7 +579,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
             id: String(apiUser.id),
             type: t('dashboard.activities.newUserCreated'),
             property: displayText,
-            time: formatTimeAgo(new Date(apiUser.createdAt || apiUser.updatedAt || ''), t),
+            time: formatTimeAgo(apiUser.createdAt || apiUser.updatedAt || '', t),
             status: 'created',
             timestamp: apiUser.createdAt || apiUser.updatedAt || '',
             category: 'user',
@@ -602,7 +604,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
             id: String(team.id),
             type: t('dashboard.activities.newTeamCreated'),
             property: team.name || t('teams.title'),
-            time: formatTimeAgo(new Date(team.createdAt || team.updatedAt || ''), t),
+            time: formatTimeAgo(team.createdAt || team.updatedAt || '', t),
             status: 'created',
             timestamp: team.createdAt || team.updatedAt || '',
             category: 'team',

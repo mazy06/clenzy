@@ -66,6 +66,24 @@ public class BrevoContactService {
         return upsert(email, attrs, marketing.resolveNewsletterListId(), "newsletter");
     }
 
+    /**
+     * Ajoute (ou met a jour) un lead capte (exit-intent / panier abandonne) dans la liste Brevo
+     * dediee (2.12). L'attribut SOURCE permet de construire des segments Brevo par origine.
+     */
+    public boolean addLead(String email, String fullName, String source, String locale) {
+        if (!marketing.isLeadsSyncEnabled()) {
+            log.debug("Sync leads Brevo desactivee/non configuree — ignoree pour {}", email);
+            return false;
+        }
+        Map<String, Object> attrs = new HashMap<>();
+        if (marketing.isAttributesSyncEnabled()) {
+            putIfPresent(attrs, "FULLNAME", fullName);
+            putIfPresent(attrs, "SOURCE", source);
+            putIfPresent(attrs, "LANGUE", locale);
+        }
+        return upsert(email, attrs, marketing.resolveLeadsListId(), "lead");
+    }
+
     /** Retire un contact d'une liste (desinscription via webhook Brevo). */
     public boolean removeFromList(long listId, String email) {
         String key = marketing.resolveApiKey();

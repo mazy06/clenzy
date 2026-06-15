@@ -8,8 +8,10 @@ import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.RestrictionViolationException;
 import com.clenzy.model.*;
 import com.clenzy.model.voucher.VoucherChannelScope;
+import com.clenzy.payment.StripeAmounts;
 import com.clenzy.repository.*;
 import com.clenzy.service.*;
+import com.clenzy.service.email.BookingConfirmationEmailService;
 import com.clenzy.service.voucher.VoucherApplyResult;
 import com.clenzy.service.voucher.VoucherEngine;
 import com.clenzy.service.voucher.VoucherValidationResult;
@@ -52,6 +54,8 @@ public class PublicBookingService {
      * dates).
      */
     private static final long CHECKOUT_SESSION_LIFETIME_MINUTES = 35;
+    /** Montant minimum facturable par Stripe (centimes) : on laisse toujours au moins ce reste à payer. */
+    private static final long MIN_STRIPE_CHARGE_CENTS = 50;
 
     /** Borne haute raisonnable pour une date d'arrivee (anti dates absurdes). */
     private static final int MAX_ADVANCE_YEARS = 3;
@@ -80,6 +84,9 @@ public class PublicBookingService {
     private final VoucherEngine voucherEngine;
     private final NotificationService notificationService;
     private final BookingServiceOptionsService serviceOptionsService;
+    private final BookingConfirmationEmailService bookingConfirmationEmailService;
+    private final BookingEngineDepositService depositService;
+    private final GuestCreditService guestCreditService;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -96,7 +103,10 @@ public class PublicBookingService {
             GuestReviewRepository guestReviewRepository,
             VoucherEngine voucherEngine,
             NotificationService notificationService,
-            BookingServiceOptionsService serviceOptionsService) {
+            BookingServiceOptionsService serviceOptionsService,
+            BookingConfirmationEmailService bookingConfirmationEmailService,
+            BookingEngineDepositService depositService,
+            GuestCreditService guestCreditService) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -112,6 +122,9 @@ public class PublicBookingService {
         this.voucherEngine = voucherEngine;
         this.notificationService = notificationService;
         this.serviceOptionsService = serviceOptionsService;
+        this.bookingConfirmationEmailService = bookingConfirmationEmailService;
+        this.depositService = depositService;
+        this.guestCreditService = guestCreditService;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -153,16 +166,63 @@ public class PublicBookingService {
     // ─── Config ──────────────────────────────────────────────────────────────────
 
     public BookingEngineConfigDto getConfig(OrgContext ctx) {
-        return BookingEngineConfigDto.from(ctx.config());
+        return BookingEngineConfigDto.from(ctx.config(), ctx.org().isLeadCaptureEnabled());
     }
 
     // ─── Properties ──────────────────────────────────────────────────────────────
 
     public List<PublicPropertyDto> getProperties(OrgContext ctx) {
-        return propertyRepository.findBookingEngineVisible(ctx.orgId())
+        // Curation « propriétés affichées » : si le booking engine a une sélection, on s'y restreint
+        // (vide/NULL = toutes les propriétés visibles). Curation d'affichage, pas de contrôle d'accès.
+        java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
+        List<PublicPropertyDto> base = propertyRepository.findBookingEngineVisible(ctx.orgId())
             .stream()
+            .filter(p -> featured.isEmpty() || featured.contains(p.getId()))
             .map(PublicPropertyDto::from)
             .toList();
+        if (base.isEmpty()) {
+            return base;
+        }
+        // Signaux honnêtes (2.9), 2 requêtes batch (pas de N+1) : « réservé N× » + jours disponibles
+        // sur 30 jours (urgence). Le frontend décide des seuils d'affichage.
+        final int windowDays = 30;
+        List<Long> ids = base.stream().map(PublicPropertyDto::id).toList();
+        java.util.Map<Long, Integer> bookings = toCountMap(reservationRepository.countByPropertyIds(ids, ctx.orgId()));
+        LocalDate today = LocalDate.now();
+        java.util.Map<Long, Integer> unavailable =
+            toCountMap(calendarDayRepository.countUnavailableByPropertyIds(ids, today, today.plusDays(windowDays)));
+        return base.stream()
+            .map(dto -> dto.withSignals(
+                bookings.getOrDefault(dto.id(), 0),
+                Math.max(0, windowDays - unavailable.getOrDefault(dto.id(), 0))))
+            .toList();
+    }
+
+    /** Agrège un résultat group-by `(propertyId, count)` en map id→compte. */
+    private static java.util.Map<Long, Integer> toCountMap(List<Object[]> rows) {
+        java.util.Map<Long, Integer> map = new java.util.HashMap<>();
+        for (Object[] row : rows) {
+            map.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue());
+        }
+        return map;
+    }
+
+    /** Parse une liste d'IDs de propriétés en CSV de façon défensive (entrées non numériques ignorées). */
+    private static java.util.Set<Long> parseFeaturedPropertyIds(String csv) {
+        if (csv == null || csv.isBlank()) {
+            return java.util.Set.of();
+        }
+        java.util.Set<Long> ids = new java.util.LinkedHashSet<>();
+        for (String token : csv.split(",")) {
+            String t = token.trim();
+            if (t.isEmpty()) continue;
+            try {
+                ids.add(Long.parseLong(t));
+            } catch (NumberFormatException ignored) {
+                // entrée corrompue : ignorée, ne casse pas le listing public
+            }
+        }
+        return ids;
     }
 
     /**
@@ -183,6 +243,16 @@ public class PublicBookingService {
     // ─── Availability + Pricing ──────────────────────────────────────────────────
 
     public AvailabilityResponseDto checkAvailability(OrgContext ctx, AvailabilityRequestDto req) {
+        return checkAvailability(ctx, req, false);
+    }
+
+    /**
+     * Variante tarif membre (2.8) : si {@code member} (voyageur connecté), la remise appliquée est
+     * max(remise réservation directe, remise membre) → jamais moins bien que le public. Calcul 100%
+     * côté serveur (règle argent : on ne fait pas confiance au client) ; le résultat coule dans
+     * reserve/checkout → le montant Stripe en hérite.
+     */
+    public AvailabilityResponseDto checkAvailability(OrgContext ctx, AvailabilityRequestDto req, boolean member) {
         Long orgId = ctx.orgId();
         Long propertyId = req.propertyId();
         LocalDate checkIn = req.checkIn();
@@ -294,7 +364,22 @@ public class PublicBookingService {
             }
         }
 
-        BigDecimal total = subtotal.add(cleaningFee).add(touristTax);
+        // Book Direct & Save (2.8) : remise « réservation directe » sur le sous-total (le tarif direct
+        // EST le tarif facturé ; l'économie est exposée pour l'affichage). La taxe de séjour reste
+        // calculée sur le sous-total plein ci-dessus. Le breakdown garde le tarif plein par nuit ;
+        // l'écart (= directDiscount) est présenté comme une ligne « réservation directe » côté widget.
+        // Tarif membre (2.8) : un voyageur connecté obtient max(remise directe, remise membre).
+        BigDecimal directDiscount = BigDecimal.ZERO;
+        int directPct = config.getDirectBookingDiscountPercent() != null ? config.getDirectBookingDiscountPercent() : 0;
+        int memberPct = (member && config.getMemberDiscountPercent() != null) ? config.getMemberDiscountPercent() : 0;
+        int effectivePct = Math.max(directPct, memberPct);
+        if (effectivePct > 0) {
+            int pct = Math.min(effectivePct, 100);
+            directDiscount = subtotal.multiply(BigDecimal.valueOf(pct))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+        BigDecimal discountedSubtotal = subtotal.subtract(directDiscount);
+        BigDecimal total = discountedSubtotal.add(cleaningFee).add(touristTax);
 
         return new AvailabilityResponseDto(
             true,
@@ -305,10 +390,11 @@ public class PublicBookingService {
             guests,
             nights,
             breakdown,
-            subtotal.setScale(2, RoundingMode.HALF_UP),
+            discountedSubtotal.setScale(2, RoundingMode.HALF_UP),
             cleaningFee.setScale(2, RoundingMode.HALF_UP),
             touristTax.setScale(2, RoundingMode.HALF_UP),
             total.setScale(2, RoundingMode.HALF_UP),
+            directDiscount.setScale(2, RoundingMode.HALF_UP),
             property.getDefaultCurrency(),
             property.getMinimumNights(),
             property.getMaxGuests(),
@@ -340,12 +426,17 @@ public class PublicBookingService {
 
     @Transactional
     public BookingReserveResponseDto reserve(OrgContext ctx, BookingReserveRequestDto req) {
+        return reserve(ctx, req, false);
+    }
+
+    /** Variante tarif membre (2.8) : recalcule le total (autoritatif) avec la remise membre si connecté. */
+    public BookingReserveResponseDto reserve(OrgContext ctx, BookingReserveRequestDto req, boolean member) {
         Long orgId = ctx.orgId();
 
         // 1. Re-verifier la disponibilite (anti double-booking)
         AvailabilityResponseDto availability = checkAvailability(ctx, new AvailabilityRequestDto(
             req.propertyId(), req.checkIn(), req.checkOut(), req.guests()
-        ));
+        ), member);
         if (!availability.available()) {
             throw new IllegalStateException("Dates non disponibles : "
                 + String.join(", ", availability.violations()));
@@ -482,6 +573,21 @@ public class PublicBookingService {
         log.info("Booking Engine: reservation {} {} creee pour property {} (org {}, requiresPayment={})",
             status, reservation.getConfirmationCode(), req.propertyId(), orgId, requiresPayment);
 
+        // HP-03.1 : email de confirmation pour les reservations confirmees SANS paiement
+        // (le chemin paye envoie l'email au webhook Stripe via confirmReservationPayment).
+        // APRES COMMIT (audit #2), best-effort : un echec d'envoi n'impacte pas la reservation.
+        if (!requiresPayment && "confirmed".equalsIgnoreCase(reservation.getStatus())) {
+            final Long confirmedReservationId = reservation.getId();
+            runAfterCommit(() -> {
+                try {
+                    bookingConfirmationEmailService.sendForReservation(confirmedReservationId);
+                } catch (Exception e) {
+                    log.warn("Email de confirmation (booking direct) non envoye pour la reservation {}: {}",
+                            confirmedReservationId, e.getMessage());
+                }
+            });
+        }
+
         // Construction du DTO via helpers explicites pour exposer l'etat du
         // voucher au guest (succes / refus / pas demande).
         if (voucherApplied != null) {
@@ -523,6 +629,11 @@ public class PublicBookingService {
      */
     @Transactional
     public BookingReserveBatchResponseDto reserveBatch(OrgContext ctx, BookingReserveBatchRequestDto req) {
+        return reserveBatch(ctx, req, false);
+    }
+
+    /** Variante tarif membre (2.8) : applique la remise membre à chaque item du panier si connecté. */
+    public BookingReserveBatchResponseDto reserveBatch(OrgContext ctx, BookingReserveBatchRequestDto req, boolean member) {
         Long orgId = ctx.orgId();
         BookingEngineConfig config = ctx.config();
 
@@ -545,7 +656,7 @@ public class PublicBookingService {
             BookingReserveBatchRequestDto.Item item = req.items().get(i);
             AvailabilityResponseDto availability = checkAvailability(ctx, new AvailabilityRequestDto(
                 item.propertyId(), item.checkIn(), item.checkOut(), item.guests()
-            ));
+            ), member);
             if (!availability.available()) {
                 throw new IllegalStateException("Item " + (i + 1) + " (propriete " + item.propertyId()
                     + ") non disponible : " + String.join(", ", availability.violations()));
@@ -695,6 +806,24 @@ public class PublicBookingService {
             throw new IllegalStateException("La reservation est deja payee");
         }
 
+        // Crédit fidélité (2.8) : on STOCKE l'intention (creditApplied) + on réduit le montant Stripe.
+        // La DÉDUCTION effective a lieu à la confirmation du paiement (finalizeBookingPayment) → un
+        // abandon ne consomme jamais le crédit. Borné aux réservations à paiement complet (hors acompte) ;
+        // on laisse toujours >= MIN_STRIPE à payer (le flux payé standard déclenche facture/notifs +
+        // la déduction). [Couverture totale sans aucun paiement = à câbler ultérieurement.]
+        String creditEmail = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
+        BigDecimal totalPrice = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO;
+        if (ctx.config().getDepositPercent() == null && reservation.getCreditApplied() == null && creditEmail != null) {
+            long totalCents = StripeAmounts.toMinorUnits(totalPrice);
+            long balance = guestCreditService.getBalanceCents(orgId, creditEmail);
+            long applyCents = Math.min(balance, Math.max(0, totalCents - MIN_STRIPE_CHARGE_CENTS));
+            if (applyCents > 0) {
+                reservation.setCreditApplied(BigDecimal.valueOf(applyCents, 2));
+            }
+        }
+        BigDecimal creditApplied = reservation.getCreditApplied() != null ? reservation.getCreditApplied() : BigDecimal.ZERO;
+        BigDecimal chargeAmount = totalPrice.subtract(creditApplied);
+
         try {
             String propertyName = reservation.getProperty() != null
                 ? reservation.getProperty().getName() : "Reservation";
@@ -705,7 +834,7 @@ public class PublicBookingService {
             // l'expiration du hold de 30 min (reliquat revue A3).
             Session session = stripeService.createReservationCheckoutSession(
                 reservation.getId(),
-                reservation.getTotalPrice(),
+                chargeAmount,
                 guestEmail,
                 reservation.getGuestName(),
                 propertyName,
@@ -921,19 +1050,19 @@ public class PublicBookingService {
         Optional<Reservation> existing = reservationRepository.findByStripeSessionId(sessionId);
         if (existing.isPresent()) {
             Reservation r = existing.get();
-            if (r.getPaymentStatus() == PaymentStatus.PAID) {
+            if (r.getPaymentStatus() == PaymentStatus.PAID || r.getPaymentStatus() == PaymentStatus.PARTIALLY_PAID) {
                 log.info("Booking Engine: session {} deja confirmee pour reservation {} - skip",
                     sessionId, r.getConfirmationCode());
                 return;
             }
             log.info("Booking Engine: confirmation reservation existante {} via session {}",
                 r.getConfirmationCode(), sessionId);
-            stripeService.confirmReservationPayment(sessionId);
+            finalizeBookingPayment(session, r);
             return;
         }
 
         // ─── 1b. Hold cree au create-session mais session non rattachee ─────────
-        if (confirmPendingHoldFromMetadata(sessionId, metadata)) {
+        if (confirmPendingHoldFromMetadata(session, metadata)) {
             return;
         }
 
@@ -983,7 +1112,8 @@ public class PublicBookingService {
      * create-session, on retrouve le hold via {@code metadata.reservation_id}
      * pour eviter une double creation de reservation.
      */
-    private boolean confirmPendingHoldFromMetadata(String sessionId, Map<String, String> metadata) {
+    private boolean confirmPendingHoldFromMetadata(Session session, Map<String, String> metadata) {
+        String sessionId = session.getId();
         String holdIdStr = metadata.get("reservation_id");
         if (holdIdStr == null || holdIdStr.isBlank()) {
             return false;
@@ -1004,8 +1134,141 @@ public class PublicBookingService {
         reservationRepository.save(reservation);
         log.warn("Booking Engine: session {} non rattachee au hold {} — rattrapage via metadata",
             sessionId, reservation.getConfirmationCode());
-        stripeService.confirmReservationPayment(sessionId);
+        finalizeBookingPayment(session, reservation);
         return true;
+    }
+
+    /**
+     * P0.3 — programme la mise en place de la caution APRÈS commit (appel Stripe hors transaction,
+     * audit #2). No-op si aucune caution configurée pour la session. Idempotent (dédup côté service).
+     */
+    private void scheduleCautionSetup(Session session, Reservation reservation) {
+        Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
+        BigDecimal caution = parseAmountOrZero(md.get("security_deposit_amount"));
+        if (caution.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        final Long reservationId = reservation.getId();
+        final Long orgId = reservation.getOrganizationId();
+        final String currency = reservation.getCurrency();
+        final String customerId = session.getCustomer();
+        final String paymentIntentId = session.getPaymentIntent();
+        runAfterCommit(() ->
+            depositService.setupCautionAfterPayment(reservationId, orgId, caution, currency, customerId, paymentIntentId));
+    }
+
+    /**
+     * P0.7 — aiguille la confirmation du paiement booking engine : acompte (solde > 0) →
+     * {@code PARTIALLY_PAID} (effets ledger/facture différés à l'encaissement du solde) ; sinon
+     * paiement intégral classique. La caution (si configurée) est posée dans les deux cas.
+     */
+    private void finalizeBookingPayment(Session session, Reservation reservation) {
+        Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
+        BigDecimal balance = parseAmountOrZero(md.get("deposit_balance"));
+        if (balance.compareTo(BigDecimal.ZERO) > 0) {
+            confirmReservationDeposit(session, reservation, balance);
+        } else {
+            stripeService.confirmReservationPayment(session.getId());
+            redeemAppliedCredit(reservation); // 2.8 : déduit le crédit fidélité (paiement complet confirmé)
+        }
+        scheduleCautionSetup(session, reservation);
+    }
+
+    /** Déduit le crédit fidélité « engagé » au checkout, une fois le paiement confirmé (2.8). Idempotent. */
+    private void redeemAppliedCredit(Reservation reservation) {
+        BigDecimal applied = reservation.getCreditApplied();
+        String email = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
+        if (applied != null && applied.compareTo(BigDecimal.ZERO) > 0 && email != null) {
+            guestCreditService.redeem(reservation.getOrganizationId(), email,
+                StripeAmounts.toMinorUnits(applied), reservation.getConfirmationCode());
+        }
+    }
+
+    /**
+     * P0.7 — confirme l'ACOMPTE (paiement partiel) : {@code PARTIALLY_PAID} + solde dû recalculé
+     * serveur. Les effets complets (ledger, escrow, facture) sont volontairement différés à
+     * l'encaissement du solde ({@link #confirmBookingEngineBalance}). Idempotent.
+     */
+    private void confirmReservationDeposit(Session session, Reservation reservation, BigDecimal balanceFromMeta) {
+        PaymentStatus ps = reservation.getPaymentStatus();
+        if (ps == PaymentStatus.PARTIALLY_PAID || ps == PaymentStatus.PAID) {
+            return;
+        }
+        BigDecimal total = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO;
+        BigDecimal paid = session.getAmountTotal() != null
+            ? BigDecimal.valueOf(session.getAmountTotal()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+            : total.subtract(balanceFromMeta);
+        BigDecimal balance = total.subtract(paid);
+        if (balance.compareTo(BigDecimal.ZERO) < 0) {
+            balance = BigDecimal.ZERO;
+        }
+        reservation.setPaymentStatus(PaymentStatus.PARTIALLY_PAID);
+        reservation.setPaidAt(LocalDateTime.now());
+        reservation.setAmountPaid(paid);
+        reservation.setAmountDue(balance);
+        if (reservation.getCheckIn() != null) {
+            reservation.setBalanceDueDate(reservation.getCheckIn().minusDays(resolveBalanceDueDays(reservation.getOrganizationId())));
+        }
+        if ("pending".equalsIgnoreCase(reservation.getStatus())) {
+            reservation.setStatus("confirmed");
+        }
+        reservationRepository.save(reservation);
+        log.info("Booking Engine: acompte confirmé résa {} (payé={}, solde={}, dû le {})",
+            reservation.getConfirmationCode(), paid, balance, reservation.getBalanceDueDate());
+
+        final Long resId = reservation.getId();
+        runAfterCommit(() -> {
+            try {
+                bookingConfirmationEmailService.sendForReservation(resId);
+            } catch (Exception e) {
+                log.warn("Email d'acompte non envoyé pour la réservation {}: {}", resId, e.getMessage());
+            }
+        });
+    }
+
+    private int resolveBalanceDueDays(Long orgId) {
+        return configRepository.findFirstByOrganizationId(orgId)
+            .map(BookingEngineConfig::getBalanceDueDays)
+            .filter(d -> d > 0)
+            .orElse(30);
+    }
+
+    /**
+     * P0.7 — encaissement du SOLDE d'un acompte via lien de paiement (session Checkout dédiée,
+     * metadata {@code type=booking_engine_balance}). Passe la résa de {@code PARTIALLY_PAID} à
+     * {@code PAID} et déclenche les effets complets (ledger, facture) via
+     * {@link StripeService#confirmReservationPayment}. Idempotent.
+     */
+    @Transactional
+    public void confirmBookingEngineBalance(Session session) {
+        Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
+        String resIdStr = md.get("reservation_id");
+        if (resIdStr == null || resIdStr.isBlank()) {
+            log.error("Booking Engine balance: metadata reservation_id absente (session {})", session.getId());
+            return;
+        }
+        final Long resId;
+        try {
+            resId = Long.parseLong(resIdStr);
+        } catch (NumberFormatException e) {
+            return;
+        }
+        Reservation reservation = reservationRepository.findById(resId).orElse(null);
+        if (reservation == null) {
+            log.error("Booking Engine balance: réservation {} introuvable (session {})", resId, session.getId());
+            return;
+        }
+        if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
+            log.info("Booking Engine balance: résa {} déjà soldée — skip (idempotence)", reservation.getConfirmationCode());
+            return;
+        }
+        // Rattache la session du solde puis délègue la confirmation COMPLÈTE (PARTIALLY_PAID → PAID
+        // + ledger + facture) à confirmReservationPayment (keyé par stripeSessionId).
+        reservation.setStripeSessionId(session.getId());
+        reservation.setAmountPaid(reservation.getTotalPrice());
+        reservation.setAmountDue(BigDecimal.ZERO);
+        reservationRepository.save(reservation);
+        stripeService.confirmReservationPayment(session.getId());
     }
 
     /** Donnees extraites des metadata Stripe du flux Embedded Checkout. */

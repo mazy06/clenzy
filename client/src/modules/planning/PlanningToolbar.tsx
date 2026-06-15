@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -8,8 +8,6 @@ import {
   ToggleButton,
   Tooltip,
   Menu,
-  Popover,
-  Divider,
   Badge,
   useMediaQuery,
   useTheme,
@@ -18,22 +16,12 @@ import {
   ChevronLeft,
   ChevronRight,
   TodayOutlined,
-  Visibility,
-  VisibilityOff,
-  AttachMoney,
-  Fullscreen,
   FullscreenExit,
-  ViewCompact,
-  ViewComfy,
-  FilterListOff,
-  FilterList as FilterListIcon,
-  Close as CloseIcon,
   TuneOutlined,
-  Lock,
   Public as GlobeIcon,
   CleaningServices,
 } from '../../icons';
-import type { ZoomLevel, DensityMode, PlanningFilters, UrgencyAnimationMode } from './types';
+import type { ZoomLevel, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
 import { ZOOM_LABELS, RESERVATION_STATUS_TOKEN_COLORS, INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
 import type { PlanningChannelKey } from './constants';
@@ -44,31 +32,22 @@ import { formatMonthYear } from './utils/dateUtils';
 interface PlanningToolbarProps {
   currentDate: Date;
   zoom: ZoomLevel;
-  density: DensityMode;
   isFullscreen: boolean;
   filters: PlanningFilters;
+  /** Sert au point indicateur (badge dot) du menu compact Canaux. */
   hasActiveFilters: boolean;
   onGoPrev: () => void;
   onGoToday: () => void;
   onGoNext: () => void;
   onZoomChange: (zoom: ZoomLevel) => void;
-  onDensityChange: (density: DensityMode) => void;
   onToggleFullscreen: () => void;
   onShowInterventionsChange: (show: boolean) => void;
-  onShowPricesChange: (show: boolean) => void;
-  onStatusFilter: (statuses: ReservationStatus[]) => void;
-  onClearFilters: () => void;
   /** Canaux visibles (rangée Canaux) — tout sélectionné par défaut. */
   activeChannels: ReadonlySet<PlanningChannelKey>;
   onToggleChannel: (key: PlanningChannelKey) => void;
   /** Statuts visibles (rangée Statuts) — tout sélectionné par défaut. */
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
-  onBlockPeriod?: () => void;
-  /** Decalage gauche (px) pour aligner les controles avec la grille de dates. */
-  leftOffset?: number;
-  urgencyAnimation: UrgencyAnimationMode;
-  onUrgencyAnimationChange: (mode: UrgencyAnimationMode) => void;
 }
 
 const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
@@ -77,15 +56,6 @@ const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
   { value: 'checked_in', label: RESERVATION_STATUS_LABELS.checked_in },
   { value: 'checked_out', label: RESERVATION_STATUS_LABELS.checked_out },
   { value: 'cancelled', label: RESERVATION_STATUS_LABELS.cancelled },
-];
-
-// Variantes d'animation d'urgence des briques (galerie Signature 09b).
-const URGENCY_ANIMATION_OPTIONS: { value: UrgencyAnimationMode; label: string }[] = [
-  { value: 'shake', label: 'Shake' },
-  { value: 'wobble', label: 'Wobble' },
-  { value: 'pop', label: 'Pop' },
-  { value: 'tada', label: 'Tada' },
-  { value: 'none', label: 'Aucune' },
 ];
 
 // ─── Styles partagés (langage Signature) ────────────────────────────────────
@@ -143,19 +113,6 @@ const OVERLINE_SX = {
   display: 'block',
 };
 
-/** Chips MUI des toggles (popover / menu compact), tokenisés. */
-const toggleChipSx = (active: boolean, height: number) => ({
-  fontSize: height >= 28 ? '0.625rem' : '0.5625rem',
-  fontWeight: 600,
-  height,
-  cursor: 'pointer',
-  backgroundColor: active ? 'var(--accent-soft)' : 'var(--card)',
-  color: active ? 'var(--accent)' : 'var(--muted)',
-  borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-  '& .MuiChip-icon': { fontSize: 13, color: 'inherit' },
-  '&:hover': { backgroundColor: active ? 'var(--accent-soft)' : 'var(--hover)' },
-});
-
 // ─── Canaux (maquette : chips avec LOGO de canal, togglables) ────────────────
 //
 // Les briques encodent le canal via la pastille logo ; cette rangée sert de
@@ -168,44 +125,6 @@ const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: string | n
 ];
 
 // ─── Shared sub-components for desktop & menu ────────────────────────────────
-
-const StatusChips: React.FC<{
-  filters: PlanningFilters;
-  onStatusFilter: (statuses: ReservationStatus[]) => void;
-}> = ({ filters, onStatusFilter }) => (
-  <>
-    {STATUS_OPTIONS.map((opt) => {
-      const isActive = filters.statuses.includes(opt.value);
-      return (
-        <Box
-          key={opt.value}
-          component="span"
-          onClick={() => {
-            if (isActive) {
-              onStatusFilter(filters.statuses.filter((s) => s !== opt.value));
-            } else {
-              onStatusFilter([...filters.statuses, opt.value]);
-            }
-          }}
-          sx={sigChipSx(isActive)}
-        >
-          {/* Puce colorée = couleur du statut (mêmes tokens que les briques) */}
-          <Box
-            component="span"
-            sx={{
-              width: 9,
-              height: 9,
-              borderRadius: '3px',
-              flexShrink: 0,
-              backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)',
-            }}
-          />
-          {opt.label}
-        </Box>
-      );
-    })}
-  </>
-);
 
 /** Chips togglables de la rangée Statuts : un statut désélectionné masque
  *  les briques de ce statut (état local page, non persisté). */
@@ -244,31 +163,11 @@ const StatusToggleChips: React.FC<{
   </>
 );
 
-const UrgencyAnimationChips: React.FC<{
-  urgencyAnimation: UrgencyAnimationMode;
-  onUrgencyAnimationChange: (mode: UrgencyAnimationMode) => void;
-  chipHeight: number;
-}> = ({ urgencyAnimation, onUrgencyAnimationChange, chipHeight }) => (
-  <>
-    {URGENCY_ANIMATION_OPTIONS.map((opt) => (
-      <Chip
-        key={opt.value}
-        label={opt.label}
-        size="small"
-        variant="outlined"
-        onClick={() => onUrgencyAnimationChange(opt.value)}
-        sx={toggleChipSx(urgencyAnimation === opt.value, chipHeight)}
-      />
-    ))}
-  </>
-);
-
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   currentDate,
   zoom,
-  density,
   isFullscreen,
   filters,
   hasActiveFilters,
@@ -276,37 +175,20 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onGoToday,
   onGoNext,
   onZoomChange,
-  onDensityChange,
   onToggleFullscreen,
   onShowInterventionsChange,
-  onShowPricesChange,
-  onStatusFilter,
-  onClearFilters,
   activeChannels,
   onToggleChannel,
   activeStatuses,
   onToggleStatus,
-  onBlockPeriod,
-  leftOffset = 0,
-  urgencyAnimation,
-  onUrgencyAnimationChange,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('lg'));
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const menuOpen = Boolean(menuAnchor);
-  const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
-  const filterOpen = Boolean(filterAnchor);
 
+  // Point indicateur du menu compact Canaux : filtres actifs OU recherche en cours.
   const hasBadge = hasActiveFilters || filters.searchQuery.length > 0;
-
-  // Count active filters for badge
-  const activeFilterCount = useMemo(() => {
-    let count = filters.statuses.length;
-    if (!filters.showInterventions) count++;  // hidden = active filter
-    if (filters.showPrices) count++;           // shown = active filter (off by default)
-    return count;
-  }, [filters.statuses, filters.showInterventions, filters.showPrices]);
 
   return (
     <Box
@@ -322,12 +204,11 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
     >
       {/* ── Rangée 1 : navigation + mois + segmented + recherche + actions ── */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.875 }}>
-        {/* Spacer : aligne nav + mois + zoom sur la grille de dates (apres
-            la colonne logements). Compensation = padding left du toolbar (px:1.25 = 10px).
-            Disparait si leftOffset = 0. */}
-        {leftOffset > 0 && (
-          <Box sx={{ width: leftOffset - 10, flexShrink: 0 }} aria-hidden />
-        )}
+        {/* Spacer de tête flex:1 — centre le groupe nav+mois+Aujourd'hui+zoom
+            dans la zone planning. Symétrique au spacer de queue → centrage qui
+            s'adapte à la largeur de contenu (donc à l'écran ET à l'état de la
+            sidebar, le contenu étant un flex-sibling de la sidebar). */}
+        <Box sx={{ flex: 1, minWidth: 8 }} aria-hidden />
 
         {/* Navigation */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -452,196 +333,14 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         <Box sx={{ flex: 1, minWidth: 8 }} />
 
         {/* ════════════════════════════════════════════════════════════════
-            DESKTOP: filter popover + action chips
-            (recherche + Import iCal montés dans le PageHeader)
-            ════════════════════════════════════════════════════════════════ */}
-        {!isCompact && (
-          <>
-            {/* Filter button with badge */}
-            <IconButton
-              size="small"
-              onClick={(e) => setFilterAnchor(e.currentTarget)}
-              sx={{
-                width: 28,
-                height: 28,
-                p: 0.25,
-                borderRadius: '9px',
-                color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--muted)',
-                bgcolor: filterOpen || activeFilterCount > 0 ? 'var(--accent-soft)' : 'var(--card)',
-                border: '1px solid',
-                borderColor: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : 'var(--line-2)',
-                '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
-              }}
-            >
-              <Badge
-                badgeContent={activeFilterCount}
-                sx={{
-                  '& .MuiBadge-badge': {
-                    fontSize: '0.5rem',
-                    height: 12,
-                    minWidth: 12,
-                    backgroundColor: 'var(--accent)',
-                    color: 'var(--on-accent)',
-                  },
-                }}
-              >
-                <FilterListIcon size={14} strokeWidth={1.75} />
-              </Badge>
-            </IconButton>
-
-            {/* Filter popover */}
-            <Popover
-              open={filterOpen}
-              anchorEl={filterAnchor}
-              onClose={() => setFilterAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              slotProps={{
-                paper: {
-                  sx: {
-                    mt: 1,
-                    p: 2,
-                    minWidth: 300,
-                    maxWidth: 360,
-                    borderRadius: 'var(--radius-lg)',
-                    border: '1px solid var(--line-2)',
-                    backgroundColor: 'var(--card)',
-                    boxShadow: 'var(--shadow-pop)',
-                  },
-                },
-              }}
-            >
-              {/* Header */}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--ink)' }}>
-                  Filtres
-                </Typography>
-                <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25, color: 'var(--faint)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}>
-                  <CloseIcon size={16} strokeWidth={1.75} />
-                </IconButton>
-              </Box>
-
-              {/* Status filters */}
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="overline" sx={OVERLINE_SX}>
-                  Statuts
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                  <StatusChips filters={filters} onStatusFilter={onStatusFilter} />
-                </Box>
-              </Box>
-
-              <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
-
-              {/* Display toggles */}
-              <Box sx={{ mb: 1 }}>
-                <Typography variant="overline" sx={OVERLINE_SX}>
-                  Affichage
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                  {/* Interventions toggle */}
-                  <Chip
-                    icon={filters.showInterventions ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
-                    label="Interventions"
-                    size="small"
-                    variant="outlined"
-                    onClick={() => onShowInterventionsChange(!filters.showInterventions)}
-                    sx={toggleChipSx(filters.showInterventions, 22)}
-                  />
-
-                  {/* Prices toggle */}
-                  <Chip
-                    icon={<AttachMoney size={13} strokeWidth={1.75} />}
-                    label="Tarifs"
-                    size="small"
-                    variant="outlined"
-                    onClick={() => onShowPricesChange(!filters.showPrices)}
-                    sx={toggleChipSx(filters.showPrices, 22)}
-                  />
-
-                  {/* Density toggle */}
-                  <Chip
-                    icon={density === 'normal' ? <ViewCompact size={13} strokeWidth={1.75} /> : <ViewComfy size={13} strokeWidth={1.75} />}
-                    label={density === 'normal' ? 'Compact' : 'Normal'}
-                    size="small"
-                    variant="outlined"
-                    onClick={() => onDensityChange(density === 'normal' ? 'compact' : 'normal')}
-                    sx={toggleChipSx(false, 22)}
-                  />
-                </Box>
-
-                {/* Animation d'urgence (briques paiement en attente / info manquante) */}
-                <Typography variant="overline" sx={{ ...OVERLINE_SX, mt: 1.5 }}>
-                  Animation d'urgence
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                  <UrgencyAnimationChips
-                    urgencyAnimation={urgencyAnimation}
-                    onUrgencyAnimationChange={onUrgencyAnimationChange}
-                    chipHeight={22}
-                  />
-                </Box>
-              </Box>
-
-              {/* Clear all filters */}
-              {(hasActiveFilters || activeFilterCount > 0) && (
-                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid var(--line)' }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: 'var(--err)',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                      '&:hover': { textDecoration: 'underline' },
-                    }}
-                    onClick={() => {
-                      onClearFilters();
-                      setFilterAnchor(null);
-                    }}
-                  >
-                    Effacer tous les filtres
-                  </Typography>
-                </Box>
-              )}
-            </Popover>
-
-            {/* Block period — action, stays in toolbar */}
-            {onBlockPeriod && (
-              <Tooltip title="Bloquer une periode (indisponible)" arrow>
-                <Chip
-                  icon={<Lock size={14} strokeWidth={1.75} />}
-                  label="Bloquer"
-                  size="small"
-                  variant="outlined"
-                  onClick={onBlockPeriod}
-                  sx={{
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    height: 28,
-                    borderRadius: '9px',
-                    cursor: 'pointer',
-                    backgroundColor: 'var(--card)',
-                    borderColor: 'var(--line-2)',
-                    color: 'var(--body)',
-                    '& .MuiChip-icon': { fontSize: 14, color: 'var(--muted)' },
-                    '&:hover': {
-                      backgroundColor: 'var(--hover)',
-                      borderColor: 'var(--faint)',
-                    },
-                  }}
-                />
-              </Tooltip>
-            )}
-          </>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════════
-            COMPACT: burger menu button
+            COMPACT: burger menu — canaux uniquement.
+            (filtres/statuts/affichage/bloquer/plein écran remontés dans le
+            PageHeader ; les canaux n'ont pas de rangée légende en compact, on
+            les conserve donc ici.)
             ════════════════════════════════════════════════════════════════ */}
         {isCompact && (
           <>
-            <Tooltip title="Filtres et options">
+            <Tooltip title="Canaux">
               <IconButton
                 size="small"
                 onClick={(e) => setMenuAnchor(e.currentTarget)}
@@ -688,150 +387,31 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                     <ChannelToggleChips activeChannels={activeChannels} onToggleChannel={onToggleChannel} />
                   </Box>
                 </Box>
-
-                <Divider sx={{ borderColor: 'var(--line)' }} />
-
-                {/* Status filters */}
-                <Box>
-                  <Typography variant="overline" sx={OVERLINE_SX}>
-                    Statuts
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    <StatusChips filters={filters} onStatusFilter={onStatusFilter} />
-                  </Box>
-                </Box>
-
-                <Divider sx={{ borderColor: 'var(--line)' }} />
-
-                {/* Display toggles */}
-                <Box>
-                  <Typography variant="overline" sx={OVERLINE_SX}>
-                    Affichage
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    {/* Interventions toggle */}
-                    <Chip
-                      icon={filters.showInterventions ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
-                      label="Interventions"
-                      size="small"
-                      variant="outlined"
-                      onClick={() => onShowInterventionsChange(!filters.showInterventions)}
-                      sx={toggleChipSx(filters.showInterventions, 28)}
-                    />
-
-                    {/* Prices toggle */}
-                    <Chip
-                      icon={<AttachMoney size={13} strokeWidth={1.75} />}
-                      label="Tarifs"
-                      size="small"
-                      variant="outlined"
-                      onClick={() => onShowPricesChange(!filters.showPrices)}
-                      sx={toggleChipSx(filters.showPrices, 28)}
-                    />
-
-                    {/* Density toggle */}
-                    <Chip
-                      icon={density === 'normal' ? <ViewCompact size={13} strokeWidth={1.75} /> : <ViewComfy size={13} strokeWidth={1.75} />}
-                      label={density === 'normal' ? 'Compact' : 'Normal'}
-                      size="small"
-                      variant="outlined"
-                      onClick={() => onDensityChange(density === 'normal' ? 'compact' : 'normal')}
-                      sx={toggleChipSx(false, 28)}
-                    />
-                  </Box>
-
-                  {/* Animation d'urgence */}
-                  <Typography variant="overline" sx={{ ...OVERLINE_SX, mt: 1.5 }}>
-                    Animation d'urgence
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    <UrgencyAnimationChips
-                      urgencyAnimation={urgencyAnimation}
-                      onUrgencyAnimationChange={onUrgencyAnimationChange}
-                      chipHeight={28}
-                    />
-                  </Box>
-                </Box>
-
-                <Divider sx={{ borderColor: 'var(--line)' }} />
-
-                {/* Actions */}
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                  {/* Block period */}
-                  {onBlockPeriod && (
-                    <Chip
-                      icon={<Lock size={13} strokeWidth={1.75} />}
-                      label="Bloquer"
-                      size="small"
-                      variant="outlined"
-                      onClick={() => {
-                        setMenuAnchor(null);
-                        onBlockPeriod();
-                      }}
-                      sx={{
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        height: 28,
-                        cursor: 'pointer',
-                        backgroundColor: 'var(--card)',
-                        borderColor: 'var(--line-2)',
-                        color: 'var(--muted)',
-                        '& .MuiChip-icon': { fontSize: 13, color: 'var(--muted)' },
-                        '&:hover': {
-                          backgroundColor: 'var(--hover)',
-                          borderColor: 'var(--faint)',
-                        },
-                      }}
-                    />
-                  )}
-
-                  {/* Clear filters */}
-                  {hasActiveFilters && (
-                    <Chip
-                      icon={<FilterListOff size={13} strokeWidth={1.75} />}
-                      label="Effacer filtres"
-                      size="small"
-                      variant="outlined"
-                      onClick={() => {
-                        onClearFilters();
-                      }}
-                      sx={{
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        height: 28,
-                        cursor: 'pointer',
-                        backgroundColor: 'var(--card)',
-                        borderColor: 'var(--err)',
-                        color: 'var(--err)',
-                        '& .MuiChip-icon': { fontSize: 13, color: 'var(--err)' },
-                        '&:hover': {
-                          backgroundColor: 'var(--err-soft)',
-                        },
-                      }}
-                    />
-                  )}
-                </Box>
               </Box>
             </Menu>
           </>
         )}
 
-        {/* Fullscreen toggle — always visible */}
-        <Tooltip title={isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}>
-          <IconButton
-            size="small"
-            onClick={onToggleFullscreen}
-            sx={{
-              width: 28,
-              height: 28,
-              flexShrink: 0,
-              color: 'var(--muted)',
-              '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--hover)' },
-            }}
-          >
-            {isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
-          </IconButton>
-        </Tooltip>
+        {/* Plein écran — escape hatch : seul moment où le PageHeader (qui porte
+            désormais le toggle) est masqué, donc on le réaffiche ici pour
+            pouvoir TOUJOURS ressortir du plein écran. */}
+        {isFullscreen && (
+          <Tooltip title="Quitter le plein écran">
+            <IconButton
+              size="small"
+              onClick={onToggleFullscreen}
+              sx={{
+                width: 28,
+                height: 28,
+                flexShrink: 0,
+                color: 'var(--muted)',
+                '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--hover)' },
+              }}
+            >
+              <FullscreenExit size={18} strokeWidth={1.75} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       {/* ── Rangée 2 (desktop) : filtres togglables fusionnés — canaux,

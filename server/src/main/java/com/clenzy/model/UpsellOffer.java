@@ -56,6 +56,18 @@ public class UpsellOffer {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder = 0;
 
+    /** Conditionnel (2.10) : nb de nuits minimal du séjour pour proposer l'offre (NULL = pas de condition). */
+    @Column(name = "min_nights")
+    private Integer minNights;
+
+    /** Fenêtre horaire (2.10) : délai mini (heures) avant l'arrivée pour pouvoir commander (NULL = aucun). */
+    @Column(name = "lead_time_hours")
+    private Integer leadTimeHours;
+
+    /** Bundle (2.10) : CSV des ids d'offres incluses ; non vide = cette offre est un bundle à prix combiné. */
+    @Column(name = "bundle_offer_ids", length = 500)
+    private String bundleOfferIds;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -86,6 +98,12 @@ public class UpsellOffer {
     public void setActive(boolean active) { this.active = active; }
     public int getSortOrder() { return sortOrder; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
+    public Integer getMinNights() { return minNights; }
+    public void setMinNights(Integer minNights) { this.minNights = minNights; }
+    public Integer getLeadTimeHours() { return leadTimeHours; }
+    public void setLeadTimeHours(Integer leadTimeHours) { this.leadTimeHours = leadTimeHours; }
+    public String getBundleOfferIds() { return bundleOfferIds; }
+    public void setBundleOfferIds(String bundleOfferIds) { this.bundleOfferIds = bundleOfferIds; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

@@ -87,6 +87,10 @@ public class Reservation {
     @Column(name = "ota_fee_amount", precision = 10, scale = 2)
     private BigDecimal otaFeeAmount;
 
+    /** Crédit fidélité (2.8) appliqué à cette réservation au checkout (réduit le montant Stripe). NULL = aucun. */
+    @Column(name = "credit_applied", precision = 10, scale = 2)
+    private BigDecimal creditApplied;
+
     // --- Booking voucher / promo (migration 0157) ---
     // {@code totalPrice} contient le montant FINAL (apres voucher). Les
     // colonnes ci-dessous tracent l'application du voucher pour facturation,
@@ -144,6 +148,26 @@ public class Reservation {
 
     @Column(name = "stripe_session_id", length = 255)
     private String stripeSessionId;
+
+    /** Customer Stripe (carte enregistrée au checkout) — réutilisé pour le hold de caution off-session. */
+    @Column(name = "stripe_customer_id", length = 255)
+    private String stripeCustomerId;
+
+    /** Payment method Stripe (carte enregistrée) — réutilisé pour le hold de caution off-session. */
+    @Column(name = "stripe_payment_method_id", length = 255)
+    private String stripePaymentMethodId;
+
+    /** Acompte : montant déjà encaissé (NULL si paiement intégral). */
+    @Column(name = "amount_paid", precision = 10, scale = 2)
+    private BigDecimal amountPaid;
+
+    /** Acompte : solde restant à encaisser (0 une fois soldé). */
+    @Column(name = "amount_due", precision = 10, scale = 2)
+    private BigDecimal amountDue;
+
+    /** Acompte : date à laquelle le solde devient dû (check-in − balanceDueDays). */
+    @Column(name = "balance_due_date")
+    private LocalDate balanceDueDate;
 
     @Column(name = "payment_status", length = 20)
     @Enumerated(EnumType.STRING)
@@ -220,6 +244,9 @@ public class Reservation {
     public String getSourceName() { return sourceName; }
     public void setSourceName(String sourceName) { this.sourceName = sourceName; }
 
+    public BigDecimal getCreditApplied() { return creditApplied; }
+    public void setCreditApplied(BigDecimal creditApplied) { this.creditApplied = creditApplied; }
+
     public BigDecimal getTotalPrice() { return totalPrice; }
     public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
 
@@ -291,6 +318,21 @@ public class Reservation {
 
     public String getStripeSessionId() { return stripeSessionId; }
     public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }
+
+    public String getStripeCustomerId() { return stripeCustomerId; }
+    public void setStripeCustomerId(String stripeCustomerId) { this.stripeCustomerId = stripeCustomerId; }
+
+    public String getStripePaymentMethodId() { return stripePaymentMethodId; }
+    public void setStripePaymentMethodId(String stripePaymentMethodId) { this.stripePaymentMethodId = stripePaymentMethodId; }
+
+    public BigDecimal getAmountPaid() { return amountPaid; }
+    public void setAmountPaid(BigDecimal amountPaid) { this.amountPaid = amountPaid; }
+
+    public BigDecimal getAmountDue() { return amountDue; }
+    public void setAmountDue(BigDecimal amountDue) { this.amountDue = amountDue; }
+
+    public LocalDate getBalanceDueDate() { return balanceDueDate; }
+    public void setBalanceDueDate(LocalDate balanceDueDate) { this.balanceDueDate = balanceDueDate; }
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }

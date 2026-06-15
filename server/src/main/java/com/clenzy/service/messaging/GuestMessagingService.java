@@ -318,7 +318,8 @@ public class GuestMessagingService {
 
         if (property.getOwner() != null && property.getOwner().getKeycloakId() != null) {
             notificationService.send(
-                property.getOwner().getKeycloakId(), key, notifTitle, notifMessage, null
+                property.getOwner().getKeycloakId(), key, notifTitle, notifMessage,
+                "/reservations?highlight=" + reservation.getId()
             );
         }
 

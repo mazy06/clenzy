@@ -15,11 +15,14 @@ import com.clenzy.model.WalletType;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
+import com.clenzy.service.email.BookingConfirmationEmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -51,6 +54,8 @@ public class StripePaymentConfirmationService {
     private final AutoInvoiceService autoInvoiceService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final PaymentStatusTransitionService paymentStatusTransitionService;
+    private final BookingConfirmationEmailService bookingConfirmationEmailService;
+    private final WebhookEventPublisher webhookEventPublisher;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -65,7 +70,9 @@ public class StripePaymentConfirmationService {
                                             SplitPaymentService splitPaymentService,
                                             AutoInvoiceService autoInvoiceService,
                                             KafkaTemplate<String, Object> kafkaTemplate,
-                                            PaymentStatusTransitionService paymentStatusTransitionService) {
+                                            PaymentStatusTransitionService paymentStatusTransitionService,
+                                            BookingConfirmationEmailService bookingConfirmationEmailService,
+                                            WebhookEventPublisher webhookEventPublisher) {
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -77,6 +84,8 @@ public class StripePaymentConfirmationService {
         this.autoInvoiceService = autoInvoiceService;
         this.kafkaTemplate = kafkaTemplate;
         this.paymentStatusTransitionService = paymentStatusTransitionService;
+        this.bookingConfirmationEmailService = bookingConfirmationEmailService;
+        this.webhookEventPublisher = webhookEventPublisher;
     }
 
     /**
@@ -145,7 +154,7 @@ public class StripePaymentConfirmationService {
                 NotificationKey.INTERVENTION_AWAITING_VALIDATION,
                 "Action requise : assignation",
                 "L'intervention \"" + intervention.getTitle() + "\" est payee et en attente d'assignation d'equipe.",
-                "/interventions"
+                "/interventions/" + intervention.getId()
             );
         } catch (Exception e) {
             log.warn("Erreur notification PAYMENT_CONFIRMED: {}", e.getMessage());
@@ -230,6 +239,29 @@ public class StripePaymentConfirmationService {
 
         log.info("Paiement de reservation confirme: reservationId={}, sessionId={}", reservation.getId(), sessionId);
 
+        // Webhook sortant PAYMENT_CONFIRMED : enfile dans la transaction, livraison HTTP apres commit (#2).
+        java.util.Map<String, Object> webhookData = new java.util.HashMap<>();
+        webhookData.put("reservationId", reservation.getId());
+        webhookData.put("status", reservation.getStatus());
+        webhookData.put("paymentStatus", reservation.getPaymentStatus() != null ? reservation.getPaymentStatus().name() : null);
+        webhookData.put("totalPrice", reservation.getTotalPrice());
+        webhookData.put("propertyId", reservation.getProperty() != null ? reservation.getProperty().getId() : null);
+        webhookEventPublisher.publish(com.clenzy.model.WebhookEventType.PAYMENT_CONFIRMED,
+                reservation.getOrganizationId(), webhookData);
+
+        // Email de confirmation guest APRES COMMIT (audit #2 : aucun appel externe dans la
+        // transaction). Best-effort : un echec d'envoi n'impacte pas la confirmation de
+        // paiement. Idempotent via l'early-return PAID en tete de methode.
+        final Long confirmedReservationId = reservation.getId();
+        runAfterCommit(() -> {
+            try {
+                bookingConfirmationEmailService.sendForReservation(confirmedReservationId);
+            } catch (Exception e) {
+                log.warn("Email de confirmation non envoye pour la reservation {}: {}",
+                        confirmedReservationId, e.getMessage());
+            }
+        });
+
         // ─── Wallet creation + ledger entry + split (ManagementContract-aware) ──
         Long ownerId = (reservation.getProperty() != null && reservation.getProperty().getOwner() != null)
                 ? reservation.getProperty().getOwner().getId() : null;
@@ -249,7 +281,7 @@ public class StripePaymentConfirmationService {
                 "Paiement reservation confirme",
                 "Le paiement pour la reservation de " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
                     + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a ete confirme",
-                "/reservations/" + reservation.getId()
+                "/reservations?highlight=" + reservation.getId()
             );
         } catch (Exception e) {
             log.warn("Erreur notification PAYMENT_CONFIRMED (reservation): {}", e.getMessage());
@@ -297,6 +329,24 @@ public class StripePaymentConfirmationService {
     }
 
     /**
+     * Execute une action APRES le commit de la transaction courante (effets externes
+     * hors transaction, audit #2). Hors contexte transactionnel (tests), execute
+     * immediatement.
+     */
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
+    }
+
+    /**
      * Marque le paiement d'une reservation comme echoue.
      */
     public void markReservationPaymentFailed(String sessionId) {
@@ -314,7 +364,7 @@ public class StripePaymentConfirmationService {
                     "Echec paiement reservation",
                     "Le paiement pour la reservation de " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
                         + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a echoue",
-                    "/reservations/" + reservation.getId()
+                    "/reservations?highlight=" + reservation.getId()
                 );
             } catch (Exception e) {
                 log.warn("Erreur notification PAYMENT_FAILED (reservation): {}", e.getMessage());
@@ -464,14 +514,14 @@ public class StripePaymentConfirmationService {
                     NotificationKey.PAYMENT_CONFIRMED,
                     "Paiement confirme",
                     "Le paiement pour votre demande \"" + sr.getTitle() + "\" a ete confirme. L'intervention sera creee automatiquement.",
-                    "/service-requests/" + sr.getId()
+                    "/interventions?tab=service-requests&highlight=" + sr.getId()
                 );
             }
             notificationService.notifyAdminsAndManagers(
                 NotificationKey.PAYMENT_CONFIRMED,
                 "Paiement SR confirme",
                 "Le paiement pour la demande \"" + sr.getTitle() + "\" a ete confirme. Intervention creee.",
-                "/service-requests/" + sr.getId()
+                "/interventions?tab=service-requests&highlight=" + sr.getId()
             );
         } catch (Exception e) {
             log.warn("Erreur notification PAYMENT_CONFIRMED (SR): {}", e.getMessage());
@@ -500,14 +550,14 @@ public class StripePaymentConfirmationService {
                         NotificationKey.PAYMENT_FAILED,
                         "Echec du paiement",
                         "Le paiement pour votre demande \"" + sr.getTitle() + "\" a echoue. Vous pouvez reessayer.",
-                        "/service-requests/" + sr.getId()
+                        "/interventions?tab=service-requests&highlight=" + sr.getId()
                     );
                 }
                 notificationService.notifyAdminsAndManagers(
                     NotificationKey.PAYMENT_FAILED,
                     "Echec paiement SR",
                     "Le paiement pour la demande \"" + sr.getTitle() + "\" a echoue",
-                    "/service-requests/" + sr.getId()
+                    "/interventions?tab=service-requests&highlight=" + sr.getId()
                 );
             } catch (Exception e) {
                 log.warn("Erreur notification PAYMENT_FAILED (SR): {}", e.getMessage());
@@ -640,7 +690,7 @@ public class StripePaymentConfirmationService {
                 "Reconciliation ledger requise",
                 "Paiement confirme mais " + detail + " pour " + refType + " #" + refId
                     + ". Verifier les soldes wallets/ledger.",
-                "/billing"
+                "/billing?tab=wallets"
             );
         } catch (Exception notifyEx) {
             log.error("Impossible de notifier la reconciliation ledger requise pour {} #{}: {}",

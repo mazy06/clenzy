@@ -38,7 +38,12 @@ public class OwnerPortalService {
     }
 
     public OwnerDashboardDto getDashboard(Long ownerId, Long orgId) {
-        List<Property> properties = propertyRepository.findByOwnerId(ownerId);
+        // HP-02 : ne remonter que les biens du proprietaire DANS l'organisation courante.
+        // findByOwnerId n'est PAS org-filtre -> sans ce filtre, un ownerId d'une autre org
+        // exposerait des donnees cross-org (IDOR). Le statement, lui, filtre deja par orgId.
+        List<Property> properties = propertyRepository.findByOwnerId(ownerId).stream()
+                .filter(p -> orgId != null && orgId.equals(p.getOrganizationId()))
+                .toList();
         if (properties.isEmpty()) {
             return new OwnerDashboardDto(ownerId, 0, 0, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, 0.0, 0.0, Map.of(), List.of());

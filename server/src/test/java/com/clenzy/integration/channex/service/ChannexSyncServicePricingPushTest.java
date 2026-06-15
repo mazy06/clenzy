@@ -68,12 +68,18 @@ class ChannexSyncServicePricingPushTest {
 
     @BeforeEach
     void setUp() {
+        com.clenzy.integration.channel.ChannelRoutingStrategy routing =
+            org.mockito.Mockito.mock(com.clenzy.integration.channel.ChannelRoutingStrategy.class);
+        org.mockito.Mockito.lenient().when(routing.resolve(org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(com.clenzy.integration.channel.ChannelRoute.CHANNEX);
         service = new ChannexSyncService(
             channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper(),
             new ChannexMetrics(new SimpleMeterRegistry()),
             syncLogService, propertyRepository,
             bookingRestrictionRepository, occupancyPricingRepository,
-            lengthOfStayDiscountRepository, ratePlanRepository
+            lengthOfStayDiscountRepository, ratePlanRepository,
+            routing
         );
     }
 
@@ -266,6 +272,7 @@ class ChannexSyncServicePricingPushTest {
         br.setStartDate(d1);
         br.setEndDate(d3);
         br.setMinStay(3);
+        br.setMinStayArrival(2);
         br.setClosedToArrival(false);
         br.setClosedToDeparture(true);
         br.setPriority(10);
@@ -281,6 +288,7 @@ class ChannexSyncServicePricingPushTest {
         java.util.List<com.clenzy.integration.channex.dto.ChannexRateUpdate> sent = captor.getValue();
         assertThat(sent).allSatisfy(u -> {
             assertThat(u.minStayThrough()).isEqualTo(3);
+            assertThat(u.minStayArrival()).isEqualTo(2);
             assertThat(u.closedToArrival()).isFalse();
             assertThat(u.closedToDeparture()).isTrue();
         });
@@ -306,5 +314,28 @@ class ChannexSyncServicePricingPushTest {
         assertThat(captor.getValue().get(0).minStayThrough()).isNull();
         assertThat(captor.getValue().get(0).closedToArrival()).isNull();
         assertThat(captor.getValue().get(0).closedToDeparture()).isNull();
+    }
+
+    @Test
+    @DisplayName("multi-rate-plan : push fan-out sur le rate plan defaut + les additionnels")
+    void pushRates_fansOutAcrossMultipleRatePlans() {
+        ChannexPropertyMapping m = mapping();
+        m.setChannexRatePlanIds("channex-rate-2"); // defaut channex-rate-1 + additionnel channex-rate-2
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L))).thenReturn(Optional.of(m));
+        when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
+        java.time.LocalDate d = java.time.LocalDate.of(2026, 7, 1);
+        when(priceEngine.resolvePriceRange(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.Map.of(d, new BigDecimal("100")));
+        when(bookingRestrictionRepository.findApplicable(eq(100L), any(), any(), eq(42L)))
+            .thenReturn(java.util.List.of());
+
+        service.pushProperty(100L, 42L, d, d);
+
+        ArgumentCaptor<java.util.List<com.clenzy.integration.channex.dto.ChannexRateUpdate>> captor =
+            ArgumentCaptor.forClass(java.util.List.class);
+        verify(channexClient).pushRates(captor.capture());
+        assertThat(captor.getValue())
+            .extracting(com.clenzy.integration.channex.dto.ChannexRateUpdate::channexRatePlanId)
+            .containsExactlyInAnyOrder("channex-rate-1", "channex-rate-2");
     }
 }

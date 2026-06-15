@@ -53,6 +53,7 @@ import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import { RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
 import { useCurrency } from '../../../hooks/useCurrency';
+import StatusChip, { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
 
 // ── Types for local financial state ────────────────────────────────────────
 interface LocalPayment {
@@ -88,13 +89,13 @@ const PAYMENT_METHODS = [
   { value: 'other', label: 'Autre' },
 ];
 
-type SoftTokens = { color: string; bg: string };
+type SoftTokens = ToneTokens;
 
-const OK_TOKENS: SoftTokens = { color: 'var(--ok)', bg: 'var(--ok-soft)' };
-const WARN_TOKENS: SoftTokens = { color: 'var(--warn)', bg: 'var(--warn-soft)' };
-const ERR_TOKENS: SoftTokens = { color: 'var(--err)', bg: 'var(--err-soft)' };
-const INFO_TOKENS: SoftTokens = { color: 'var(--info)', bg: 'var(--info-soft)' };
-const NEUTRAL_TOKENS: SoftTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
+const OK_TOKENS: SoftTokens = STATUS_TONES.ok;
+const WARN_TOKENS: SoftTokens = STATUS_TONES.warn;
+const ERR_TOKENS: SoftTokens = STATUS_TONES.err;
+const INFO_TOKENS: SoftTokens = STATUS_TONES.info;
+const NEUTRAL_TOKENS: SoftTokens = STATUS_TONES.neutral;
 
 /** Statuts paiement → tokens sémantiques (succès = ok, attente = warn, en cours = info, échec = err). */
 const STATUS_TOKENS: Record<string, SoftTokens> = {
@@ -132,14 +133,9 @@ const CLOSE_BTN_SX = {
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
 const chipSx = (bg: string, color: string) => ({
+  ...toneTokensSx({ color, bg }),
   height: 20,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-  border: 'none',
   borderRadius: 'var(--radius-pill)',
-  '& .MuiChip-label': { px: 1 },
 });
 
 const STATUS_LABELS: Record<string, string> = {
@@ -204,21 +200,20 @@ const SectionCard: React.FC<{
   </Box>
 );
 
-// ── Status chip helper ──────────────────────────────────────────────────────
-const StatusChip: React.FC<{ status: string; map?: Record<string, string>; tokenMap?: Record<string, SoftTokens> }> = ({
+// ── Status chip helper — résout le ton via la map domaine puis délègue au
+//    StatusChip partagé (taille sm), rayon pilule conservé. ──────────────────
+const DomainStatusChip: React.FC<{ status: string; map?: Record<string, string>; tokenMap?: Record<string, SoftTokens> }> = ({
   status,
   map = STATUS_LABELS,
   tokenMap = STATUS_TOKENS,
-}) => {
-  const t = tokenMap[status] || NEUTRAL_TOKENS;
-  return (
-    <Chip
-      label={map[status] || status}
-      size="small"
-      sx={{ ...chipSx(t.bg, t.color), height: 18, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.75 } }}
-    />
-  );
-};
+}) => (
+  <StatusChip
+    tokens={tokenMap[status] || NEUTRAL_TOKENS}
+    label={map[status] || status}
+    size="sm"
+    sx={{ borderRadius: 'var(--radius-pill)' }}
+  />
+);
 
 // ── Row helper ──────────────────────────────────────────────────────────────
 const FinRow: React.FC<{
@@ -834,7 +829,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
                     {inv.legalNumber || inv.fileName}
                   </Typography>
-                  <StatusChip status={inv.status} />
+                  <DomainStatusChip status={inv.status} />
                   <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
                     <Tooltip title="Telecharger">
                       <IconButton
@@ -1100,7 +1095,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                       <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                         {cost > 0 ? convertAndFormat(cost, 'EUR') : '—'}
                       </Typography>
-                      <StatusChip
+                      <DomainStatusChip
                         status={intv.paymentStatus || intv.status}
                         map={{ ...STATUS_LABELS, ...INTERVENTION_STATUS_LABELS }}
                         tokenMap={{ ...STATUS_TOKENS, ...INTERVENTION_STATUS_TOKENS }}
@@ -1222,7 +1217,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             label="Statut paiement"
             value=""
           >
-            <StatusChip
+            <DomainStatusChip
               status={intervention.paymentStatus || intervention.status}
               map={{ ...STATUS_LABELS, ...INTERVENTION_STATUS_LABELS }}
               tokenMap={{ ...STATUS_TOKENS, ...INTERVENTION_STATUS_TOKENS }}
@@ -1275,7 +1270,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
                     {inv.legalNumber || inv.fileName}
                   </Typography>
-                  <StatusChip status={inv.status} />
+                  <DomainStatusChip status={inv.status} />
                   <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
                     <Tooltip title="Telecharger">
                       <IconButton
@@ -1346,7 +1341,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                       <TableCell sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} align="right">
                         {p.status === 'REFUNDED' ? '-' : ''}{fmtCurrency(p.amount)}
                       </TableCell>
-                      <TableCell><StatusChip status={p.status} /></TableCell>
+                      <TableCell><DomainStatusChip status={p.status} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

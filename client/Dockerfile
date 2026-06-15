@@ -27,8 +27,17 @@ COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
 # Installer les dépendances avec le bon gestionnaire de paquets
 # Note: ETXTBSY fix — on supprime le binaire esbuild potentiellement corrompu
 # avant la validation post-install (bug Docker + Alpine + npm ci + esbuild)
-RUN if [ -f package-lock.json ]; then \
-      npm ci --ignore-scripts && \
+# Resilience reseau : ECONNRESET transitoires sur le registre npm → retries npm natifs
+# + boucle (3 tentatives, echec propre si toutes echouent via le sous-shell `exit 1`).
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set fetch-timeout 600000; \
+    if [ -f package-lock.json ]; then \
+      (for i in 1 2 3; do \
+         echo "=== Tentative $i/3: npm ci ===" && npm ci --ignore-scripts && exit 0 || \
+         { echo "=== Tentative $i echouee, attente 10s ===" && sleep 10; }; \
+       done; exit 1) && \
       node node_modules/esbuild/install.js && \
       npm cache clean --force; \
     elif [ -f yarn.lock ]; then \

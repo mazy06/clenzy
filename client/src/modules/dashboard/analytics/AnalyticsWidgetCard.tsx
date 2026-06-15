@@ -49,12 +49,31 @@ const CARD_CONTENT_SX = {
 const VALUE_SX = {
   fontFamily: 'var(--font-display)',
   fontWeight: 600,
-  lineHeight: 1.2,
+  lineHeight: 1.15,
   letterSpacing: '-0.025em',
-  fontSize: '1.125rem',
   color: 'var(--ink)',
   fontVariantNumeric: 'tabular-nums',
+  mt: 0.25,
+  // Une seule ligne : si le chiffre est long, la taille est réduite
+  // (valueFontSize) et au pire on ellipse — jamais de retour à la ligne.
+  whiteSpace: 'nowrap' as const,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  maxWidth: '100%',
 } as const;
+
+/**
+ * Taille du chiffre adaptée à sa longueur (responsive) — un montant comme
+ * « 120.00 € » doit tenir sur une ligne dans une carte étroite, alors qu'un
+ * « 1 » ou « 46.7% » peut être affiché en grand.
+ */
+function valueFontSize(value?: string): { xs: string; md: string } {
+  const len = (value ?? '').length;
+  if (len <= 5) return { xs: '1.5rem', md: '1.75rem' };
+  if (len <= 8) return { xs: '1.25rem', md: '1.45rem' };
+  if (len <= 12) return { xs: '1.05rem', md: '1.2rem' };
+  return { xs: '0.9rem', md: '1rem' };
+}
 
 const TITLE_SX = {
   fontSize: '10.5px',
@@ -90,6 +109,10 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
   children,
   height,
 }) => {
+  // La description vit dans le tooltip (jamais en double sur la carte).
+  // Si aucun tooltip explicite, on y bascule le subtitle (ex. « X total »).
+  const resolvedTooltip = tooltip || subtitle;
+
   const cardContent = (
     <Card
       sx={{
@@ -139,21 +162,14 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
 
             {/* Value */}
             {value && (
-              <Typography variant="h6" component="div" sx={VALUE_SX}>
+              <Typography variant="h6" component="div" sx={{ ...VALUE_SX, fontSize: valueFontSize(value) }} title={value}>
                 {value}
               </Typography>
             )}
 
-            {/* Subtitle */}
-            {subtitle && (
-              <Typography
-                variant="caption"
-                color="text.disabled"
-                sx={{ fontSize: '0.5625rem', mt: 0.125, lineHeight: 1.2 }}
-              >
-                {subtitle}
-              </Typography>
-            )}
+            {/* La description (subtitle) n'est plus affichée dans la carte :
+                elle est redondante avec le tooltip → on la bascule dans le
+                tooltip (cf. resolvedTooltip) pour mettre le chiffre en avant. */}
 
             {/* Trend */}
             {trend && (
@@ -194,9 +210,9 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
     </Card>
   );
 
-  if (tooltip) {
+  if (resolvedTooltip) {
     return (
-      <Tooltip title={tooltip} arrow placement="top">
+      <Tooltip title={resolvedTooltip} arrow placement="top">
         {cardContent}
       </Tooltip>
     );

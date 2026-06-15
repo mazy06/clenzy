@@ -40,6 +40,7 @@ import StatTile from './StatTile';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import { useAuth } from '../hooks/useAuth';
 import { userAvatarSrc } from '../services/api/usersApi';
+import { parseApiDate } from '../utils/formatUtils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ function formatDuration(seconds: number): string {
 
 function formatRelativeTime(iso: string | undefined | null): string {
   if (!iso || iso === 'N/A') return 'Jamais';
-  const ts = new Date(iso).getTime();
+  const ts = parseApiDate(iso).getTime();
   if (Number.isNaN(ts)) return iso;
   const diff = Math.floor((Date.now() - ts) / 1000);
   if (diff < 60) return `Il y a ${diff}s`;

@@ -43,7 +43,8 @@ class UpsellServiceTest {
 
     private UpsellService service() {
         return new UpsellService(offerRepository, orderRepository, tokenRepository, guideRepository, reservationRepository,
-            stripeService, walletService, ledgerService, monetizationConfigService, managementContractService);
+            stripeService, walletService, ledgerService, monetizationConfigService, managementContractService,
+            java.time.Clock.systemUTC());
     }
 
     private WelcomeGuideToken validToken(Long propertyId) {

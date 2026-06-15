@@ -116,4 +116,11 @@ public record PublicPropertyDetailDto(
             HostPublicDto.from(p.getOwner())
         );
     }
+
+    /** Copie avec prix converti dans une devise d'affichage (CLZ Domaine 2 — multi-devise). */
+    public PublicPropertyDetailDto withDisplayCurrency(BigDecimal newNightlyPrice, String newCurrency) {
+        return new PublicPropertyDetailDto(id, name, description, type, city, country, latitude, longitude,
+            bedroomCount, bathroomCount, maxGuests, squareMeters, newNightlyPrice, minimumNights, newCurrency,
+            photos, amenities, checkInTime, checkOutTime, host);
+    }
 }

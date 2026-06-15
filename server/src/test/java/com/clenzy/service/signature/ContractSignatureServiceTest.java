@@ -163,7 +163,8 @@ class ContractSignatureServiceTest {
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(notificationService).notifyAdminsAndManagersByOrgId(
-                eq(ORG_ID), eq(NotificationKey.CONTRACT_SIGNED), anyString(), body.capture(), eq("/contracts"));
+                eq(ORG_ID), eq(NotificationKey.CONTRACT_SIGNED), anyString(), body.capture(),
+                org.mockito.ArgumentMatchers.contains("/contracts"));
         assertTrue(body.getValue().contains("J.D."), "le corps doit contenir les initiales");
         assertFalse(body.getValue().contains("Jean Dupont"), "le corps ne doit pas contenir le nom complet");
         // Le nom complet reste bien dans le dossier de preuve (donnée légale).

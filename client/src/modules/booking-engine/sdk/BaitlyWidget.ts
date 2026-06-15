@@ -1,7 +1,7 @@
-import type { BaitlyBookingConfig, WidgetState, DayAvailability } from './types';
+import type { BaitlyBookingConfig, WidgetState, WidgetProperty, DayAvailability, PriceBreakdown } from './types';
 import { StateManager, createInitialState } from './state';
 import { generateThemeCSS } from './theme';
-import { BookingApi } from './api';
+import { BookingApi, type ApiProperty, type ApiCalendar, type ApiAvailability } from './api';
 import { createBookingI18n } from './i18n';
 
 // Components
@@ -10,16 +10,23 @@ import { createCalendar } from './components/Calendar';
 import { createGuestSelector } from './components/GuestSelector';
 import { createPriceSummary } from './components/PriceSummary';
 import { createCTAButton } from './components/CTAButton';
-import { createPropertyFilter } from './components/PropertyFilter';
-import { createAddonsPanel } from './components/AddonsPanel';
 import { createGuestForm } from './components/GuestForm';
-import { createStepper } from './components/Stepper';
+import { createPropertyList } from './components/PropertyList';
+import { createCurrencySelector } from './components/CurrencySelector';
+import { createCartList } from './components/CartList';
+import { mountLeadCapture } from './components/LeadCapture';
+import { mountWishlistAuth, type WishlistAuthController } from './components/WishlistAuth';
+import { createRebookStrip } from './components/RebookStrip';
 
 // CSS (imported as strings by bundler)
 import resetCSS from './styles/reset.css?raw';
 import baseCSS from './styles/base.css?raw';
 import componentsCSS from './styles/components.css?raw';
 
+/**
+ * Widget embarquable du Booking Engine — property-first, branché sur la VRAIE API publique
+ * ({slug}/properties, /calendar, /availability, /reserve, /checkout) via {@link BookingApi}.
+ */
 export class BaitlyWidget {
   private config: BaitlyBookingConfig;
   private state: StateManager;
@@ -28,18 +35,24 @@ export class BaitlyWidget {
   private shadowRoot: ShadowRoot | null = null;
   private host: HTMLElement | null = null;
   private unsubscribers: (() => void)[] = [];
+  // Compte voyageur (2.11) — contrôleur du modal login/favoris (créé si organizationId fourni).
+  private wishlistAuth: WishlistAuthController | null = null;
+  // Parrainage (2.11) : code capté (config ou `?ref=`), rattaché après une réservation directe.
+  private referralCode: string | null = null;
+  // Suivi des champs déclencheurs de fetch (property / mois / devise).
+  private prevPropertyId: number | null = null;
+  private prevMonth = '';
+  private prevCurrency = '';
 
   constructor(config: BaitlyBookingConfig) {
     this.config = config;
     this.i18n = createBookingI18n(config.language || 'fr');
-    this.api = new BookingApi(
-      config.baseUrl || window.location.origin,
-      config.apiKey,
-    );
+    this.api = new BookingApi(config.baseUrl || window.location.origin, config.apiKey, config.slug);
     this.state = new StateManager(
       createInitialState({
         adults: config.defaultGuests?.adults ?? 2,
         children: config.defaultGuests?.children ?? 0,
+        displayCurrency: config.currency || 'EUR',
       }),
     );
   }
@@ -48,39 +61,55 @@ export class BaitlyWidget {
     const container = typeof this.config.container === 'string'
       ? document.querySelector(this.config.container)
       : this.config.container;
-
     if (!container) {
       console.error('[BaitlyBooking] Container not found:', this.config.container);
       return;
     }
 
-    // Create host element with Shadow DOM
     this.host = document.createElement('div');
     this.host.setAttribute('data-clenzy-booking', '');
-    if (this.i18n.isRTL) {
-      this.host.setAttribute('dir', 'rtl');
-    }
+    if (this.i18n.isRTL) this.host.setAttribute('dir', 'rtl');
     container.appendChild(this.host);
 
     this.shadowRoot = this.host.attachShadow({ mode: 'open' });
-
-    // Inject styles
     this.injectStyles();
 
-    // Render widget
-    this.renderWidget();
+    // Parrainage (2.11) : code passé en config ou via `?ref=` dans l'URL de la page hôte.
+    this.referralCode = this.config.referralCode?.trim() || readReferralCodeFromUrl();
 
-    // Bind API calls to state changes
+    // Compte voyageur (2.11) : modal login/favoris monté seulement si l'org est connue.
+    if (this.config.organizationId != null) {
+      this.wishlistAuth = mountWishlistAuth({
+        root: this.shadowRoot,
+        api: this.api,
+        i18n: this.i18n,
+        state: this.state,
+        organizationId: this.config.organizationId,
+      });
+    }
+
+    this.renderWidget();
     this.bindStateEffects();
 
-    // Initial data fetch
-    this.fetchAvailability();
+    // Capture de lead par exit-intent (2.12) — affichée une fois par session, gated par config.
+    this.unsubscribers.push(
+      mountLeadCapture({
+        root: this.shadowRoot,
+        api: this.api,
+        i18n: this.i18n,
+        locale: this.config.language || 'fr',
+        enabled: this.config.leadCapture !== false,
+        storageKey: `cb_lead_${this.config.apiKey}`,
+      }),
+    );
+
+    // Données initiales : devises + propriétés.
+    this.fetchCurrencies();
+    this.fetchProperties();
   }
 
   private injectStyles(): void {
     if (!this.shadowRoot) return;
-
-    // Font loading (Inter from Google Fonts if not custom)
     const fontFamily = this.config.theme?.fontFamily;
     if (!fontFamily || fontFamily.includes('Inter')) {
       const fontLink = document.createElement('link');
@@ -88,39 +117,40 @@ export class BaitlyWidget {
       fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap';
       this.shadowRoot.appendChild(fontLink);
     }
-
-    // Theme CSS variables
     const themeStyle = document.createElement('style');
     themeStyle.textContent = generateThemeCSS(this.config.theme);
     this.shadowRoot.appendChild(themeStyle);
-
-    // Component styles (static, no user input)
     const mainStyle = document.createElement('style');
     mainStyle.textContent = [resetCSS, baseCSS, componentsCSS].join('\n');
     this.shadowRoot.appendChild(mainStyle);
+
+    // CSS custom de l'org : injecté EN DERNIER (même spécificité → l'emporte sur les `.cb-*` de base).
+    // Unique moyen d'atteindre le widget : le CSS de la page hôte ne franchit pas le Shadow DOM.
+    const custom = this.config.customCss?.trim();
+    if (custom) {
+      const customStyle = document.createElement('style');
+      customStyle.setAttribute('data-clenzy-custom', '');
+      customStyle.textContent = custom;
+      this.shadowRoot.appendChild(customStyle);
+    }
   }
 
   private renderWidget(): void {
     if (!this.shadowRoot) return;
-
     const widget = document.createElement('div');
     widget.className = 'cb-widget';
 
-    // Search page
     const searchPage = this.renderSearchPage();
     widget.appendChild(searchPage);
 
-    // Form page (hidden initially)
     const formPage = this.renderFormPage();
     formPage.hidden = true;
     widget.appendChild(formPage);
 
-    // Confirmation page (hidden initially)
     const confirmPage = this.renderConfirmationPage();
     confirmPage.hidden = true;
     widget.appendChild(confirmPage);
 
-    // Powered by
     const powered = document.createElement('div');
     powered.className = 'cb-powered';
     powered.textContent = 'Powered by Baitly';
@@ -128,7 +158,6 @@ export class BaitlyWidget {
 
     this.shadowRoot.appendChild(widget);
 
-    // Page switching
     this.unsubscribers.push(
       this.state.on('pageChange', (s: WidgetState) => {
         searchPage.hidden = s.page !== 'search';
@@ -141,41 +170,58 @@ export class BaitlyWidget {
   private renderSearchPage(): HTMLElement {
     const page = document.createElement('div');
     page.className = 'cb-page';
-    const currency = this.config.currency || 'EUR';
+    const currency = this.state.get().displayCurrency;
 
-    // Property filter (optional)
-    if (this.config.showPropertyFilter !== false) {
-      page.appendChild(createPropertyFilter(this.state, this.i18n, currency));
+    // Re-booking 1-clic (2.11) : bandeau « Réserver à nouveau » pour le voyageur connecté.
+    if (this.config.organizationId != null) {
+      page.appendChild(createRebookStrip(this.state, this.i18n, this.api, this.config.organizationId));
     }
 
-    // Date picker
-    page.appendChild(createDatePicker(this.state, this.i18n));
+    // Sélecteur de devise (masqué si une seule devise)
+    page.appendChild(createCurrencySelector(this.state));
 
-    // Calendar (expandable)
-    page.appendChild(createCalendar(this.state, this.i18n, currency));
-
-    // Guest selector
-    page.appendChild(createGuestSelector(
+    // Liste de propriétés (sélection property-first) + cœurs favoris si compte voyageur actif.
+    page.appendChild(createPropertyList(
       this.state,
       this.i18n,
-      this.config.maxGuests || 10,
+      this.config.baseUrl || window.location.origin,
+      this.config.organizationId != null
+        ? { wishlistEnabled: true, onWishlistToggle: (id) => this.handleWishlistToggle(id) }
+        : {},
     ));
 
-    // Divider
+    // Sélection des dates (date picker + calendrier alimenté par /calendar de la propriété)
+    page.appendChild(createDatePicker(this.state, this.i18n));
+    page.appendChild(createCalendar(this.state, this.i18n, currency));
+
+    // Voyageurs
+    page.appendChild(createGuestSelector(this.state, this.i18n, this.config.maxGuests || 10));
+
     const divider = document.createElement('div');
     divider.className = 'cb-divider';
     page.appendChild(divider);
 
-    // Price summary
+    // Récapitulatif prix (depuis /availability)
     page.appendChild(createPriceSummary(this.state, this.i18n));
 
-    // Addons (optional)
-    if (this.config.showAddons !== false) {
-      page.appendChild(createAddonsPanel(this.state, this.i18n, currency));
-    }
-
-    // CTA button
+    // CTA → formulaire (réservation simple, si propriété + dates choisies)
     page.appendChild(createCTAButton(this.state, this.i18n, () => {
+      const s = this.state.get();
+      if (s.selectedPropertyId && s.checkIn && s.checkOut) {
+        this.state.set({ page: 'form' }, 'pageChange');
+      }
+    }));
+
+    // Ajouter au panier (multi-séjours) : ajoute le séjour courant + réinitialise la sélection.
+    const addToCart = document.createElement('button');
+    addToCart.type = 'button';
+    addToCart.className = 'cb-cta cb-cta--secondary cb-add-to-cart';
+    addToCart.textContent = this.i18n.t('cart.addStay');
+    addToCart.addEventListener('click', () => this.addCurrentStayToCart());
+    page.appendChild(addToCart);
+
+    // Panier multi-séjours : liste + total + "Continuer".
+    page.appendChild(createCartList(this.state, this.i18n, () => {
       this.state.set({ page: 'form' }, 'pageChange');
     }));
 
@@ -192,10 +238,8 @@ export class BaitlyWidget {
     const page = document.createElement('div');
     page.className = 'cb-page cb-confirmation';
 
-    // Success icon
     const icon = document.createElement('div');
     icon.className = 'cb-confirmation__icon';
-
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('fill', 'none');
@@ -203,7 +247,6 @@ export class BaitlyWidget {
     svg.setAttribute('stroke-width', '3');
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
-
     const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     polyline.setAttribute('points', '20 6 9 17 4 12');
     svg.appendChild(polyline);
@@ -212,7 +255,6 @@ export class BaitlyWidget {
     const title = document.createElement('h3');
     title.className = 'cb-text-lg cb-text-semibold cb-text-center';
     title.textContent = this.i18n.t('confirmation.title');
-
     const subtitle = document.createElement('p');
     subtitle.className = 'cb-text-sm cb-text-secondary cb-text-center';
     subtitle.textContent = this.i18n.t('confirmation.subtitle');
@@ -220,43 +262,45 @@ export class BaitlyWidget {
     page.appendChild(icon);
     page.appendChild(title);
     page.appendChild(subtitle);
-
     return page;
   }
 
   private bindStateEffects(): void {
-    // Fetch availability when month or property type changes
-    let prevMonth = this.state.get().calendarBaseMonth;
-    let prevType = this.state.get().selectedPropertyType;
+    this.prevPropertyId = this.state.get().selectedPropertyId;
+    this.prevMonth = this.state.get().calendarBaseMonth;
+    this.prevCurrency = this.state.get().displayCurrency;
 
+    // Re-fetch sur changement de propriété / mois / devise.
     this.unsubscribers.push(
       this.state.on('stateChange', (s: WidgetState) => {
-        if (s.calendarBaseMonth !== prevMonth || s.selectedPropertyType !== prevType) {
-          prevMonth = s.calendarBaseMonth;
-          prevType = s.selectedPropertyType;
-          this.fetchAvailability();
+        const currencyChanged = s.displayCurrency !== this.prevCurrency;
+        const propertyChanged = s.selectedPropertyId !== this.prevPropertyId;
+        const monthChanged = s.calendarBaseMonth !== this.prevMonth;
+        this.prevCurrency = s.displayCurrency;
+        this.prevPropertyId = s.selectedPropertyId;
+        this.prevMonth = s.calendarBaseMonth;
+
+        if (currencyChanged) {
+          this.fetchProperties();
+          if (s.selectedPropertyId) this.fetchCalendar();
+          if (s.checkIn && s.checkOut) this.fetchPricing();
+        } else if (propertyChanged) {
+          this.fetchCalendar();
+        } else if (monthChanged) {
+          this.fetchCalendar();
         }
       }),
     );
 
-    // Fetch pricing when dates change
+    // Prix quand les dates changent (via /availability).
     this.unsubscribers.push(
       this.state.on('dateSelected', (s: WidgetState) => {
-        if (s.checkIn && s.checkOut) {
-          this.fetchPricing();
-        } else {
-          this.state.set({ pricing: null });
-        }
-
-        // Notify external callback
-        this.config.onDateChange?.({
-          checkIn: s.checkIn,
-          checkOut: s.checkOut,
-        });
+        if (s.checkIn && s.checkOut) this.fetchPricing();
+        else this.state.set({ pricing: null });
+        this.config.onDateChange?.({ checkIn: s.checkIn, checkOut: s.checkOut });
       }),
     );
 
-    // Notify price changes
     this.unsubscribers.push(
       this.state.on('priceUpdated', (s: WidgetState) => {
         if (s.pricing) this.config.onPriceChange?.(s.pricing);
@@ -264,125 +308,227 @@ export class BaitlyWidget {
     );
   }
 
-  private async fetchAvailability(): Promise<void> {
+  private async fetchCurrencies(): Promise<void> {
+    try {
+      const currencies = await this.api.getCurrencies();
+      if (Array.isArray(currencies) && currencies.length) {
+        this.state.set({ currencies });
+      }
+    } catch {
+      // best-effort : pas de sélecteur si l'endpoint échoue
+    }
+  }
+
+  private async fetchProperties(): Promise<void> {
     try {
       this.state.set({ loading: true });
+      const currency = this.state.get().displayCurrency;
+      const apiProps = await this.api.getProperties(currency);
+      const properties: WidgetProperty[] = apiProps.map(mapProperty);
 
       const s = this.state.get();
-      const [year, month] = s.calendarBaseMonth.split('-').map(Number);
-
-      const from = `${year}-${String(month).padStart(2, '0')}-01`;
-      const toDate = new Date(year, month + 1, 0); // last day of next month
-      const to = `${toDate.getFullYear()}-${String(toDate.getMonth() + 1).padStart(2, '0')}-${String(toDate.getDate()).padStart(2, '0')}`;
-
-      const response = await this.api.getAvailability({
-        from,
-        to,
-        types: s.selectedPropertyType ? [s.selectedPropertyType] : undefined,
-        guests: s.adults + s.children,
-      });
-
-      const availability = new Map<string, DayAvailability>();
-      response.days.forEach(day => {
-        availability.set(day.date, {
-          date: day.date,
-          available: day.available,
-          minPrice: day.minPrice,
-          minNights: day.minNights,
-          isCheckInOnly: day.checkInOnly,
-          isCheckOutOnly: day.checkOutOnly,
-        });
-      });
-
-      this.state.set({
-        availability,
-        propertyTypes: response.propertyTypes.map(pt => ({
-          code: pt.code,
-          label: pt.label,
-          count: pt.count,
-          minPrice: pt.minPrice,
-        })),
-        loading: false,
-      });
+      // Auto-sélection si une seule propriété.
+      const selectedPropertyId = s.selectedPropertyId
+        ?? (properties.length === 1 ? properties[0].id : null);
+      this.state.set({ properties, selectedPropertyId, loading: false }, 'stateChange');
     } catch (err) {
-      this.state.set({
-        loading: false,
-        error: err instanceof Error ? err.message : 'Failed to load availability',
-      }, 'error');
-      this.config.onError?.({
-        code: 'AVAILABILITY_ERROR',
-        message: err instanceof Error ? err.message : 'Unknown error',
-      });
+      this.state.set({ loading: false, error: msg(err) }, 'error');
+      this.config.onError?.({ code: 'PROPERTIES_ERROR', message: msg(err) });
+    }
+  }
+
+  private async fetchCalendar(): Promise<void> {
+    const s = this.state.get();
+    if (!s.selectedPropertyId) {
+      this.state.set({ availability: new Map() });
+      return;
+    }
+    try {
+      this.state.set({ loading: true });
+      const cal: ApiCalendar = await this.api.getCalendar(
+        s.selectedPropertyId, s.calendarBaseMonth, 2, s.displayCurrency,
+      );
+      this.state.set({ availability: toAvailabilityMap(cal), loading: false });
+    } catch (err) {
+      this.state.set({ loading: false, error: msg(err) }, 'error');
+      this.config.onError?.({ code: 'CALENDAR_ERROR', message: msg(err) });
     }
   }
 
   private async fetchPricing(): Promise<void> {
     const s = this.state.get();
-    if (!s.checkIn || !s.checkOut) return;
-
+    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut) return;
     try {
       this.state.set({ pricingLoading: true });
-
-      const pricing = await this.api.calculatePrice({
-        checkIn: s.checkIn,
-        checkOut: s.checkOut,
-        propertyTypeCode: s.selectedPropertyType || undefined,
-        guests: s.adults + s.children,
-        addonIds: s.addons.map(a => a.id),
-      });
-
-      this.state.set({ pricing, pricingLoading: false }, 'priceUpdated');
+      const avail: ApiAvailability = await this.api.checkAvailability(
+        { propertyId: s.selectedPropertyId, checkIn: s.checkIn, checkOut: s.checkOut, guests: s.adults + s.children },
+        s.displayCurrency,
+        s.guestToken ?? undefined, // tarif membre (2.8) si voyageur connecté
+      );
+      if (!avail.available) {
+        this.state.set({ pricing: null, pricingLoading: false, error: avail.violations?.[0] ?? null }, 'error');
+        return;
+      }
+      this.state.set({ pricing: toPriceBreakdown(avail, this.i18n), pricingLoading: false }, 'priceUpdated');
     } catch (err) {
-      this.state.set({ pricingLoading: false }, 'error');
+      this.state.set({ pricingLoading: false, error: msg(err) }, 'error');
     }
+  }
+
+  /** Ajoute le séjour courant (propriété + dates + prix) au panier, puis réinitialise la sélection. */
+  private addCurrentStayToCart(): void {
+    const s = this.state.get();
+    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut || !s.pricing) return;
+    const prop = s.properties.find(p => p.id === s.selectedPropertyId);
+    const item = {
+      propertyId: s.selectedPropertyId,
+      propertyName: prop?.name ?? '',
+      checkIn: s.checkIn,
+      checkOut: s.checkOut,
+      guests: s.adults + s.children,
+      total: s.pricing.total,
+      currency: s.pricing.currency,
+    };
+    this.state.set({
+      cart: [...s.cart, item],
+      selectedPropertyId: null,
+      checkIn: null,
+      checkOut: null,
+      pricing: null,
+    }, 'stateChange');
+  }
+
+  /**
+   * Bascule un favori (2.11) : ouvre le login si la session guest est absente, sinon toggle.
+   * Mise à jour optimiste (cœur instantané) puis réconciliation avec la liste serveur ; rollback
+   * en cas d'échec réseau.
+   */
+  private handleWishlistToggle(propertyId: number): void {
+    const orgId = this.config.organizationId;
+    if (orgId == null || !this.wishlistAuth) return;
+    this.wishlistAuth.requireAuth(() => {
+      const s = this.state.get();
+      const token = s.guestToken;
+      if (!token) return;
+      const previous = s.wishlist;
+      const isWishlisted = previous.includes(propertyId);
+      const optimistic = isWishlisted
+        ? previous.filter(id => id !== propertyId)
+        : [...previous, propertyId];
+      this.state.set({ wishlist: optimistic }, 'stateChange');
+      const request = isWishlisted
+        ? this.api.wishlistRemove(orgId, propertyId, token)
+        : this.api.wishlistAdd(orgId, propertyId, token);
+      request
+        .then((ids) => this.state.set({ wishlist: ids }, 'stateChange'))
+        .catch(() => this.state.set({ wishlist: previous }, 'stateChange'));
+    });
+  }
+
+  /**
+   * Parrainage (2.11) : rattache le filleul à son parrain après une réservation directe. Best-effort
+   * (le crédit n'est accordé qu'au séjour terminé) ; un échec n'interrompt jamais le paiement.
+   */
+  private maybeClaimReferral(reservationCode: string): void {
+    const orgId = this.config.organizationId;
+    if (!this.referralCode || orgId == null || !reservationCode) return;
+    this.api.claimReferral(orgId, reservationCode, this.referralCode).catch(() => {
+      /* best-effort : code invalide / filleul déjà parrainé → ignoré */
+    });
   }
 
   private async handleCheckout(): Promise<void> {
     const s = this.state.get();
-    if (!s.checkIn || !s.checkOut) return;
+    const name = `${s.guestForm.firstName} ${s.guestForm.lastName}`.trim();
+    const guest = { name, email: s.guestForm.email, phone: s.guestForm.phone || undefined };
+
+    // Panier multi-séjours : reserve-batch puis paiement item par item.
+    if (s.cart.length > 0) {
+      await this.handleBatchCheckout(s, guest);
+      return;
+    }
+
+    if (!s.selectedPropertyId || !s.checkIn || !s.checkOut) return;
 
     try {
       this.state.set({ loading: true });
-
-      const result = await this.api.createCheckoutSession({
+      const reservation = await this.api.reserve({
+        propertyId: s.selectedPropertyId,
         checkIn: s.checkIn,
         checkOut: s.checkOut,
-        propertyTypeCode: s.selectedPropertyType || undefined,
         guests: s.adults + s.children,
-        addonIds: s.addons.map(a => a.id),
-        guestInfo: {
-          firstName: s.guestForm.firstName,
-          lastName: s.guestForm.lastName,
-          email: s.guestForm.email,
-          phone: s.guestForm.phone,
-          message: s.guestForm.message || undefined,
-        },
-      });
+        guest,
+        notes: s.guestForm.message || undefined,
+      }, s.guestToken ?? undefined); // tarif membre (2.8)
 
-      // Redirect to Stripe Checkout
-      if (result.url) {
-        window.location.href = result.url;
-      } else {
-        // No payment required — show confirmation
-        this.state.set({ page: 'confirmation', loading: false }, 'pageChange');
-        this.config.onBook?.({
-          reservationId: 'pending',
-          status: 'confirmed',
-          checkIn: s.checkIn,
-          checkOut: s.checkOut,
-          total: s.pricing?.total || 0,
-          currency: s.pricing?.currency || 'EUR',
-        });
+      this.maybeClaimReferral(reservation.reservationCode);
+
+      if (reservation.requiresPayment) {
+        const checkout = await this.api.checkout(reservation.reservationCode);
+        if (checkout.checkoutUrl) {
+          window.location.href = checkout.checkoutUrl;
+          return;
+        }
+        throw new Error('checkout URL manquante');
       }
-    } catch (err) {
-      this.state.set({
-        loading: false,
-        error: err instanceof Error ? err.message : 'Checkout failed',
-      }, 'error');
-      this.config.onError?.({
-        code: 'CHECKOUT_ERROR',
-        message: err instanceof Error ? err.message : 'Unknown error',
+
+      // Pas de paiement requis → confirmation.
+      this.state.set({ page: 'confirmation', loading: false }, 'pageChange');
+      this.config.onBook?.({
+        reservationId: reservation.reservationCode,
+        status: reservation.status,
+        checkIn: s.checkIn,
+        checkOut: s.checkOut,
+        total: reservation.total,
+        currency: reservation.currency,
       });
+    } catch (err) {
+      this.state.set({ loading: false, error: msg(err) }, 'error');
+      this.config.onError?.({ code: 'CHECKOUT_ERROR', message: msg(err) });
+    }
+  }
+
+  /** Panier multi-séjours : crée les N réservations (reserve-batch) puis paie item par item. */
+  private async handleBatchCheckout(
+    s: WidgetState,
+    guest: { name: string; email: string; phone?: string },
+  ): Promise<void> {
+    try {
+      this.state.set({ loading: true });
+      const items = s.cart.map(c => ({
+        propertyId: c.propertyId,
+        checkIn: c.checkIn,
+        checkOut: c.checkOut,
+        guests: c.guests,
+      }));
+      const batch = await this.api.reserveBatch({ items, guest }, s.guestToken ?? undefined); // tarif membre (2.8)
+
+      if (batch.reservations.length > 0) {
+        this.maybeClaimReferral(batch.reservations[0].reservationCode);
+      }
+
+      if (batch.requiresPayment && batch.reservations.length > 0) {
+        // Paiement item par item : on démarre le checkout du premier séjour.
+        const checkout = await this.api.checkout(batch.reservations[0].reservationCode);
+        if (checkout.checkoutUrl) {
+          window.location.href = checkout.checkoutUrl;
+          return;
+        }
+        throw new Error('checkout URL manquante');
+      }
+
+      this.state.set({ page: 'confirmation', cart: [], loading: false }, 'pageChange');
+      this.config.onBook?.({
+        reservationId: batch.batchCode,
+        status: 'confirmed',
+        checkIn: s.cart[0].checkIn,
+        checkOut: s.cart[s.cart.length - 1].checkOut,
+        total: batch.grandTotal,
+        currency: batch.currency,
+      });
+    } catch (err) {
+      this.state.set({ loading: false, error: msg(err) }, 'error');
+      this.config.onError?.({ code: 'CHECKOUT_ERROR', message: msg(err) });
     }
   }
 
@@ -391,31 +537,113 @@ export class BaitlyWidget {
     if (!this.shadowRoot) return;
     this.config.theme = { ...this.config.theme, ...theme };
     const themeStyle = this.shadowRoot.querySelector('style');
-    if (themeStyle) {
-      themeStyle.textContent = generateThemeCSS(this.config.theme);
-    }
+    if (themeStyle) themeStyle.textContent = generateThemeCSS(this.config.theme);
   }
 
   /** Change language at runtime */
   setLanguage(lang: 'fr' | 'en' | 'ar'): void {
+    this.config.language = lang;
     this.i18n = createBookingI18n(lang);
-    if (this.host) {
-      this.host.setAttribute('dir', this.i18n.isRTL ? 'rtl' : 'ltr');
-    }
-    // Re-render widget
+    if (this.host) this.host.setAttribute('dir', this.i18n.isRTL ? 'rtl' : 'ltr');
     this.destroy();
     this.mount();
   }
 
-  /** Clean up */
+  /** Switch the display currency at runtime. */
+  setCurrency(currency: string): void {
+    this.state.set({ displayCurrency: currency }, 'stateChange');
+  }
+
   destroy(): void {
     this.unsubscribers.forEach(fn => fn());
     this.unsubscribers = [];
+    this.wishlistAuth?.destroy();
+    this.wishlistAuth = null;
     this.state.destroy();
     if (this.host) {
       this.host.remove();
       this.host = null;
     }
     this.shadowRoot = null;
+  }
+}
+
+// ─── Mappers API -> état widget ────────────────────────────────────────────────
+
+function mapProperty(p: ApiProperty): WidgetProperty {
+  return {
+    id: p.id,
+    name: p.name,
+    type: p.type,
+    city: p.city,
+    country: p.country,
+    bedroomCount: p.bedroomCount,
+    bathroomCount: p.bathroomCount,
+    maxGuests: p.maxGuests,
+    priceFrom: p.priceFrom,
+    cleaningFee: p.cleaningFee,
+    minimumNights: p.minimumNights,
+    currency: p.currency,
+    mainPhotoUrl: p.mainPhotoUrl,
+    amenities: p.amenities,
+    checkInTime: p.checkInTime,
+    checkOutTime: p.checkOutTime,
+    totalBookings: p.totalBookings,
+    availableDays30: p.availableDays30,
+  };
+}
+
+function toAvailabilityMap(cal: ApiCalendar): Map<string, DayAvailability> {
+  const map = new Map<string, DayAvailability>();
+  cal.days.forEach(d => {
+    map.set(d.date, {
+      date: d.date,
+      available: d.available,
+      minPrice: d.price,
+      minNights: d.minNights,
+      isCheckInOnly: d.checkInOnly,
+      isCheckOutOnly: d.checkOutOnly,
+    });
+  });
+  return map;
+}
+
+function toPriceBreakdown(a: ApiAvailability, i18n: { t: (k: string) => string }): PriceBreakdown {
+  const nightlyRate = a.nights > 0 ? a.subtotal / a.nights : 0;
+  // Book Direct & Save (2.8) : a.subtotal est déjà remisé → la ligne de base montre le tarif PLEIN
+  // (public) et une ligne « réservation directe » expose l'économie ; le net retombe sur a.subtotal.
+  const directDiscount = a.directDiscount ?? 0;
+  const fullSubtotal = a.subtotal + directDiscount;
+  const lines: PriceBreakdown['lines'] = [
+    { label: `${a.nights} ${i18n.t('cart.nights')}`, amount: fullSubtotal, type: 'base' },
+  ];
+  if (directDiscount > 0) {
+    lines.push({ label: i18n.t('price.directDiscount'), amount: -directDiscount, type: 'discount' });
+  }
+  if (a.cleaningFee > 0) lines.push({ label: i18n.t('validation.cleaningFee'), amount: a.cleaningFee, type: 'fee' });
+  if (a.touristTax > 0) lines.push({ label: i18n.t('validation.touristTax'), amount: a.touristTax, type: 'fee' });
+  return {
+    nightlyRate,
+    nights: a.nights,
+    subtotal: a.subtotal,
+    cleaningFee: a.cleaningFee,
+    addonsTotal: 0,
+    total: a.total,
+    currency: a.currency,
+    lines,
+  };
+}
+
+function msg(err: unknown): string {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
+/** Parrainage (2.11) : lit le code dans `?ref=` de l'URL de la page hôte (null si absent/indispo). */
+function readReferralCodeFromUrl(): string | null {
+  try {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    return ref && ref.trim() ? ref.trim() : null;
+  } catch {
+    return null;
   }
 }

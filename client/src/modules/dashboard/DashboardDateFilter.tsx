@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Chip } from '@mui/material';
+import PeriodSegmented from '../../components/PeriodSegmented';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -17,6 +17,10 @@ interface DashboardDateFilterProps<T extends string = string> {
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
+//
+// Sélecteur de période = options mutuellement exclusives (view-switcher) →
+// délègue au segmented partagé (résolution §7 « chips vs segmented »). API
+// inchangée pour les consommateurs (Dashboard, DashboardOverview, etc.).
 
 function DashboardDateFilterInner<T extends string>({
   value,
@@ -24,35 +28,12 @@ function DashboardDateFilterInner<T extends string>({
   options,
 }: DashboardDateFilterProps<T>) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-      {options.map((opt) => {
-        const isSelected = value === opt.value;
-        return (
-          <Chip
-            key={opt.value}
-            label={opt.label}
-            size="small"
-            variant={isSelected ? 'filled' : 'outlined'}
-            color={isSelected ? 'primary' : 'default'}
-            onClick={() => onChange(opt.value)}
-            sx={{
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              height: 28,
-              cursor: 'pointer',
-              ...(!isSelected && {
-                borderColor: 'divider',
-                color: 'text.secondary',
-                '&:hover': {
-                  backgroundColor: 'action.hover',
-                  borderColor: 'text.secondary',
-                },
-              }),
-            }}
-          />
-        );
-      })}
-    </Box>
+    <PeriodSegmented<T>
+      value={value}
+      onChange={onChange}
+      options={options}
+      ariaLabel="Période"
+    />
   );
 }
 

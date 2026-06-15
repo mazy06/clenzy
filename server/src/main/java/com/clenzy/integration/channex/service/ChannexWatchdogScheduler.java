@@ -149,6 +149,7 @@ public class ChannexWatchdogScheduler {
                     "Sync Channex en erreur",
                     "« " + item.propertyName() + " » : " + item.reason()
                         + (item.lastSyncError() != null ? " — " + truncate(item.lastSyncError(), 120) : ""),
+                    // Deep-link vers le diagnostic de la propriete (PropertiesList lit ?diagnoseChannex=<id>)
                     "/properties?diagnoseChannex=" + propertyId,
                     item.organizationId()
                 );

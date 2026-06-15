@@ -31,9 +31,9 @@ public class MarketingIntegrationController {
 
     // ─── Requetes ───────────────────────────────────────────────────────────
     public record UpdateApiKeyRequest(String apiKey) {}
-    public record UpdateListsRequest(Long waitlistListId, Long newsletterListId, Long prospectsListId) {}
+    public record UpdateListsRequest(Long waitlistListId, Long newsletterListId, Long prospectsListId, Long leadsListId) {}
     public record UpdateTogglesRequest(Boolean syncWaitlist, Boolean syncNewsletter,
-                                       Boolean syncProspects, Boolean syncAttributes) {}
+                                       Boolean syncProspects, Boolean syncLeads, Boolean syncAttributes) {}
 
     @GetMapping
     public ResponseEntity<MarketingIntegrationDto> get() {
@@ -51,7 +51,8 @@ public class MarketingIntegrationController {
     public ResponseEntity<MarketingIntegrationDto> updateLists(@RequestBody UpdateListsRequest req,
                                                               @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(MarketingIntegrationDto.from(
-                service.updateLists(req.waitlistListId(), req.newsletterListId(), req.prospectsListId(), actor(jwt))));
+                service.updateLists(req.waitlistListId(), req.newsletterListId(), req.prospectsListId(),
+                        req.leadsListId(), actor(jwt))));
     }
 
     @PutMapping("/toggles")
@@ -59,7 +60,7 @@ public class MarketingIntegrationController {
                                                                 @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(MarketingIntegrationDto.from(
                 service.updateToggles(req.syncWaitlist(), req.syncNewsletter(),
-                        req.syncProspects(), req.syncAttributes(), actor(jwt))));
+                        req.syncProspects(), req.syncLeads(), req.syncAttributes(), actor(jwt))));
     }
 
     /** Teste la cle effective contre l'API Brevo et persiste le statut. */

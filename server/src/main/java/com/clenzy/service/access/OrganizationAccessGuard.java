@@ -49,11 +49,32 @@ public class OrganizationAccessGuard {
      * @throws AccessDeniedException si l'acces est refuse
      */
     public void requireSameOrganization(Long entityOrgId, String resourceLabel) {
+        requireSameOrganization(entityOrgId, tenantContext.getOrganizationId(), resourceLabel);
+    }
+
+    /**
+     * Variante fail-closed comparant l'org de l'entite a un {@code expectedOrgId}
+     * EXPLICITE (et non au TenantContext courant).
+     *
+     * <p>A utiliser dans les flux ou l'org de reference est passee en parametre
+     * plutot que resolue via le ThreadLocal : typiquement
+     * {@link com.clenzy.service.CalendarEngine}, invoque aussi bien en HTTP qu'en
+     * arriere-plan (Kafka consumers, schedulers) ou le {@code orgId} du caller fait
+     * foi. Le bypass staff plateforme / org SYSTEM reste evalue via le TenantContext
+     * (operations HTTP super-admin) ; en arriere-plan le contexte n'est pas
+     * super-admin et la comparaison explicite {@code entityOrgId == expectedOrgId}
+     * tranche.</p>
+     *
+     * @param entityOrgId   organizationId de l'entite chargee (peut etre NULL)
+     * @param expectedOrgId organizationId attendu / du caller (peut etre NULL)
+     * @param resourceLabel message d'erreur si l'acces est refuse
+     * @throws AccessDeniedException si l'acces est refuse
+     */
+    public void requireSameOrganization(Long entityOrgId, Long expectedOrgId, String resourceLabel) {
         if (tenantContext.isSuperAdmin() || tenantContext.isSystemOrg()) {
             return;
         }
-        Long tenantOrgId = tenantContext.getOrganizationId();
-        if (tenantOrgId == null || entityOrgId == null || !tenantOrgId.equals(entityOrgId)) {
+        if (expectedOrgId == null || entityOrgId == null || !expectedOrgId.equals(entityOrgId)) {
             throw new AccessDeniedException(resourceLabel);
         }
     }

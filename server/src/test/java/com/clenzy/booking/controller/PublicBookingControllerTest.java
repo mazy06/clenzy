@@ -38,7 +38,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -57,7 +59,18 @@ class PublicBookingControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new PublicBookingController(bookingService, serviceOptionsService, photoService, rateLimiter);
+        // Vrai service de conversion (converter mocké) : passthrough quand currency == null.
+        var displayCurrencyService = new com.clenzy.booking.service.BookingDisplayCurrencyService(
+            org.mockito.Mockito.mock(com.clenzy.service.CurrencyConverterService.class));
+        controller = new PublicBookingController(bookingService, serviceOptionsService, photoService, rateLimiter,
+            displayCurrencyService,
+            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicBookingCalendarService.class),
+            org.mockito.Mockito.mock(com.clenzy.service.LeadCaptureService.class),
+            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicCancellationService.class),
+            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicReviewService.class),
+            org.mockito.Mockito.mock(com.clenzy.booking.service.BookingBalanceService.class),
+            org.mockito.Mockito.mock(com.clenzy.booking.service.BookingGuestAuthService.class),
+            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicConciergeService.class));
         lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
         lenient().when(rateLimiter.tryAcquireBatch(any())).thenReturn(true);
 
@@ -74,7 +87,7 @@ class PublicBookingControllerTest {
         when(bookingService.resolveFromFilter(filterConfig)).thenReturn(ctx);
 
         BookingEngineConfigDto dto = new BookingEngineConfigDto("#fff", "#000", null, null, "fr",
-                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null);
+                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true);
         when(bookingService.getConfig(ctx)).thenReturn(dto);
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
@@ -87,7 +100,7 @@ class PublicBookingControllerTest {
         when(bookingService.resolveOrg("slug")).thenReturn(ctx);
 
         BookingEngineConfigDto dto = new BookingEngineConfigDto("#fff", "#000", null, null, "fr",
-                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null);
+                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true);
         when(bookingService.getConfig(ctx)).thenReturn(dto);
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
@@ -101,7 +114,7 @@ class PublicBookingControllerTest {
         when(bookingService.getProperties(ctx)).thenReturn(List.of(
                 mock(PublicPropertyDto.class), mock(PublicPropertyDto.class)));
 
-        ResponseEntity<List<PublicPropertyDto>> response = controller.getProperties("slug", request);
+        ResponseEntity<List<PublicPropertyDto>> response = controller.getProperties("slug", null, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(2);
     }
@@ -113,7 +126,7 @@ class PublicBookingControllerTest {
         PublicPropertyDetailDto detail = mock(PublicPropertyDetailDto.class);
         when(bookingService.getPropertyDetail(ctx, 10L)).thenReturn(detail);
 
-        ResponseEntity<PublicPropertyDetailDto> response = controller.getProperty("slug", 10L, request);
+        ResponseEntity<PublicPropertyDetailDto> response = controller.getProperty("slug", 10L, null, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
@@ -126,9 +139,9 @@ class PublicBookingControllerTest {
                 LocalDate.now().plusDays(3), 2);
         AvailabilityResponseDto resp = AvailabilityResponseDto.unavailable(10L,
                 req.checkIn(), req.checkOut(), 2, List.of());
-        when(bookingService.checkAvailability(ctx, req)).thenReturn(resp);
+        when(bookingService.checkAvailability(eq(ctx), eq(req), anyBoolean())).thenReturn(resp);
 
-        ResponseEntity<AvailabilityResponseDto> response = controller.checkAvailability("slug", req, request);
+        ResponseEntity<AvailabilityResponseDto> response = controller.checkAvailability("slug", null, req, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
@@ -143,7 +156,7 @@ class PublicBookingControllerTest {
         BookingReserveResponseDto resp = BookingReserveResponseDto.withoutVoucher(
                 "code-1", "PENDING", "Prop", req.checkIn(), req.checkOut(),
                 BigDecimal.valueOf(100), "EUR", null, true);
-        when(bookingService.reserve(ctx, req)).thenReturn(resp);
+        when(bookingService.reserve(eq(ctx), eq(req), anyBoolean())).thenReturn(resp);
 
         ResponseEntity<?> response = controller.reserve("slug", req, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -173,7 +186,7 @@ class PublicBookingControllerTest {
         BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(List.of(item), gi);
         BookingReserveBatchResponseDto resp = new BookingReserveBatchResponseDto(
                 "batch", List.of(), BigDecimal.TEN, "EUR", null, true);
-        when(bookingService.reserveBatch(ctx, req)).thenReturn(resp);
+        when(bookingService.reserveBatch(eq(ctx), eq(req), anyBoolean())).thenReturn(resp);
 
         ResponseEntity<?> response = controller.reserveBatch("slug", req, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);

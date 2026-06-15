@@ -48,7 +48,7 @@ const SELECTION_CONTROL_STYLES = {
 /** Palette Signature par mode — valeurs issues de tokens.css (source de vérité). */
 const SIGNATURE_PALETTE = {
   light: {
-    primary: { main: '#5F7E8C', dark: '#4E6E7C', contrastText: '#FFFFFF' },
+    primary: { main: '#5453D6', dark: '#4341BE', contrastText: '#FFFFFF' }, // indigo — Baitly Signature
     success: { main: '#4A9B8E' },
     warning: { main: '#C28A52' },
     error: { main: '#C97A7A' },
@@ -58,7 +58,7 @@ const SIGNATURE_PALETTE = {
     divider: '#E7ECEF',
   },
   dark: {
-    primary: { main: '#7FA3B1', dark: '#6E91A0', contrastText: '#0E141A' },
+    primary: { main: '#8584F0', dark: '#6F6EE6', contrastText: '#FFFFFF' }, // indigo (éclairci) — Baitly Signature
     success: { main: '#4A9B8E' },
     warning: { main: '#C28A52' },
     error: { main: '#C97A7A' },
