@@ -22,6 +22,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         + "AND r.source = 'direct' AND r.status = 'confirmed' AND r.checkOut < :cutoff")
     List<Reservation> findLoyaltyEligible(@Param("orgId") Long orgId, @Param("cutoff") LocalDate cutoff);
 
+    /**
+     * Réservations directes d'un voyageur (re-booking 1-clic, 2.11) : matching par email guest +
+     * org, source directe uniquement (les imports OTA ne sont pas re-réservables ici). Triées du
+     * plus récent au plus ancien ; le service borne le nombre via {@link Pageable}.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest "
+        + "WHERE r.organizationId = :orgId AND r.source = 'direct' AND LOWER(r.guest.email) = :email "
+        + "ORDER BY r.checkIn DESC")
+    List<Reservation> findGuestDirectBookings(@Param("orgId") Long orgId, @Param("email") String email, Pageable pageable);
+
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.id IN :propertyIds " +
            "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByPropertyIdsAndDateRange(

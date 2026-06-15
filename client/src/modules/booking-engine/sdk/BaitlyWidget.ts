@@ -16,6 +16,7 @@ import { createCurrencySelector } from './components/CurrencySelector';
 import { createCartList } from './components/CartList';
 import { mountLeadCapture } from './components/LeadCapture';
 import { mountWishlistAuth, type WishlistAuthController } from './components/WishlistAuth';
+import { createRebookStrip } from './components/RebookStrip';
 
 // CSS (imported as strings by bundler)
 import resetCSS from './styles/reset.css?raw';
@@ -165,6 +166,11 @@ export class BaitlyWidget {
     const page = document.createElement('div');
     page.className = 'cb-page';
     const currency = this.state.get().displayCurrency;
+
+    // Re-booking 1-clic (2.11) : bandeau « Réserver à nouveau » pour le voyageur connecté.
+    if (this.config.organizationId != null) {
+      page.appendChild(createRebookStrip(this.state, this.i18n, this.api, this.config.organizationId));
+    }
 
     // Sélecteur de devise (masqué si une seule devise)
     page.appendChild(createCurrencySelector(this.state));

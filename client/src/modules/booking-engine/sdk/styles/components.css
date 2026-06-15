@@ -1057,3 +1057,64 @@
 .cb-cart__checkout {
   margin-top: var(--cb-space-3);
 }
+
+/* ─── Re-booking 1-clic (2.11) ────────────────────────────────────────────── */
+.cb-rebook__title {
+  margin-bottom: var(--cb-space-2);
+  color: var(--cb-color-text);
+}
+
+.cb-rebook__row {
+  display: flex;
+  gap: var(--cb-space-2);
+  overflow-x: auto;
+  padding-bottom: var(--cb-space-1);
+  scrollbar-width: thin;
+}
+
+.cb-rebook__card {
+  flex: 0 0 auto;
+  min-width: 168px;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: start;
+  padding: var(--cb-space-3);
+  border: 1px solid var(--cb-color-border);
+  border-radius: var(--cb-radius-md);
+  background: var(--cb-color-bg);
+  cursor: pointer;
+  transition: border-color var(--cb-transition-base), box-shadow var(--cb-transition-base);
+}
+
+.cb-rebook__card:hover {
+  border-color: var(--cb-color-primary);
+}
+
+.cb-rebook__card:focus-visible {
+  outline: none;
+  box-shadow: var(--cb-shadow-focus);
+}
+
+.cb-rebook__card:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cb-rebook__name {
+  font-size: var(--cb-font-size-md);
+  color: var(--cb-color-text);
+}
+
+.cb-rebook__meta {
+  font-variant-numeric: tabular-nums;
+}
+
+.cb-rebook__cta {
+  margin-top: var(--cb-space-2);
+  align-self: flex-start;
+  font-size: var(--cb-font-size-xs);
+  font-weight: var(--cb-font-weight-semibold);
+  color: var(--cb-color-primary);
+}
