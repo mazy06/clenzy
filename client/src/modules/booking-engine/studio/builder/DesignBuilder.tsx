@@ -104,6 +104,15 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     setHydrated(true);
   }, [hydrated, cfg.loading, cfg.config]);
 
+  // Repli intelligent par breakpoint : en desktop le canvas a besoin de toute la largeur → on
+  // replie les deux colonnes ; en tablette/mobile le canvas est étroit → on les rouvre. (L'utilisateur
+  // peut toujours surcharger manuellement avec les boutons de repli.)
+  useEffect(() => {
+    const collapse = breakpoint === 'desktop';
+    setLeftCollapsed(collapse);
+    setRightCollapsed(collapse);
+  }, [breakpoint]);
+
   // Réinjecte la page dans la config → la barre d'enregistrement persiste tout (PUT).
   const commit = useCallback((next: BlockInstance[]) => {
     setBlocks(next);
