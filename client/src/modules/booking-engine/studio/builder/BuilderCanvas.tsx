@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import { getBlockDef, visibilityClassName, type BlockRenderCtx } from './blockRegistry';
+import { getBlockDef, visibilityClassName, resolveProps, type BlockRenderCtx } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 import type { Breakpoint } from '../StudioShell';
 import type { DesignTokens } from '../../../../services/api/bookingEngineApi';
@@ -61,7 +61,7 @@ export function themeStyle(theme?: CanvasTheme): React.CSSProperties {
  * Bloc rendu dans le canvas avec chrome d'édition (halo + libellé au survol/sélection). Récursif :
  * un conteneur `columns` rend ses enfants via le même nœud (sélectionnables individuellement).
  */
-function BlockNode({ block, selectedId, onSelect }: { block: BlockInstance; selectedId: string | null; onSelect: (id: string) => void }) {
+function BlockNode({ block, selectedId, breakpoint, onSelect }: { block: BlockInstance; selectedId: string | null; breakpoint: Breakpoint; onSelect: (id: string) => void }) {
   const def = getBlockDef(block.type);
   const isActive = block.id === selectedId;
 
@@ -69,7 +69,7 @@ function BlockNode({ block, selectedId, onSelect }: { block: BlockInstance; sele
   if (block.type === 'columns' && block.children) {
     ctx = {
       columns: block.children.map((col) => (
-        <>{col.map((child) => <BlockNode key={child.id} block={child} selectedId={selectedId} onSelect={onSelect} />)}</>
+        <>{col.map((child) => <BlockNode key={child.id} block={child} selectedId={selectedId} breakpoint={breakpoint} onSelect={onSelect} />)}</>
       )),
     };
   }
@@ -103,7 +103,7 @@ function BlockNode({ block, selectedId, onSelect }: { block: BlockInstance; sele
           {def.label}
         </Box>
       )}
-      {def.render(block.props, ctx)}
+      {def.render(resolveProps(block.props, breakpoint), ctx)}
     </Box>
   );
 }
@@ -129,7 +129,7 @@ export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect
             Ajoute des blocs depuis le panneau de gauche pour composer ta page.
           </Box>
         ) : (
-          blocks.map((b) => <BlockNode key={b.id} block={b} selectedId={selectedId} onSelect={onSelect} />)
+          blocks.map((b) => <BlockNode key={b.id} block={b} selectedId={selectedId} breakpoint={breakpoint} onSelect={onSelect} />)
         )}
       </Box>
     </Box>

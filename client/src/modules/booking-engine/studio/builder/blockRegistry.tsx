@@ -688,17 +688,45 @@ export function parsePageLayout(json: string | null | undefined): ParsedBlock[] 
   }
 }
 
+export type RenderBreakpoint = 'desktop' | 'tablet' | 'mobile';
+
+/** Clés jamais surchargées par breakpoint (structurelles : changeraient la structure de l'arbre). */
+const NON_RESPONSIVE_KEYS = new Set(['columnCount']);
+
+/**
+ * Overrides responsive par breakpoint (2.5). Une prop peut avoir une valeur dédiée mobile/tablette
+ * via une clé suffixée `key@mobile` / `key@tablet` ; desktop = base. `resolveProps` calcule les props
+ * EFFECTIVES à un breakpoint : base, surchargée par l'override actif ; les clés d'override (et les
+ * clés structurelles) ne sont jamais exposées telles quelles au rendu. Le SSR (sans breakpoint) sert
+ * la base — les overrides s'appliquent dans le builder et sur la page publique SPA (résolution JS).
+ */
+export function resolveProps(props: BlockProps, bp: RenderBreakpoint = 'desktop'): BlockProps {
+  const out: BlockProps = {};
+  for (const [k, v] of Object.entries(props)) {
+    if (k.includes('@')) continue; // clé d'override : appliquée ci-dessous, jamais rendue directement
+    out[k] = v;
+  }
+  if (bp !== 'desktop') {
+    for (const k of Object.keys(out)) {
+      if (NON_RESPONSIVE_KEYS.has(k)) continue;
+      const ov = props[`${k}@${bp}`];
+      if (ov !== undefined) out[k] = ov;
+    }
+  }
+  return out;
+}
+
 /** Contexte de rendu d'un bloc `columns` (rendu public/aperçu, SANS chrome d'édition). */
-function publicColumnsCtx(block: ParsedBlock): BlockRenderCtx | undefined {
+function publicColumnsCtx(block: ParsedBlock, bp: RenderBreakpoint): BlockRenderCtx | undefined {
   if (block.type !== 'columns' || !block.children) return undefined;
   return {
     columns: block.children.map((col) => (
-      <>{col.map((ch) => <div key={ch.id} className={visibilityClassName(ch.props)}>{renderBlock(ch)}</div>)}</>
+      <>{col.map((ch) => <div key={ch.id} className={visibilityClassName(ch.props)}>{renderBlock(ch, bp)}</div>)}</>
     )),
   };
 }
 
 /** Rend un bloc et, pour `columns`, ses enfants récursivement (rendu public/aperçu sans chrome). */
-export function renderBlock(block: ParsedBlock): ReactNode {
-  return getBlockDef(block.type).render(block.props, publicColumnsCtx(block));
+export function renderBlock(block: ParsedBlock, bp: RenderBreakpoint = 'desktop'): ReactNode {
+  return getBlockDef(block.type).render(resolveProps(block.props, bp), publicColumnsCtx(block, bp));
 }

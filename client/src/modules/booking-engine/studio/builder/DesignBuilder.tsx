@@ -440,6 +440,16 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     }));
   };
 
+  // Retire un override responsive (2.5) : supprime la clé suffixée → la prop réhérite du desktop.
+  const handleClear = (id: string, key: string) => {
+    commit(mapBlockById(blocks, id, (b) => {
+      if (!(key in b.props)) return b;
+      const props = { ...b.props };
+      delete props[key];
+      return { ...b, props };
+    }));
+  };
+
   // Applique un template (thème + composition) ; null = page vierge (custom). Remplace la page courante.
   const applyTemplate = (tpl: SiteTemplate | null) => {
     setTemplatesOpen(false);
@@ -651,7 +661,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
           ) : rightTab === 'css' ? (
             <CssInspector config={cfg.config} patch={cfg.patch} blockTypes={blocks.map((b) => b.type)} />
           ) : (
-            <BlockInspector block={selected} onChange={handleChange} />
+            <BlockInspector block={selected} breakpoint={breakpoint} onChange={handleChange} onClear={handleClear} />
           )}
         </Box>
 
