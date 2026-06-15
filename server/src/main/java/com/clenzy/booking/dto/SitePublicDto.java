@@ -24,6 +24,8 @@ public record SitePublicDto(
     String seoDescription,
     String seoOgImageUrl,
     Long bookingEngineConfigId,
+    /** Clé publique du booking engine (X-Booking-Key) pour monter le widget de réservation côté SSR. */
+    String bookingEngineApiKey,
     List<PageSummary> pages
 ) {
     /** Entrée de la table des pages (navigation + génération du sitemap côté SSR). */
@@ -35,11 +37,12 @@ public record SitePublicDto(
         }
     }
 
-    public static SitePublicDto from(Site s, List<SitePage> pages) {
+    public static SitePublicDto from(Site s, String bookingEngineApiKey, List<SitePage> pages) {
         return new SitePublicDto(
             s.getId(), s.getSlug(), s.getName(), s.getDefaultLocale(), s.getLocales(),
             s.getDesignTokens(), s.getPrimaryColor(), s.getFontFamily(), s.getLogoUrl(),
             s.getSeoTitle(), s.getSeoDescription(), s.getSeoOgImageUrl(), s.getBookingEngineConfigId(),
+            bookingEngineApiKey,
             pages.stream().map(PageSummary::from).toList());
     }
 }
