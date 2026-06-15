@@ -26,10 +26,14 @@ import java.util.List;
 public class SiteAdminController {
 
     private final SiteAdminService service;
+    private final com.clenzy.booking.service.SiteContentAiService contentAiService;
     private final TenantContext tenantContext;
 
-    public SiteAdminController(SiteAdminService service, TenantContext tenantContext) {
+    public SiteAdminController(SiteAdminService service,
+                              com.clenzy.booking.service.SiteContentAiService contentAiService,
+                              TenantContext tenantContext) {
         this.service = service;
+        this.contentAiService = contentAiService;
         this.tenantContext = tenantContext;
     }
 
@@ -93,6 +97,13 @@ public class SiteAdminController {
     public ResponseEntity<Void> deletePage(@PathVariable Long id, @PathVariable Long pageId) {
         service.deletePage(orgId(), id, pageId);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Génère un titre + meta SEO (IA) pour une page à partir de son contenu (2.13). */
+    @PostMapping("/{id}/pages/{pageId}/ai/seo")
+    public ResponseEntity<com.clenzy.booking.dto.GeneratedSeoDto> generatePageSeo(@PathVariable Long id,
+                                                                                  @PathVariable Long pageId) {
+        return ResponseEntity.ok(contentAiService.generatePageSeo(orgId(), id, pageId));
     }
 
     // ─── Domaines ───────────────────────────────────────────────────────────
