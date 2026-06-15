@@ -261,3 +261,32 @@
   color: var(--muted);
   border-top: 1px solid var(--line);
 }
+
+/* ── FAQ ─────────────────────────────────────────────────────────────────── */
+.bkly-faq { padding: 48px 40px; background: var(--card); }
+.bkly-faq__heading { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
+.bkly-faq__list { max-width: 720px; margin: 0 auto; display: grid; gap: 12px; }
+.bkly-faq__item { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--bg); padding: 14px 16px; text-align: left; }
+.bkly-faq__q { font-weight: 600; color: var(--ink); font-size: 15px; }
+.bkly-faq__a { color: var(--muted); font-size: 14px; line-height: 1.55; margin-top: 6px; }
+
+/* ── Galerie ─────────────────────────────────────────────────────────────── */
+.bkly-gallery { padding: 48px 40px; background: var(--bg); }
+.bkly-gallery__heading { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
+.bkly-gallery__grid { display: grid; gap: 12px; }
+.bkly-gallery__img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius-lg); display: block; }
+.bkly-gallery__img--empty { background: var(--field); }
+
+/* ── Chiffres clés ───────────────────────────────────────────────────────── */
+.bkly-stats { padding: 48px 40px; background: var(--card); }
+.bkly-stats__row { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; }
+.bkly-stats__item { text-align: center; }
+.bkly-stats__value { font-family: var(--font-display); font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1; }
+.bkly-stats__label { margin-top: 8px; font-size: 14px; color: var(--muted); }
+
+/* ── Vidéo ───────────────────────────────────────────────────────────────── */
+.bkly-video { padding: 48px 40px; background: var(--bg); }
+.bkly-video__heading { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--ink); margin-bottom: 20px; text-align: center; }
+.bkly-video__frame { max-width: 860px; margin: 0 auto; aspect-ratio: 16 / 9; border-radius: var(--radius-lg); overflow: hidden; background: var(--field); }
+.bkly-video__iframe { width: 100%; height: 100%; border: none; display: block; }
+.bkly-video__placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--faint); font-size: 14px; }

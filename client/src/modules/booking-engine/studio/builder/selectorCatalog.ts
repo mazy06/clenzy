@@ -54,6 +54,28 @@ export const BLOCK_SELECTORS: Record<BlockType, SelectorDef[]> = {
   footer: [
     { sel: '.bkly-footer', label: 'Pied de page' },
   ],
+  faq: [
+    { sel: '.bkly-faq', label: 'FAQ (section)' },
+    { sel: '.bkly-faq__heading', label: 'Titre' },
+    { sel: '.bkly-faq__item', label: 'Question/Réponse' },
+    { sel: '.bkly-faq__q', label: 'Question' },
+    { sel: '.bkly-faq__a', label: 'Réponse' },
+  ],
+  gallery: [
+    { sel: '.bkly-gallery', label: 'Galerie (section)' },
+    { sel: '.bkly-gallery__heading', label: 'Titre' },
+    { sel: '.bkly-gallery__img', label: 'Image' },
+  ],
+  stats: [
+    { sel: '.bkly-stats', label: 'Chiffres clés (section)' },
+    { sel: '.bkly-stats__value', label: 'Valeur' },
+    { sel: '.bkly-stats__label', label: 'Libellé' },
+  ],
+  video: [
+    { sel: '.bkly-video', label: 'Vidéo (section)' },
+    { sel: '.bkly-video__heading', label: 'Titre' },
+    { sel: '.bkly-video__frame', label: 'Cadre vidéo' },
+  ],
 };
 
 /** Sélecteurs clés du widget de réservation (Shadow DOM). Sous-ensemble curé des classes réelles. */
