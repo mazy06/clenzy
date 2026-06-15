@@ -67,6 +67,17 @@ public class BlogPost {
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
+    /** Contenu issu d'une génération IA (2.13) → relecture manuelle d'autant plus requise. */
+    @Column(name = "ai_generated", nullable = false)
+    private boolean aiGenerated = false;
+
+    /** Validation manuelle (2.13) : horodatage + keycloakId du relecteur ayant approuvé la publication. */
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "reviewed_by", length = 255)
+    private String reviewedBy;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -119,6 +130,15 @@ public class BlogPost {
 
     public LocalDateTime getPublishedAt() { return publishedAt; }
     public void setPublishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; }
+
+    public boolean isAiGenerated() { return aiGenerated; }
+    public void setAiGenerated(boolean aiGenerated) { this.aiGenerated = aiGenerated; }
+
+    public LocalDateTime getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
+
+    public String getReviewedBy() { return reviewedBy; }
+    public void setReviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -88,6 +88,14 @@ export const sitesApi = {
   deletePost: (siteId: number, postId: number) =>
     apiClient.delete(`/sites/${siteId}/posts/${postId}`),
 
+  /** Valide et publie un article (2.13) : seule voie vers la mise en prod (relecture manuelle). */
+  approvePost: (siteId: number, postId: number) =>
+    apiClient.post<BlogPost>(`/sites/${siteId}/posts/${postId}/approve`),
+
+  /** Renvoie un article en brouillon (corrections demandées). */
+  rejectPost: (siteId: number, postId: number) =>
+    apiClient.post<BlogPost>(`/sites/${siteId}/posts/${postId}/reject`),
+
   /** Génère un brouillon d'article de blog (IA) à partir d'un sujet libre (2.13). */
   generateArticle: (siteId: number, topic: string, locale?: string) =>
     apiClient.post<GeneratedArticle>(`/sites/${siteId}/blog/ai`, { topic, locale }),
@@ -114,6 +122,11 @@ export interface BlogPost {
   seoDescription: string | null;
   seoOgImageUrl: string | null;
   publishedAt: string | null;
+  /** Validation manuelle (2.13) : article issu d'une génération IA. */
+  aiGenerated: boolean;
+  /** Validation manuelle (2.13) : horodatage + relecteur (keycloakId) ayant publié. */
+  reviewedAt: string | null;
+  reviewedBy: string | null;
 }
 
 /** Corps create/update d'un article (id/siteId ignorés par le backend). */
