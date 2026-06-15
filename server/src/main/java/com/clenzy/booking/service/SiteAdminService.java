@@ -18,8 +18,12 @@ import com.clenzy.booking.repository.SiteDomainRepository;
 import com.clenzy.booking.repository.SitePageRepository;
 import com.clenzy.booking.repository.SiteRepository;
 import com.clenzy.exception.NotFoundException;
+import com.clenzy.integration.cloudflare.CloudflareCustomHostnameService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,15 +41,21 @@ public class SiteAdminService {
     private final SitePageRepository pageRepository;
     private final SiteDomainRepository domainRepository;
     private final BlogPostRepository blogPostRepository;
+    private final CloudflareCustomHostnameService cloudflareService;
+    private final ObjectProvider<SiteAdminService> self;
 
     public SiteAdminService(SiteRepository siteRepository,
                             SitePageRepository pageRepository,
                             SiteDomainRepository domainRepository,
-                            BlogPostRepository blogPostRepository) {
+                            BlogPostRepository blogPostRepository,
+                            CloudflareCustomHostnameService cloudflareService,
+                            ObjectProvider<SiteAdminService> self) {
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
         this.domainRepository = domainRepository;
         this.blogPostRepository = blogPostRepository;
+        this.cloudflareService = cloudflareService;
+        this.self = self;
     }
 
     // ─── Sites ──────────────────────────────────────────────────────────────
@@ -144,14 +154,75 @@ public class SiteAdminService {
         domain.setHostname(hostname);
         domain.setPrimary(req.primary());
         domain.setStatus(SiteDomainStatus.PENDING);
-        return SiteDomainDto.from(domainRepository.save(domain));
+        SiteDomain saved = domainRepository.save(domain);
+
+        // Bridge Cloudflare for SaaS (gated) : provisionne le custom hostname APRÈS commit (audit #2).
+        if (cloudflareService.isEnabled()) {
+            final Long domainId = saved.getId();
+            runAfterCommit(() -> cloudflareService.createCustomHostname(hostname)
+                .ifPresent(r -> self.getObject().markDomainProvisioned(orgId, domainId, r.hostnameId(), r.status())));
+        }
+        return SiteDomainDto.from(saved);
     }
 
     @Transactional
     public void removeDomain(Long orgId, Long domainId) {
         SiteDomain domain = domainRepository.findByIdAndOrganizationId(domainId, orgId)
             .orElseThrow(() -> new NotFoundException("Domaine introuvable: " + domainId));
+        final String cloudflareHostnameId = domain.getCloudflareHostnameId();
         domainRepository.delete(domain);
+        if (cloudflareHostnameId != null && cloudflareService.isEnabled()) {
+            runAfterCommit(() -> cloudflareService.deleteCustomHostname(cloudflareHostnameId));
+        }
+    }
+
+    /** Persiste l'id Cloudflare + le statut d'un domaine provisionné (afterCommit de {@link #addDomain}). */
+    @Transactional
+    public void markDomainProvisioned(Long orgId, Long domainId, String cloudflareHostnameId, SiteDomainStatus status) {
+        domainRepository.findByIdAndOrganizationId(domainId, orgId).ifPresent(d -> {
+            d.setCloudflareHostnameId(cloudflareHostnameId);
+            d.setStatus(status);
+            if (status == SiteDomainStatus.ACTIVE) {
+                d.setVerified(true);
+            }
+            domainRepository.save(d);
+        });
+    }
+
+    /** Réconcilie les domaines PENDING provisionnés avec leur statut Cloudflare (scheduler, hors-tx). */
+    public void reconcileCustomDomains() {
+        if (!cloudflareService.isEnabled()) {
+            return;
+        }
+        for (SiteDomain d : domainRepository.findByStatusAndCloudflareHostnameIdIsNotNull(SiteDomainStatus.PENDING)) {
+            cloudflareService.getStatus(d.getCloudflareHostnameId())
+                .filter(st -> st != SiteDomainStatus.PENDING)
+                .ifPresent(st -> self.getObject().applyDomainStatus(d.getId(), st));
+        }
+    }
+
+    @Transactional
+    public void applyDomainStatus(Long domainId, SiteDomainStatus status) {
+        domainRepository.findById(domainId).ifPresent(d -> {
+            d.setStatus(status);
+            if (status == SiteDomainStatus.ACTIVE) {
+                d.setVerified(true);
+            }
+            domainRepository.save(d);
+        });
+    }
+
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
     }
 
     // ─── Articles de blog (P1.3) ─────────────────────────────────────────────
