@@ -1,6 +1,5 @@
 import type { DesignTokens } from '../../services/api/bookingEngineApi';
 import { CURRENCY_OPTIONS as CURRENCY_OPTIONS_PMS } from '../../utils/currencyUtils';
-import { DEFAULT_DESIGN_TOKENS } from './hooks/useBookingEngineForm';
 
 // ─── Language / Currency / Font Options ─────────────────────────────────────
 
@@ -28,6 +27,31 @@ export const FONT_OPTIONS = [
 ];
 
 // ─── Design Presets ─────────────────────────────────────────────────────────
+
+/** Jeu de tokens par défaut (= preset Safari Lodge). Source de vérité des valeurs de départ. */
+export const DEFAULT_DESIGN_TOKENS: DesignTokens = {
+  primaryColor: '#B2974A',
+  secondaryColor: '#49554C',
+  accentColor: '#B2974A',
+  backgroundColor: '#F2F1EB',
+  surfaceColor: '#FFFFFF',
+  textColor: '#49554C',
+  textSecondaryColor: '#8EA093',
+  headingFontFamily: 'Poppins, Arial, sans-serif',
+  bodyFontFamily: 'Poppins, Arial, sans-serif',
+  baseFontSize: '15px',
+  headingFontWeight: '500',
+  borderRadius: '4px',
+  buttonBorderRadius: '2px',
+  cardBorderRadius: '4px',
+  spacing: '8px',
+  boxShadow: '0 0 40px rgba(0,0,0,0.16)',
+  cardShadow: 'none',
+  buttonStyle: 'filled',
+  buttonTextTransform: 'uppercase',
+  borderColor: '#E5E2D9',
+  dividerColor: '#E5E2D9',
+};
 
 export interface DesignPreset {
   id: string;

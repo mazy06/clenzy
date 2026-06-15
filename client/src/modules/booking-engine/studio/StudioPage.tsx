@@ -102,7 +102,7 @@ export default function StudioPage() {
         onBreakpointChange={setBreakpoint}
         onOpenCommand={() => setPaletteOpen(true)}
         onAnalyzeDesign={() => setDesignAnalysisOpen(true)}
-        onBack={() => navigate('/booking-engine')}
+        onBack={() => navigate('/booking-engine', { state: { tab: 2 } })}
       >
         {active.key === 'design' && <DesignBuilder breakpoint={breakpoint} cfg={cfg} />}
         {active.key === 'content' && <ContentSection cfg={cfg} />}
