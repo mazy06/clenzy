@@ -772,6 +772,7 @@
 }
 
 .cb-property-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   text-align: start;
@@ -782,6 +783,31 @@
   background: var(--cb-color-bg);
   cursor: pointer;
   transition: border-color var(--cb-transition-base), box-shadow var(--cb-transition-base);
+}
+
+/* ─── Cœur favori (2.11) ──────────────────────────────────────────────────── */
+.cb-property-card__fav {
+  position: absolute;
+  top: var(--cb-space-2, 8px);
+  inset-inline-end: var(--cb-space-2, 8px);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--cb-color-text-secondary);
+  box-shadow: 0 1px 4px rgba(20, 24, 28, 0.18);
+  cursor: pointer;
+  transition: color var(--cb-transition-base), transform var(--cb-transition-base);
+}
+.cb-property-card__fav:hover { color: #C97A7A; }
+.cb-property-card__fav.cb-active { color: #C97A7A; }
+.cb-property-card__fav:focus-visible {
+  outline: none;
+  box-shadow: var(--cb-shadow-focus, 0 0 0 3px rgba(107, 138, 154, 0.4));
 }
 
 .cb-property-card:hover {
@@ -918,6 +944,28 @@
   font-size: var(--cb-font-size-md, 15px);
   color: var(--cb-color-text);
   text-align: center;
+}
+
+/* ─── Auth guest / favoris (2.11) — réutilise .cb-lead-overlay / .cb-lead-card ── */
+.cb-auth-row {
+  display: flex;
+  gap: var(--cb-space-2, 8px);
+}
+.cb-auth-row > * { flex: 1; min-width: 0; }
+.cb-auth-switch {
+  margin-top: var(--cb-space-3, 12px);
+  font-size: var(--cb-font-size-xs, 12px);
+  color: var(--cb-color-text-secondary);
+  text-align: center;
+}
+.cb-auth-switch button {
+  border: none;
+  background: transparent;
+  color: var(--cb-color-primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
 }
 
 /* ─── Currency selector ──────────────────────────────────────────────────── */

@@ -99,14 +99,73 @@ export interface ReserveGuestInfo {
   phone?: string;
 }
 
+/** Réponse d'auth guest (Keycloak realm clenzy-guests) — token gardé EN MÉMOIRE (règle #7). */
+export interface GuestAuthResult {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  keycloakId?: string;
+  profile?: { email?: string; firstName?: string; lastName?: string };
+}
+
 export class BookingApi {
   private readonly base: string;
+  private readonly root: string;
   private readonly apiKey: string;
 
   constructor(baseUrl: string, apiKey: string, slug = 'widget') {
     const root = baseUrl.replace(/\/$/, '');
+    this.root = root;
     this.base = `${root}/api/public/booking/${encodeURIComponent(slug)}`;
     this.apiKey = apiKey;
+  }
+
+  // ─── Compte voyageur (2.11) — auth guest + wishlist ──────────────────────
+  // URLs hors base booking : /api/booking-engine/auth/** (permitAll) et /api/public/guest/wishlist
+  // (token guest validé côté serveur via Keycloak userinfo). Pas de X-Booking-Key ici.
+
+  private async rootFetch<T>(path: string, options?: RequestInit, bearer?: string): Promise<T> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options?.headers as Record<string, string> | undefined),
+    };
+    if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
+    const res = await fetch(`${this.root}${path}`, { ...options, headers });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`API error ${res.status}: ${body}`);
+    }
+    const text = await res.text();
+    return (text ? JSON.parse(text) : undefined) as T;
+  }
+
+  guestLogin(organizationId: number, email: string, password: string): Promise<GuestAuthResult> {
+    return this.rootFetch('/api/booking-engine/auth/login', {
+      method: 'POST', body: JSON.stringify({ organizationId, email, password }),
+    });
+  }
+
+  guestRegister(
+    organizationId: number,
+    data: { email: string; password: string; firstName?: string; lastName?: string; phone?: string },
+  ): Promise<GuestAuthResult> {
+    return this.rootFetch('/api/booking-engine/auth/register', {
+      method: 'POST', body: JSON.stringify({ ...data, organizationId }),
+    });
+  }
+
+  wishlistList(organizationId: number, token: string): Promise<number[]> {
+    return this.rootFetch(`/api/public/guest/wishlist?organizationId=${organizationId}`, { method: 'GET' }, token);
+  }
+
+  wishlistAdd(organizationId: number, propertyId: number, token: string): Promise<number[]> {
+    return this.rootFetch('/api/public/guest/wishlist', {
+      method: 'POST', body: JSON.stringify({ organizationId, propertyId }),
+    }, token);
+  }
+
+  wishlistRemove(organizationId: number, propertyId: number, token: string): Promise<number[]> {
+    return this.rootFetch(`/api/public/guest/wishlist/${propertyId}?organizationId=${organizationId}`, { method: 'DELETE' }, token);
   }
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {

@@ -1,8 +1,17 @@
 import type { StateManager } from '../state';
 import type { WidgetState, WidgetProperty } from '../types';
+import { heart } from './icons';
 
 interface I18n {
   t: (key: string) => string;
+}
+
+/** Options compte voyageur (2.11) : activées seulement si `organizationId` est fourni au widget. */
+export interface PropertyListOptions {
+  /** Affiche le cœur favori sur chaque carte. */
+  wishlistEnabled?: boolean;
+  /** Bascule un favori (le widget ouvre le login si la session guest est absente). */
+  onWishlistToggle?: (propertyId: number) => void;
 }
 
 /** Rend une URL d'image absolue : telle quelle si http(s), sinon préfixée par la base API. */
@@ -13,18 +22,32 @@ function absoluteUrl(url: string, baseUrl: string): string {
 }
 
 /** Liste de propriétés (property-first) : sélection d'un logement avant le choix des dates. */
-export function createPropertyList(state: StateManager, i18n: I18n, baseUrl: string): HTMLElement {
+export function createPropertyList(
+  state: StateManager,
+  i18n: I18n,
+  baseUrl: string,
+  options: PropertyListOptions = {},
+): HTMLElement {
   const container = document.createElement('div');
   container.className = 'cb-section cb-property-list';
 
-  state.on('*', (s: WidgetState) => render(container, s, i18n, state, baseUrl));
-  render(container, state.get(), i18n, state, baseUrl);
+  state.on('*', (s: WidgetState) => render(container, s, i18n, state, baseUrl, options));
+  render(container, state.get(), i18n, state, baseUrl, options);
 
   return container;
 }
 
-function render(container: HTMLElement, s: WidgetState, i18n: I18n, state: StateManager, baseUrl: string): void {
-  const key = `${s.properties.map(p => p.id).join(',')}:${s.selectedPropertyId}:${s.displayCurrency}`;
+function render(
+  container: HTMLElement,
+  s: WidgetState,
+  i18n: I18n,
+  state: StateManager,
+  baseUrl: string,
+  options: PropertyListOptions,
+): void {
+  // La wishlist entre dans la clé seulement si activée → les cœurs se rafraîchissent au toggle.
+  const wishlistKey = options.wishlistEnabled ? `:w${s.wishlist.join('-')}` : '';
+  const key = `${s.properties.map(p => p.id).join(',')}:${s.selectedPropertyId}:${s.displayCurrency}${wishlistKey}`;
   if (container.dataset.key === key) return;
   container.dataset.key = key;
   container.textContent = '';
@@ -36,7 +59,10 @@ function render(container: HTMLElement, s: WidgetState, i18n: I18n, state: State
   container.hidden = false;
 
   s.properties.forEach(p => {
-    container.appendChild(card(p, p.id === s.selectedPropertyId, s.displayCurrency, i18n, state, baseUrl));
+    const active = p.id === s.selectedPropertyId;
+    container.appendChild(
+      card(p, active, s.displayCurrency, i18n, state, baseUrl, options, s.wishlist.includes(p.id)),
+    );
   });
 }
 
@@ -47,11 +73,17 @@ function card(
   i18n: I18n,
   state: StateManager,
   baseUrl: string,
+  options: PropertyListOptions,
+  isWishlisted: boolean,
 ): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = `cb-property-card${active ? ' cb-active' : ''}`;
   el.setAttribute('aria-pressed', String(active));
+
+  if (options.wishlistEnabled && options.onWishlistToggle) {
+    el.appendChild(favButton(p.id, isWishlisted, i18n, options.onWishlistToggle));
+  }
 
   if (p.mainPhotoUrl) {
     const img = document.createElement('img');
@@ -114,6 +146,38 @@ function badge(text: string, variant: string): HTMLElement {
   b.className = `cb-badge ${variant}`;
   b.textContent = text;
   return b;
+}
+
+/**
+ * Cœur favori (2.11). La carte est déjà un `<button>` : un `<button>` imbriqué serait du HTML
+ * invalide → on utilise un `<span role="button">` clavier-accessible avec stopPropagation pour
+ * ne pas déclencher la sélection de la propriété.
+ */
+function favButton(
+  propertyId: number,
+  active: boolean,
+  i18n: I18n,
+  onToggle: (id: number) => void,
+): HTMLElement {
+  const fav = document.createElement('span');
+  fav.className = `cb-property-card__fav${active ? ' cb-active' : ''}`;
+  fav.setAttribute('role', 'button');
+  fav.setAttribute('tabindex', '0');
+  fav.setAttribute('aria-pressed', String(active));
+  fav.setAttribute('aria-label', i18n.t(active ? 'wishlist.remove' : 'wishlist.add'));
+  fav.appendChild(heart(active));
+
+  const trigger = (e: Event) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onToggle(propertyId);
+  };
+  fav.addEventListener('click', trigger);
+  fav.addEventListener('keydown', (e) => {
+    const key = (e as KeyboardEvent).key;
+    if (key === 'Enter' || key === ' ') trigger(e);
+  });
+  return fav;
 }
 
 function formatPrice(amount: number, currency: string): string {

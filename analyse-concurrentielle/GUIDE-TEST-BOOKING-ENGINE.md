@@ -36,6 +36,7 @@ Aller dans **Booking Engine → Studio → éditer un booking engine → onglet 
 | 2.8 | Réglages → **Réservation directe** : remise % (ex. 10). Côté widget, faire un devis | Récap montre le tarif plein + ligne **« Réservation directe −X »** ; total remisé |
 | 2.9 | Widget : cartes de propriétés (avec des réservations/dispo réelles) | Badges **« Réservé N× »** (si ≥3) / **« Plus que N dates en 30 j »** (si ≤8) |
 | 2.10 | `UpsellsAdmin` : créer une offre avec **séjour min**, **délai mini**, ou un **bundle** (multiselect d'offres) | Le livret guest n'affiche l'offre que si les conditions de la résa sont remplies |
+| 2.11 | Widget avec `organizationId` : **cœur** sur chaque carte → clic ouvre le **modal login/inscription** → après connexion, le cœur se remplit ; favoris persistés (rechargement = état conservé via `GET /wishlist`) | Sans `organizationId`, aucun cœur (compte voyageur désactivé). Token guest **en mémoire** (jamais localStorage) |
 | 2.12 | Widget : provoquer l'**exit-intent** (souris vers le haut, hors viewport) | Modal de capture d'email (1×/session, consentement requis) → `POST /leads` |
 | 2.12 | Réglages marketing (Brevo) : renseigner la **liste Leads** + activer le toggle | Les leads captés sont poussés dans la liste Brevo avec l'attribut `SOURCE` |
 
@@ -66,7 +67,7 @@ curl -s -X POST "$API/api/public/guest/wishlist" -H "Authorization: Bearer $TOKE
 
 ## 5. Limites connues (NON bloquantes)
 
-- **2.11 wishlist** : API + sécurité OK, mais **pas d'UI** (le login guest n'est pas encore dans le widget vanilla → cœurs sur cartes à venir, étape suivante).
+- **2.11 wishlist** : UI livrée (cœurs + modal login/inscription dans le widget vanilla) — voir test 2.11. Prérequis : passer `organizationId` à l'init du widget ; le realm guest `clenzy-guests` doit accepter le login/register. Le **rate membre / wallet** (réservé aux connectés) reste Phase 2.
 - **2.8 / paiement** : la remise est appliquée côté serveur ; **vérifier en Stripe test-mode** le montant réellement facturé (caution/acompte/solde inclus).
 - **Phase 2 non faites** : 2.8 wallet/rate membre · 2.10 affichage « Inclus » bundle côté guest · 2.5 overrides de valeurs par breakpoint · 2.7 conteneurs lignes/colonnes · 2.13 blog IA + RAG.
 - **SSR `clenzy-sites`** : repo séparé (sans git) — à committer/déployer pour tester le rendu public multi-page.
