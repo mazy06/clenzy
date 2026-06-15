@@ -41,6 +41,10 @@ export interface SitePage {
   seoTitle: string | null;
   seoDescription: string | null;
   seoOgImageUrl: string | null;
+  /** Draft/Live (2.7) — lecture seule. Date de dernière publication (ISO) ou null si jamais publiée. */
+  publishedAt: string | null;
+  /** Draft/Live (2.7) — lecture seule. Le brouillon `blocks` diffère de l'instantané publié. */
+  dirty: boolean;
 }
 
 /** Corps create/update d'une page (id/siteId ignorés par le backend). */
@@ -62,6 +66,10 @@ export const sitesApi = {
 
   deletePage: (siteId: number, pageId: number) =>
     apiClient.delete(`/sites/${siteId}/pages/${pageId}`),
+
+  /** Publie une page (2.7) : fige le brouillon courant dans la version servie au public. */
+  publishPage: (siteId: number, pageId: number) =>
+    apiClient.post<SitePage>(`/sites/${siteId}/pages/${pageId}/publish`),
 
   /** Génère un titre + meta SEO (IA) pour une page à partir de son contenu (2.13). */
   generatePageSeo: (siteId: number, pageId: number): Promise<GeneratedSeo> =>

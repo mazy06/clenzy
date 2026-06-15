@@ -28,6 +28,8 @@ Aller dans **Booking Engine → Studio → éditer un booking engine → onglet 
 | 2.1 | Champ image (hero « image de fond ») → bouton **médiathèque** → **importer** une image (≤5 Mo) → la choisir | L'image s'affiche (URL `/api/public/media/{id}` absolue) |
 | 2.5 | Sur un bloc : **Masquer sur mobile/tablette/desktop** + bascule l'aperçu desktop/tablette/mobile | Le bloc disparaît au bon breakpoint (container queries) |
 | 2.7 | **Glisser-déposer** un bloc dans l'arbre (poignée ⠿) ; **Annuler/Rétablir** (toolbar) | Réordonne ; undo/redo restaurent l'état |
+| 2.7 | Ajouter un bloc **Colonnes** → « + » par colonne pour y déposer des blocs ; **glisser** un bloc dans/entre les colonnes et vers la racine ; régler nb de colonnes/espacement | Blocs côte à côte (canvas + aperçu + page publique) ; pile sous 600 px |
+| 2.7 | Multi-page : éditer une page puis **Publier** (bouton toolbar) | Avant publication : badge « Brouillon non publié », la version en ligne (SSR) reste inchangée ; après : badge « Publié », l'instantané est servi. *(Mono-page sans site = édition directe, pas de bouton Publier.)* |
 
 ## 2. Conversion / revenu
 

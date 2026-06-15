@@ -214,6 +214,22 @@ public class SiteAdminService {
         pageRepository.delete(page);
     }
 
+    /**
+     * Publie une page (2.7) : fige le brouillon courant ({@code blocks}) dans l'instantané servi au
+     * public ({@code publishedBlocks}) et marque la page PUBLISHED. Tant qu'on ne publie pas, la
+     * version en ligne reste intacte.
+     */
+    @Transactional
+    public SitePageDto publishPage(Long orgId, Long siteId, Long pageId) {
+        requireOwnedSite(orgId, siteId);
+        SitePage page = pageRepository.findByIdAndSiteId(pageId, siteId)
+            .orElseThrow(() -> new NotFoundException("Page introuvable: " + pageId));
+        page.setPublishedBlocks(page.getBlocks());
+        page.setPublishedAt(LocalDateTime.now());
+        page.setStatus(SiteStatus.PUBLISHED);
+        return SitePageDto.from(pageRepository.save(page));
+    }
+
     // ─── Domaines ───────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)

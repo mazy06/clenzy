@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
-import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2, FileText, Undo2, Redo2 } from 'lucide-react';
+import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2, FileText, Undo2, Redo2, Rocket } from 'lucide-react';
 import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
 import PagePreview from './PagePreview';
@@ -230,6 +230,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [hydrated, setHydrated] = useState(false);
   const [pageDirty, setPageDirty] = useState(false);
   const [pageSaving, setPageSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   // Historique undo/redo (2.7) : piles d'états de blocs. Réinitialisées au changement de page.
   const [past, setPast] = useState<BlockInstance[][]>([]);
   const [future, setFuture] = useState<BlockInstance[][]>([]);
@@ -279,12 +280,14 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const persist = useCallback((next: BlockInstance[]) => {
     setBlocks(next);
     if (pageMode) {
+      // Draft/Live (2.7) : l'édition n'écrit que le brouillon (SitePage.blocks) ; la page publique
+      // (SPA via config.pageLayout pour l'accueil + SSR via published_blocks) n'est mise à jour qu'à
+      // la PUBLICATION (cf. handlePublish). En mono-page (pas de site), pas de draft/live : direct.
       setPageDirty(true);
-      if (isHomeActive) patch({ pageLayout: serializeLayout(next) });
     } else {
       patch({ pageLayout: serializeLayout(next) });
     }
-  }, [patch, pageMode, isHomeActive]);
+  }, [patch, pageMode]);
 
   // Mutation utilisateur : empile l'état courant (undo), purge le redo, puis applique.
   const commit = useCallback((next: BlockInstance[]) => {
@@ -329,6 +332,32 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
       setPageSaving(false);
     }
   }, [pageMode, pageDirty, pages, blocks, cfg]);
+
+  // Publication (2.7) : enregistre le brouillon courant, fige l'instantané publié (servi au public),
+  // et pour l'accueil reflète la version publiée dans config.pageLayout (page publique SPA). Tant
+  // qu'on ne publie pas, la version en ligne reste intacte.
+  const handlePublish = useCallback(async () => {
+    if (!pageMode || pages.selectedPageId == null) return;
+    setPublishing(true);
+    try {
+      if (pageDirty) {
+        await pages.savePageBlocks(pages.selectedPageId, serializeLayout(blocks));
+        setPageDirty(false);
+      }
+      await pages.publishPage(pages.selectedPageId);
+      if (isHomeActive) {
+        patch({ pageLayout: serializeLayout(blocks) });
+        await cfg.save();
+      }
+    } catch {
+      /* erreurs exposées par les hooks */
+    } finally {
+      setPublishing(false);
+    }
+  }, [pageMode, pages, pageDirty, blocks, isHomeActive, patch, cfg]);
+
+  // Modifications non publiées : brouillon serveur divergent (dirty) OU édition locale non enregistrée.
+  const needsPublish = pageMode && ((pages.selectedPage?.dirty ?? false) || pageDirty);
 
   // Bascule de page : enregistre la page courante si modifiée (évite la perte), puis change.
   const handleSelectPage = useCallback(async (id: number) => {
@@ -493,11 +522,39 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             </ButtonBase>
           </Box>
         )}
-        <Segmented
-          value={mode}
-          onChange={setMode}
-          options={[{ value: 'edit', label: 'Éditer' }, { value: 'preview', label: 'Aperçu' }]}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {pageMode && mode === 'edit' && (
+            <>
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: needsPublish ? 'var(--warn, #B26B00)' : 'var(--ok)' }}>
+                <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: needsPublish ? 'var(--warn, #D4A574)' : 'var(--ok)' }} />
+                {needsPublish ? 'Brouillon non publié' : 'Publié'}
+              </Box>
+              <Tooltip title={needsPublish ? 'Publier la version en ligne' : 'Aucune modification à publier'}>
+                <Box component="span">
+                  <ButtonBase
+                    onClick={() => { handlePublish(); }}
+                    disabled={publishing || !needsPublish}
+                    sx={{
+                      display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 30, px: 1.5,
+                      borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
+                      fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
+                      '&:hover': { bgcolor: 'var(--accent-deep)' },
+                      '&.Mui-disabled': { opacity: 0.45 },
+                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+                    }}
+                  >
+                    <Rocket size={14} strokeWidth={2} /> {publishing ? 'Publication…' : 'Publier'}
+                  </ButtonBase>
+                </Box>
+              </Tooltip>
+            </>
+          )}
+          <Segmented
+            value={mode}
+            onChange={setMode}
+            options={[{ value: 'edit', label: 'Éditer' }, { value: 'preview', label: 'Aperçu' }]}
+          />
+        </Box>
       </Box>
 
       {mode === 'edit' && pageMode && (

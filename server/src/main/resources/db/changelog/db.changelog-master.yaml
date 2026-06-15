@@ -2573,3 +2573,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0262__add_upsell_bundle.sql
         relativeToChangelogFile: true
+
+  # Draft / Live (2.7) : brouillon (blocks) vs instantane publie (published_blocks) par page de site.
+  - changeSet:
+      id: "0263-add-site-page-draft-publish"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0263__add_site_page_draft_publish.sql
+        relativeToChangelogFile: true
