@@ -28,6 +28,8 @@ export interface BaitlyBookingConfig {
   leadCapture?: boolean;
   /** Id numérique de l'organisation (2.11) — requis pour le compte voyageur (login/wishlist). */
   organizationId?: number;
+  /** Parrainage (2.11) : code de parrainage à rattacher après réservation (sinon lu depuis `?ref=`). */
+  referralCode?: string;
   onBook?: (reservation: BookingResult) => void;
   onError?: (error: BookingError) => void;
   onPriceChange?: (price: PriceBreakdown) => void;

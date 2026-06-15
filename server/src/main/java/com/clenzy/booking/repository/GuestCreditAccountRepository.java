@@ -12,6 +12,9 @@ public interface GuestCreditAccountRepository extends JpaRepository<GuestCreditA
 
     Optional<GuestCreditAccount> findByOrganizationIdAndEmail(Long organizationId, String email);
 
+    /** Parrainage (2.11) : résout le compte parrain depuis son code (scopé org). */
+    Optional<GuestCreditAccount> findByOrganizationIdAndReferralCode(Long organizationId, String referralCode);
+
     /**
      * Déduction ATOMIQUE du solde (2.8 — rédemption) : ne décrémente que si le solde couvre le
      * montant (audit #8 : UPDATE conditionnel, jamais check-then-act). Renvoie le nombre de lignes

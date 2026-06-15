@@ -103,6 +103,40 @@ public class GuestCreditService {
     }
 
     /**
+     * Crédit accordé (2.11 parrainage / geste commercial) : ajoute {@code amountCents} au solde,
+     * idempotent par {@code idempotencyKey} (index unique (org, code, GRANT)). Transaction dédiée.
+     */
+    @Transactional
+    public void grant(Long orgId, String email, long amountCents, String idempotencyKey) {
+        if (amountCents <= 0 || email == null || email.isBlank()) {
+            return;
+        }
+        if (idempotencyKey != null
+            && txRepository.existsByOrganizationIdAndReservationCodeAndType(orgId, idempotencyKey, GuestCreditTxType.GRANT)) {
+            return; // déjà accordé
+        }
+        String mail = normalize(email);
+        GuestCreditAccount acc = accountRepository.findByOrganizationIdAndEmail(orgId, mail)
+            .orElseGet(() -> {
+                GuestCreditAccount a = new GuestCreditAccount();
+                a.setOrganizationId(orgId);
+                a.setEmail(mail);
+                a.setBalanceCents(0);
+                return accountRepository.save(a);
+            });
+        acc.setBalanceCents(acc.getBalanceCents() + amountCents);
+        accountRepository.save(acc);
+
+        GuestCreditTransaction tx = new GuestCreditTransaction();
+        tx.setAccountId(acc.getId());
+        tx.setOrganizationId(orgId);
+        tx.setAmountCents(amountCents);
+        tx.setType(GuestCreditTxType.GRANT);
+        tx.setReservationCode(idempotencyKey);
+        txRepository.save(tx); // course → contrainte unique (org, code, GRANT) → rollback (solde non incrémenté)
+    }
+
+    /**
      * Rédemption (2.8 phase 2b-2) : déduit {@code amountCents} du solde de façon ATOMIQUE (UPDATE
      * conditionnel — pas de check-then-act ; audit #8). Renvoie true si appliqué (solde suffisant),
      * false sinon (le checkout facture alors le plein). Idempotent par réservation (index unique REDEEM).

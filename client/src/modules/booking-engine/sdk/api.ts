@@ -172,6 +172,18 @@ export class BookingApi {
     return this.rootFetch(`/api/public/guest/bookings?organizationId=${organizationId}`, { method: 'GET' }, token);
   }
 
+  /** Parrainage (2.11) : code de parrainage du voyageur connecté + crédit par parrainage (centimes). */
+  getReferral(organizationId: number, token: string): Promise<{ code: string; creditCents: number }> {
+    return this.rootFetch(`/api/public/guest/referral?organizationId=${organizationId}`, { method: 'GET' }, token);
+  }
+
+  /** Parrainage (2.11) : rattache un filleul (best-effort) après une réservation directe. */
+  claimReferral(organizationId: number, reservationCode: string, referralCode: string): Promise<{ claimed: boolean }> {
+    return this.rootFetch('/api/public/guest/referral/claim', {
+      method: 'POST', body: JSON.stringify({ organizationId, reservationCode, referralCode }),
+    });
+  }
+
   wishlistList(organizationId: number, token: string): Promise<number[]> {
     return this.rootFetch(`/api/public/guest/wishlist?organizationId=${organizationId}`, { method: 'GET' }, token);
   }

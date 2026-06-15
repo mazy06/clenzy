@@ -94,6 +94,10 @@ public class Organization {
     @Column(name = "loyalty_credit_percent")
     private Integer loyaltyCreditPercent;
 
+    /** Parrainage (2.11) : crédit accordé à chaque côté (centimes) quand un filleul réserve (NULL/0 = désactivé). */
+    @Column(name = "referral_credit_cents")
+    private Integer referralCreditCents;
+
     // --- Timestamps ---
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -169,6 +173,9 @@ public class Organization {
 
     public Integer getLoyaltyCreditPercent() { return loyaltyCreditPercent; }
     public void setLoyaltyCreditPercent(Integer loyaltyCreditPercent) { this.loyaltyCreditPercent = loyaltyCreditPercent; }
+
+    public Integer getReferralCreditCents() { return referralCreditCents; }
+    public void setReferralCreditCents(Integer referralCreditCents) { this.referralCreditCents = referralCreditCents; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -33,6 +33,10 @@ public class GuestCreditAccount {
     @Column(name = "currency", nullable = false, length = 3)
     private String currency = "EUR";
 
+    /** Parrainage (2.11) : code de parrainage stable du voyageur, généré à la demande, unique par org. */
+    @Column(name = "referral_code", length = 32)
+    private String referralCode;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -55,6 +59,9 @@ public class GuestCreditAccount {
 
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
+
+    public String getReferralCode() { return referralCode; }
+    public void setReferralCode(String referralCode) { this.referralCode = referralCode; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

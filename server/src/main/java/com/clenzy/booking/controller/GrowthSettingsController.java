@@ -35,6 +35,7 @@ public class GrowthSettingsController {
     @Operation(summary = "Mettre a jour les reglages de croissance de l'organisation")
     public ResponseEntity<GrowthSettingsDto> updateSettings(@RequestBody GrowthSettingsDto body) {
         return ResponseEntity.ok(growthSettingsService.updateSettings(
-            body.leadCaptureEnabled(), body.abandonedCartRecoveryEnabled(), body.loyaltyCreditPercent()));
+            body.leadCaptureEnabled(), body.abandonedCartRecoveryEnabled(),
+            body.loyaltyCreditPercent(), body.referralCreditCents()));
     }
 }

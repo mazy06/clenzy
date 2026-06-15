@@ -10,11 +10,13 @@ package com.clenzy.booking.dto;
  * @param contactsCaptured              nombre de contacts marketing capturés (org)
  * @param cartsRecovered                nombre de paniers relancés (statut RECOVERY_SENT)
  * @param loyaltyCreditPercent          crédit fidélité gagné par séjour direct (% ; NULL/0 = désactivé)
+ * @param referralCreditCents           crédit de parrainage par côté (centimes ; NULL/0 = désactivé)
  */
 public record GrowthSettingsDto(
         boolean leadCaptureEnabled,
         boolean abandonedCartRecoveryEnabled,
         long contactsCaptured,
         long cartsRecovered,
-        Integer loyaltyCreditPercent
+        Integer loyaltyCreditPercent,
+        Integer referralCreditCents
 ) {}
