@@ -2501,3 +2501,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0253__add_deposit_installment_to_booking.sql
         relativeToChangelogFile: true
+
+  # Clenzy Sites (P1.1) : fondation des sites heberges SSR (sites + site_pages + site_domains).
+  - changeSet:
+      id: "0254-create-hosted-sites"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0254__create_hosted_sites.sql
+        relativeToChangelogFile: true
