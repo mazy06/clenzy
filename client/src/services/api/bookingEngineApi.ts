@@ -194,6 +194,30 @@ export interface PublicPropertyDetail {
   checkOutTime: string | null;
 }
 
+// ─── Catalogue de templates de site ───────────────────────────────────────────
+
+/** Template de site (galerie « Choisir un design »). scope GLOBAL = catalogue Clenzy ; ORG = privé. */
+export interface SiteTemplateDto {
+  id: number;
+  name: string;
+  description: string | null;
+  register: string | null;
+  previewUrl: string | null;
+  contentJson: string;
+  scope: 'GLOBAL' | 'ORG';
+  organizationId: number | null;
+  createdAt: string;
+}
+
+export interface SiteTemplateCreateRequest {
+  name: string;
+  description?: string;
+  register?: string;
+  previewUrl?: string;
+  contentJson: string;
+  scope: 'GLOBAL' | 'ORG';
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export const bookingEngineApi = {
@@ -230,6 +254,23 @@ export const bookingEngineApi = {
   /** Regenerate API key — old key is immediately invalidated. */
   regenerateApiKey: (id: number) =>
     apiClient.post<BookingEngineConfig>(`/booking-engine/configs/${id}/regenerate-key`),
+
+  // ─── Catalogue de templates de site (global Clenzy + privés par org) ──
+
+  /** Templates visibles : catalogue global Clenzy + ceux de l'org courante. */
+  listSiteTemplates: () => apiClient.get<SiteTemplateDto[]>('/booking-engine/site-templates'),
+
+  /** Enregistre le design courant comme template (scope ORG, ou GLOBAL pour le staff plateforme). */
+  createSiteTemplate: (data: SiteTemplateCreateRequest) =>
+    apiClient.post<SiteTemplateDto>('/booking-engine/site-templates', data),
+
+  /** Modifie un template (métadonnées ; le contenu n'est remplacé que si `contentJson` est fourni). */
+  updateSiteTemplate: (id: number, data: Partial<SiteTemplateCreateRequest>) =>
+    apiClient.put<SiteTemplateDto>(`/booking-engine/site-templates/${id}`, data),
+
+  /** Supprime un template (global = staff plateforme ; privé = org propriétaire). */
+  deleteSiteTemplate: (id: number) =>
+    apiClient.delete(`/booking-engine/site-templates/${id}`),
 
   // ─── Calendar Availability ──────────────────────────────────────────
 

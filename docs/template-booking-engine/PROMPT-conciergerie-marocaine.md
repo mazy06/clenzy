@@ -57,7 +57,12 @@ CONTRAINTES TECHNIQUES (NON négociables)
 5. Images : URLs Unsplash plausibles (architecture/riad/Maroc) OU "" si incertain. Pas d'URL inventée cassée.
 6. NE PAS créer de page BLOG ni PROPERTY_DETAIL (routes SSR dédiées). NE PAS créer de faux formulaire de
    réservation (le widget est injecté via #reserver ; utilise hero(showSearch) et cta).
-7. Copy RÉELLE et honnête (pas de lorem ; les stats sont illustratives et génériques, pas de faux chiffres
+7. NE PAS créer de bloc navbar/header : la navigation est AUTO-générée depuis les pages (+ bouton « Réserver »).
+   Définis juste les pages avec de bons `title`.
+8. STYLE : privilégie les `theme.designTokens`. Pour le polish qui dépasse les blocs+tokens, mets-le dans
+   `customCss` (racine du template ; cible les classes `bkly-*`/`cb-*` + les variables `--accent`/`--ink`/`--card`…).
+   `customJs` est possible mais réserve-le au strict nécessaire (code de confiance).
+9. Copy RÉELLE et honnête (pas de lorem ; les stats sont illustratives et génériques, pas de faux chiffres
    présentés comme mesurés).
 
 SORTIE

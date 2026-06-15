@@ -3,8 +3,10 @@ import { Box, ButtonBase, Tooltip } from '@mui/material';
 import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2, FileText, Undo2, Redo2, Rocket } from 'lucide-react';
 import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
+import WorkflowComposer from './WorkflowComposer';
 import PagePreview from './PagePreview';
 import WidgetPreview from './WidgetPreview';
+import WidgetComposer from './WidgetComposer';
 import SiteWidgetPreview, { type WidgetPlacement } from './SiteWidgetPreview';
 import BlockInspector from './BlockInspector';
 import ThemeInspector from './ThemeInspector';
@@ -17,7 +19,9 @@ import type { StudioConfigState } from '../useStudioConfig';
 import { useSitePages } from '../useSitePages';
 import SiteTemplatePicker from '../SiteTemplatePicker';
 import type { SiteTemplate } from '../siteTemplates';
-import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
+import { DESIGN_PRESETS, type DesignPreset } from '../../constants';
+import { bookingEngineApi, type BookingEngineConfig, type SiteTemplateDto } from '../../../../services/api/bookingEngineApi';
+import { usePermissions } from '../../../../hooks/usePermissions';
 import type { SitePageType } from '../../../../services/api/sitesApi';
 
 /**
@@ -97,6 +101,8 @@ function parseLayout(json: string | null | undefined): BlockInstance[] | null {
 // ─── Import d'un template multi-page (JSON Claude Design) ─────────────────────────
 
 const VALID_PAGE_TYPES = new Set<SitePageType>(['HOME', 'PROPERTY_LIST', 'PROPERTY_DETAIL', 'BLOG', 'CUSTOM']);
+/** Types de pages présents dans la nav (miroir du `buildNavModel` SSR ; PROPERTY_DETAIL = dynamique, exclu). */
+const NAV_TYPES = new Set<SitePageType>(['HOME', 'PROPERTY_LIST', 'BLOG', 'CUSTOM']);
 
 interface ImportedTemplatePage {
   path: string;
@@ -107,7 +113,11 @@ interface ImportedTemplatePage {
   blocks: string; // normalisé (sérialisé)
 }
 interface ImportedTemplate {
+  name?: string;
+  logoUrl?: string;
   theme?: { primaryColor?: string; fontFamily?: string; designTokens?: Record<string, unknown> };
+  customCss?: string;
+  customJs?: string;
   pages: ImportedTemplatePage[];
 }
 
@@ -147,7 +157,13 @@ function parseImportedTemplate(text: string): { template: ImportedTemplate } | {
   }
   const themeRaw = obj.theme;
   const theme = themeRaw && typeof themeRaw === 'object' ? (themeRaw as ImportedTemplate['theme']) : undefined;
-  return { template: { theme, pages } };
+  const customCss = typeof obj.customCss === 'string' ? obj.customCss : undefined;
+  const customJs = typeof obj.customJs === 'string' ? obj.customJs : undefined;
+  const name = typeof obj.name === 'string' ? obj.name : undefined;
+  const themeObj = (themeRaw && typeof themeRaw === 'object' ? themeRaw : {}) as Record<string, unknown>;
+  const logoUrl = typeof obj.logoUrl === 'string' ? obj.logoUrl
+    : (typeof themeObj.logoUrl === 'string' ? themeObj.logoUrl : undefined);
+  return { template: { name, logoUrl, theme, customCss, customJs, pages } };
 }
 
 // ─── Helpers d'arbre (mutations tree-aware : top-level + blocs imbriqués dans les colonnes) ───
@@ -279,11 +295,12 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>('block');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-  const [previewView, setPreviewView] = useState<'page' | 'widget' | 'site'>('page');
+  const [previewView, setPreviewView] = useState<'page' | 'widget' | 'workflow' | 'site'>('page');
   const [widgetPlacement, setWidgetPlacement] = useState<WidgetPlacement>('bottom');
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [templates, setTemplates] = useState<SiteTemplateDto[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [pageDirty, setPageDirty] = useState(false);
   const [pageSaving, setPageSaving] = useState(false);
@@ -293,6 +310,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [future, setFuture] = useState<BlockInstance[][]>([]);
 
   const { patch } = cfg;
+  const { hasAnyRole } = usePermissions();
+  const canPublishGlobal = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
   const pages = useSitePages(cfg.config?.id ?? undefined);
   const pageMode = pages.ready && pages.selectedPage != null;
   const isHomeActive = pages.selectedPage?.type === 'HOME';
@@ -448,6 +467,20 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
 
   const selected = useMemo(() => findBlockById(blocks, selectedId), [blocks, selectedId]);
 
+  // Nav de l'aperçu (multi-page) : miroir de la nav AUTO du SSR — pages navigables triées, page active
+  // surlignée. Rendue en tête de PagePreview pour que l'aperçu Studio corresponde au site déployé.
+  const navItems = useMemo(() => {
+    if (!pageMode) return [];
+    return [...pages.pages]
+      .filter((p) => NAV_TYPES.has(p.type))
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((p) => ({
+        label: (p.title && p.title.trim())
+          || (p.type === 'HOME' || p.path === '/' ? 'Accueil' : p.path.replace(/^\//, '')),
+        active: p.id === pages.selectedPageId,
+      }));
+  }, [pageMode, pages.pages, pages.selectedPageId]);
+
   const onSelectBlock = (id: string) => { setSelectedId(id); setRightTab('block'); };
 
   const handleAdd = (type: BlockType) => {
@@ -527,6 +560,107 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     }
   };
 
+  // Applique UNIQUEMENT un thème de couleur (palette + typo) ; la mise en page courante est conservée.
+  const applyTheme = (preset: DesignPreset) => {
+    setTemplatesOpen(false);
+    patch({
+      primaryColor: preset.primaryColor,
+      fontFamily: preset.fontFamily,
+      designTokens: JSON.stringify(preset.tokens),
+    });
+  };
+
+  // ─── Catalogue de templates (global Clenzy + privés org) ───────────────────
+  // Chargé à l'ouverture de la galerie (best-effort : la galerie reste utilisable sans catalogue).
+  useEffect(() => {
+    if (!templatesOpen) return;
+    let alive = true;
+    bookingEngineApi.listSiteTemplates().then((res) => { if (alive) setTemplates(res); }).catch(() => { /* best-effort */ });
+    return () => { alive = false; };
+  }, [templatesOpen]);
+
+  // Sérialise le design courant (thème + pages) en template.json pour l'enregistrer au catalogue.
+  // `themePreset` (optionnel) force le thème du template ; sinon = thème courant de la config.
+  const buildTemplateContent = (name: string, themePreset?: DesignPreset, logoUrl?: string): string => {
+    const slug = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'template';
+    let tokens: unknown;
+    try { tokens = cfg.config?.designTokens ? JSON.parse(cfg.config.designTokens) : undefined; } catch { tokens = undefined; }
+    const theme = themePreset
+      ? { primaryColor: themePreset.primaryColor, fontFamily: themePreset.fontFamily, designTokens: themePreset.tokens }
+      : { primaryColor: cfg.config?.primaryColor, fontFamily: cfg.config?.fontFamily, designTokens: tokens };
+    const parseBlocks = (s: string | null | undefined): unknown[] => { try { const a = JSON.parse(s || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
+    const pagesArr = pageMode && pages.pages.length
+      ? pages.pages.map((p) => ({ path: p.path, type: p.type, title: p.title ?? undefined, blocks: parseBlocks(p.blocks) }))
+      : [{ path: '/', type: 'HOME', title: 'Accueil', blocks: parseBlocks(cfg.config?.pageLayout) }];
+    return JSON.stringify({
+      id: slug, name, register: 'product',
+      logoUrl: logoUrl || cfg.config?.logoUrl || undefined,
+      theme,
+      customCss: cfg.config?.customCss ?? undefined,
+      customJs: cfg.config?.customJs ?? undefined,
+      pages: pagesArr,
+    });
+  };
+
+  const handleSaveTemplate = async (
+    input: { name: string; description: string; scope: 'ORG' | 'GLOBAL'; themeId?: string; logoUrl?: string; json?: string },
+  ): Promise<string | null> => {
+    // Source = template.json collé (pages + thème + customCss/Js), sinon le design courant + thème choisi.
+    let contentJson: string;
+    if (input.json && input.json.trim()) {
+      const parsed = parseImportedTemplate(input.json);
+      if ('error' in parsed) return parsed.error;
+      contentJson = input.json.trim(); // brut : re-parsé (et CSS/JS appliqués) à l'application
+    } else {
+      const preset = input.themeId ? DESIGN_PRESETS.find((p) => p.id === input.themeId) : undefined;
+      contentJson = buildTemplateContent(input.name, preset, input.logoUrl);
+    }
+    try {
+      await bookingEngineApi.createSiteTemplate({
+        name: input.name, description: input.description || undefined, contentJson, scope: input.scope,
+      });
+      const res = await bookingEngineApi.listSiteTemplates();
+      setTemplates(res);
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Enregistrement échoué.';
+    }
+  };
+
+  // Modifie un template : métadonnées toujours ; contenu remplacé seulement si JSON/thème/logo fournis.
+  const handleUpdateTemplate = async (
+    id: number,
+    input: { name: string; description: string; scope: 'ORG' | 'GLOBAL'; themeId?: string; logoUrl?: string; json?: string },
+  ): Promise<string | null> => {
+    const data: { name: string; description?: string; scope: 'ORG' | 'GLOBAL'; contentJson?: string } = {
+      name: input.name, description: input.description || undefined, scope: input.scope,
+    };
+    if (input.json && input.json.trim()) {
+      const parsed = parseImportedTemplate(input.json);
+      if ('error' in parsed) return parsed.error;
+      data.contentJson = input.json.trim();
+    } else if (input.themeId || input.logoUrl) {
+      const preset = input.themeId ? DESIGN_PRESETS.find((p) => p.id === input.themeId) : undefined;
+      data.contentJson = buildTemplateContent(input.name, preset, input.logoUrl);
+    }
+    try {
+      await bookingEngineApi.updateSiteTemplate(id, data);
+      setTemplates(await bookingEngineApi.listSiteTemplates());
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Modification échouée.';
+    }
+  };
+
+  const handleDeleteTemplate = (id: number) => {
+    bookingEngineApi.deleteSiteTemplate(id)
+      .then(() => setTemplates((cur) => cur.filter((t) => t.id !== id)))
+      .catch(() => { /* best-effort */ });
+  };
+
+  // Applique un template du catalogue : on réutilise le flux d'import (thème + pages).
+  const handleSelectSaved = (t: SiteTemplateDto) => { void handleImportTemplate(t.contentJson); };
+
   /**
    * Importe un template multi-page (JSON Claude Design) : applique le thème + crée/maj les pages,
    * puis hydrate l'accueil et bascule en aperçu. Renvoie un message d'erreur ou null (succès).
@@ -534,7 +668,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const handleImportTemplate = useCallback(async (text: string): Promise<string | null> => {
     const parsed = parseImportedTemplate(text);
     if ('error' in parsed) return parsed.error;
-    const { theme, pages: tplPages } = parsed.template;
+    const { name: tplName, logoUrl, theme, customCss, customJs, pages: tplPages } = parsed.template;
     const home = tplPages.find((p) => p.type === 'HOME')!;
     const changes: Partial<BookingEngineConfig> = {};
     if (theme?.primaryColor) changes.primaryColor = theme.primaryColor;
@@ -542,6 +676,12 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     if (theme?.designTokens && typeof theme.designTokens === 'object') {
       changes.designTokens = JSON.stringify(theme.designTokens);
     }
+    if (customCss != null) changes.customCss = customCss;
+    if (customJs != null) changes.customJs = customJs;
+    if (logoUrl != null) changes.logoUrl = logoUrl;
+    // Nom de la config (= marque affichée dans la nav) : on n'écrase QUE le défaut « Default »
+    // (pour ne pas renommer une config déjà nommée, ni heurter la contrainte unique org+name).
+    if (tplName && (!cfg.config?.name || cfg.config.name === 'Default')) changes.name = tplName;
     try {
       if (pageMode) {
         const res = await pages.importPages(tplPages);
@@ -591,12 +731,12 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {/* Barre : modèles (gauche) + bascule Éditer / Aperçu (droite). */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, height: 42, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-        {mode === 'preview' ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* Sélecteur Page / Widget / Site : dispo en édition ET en aperçu. */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Segmented
               value={previewView}
               onChange={setPreviewView}
-              options={[{ value: 'page', label: 'Page' }, { value: 'widget', label: 'Réservation' }, { value: 'site', label: 'Site' }]}
+              options={[{ value: 'page', label: 'Page' }, { value: 'widget', label: 'Widget' }, { value: 'workflow', label: 'Parcours' }, { value: 'site', label: 'Site' }]}
             />
             {previewView === 'site' && (
               <Segmented
@@ -605,8 +745,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
                 options={[{ value: 'bottom', label: 'Bas' }, { value: 'floating', label: 'Flottant' }, { value: 'top', label: 'Haut' }]}
               />
             )}
-          </Box>
-        ) : (
+          {/* Outils d'édition de page (undo/redo/modèles) — uniquement en édition de la Page. */}
+          {mode === 'edit' && previewView === 'page' && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
             <Tooltip title="Annuler">
               <ButtonBase onClick={undo} disabled={past.length === 0} aria-label="Annuler" sx={paneIconBtnSx}>
@@ -632,7 +772,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
               <LayoutTemplate size={15} strokeWidth={2} /> Modèles
             </ButtonBase>
           </Box>
-        )}
+          )}
+        </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {pageMode && mode === 'edit' && (
             <>
@@ -668,7 +809,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
         </Box>
       </Box>
 
-      {mode === 'edit' && pageMode && (
+      {mode === 'edit' && pageMode && previewView === 'page' && (
         <PagesBar
           pages={pages.pages}
           selectedId={pages.selectedPageId}
@@ -681,11 +822,24 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
         />
       )}
 
-      {mode === 'preview' ? (
+      {mode === 'edit' && previewView === 'widget' ? (
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <WidgetComposer cfg={cfg} theme={theme} />
+        </Box>
+      ) : mode === 'edit' && previewView === 'workflow' ? (
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <WorkflowComposer cfg={cfg} />
+        </Box>
+      ) : mode === 'edit' && previewView === 'site' ? (
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <SiteWidgetPreview config={cfg.config} breakpoint={breakpoint} placement={widgetPlacement} />
+        </Box>
+      ) : mode === 'preview' ? (
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
           {previewView === 'page' ? (
-            <PagePreview blocks={blocks} theme={theme} breakpoint={breakpoint} />
-          ) : previewView === 'widget' ? (
+            <PagePreview blocks={blocks} theme={theme} breakpoint={breakpoint}
+              navItems={navItems} brandName={cfg.config?.name} logoUrl={cfg.config?.logoUrl} reserveLabel="Réserver" />
+          ) : previewView === 'widget' || previewView === 'workflow' ? (
             <WidgetPreview config={cfg.config} breakpoint={breakpoint} />
           ) : (
             <SiteWidgetPreview config={cfg.config} breakpoint={breakpoint} placement={widgetPlacement} />
@@ -712,6 +866,10 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             breakpoint={breakpoint}
             onSelect={onSelectBlock}
             theme={theme}
+            navItems={navItems}
+            brandName={cfg.config?.name}
+            logoUrl={cfg.config?.logoUrl}
+            reserveLabel="Réserver"
           />
 
           {rightCollapsed ? (
@@ -793,7 +951,10 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
         </Box>
       )}
 
-      <SiteTemplatePicker open={templatesOpen} onClose={() => setTemplatesOpen(false)} onSelect={applyTemplate} onImport={handleImportTemplate} />
+      <SiteTemplatePicker open={templatesOpen} onClose={() => setTemplatesOpen(false)}
+        onSelect={applyTemplate} onApplyTheme={applyTheme}
+        templates={templates} onSelectSaved={handleSelectSaved} onSaveTemplate={handleSaveTemplate}
+        onUpdateTemplate={handleUpdateTemplate} onDeleteTemplate={handleDeleteTemplate} canPublishGlobal={canPublishGlobal} />
     </Box>
   );
 }

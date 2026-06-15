@@ -11,9 +11,12 @@ import { createGuestSelector } from './components/GuestSelector';
 import { createPriceSummary } from './components/PriceSummary';
 import { createCTAButton } from './components/CTAButton';
 import { createGuestForm } from './components/GuestForm';
+import { createStepper } from './components/Stepper';
 import { createPropertyList } from './components/PropertyList';
+import { createPropertyFilter } from './components/PropertyFilter';
 import { createCurrencySelector } from './components/CurrencySelector';
 import { createCartList } from './components/CartList';
+import { createAddonsPanel } from './components/AddonsPanel';
 import { mountLeadCapture } from './components/LeadCapture';
 import { mountWishlistAuth, type WishlistAuthController } from './components/WishlistAuth';
 import { createRebookStrip } from './components/RebookStrip';
@@ -110,6 +113,10 @@ export class BaitlyWidget {
 
   private injectStyles(): void {
     if (!this.shadowRoot) return;
+    // Mode de style (toggle du composeur) : 'none' = headless → AUCUN CSS injecté dans le Shadow DOM
+    // (le widget rend du HTML brut, à styler entièrement soi-même). 'template' (défaut) = thème +
+    // CSS de base + CSS custom de l'org.
+    if (parseStyleMode(this.config.componentConfig) === 'none') return;
     const fontFamily = this.config.theme?.fontFamily;
     if (!fontFamily || fontFamily.includes('Inter')) {
       const fontLink = document.createElement('link');
@@ -172,60 +179,181 @@ export class BaitlyWidget {
     page.className = 'cb-page';
     const currency = this.state.get().displayCurrency;
 
+    // CTA → formulaire (réservation simple, si propriété + dates choisies).
+    const goToForm = () => {
+      const s = this.state.get();
+      if (s.selectedPropertyId && s.checkIn && s.checkOut) {
+        this.state.set({ page: 'form' }, 'pageChange');
+      }
+    };
+
+    // Composition Studio (micro-widgets) si fournie & valide, sinon formulaire de recherche figé.
+    const layout = parseWidgetLayout(this.config.componentConfig);
+    if (layout.length > 0) {
+      this.renderComposedSearch(page, layout, currency, goToForm, parseStyleMode(this.config.componentConfig));
+    } else {
+      this.renderDefaultSearch(page, currency, goToForm);
+    }
+    return page;
+  }
+
+  /** Formulaire de recherche par défaut (property-first) : ordre figé historique, panier inclus. */
+  private renderDefaultSearch(page: HTMLElement, currency: string, goToForm: () => void): void {
     // Re-booking 1-clic (2.11) : bandeau « Réserver à nouveau » pour le voyageur connecté.
     if (this.config.organizationId != null) {
       page.appendChild(createRebookStrip(this.state, this.i18n, this.api, this.config.organizationId));
     }
-
-    // Sélecteur de devise (masqué si une seule devise)
     page.appendChild(createCurrencySelector(this.state));
+    page.appendChild(this.buildPropertyList());
+    page.appendChild(createDatePicker(this.state, this.i18n));
+    page.appendChild(createCalendar(this.state, this.i18n, currency));
+    page.appendChild(createGuestSelector(this.state, this.i18n, this.config.maxGuests || 10));
+    const divider = document.createElement('div');
+    divider.className = 'cb-divider';
+    page.appendChild(divider);
+    page.appendChild(createPriceSummary(this.state, this.i18n));
+    page.appendChild(createCTAButton(this.state, this.i18n, goToForm));
+    // Panier multi-séjours : add-to-cart + liste (total + "Continuer").
+    page.appendChild(this.buildAddToCart());
+    page.appendChild(createCartList(this.state, this.i18n, () => this.state.set({ page: 'form' }, 'pageChange')));
+  }
 
-    // Liste de propriétés (sélection property-first) + cœurs favoris si compte voyageur actif.
-    page.appendChild(createPropertyList(
+  /**
+   * Rend la barre de réservation composée dans le Studio (micro-widgets). Chaque widget est mappé
+   * vers son composant fonctionnel (mêmes liaisons d'état que le formulaire par défaut). Un conteneur
+   * `group` agrège ses enfants dans une boîte flex (ligne/colonne). Dédoublonnage par composant (deux
+   * sélecteurs de dates n'ont pas de sens). Si la composition n'expose aucun bouton de recherche, on
+   * en ajoute un (sinon le séjour ne pourrait jamais être validé).
+   */
+  private renderComposedSearch(page: HTMLElement, layout: LayoutNode[], currency: string, goToForm: () => void, styleMode: 'template' | 'none'): void {
+    let hasCTA = false;
+    const used = new Set<string>();
+    const claim = (type: string): boolean => {
+      const k = WIDGET_DEDUP_KEY[type] ?? type;
+      if (used.has(k)) return false;
+      used.add(k);
+      return true;
+    };
+    const markCTA = (node: LayoutNode) => {
+      if (node.type === 'searchButton') hasCTA = true;
+      (node.children ?? []).forEach(markCTA);
+    };
+    const leaf = (type: string): HTMLElement | null => (claim(type) ? this.buildLayoutWidget(type, currency, goToForm) : null);
+    const build = (node: LayoutNode): HTMLElement | null => {
+      if (node.type === 'group') {
+        const box = document.createElement('div');
+        box.className = 'cb-wgroup';
+        const props = node.props ?? {};
+        const dir = props.direction === 'column' ? 'column' : 'row';
+        const gap = String(props.gap || 'md');
+        // Intention de layout exposée en data-* → le CSS de la page/template peut piloter en headless.
+        box.dataset.direction = dir;
+        box.dataset.gap = gap;
+        box.dataset.wrap = props.wrap === false ? 'false' : 'true';
+        // En headless, AUCUN style inline : c'est au template/CSS de gérer la mise en page.
+        if (styleMode !== 'none') {
+          box.style.display = 'flex';
+          box.style.flexDirection = dir;
+          box.style.flexWrap = props.wrap === false ? 'nowrap' : 'wrap';
+          box.style.alignItems = dir === 'column' ? 'stretch' : 'flex-end';
+          box.style.gap = WGROUP_GAP[gap] ?? WGROUP_GAP.md;
+        }
+        (node.children ?? []).forEach((child) => {
+          if (child.type === 'group') return; // pas d'imbrication de conteneur
+          const el = leaf(child.type);
+          if (el) box.appendChild(el);
+        });
+        return box.childElementCount > 0 ? box : null;
+      }
+      return leaf(node.type);
+    };
+    layout.forEach((node) => {
+      markCTA(node);
+      const el = build(node);
+      if (el) page.appendChild(el);
+    });
+    if (!hasCTA) page.appendChild(createCTAButton(this.state, this.i18n, goToForm));
+  }
+
+  /** Mappe un micro-widget Studio vers son composant fonctionnel (ou null si type inconnu/indispo). */
+  private buildLayoutWidget(type: string, currency: string, goToForm: () => void): HTMLElement | null {
+    switch (type) {
+      case 'citySearch':
+      case 'propertyResults':
+        return this.buildPropertyList();
+      case 'dates': {
+        const wrap = document.createElement('div');
+        wrap.className = 'cb-wdates';
+        wrap.appendChild(createDatePicker(this.state, this.i18n));
+        wrap.appendChild(createCalendar(this.state, this.i18n, currency));
+        return wrap;
+      }
+      case 'guests':
+        return createGuestSelector(this.state, this.i18n, this.config.maxGuests || 10);
+      case 'propertyType':
+      case 'filter':
+        return createPropertyFilter(this.state, this.i18n, currency);
+      case 'currency':
+        return createCurrencySelector(this.state);
+      case 'searchButton':
+        return createCTAButton(this.state, this.i18n, goToForm);
+      case 'priceSummary':
+        return createPriceSummary(this.state, this.i18n);
+      case 'cart':
+        return createCartList(this.state, this.i18n, () => this.state.set({ page: 'form' }, 'pageChange'));
+      case 'addToCart':
+        return this.buildAddToCart();
+      case 'addons':
+        return createAddonsPanel(this.state, this.i18n, currency);
+      case 'stepper':
+        // Indicateur de progression (statique : étape « Séjours & Options »).
+        return createStepper(0, this.i18n);
+      case 'guestForm':
+        // Coordonnées voyageur (booking sur une seule page). Le submit déclenche le checkout normal
+        // (recalcul serveur ; no-op tant que propriété + dates ne sont pas sélectionnées).
+        return createGuestForm(this.state, this.i18n, () => { void this.handleCheckout(); });
+      case 'account':
+        // Compte voyageur : bouton de connexion (modal login/favoris). Indispo si org inconnue.
+        return this.wishlistAuth ? this.buildAccountButton() : null;
+      case 'rebook':
+        return this.config.organizationId != null
+          ? createRebookStrip(this.state, this.i18n, this.api, this.config.organizationId)
+          : null;
+      default:
+        return null;
+    }
+  }
+
+  /** Bouton « Ajouter au panier » : ajoute le séjour courant au panier multi-séjours. */
+  private buildAddToCart(): HTMLElement {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cb-cta cb-cta--secondary cb-add-to-cart';
+    btn.textContent = this.i18n.t('cart.addStay');
+    btn.addEventListener('click', () => this.addCurrentStayToCart());
+    return btn;
+  }
+
+  /** Bouton « Se connecter » : ouvre le modal login/favoris du compte voyageur. */
+  private buildAccountButton(): HTMLElement {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cb-cta cb-cta--secondary cb-account';
+    btn.textContent = this.i18n.t('identification.loginButton');
+    btn.addEventListener('click', () => this.wishlistAuth?.requireAuth(() => { /* connecté : favoris/re-booking activés */ }));
+    return btn;
+  }
+
+  /** Liste de propriétés (sélection property-first) + cœurs favoris si compte voyageur actif. */
+  private buildPropertyList(): HTMLElement {
+    return createPropertyList(
       this.state,
       this.i18n,
       this.config.baseUrl || window.location.origin,
       this.config.organizationId != null
         ? { wishlistEnabled: true, onWishlistToggle: (id) => this.handleWishlistToggle(id) }
         : {},
-    ));
-
-    // Sélection des dates (date picker + calendrier alimenté par /calendar de la propriété)
-    page.appendChild(createDatePicker(this.state, this.i18n));
-    page.appendChild(createCalendar(this.state, this.i18n, currency));
-
-    // Voyageurs
-    page.appendChild(createGuestSelector(this.state, this.i18n, this.config.maxGuests || 10));
-
-    const divider = document.createElement('div');
-    divider.className = 'cb-divider';
-    page.appendChild(divider);
-
-    // Récapitulatif prix (depuis /availability)
-    page.appendChild(createPriceSummary(this.state, this.i18n));
-
-    // CTA → formulaire (réservation simple, si propriété + dates choisies)
-    page.appendChild(createCTAButton(this.state, this.i18n, () => {
-      const s = this.state.get();
-      if (s.selectedPropertyId && s.checkIn && s.checkOut) {
-        this.state.set({ page: 'form' }, 'pageChange');
-      }
-    }));
-
-    // Ajouter au panier (multi-séjours) : ajoute le séjour courant + réinitialise la sélection.
-    const addToCart = document.createElement('button');
-    addToCart.type = 'button';
-    addToCart.className = 'cb-cta cb-cta--secondary cb-add-to-cart';
-    addToCart.textContent = this.i18n.t('cart.addStay');
-    addToCart.addEventListener('click', () => this.addCurrentStayToCart());
-    page.appendChild(addToCart);
-
-    // Panier multi-séjours : liste + total + "Continuer".
-    page.appendChild(createCartList(this.state, this.i18n, () => {
-      this.state.set({ page: 'form' }, 'pageChange');
-    }));
-
-    return page;
+    );
   }
 
   private renderFormPage(): HTMLElement {
@@ -565,6 +693,53 @@ export class BaitlyWidget {
       this.host = null;
     }
     this.shadowRoot = null;
+  }
+}
+
+// ─── Composition Studio (widgetLayout) ─────────────────────────────────────────
+
+/** Nœud de disposition sérialisé par le composeur Studio (`{ type, props?, children? }`). */
+interface LayoutNode {
+  type: string;
+  props?: Record<string, unknown>;
+  children?: LayoutNode[];
+}
+
+const WGROUP_GAP: Record<string, string> = { sm: '8px', md: '12px', lg: '20px' };
+
+/**
+ * Clé de dédoublonnage par COMPOSANT : deux types qui rendent le même composant fonctionnel ne
+ * doivent pas être montés deux fois (ex. `citySearch` et `propertyResults` = la liste de logements).
+ * Un type absent vaut sa propre clé (pas de dédoublonnage croisé).
+ */
+const WIDGET_DEDUP_KEY: Record<string, string> = {
+  citySearch: 'propertyList',
+  propertyResults: 'propertyList',
+  propertyType: 'filter',
+  filter: 'filter',
+};
+
+/** Mode de style du widget : `template` (défaut, design appliqué) ou `none` (headless, aucun CSS). */
+function parseStyleMode(componentConfig?: string): 'template' | 'none' {
+  if (!componentConfig) return 'template';
+  try {
+    const m = (JSON.parse(componentConfig) as { styleMode?: unknown }).styleMode;
+    return m === 'none' ? 'none' : 'template';
+  } catch {
+    return 'template';
+  }
+}
+
+/** Lit la disposition `widgetLayout` depuis `componentConfig` (JSON). [] si absent/illisible. */
+function parseWidgetLayout(componentConfig?: string): LayoutNode[] {
+  if (!componentConfig) return [];
+  try {
+    const obj = JSON.parse(componentConfig);
+    const arr = (obj as { widgetLayout?: unknown })?.widgetLayout;
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((n): n is LayoutNode => !!n && typeof n === 'object' && typeof (n as LayoutNode).type === 'string');
+  } catch {
+    return [];
   }
 }
 
