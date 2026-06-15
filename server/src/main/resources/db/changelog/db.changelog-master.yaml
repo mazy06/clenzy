@@ -2525,3 +2525,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0256__add_reminder_count_to_abandoned_bookings.sql
         relativeToChangelogFile: true
+
+  # Booking engine (2.12) : segments Brevo des leads (liste dediee + toggle de sync).
+  - changeSet:
+      id: "0257-add-leads-list-to-marketing-integration"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0257__add_leads_list_to_marketing_integration.sql
+        relativeToChangelogFile: true

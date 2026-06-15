@@ -10,6 +10,8 @@ import com.clenzy.repository.OrganizationRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Clock;
 import java.util.List;
@@ -25,13 +27,16 @@ public class LeadCaptureService {
 
     private final MarketingContactRepository repository;
     private final OrganizationRepository organizationRepository;
+    private final BrevoContactService brevoContactService;
     private final Clock clock;
 
     public LeadCaptureService(MarketingContactRepository repository,
                               OrganizationRepository organizationRepository,
+                              BrevoContactService brevoContactService,
                               Clock clock) {
         this.repository = repository;
         this.organizationRepository = organizationRepository;
+        this.brevoContactService = brevoContactService;
         this.clock = clock;
     }
 
@@ -75,7 +80,31 @@ public class LeadCaptureService {
         contact.setConsentAt(clock.instant());
         contact.setUpdatedAt(clock.instant());
 
-        return MarketingContactDto.from(repository.save(contact));
+        MarketingContact saved = repository.save(contact);
+
+        // Sync Brevo (segment par SOURCE) APRÈS commit : pas d'appel HTTP externe dans la transaction
+        // (audit #2). Best-effort — BrevoContactService avale ses propres erreurs.
+        final String leadEmail = saved.getEmail();
+        final String leadName = saved.getName();
+        final String leadSource = src.name();
+        final String leadLocale = saved.getLocale();
+        runAfterCommit(() -> brevoContactService.addLead(leadEmail, leadName, leadSource, leadLocale));
+
+        return MarketingContactDto.from(saved);
+    }
+
+    /** Exécute une action après commit de la transaction courante (ou immédiatement hors transaction). */
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
     }
 
     /** Désabonne un contact (RGPD / opt-out). No-op si inconnu. */

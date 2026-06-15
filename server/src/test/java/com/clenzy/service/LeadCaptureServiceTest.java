@@ -35,6 +35,7 @@ class LeadCaptureServiceTest {
 
     @Mock private MarketingContactRepository repository;
     @Mock private OrganizationRepository organizationRepository;
+    @Mock private BrevoContactService brevoContactService;
 
     private LeadCaptureService service;
 
@@ -43,7 +44,7 @@ class LeadCaptureServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new LeadCaptureService(repository, organizationRepository, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new LeadCaptureService(repository, organizationRepository, brevoContactService, Clock.fixed(NOW, ZoneOffset.UTC));
         // Capture activée par défaut (réglage org-level) ; lenient car les tests d'erreur amont ne l'atteignent pas.
         lenient().when(organizationRepository.findLeadCaptureEnabledById(ORG)).thenReturn(Optional.of(true));
     }
