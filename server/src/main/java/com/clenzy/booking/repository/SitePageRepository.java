@@ -14,6 +14,9 @@ public interface SitePageRepository extends JpaRepository<SitePage, Long> {
 
     Optional<SitePage> findBySiteIdAndPathAndLocale(Long siteId, String path, String locale);
 
+    /** Page commune (sans locale) : repli quand aucune variante localisée n'existe. */
+    Optional<SitePage> findBySiteIdAndPathAndLocaleIsNull(Long siteId, String path);
+
     Optional<SitePage> findByIdAndSiteId(Long id, Long siteId);
 
     void deleteBySiteId(Long siteId);

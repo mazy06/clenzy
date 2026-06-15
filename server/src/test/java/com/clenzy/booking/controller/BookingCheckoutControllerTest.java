@@ -58,7 +58,7 @@ class BookingCheckoutControllerTest {
     @Mock private BookingServiceOptionsService serviceOptionsService;
     @Mock private PublicBookingService publicBookingService;
     @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
-    @Mock private com.clenzy.booking.repository.BookingEngineConfigRepository configRepository;
+    @Mock private com.clenzy.booking.service.BookingPaymentPolicyService paymentPolicyService;
     @Mock private jakarta.servlet.http.HttpServletRequest httpRequest;
 
     private BookingCheckoutController controller;
@@ -69,10 +69,12 @@ class BookingCheckoutControllerTest {
         // pour conserver la couverture bout-en-bout (stubs/verify inchanges).
         BookingCheckoutQuoteService quoteService = new BookingCheckoutQuoteService(
             propertyRepository, serviceOptionsService, publicBookingService);
-        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter, configRepository);
+        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter, paymentPolicyService);
         setField("stripeSecretKey", "sk_test_xxx");
         setField("currency", "eur");
         org.mockito.Mockito.lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
+        org.mockito.Mockito.lenient().when(paymentPolicyService.resolve(anyLong()))
+            .thenReturn(com.clenzy.booking.service.BookingPaymentPolicyService.BookingPaymentPolicy.none());
     }
 
     private void setField(String fieldName, Object value) throws Exception {
