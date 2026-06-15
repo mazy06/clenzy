@@ -352,6 +352,7 @@ export class BaitlyWidget {
       const avail: ApiAvailability = await this.api.checkAvailability(
         { propertyId: s.selectedPropertyId, checkIn: s.checkIn, checkOut: s.checkOut, guests: s.adults + s.children },
         s.displayCurrency,
+        s.guestToken ?? undefined, // tarif membre (2.8) si voyageur connecté
       );
       if (!avail.available) {
         this.state.set({ pricing: null, pricingLoading: false, error: avail.violations?.[0] ?? null }, 'error');
@@ -435,7 +436,7 @@ export class BaitlyWidget {
         guests: s.adults + s.children,
         guest,
         notes: s.guestForm.message || undefined,
-      });
+      }, s.guestToken ?? undefined); // tarif membre (2.8)
 
       if (reservation.requiresPayment) {
         const checkout = await this.api.checkout(reservation.reservationCode);
@@ -475,7 +476,7 @@ export class BaitlyWidget {
         checkOut: c.checkOut,
         guests: c.guests,
       }));
-      const batch = await this.api.reserveBatch({ items, guest });
+      const batch = await this.api.reserveBatch({ items, guest }, s.guestToken ?? undefined); // tarif membre (2.8)
 
       if (batch.requiresPayment && batch.reservations.length > 0) {
         // Paiement item par item : on démarre le checkout du premier séjour.

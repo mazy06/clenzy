@@ -37,6 +37,8 @@ public record BookingEngineConfigDto(
     Integer balanceDueDays,
     // Book Direct & Save (2.8) — remise % réservation directe (affichage de l'économie côté widget).
     Integer directBookingDiscountPercent,
+    // Tarif membre (2.8) — remise % voyageur connecté (le widget incite à se connecter / affiche l'éco).
+    Integer memberDiscountPercent,
     // Capture de leads activée au niveau org (2.12) — pilote l'affichage du form exit-intent du widget.
     boolean leadCaptureEnabled
 ) {
@@ -69,6 +71,7 @@ public record BookingEngineConfigDto(
             config.getDepositPercent(),
             config.getBalanceDueDays(),
             config.getDirectBookingDiscountPercent(),
+            config.getMemberDiscountPercent(),
             leadCaptureEnabled
         );
     }

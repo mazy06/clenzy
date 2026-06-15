@@ -168,12 +168,14 @@ export class BookingApi {
     return this.rootFetch(`/api/public/guest/wishlist/${propertyId}?organizationId=${organizationId}`, { method: 'DELETE' }, token);
   }
 
-  private async request<T>(path: string, options?: RequestInit): Promise<T> {
+  private async request<T>(path: string, options?: RequestInit, bearer?: string): Promise<T> {
     const res = await fetch(`${this.base}${path}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
         'X-Booking-Key': this.apiKey,
+        // Tarif membre (2.8) : token guest optionnel → le serveur applique la remise membre.
+        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
         ...options?.headers,
       },
     });
@@ -211,11 +213,12 @@ export class BookingApi {
   checkAvailability(
     params: { propertyId: number; checkIn: string; checkOut: string; guests: number },
     currency?: string,
+    guestToken?: string,
   ): Promise<ApiAvailability> {
     return this.request(`/availability${this.currencyQuery(currency)}`, {
       method: 'POST',
       body: JSON.stringify(params),
-    });
+    }, guestToken);
   }
 
   reserve(params: {
@@ -226,8 +229,8 @@ export class BookingApi {
     guest: ReserveGuestInfo;
     notes?: string;
     voucherCode?: string;
-  }): Promise<ApiReserveResult> {
-    return this.request('/reserve', { method: 'POST', body: JSON.stringify(params) });
+  }, guestToken?: string): Promise<ApiReserveResult> {
+    return this.request('/reserve', { method: 'POST', body: JSON.stringify(params) }, guestToken);
   }
 
   checkout(reservationCode: string): Promise<ApiCheckoutResult> {
@@ -241,7 +244,7 @@ export class BookingApi {
   reserveBatch(params: {
     items: { propertyId: number; checkIn: string; checkOut: string; guests: number; notes?: string }[];
     guest: ReserveGuestInfo;
-  }): Promise<ApiBatchReserveResult> {
-    return this.request('/reserve-batch', { method: 'POST', body: JSON.stringify(params) });
+  }, guestToken?: string): Promise<ApiBatchReserveResult> {
+    return this.request('/reserve-batch', { method: 'POST', body: JSON.stringify(params) }, guestToken);
   }
 }

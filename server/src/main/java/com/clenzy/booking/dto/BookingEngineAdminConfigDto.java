@@ -44,6 +44,8 @@ public record BookingEngineAdminConfigDto(
     Integer balanceDueDays,
     // Book Direct & Save (2.8) : remise % réservation directe (1–100 ; NULL/0 = aucune)
     Integer directBookingDiscountPercent,
+    // Tarif membre (2.8) : remise % pour voyageur connecté (le membre obtient max(directe, membre))
+    Integer memberDiscountPercent,
     // Custom CSS/JS + Component Config
     String customCss,
     String customJs,
@@ -95,6 +97,7 @@ public record BookingEngineAdminConfigDto(
             config.getDepositPercent(),
             config.getBalanceDueDays(),
             config.getDirectBookingDiscountPercent(),
+            config.getMemberDiscountPercent(),
             config.getCustomCss(),
             config.getCustomJs(),
             config.getComponentConfig(),
@@ -136,6 +139,7 @@ public record BookingEngineAdminConfigDto(
         config.setDepositPercent(depositPercent);
         config.setBalanceDueDays(balanceDueDays);
         config.setDirectBookingDiscountPercent(directBookingDiscountPercent);
+        config.setMemberDiscountPercent(memberDiscountPercent);
         config.setCustomCss(customCss);
         config.setCustomJs(customJs);
         config.setComponentConfig(componentConfig);
