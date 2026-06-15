@@ -15,11 +15,14 @@ public record UpsellOfferDto(
         String currency,
         String imageUrl,
         boolean active,
-        int sortOrder) {
+        int sortOrder,
+        Integer minNights,
+        Integer leadTimeHours) {
 
     public static UpsellOfferDto from(UpsellOffer o) {
         return new UpsellOfferDto(
                 o.getId(), o.getPropertyId(), o.getType().name(), o.getTitle(), o.getDescription(),
-                o.getPrice(), o.getCurrency(), o.getImageUrl(), o.isActive(), o.getSortOrder());
+                o.getPrice(), o.getCurrency(), o.getImageUrl(), o.isActive(), o.getSortOrder(),
+                o.getMinNights(), o.getLeadTimeHours());
     }
 }

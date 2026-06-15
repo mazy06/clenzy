@@ -16,4 +16,7 @@ public record UpsellOfferRequest(
         String currency,
         String imageUrl,
         Boolean active,
-        Integer sortOrder) {}
+        Integer sortOrder,
+        // Productisation (2.10) : conditionnel (séjour mini) + fenêtre horaire (délai mini avant arrivée)
+        Integer minNights,
+        Integer leadTimeHours) {}

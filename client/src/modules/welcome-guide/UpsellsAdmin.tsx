@@ -63,6 +63,8 @@ interface EditState {
   imageUrl: string;
   propertyId: string;
   active: boolean;
+  minNights: string;
+  leadTimeHours: string;
 }
 
 const emptyEdit: EditState = {
@@ -76,6 +78,8 @@ const emptyEdit: EditState = {
   imageUrl: '',
   propertyId: '',
   active: true,
+  minNights: '',
+  leadTimeHours: '',
 };
 
 /**
@@ -216,6 +220,8 @@ const UpsellsAdmin: React.FC = () => {
       imageUrl: o.imageUrl ?? '',
       propertyId: o.propertyId != null ? String(o.propertyId) : '',
       active: o.active,
+      minNights: o.minNights != null ? String(o.minNights) : '',
+      leadTimeHours: o.leadTimeHours != null ? String(o.leadTimeHours) : '',
     });
 
   // Upload d'une image → compressée en data URL base64, stockée en base (pas d'URL externe).
@@ -260,6 +266,8 @@ const UpsellsAdmin: React.FC = () => {
         currency: edit.currency || DEFAULT_CURRENCY,
         imageUrl: edit.imageUrl.trim() || null,
         active: edit.active,
+        minNights: edit.minNights ? Number(edit.minNights) : null,
+        leadTimeHours: edit.leadTimeHours ? Number(edit.leadTimeHours) : null,
       };
       if (edit.id == null) {
         await upsellApi.createOffer(payload);
@@ -565,6 +573,29 @@ const UpsellsAdmin: React.FC = () => {
               multiline
               minRows={2}
             />
+            {/* Productisation (2.10) : conditionnel + fenêtre horaire de commande. */}
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <TextField
+                label={t('upsells.fields.minNights', 'Séjour min. (nuits)')}
+                helperText={t('upsells.fields.minNightsHelp', 'Proposé si le séjour atteint ce nb de nuits. Vide = toujours.')}
+                value={edit.minNights}
+                onChange={(e) => setEdit((s) => ({ ...s, minNights: e.target.value }))}
+                size="small"
+                type="number"
+                sx={{ width: 200 }}
+                inputProps={{ min: 0, step: 1 }}
+              />
+              <TextField
+                label={t('upsells.fields.leadTimeHours', 'Délai mini avant arrivée (h)')}
+                helperText={t('upsells.fields.leadTimeHoursHelp', 'Commandable seulement si l’arrivée est ≥ X h. Vide = aucun délai.')}
+                value={edit.leadTimeHours}
+                onChange={(e) => setEdit((s) => ({ ...s, leadTimeHours: e.target.value }))}
+                size="small"
+                type="number"
+                sx={{ flex: 1, minWidth: 220 }}
+                inputProps={{ min: 0, step: 1 }}
+              />
+            </Box>
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
                 {t('upsells.fields.image', 'Image (optionnel)')}
