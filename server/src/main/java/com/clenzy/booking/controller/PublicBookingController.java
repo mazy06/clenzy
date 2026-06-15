@@ -326,11 +326,12 @@ public class PublicBookingController {
     }
 
     /**
-     * GET /{slug}/reviews?limit=6
+     * GET /{slug}/reviews/summary?limit=6
      * Avis publics agrégés (org) + avis récents — preuve sociale sur la page publique.
+     * (Distinct de GET /reviews paginé par propriété pour éviter l'ambiguïté de mapping.)
      */
-    @GetMapping("/reviews")
-    public ResponseEntity<com.clenzy.booking.dto.PublicReviewsResponse> getReviews(
+    @GetMapping("/reviews/summary")
+    public ResponseEntity<com.clenzy.booking.dto.PublicReviewsResponse> getReviewsSummary(
             @PathVariable String slug,
             @RequestParam(required = false, defaultValue = "6") int limit,
             HttpServletRequest request) {

@@ -71,7 +71,7 @@ export default function PublicBookingPage() {
   useEffect(() => {
     if (!apiKey) return;
     let alive = true;
-    fetch(`${API_BASE}/public/booking/widget/reviews?limit=6`, {
+    fetch(`${API_BASE}/public/booking/widget/reviews/summary?limit=6`, {
       headers: { 'X-Booking-Key': apiKey },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error())))
