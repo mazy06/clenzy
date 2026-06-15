@@ -21,6 +21,8 @@ export interface SitePagesState {
   addPage: () => Promise<void>;
   renamePage: (id: number, title: string) => Promise<void>;
   deletePage: (id: number) => Promise<void>;
+  movePage: (id: number, dir: -1 | 1) => Promise<void>;
+  updatePageMeta: (id: number, changes: Partial<SitePage>) => Promise<void>;
   savePageBlocks: (id: number, blocks: string) => Promise<void>;
 }
 
@@ -97,6 +99,31 @@ export function useSitePages(configId: number | undefined): SitePagesState {
     setSelectedPageId((cur) => (cur === id ? home?.id ?? null : cur));
   }, [site, pages]);
 
+  const updatePageMeta = useCallback(async (id: number, changes: Partial<SitePage>) => {
+    if (!site) return;
+    const page = pages.find((p) => p.id === id);
+    if (!page) return;
+    const updated = await sitesApi.updatePage(site.id, id, { ...page, ...changes });
+    setPages((prev) => sortPages(prev.map((p) => (p.id === id ? updated : p))));
+  }, [site, pages]);
+
+  // Réordonne par échange adjacent puis renumérote séquentiellement (0..n). La page d'accueil reste
+  // épinglée en tête (on refuse de déplacer/dépasser HOME).
+  const movePage = useCallback(async (id: number, dir: -1 | 1) => {
+    if (!site) return;
+    const ordered = sortPages(pages);
+    const i = ordered.findIndex((p) => p.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ordered.length) return;
+    if (ordered[i].type === 'HOME' || ordered[j].type === 'HOME') return;
+    const next = [...ordered];
+    [next[i], next[j]] = [next[j], next[i]];
+    const updated = await Promise.all(
+      next.map((p, idx) => (p.sortOrder !== idx ? sitesApi.updatePage(site.id, p.id, { ...p, sortOrder: idx }) : Promise.resolve(p))),
+    );
+    setPages(sortPages(updated));
+  }, [site, pages]);
+
   const savePageBlocks = useCallback(async (id: number, blocks: string) => {
     if (!site) return;
     const page = pages.find((p) => p.id === id);
@@ -107,6 +134,6 @@ export function useSitePages(configId: number | undefined): SitePagesState {
 
   return {
     ready, loading, error, site, pages, selectedPageId, selectedPage,
-    selectPage, addPage, renamePage, deletePage, savePageBlocks,
+    selectPage, addPage, renamePage, deletePage, movePage, updatePageMeta, savePageBlocks,
   };
 }
