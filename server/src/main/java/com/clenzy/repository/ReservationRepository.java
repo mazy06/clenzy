@@ -14,6 +14,14 @@ import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
+    /**
+     * Séjours directs terminés éligibles au gain de crédit fidélité (2.8) : réservation directe,
+     * confirmée, check-out passé (< cutoff). L'idempotence (déjà crédité) est vérifiée côté service.
+     */
+    @Query("SELECT r FROM Reservation r LEFT JOIN FETCH r.guest WHERE r.organizationId = :orgId "
+        + "AND r.source = 'direct' AND r.status = 'confirmed' AND r.checkOut < :cutoff")
+    List<Reservation> findLoyaltyEligible(@Param("orgId") Long orgId, @Param("cutoff") LocalDate cutoff);
+
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.id IN :propertyIds " +
            "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByPropertyIdsAndDateRange(

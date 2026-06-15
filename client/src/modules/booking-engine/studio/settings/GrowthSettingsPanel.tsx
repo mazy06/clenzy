@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Box, Skeleton } from '@mui/material';
 import { AlertTriangle, Users, ShoppingCart, Info } from 'lucide-react';
 import { growthSettingsApi, type GrowthSettings } from '../../../../services/api/growthSettingsApi';
-import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl } from './settingsControls';
+import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberControl } from './settingsControls';
 
 /**
  * Section « Croissance » du Studio (2) — réglages org-level RÉELLEMENT appliqués :
@@ -14,24 +14,34 @@ export default function GrowthSettingsPanel() {
   const [loaded, setLoaded] = useState<GrowthSettings | null>(null);
   const [leadCapture, setLeadCapture] = useState(false);
   const [abandoned, setAbandoned] = useState(false);
+  const [loyalty, setLoyalty] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const hydrate = (s: GrowthSettings) => {
+    setLoaded(s);
+    setLeadCapture(s.leadCaptureEnabled);
+    setAbandoned(s.abandonedCartRecoveryEnabled);
+    setLoyalty(s.loyaltyCreditPercent ?? 0);
+  };
 
   useEffect(() => {
     let alive = true;
     growthSettingsApi.get()
-      .then((s) => { if (alive) { setLoaded(s); setLeadCapture(s.leadCaptureEnabled); setAbandoned(s.abandonedCartRecoveryEnabled); } })
+      .then((s) => { if (alive) hydrate(s); })
       .catch((e) => { if (alive) setError(e instanceof Error ? e.message : 'Chargement impossible'); });
     return () => { alive = false; };
   }, []);
 
-  const dirty = !!loaded && (leadCapture !== loaded.leadCaptureEnabled || abandoned !== loaded.abandonedCartRecoveryEnabled);
+  const dirty = !!loaded && (leadCapture !== loaded.leadCaptureEnabled
+    || abandoned !== loaded.abandonedCartRecoveryEnabled
+    || loyalty !== (loaded.loyaltyCreditPercent ?? 0));
 
   const save = () => {
     setSaving(true);
     setError(null);
-    growthSettingsApi.update({ leadCaptureEnabled: leadCapture, abandonedCartRecoveryEnabled: abandoned })
-      .then((s) => { setLoaded(s); setLeadCapture(s.leadCaptureEnabled); setAbandoned(s.abandonedCartRecoveryEnabled); })
+    growthSettingsApi.update({ leadCaptureEnabled: leadCapture, abandonedCartRecoveryEnabled: abandoned, loyaltyCreditPercent: loyalty > 0 ? loyalty : null })
+      .then(hydrate)
       .catch((e) => setError(e instanceof Error ? e.message : 'Enregistrement impossible'))
       .finally(() => setSaving(false));
   };
@@ -76,6 +86,14 @@ export default function GrowthSettingsPanel() {
           label="Activer la relance automatique"
           helper="Désactivé, le planificateur n’envoie plus d’email de relance pour votre organisation."
           control={<ToggleControl checked={abandoned} onChange={setAbandoned} />}
+        />
+      </SettingCard>
+
+      <SettingCard title="Crédit fidélité" description="« Book Direct & Save » : récompensez la réservation en direct par du crédit réutilisable.">
+        <SettingRow
+          label="Crédit gagné par séjour direct (%)"
+          helper="Crédité APRÈS le séjour (check-out passé), réutilisable lors d'une prochaine réservation. 0 = programme désactivé."
+          control={<NumberControl value={loyalty} onChange={(v) => setLoyalty(v)} min={0} max={100} />}
         />
       </SettingCard>
 

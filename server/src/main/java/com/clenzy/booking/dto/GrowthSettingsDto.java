@@ -9,10 +9,12 @@ package com.clenzy.booking.dto;
  * @param abandonedCartRecoveryEnabled  la relance de panier abandonné est-elle active
  * @param contactsCaptured              nombre de contacts marketing capturés (org)
  * @param cartsRecovered                nombre de paniers relancés (statut RECOVERY_SENT)
+ * @param loyaltyCreditPercent          crédit fidélité gagné par séjour direct (% ; NULL/0 = désactivé)
  */
 public record GrowthSettingsDto(
         boolean leadCaptureEnabled,
         boolean abandonedCartRecoveryEnabled,
         long contactsCaptured,
-        long cartsRecovered
+        long cartsRecovered,
+        Integer loyaltyCreditPercent
 ) {}

@@ -40,4 +40,7 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
     /** IDs des orgs ayant désactivé la relance de panier abandonné (skip par le scheduler). */
     @Query("SELECT o.id FROM Organization o WHERE o.abandonedCartRecoveryEnabled = false")
     Set<Long> findIdsWithAbandonedCartRecoveryDisabled();
+
+    /** Orgs avec un programme de crédit fidélité actif (loyalty_credit_percent > 0) — scan du gain. */
+    List<Organization> findByLoyaltyCreditPercentGreaterThan(int value);
 }
