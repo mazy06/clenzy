@@ -2,6 +2,8 @@ package com.clenzy.booking.dto;
 
 import com.clenzy.booking.model.BookingEngineConfig;
 
+import java.math.BigDecimal;
+
 /**
  * Configuration publique du Booking Engine.
  * Expose uniquement les infos utiles a l'integrateur (pas d'API key, pas d'ID interne).
@@ -27,7 +29,12 @@ public record BookingEngineConfigDto(
     // Page composée par blocs (builder) — rendue par la page publique hébergée.
     String pageLayout,
     // Design tokens (JSON, 21 props : rayon, ombres, surfaces, typo…) — appliqués au widget + blocs.
-    String designTokens
+    String designTokens,
+    // Caution pré-autorisée sur la carte (affichage voyageur ; NULL = aucune).
+    BigDecimal securityDepositAmount,
+    // Acompte : % prélevé à la réservation (NULL = intégral) + délai du solde (affichage voyageur).
+    Integer depositPercent,
+    Integer balanceDueDays
 ) {
     public static BookingEngineConfigDto from(BookingEngineConfig config) {
         return new BookingEngineConfigDto(
@@ -49,7 +56,10 @@ public record BookingEngineConfigDto(
             config.getCustomJs(),
             config.getComponentConfig(),
             config.getPageLayout(),
-            config.getDesignTokens()
+            config.getDesignTokens(),
+            config.getSecurityDepositAmount(),
+            config.getDepositPercent(),
+            config.getBalanceDueDays()
         );
     }
 }

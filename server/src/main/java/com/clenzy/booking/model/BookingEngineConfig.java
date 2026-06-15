@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -96,6 +97,18 @@ public class BookingEngineConfig {
 
     @Column(name = "show_tourist_tax")
     private boolean showTouristTax = true;
+
+    /** Caution / dépôt de garantie pré-autorisé sur la carte du voyageur (NULL/0 = pas de caution). */
+    @Column(name = "security_deposit_amount", precision = 12, scale = 2)
+    private BigDecimal securityDepositAmount;
+
+    /** Acompte : % prélevé à la réservation (1–99 ; NULL/0/100 = paiement intégral). */
+    @Column(name = "deposit_percent")
+    private Integer depositPercent;
+
+    /** Acompte : nombre de jours avant l'arrivée où le solde devient dû. */
+    @Column(name = "balance_due_days")
+    private Integer balanceDueDays;
 
     // ─── Custom CSS/JS ──────────────────────────────────────────────────
 
@@ -216,6 +229,15 @@ public class BookingEngineConfig {
 
     public boolean isShowTouristTax() { return showTouristTax; }
     public void setShowTouristTax(boolean showTouristTax) { this.showTouristTax = showTouristTax; }
+
+    public BigDecimal getSecurityDepositAmount() { return securityDepositAmount; }
+    public void setSecurityDepositAmount(BigDecimal securityDepositAmount) { this.securityDepositAmount = securityDepositAmount; }
+
+    public Integer getDepositPercent() { return depositPercent; }
+    public void setDepositPercent(Integer depositPercent) { this.depositPercent = depositPercent; }
+
+    public Integer getBalanceDueDays() { return balanceDueDays; }
+    public void setBalanceDueDays(Integer balanceDueDays) { this.balanceDueDays = balanceDueDays; }
 
     public String getCustomCss() { return customCss; }
     public void setCustomCss(String customCss) { this.customCss = customCss; }

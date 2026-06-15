@@ -2,6 +2,7 @@ package com.clenzy.booking.dto;
 
 import com.clenzy.booking.model.BookingEngineConfig;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -36,6 +37,11 @@ public record BookingEngineAdminConfigDto(
     boolean autoConfirm,
     boolean showCleaningFee,
     boolean showTouristTax,
+    // Caution / dépôt de garantie (montant ; NULL = aucune)
+    BigDecimal securityDepositAmount,
+    // Acompte : % prélevé à la réservation (1–99 ; NULL = intégral) + délai du solde (jours avant arrivée)
+    Integer depositPercent,
+    Integer balanceDueDays,
     // Custom CSS/JS + Component Config
     String customCss,
     String customJs,
@@ -83,6 +89,9 @@ public record BookingEngineAdminConfigDto(
             config.isAutoConfirm(),
             config.isShowCleaningFee(),
             config.isShowTouristTax(),
+            config.getSecurityDepositAmount(),
+            config.getDepositPercent(),
+            config.getBalanceDueDays(),
             config.getCustomCss(),
             config.getCustomJs(),
             config.getComponentConfig(),
@@ -120,6 +129,9 @@ public record BookingEngineAdminConfigDto(
         config.setAutoConfirm(autoConfirm);
         config.setShowCleaningFee(showCleaningFee);
         config.setShowTouristTax(showTouristTax);
+        config.setSecurityDepositAmount(securityDepositAmount);
+        config.setDepositPercent(depositPercent);
+        config.setBalanceDueDays(balanceDueDays);
         config.setCustomCss(customCss);
         config.setCustomJs(customJs);
         config.setComponentConfig(componentConfig);

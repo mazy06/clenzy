@@ -272,6 +272,10 @@ public class StripeWebhookController {
             //  - reservation absente (flux Embedded Checkout direct) → la creer ex-nihilo depuis metadata
             logger.info("Paiement Booking Engine reussi pour session: {}", sessionId);
             publicBookingService.confirmBookingEngineCheckout(session);
+        } else if ("booking_engine_balance".equals(type)) {
+            // Encaissement du solde d'un acompte (P0.7) : PARTIALLY_PAID → PAID + effets complets.
+            logger.info("Paiement du solde Booking Engine reussi pour session: {}", sessionId);
+            publicBookingService.confirmBookingEngineBalance(session);
         } else if ("service_request".equals(type)) {
             // Paiement de demande de service → confirmation + creation intervention automatique
             String srId = session.getMetadata().get("service_request_id");
@@ -342,6 +346,9 @@ public class StripeWebhookController {
         } else if ("booking_engine".equals(type)) {
             logger.info("Paiement Booking Engine asynchrone reussi pour session: {}", sessionId);
             publicBookingService.confirmBookingEngineCheckout(session);
+        } else if ("booking_engine_balance".equals(type)) {
+            logger.info("Paiement du solde Booking Engine asynchrone reussi pour session: {}", sessionId);
+            publicBookingService.confirmBookingEngineBalance(session);
         } else if ("service_request".equals(type)) {
             logger.info("Paiement SR asynchrone reussi pour session: {}", sessionId);
             stripeService.confirmServiceRequestPayment(sessionId);

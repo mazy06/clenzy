@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface SecurityDepositRepository extends JpaRepository<SecurityDeposit, Long> {
@@ -15,6 +17,14 @@ public interface SecurityDepositRepository extends JpaRepository<SecurityDeposit
     Optional<SecurityDeposit> findByOrganizationIdAndReservationId(Long organizationId, Long reservationId);
 
     Optional<SecurityDeposit> findByIdAndOrganizationId(Long id, Long organizationId);
+
+    /**
+     * Cautions encore bloquées (HELD) dont le séjour s'est terminé avant {@code cutoff}
+     * — candidates à la libération automatique (scheduler). Jointure logique sur reservationId.
+     */
+    @Query("SELECT d FROM SecurityDeposit d WHERE d.status = com.clenzy.model.SecurityDepositStatus.HELD "
+        + "AND EXISTS (SELECT 1 FROM Reservation r WHERE r.id = d.reservationId AND r.checkOut < :cutoff)")
+    List<SecurityDeposit> findHeldWithCheckoutBefore(@Param("cutoff") LocalDate cutoff);
 
     /**
      * Transition de statut atomique (CAS, audit #8) : ne modifie que si encore dans

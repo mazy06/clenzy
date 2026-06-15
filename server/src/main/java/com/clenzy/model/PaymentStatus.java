@@ -3,6 +3,7 @@ package com.clenzy.model;
 public enum PaymentStatus {
     PENDING("En attente de paiement"),
     PROCESSING("Paiement en cours"),
+    PARTIALLY_PAID("Acompte payé (solde dû)"),
     PAID("Payé"),
     FAILED("Échec du paiement"),
     REFUNDED("Remboursé"),

@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -58,6 +59,7 @@ public class PublicBookingController {
     private final com.clenzy.service.LeadCaptureService leadCaptureService;
     private final com.clenzy.booking.service.PublicCancellationService cancellationService;
     private final com.clenzy.booking.service.PublicReviewService reviewService;
+    private final com.clenzy.booking.service.BookingBalanceService balanceService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
@@ -67,7 +69,8 @@ public class PublicBookingController {
                                     PublicBookingCalendarService calendarService,
                                     com.clenzy.service.LeadCaptureService leadCaptureService,
                                     com.clenzy.booking.service.PublicCancellationService cancellationService,
-                                    com.clenzy.booking.service.PublicReviewService reviewService) {
+                                    com.clenzy.booking.service.PublicReviewService reviewService,
+                                    com.clenzy.booking.service.BookingBalanceService balanceService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
@@ -77,6 +80,7 @@ public class PublicBookingController {
         this.leadCaptureService = leadCaptureService;
         this.cancellationService = cancellationService;
         this.reviewService = reviewService;
+        this.balanceService = balanceService;
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -292,6 +296,33 @@ public class PublicBookingController {
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
         return ResponseEntity.ok(cancellationService.cancel(ctx.orgId(), code, request.email(), request.reason()));
+    }
+
+    /**
+     * POST /{slug}/booking/{code}/pay-balance
+     * Crée la session Stripe Checkout pour régler le SOLDE d'un acompte (P0.7) et renvoie son URL.
+     * Org-scopé (X-Booking-Key). Rate-limité par IP.
+     */
+    @PostMapping("/booking/{code}/pay-balance")
+    public ResponseEntity<?> payBalance(
+            @PathVariable String slug,
+            @PathVariable String code,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        try {
+            String checkoutUrl = balanceService.createBalanceCheckoutUrl(ctx.orgId(), code);
+            return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
+        } catch (com.clenzy.exception.NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Booking Engine: erreur création paiement du solde {} : {}", code, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", "Erreur lors de la création du paiement"));
+        }
     }
 
     /**

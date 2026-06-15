@@ -58,6 +58,7 @@ class BookingCheckoutControllerTest {
     @Mock private BookingServiceOptionsService serviceOptionsService;
     @Mock private PublicBookingService publicBookingService;
     @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
+    @Mock private com.clenzy.booking.repository.BookingEngineConfigRepository configRepository;
     @Mock private jakarta.servlet.http.HttpServletRequest httpRequest;
 
     private BookingCheckoutController controller;
@@ -68,7 +69,7 @@ class BookingCheckoutControllerTest {
         // pour conserver la couverture bout-en-bout (stubs/verify inchanges).
         BookingCheckoutQuoteService quoteService = new BookingCheckoutQuoteService(
             propertyRepository, serviceOptionsService, publicBookingService);
-        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter);
+        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter, configRepository);
         setField("stripeSecretKey", "sk_test_xxx");
         setField("currency", "eur");
         org.mockito.Mockito.lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);

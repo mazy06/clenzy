@@ -2485,3 +2485,19 @@ databaseChangeLog:
       sqlFile:
         path: changes/0251__add_featured_property_ids_to_booking_engine_config.sql
         relativeToChangelogFile: true
+
+  # Booking engine : caution (montant) + carte enregistree sur la reservation pour le hold off-session.
+  - changeSet:
+      id: "0252-add-security-deposit-to-booking"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0252__add_security_deposit_to_booking.sql
+        relativeToChangelogFile: true
+
+  # Booking engine : acompte / paiement partiel (politique % + delai du solde, suivi sur la reservation).
+  - changeSet:
+      id: "0253-add-deposit-installment-to-booking"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0253__add_deposit_installment_to_booking.sql
+        relativeToChangelogFile: true

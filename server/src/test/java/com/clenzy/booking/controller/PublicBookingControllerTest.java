@@ -65,7 +65,8 @@ class PublicBookingControllerTest {
             org.mockito.Mockito.mock(com.clenzy.booking.service.PublicBookingCalendarService.class),
             org.mockito.Mockito.mock(com.clenzy.service.LeadCaptureService.class),
             org.mockito.Mockito.mock(com.clenzy.booking.service.PublicCancellationService.class),
-            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicReviewService.class));
+            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicReviewService.class),
+            org.mockito.Mockito.mock(com.clenzy.booking.service.BookingBalanceService.class));
         lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
         lenient().when(rateLimiter.tryAcquireBatch(any())).thenReturn(true);
 
@@ -82,7 +83,7 @@ class PublicBookingControllerTest {
         when(bookingService.resolveFromFilter(filterConfig)).thenReturn(ctx);
 
         BookingEngineConfigDto dto = new BookingEngineConfigDto("#fff", "#000", null, null, "fr",
-                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null);
+                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null);
         when(bookingService.getConfig(ctx)).thenReturn(dto);
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
@@ -95,7 +96,7 @@ class PublicBookingControllerTest {
         when(bookingService.resolveOrg("slug")).thenReturn(ctx);
 
         BookingEngineConfigDto dto = new BookingEngineConfigDto("#fff", "#000", null, null, "fr",
-                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null);
+                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null);
         when(bookingService.getConfig(ctx)).thenReturn(dto);
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
