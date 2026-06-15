@@ -25,6 +25,11 @@ export const BLOCK_SELECTORS: Record<BlockType, SelectorDef[]> = {
     { sel: '.bkly-hero__search', label: 'Barre de recherche' },
     { sel: '.bkly-hero__search-btn', label: 'Bouton « Rechercher »' },
   ],
+  bookingWidget: [
+    { sel: '.bkly-bookingwidget', label: 'Widget de réservation (section)' },
+    { sel: '.bkly-bookingwidget__inner', label: 'Conteneur des widgets' },
+    { sel: '.cb-wgroup', label: 'Groupe de micro-widgets' },
+  ],
   propertyGrid: [
     { sel: '.bkly-property-grid', label: 'Grille (section)' },
     { sel: '.bkly-property-grid__heading', label: 'Titre' },

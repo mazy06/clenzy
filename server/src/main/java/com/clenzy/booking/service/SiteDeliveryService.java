@@ -61,11 +61,16 @@ public class SiteDeliveryService {
         List<SitePage> pages = pageRepository.findBySiteIdOrderBySortOrderAsc(site.getId()).stream()
             .filter(p -> p.getStatus() == SiteStatus.PUBLISHED)
             .toList();
-        // Clé publique du booking engine (X-Booking-Key) pour monter le widget de réservation côté SSR.
-        String apiKey = site.getBookingEngineConfigId() == null ? null
-            : bookingEngineConfigRepository.findById(site.getBookingEngineConfigId())
-                .map(BookingEngineConfig::getApiKey).orElse(null);
-        return Optional.of(SitePublicDto.from(site, apiKey, pages));
+        // Booking engine lié : clé publique (X-Booking-Key, montage du widget) + CSS/JS custom du
+        // site (injectés dans le layout SSR pour la fidélité du design importé).
+        BookingEngineConfig config = site.getBookingEngineConfigId() == null ? null
+            : bookingEngineConfigRepository.findById(site.getBookingEngineConfigId()).orElse(null);
+        String apiKey = config != null ? config.getApiKey() : null;
+        String customCss = config != null ? config.getCustomCss() : null;
+        String customJs = config != null ? config.getCustomJs() : null;
+        // Composition de réservation (micro-widgets) → le SDK la rend au montage côté SSR.
+        String componentConfig = config != null ? config.getComponentConfig() : null;
+        return Optional.of(SitePublicDto.from(site, apiKey, customCss, customJs, componentConfig, pages));
     }
 
     @Transactional(readOnly = true)

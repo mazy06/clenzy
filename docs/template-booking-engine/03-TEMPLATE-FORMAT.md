@@ -13,6 +13,8 @@
   "register": "product",                    // product (défaut) | brand
   "preview": "preview.png",                 // optionnel
   "theme": { "primaryColor": "…", "fontFamily": "…", "designTokens": { … } },
+  "customCss": "…",                          // optionnel — CSS appliqué au site (widget/SPA + SSR)
+  "customJs": "…",                           // optionnel — JS du site (code de confiance ; injecté SSR)
   "pages": [
     {
       "path": "/",                          // chemin de la page
@@ -36,14 +38,24 @@
   **routes SSR dédiées** (alimentées par les `BlogPost`). Pour pointer vers le journal, mettre un `cta`/lien.
 - **`PROPERTY_DETAIL`** : **jamais** authored — les fiches `/logement/{id}` sont **dynamiques** (générées par le SSR).
 
-### Navigation
-Le header du site (`SiteNav`) est **généré automatiquement** à partir des pages (`HOME` / `PROPERTY_LIST` /
-`CUSTOM`), triées par ordre, labellisées par `title`. Donc : 1 page = 1 entrée de menu. Soigne les `title`.
+### Navigation (⚠️ pas de bloc navbar)
+Le header de navigation (`SiteNav`) est **généré automatiquement** à partir des pages (`HOME` / `PROPERTY_LIST` /
+`BLOG` / `CUSTOM`), triées par ordre, labellisées par `title`, + un bouton « Réserver » (logo & marque depuis
+les réglages du booking engine). Donc : **1 page = 1 entrée de menu** ; soigne les `title`. **NE crée PAS de
+bloc navbar/header** (il n'en existe pas et il ferait doublon). Cette nav est désormais aussi **rendue dans
+l'aperçu du Studio** (en tête de la page) — l'aperçu correspond donc au site déployé.
 
 ### Réservation
 Le widget de réservation est **monté automatiquement** sur chaque page (section `#reserver`) dès que l'org a
 un booking engine. Les blocs `hero(showSearch)` et `cta` (lien défaut `#reserver`) y renvoient. **Ne pas**
 créer de faux formulaire de réservation en blocs.
+
+### CSS / JS custom (fidélité du design)
+Pour le style qui dépasse les blocs + tokens (nuances de mise en page, polish), utilise **`customCss`** au
+niveau racine du template : appliqué au **widget (Shadow DOM)**, à la **page publique SPA** ET injecté dans
+le **SSR** (cible les classes `bkly-*` / `cb-*` et les variables de thème `--accent`, `--ink`, `--card`…).
+`customJs` (optionnel) est injecté côté client — **code de confiance uniquement** (config propriétaire).
+Privilégie les **tokens** ([02](02-DESIGN-TOKENS.md)) ; `customCss` est l'échappatoire pour le reste.
 
 ## Contraintes de validité (rappel)
 1. Uniquement des `type` du registre ([01](01-BLOCKS.md)) ; uniquement des `props` documentées.

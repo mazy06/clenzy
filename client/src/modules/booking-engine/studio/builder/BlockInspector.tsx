@@ -24,6 +24,28 @@ export interface BlockInspectorProps {
 
 const NON_RESPONSIVE_FIELDS = new Set(['columnCount']);
 
+// ─── Typographie & position : surcharges PAR BLOC (en plus du thème global). ───
+const FONT_OPTIONS = [
+  { value: '', label: '(thème)' },
+  { value: 'Inter', label: 'Inter' }, { value: 'Poppins', label: 'Poppins' }, { value: 'Montserrat', label: 'Montserrat' },
+  { value: 'Lato', label: 'Lato' }, { value: 'Nunito', label: 'Nunito' }, { value: 'Open Sans', label: 'Open Sans' }, { value: 'Roboto', label: 'Roboto' },
+];
+const WEIGHT_OPTIONS = [
+  { value: '', label: '(thème)' }, { value: '400', label: 'Normal' }, { value: '500', label: 'Medium' },
+  { value: '600', label: 'Semi-bold' }, { value: '700', label: 'Bold' }, { value: '800', label: 'Extra-bold' },
+];
+const SCALE_OPTIONS = [
+  { value: '', label: 'Normal' }, { value: '0.85', label: 'Petit' }, { value: '1.15', label: 'Grand' },
+  { value: '1.3', label: 'Très grand' }, { value: '1.5', label: 'XXL' },
+];
+const TYPO_POSITION_FIELDS: FieldDef[] = [
+  { key: 'fontFamily', label: 'Police', type: 'select', options: FONT_OPTIONS },
+  { key: 'fontWeight', label: 'Graisse des titres', type: 'select', options: WEIGHT_OPTIONS },
+  { key: 'textScale', label: 'Taille du texte', type: 'select', options: SCALE_OPTIONS },
+  { key: 'offsetX', label: 'Décalage X (px)', type: 'number', min: -300, max: 300 },
+  { key: 'offsetY', label: 'Décalage Y (px)', type: 'number', min: -300, max: 300 },
+];
+
 export default function BlockInspector({ block, breakpoint, onChange, onClear }: BlockInspectorProps) {
   if (!block) {
     return (
@@ -67,6 +89,16 @@ export default function BlockInspector({ block, breakpoint, onChange, onClear }:
           </Box>
         );
       })}
+
+      {/* Typographie & position — surcharges par bloc (priment sur le thème global). */}
+      <Box sx={{ mt: 0.5, pt: 1.5, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>
+          Typographie & position
+        </Box>
+        {TYPO_POSITION_FIELDS.map((f) => (
+          <Field key={f.key} field={f} value={block.props[f.key]} onChange={(v) => onChange(block.id, f.key, v)} />
+        ))}
+      </Box>
 
       {/* Visibilité responsive (2.5) — commune à tous les blocs (props hideMobile/Tablet/Desktop). */}
       <Box sx={{ mt: 0.5, pt: 1.5, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 1.25 }}>

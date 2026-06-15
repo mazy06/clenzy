@@ -2630,3 +2630,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0269__add_pending_hold_minutes.sql
         relativeToChangelogFile: true
+
+  # Catalogue de templates de site (galerie « Choisir un design ») : global Clenzy + privés par org.
+  - changeSet:
+      id: "0270-create-site-templates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0270__create_site_templates.sql
+        relativeToChangelogFile: true
