@@ -90,6 +90,10 @@ public class Organization {
     @Column(name = "abandoned_cart_recovery_enabled", nullable = false)
     private boolean abandonedCartRecoveryEnabled = true;
 
+    /** Crédit fidélité (2.8) : % de chaque séjour direct gagné en crédit (NULL/0 = programme désactivé). */
+    @Column(name = "loyalty_credit_percent")
+    private Integer loyaltyCreditPercent;
+
     // --- Timestamps ---
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -162,6 +166,9 @@ public class Organization {
 
     public boolean isAbandonedCartRecoveryEnabled() { return abandonedCartRecoveryEnabled; }
     public void setAbandonedCartRecoveryEnabled(boolean abandonedCartRecoveryEnabled) { this.abandonedCartRecoveryEnabled = abandonedCartRecoveryEnabled; }
+
+    public Integer getLoyaltyCreditPercent() { return loyaltyCreditPercent; }
+    public void setLoyaltyCreditPercent(Integer loyaltyCreditPercent) { this.loyaltyCreditPercent = loyaltyCreditPercent; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

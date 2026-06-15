@@ -2598,3 +2598,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0265__add_member_discount.sql
         relativeToChangelogFile: true
+
+  # Credit fidelite (2.8 phase 2b) : loyalty_credit_percent (org) + ledger guest_credit_accounts/transactions.
+  - changeSet:
+      id: "0266-add-loyalty-credit"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0266__add_loyalty_credit.sql
+        relativeToChangelogFile: true

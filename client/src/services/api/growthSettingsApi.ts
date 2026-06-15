@@ -10,10 +10,12 @@ export interface GrowthSettings {
   abandonedCartRecoveryEnabled: boolean;
   contactsCaptured: number;
   cartsRecovered: number;
+  /** Crédit fidélité (2.8) : % de chaque séjour direct gagné en crédit (null/0 = désactivé). */
+  loyaltyCreditPercent: number | null;
 }
 
 export const growthSettingsApi = {
   get: () => apiClient.get<GrowthSettings>('/booking-engine/growth/settings'),
-  update: (settings: { leadCaptureEnabled: boolean; abandonedCartRecoveryEnabled: boolean }) =>
+  update: (settings: { leadCaptureEnabled: boolean; abandonedCartRecoveryEnabled: boolean; loyaltyCreditPercent: number | null }) =>
     apiClient.put<GrowthSettings>('/booking-engine/growth/settings', settings),
 };
