@@ -14,11 +14,13 @@ COPY pom.xml /workspace/pom.xml
 # surefire, etc.) qui sont invoques au build. Sans ca, le stage suivant
 # `mvn clean package` essaye d'aller chercher maven-clean-plugin et fail
 # si Maven Central est lent (cas frequent sur CI / Docker Desktop).
-RUN for i in 1 2 3; do \
+# Sous-shell + exit : si les 3 tentatives echouent, on echoue BRUYAMMENT (exit 1)
+# au lieu de laisser passer (sinon le stage suivant casse de facon confuse).
+RUN (for i in 1 2 3; do \
       echo "=== Attempt $i/3: downloading dependencies + plugins ===" && \
-      mvn -B dependency:go-offline dependency:resolve-plugins -DskipTests && break || \
+      mvn -B dependency:go-offline dependency:resolve-plugins -DskipTests && exit 0 || \
       { echo "=== Attempt $i failed, waiting 10s ===" && sleep 10; }; \
-    done
+    done; echo "=== Dependency resolution failed after 3 attempts ===" && exit 1)
 
 # 3. Install Playwright Chromium during build (Maven has the JAR unpacked)
 ENV PLAYWRIGHT_BROWSERS_PATH=/playwright-browsers
@@ -33,11 +35,14 @@ COPY src /workspace/src
 # Pas de flag `-o` strict ici car certains plugins peuvent declencher des
 # lookups d'extensions (resilience4j, etc.) que `resolve-plugins` ne couvre
 # pas a 100%. Retry 3x au cas ou un fetch reseau marginal arrive.
-RUN for i in 1 2 3; do \
+# Sous-shell + exit : echec BRUYANT (exit 1) si les 3 tentatives echouent, pour ne
+# PAS produire un "jar not found" trompeur a l'etape COPY suivante (le `&& rm` n'est
+# atteint que si le build a reussi).
+RUN (for i in 1 2 3; do \
       echo "=== Build attempt $i/3 ===" && \
-      mvn -B -DskipTests clean package && break || \
+      mvn -B -DskipTests clean package && exit 0 || \
       { echo "=== Build attempt $i failed, waiting 10s ===" && sleep 10; }; \
-    done && \
+    done; echo "=== Build failed after 3 attempts ===" && exit 1) && \
     rm -rf ~/.m2/repository
 
 # ====== Runtime stage ======
