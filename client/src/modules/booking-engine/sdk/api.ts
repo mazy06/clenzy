@@ -93,6 +93,19 @@ export interface ApiBatchReserveResult {
   requiresPayment: boolean;
 }
 
+/** Séjour direct passé d'un voyageur connecté (re-booking 1-clic, 2.11). */
+export interface ApiGuestBooking {
+  code: string;
+  propertyId: number | null;
+  propertyName: string | null;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+  status: string;
+  total: number | null;
+  currency: string;
+}
+
 export interface ReserveGuestInfo {
   name: string;
   email: string;
@@ -152,6 +165,11 @@ export class BookingApi {
     return this.rootFetch('/api/booking-engine/auth/register', {
       method: 'POST', body: JSON.stringify({ ...data, organizationId }),
     });
+  }
+
+  /** Re-booking 1-clic (2.11) : séjours directs passés du voyageur connecté (token guest validé). */
+  myBookings(organizationId: number, token: string): Promise<ApiGuestBooking[]> {
+    return this.rootFetch(`/api/public/guest/bookings?organizationId=${organizationId}`, { method: 'GET' }, token);
   }
 
   wishlistList(organizationId: number, token: string): Promise<number[]> {
