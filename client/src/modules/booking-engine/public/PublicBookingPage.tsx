@@ -7,6 +7,7 @@ import { themeStyle } from '../studio/builder/BuilderCanvas';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
 import type { DesignTokens } from '../../../services/api/bookingEngineApi';
 import { widgetThemeFromTokens } from '../widgetTheme';
+import PublicConcierge from './PublicConcierge';
 import { API_CONFIG } from '../../../config/api';
 
 // Même résolution que le reste de l'app (VITE_API_BASE_URL) : pas de proxy /api en dev.
@@ -154,6 +155,9 @@ export default function PublicBookingPage() {
         </Box>
         <Box ref={widgetHostRef} />
       </Box>
+
+      {/* Concierge IA (2.13) — bulle flottante, affichée seulement si l'org a activé l'IA. */}
+      {apiKey && <PublicConcierge apiKey={apiKey} />}
     </Box>
   );
 }
