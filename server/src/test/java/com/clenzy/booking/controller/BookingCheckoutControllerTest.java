@@ -112,7 +112,7 @@ class BookingCheckoutControllerTest {
         return new AvailabilityResponseDto(true, PROPERTY_ID, "Studio Riviera",
             LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2, 4,
             List.of(), new BigDecimal(total), BigDecimal.ZERO, BigDecimal.ZERO,
-            new BigDecimal(total), "EUR", 1, 4, "15:00", "11:00", List.of());
+            new BigDecimal(total), BigDecimal.ZERO, "EUR", 1, 4, "15:00", "11:00", List.of());
     }
 
     private Reservation buildHold(Long id) {
@@ -244,7 +244,7 @@ class BookingCheckoutControllerTest {
             AvailabilityResponseDto quote = new AvailabilityResponseDto(true, PROPERTY_ID, "Studio Riviera",
                 LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2, 4,
                 List.of(), new BigDecimal("90.00"), new BigDecimal("10.00"), new BigDecimal("5.00"),
-                new BigDecimal("105.00"), "EUR", 1, 4, "15:00", "11:00", List.of());
+                new BigDecimal("105.00"), BigDecimal.ZERO, "EUR", 1, 4, "15:00", "11:00", List.of());
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
             when(publicBookingService.resolveOrgById(ORG_ID)).thenReturn(buildCtx());
             when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))

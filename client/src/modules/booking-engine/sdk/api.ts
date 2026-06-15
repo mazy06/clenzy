@@ -59,6 +59,8 @@ export interface ApiAvailability {
   cleaningFee: number;
   touristTax: number;
   total: number;
+  /** Book Direct & Save (2.8) : économie déjà déduite de subtotal/total. */
+  directDiscount: number;
   currency: string;
   minStay: number | null;
   maxGuests: number | null;

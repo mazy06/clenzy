@@ -110,6 +110,10 @@ public class BookingEngineConfig {
     @Column(name = "balance_due_days")
     private Integer balanceDueDays;
 
+    /** Book Direct & Save (2.8) : remise % appliquée aux réservations directes (1–100 ; NULL/0 = aucune). */
+    @Column(name = "direct_booking_discount_percent")
+    private Integer directBookingDiscountPercent;
+
     // ─── Custom CSS/JS ──────────────────────────────────────────────────
 
     @Column(name = "custom_css", columnDefinition = "TEXT")
@@ -238,6 +242,9 @@ public class BookingEngineConfig {
 
     public Integer getBalanceDueDays() { return balanceDueDays; }
     public void setBalanceDueDays(Integer balanceDueDays) { this.balanceDueDays = balanceDueDays; }
+
+    public Integer getDirectBookingDiscountPercent() { return directBookingDiscountPercent; }
+    public void setDirectBookingDiscountPercent(Integer directBookingDiscountPercent) { this.directBookingDiscountPercent = directBookingDiscountPercent; }
 
     public String getCustomCss() { return customCss; }
     public void setCustomCss(String customCss) { this.customCss = customCss; }

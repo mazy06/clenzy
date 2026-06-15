@@ -42,6 +42,8 @@ public record BookingEngineAdminConfigDto(
     // Acompte : % prélevé à la réservation (1–99 ; NULL = intégral) + délai du solde (jours avant arrivée)
     Integer depositPercent,
     Integer balanceDueDays,
+    // Book Direct & Save (2.8) : remise % réservation directe (1–100 ; NULL/0 = aucune)
+    Integer directBookingDiscountPercent,
     // Custom CSS/JS + Component Config
     String customCss,
     String customJs,
@@ -92,6 +94,7 @@ public record BookingEngineAdminConfigDto(
             config.getSecurityDepositAmount(),
             config.getDepositPercent(),
             config.getBalanceDueDays(),
+            config.getDirectBookingDiscountPercent(),
             config.getCustomCss(),
             config.getCustomJs(),
             config.getComponentConfig(),
@@ -132,6 +135,7 @@ public record BookingEngineAdminConfigDto(
         config.setSecurityDepositAmount(securityDepositAmount);
         config.setDepositPercent(depositPercent);
         config.setBalanceDueDays(balanceDueDays);
+        config.setDirectBookingDiscountPercent(directBookingDiscountPercent);
         config.setCustomCss(customCss);
         config.setCustomJs(customJs);
         config.setComponentConfig(componentConfig);

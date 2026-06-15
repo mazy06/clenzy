@@ -68,7 +68,7 @@ class BookingEngineAdminServiceTest {
                 "cancel", "https://t", "https://p",
                 "https://a",
                 true, false, true, true,
-                null, null, null,
+                null, null, null, null,
                 "css", "js", "{}",
                 "[]",
                 "1,2",
