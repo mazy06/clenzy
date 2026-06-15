@@ -2,11 +2,11 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.booking.dto.BookingCheckoutRequest;
 import com.clenzy.booking.dto.SelectedServiceOptionDto;
-import com.clenzy.booking.model.BookingEngineConfig;
-import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.security.BookingPublicRateLimiter;
 import com.clenzy.booking.service.BookingCheckoutQuoteService;
 import com.clenzy.booking.service.BookingCheckoutQuoteService.CheckoutQuote;
+import com.clenzy.booking.service.BookingPaymentPolicyService;
+import com.clenzy.booking.service.BookingPaymentPolicyService.BookingPaymentPolicy;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.RestrictionViolationException;
@@ -59,7 +59,7 @@ public class BookingCheckoutController {
     private final BookingCheckoutQuoteService quoteService;
     private final PublicBookingService publicBookingService;
     private final BookingPublicRateLimiter rateLimiter;
-    private final BookingEngineConfigRepository configRepository;
+    private final BookingPaymentPolicyService paymentPolicyService;
 
     @Value("${stripe.secret-key:}")
     private String stripeSecretKey;
@@ -70,11 +70,11 @@ public class BookingCheckoutController {
     public BookingCheckoutController(BookingCheckoutQuoteService quoteService,
                                      PublicBookingService publicBookingService,
                                      BookingPublicRateLimiter rateLimiter,
-                                     BookingEngineConfigRepository configRepository) {
+                                     BookingPaymentPolicyService paymentPolicyService) {
         this.quoteService = quoteService;
         this.publicBookingService = publicBookingService;
         this.rateLimiter = rateLimiter;
-        this.configRepository = configRepository;
+        this.paymentPolicyService = paymentPolicyService;
     }
 
     @PostMapping("/create-session")
@@ -133,12 +133,12 @@ public class BookingCheckoutController {
         RequestOptions stripeOptions = RequestOptions.builder().setApiKey(stripeSecretKey).build();
 
         Property property = quote.property();
-        BookingEngineConfig config = configRepository.findFirstByOrganizationId(property.getOrganizationId()).orElse(null);
+        BookingPaymentPolicy policy = paymentPolicyService.resolve(property.getOrganizationId());
 
         // P0.7 Acompte : si un % d'acompte (1–99) est configuré, ne charger QUE l'acompte ;
         // le solde (deposit_balance) est réclamé au voyageur via un lien de paiement avant l'arrivée.
         BigDecimal fullTotal = quote.totalAmount();
-        Integer depositPercent = config != null ? config.getDepositPercent() : null;
+        Integer depositPercent = policy.depositPercent();
         BigDecimal chargeNow = fullTotal;
         BigDecimal depositBalance = BigDecimal.ZERO;
         if (depositPercent != null && depositPercent >= 1 && depositPercent <= 99) {
@@ -199,9 +199,9 @@ public class BookingCheckoutController {
 
         // P0.3 Caution : si configurée, enregistrer la carte (customer + off-session) au paiement
         // du séjour → le webhook posera ensuite un hold de caution séparé sur cette carte.
-        BigDecimal securityDeposit = (config != null && config.getSecurityDepositAmount() != null
-            && config.getSecurityDepositAmount().compareTo(BigDecimal.ZERO) > 0)
-            ? config.getSecurityDepositAmount() : null;
+        BigDecimal securityDeposit = (policy.securityDepositAmount() != null
+            && policy.securityDepositAmount().compareTo(BigDecimal.ZERO) > 0)
+            ? policy.securityDepositAmount() : null;
         if (securityDeposit != null) {
             paramsBuilder
                 .setCustomerCreation(SessionCreateParams.CustomerCreation.ALWAYS)
