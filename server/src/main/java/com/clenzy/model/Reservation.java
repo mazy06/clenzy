@@ -87,6 +87,10 @@ public class Reservation {
     @Column(name = "ota_fee_amount", precision = 10, scale = 2)
     private BigDecimal otaFeeAmount;
 
+    /** Crédit fidélité (2.8) appliqué à cette réservation au checkout (réduit le montant Stripe). NULL = aucun. */
+    @Column(name = "credit_applied", precision = 10, scale = 2)
+    private BigDecimal creditApplied;
+
     // --- Booking voucher / promo (migration 0157) ---
     // {@code totalPrice} contient le montant FINAL (apres voucher). Les
     // colonnes ci-dessous tracent l'application du voucher pour facturation,
@@ -239,6 +243,9 @@ public class Reservation {
 
     public String getSourceName() { return sourceName; }
     public void setSourceName(String sourceName) { this.sourceName = sourceName; }
+
+    public BigDecimal getCreditApplied() { return creditApplied; }
+    public void setCreditApplied(BigDecimal creditApplied) { this.creditApplied = creditApplied; }
 
     public BigDecimal getTotalPrice() { return totalPrice; }
     public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
