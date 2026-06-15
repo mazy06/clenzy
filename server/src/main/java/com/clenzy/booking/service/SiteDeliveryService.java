@@ -10,7 +10,9 @@ import com.clenzy.booking.model.Site;
 import com.clenzy.booking.model.SiteDomainStatus;
 import com.clenzy.booking.model.SitePage;
 import com.clenzy.booking.model.SiteStatus;
+import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.repository.BlogPostRepository;
+import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.repository.SiteDomainRepository;
 import com.clenzy.booking.repository.SitePageRepository;
 import com.clenzy.booking.repository.SiteRepository;
@@ -36,15 +38,18 @@ public class SiteDeliveryService {
     private final SitePageRepository pageRepository;
     private final SiteDomainRepository domainRepository;
     private final BlogPostRepository blogPostRepository;
+    private final BookingEngineConfigRepository bookingEngineConfigRepository;
 
     public SiteDeliveryService(SiteRepository siteRepository,
                                SitePageRepository pageRepository,
                                SiteDomainRepository domainRepository,
-                               BlogPostRepository blogPostRepository) {
+                               BlogPostRepository blogPostRepository,
+                               BookingEngineConfigRepository bookingEngineConfigRepository) {
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
         this.domainRepository = domainRepository;
         this.blogPostRepository = blogPostRepository;
+        this.bookingEngineConfigRepository = bookingEngineConfigRepository;
     }
 
     @Transactional(readOnly = true)
@@ -56,7 +61,11 @@ public class SiteDeliveryService {
         List<SitePage> pages = pageRepository.findBySiteIdOrderBySortOrderAsc(site.getId()).stream()
             .filter(p -> p.getStatus() == SiteStatus.PUBLISHED)
             .toList();
-        return Optional.of(SitePublicDto.from(site, pages));
+        // Clé publique du booking engine (X-Booking-Key) pour monter le widget de réservation côté SSR.
+        String apiKey = site.getBookingEngineConfigId() == null ? null
+            : bookingEngineConfigRepository.findById(site.getBookingEngineConfigId())
+                .map(BookingEngineConfig::getApiKey).orElse(null);
+        return Optional.of(SitePublicDto.from(site, apiKey, pages));
     }
 
     @Transactional(readOnly = true)
