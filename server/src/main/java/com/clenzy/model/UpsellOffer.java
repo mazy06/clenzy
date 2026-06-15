@@ -64,6 +64,10 @@ public class UpsellOffer {
     @Column(name = "lead_time_hours")
     private Integer leadTimeHours;
 
+    /** Bundle (2.10) : CSV des ids d'offres incluses ; non vide = cette offre est un bundle à prix combiné. */
+    @Column(name = "bundle_offer_ids", length = 500)
+    private String bundleOfferIds;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -98,6 +102,8 @@ public class UpsellOffer {
     public void setMinNights(Integer minNights) { this.minNights = minNights; }
     public Integer getLeadTimeHours() { return leadTimeHours; }
     public void setLeadTimeHours(Integer leadTimeHours) { this.leadTimeHours = leadTimeHours; }
+    public String getBundleOfferIds() { return bundleOfferIds; }
+    public void setBundleOfferIds(String bundleOfferIds) { this.bundleOfferIds = bundleOfferIds; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

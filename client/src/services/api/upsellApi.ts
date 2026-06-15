@@ -27,6 +27,8 @@ export interface UpsellOffer {
   // Productisation (2.10) : conditionnel + fenêtre horaire
   minNights: number | null;
   leadTimeHours: number | null;
+  /** Bundle (2.10) : CSV des ids d'offres incluses ; non vide = bundle. */
+  bundleOfferIds: string | null;
 }
 
 /** Création / mise à jour d'une offre. */
@@ -44,6 +46,8 @@ export interface UpsellOfferRequest {
   minNights?: number | null;
   /** Délai minimal (heures) avant l'arrivée pour commander ; null/0 = aucun. */
   leadTimeHours?: number | null;
+  /** Bundle (2.10) : CSV des ids d'offres incluses ; vide = offre simple. */
+  bundleOfferIds?: string | null;
 }
 
 /** Commande d'upsell (vente). */
@@ -70,6 +74,8 @@ export interface PublicUpsell {
   price: number;
   currency: string;
   imageUrl: string | null;
+  /** Bundle (2.10) : titres des offres incluses (vide si offre simple). */
+  bundleItems: string[];
 }
 
 export const upsellApi = {

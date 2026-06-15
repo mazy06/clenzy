@@ -844,6 +844,10 @@ const WelcomeGuideAdmin: React.FC = () => {
       price: o.price,
       currency: o.currency,
       imageUrl: o.imageUrl,
+      bundleItems: o.bundleOfferIds
+        ? o.bundleOfferIds.split(',').map((x) => x.trim()).filter(Boolean)
+            .map((id) => applicableOffers.find((c) => String(c.id) === id)?.title).filter((x): x is string => !!x)
+        : [],
     }));
   const previewModel: WelcomeBookModel = {
     title: title.trim() || previewProperty?.name || t('welcomeGuide.preview.sampleTitle', 'Votre logement'),
