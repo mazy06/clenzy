@@ -1,4 +1,4 @@
-import { Box, InputBase, Switch } from '@mui/material';
+import { Box, ButtonBase, InputBase, Switch } from '@mui/material';
 import { getBlockDef, type BlockProps, type FieldDef } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 
@@ -50,6 +50,58 @@ function Field({ field, value, onChange }: { field: FieldDef; value: BlockProps[
     );
   }
 
+  if (field.type === 'select') {
+    return (
+      <Box>
+        <Box component="label" sx={{ ...labelSx, display: 'block', mb: 0.75 }}>{field.label}</Box>
+        <Box
+          component="select"
+          value={String(value ?? field.options?.[0]?.value ?? '')}
+          onChange={(e) => onChange((e.target as HTMLSelectElement).value)}
+          sx={{
+            width: '100%', height: 36, px: 1, fontSize: 'var(--text-md)', color: 'var(--ink)',
+            bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', cursor: 'pointer',
+            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 1 },
+          }}
+        >
+          {field.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </Box>
+      </Box>
+    );
+  }
+
+  if (field.type === 'color') {
+    const hex = typeof value === 'string' ? value : '';
+    return (
+      <Box>
+        <Box component="label" sx={{ ...labelSx, display: 'block', mb: 0.75 }}>{field.label}</Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box component="input" type="color" value={hex || '#ffffff'}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+            sx={{ width: 38, height: 38, p: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'transparent', cursor: 'pointer', flexShrink: 0 }}
+          />
+          <InputBase value={hex} placeholder="hérité" onChange={(e) => onChange(e.target.value)}
+            sx={{ ...inputSx, fontFamily: 'var(--font-mono, monospace)' }} />
+          {hex && (
+            <ButtonBase onClick={() => onChange('')} aria-label="Réinitialiser"
+              sx={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', color: 'var(--muted)', flexShrink: 0, '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>×</ButtonBase>
+          )}
+        </Box>
+      </Box>
+    );
+  }
+
+  if (field.type === 'image') {
+    const src = typeof value === 'string' ? value : '';
+    return (
+      <Box>
+        <Box component="label" sx={{ ...labelSx, display: 'block', mb: 0.75 }}>{field.label}</Box>
+        <InputBase value={src} placeholder="https://…" onChange={(e) => onChange(e.target.value)} sx={inputSx} />
+        {src ? <Box component="img" src={src} alt="" sx={{ mt: 1, display: 'block', width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }} /> : null}
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Box component="label" sx={{ ...labelSx, display: 'block', mb: 0.75 }}>{field.label}</Box>
@@ -68,13 +120,7 @@ function Field({ field, value, onChange }: { field: FieldDef; value: BlockProps[
             onChange(e.target.value);
           }
         }}
-        sx={{
-          width: '100%', px: 1.25, py: 0.75, fontSize: 'var(--text-md)', color: 'var(--ink)',
-          bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
-          transition: 'border-color var(--duration-fast) var(--ease-out)',
-          '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' },
-          '& textarea': { lineHeight: 1.5 },
-        }}
+        sx={{ ...inputSx, '& textarea': { lineHeight: 1.5 } }}
       />
     </Box>
   );
@@ -82,4 +128,11 @@ function Field({ field, value, onChange }: { field: FieldDef; value: BlockProps[
 
 const labelSx = {
   fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--body)',
+} as const;
+
+const inputSx = {
+  width: '100%', px: 1.25, py: 0.75, fontSize: 'var(--text-md)', color: 'var(--ink)',
+  bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
+  transition: 'border-color var(--duration-fast) var(--ease-out)',
+  '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' },
 } as const;
