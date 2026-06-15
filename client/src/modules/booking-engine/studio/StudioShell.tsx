@@ -6,7 +6,6 @@ import {
   Monitor,
   Tablet,
   Smartphone,
-  Globe,
   Rocket,
   Wand2,
   type LucideIcon,
@@ -135,7 +134,7 @@ export default function StudioShell({
         <SegmentedBreakpoint value={breakpoint} onChange={onBreakpointChange} />
 
         {/* Langue de preview */}
-        <PreviewSelect icon={<Globe size={14} strokeWidth={2} />} value={previewLang}
+        <PreviewSelect value={previewLang}
           onChange={onPreviewLangChange} options={['fr', 'en', 'ar']} ariaLabel="Langue de preview" />
 
         {/* Devise de preview */}
