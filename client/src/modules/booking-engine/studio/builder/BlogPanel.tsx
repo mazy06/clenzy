@@ -14,9 +14,10 @@ import type { StudioConfigState } from '../useStudioConfig';
 type Draft = {
   title: string; slug: string; excerpt: string; body: string;
   status: string; locale: string; seoTitle: string; seoDescription: string; coverImageUrl: string;
+  aiGenerated: boolean;
 };
 
-const EMPTY: Draft = { title: '', slug: '', excerpt: '', body: '', status: 'DRAFT', locale: '', seoTitle: '', seoDescription: '', coverImageUrl: '' };
+const EMPTY: Draft = { title: '', slug: '', excerpt: '', body: '', status: 'DRAFT', locale: '', seoTitle: '', seoDescription: '', coverImageUrl: '', aiGenerated: false };
 
 function slugify(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -26,10 +27,18 @@ function slugify(s: string): string {
 function toDraft(p: BlogPost): Draft {
   return {
     title: p.title ?? '', slug: p.slug ?? '', excerpt: p.excerpt ?? '', body: p.body ?? '',
-    status: p.status ?? 'DRAFT', locale: p.locale ?? '', seoTitle: p.seoTitle ?? '',
-    seoDescription: p.seoDescription ?? '', coverImageUrl: p.coverImageUrl ?? '',
+    // PENDING_REVIEW est un statut serveur ; dans l'éditeur on n'édite que DRAFT vs « soumettre ».
+    status: p.status === 'PUBLISHED' ? 'PUBLISHED' : (p.status ?? 'DRAFT'),
+    locale: p.locale ?? '', seoTitle: p.seoTitle ?? '',
+    seoDescription: p.seoDescription ?? '', coverImageUrl: p.coverImageUrl ?? '', aiGenerated: p.aiGenerated ?? false,
   };
 }
+
+const STATUS_META: Record<string, { label: string; color: string }> = {
+  DRAFT: { label: 'Brouillon', color: 'var(--muted)' },
+  PENDING_REVIEW: { label: 'En attente de validation', color: 'var(--warn, #B26B00)' },
+  PUBLISHED: { label: 'Publié', color: 'var(--ok)' },
+};
 
 export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
   const configId = cfg.config?.id;
@@ -86,6 +95,11 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
         </ButtonBase>
       </Box>
 
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 'var(--text-2xs)', lineHeight: 1.4 }}>
+        <AlertTriangle size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
+        La publication est soumise à <strong>validation manuelle</strong> : un article (surtout s'il est généré par IA) doit être relu puis approuvé. Les relecteurs de l'organisation sont alertés à chaque soumission.
+      </Box>
+
       {posts === null && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {[0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: 'var(--radius-md)', bgcolor: 'var(--hover)' }} />)}
@@ -104,23 +118,38 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
 
       {posts && posts.length > 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {posts.map((p) => (
-            <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title || '(sans titre)'}</Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, fontSize: 'var(--text-2xs)', color: p.status === 'PUBLISHED' ? 'var(--ok)' : 'var(--muted)' }}>
-                  <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: p.status === 'PUBLISHED' ? 'var(--ok)' : 'var(--faint)' }} />
-                  {p.status === 'PUBLISHED' ? 'Publié' : 'Brouillon'} · /{p.slug}
+          {posts.map((p) => {
+            const meta = STATUS_META[p.status] ?? STATUS_META.DRAFT;
+            const pending = p.status === 'PENDING_REVIEW';
+            return (
+              <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                    <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title || '(sans titre)'}</Box>
+                    {p.aiGenerated && <Box component="span" sx={aiChipSx}>IA</Box>}
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, fontSize: 'var(--text-2xs)', color: meta.color }}>
+                    <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: meta.color, flexShrink: 0 }} />
+                    {meta.label} · /{p.slug}
+                  </Box>
                 </Box>
+                {pending && (
+                  <>
+                    <ButtonBase onClick={async () => { if (siteId != null) { await sitesApi.approvePost(siteId, p.id); reload(); } }} sx={{ ...primaryBtnSx, height: 32, px: 1.25 }}>
+                      <Check size={14} strokeWidth={2.4} /> Valider &amp; publier
+                    </ButtonBase>
+                    <ButtonBase onClick={async () => { if (siteId != null) { await sitesApi.rejectPost(siteId, p.id); reload(); } }} sx={ghostBtnSx}>Brouillon</ButtonBase>
+                  </>
+                )}
+                <ButtonBase onClick={() => setEditing(p)} sx={ghostBtnSx}>Éditer</ButtonBase>
+                <ButtonBase
+                  onClick={async () => { if (siteId != null) { await sitesApi.deletePost(siteId, p.id); reload(); } }}
+                  aria-label="Supprimer" sx={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer', flexShrink: 0, '&:hover': { bgcolor: 'var(--err-soft)', color: 'var(--err)' } }}>
+                  <Trash2 size={15} strokeWidth={2} />
+                </ButtonBase>
               </Box>
-              <ButtonBase onClick={() => setEditing(p)} sx={ghostBtnSx}>Éditer</ButtonBase>
-              <ButtonBase
-                onClick={async () => { if (siteId != null) { await sitesApi.deletePost(siteId, p.id); reload(); } }}
-                aria-label="Supprimer" sx={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--err-soft)', color: 'var(--err)' } }}>
-                <Trash2 size={15} strokeWidth={2} />
-              </ButtonBase>
-            </Box>
-          ))}
+            );
+          })}
         </Box>
       )}
     </Box>
@@ -149,6 +178,7 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
         body: a.body ?? d.body,
         seoTitle: a.seoTitle ?? d.seoTitle,
         seoDescription: a.seoDescription ?? d.seoDescription,
+        aiGenerated: true, // contenu IA → relecture manuelle d'autant plus requise
       }));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Génération impossible (IA désactivée ou budget atteint ?)');
@@ -171,6 +201,7 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
       seoTitle: draft.seoTitle.trim() || null,
       seoDescription: draft.seoDescription.trim() || null,
       coverImageUrl: draft.coverImageUrl.trim() || null,
+      aiGenerated: draft.aiGenerated,
     };
     try {
       if (post) await sitesApi.updatePost(siteId, post.id, body);
@@ -213,11 +244,17 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
         <Field label="Statut">
           <Box component="select" value={draft.status} onChange={(e) => set('status', (e.target as HTMLSelectElement).value)} sx={selectSx}>
             <option value="DRAFT">Brouillon</option>
-            <option value="PUBLISHED">Publié</option>
+            <option value="PENDING_REVIEW">Soumettre à validation</option>
+            {draft.status === 'PUBLISHED' && <option value="PUBLISHED">Publié — en ligne</option>}
           </Box>
         </Field>
         <Field label="Langue"><InputBase value={draft.locale} onChange={(e) => set('locale', e.target.value)} sx={inputSx} placeholder="fr, en… (vide = toutes)" /></Field>
       </Box>
+      {draft.status === 'PUBLISHED' && (
+        <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--warn, #B26B00)' }}>
+          Toute modification enregistrée repassera par la validation avant une nouvelle mise en ligne.
+        </Box>
+      )}
       <Field label="Extrait"><InputBase value={draft.excerpt} onChange={(e) => set('excerpt', e.target.value)} sx={inputSx} multiline minRows={2} placeholder="Résumé court (listes, SEO)" /></Field>
       <Field label="Contenu (markdown)"><InputBase value={draft.body} onChange={(e) => set('body', e.target.value)} sx={{ ...inputSx, '& textarea': { lineHeight: 1.6, fontFamily: 'var(--font-mono, monospace)' } }} multiline minRows={12} placeholder="Corps de l'article en markdown…" /></Field>
       <Field label="Image de couverture (URL)"><InputBase value={draft.coverImageUrl} onChange={(e) => set('coverImageUrl', e.target.value)} sx={inputSx} placeholder="https://…" /></Field>
@@ -261,4 +298,10 @@ const ghostBtnSx = {
   fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
   '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' }, '&.Mui-disabled': { opacity: 0.5 },
   '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+} as const;
+
+const aiChipSx = {
+  flexShrink: 0, display: 'inline-flex', alignItems: 'center', px: 0.75, height: 17,
+  borderRadius: 999, bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
+  fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.04em',
 } as const;

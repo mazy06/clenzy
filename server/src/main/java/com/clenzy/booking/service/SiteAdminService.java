@@ -21,6 +21,12 @@ import com.clenzy.booking.repository.SitePageRepository;
 import com.clenzy.booking.repository.SiteRepository;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.integration.cloudflare.CloudflareCustomHostnameService;
+import com.clenzy.model.NotificationCategory;
+import com.clenzy.model.NotificationType;
+import com.clenzy.model.User;
+import com.clenzy.model.UserRole;
+import com.clenzy.repository.UserRepository;
+import com.clenzy.service.NotificationService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -47,6 +53,8 @@ public class SiteAdminService {
     private final BlogPostRepository blogPostRepository;
     private final BookingEngineConfigRepository bookingEngineConfigRepository;
     private final CloudflareCustomHostnameService cloudflareService;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
     private final ObjectProvider<SiteAdminService> self;
 
     public SiteAdminService(SiteRepository siteRepository,
@@ -55,6 +63,8 @@ public class SiteAdminService {
                             BlogPostRepository blogPostRepository,
                             BookingEngineConfigRepository bookingEngineConfigRepository,
                             CloudflareCustomHostnameService cloudflareService,
+                            NotificationService notificationService,
+                            UserRepository userRepository,
                             ObjectProvider<SiteAdminService> self) {
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
@@ -62,6 +72,8 @@ public class SiteAdminService {
         this.blogPostRepository = blogPostRepository;
         this.bookingEngineConfigRepository = bookingEngineConfigRepository;
         this.cloudflareService = cloudflareService;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
         this.self = self;
     }
 
@@ -337,7 +349,11 @@ public class SiteAdminService {
         post.setSiteId(siteId);
         post.setOrganizationId(orgId);
         applyPost(post, req);
-        return BlogPostDto.from(blogPostRepository.save(post));
+        BlogPost saved = blogPostRepository.save(post);
+        if (saved.getStatus() == SiteStatus.PENDING_REVIEW) {
+            notifyReviewers(orgId, saved);
+        }
+        return BlogPostDto.from(saved);
     }
 
     @Transactional
@@ -345,8 +361,14 @@ public class SiteAdminService {
         requireOwnedSite(orgId, siteId);
         BlogPost post = blogPostRepository.findByIdAndSiteId(postId, siteId)
             .orElseThrow(() -> new NotFoundException("Article introuvable: " + postId));
+        SiteStatus before = post.getStatus();
         applyPost(post, req);
-        return BlogPostDto.from(blogPostRepository.save(post));
+        BlogPost saved = blogPostRepository.save(post);
+        // Alerte une seule fois, à l'ENTRÉE en relecture (pas à chaque sauvegarde du brouillon en review).
+        if (saved.getStatus() == SiteStatus.PENDING_REVIEW && before != SiteStatus.PENDING_REVIEW) {
+            notifyReviewers(orgId, saved);
+        }
+        return BlogPostDto.from(saved);
     }
 
     @Transactional
@@ -355,6 +377,48 @@ public class SiteAdminService {
         BlogPost post = blogPostRepository.findByIdAndSiteId(postId, siteId)
             .orElseThrow(() -> new NotFoundException("Article introuvable: " + postId));
         blogPostRepository.delete(post);
+    }
+
+    /**
+     * Valide et publie un article (2.13) : seul chemin vers PUBLISHED → garantit une relecture
+     * manuelle avant la mise en prod. Trace le relecteur (keycloakId) et l'horodatage.
+     */
+    @Transactional
+    public BlogPostDto approvePost(Long orgId, Long siteId, Long postId, String reviewerKeycloakId) {
+        requireOwnedSite(orgId, siteId);
+        BlogPost post = blogPostRepository.findByIdAndSiteId(postId, siteId)
+            .orElseThrow(() -> new NotFoundException("Article introuvable: " + postId));
+        post.setStatus(SiteStatus.PUBLISHED);
+        if (post.getPublishedAt() == null) {
+            post.setPublishedAt(LocalDateTime.now());
+        }
+        post.setReviewedAt(LocalDateTime.now());
+        post.setReviewedBy(reviewerKeycloakId);
+        return BlogPostDto.from(blogPostRepository.save(post));
+    }
+
+    /** Renvoie un article en brouillon (relecteur : corrections demandées avant nouvelle soumission). */
+    @Transactional
+    public BlogPostDto rejectPost(Long orgId, Long siteId, Long postId) {
+        requireOwnedSite(orgId, siteId);
+        BlogPost post = blogPostRepository.findByIdAndSiteId(postId, siteId)
+            .orElseThrow(() -> new NotFoundException("Article introuvable: " + postId));
+        post.setStatus(SiteStatus.DRAFT);
+        return BlogPostDto.from(blogPostRepository.save(post));
+    }
+
+    /** Alerte les relecteurs de l'org (hôtes + superviseurs) qu'un article attend validation (2.13). */
+    private void notifyReviewers(Long orgId, BlogPost post) {
+        String title = "Article en attente de validation";
+        String aiTag = post.isAiGenerated() ? " (généré par IA)" : "";
+        String message = "L'article « " + post.getTitle() + " »" + aiTag
+            + " doit être relu et validé avant sa publication.";
+        for (User reviewer : userRepository.findByRoleIn(List.of(UserRole.HOST, UserRole.SUPERVISOR), orgId)) {
+            if (reviewer.getKeycloakId() != null) {
+                notificationService.create(reviewer.getKeycloakId(), title, message,
+                    NotificationType.WARNING, NotificationCategory.REVIEW, "/booking-engine/studio");
+            }
+        }
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -400,17 +464,18 @@ public class SiteAdminService {
         post.setBody(req.body());
         post.setCoverImageUrl(req.coverImageUrl());
         post.setTags(req.tags());
-        if (req.status() != null) post.setStatus(parseStatus(req.status()));
+        if (req.status() != null) {
+            SiteStatus requested = parseStatus(req.status());
+            // Validation manuelle OBLIGATOIRE avant prod (2.13) : le save normal ne publie jamais
+            // directement — une demande PUBLISHED est ramenée à PENDING_REVIEW (passe par l'approbation).
+            post.setStatus(requested == SiteStatus.PUBLISHED ? SiteStatus.PENDING_REVIEW : requested);
+        }
+        if (req.aiGenerated()) {
+            post.setAiGenerated(true); // sticky : un article généré par IA reste flaggé
+        }
         post.setSeoTitle(req.seoTitle());
         post.setSeoDescription(req.seoDescription());
         post.setSeoOgImageUrl(req.seoOgImageUrl());
-        if (req.publishedAt() != null) {
-            post.setPublishedAt(req.publishedAt());
-        }
-        // Première publication : horodate automatiquement si non fourni.
-        if (post.getStatus() == SiteStatus.PUBLISHED && post.getPublishedAt() == null) {
-            post.setPublishedAt(LocalDateTime.now());
-        }
     }
 
     private SiteStatus parseStatus(String value) {

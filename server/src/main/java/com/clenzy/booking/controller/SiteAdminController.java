@@ -13,6 +13,8 @@ import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -160,5 +162,18 @@ public class SiteAdminController {
     @PostMapping("/{id}/blog/ai")
     public ResponseEntity<GeneratedArticleDto> generateBlogArticle(@PathVariable Long id, @RequestBody BlogArticleAiRequest req) {
         return ResponseEntity.ok(contentAiService.generateBlogArticle(orgId(), id, req.topic(), req.locale()));
+    }
+
+    /** Valide et publie un article (2.13) : seule voie vers PUBLISHED (relecture manuelle obligatoire). */
+    @PostMapping("/{id}/posts/{postId}/approve")
+    public ResponseEntity<BlogPostDto> approvePost(@PathVariable Long id, @PathVariable Long postId,
+                                                   @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(service.approvePost(orgId(), id, postId, jwt != null ? jwt.getSubject() : null));
+    }
+
+    /** Renvoie un article en brouillon (corrections demandées). */
+    @PostMapping("/{id}/posts/{postId}/reject")
+    public ResponseEntity<BlogPostDto> rejectPost(@PathVariable Long id, @PathVariable Long postId) {
+        return ResponseEntity.ok(service.rejectPost(orgId(), id, postId));
     }
 }

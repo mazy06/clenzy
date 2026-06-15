@@ -19,13 +19,17 @@ public record BlogPostDto(
     String seoTitle,
     String seoDescription,
     String seoOgImageUrl,
-    LocalDateTime publishedAt
+    LocalDateTime publishedAt,
+    boolean aiGenerated,
+    LocalDateTime reviewedAt,
+    String reviewedBy
 ) {
     public static BlogPostDto from(BlogPost p) {
         return new BlogPostDto(
             p.getId(), p.getSiteId(), p.getSlug(), p.getLocale(), p.getTitle(),
             p.getExcerpt(), p.getBody(), p.getCoverImageUrl(), p.getTags(),
             p.getStatus() != null ? p.getStatus().name() : null,
-            p.getSeoTitle(), p.getSeoDescription(), p.getSeoOgImageUrl(), p.getPublishedAt());
+            p.getSeoTitle(), p.getSeoDescription(), p.getSeoOgImageUrl(), p.getPublishedAt(),
+            p.isAiGenerated(), p.getReviewedAt(), p.getReviewedBy());
     }
 }
