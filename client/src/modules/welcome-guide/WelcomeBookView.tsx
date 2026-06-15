@@ -662,6 +662,11 @@ const WelcomeBookView: React.FC<WelcomeBookViewProps> = ({
                     <div style={{ padding: '11px 13px 13px' }}>
                       <div className="wb-serif" style={{ fontSize: 18, lineHeight: 1.14, marginBottom: 8, color: 'var(--ink)' }}>{u.title}</div>
                       {u.description ? <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 9, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{u.description}</div> : null}
+                      {u.bundleItems.length > 0 ? (
+                        <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 9, lineHeight: 1.35 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--ink-soft)' }}>{L.included} :</span> {u.bundleItems.join(', ')}
+                        </div>
+                      ) : null}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ fontWeight: 800, fontSize: 15, fontVariantNumeric: 'tabular-nums' }}>{u.price.toFixed(2)} {u.currency}</div>
                         <button type="button" className="wb-btn wb-btn--soft wb-pressable" onClick={() => interactive && onUpsellClick?.(u)} style={{ padding: '6px 12px', fontSize: 12.5, borderRadius: 12, cursor: interactive ? 'pointer' : 'default' }}>{L.payCta}</button>
