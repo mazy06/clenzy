@@ -74,9 +74,56 @@ export const sitesApi = {
   /** Génère un titre + meta SEO (IA) pour une page à partir de son contenu (2.13). */
   generatePageSeo: (siteId: number, pageId: number): Promise<GeneratedSeo> =>
     apiClient.post<GeneratedSeo>(`/sites/${siteId}/pages/${pageId}/ai/seo`),
+
+  // ─── Articles de blog (2.13) ──────────────────────────────────────────────
+  listPosts: (siteId: number) =>
+    apiClient.get<BlogPost[]>(`/sites/${siteId}/posts`),
+
+  createPost: (siteId: number, body: BlogPostUpsert) =>
+    apiClient.post<BlogPost>(`/sites/${siteId}/posts`, body),
+
+  updatePost: (siteId: number, postId: number, body: BlogPostUpsert) =>
+    apiClient.put<BlogPost>(`/sites/${siteId}/posts/${postId}`, body),
+
+  deletePost: (siteId: number, postId: number) =>
+    apiClient.delete(`/sites/${siteId}/posts/${postId}`),
+
+  /** Génère un brouillon d'article de blog (IA) à partir d'un sujet libre (2.13). */
+  generateArticle: (siteId: number, topic: string, locale?: string) =>
+    apiClient.post<GeneratedArticle>(`/sites/${siteId}/blog/ai`, { topic, locale }),
 };
 
 export interface GeneratedSeo {
+  seoTitle: string | null;
+  seoDescription: string | null;
+}
+
+/** Article de blog d'un site (P1.3 / 2.13). */
+export interface BlogPost {
+  id: number;
+  siteId: number;
+  slug: string;
+  locale: string | null;
+  title: string;
+  excerpt: string | null;
+  body: string | null;
+  coverImageUrl: string | null;
+  tags: string | null;
+  status: string;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  seoOgImageUrl: string | null;
+  publishedAt: string | null;
+}
+
+/** Corps create/update d'un article (id/siteId ignorés par le backend). */
+export type BlogPostUpsert = Partial<BlogPost>;
+
+/** Brouillon d'article généré par IA (2.13) — pré-remplit l'éditeur. */
+export interface GeneratedArticle {
+  title: string | null;
+  excerpt: string | null;
+  body: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
 }

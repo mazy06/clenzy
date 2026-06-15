@@ -1,6 +1,8 @@
 package com.clenzy.booking.controller;
 
+import com.clenzy.booking.dto.BlogArticleAiRequest;
 import com.clenzy.booking.dto.BlogPostDto;
+import com.clenzy.booking.dto.GeneratedArticleDto;
 import com.clenzy.booking.dto.SiteDomainDto;
 import com.clenzy.booking.dto.SiteDomainRequest;
 import com.clenzy.booking.dto.SiteDto;
@@ -152,5 +154,11 @@ public class SiteAdminController {
     public ResponseEntity<Void> deletePost(@PathVariable Long id, @PathVariable Long postId) {
         service.deletePost(orgId(), id, postId);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Génère un brouillon d'article de blog (IA) à partir d'un sujet libre (2.13). */
+    @PostMapping("/{id}/blog/ai")
+    public ResponseEntity<GeneratedArticleDto> generateBlogArticle(@PathVariable Long id, @RequestBody BlogArticleAiRequest req) {
+        return ResponseEntity.ok(contentAiService.generateBlogArticle(orgId(), id, req.topic(), req.locale()));
     }
 }

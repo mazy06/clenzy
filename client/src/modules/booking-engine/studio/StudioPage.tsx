@@ -9,6 +9,7 @@ import {
   Share2,
   Rocket,
   Wand2,
+  Newspaper,
 } from 'lucide-react';
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
@@ -16,6 +17,7 @@ import DesignBuilder from './builder/DesignBuilder';
 import DesignAnalysisModal from './DesignAnalysisModal';
 import BookingSettingsPanel from './settings/BookingSettingsPanel';
 import ContentSection from './settings/ContentSection';
+import BlogPanel from './builder/BlogPanel';
 import DistributionPanel from './settings/DistributionPanel';
 import GrowthSettingsPanel from './settings/GrowthSettingsPanel';
 import { useStudioConfig } from './useStudioConfig';
@@ -29,6 +31,7 @@ import type { BookingEngineConfig, DesignTokens } from '../../../services/api/bo
 const SECTIONS: StudioSection[] = [
   { key: 'design', label: 'Design', icon: LayoutTemplate },
   { key: 'content', label: 'Contenu', icon: FileText },
+  { key: 'blog', label: 'Blog', icon: Newspaper },
   { key: 'booking', label: 'Réservation', icon: CalendarCheck },
   { key: 'growth', label: 'Croissance', icon: TrendingUp },
   { key: 'distribution', label: 'Diffusion', icon: Share2 },
@@ -106,6 +109,7 @@ export default function StudioPage() {
       >
         {active.key === 'design' && <DesignBuilder breakpoint={breakpoint} cfg={cfg} />}
         {active.key === 'content' && <ContentSection cfg={cfg} />}
+        {active.key === 'blog' && <BlogPanel cfg={cfg} />}
         {active.key === 'booking' && (
           <BookingSettingsPanel
             config={cfg.config}
