@@ -2509,3 +2509,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0254__create_hosted_sites.sql
         relativeToChangelogFile: true
+
+  # Clenzy Sites (P1.3) : blog / CMS des sites heberges (articles rendus SSR + RSS + schema Article).
+  - changeSet:
+      id: "0255-create-blog-posts"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0255__create_blog_posts.sql
+        relativeToChangelogFile: true
