@@ -15,6 +15,8 @@ export default function GrowthSettingsPanel() {
   const [leadCapture, setLeadCapture] = useState(false);
   const [abandoned, setAbandoned] = useState(false);
   const [loyalty, setLoyalty] = useState(0);
+  // Crédit de parrainage saisi en EUROS (le backend stocke des centimes).
+  const [referralEuros, setReferralEuros] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -23,6 +25,7 @@ export default function GrowthSettingsPanel() {
     setLeadCapture(s.leadCaptureEnabled);
     setAbandoned(s.abandonedCartRecoveryEnabled);
     setLoyalty(s.loyaltyCreditPercent ?? 0);
+    setReferralEuros((s.referralCreditCents ?? 0) / 100);
   };
 
   useEffect(() => {
@@ -33,14 +36,21 @@ export default function GrowthSettingsPanel() {
     return () => { alive = false; };
   }, []);
 
+  const referralCents = Math.round(referralEuros * 100);
   const dirty = !!loaded && (leadCapture !== loaded.leadCaptureEnabled
     || abandoned !== loaded.abandonedCartRecoveryEnabled
-    || loyalty !== (loaded.loyaltyCreditPercent ?? 0));
+    || loyalty !== (loaded.loyaltyCreditPercent ?? 0)
+    || referralCents !== (loaded.referralCreditCents ?? 0));
 
   const save = () => {
     setSaving(true);
     setError(null);
-    growthSettingsApi.update({ leadCaptureEnabled: leadCapture, abandonedCartRecoveryEnabled: abandoned, loyaltyCreditPercent: loyalty > 0 ? loyalty : null })
+    growthSettingsApi.update({
+      leadCaptureEnabled: leadCapture,
+      abandonedCartRecoveryEnabled: abandoned,
+      loyaltyCreditPercent: loyalty > 0 ? loyalty : null,
+      referralCreditCents: referralCents > 0 ? referralCents : null,
+    })
       .then(hydrate)
       .catch((e) => setError(e instanceof Error ? e.message : 'Enregistrement impossible'))
       .finally(() => setSaving(false));
@@ -94,6 +104,14 @@ export default function GrowthSettingsPanel() {
           label="Crédit gagné par séjour direct (%)"
           helper="Crédité APRÈS le séjour (check-out passé), réutilisable lors d'une prochaine réservation. 0 = programme désactivé."
           control={<NumberControl value={loyalty} onChange={(v) => setLoyalty(v)} min={0} max={100} />}
+        />
+      </SettingCard>
+
+      <SettingCard title="Parrainage" description="Récompensez le bouche-à-oreille : parrain et filleul crédités quand le filleul réserve.">
+        <SettingRow
+          label="Crédit par parrainage réussi (€)"
+          helper="Montant crédité À CHAQUE côté (parrain et filleul) lorsque le filleul termine son 1er séjour direct. 0 = programme désactivé."
+          control={<NumberControl value={referralEuros} onChange={(v) => setReferralEuros(v)} min={0} max={500} />}
         />
       </SettingCard>
 

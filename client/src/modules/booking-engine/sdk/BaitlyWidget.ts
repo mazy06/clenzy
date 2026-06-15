@@ -37,6 +37,8 @@ export class BaitlyWidget {
   private unsubscribers: (() => void)[] = [];
   // Compte voyageur (2.11) — contrôleur du modal login/favoris (créé si organizationId fourni).
   private wishlistAuth: WishlistAuthController | null = null;
+  // Parrainage (2.11) : code capté (config ou `?ref=`), rattaché après une réservation directe.
+  private referralCode: string | null = null;
   // Suivi des champs déclencheurs de fetch (property / mois / devise).
   private prevPropertyId: number | null = null;
   private prevMonth = '';
@@ -71,6 +73,9 @@ export class BaitlyWidget {
 
     this.shadowRoot = this.host.attachShadow({ mode: 'open' });
     this.injectStyles();
+
+    // Parrainage (2.11) : code passé en config ou via `?ref=` dans l'URL de la page hôte.
+    this.referralCode = this.config.referralCode?.trim() || readReferralCodeFromUrl();
 
     // Compte voyageur (2.11) : modal login/favoris monté seulement si l'org est connue.
     if (this.config.organizationId != null) {
@@ -420,6 +425,18 @@ export class BaitlyWidget {
     });
   }
 
+  /**
+   * Parrainage (2.11) : rattache le filleul à son parrain après une réservation directe. Best-effort
+   * (le crédit n'est accordé qu'au séjour terminé) ; un échec n'interrompt jamais le paiement.
+   */
+  private maybeClaimReferral(reservationCode: string): void {
+    const orgId = this.config.organizationId;
+    if (!this.referralCode || orgId == null || !reservationCode) return;
+    this.api.claimReferral(orgId, reservationCode, this.referralCode).catch(() => {
+      /* best-effort : code invalide / filleul déjà parrainé → ignoré */
+    });
+  }
+
   private async handleCheckout(): Promise<void> {
     const s = this.state.get();
     const name = `${s.guestForm.firstName} ${s.guestForm.lastName}`.trim();
@@ -443,6 +460,8 @@ export class BaitlyWidget {
         guest,
         notes: s.guestForm.message || undefined,
       }, s.guestToken ?? undefined); // tarif membre (2.8)
+
+      this.maybeClaimReferral(reservation.reservationCode);
 
       if (reservation.requiresPayment) {
         const checkout = await this.api.checkout(reservation.reservationCode);
@@ -483,6 +502,10 @@ export class BaitlyWidget {
         guests: c.guests,
       }));
       const batch = await this.api.reserveBatch({ items, guest }, s.guestToken ?? undefined); // tarif membre (2.8)
+
+      if (batch.reservations.length > 0) {
+        this.maybeClaimReferral(batch.reservations[0].reservationCode);
+      }
 
       if (batch.requiresPayment && batch.reservations.length > 0) {
         // Paiement item par item : on démarre le checkout du premier séjour.
@@ -613,4 +636,14 @@ function toPriceBreakdown(a: ApiAvailability, i18n: { t: (k: string) => string }
 
 function msg(err: unknown): string {
   return err instanceof Error ? err.message : 'Unknown error';
+}
+
+/** Parrainage (2.11) : lit le code dans `?ref=` de l'URL de la page hôte (null si absent/indispo). */
+function readReferralCodeFromUrl(): string | null {
+  try {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    return ref && ref.trim() ? ref.trim() : null;
+  } catch {
+    return null;
+  }
 }

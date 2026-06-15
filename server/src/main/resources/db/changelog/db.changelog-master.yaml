@@ -2614,3 +2614,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0267__add_reservation_credit_applied.sql
         relativeToChangelogFile: true
+
+  # Parrainage voyageur (2.11) : montant org-level + code de parrainage + lien parrain/parraine.
+  - changeSet:
+      id: "0268-add-referral"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0268__add_referral.sql
+        relativeToChangelogFile: true

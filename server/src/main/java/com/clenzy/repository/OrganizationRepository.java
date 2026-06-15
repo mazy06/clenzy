@@ -43,4 +43,7 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
 
     /** Orgs avec un programme de crédit fidélité actif (loyalty_credit_percent > 0) — scan du gain. */
     List<Organization> findByLoyaltyCreditPercentGreaterThan(int value);
+
+    /** Orgs avec un programme de parrainage actif (referral_credit_cents > 0) — scan du crédit. */
+    List<Organization> findByReferralCreditCentsGreaterThan(int value);
 }
