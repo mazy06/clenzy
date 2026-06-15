@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Box, ButtonBase, InputBase, Switch } from '@mui/material';
+import { ImagePlus } from 'lucide-react';
 import { getBlockDef, type BlockProps, type FieldDef } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
+import MediaPicker from './MediaPicker';
 
 /**
  * Corps de l'inspecteur de bloc (onglet « Bloc » du pane droit, F2). Édite les props du bloc
@@ -92,14 +95,7 @@ function Field({ field, value, onChange }: { field: FieldDef; value: BlockProps[
   }
 
   if (field.type === 'image') {
-    const src = typeof value === 'string' ? value : '';
-    return (
-      <Box>
-        <Box component="label" sx={{ ...labelSx, display: 'block', mb: 0.75 }}>{field.label}</Box>
-        <InputBase value={src} placeholder="https://…" onChange={(e) => onChange(e.target.value)} sx={inputSx} />
-        {src ? <Box component="img" src={src} alt="" sx={{ mt: 1, display: 'block', width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }} /> : null}
-      </Box>
-    );
+    return <ImageField label={field.label} value={typeof value === 'string' ? value : ''} onChange={onChange} />;
   }
 
   return (
@@ -122,6 +118,33 @@ function Field({ field, value, onChange }: { field: FieldDef; value: BlockProps[
         }}
         sx={{ ...inputSx, '& textarea': { lineHeight: 1.5 } }}
       />
+    </Box>
+  );
+}
+
+function ImageField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  return (
+    <Box>
+      <Box component="label" sx={{ ...labelSx, display: 'block', mb: 0.75 }}>{label}</Box>
+      <Box sx={{ display: 'flex', gap: 0.75 }}>
+        <InputBase value={value} placeholder="https://… ou médiathèque" onChange={(e) => onChange(e.target.value)} sx={{ ...inputSx, flex: 1 }} />
+        <ButtonBase
+          onClick={() => setPickerOpen(true)}
+          aria-label="Choisir dans la médiathèque"
+          sx={{
+            flexShrink: 0, width: 38, height: 38, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)',
+            color: 'var(--muted)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
+            '&:hover': { borderColor: 'var(--accent)', color: 'var(--accent)' },
+            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 1 },
+          }}
+        >
+          <ImagePlus size={17} strokeWidth={2} />
+        </ButtonBase>
+      </Box>
+      {value ? <Box component="img" src={value} alt="" sx={{ mt: 1, display: 'block', width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }} /> : null}
+      <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onChange} />
     </Box>
   );
 }

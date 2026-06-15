@@ -2533,3 +2533,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0257__add_leads_list_to_marketing_integration.sql
         relativeToChangelogFile: true
+
+  # Studio (2.1) : mediatheque org-scopee (metadonnees des medias uploades).
+  - changeSet:
+      id: "0258-create-media-assets"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0258__create_media_assets.sql
+        relativeToChangelogFile: true
