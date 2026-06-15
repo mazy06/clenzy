@@ -46,6 +46,8 @@ public record BookingEngineAdminConfigDto(
     Integer directBookingDiscountPercent,
     // Tarif membre (2.8) : remise % pour voyageur connecté (le membre obtient max(directe, membre))
     Integer memberDiscountPercent,
+    // Durée du hold PENDING avant annulation auto (minutes ; NULL = défaut système 30)
+    Integer pendingHoldMinutes,
     // Custom CSS/JS + Component Config
     String customCss,
     String customJs,
@@ -98,6 +100,7 @@ public record BookingEngineAdminConfigDto(
             config.getBalanceDueDays(),
             config.getDirectBookingDiscountPercent(),
             config.getMemberDiscountPercent(),
+            config.getPendingHoldMinutes(),
             config.getCustomCss(),
             config.getCustomJs(),
             config.getComponentConfig(),
@@ -140,6 +143,7 @@ public record BookingEngineAdminConfigDto(
         config.setBalanceDueDays(balanceDueDays);
         config.setDirectBookingDiscountPercent(directBookingDiscountPercent);
         config.setMemberDiscountPercent(memberDiscountPercent);
+        config.setPendingHoldMinutes(pendingHoldMinutes);
         config.setCustomCss(customCss);
         config.setCustomJs(customJs);
         config.setComponentConfig(componentConfig);
