@@ -73,4 +73,18 @@ public class AbandonedBookingService {
         abandoned.setRecoverySentAt(clock.instant());
         repository.save(abandoned);
     }
+
+    /**
+     * Enregistre l'envoi d'une relance multi-étapes (2.12) : incrémente le compteur. À la dernière
+     * étape ({@code finalStep}), le panier passe en RECOVERY_SENT (terminal) ; sinon il reste PENDING
+     * pour la relance suivante. Garde {@code recoverySentAt} = horodatage de la DERNIÈRE relance.
+     */
+    public void recordReminderSent(AbandonedBooking abandoned, boolean finalStep) {
+        abandoned.setReminderCount(abandoned.getReminderCount() + 1);
+        abandoned.setRecoverySentAt(clock.instant());
+        if (finalStep) {
+            abandoned.setStatus(AbandonedBookingStatus.RECOVERY_SENT);
+        }
+        repository.save(abandoned);
+    }
 }

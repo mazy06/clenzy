@@ -34,9 +34,15 @@ public record BookingEngineConfigDto(
     BigDecimal securityDepositAmount,
     // Acompte : % prélevé à la réservation (NULL = intégral) + délai du solde (affichage voyageur).
     Integer depositPercent,
-    Integer balanceDueDays
+    Integer balanceDueDays,
+    // Capture de leads activée au niveau org (2.12) — pilote l'affichage du form exit-intent du widget.
+    boolean leadCaptureEnabled
 ) {
     public static BookingEngineConfigDto from(BookingEngineConfig config) {
+        return from(config, true);
+    }
+
+    public static BookingEngineConfigDto from(BookingEngineConfig config, boolean leadCaptureEnabled) {
         return new BookingEngineConfigDto(
             config.getPrimaryColor(),
             config.getAccentColor(),
@@ -59,7 +65,8 @@ public record BookingEngineConfigDto(
             config.getDesignTokens(),
             config.getSecurityDepositAmount(),
             config.getDepositPercent(),
-            config.getBalanceDueDays()
+            config.getBalanceDueDays(),
+            leadCaptureEnabled
         );
     }
 }

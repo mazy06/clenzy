@@ -14,6 +14,7 @@ import { createGuestForm } from './components/GuestForm';
 import { createPropertyList } from './components/PropertyList';
 import { createCurrencySelector } from './components/CurrencySelector';
 import { createCartList } from './components/CartList';
+import { mountLeadCapture } from './components/LeadCapture';
 
 // CSS (imported as strings by bundler)
 import resetCSS from './styles/reset.css?raw';
@@ -68,6 +69,18 @@ export class BaitlyWidget {
     this.injectStyles();
     this.renderWidget();
     this.bindStateEffects();
+
+    // Capture de lead par exit-intent (2.12) — affichée une fois par session, gated par config.
+    this.unsubscribers.push(
+      mountLeadCapture({
+        root: this.shadowRoot,
+        api: this.api,
+        i18n: this.i18n,
+        locale: this.config.language || 'fr',
+        enabled: this.config.leadCapture !== false,
+        storageKey: `cb_lead_${this.config.apiKey}`,
+      }),
+    );
 
     // Données initiales : devises + propriétés.
     this.fetchCurrencies();
