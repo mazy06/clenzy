@@ -8,6 +8,7 @@ import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.RestrictionViolationException;
 import com.clenzy.model.*;
 import com.clenzy.model.voucher.VoucherChannelScope;
+import com.clenzy.payment.StripeAmounts;
 import com.clenzy.repository.*;
 import com.clenzy.service.*;
 import com.clenzy.service.email.BookingConfirmationEmailService;
@@ -53,6 +54,8 @@ public class PublicBookingService {
      * dates).
      */
     private static final long CHECKOUT_SESSION_LIFETIME_MINUTES = 35;
+    /** Montant minimum facturable par Stripe (centimes) : on laisse toujours au moins ce reste à payer. */
+    private static final long MIN_STRIPE_CHARGE_CENTS = 50;
 
     /** Borne haute raisonnable pour une date d'arrivee (anti dates absurdes). */
     private static final int MAX_ADVANCE_YEARS = 3;
@@ -83,6 +86,7 @@ public class PublicBookingService {
     private final BookingServiceOptionsService serviceOptionsService;
     private final BookingConfirmationEmailService bookingConfirmationEmailService;
     private final BookingEngineDepositService depositService;
+    private final GuestCreditService guestCreditService;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -101,7 +105,8 @@ public class PublicBookingService {
             NotificationService notificationService,
             BookingServiceOptionsService serviceOptionsService,
             BookingConfirmationEmailService bookingConfirmationEmailService,
-            BookingEngineDepositService depositService) {
+            BookingEngineDepositService depositService,
+            GuestCreditService guestCreditService) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -119,6 +124,7 @@ public class PublicBookingService {
         this.serviceOptionsService = serviceOptionsService;
         this.bookingConfirmationEmailService = bookingConfirmationEmailService;
         this.depositService = depositService;
+        this.guestCreditService = guestCreditService;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -800,6 +806,24 @@ public class PublicBookingService {
             throw new IllegalStateException("La reservation est deja payee");
         }
 
+        // Crédit fidélité (2.8) : on STOCKE l'intention (creditApplied) + on réduit le montant Stripe.
+        // La DÉDUCTION effective a lieu à la confirmation du paiement (finalizeBookingPayment) → un
+        // abandon ne consomme jamais le crédit. Borné aux réservations à paiement complet (hors acompte) ;
+        // on laisse toujours >= MIN_STRIPE à payer (le flux payé standard déclenche facture/notifs +
+        // la déduction). [Couverture totale sans aucun paiement = à câbler ultérieurement.]
+        String creditEmail = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
+        BigDecimal totalPrice = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO;
+        if (ctx.config().getDepositPercent() == null && reservation.getCreditApplied() == null && creditEmail != null) {
+            long totalCents = StripeAmounts.toMinorUnits(totalPrice);
+            long balance = guestCreditService.getBalanceCents(orgId, creditEmail);
+            long applyCents = Math.min(balance, Math.max(0, totalCents - MIN_STRIPE_CHARGE_CENTS));
+            if (applyCents > 0) {
+                reservation.setCreditApplied(BigDecimal.valueOf(applyCents, 2));
+            }
+        }
+        BigDecimal creditApplied = reservation.getCreditApplied() != null ? reservation.getCreditApplied() : BigDecimal.ZERO;
+        BigDecimal chargeAmount = totalPrice.subtract(creditApplied);
+
         try {
             String propertyName = reservation.getProperty() != null
                 ? reservation.getProperty().getName() : "Reservation";
@@ -810,7 +834,7 @@ public class PublicBookingService {
             // l'expiration du hold de 30 min (reliquat revue A3).
             Session session = stripeService.createReservationCheckoutSession(
                 reservation.getId(),
-                reservation.getTotalPrice(),
+                chargeAmount,
                 guestEmail,
                 reservation.getGuestName(),
                 propertyName,
@@ -1145,8 +1169,19 @@ public class PublicBookingService {
             confirmReservationDeposit(session, reservation, balance);
         } else {
             stripeService.confirmReservationPayment(session.getId());
+            redeemAppliedCredit(reservation); // 2.8 : déduit le crédit fidélité (paiement complet confirmé)
         }
         scheduleCautionSetup(session, reservation);
+    }
+
+    /** Déduit le crédit fidélité « engagé » au checkout, une fois le paiement confirmé (2.8). Idempotent. */
+    private void redeemAppliedCredit(Reservation reservation) {
+        BigDecimal applied = reservation.getCreditApplied();
+        String email = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
+        if (applied != null && applied.compareTo(BigDecimal.ZERO) > 0 && email != null) {
+            guestCreditService.redeem(reservation.getOrganizationId(), email,
+                StripeAmounts.toMinorUnits(applied), reservation.getConfirmationCode());
+        }
     }
 
     /**

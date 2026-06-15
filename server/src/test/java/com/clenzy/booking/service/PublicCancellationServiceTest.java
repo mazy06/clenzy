@@ -47,7 +47,8 @@ class PublicCancellationServiceTest {
     @BeforeEach
     void setUp() {
         service = new PublicCancellationService(reservationRepository, cancellationRefundService,
-                calendarEngine, stripeService);
+                calendarEngine, stripeService,
+                org.mockito.Mockito.mock(com.clenzy.booking.service.GuestCreditService.class));
     }
 
     private static CancellationRefundPreviewDto sampleDto() {

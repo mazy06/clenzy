@@ -38,15 +38,18 @@ public class PublicCancellationService {
     private final CancellationRefundService cancellationRefundService;
     private final CalendarEngine calendarEngine;
     private final StripeService stripeService;
+    private final GuestCreditService guestCreditService;
 
     public PublicCancellationService(ReservationRepository reservationRepository,
                                      CancellationRefundService cancellationRefundService,
                                      CalendarEngine calendarEngine,
-                                     StripeService stripeService) {
+                                     StripeService stripeService,
+                                     GuestCreditService guestCreditService) {
         this.reservationRepository = reservationRepository;
         this.cancellationRefundService = cancellationRefundService;
         this.calendarEngine = calendarEngine;
         this.stripeService = stripeService;
+        this.guestCreditService = guestCreditService;
     }
 
     /** Aperçu du remboursement applicable si la réservation était annulée maintenant. */
@@ -75,6 +78,24 @@ public class PublicCancellationService {
         reservation.setStatus("cancelled");
 
         BigDecimal refundAmount = preview.refundAmount();
+
+        // Crédit fidélité (2.8) : re-créditer le crédit consommé (clawback) + ne jamais rembourser en
+        // cash plus que le montant réellement encaissé (total - crédit). DANS la transaction.
+        BigDecimal creditApplied = reservation.getCreditApplied() != null ? reservation.getCreditApplied() : BigDecimal.ZERO;
+        if (creditApplied.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal cashPaid = reservation.getTotalPrice() != null
+                ? reservation.getTotalPrice().subtract(creditApplied) : BigDecimal.ZERO;
+            if (cashPaid.compareTo(BigDecimal.ZERO) < 0) {
+                cashPaid = BigDecimal.ZERO;
+            }
+            if (refundAmount != null && refundAmount.compareTo(cashPaid) > 0) {
+                refundAmount = cashPaid;
+            }
+            if (guestCreditService.wasRedeemed(orgId, confirmationCode)) {
+                guestCreditService.clawback(orgId, email, StripeAmounts.toMinorUnits(creditApplied), confirmationCode);
+            }
+        }
+
         String sessionId = reservation.getStripeSessionId();
         boolean willRefund = sessionId != null && !sessionId.isBlank()
                 && refundAmount != null && refundAmount.compareTo(BigDecimal.ZERO) > 0;

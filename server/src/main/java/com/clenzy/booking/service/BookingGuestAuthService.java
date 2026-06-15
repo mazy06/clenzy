@@ -274,6 +274,27 @@ public class BookingGuestAuthService {
         }
     }
 
+    /**
+     * Email du voyageur connecté (userinfo Keycloak realm guest), pour résoudre son compte de
+     * crédit fidélité (2.8). Renvoie null si token invalide/sans email (best-effort, non bloquant).
+     */
+    public String resolveGuestEmail(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            return null;
+        }
+        String userInfoUrl = keycloakUrl + "/realms/" + GUEST_REALM + "/protocol/openid-connect/userinfo";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken.trim());
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                userInfoUrl, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+            Object email = response.getBody() != null ? response.getBody().get("email") : null;
+            return email != null ? email.toString() : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     private Map<String, Object> requestToken(MultiValueMap<String, String> form) {
         String tokenUrl = keycloakUrl + "/realms/" + GUEST_REALM + "/protocol/openid-connect/token";
 

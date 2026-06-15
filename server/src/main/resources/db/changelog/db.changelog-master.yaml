@@ -2606,3 +2606,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0266__add_loyalty_credit.sql
         relativeToChangelogFile: true
+
+  # Credit fidelite (2.8 phase 2b-2) : montant de credit applique a une reservation (redemption).
+  - changeSet:
+      id: "0267-add-reservation-credit-applied"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0267__add_reservation_credit_applied.sql
+        relativeToChangelogFile: true

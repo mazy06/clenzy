@@ -49,6 +49,13 @@ public class GuestCreditService {
         this.self = self;
     }
 
+    /** Une réservation a-t-elle effectivement consommé du crédit (REDEEM) ? — garde le clawback. */
+    @Transactional(readOnly = true)
+    public boolean wasRedeemed(Long orgId, String reservationCode) {
+        return reservationCode != null
+            && txRepository.existsByOrganizationIdAndReservationCodeAndType(orgId, reservationCode, GuestCreditTxType.REDEEM);
+    }
+
     /** Solde de crédit (centimes) d'un voyageur pour une org. 0 si aucun compte. */
     @Transactional(readOnly = true)
     public long getBalanceCents(Long orgId, String email) {
@@ -92,6 +99,64 @@ public class GuestCreditService {
         tx.setType(GuestCreditTxType.EARN);
         tx.setReservationCode(reservationCode);
         // Contrainte unique (org, code, EARN) → en cas de course, rollback complet (solde non incrémenté).
+        txRepository.save(tx);
+    }
+
+    /**
+     * Rédemption (2.8 phase 2b-2) : déduit {@code amountCents} du solde de façon ATOMIQUE (UPDATE
+     * conditionnel — pas de check-then-act ; audit #8). Renvoie true si appliqué (solde suffisant),
+     * false sinon (le checkout facture alors le plein). Idempotent par réservation (index unique REDEEM).
+     */
+    @Transactional
+    public boolean redeem(Long orgId, String email, long amountCents, String reservationCode) {
+        if (amountCents <= 0 || email == null || email.isBlank()) {
+            return false;
+        }
+        String mail = normalize(email);
+        if (accountRepository.deductIfSufficient(orgId, mail, amountCents) == 0) {
+            return false; // solde insuffisant / compte absent
+        }
+        GuestCreditAccount acc = accountRepository.findByOrganizationIdAndEmail(orgId, mail).orElseThrow();
+        GuestCreditTransaction tx = new GuestCreditTransaction();
+        tx.setAccountId(acc.getId());
+        tx.setOrganizationId(orgId);
+        tx.setAmountCents(-amountCents); // négatif = déduction
+        tx.setType(GuestCreditTxType.REDEEM);
+        tx.setReservationCode(reservationCode);
+        txRepository.save(tx); // course/double-rédemption → contrainte unique → rollback (déduction annulée)
+        return true;
+    }
+
+    /**
+     * Clawback (2.8) : re-crédite le crédit consommé par une réservation annulée. Idempotent
+     * (un seul CLAWBACK par réservation) — ne re-crédite pas deux fois si l'annulation est rejouée.
+     */
+    @Transactional
+    public void clawback(Long orgId, String email, long amountCents, String reservationCode) {
+        if (amountCents <= 0 || email == null || email.isBlank()) {
+            return;
+        }
+        if (reservationCode != null
+            && txRepository.existsByOrganizationIdAndReservationCodeAndType(orgId, reservationCode, GuestCreditTxType.CLAWBACK)) {
+            return; // déjà re-crédité
+        }
+        String mail = normalize(email);
+        GuestCreditAccount acc = accountRepository.findByOrganizationIdAndEmail(orgId, mail)
+            .orElseGet(() -> {
+                GuestCreditAccount a = new GuestCreditAccount();
+                a.setOrganizationId(orgId);
+                a.setEmail(mail);
+                a.setBalanceCents(0);
+                return accountRepository.save(a);
+            });
+        acc.setBalanceCents(acc.getBalanceCents() + amountCents);
+        accountRepository.save(acc);
+        GuestCreditTransaction tx = new GuestCreditTransaction();
+        tx.setAccountId(acc.getId());
+        tx.setOrganizationId(orgId);
+        tx.setAmountCents(amountCents);
+        tx.setType(GuestCreditTxType.CLAWBACK);
+        tx.setReservationCode(reservationCode);
         txRepository.save(tx);
     }
 

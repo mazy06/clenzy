@@ -73,6 +73,49 @@ class GuestCreditServiceTest {
     }
 
     @Test
+    void redeem_sufficient_deductsAtomicallyAndRecordsNegativeTransaction() {
+        when(accountRepository.deductIfSufficient(1L, "guest@x.fr", 1500)).thenReturn(1);
+        GuestCreditAccount acc = new GuestCreditAccount();
+        acc.setId(9L);
+        when(accountRepository.findByOrganizationIdAndEmail(1L, "guest@x.fr")).thenReturn(Optional.of(acc));
+
+        boolean ok = service().redeem(1L, "Guest@X.fr", 1500, "CODE-9");
+
+        assertThat(ok).isTrue();
+        ArgumentCaptor<GuestCreditTransaction> tx = ArgumentCaptor.forClass(GuestCreditTransaction.class);
+        verify(txRepository).save(tx.capture());
+        assertThat(tx.getValue().getType()).isEqualTo(GuestCreditTxType.REDEEM);
+        assertThat(tx.getValue().getAmountCents()).isEqualTo(-1500); // déduction = négatif
+    }
+
+    @Test
+    void redeem_insufficient_returnsFalseAndRecordsNothing() {
+        when(accountRepository.deductIfSufficient(1L, "guest@x.fr", 9999)).thenReturn(0);
+
+        boolean ok = service().redeem(1L, "guest@x.fr", 9999, "CODE-9");
+
+        assertThat(ok).isFalse();
+        verify(txRepository, never()).save(any());
+    }
+
+    @Test
+    void clawback_reCreditsBalanceOnce() {
+        when(txRepository.existsByOrganizationIdAndReservationCodeAndType(1L, "CODE-9", GuestCreditTxType.CLAWBACK)).thenReturn(false);
+        GuestCreditAccount acc = new GuestCreditAccount();
+        acc.setBalanceCents(0);
+        when(accountRepository.findByOrganizationIdAndEmail(1L, "guest@x.fr")).thenReturn(Optional.of(acc));
+        when(accountRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service().clawback(1L, "guest@x.fr", 1500, "CODE-9");
+
+        assertThat(acc.getBalanceCents()).isEqualTo(1500);
+        ArgumentCaptor<GuestCreditTransaction> tx = ArgumentCaptor.forClass(GuestCreditTransaction.class);
+        verify(txRepository).save(tx.capture());
+        assertThat(tx.getValue().getType()).isEqualTo(GuestCreditTxType.CLAWBACK);
+        assertThat(tx.getValue().getAmountCents()).isEqualTo(1500);
+    }
+
+    @Test
     void getBalanceCents_returnsAccountBalanceOrZero() {
         GuestCreditAccount acc = new GuestCreditAccount();
         acc.setBalanceCents(4200);
