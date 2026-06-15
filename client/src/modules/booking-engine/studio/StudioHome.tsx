@@ -36,6 +36,7 @@ function buildConfigPayload(name: string, preset: DesignPreset | null): BookingE
     autoConfirm: true,
     showCleaningFee: true,
     showTouristTax: true,
+    directBookingDiscountPercent: null,
     customCss: null,
     customJs: null,
     componentConfig: null,

@@ -55,7 +55,7 @@ class BookingDisplayCurrencyServiceTest {
         return new AvailabilityResponseDto(true, 1L, "Apt", DATE, DATE.plusDays(3), 2, 3,
             List.of(new NightBreakdown(DATE, new BigDecimal("100.00"), "BASE")),
             new BigDecimal("300.00"), new BigDecimal("30.00"), new BigDecimal("10.00"), new BigDecimal("340.00"),
-            "EUR", 2, 4, "15:00", "11:00", List.of());
+            BigDecimal.ZERO, "EUR", 2, 4, "15:00", "11:00", List.of());
     }
 
     @Test

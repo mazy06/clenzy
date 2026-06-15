@@ -348,7 +348,19 @@ public class PublicBookingService {
             }
         }
 
-        BigDecimal total = subtotal.add(cleaningFee).add(touristTax);
+        // Book Direct & Save (2.8) : remise « réservation directe » sur le sous-total (le tarif direct
+        // EST le tarif facturé ; l'économie est exposée pour l'affichage). La taxe de séjour reste
+        // calculée sur le sous-total plein ci-dessus. Le breakdown garde le tarif plein par nuit ;
+        // l'écart (= directDiscount) est présenté comme une ligne « réservation directe » côté widget.
+        BigDecimal directDiscount = BigDecimal.ZERO;
+        Integer directPct = config.getDirectBookingDiscountPercent();
+        if (directPct != null && directPct > 0) {
+            int pct = Math.min(directPct, 100);
+            directDiscount = subtotal.multiply(BigDecimal.valueOf(pct))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+        BigDecimal discountedSubtotal = subtotal.subtract(directDiscount);
+        BigDecimal total = discountedSubtotal.add(cleaningFee).add(touristTax);
 
         return new AvailabilityResponseDto(
             true,
@@ -359,10 +371,11 @@ public class PublicBookingService {
             guests,
             nights,
             breakdown,
-            subtotal.setScale(2, RoundingMode.HALF_UP),
+            discountedSubtotal.setScale(2, RoundingMode.HALF_UP),
             cleaningFee.setScale(2, RoundingMode.HALF_UP),
             touristTax.setScale(2, RoundingMode.HALF_UP),
             total.setScale(2, RoundingMode.HALF_UP),
+            directDiscount.setScale(2, RoundingMode.HALF_UP),
             property.getDefaultCurrency(),
             property.getMinimumNights(),
             property.getMaxGuests(),

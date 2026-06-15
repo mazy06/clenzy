@@ -144,6 +144,7 @@ public class BookingDisplayCurrencyService {
                 conv(dto.cleaningFee(), from, to, date),
                 conv(dto.touristTax(), from, to, date),
                 conv(dto.total(), from, to, date),
+                conv(dto.directDiscount(), from, to, date),
                 breakdown, to);
         } catch (Exception e) {
             log.warn("Conversion d'affichage {}->{} indisponible: {}", from, to, e.getMessage());

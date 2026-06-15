@@ -35,6 +35,8 @@ public record BookingEngineConfigDto(
     // Acompte : % prélevé à la réservation (NULL = intégral) + délai du solde (affichage voyageur).
     Integer depositPercent,
     Integer balanceDueDays,
+    // Book Direct & Save (2.8) — remise % réservation directe (affichage de l'économie côté widget).
+    Integer directBookingDiscountPercent,
     // Capture de leads activée au niveau org (2.12) — pilote l'affichage du form exit-intent du widget.
     boolean leadCaptureEnabled
 ) {
@@ -66,6 +68,7 @@ public record BookingEngineConfigDto(
             config.getSecurityDepositAmount(),
             config.getDepositPercent(),
             config.getBalanceDueDays(),
+            config.getDirectBookingDiscountPercent(),
             leadCaptureEnabled
         );
     }

@@ -529,9 +529,16 @@ function toAvailabilityMap(cal: ApiCalendar): Map<string, DayAvailability> {
 
 function toPriceBreakdown(a: ApiAvailability, i18n: { t: (k: string) => string }): PriceBreakdown {
   const nightlyRate = a.nights > 0 ? a.subtotal / a.nights : 0;
+  // Book Direct & Save (2.8) : a.subtotal est déjà remisé → la ligne de base montre le tarif PLEIN
+  // (public) et une ligne « réservation directe » expose l'économie ; le net retombe sur a.subtotal.
+  const directDiscount = a.directDiscount ?? 0;
+  const fullSubtotal = a.subtotal + directDiscount;
   const lines: PriceBreakdown['lines'] = [
-    { label: `${a.nights} ${i18n.t('cart.nights')}`, amount: a.subtotal, type: 'base' },
+    { label: `${a.nights} ${i18n.t('cart.nights')}`, amount: fullSubtotal, type: 'base' },
   ];
+  if (directDiscount > 0) {
+    lines.push({ label: i18n.t('price.directDiscount'), amount: -directDiscount, type: 'discount' });
+  }
   if (a.cleaningFee > 0) lines.push({ label: i18n.t('validation.cleaningFee'), amount: a.cleaningFee, type: 'fee' });
   if (a.touristTax > 0) lines.push({ label: i18n.t('validation.touristTax'), amount: a.touristTax, type: 'fee' });
   return {

@@ -87,6 +87,18 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
         <SettingRow label="Afficher la taxe de séjour" control={<ToggleControl checked={config.showTouristTax} onChange={(v) => patch({ showTouristTax: v })} />} />
       </SettingCard>
 
+      <SettingCard title="Réservation directe" description="Récompensez la réservation en direct par une remise — « Book Direct & Save ».">
+        <SettingRow
+          label="Remise réservation directe (%)"
+          helper="Appliquée au sous-total ; 0 = aucune. L'économie réalisée est affichée au voyageur dans le récapitulatif."
+          htmlFor="cfg-direct-discount"
+          control={
+            <NumberControl id="cfg-direct-discount" value={config.directBookingDiscountPercent ?? 0}
+              onChange={(v) => patch({ directBookingDiscountPercent: v > 0 ? v : null })} min={0} max={100} />
+          }
+        />
+      </SettingCard>
+
       <SettingCard title="Fenêtre de réservation" description="Anticipation minimale et maximale, en jours.">
         <SettingRow label="Délai minimum (jours)" htmlFor="cfg-min" control={
           <NumberControl id="cfg-min" value={config.minAdvanceDays} onChange={(v) => patch({ minAdvanceDays: v })} min={0} max={365} />

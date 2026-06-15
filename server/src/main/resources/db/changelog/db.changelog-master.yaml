@@ -2541,3 +2541,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0258__create_media_assets.sql
         relativeToChangelogFile: true
+
+  # Booking engine (2.8) : remise reservation directe (Book Direct & Save).
+  - changeSet:
+      id: "0259-add-direct-booking-discount"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0259__add_direct_booking_discount.sql
+        relativeToChangelogFile: true
