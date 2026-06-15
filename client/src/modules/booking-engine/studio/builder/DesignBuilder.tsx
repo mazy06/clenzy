@@ -5,6 +5,7 @@ import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
 import PagePreview from './PagePreview';
 import WidgetPreview from './WidgetPreview';
+import SiteWidgetPreview, { type WidgetPlacement } from './SiteWidgetPreview';
 import BlockInspector from './BlockInspector';
 import ThemeInspector from './ThemeInspector';
 import CssInspector from './CssInspector';
@@ -86,7 +87,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>('block');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-  const [previewView, setPreviewView] = useState<'page' | 'widget'>('page');
+  const [previewView, setPreviewView] = useState<'page' | 'widget' | 'site'>('page');
+  const [widgetPlacement, setWidgetPlacement] = useState<WidgetPlacement>('bottom');
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
@@ -188,11 +190,20 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
       {/* Barre : modèles (gauche) + bascule Éditer / Aperçu (droite). */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, height: 42, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
         {mode === 'preview' ? (
-          <Segmented
-            value={previewView}
-            onChange={setPreviewView}
-            options={[{ value: 'page', label: 'Page' }, { value: 'widget', label: 'Réservation' }]}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Segmented
+              value={previewView}
+              onChange={setPreviewView}
+              options={[{ value: 'page', label: 'Page' }, { value: 'widget', label: 'Réservation' }, { value: 'site', label: 'Site' }]}
+            />
+            {previewView === 'site' && (
+              <Segmented
+                value={widgetPlacement}
+                onChange={setWidgetPlacement}
+                options={[{ value: 'bottom', label: 'Bas' }, { value: 'floating', label: 'Flottant' }, { value: 'top', label: 'Haut' }]}
+              />
+            )}
+          </Box>
         ) : (
           <ButtonBase
             onClick={() => setTemplatesOpen(true)}
@@ -217,9 +228,13 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
 
       {mode === 'preview' ? (
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
-          {previewView === 'page'
-            ? <PagePreview blocks={blocks} theme={theme} breakpoint={breakpoint} />
-            : <WidgetPreview config={cfg.config} breakpoint={breakpoint} />}
+          {previewView === 'page' ? (
+            <PagePreview blocks={blocks} theme={theme} breakpoint={breakpoint} />
+          ) : previewView === 'widget' ? (
+            <WidgetPreview config={cfg.config} breakpoint={breakpoint} />
+          ) : (
+            <SiteWidgetPreview config={cfg.config} breakpoint={breakpoint} placement={widgetPlacement} />
+          )}
         </Box>
       ) : (
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
