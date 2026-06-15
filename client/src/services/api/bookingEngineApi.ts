@@ -80,6 +80,8 @@ export interface BookingEngineConfig {
   directBookingDiscountPercent: number | null;
   // Tarif membre (2.8) : remise % voyageur connecté (le membre obtient max(directe, membre))
   memberDiscountPercent: number | null;
+  // Durée du hold PENDING avant annulation auto (minutes ; null = défaut système 30)
+  pendingHoldMinutes: number | null;
   // Custom CSS/JS + Component Config
   customCss: string | null;
   customJs: string | null;

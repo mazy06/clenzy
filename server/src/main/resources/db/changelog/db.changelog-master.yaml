@@ -2622,3 +2622,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0268__add_referral.sql
         relativeToChangelogFile: true
+
+  # Durée du hold PENDING configurable par org (booking engine) — défaut 30 min si NULL.
+  - changeSet:
+      id: "0269-add-pending-hold-minutes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0269__add_pending_hold_minutes.sql
+        relativeToChangelogFile: true
