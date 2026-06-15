@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Box, ButtonBase, Menu, MenuItem } from '@mui/material';
-import { Plus, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { Box, ButtonBase, Menu, MenuItem, Tooltip } from '@mui/material';
+import { Plus, ChevronUp, ChevronDown, Trash2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { BLOCK_ORDER, getBlockDef, type BlockType } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 
 /**
  * Arbre de blocs (pane gauche du builder F2) : liste ordonnée des blocs de la page,
- * sélection, réordonnancement (↑/↓), suppression, et ajout via la bibliothèque.
+ * sélection, réordonnancement (↑/↓), suppression, ajout via la bibliothèque.
+ * Réductible (`collapsed`) → bande d'icônes seules pour gagner de la place.
  */
 
 export interface BlockTreeProps {
@@ -16,32 +17,38 @@ export interface BlockTreeProps {
   onAdd: (type: BlockType) => void;
   onMove: (id: string, dir: -1 | 1) => void;
   onRemove: (id: string) => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onMove, onRemove }: BlockTreeProps) {
+export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onMove, onRemove, collapsed, onToggleCollapse }: BlockTreeProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   return (
-    <Box sx={{ width: 256, flexShrink: 0, borderRight: '1px solid var(--line)', bgcolor: 'var(--card)', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, height: 48, borderBottom: '1px solid var(--line)' }}>
-        <Box sx={{ flex: 1, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>
-          Blocs de la page
-        </Box>
-        <ButtonBase
-          onClick={(e) => setAnchorEl(e.currentTarget)}
-          aria-label="Ajouter un bloc"
-          sx={{
-            width: 28, height: 28, borderRadius: 'var(--radius-sm)', color: 'var(--accent)', cursor: 'pointer',
-            '&:hover': { bgcolor: 'var(--accent-soft)' },
-            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-          }}
-        >
-          <Plus size={17} strokeWidth={2.2} />
-        </ButtonBase>
+    <Box sx={{ width: collapsed ? 52 : 256, flexShrink: 0, borderRight: '1px solid var(--line)', bgcolor: 'var(--card)', display: 'flex', flexDirection: 'column', height: '100%', transition: 'width var(--duration-fast) var(--ease-out)' }}>
+      {/* Header : titre + ajout + repli (ou juste le repli en mode réduit). */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between', gap: 0.5, px: collapsed ? 0 : 1.25, height: 48, borderBottom: '1px solid var(--line)' }}>
+        {!collapsed && (
+          <Box sx={{ flex: 1, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>
+            Blocs de la page
+          </Box>
+        )}
+        {!collapsed && (
+          <Tooltip title="Ajouter un bloc">
+            <ButtonBase onClick={(e) => setAnchorEl(e.currentTarget)} aria-label="Ajouter un bloc" sx={headerBtnSx}>
+              <Plus size={17} strokeWidth={2.2} />
+            </ButtonBase>
+          </Tooltip>
+        )}
+        <Tooltip title={collapsed ? 'Déplier' : 'Replier'} placement="right">
+          <ButtonBase onClick={onToggleCollapse} aria-label={collapsed ? 'Déplier la colonne' : 'Replier la colonne'} sx={headerBtnSx}>
+            {collapsed ? <PanelLeftOpen size={16} strokeWidth={2} /> : <PanelLeftClose size={16} strokeWidth={2} />}
+          </ButtonBase>
+        </Tooltip>
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 1 }}>
-        {blocks.length === 0 && (
+      <Box sx={{ flex: 1, overflowY: 'auto', p: collapsed ? 0.75 : 1 }}>
+        {blocks.length === 0 && !collapsed && (
           <Box sx={{ textAlign: 'center', px: 2, py: 4, color: 'var(--muted)', fontSize: 'var(--text-sm)' }}>
             Page vide. Ajoute un premier bloc avec <Box component="span" sx={{ color: 'var(--accent)', fontWeight: 'var(--fw-semibold)' }}>+</Box>.
           </Box>
@@ -50,6 +57,26 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onMove,
           const def = getBlockDef(b.type);
           const Icon = def.icon;
           const isActive = b.id === selectedId;
+          if (collapsed) {
+            return (
+              <Tooltip key={b.id} title={def.label} placement="right">
+                <ButtonBase
+                  onClick={() => onSelect(b.id)}
+                  aria-label={def.label}
+                  sx={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 38, mb: 0.25,
+                    borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                    color: isActive ? 'var(--accent)' : 'var(--muted)',
+                    bgcolor: isActive ? 'var(--accent-soft)' : 'transparent',
+                    '&:hover': { bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)', color: isActive ? 'var(--accent)' : 'var(--ink)' },
+                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: -2 },
+                  }}
+                >
+                  <Icon size={18} strokeWidth={2} />
+                </ButtonBase>
+              </Tooltip>
+            );
+          }
           return (
             <Box
               key={b.id}
@@ -91,6 +118,14 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onMove,
             </Box>
           );
         })}
+        {collapsed && (
+          <Tooltip title="Ajouter un bloc" placement="right">
+            <ButtonBase onClick={(e) => setAnchorEl(e.currentTarget)} aria-label="Ajouter un bloc"
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 38, mt: 0.5, borderRadius: 'var(--radius-md)', color: 'var(--accent)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--accent-soft)' } }}>
+              <Plus size={18} strokeWidth={2.2} />
+            </ButtonBase>
+          </Tooltip>
+        )}
       </Box>
 
       <Menu
@@ -121,6 +156,12 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onMove,
     </Box>
   );
 }
+
+const headerBtnSx = {
+  width: 28, height: 28, borderRadius: 'var(--radius-sm)', color: 'var(--accent)', cursor: 'pointer',
+  '&:hover': { bgcolor: 'var(--accent-soft)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+} as const;
 
 function TreeAction({ children, label, onClick, disabled = false, danger = false }: {
   children: React.ReactNode; label: string; onClick: (e: React.MouseEvent) => void; disabled?: boolean; danger?: boolean;

@@ -8,6 +8,7 @@ import {
   Smartphone,
   Globe,
   Rocket,
+  Wand2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -38,6 +39,8 @@ export interface StudioShellProps {
   breakpoint: Breakpoint;
   onBreakpointChange: (bp: Breakpoint) => void;
   onOpenCommand: () => void;
+  /** Ouvre la modale « Analyse du design » (analyse IA d'un site → thème du widget). */
+  onAnalyzeDesign?: () => void;
   onBack?: () => void;
   onPublish?: () => void;
   publishing?: boolean;
@@ -59,6 +62,7 @@ export default function StudioShell({
   breakpoint,
   onBreakpointChange,
   onOpenCommand,
+  onAnalyzeDesign,
   onBack,
   onPublish,
   publishing = false,
@@ -75,7 +79,7 @@ export default function StudioShell({
           display: 'flex',
           alignItems: 'center',
           gap: 1.5,
-          px: 2,
+          px: 1.5,
           borderBottom: '1px solid var(--line)',
           bgcolor: 'var(--card)',
         }}
@@ -116,6 +120,14 @@ export default function StudioShell({
           <Box component="span">Rechercher / actions</Box>
           <Box component="span" sx={{ ml: 0.5, fontSize: 'var(--text-2xs)', opacity: 0.7 }}>⌘K</Box>
         </ButtonBase>
+
+        {onAnalyzeDesign && (
+          <Tooltip title="Analyse du design (IA)">
+            <ButtonBase onClick={onAnalyzeDesign} aria-label="Analyse du design" sx={iconBtnSx}>
+              <Wand2 size={18} strokeWidth={2} />
+            </ButtonBase>
+          </Tooltip>
+        )}
 
         <Box sx={{ flex: 1 }} />
 
