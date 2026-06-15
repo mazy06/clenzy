@@ -218,6 +218,15 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     commit(next);
   };
 
+  // Réordonnancement par glisser-déposer : déplace le bloc de `from` vers `to`.
+  const handleReorder = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= blocks.length || to >= blocks.length) return;
+    const next = [...blocks];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    commit(next);
+  };
+
   const handleRemove = (id: string) => {
     commit(blocks.filter((b) => b.id !== id));
     setSelectedId((cur) => (cur === id ? null : cur));
@@ -335,6 +344,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             onSelect={onSelectBlock}
             onAdd={handleAdd}
             onMove={handleMove}
+            onReorder={handleReorder}
             onRemove={handleRemove}
             collapsed={leftCollapsed}
             onToggleCollapse={() => setLeftCollapsed((v) => !v)}

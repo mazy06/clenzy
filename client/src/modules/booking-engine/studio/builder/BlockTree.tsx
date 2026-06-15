@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Box, ButtonBase, Menu, MenuItem, Tooltip } from '@mui/material';
-import { Plus, ChevronUp, ChevronDown, Trash2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Plus, ChevronUp, ChevronDown, Trash2, PanelLeftClose, PanelLeftOpen, GripVertical } from 'lucide-react';
 import { BLOCK_ORDER, getBlockDef, type BlockType } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 
@@ -16,13 +16,19 @@ export interface BlockTreeProps {
   onSelect: (id: string) => void;
   onAdd: (type: BlockType) => void;
   onMove: (id: string, dir: -1 | 1) => void;
+  /** Réordonnancement par glisser-déposer : déplace le bloc de `from` vers `to`. */
+  onReorder: (from: number, to: number) => void;
   onRemove: (id: string) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
 
-export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onMove, onRemove, collapsed, onToggleCollapse }: BlockTreeProps) {
+export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onMove, onReorder, onRemove, collapsed, onToggleCollapse }: BlockTreeProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  const endDrag = () => { setDragIndex(null); setOverIndex(null); };
 
   return (
     <Box sx={{ width: collapsed ? 52 : 256, flexShrink: 0, borderRight: '1px solid var(--line)', bgcolor: 'var(--card)', display: 'flex', flexDirection: 'column', height: '100%', transition: 'width var(--duration-fast) var(--ease-out)' }}>
@@ -80,21 +86,34 @@ export default function BlockTree({ blocks, selectedId, onSelect, onAdd, onMove,
           return (
             <Box
               key={b.id}
+              draggable
               onClick={() => onSelect(b.id)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(b.id); } }}
+              onDragStart={(e) => { setDragIndex(i); e.dataTransfer.effectAllowed = 'move'; }}
+              onDragEnd={endDrag}
+              onDragOver={(e) => { if (dragIndex !== null) { e.preventDefault(); if (overIndex !== i) setOverIndex(i); } }}
+              onDrop={(e) => { e.preventDefault(); if (dragIndex !== null && dragIndex !== i) onReorder(dragIndex, i); endDrag(); }}
               sx={{
-                display: 'flex', alignItems: 'center', gap: 1, px: 1, height: 38, mb: 0.25,
+                display: 'flex', alignItems: 'center', gap: 0.75, px: 1, height: 38, mb: 0.25,
                 borderRadius: 'var(--radius-md)', cursor: 'pointer',
                 bgcolor: isActive ? 'var(--accent-soft)' : 'transparent',
                 color: isActive ? 'var(--ink)' : 'var(--body)',
+                opacity: dragIndex === i ? 0.4 : 1,
+                boxShadow: overIndex === i && dragIndex !== null && dragIndex !== i
+                  ? (dragIndex < i ? 'inset 0 -2px 0 0 var(--accent)' : 'inset 0 2px 0 0 var(--accent)')
+                  : 'none',
                 transition: 'background var(--duration-fast) var(--ease-out)',
                 '&:hover': { bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)' },
                 '&:hover .blockTreeActions': { opacity: 1 },
+                '&:hover .blockTreeGrip': { opacity: 1 },
                 '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: -2 },
               }}
             >
+              <Box component="span" className="blockTreeGrip" aria-hidden="true" sx={{ display: 'inline-flex', color: 'var(--faint)', flexShrink: 0, cursor: 'grab', opacity: 0, transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
+                <GripVertical size={14} strokeWidth={2} />
+              </Box>
               <Box component="span" sx={{ display: 'inline-flex', color: isActive ? 'var(--accent)' : 'var(--muted)', flexShrink: 0 }}>
                 <Icon size={16} strokeWidth={2} />
               </Box>
