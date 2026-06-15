@@ -249,6 +249,31 @@ public class BookingGuestAuthService {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * Valide un access token guest via le userinfo Keycloak (realm {@value #GUEST_REALM}) et retourne
+     * le {@code sub} (keycloakId). Permet d'authentifier un guest sur des endpoints PUBLICS (pas de
+     * validation de ce realm dans SecurityConfig). Lève {@link IllegalArgumentException} si invalide/expiré.
+     */
+    public String resolveGuestKeycloakId(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new IllegalArgumentException("Token guest requis");
+        }
+        String userInfoUrl = keycloakUrl + "/realms/" + GUEST_REALM + "/protocol/openid-connect/userinfo";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken.trim());
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                userInfoUrl, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+            Object sub = response.getBody() != null ? response.getBody().get("sub") : null;
+            if (sub == null) {
+                throw new IllegalArgumentException("Token guest invalide");
+            }
+            return sub.toString();
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            throw new IllegalArgumentException("Token guest invalide ou expiré");
+        }
+    }
+
     private Map<String, Object> requestToken(MultiValueMap<String, String> form) {
         String tokenUrl = keycloakUrl + "/realms/" + GUEST_REALM + "/protocol/openid-connect/token";
 
