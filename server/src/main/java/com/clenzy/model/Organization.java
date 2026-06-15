@@ -76,6 +76,28 @@ public class Organization {
     @Column(name = "has_voucher_contract", nullable = false)
     private boolean hasVoucherContract = false;
 
+    /** Politique 2FA (CLZ-P0-09) : exige une authentification a deux facteurs pour les membres de l'org. */
+    @Column(name = "mfa_required", nullable = false)
+    private boolean mfaRequired = false;
+
+    // --- Booking engine : croissance (org-level, defaut active) ---
+
+    /** Autorise la capture de leads (newsletter / waitlist) sur les booking engines de l'org. */
+    @Column(name = "lead_capture_enabled", nullable = false)
+    private boolean leadCaptureEnabled = true;
+
+    /** Active la relance automatique des paniers abandonnes pour l'org. */
+    @Column(name = "abandoned_cart_recovery_enabled", nullable = false)
+    private boolean abandonedCartRecoveryEnabled = true;
+
+    /** Crédit fidélité (2.8) : % de chaque séjour direct gagné en crédit (NULL/0 = programme désactivé). */
+    @Column(name = "loyalty_credit_percent")
+    private Integer loyaltyCreditPercent;
+
+    /** Parrainage (2.11) : crédit accordé à chaque côté (centimes) quand un filleul réserve (NULL/0 = désactivé). */
+    @Column(name = "referral_credit_cents")
+    private Integer referralCreditCents;
+
     // --- Timestamps ---
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -139,6 +161,21 @@ public class Organization {
 
     public boolean isHasVoucherContract() { return hasVoucherContract; }
     public void setHasVoucherContract(boolean hasVoucherContract) { this.hasVoucherContract = hasVoucherContract; }
+
+    public boolean isMfaRequired() { return mfaRequired; }
+    public void setMfaRequired(boolean mfaRequired) { this.mfaRequired = mfaRequired; }
+
+    public boolean isLeadCaptureEnabled() { return leadCaptureEnabled; }
+    public void setLeadCaptureEnabled(boolean leadCaptureEnabled) { this.leadCaptureEnabled = leadCaptureEnabled; }
+
+    public boolean isAbandonedCartRecoveryEnabled() { return abandonedCartRecoveryEnabled; }
+    public void setAbandonedCartRecoveryEnabled(boolean abandonedCartRecoveryEnabled) { this.abandonedCartRecoveryEnabled = abandonedCartRecoveryEnabled; }
+
+    public Integer getLoyaltyCreditPercent() { return loyaltyCreditPercent; }
+    public void setLoyaltyCreditPercent(Integer loyaltyCreditPercent) { this.loyaltyCreditPercent = loyaltyCreditPercent; }
+
+    public Integer getReferralCreditCents() { return referralCreditCents; }
+    public void setReferralCreditCents(Integer referralCreditCents) { this.referralCreditCents = referralCreditCents; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

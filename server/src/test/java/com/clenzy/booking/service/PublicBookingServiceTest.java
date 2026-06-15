@@ -66,7 +66,10 @@ class PublicBookingServiceTest {
                 reservationRepository, calendarDayRepository, priceEngine,
                 restrictionEngine, calendarEngine, guestService, touristTaxService,
                 stripeService, guestReviewRepository, voucherEngine, notificationService,
-                serviceOptionsService);
+                serviceOptionsService,
+                org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class),
+                org.mockito.Mockito.mock(com.clenzy.booking.service.BookingEngineDepositService.class),
+                org.mockito.Mockito.mock(com.clenzy.booking.service.GuestCreditService.class));
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────
@@ -1190,7 +1193,7 @@ class PublicBookingServiceTest {
         private AvailabilityResponseDto availability(String subtotal, String cleaning, String tax, String total) {
             return new AvailabilityResponseDto(true, PROPERTY_ID, "Cosy Loft", in, out, 2, 3,
                     List.of(), new BigDecimal(subtotal), new BigDecimal(cleaning),
-                    new BigDecimal(tax), new BigDecimal(total), "EUR", 1, 4, "15:00", "11:00", List.of());
+                    new BigDecimal(tax), new BigDecimal(total), BigDecimal.ZERO, "EUR", 1, 4, "15:00", "11:00", List.of());
         }
 
         @Test
@@ -1471,7 +1474,7 @@ class PublicBookingServiceTest {
         private AvailabilityResponseDto availability() {
             return new AvailabilityResponseDto(true, PROPERTY_ID, "Cosy Loft", in, out, 2, 3,
                     List.of(), new BigDecimal("300.00"), new BigDecimal("30.00"),
-                    BigDecimal.ZERO, new BigDecimal("330.00"), "EUR", 1, 4, "15:00", "11:00", List.of());
+                    BigDecimal.ZERO, new BigDecimal("330.00"), BigDecimal.ZERO, "EUR", 1, 4, "15:00", "11:00", List.of());
         }
 
         @Test

@@ -27,7 +27,7 @@ const ServiceRequestsGridView: React.FC<ServiceRequestsGridViewProps> = ({
   <>
     <Grid container spacing={2}>
       {serviceRequests.map((request) => (
-        <Grid item xs={12} md={6} lg={4} key={request.id}>
+        <Grid item xs={12} md={6} lg={4} key={request.id} data-highlight-id={String(request.id)}>
           <ServiceRequestCard
             request={request}
             onMenuOpen={onMenuOpen}

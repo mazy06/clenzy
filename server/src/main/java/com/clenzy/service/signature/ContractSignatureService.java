@@ -395,7 +395,7 @@ public class ContractSignatureService {
                             ? signerInitials + " a signé le mandat " + contract.getContractNumber() + ". Le contrat est actif."
                             : signerInitials + " a signé le mandat " + contract.getContractNumber()
                                     + " — activation manuelle requise : un autre contrat est déjà actif sur ce logement.",
-                    "/contracts");
+                    "/contracts?highlight=" + contract.getId());
         } catch (Exception e) {
             log.warn("Notification CONTRACT_SIGNED échouée : {}", e.getMessage());
         }

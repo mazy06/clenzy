@@ -35,8 +35,9 @@ public class UserPreferencesService {
     }
 
     /**
-     * Mise a jour partielle : seuls les champs texte non-null du DTO sont
-     * appliques (les booleens de notification sont toujours appliques).
+     * Mise a jour partielle : seuls les champs non-null du DTO sont appliques
+     * (un champ absent du JSON arrive a {@code null} et laisse l'entite inchangee,
+     * y compris les booleens de notification desormais nullable).
      */
     @Transactional
     public UserPreferencesDto updateForUser(String keycloakId, UserPreferencesDto dto) {
@@ -46,9 +47,10 @@ public class UserPreferencesService {
         if (dto.getCurrency() != null) entity.setCurrency(dto.getCurrency());
         if (dto.getLanguage() != null) entity.setLanguage(dto.getLanguage());
         if (dto.getThemeMode() != null) entity.setThemeMode(dto.getThemeMode());
-        entity.setNotifyEmail(dto.isNotifyEmail());
-        entity.setNotifyPush(dto.isNotifyPush());
-        entity.setNotifySms(dto.isNotifySms());
+        if (dto.getAccent() != null) entity.setAccent(dto.getAccent());
+        if (dto.getNotifyEmail() != null) entity.setNotifyEmail(dto.getNotifyEmail());
+        if (dto.getNotifyPush() != null) entity.setNotifyPush(dto.getNotifyPush());
+        if (dto.getNotifySms() != null) entity.setNotifySms(dto.getNotifySms());
 
         repository.save(entity);
         return toDto(entity);
@@ -68,6 +70,7 @@ public class UserPreferencesService {
                 entity.getCurrency(),
                 entity.getLanguage(),
                 entity.getThemeMode(),
+                entity.getAccent(),
                 entity.isNotifyEmail(),
                 entity.isNotifyPush(),
                 entity.isNotifySms()

@@ -45,6 +45,11 @@ public class ChannexPropertyMapping {
     @Column(name = "channex_default_rate_plan_id", nullable = false, length = 64)
     private String channexDefaultRatePlanId;
 
+    /** Rate plans additionnels (au-dela du defaut) cibles par la sync, en CSV. Permet de mapper
+     * une propriete a plusieurs rate plans Channex (ex : remboursable + non-remboursable). */
+    @Column(name = "channex_rate_plan_ids", length = 512)
+    private String channexRatePlanIds;
+
     /** Stocke en lowercase ('pending'/'active'/'error'/'disabled') pour matcher le CHECK SQL. */
     @Column(name = "sync_status", nullable = false, length = 20)
     private String syncStatus = "pending";
@@ -93,6 +98,25 @@ public class ChannexPropertyMapping {
     public String getChannexDefaultRatePlanId() { return channexDefaultRatePlanId; }
     public void setChannexDefaultRatePlanId(String channexDefaultRatePlanId) {
         this.channexDefaultRatePlanId = channexDefaultRatePlanId;
+    }
+
+    public String getChannexRatePlanIds() { return channexRatePlanIds; }
+    public void setChannexRatePlanIds(String channexRatePlanIds) {
+        this.channexRatePlanIds = channexRatePlanIds;
+    }
+
+    /** Rate plans cibles de la sync : le defaut + les additionnels (dedup, defaut en premier). */
+    public java.util.List<String> getTargetRatePlanIds() {
+        java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+        if (channexDefaultRatePlanId != null && !channexDefaultRatePlanId.isBlank()) {
+            ids.add(channexDefaultRatePlanId.trim());
+        }
+        if (channexRatePlanIds != null && !channexRatePlanIds.isBlank()) {
+            for (String s : channexRatePlanIds.split(",")) {
+                if (s != null && !s.isBlank()) ids.add(s.trim());
+            }
+        }
+        return new java.util.ArrayList<>(ids);
     }
 
     public ChannexSyncStatus getSyncStatus() { return ChannexSyncStatus.fromDb(syncStatus); }

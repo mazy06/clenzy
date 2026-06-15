@@ -68,7 +68,7 @@ class PayoutReminderSchedulerTest {
             eq(NotificationKey.PAYOUT_PENDING_APPROVAL),
             anyString(),
             contains("2 reversement"),
-            eq("/billing"));
+            eq("/billing?tab=payouts"));
     }
 
     @Test

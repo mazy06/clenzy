@@ -26,6 +26,7 @@ import {
 } from '../../../icons';
 import type { PlanningEvent } from '../types';
 import PanelPhotoGallery from './PanelPhotoGallery';
+import { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
 
 // ─── Signalement parsing ────────────────────────────────────────────────────
 
@@ -64,25 +65,18 @@ const parseStepNotes = (notes?: string): Record<string, string> => {
   return result;
 };
 
-/** Sévérité → tokens sémantiques (haute = err, moyenne = warn, basse = info). */
-const SEVERITY_TOKENS: Record<string, { color: string; bg: string }> = {
-  haute: { color: 'var(--err)', bg: 'var(--err-soft)' },
-  moyenne: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
-  basse: { color: 'var(--info)', bg: 'var(--info-soft)' },
+/** Sévérité → tons sémantiques partagés (haute = err, moyenne = warn, basse = info). */
+const SEVERITY_TOKENS: Record<string, ToneTokens> = {
+  haute: STATUS_TONES.err,
+  moyenne: STATUS_TONES.warn,
+  basse: STATUS_TONES.info,
 };
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
 const chipSx = (bg: string, color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-  border: 'none',
+  ...toneTokensSx({ color, bg }),
   borderRadius: 'var(--radius-pill)',
   fontVariantNumeric: 'tabular-nums',
-  '& .MuiChip-label': { px: 1 },
-  '& .MuiChip-icon': { color: 'inherit' },
 });
 
 const OVERLINE_SX = {

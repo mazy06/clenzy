@@ -24,7 +24,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
 import { useThemeMode, type ThemeMode } from '../hooks/useThemeMode';
-import { ACCENT_OPTIONS, getSavedAccent, setAccent, type AccentName } from '../theme/signature/accent';
+import { ACCENT_OPTIONS, type AccentName } from '../theme/signature/accent';
+import { useAccent } from '../hooks/useAccent';
 import { useCurrency } from '../hooks/useCurrency';
 import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
 import type { CurrencyCode } from '../hooks/useCurrency';
@@ -69,7 +70,7 @@ export default function Sidebar({
   const { t, changeLanguage, currentLanguage } = useTranslation();
   const { currency, setCurrency, rateDate, ratesLoading } = useCurrency();
   const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
-  const [accent, setAccentState] = useState<AccentName>(getSavedAccent);
+  const { accent, setAccent } = useAccent();
   const theme = useTheme();
   const isRtl = theme.direction === 'rtl';
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
@@ -179,9 +180,9 @@ export default function Sidebar({
   };
 
   // ── Apparence Signature : teinte d'accent + mode clair/sombre ──────────
+  // useAccent : optimiste local (localStorage + data-accent) + PUT user_preferences.
   const handleAccentChange = (name: AccentName) => {
-    setAccent(name);          // persiste (clenzy_accent) + pose data-accent
-    setAccentState(name);     // re-render local (coche du sélecteur)
+    setAccent(name);
   };
 
   const handleModeChange = (newMode: ThemeMode) => {

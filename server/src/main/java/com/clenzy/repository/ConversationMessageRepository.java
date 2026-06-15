@@ -29,4 +29,11 @@ public interface ConversationMessageRepository extends JpaRepository<Conversatio
     /** Dernier message d'une direction donnee (ex: INBOUND) — fenetre de service 24h WhatsApp. */
     Optional<ConversationMessage> findTopByConversationIdAndDirectionOrderBySentAtDesc(
         Long conversationId, MessageDirection direction);
+
+    /**
+     * Idempotence d'ingestion : un meme message OTA peut arriver via plusieurs chemins (adapter
+     * direct + Channex) ou etre re-livre par webhook. Dedup par (org, canal, id externe).
+     */
+    Optional<ConversationMessage> findByOrganizationIdAndChannelSourceAndExternalMessageId(
+        Long organizationId, ConversationChannel channelSource, String externalMessageId);
 }

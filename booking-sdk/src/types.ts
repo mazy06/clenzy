@@ -1,3 +1,5 @@
+import type { Language } from './i18n';
+
 // ─── SDK Configuration ───────────────────────────────────────────────────────
 
 export interface ClenzyBookingOptions {
@@ -9,6 +11,10 @@ export interface ClenzyBookingOptions {
   baseUrl?: string;
   /** Request timeout in ms. Defaults to 15000 */
   timeout?: number;
+  /** UI language for the embedded i18n pack (fr/en/ar). Defaults to 'fr'. */
+  language?: Language;
+  /** Display currency (EUR/MAD/SAR…). Cosmetic only — quotes/billing stay server-side. Defaults to 'EUR'. */
+  currency?: string;
 }
 
 // ─── Config ──────────────────────────────────────────────────────────────────
@@ -141,6 +147,35 @@ export interface GuestInfo {
   name: string;
   email: string;
   phone?: string;
+}
+
+/** Un séjour du panier multi-séjours (multi-propriétés / multi-créneaux). */
+export interface BatchReserveItem {
+  propertyId: number;
+  checkIn: string; // 'YYYY-MM-DD'
+  checkOut: string; // 'YYYY-MM-DD'
+  guests: number;
+  notes?: string;
+}
+
+/** Panier multi-séjours : un seul voyageur, N séjours. */
+export interface BatchReserveRequest {
+  items: BatchReserveItem[];
+  guest: GuestInfo;
+}
+
+/**
+ * Résultat d'un panier : N réservations PENDING créées atomiquement. Le paiement se fait
+ * item par item via {@link ClenzyBooking.checkout} (pas de session Stripe groupée — le
+ * {@code batchCode} sert de corrélation).
+ */
+export interface BatchReserveResult {
+  batchCode: string;
+  reservations: ReserveResult[];
+  grandTotal: number;
+  currency: string;
+  expiresAt: string;
+  requiresPayment: boolean;
 }
 
 export interface ReserveResult {

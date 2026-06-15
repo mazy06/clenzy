@@ -55,10 +55,10 @@ class PayoutNotifierTest {
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.PAYOUT_EXECUTED),
             contains("Reversement execute"),
-            any(String.class), eq("/billing"));
+            any(String.class), eq("/billing?tab=payouts&highlight=10"));
         verify(notificationService).sendByOrgId(
             eq("kc-owner"), eq(NotificationKey.PAYOUT_EXECUTED),
-            any(String.class), any(String.class), eq("/billing"), eq(1L));
+            any(String.class), any(String.class), eq("/billing?tab=payouts&highlight=10"), eq(1L));
     }
 
     @Test
@@ -96,10 +96,10 @@ class PayoutNotifierTest {
 
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.PAYOUT_FAILED),
-            contains("Echec"), contains("API error"), eq("/billing"));
+            contains("Echec"), contains("API error"), eq("/billing?tab=payouts&highlight=10"));
         verify(notificationService).sendByOrgId(
             eq("kc-owner"), eq(NotificationKey.PAYOUT_FAILED),
-            any(), any(), eq("/billing"), eq(1L));
+            any(), any(), eq("/billing?tab=payouts&highlight=10"), eq(1L));
     }
 
     @Test
@@ -121,7 +121,7 @@ class PayoutNotifierTest {
 
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.RECONCILIATION_FAILED),
-            contains("Reconciliation"), contains("tr_abc123"), eq("/billing"));
+            contains("Reconciliation"), contains("tr_abc123"), eq("/billing?tab=payouts&highlight=10"));
     }
 
     @Test
@@ -142,7 +142,7 @@ class PayoutNotifierTest {
 
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(1L), eq(NotificationKey.PAYOUT_PENDING_APPROVAL),
-            contains("SEPA"), any(), eq("/billing"));
+            contains("SEPA"), any(), eq("/billing?tab=payouts&highlight=10"));
     }
 
     @Test

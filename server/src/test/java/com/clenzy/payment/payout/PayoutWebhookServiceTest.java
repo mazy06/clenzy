@@ -115,7 +115,7 @@ class PayoutWebhookServiceTest {
             verify(notifier, never()).notifyFailure(any(), anyString());
             verify(notificationService).notifyAdminsAndManagersByOrgId(
                 eq(42L), eq(NotificationKey.PAYOUT_FAILED),
-                eq("Titre revert"), eq("Message revert"), eq("/billing"));
+                eq("Titre revert"), eq("Message revert"), eq("/billing?tab=payouts&highlight=10"));
             assertThat(paid.getStatus()).isEqualTo(PayoutStatus.PAID);
         }
     }

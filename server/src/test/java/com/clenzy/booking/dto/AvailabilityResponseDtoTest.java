@@ -31,6 +31,7 @@ class AvailabilityResponseDtoTest {
                 new BigDecimal("50.00"),
                 new BigDecimal("10.00"),
                 new BigDecimal("390.00"),
+                new BigDecimal("0.00"),
                 "EUR",
                 2, 6,
                 "15:00", "11:00",
@@ -49,6 +50,7 @@ class AvailabilityResponseDtoTest {
         assertEquals(new BigDecimal("50.00"), dto.cleaningFee());
         assertEquals(new BigDecimal("10.00"), dto.touristTax());
         assertEquals(new BigDecimal("390.00"), dto.total());
+        assertEquals(new BigDecimal("0.00"), dto.directDiscount());
         assertEquals("EUR", dto.currency());
         assertEquals(2, dto.minStay());
         assertEquals(6, dto.maxGuests());

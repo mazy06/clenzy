@@ -4,40 +4,53 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * DTO pour les preferences utilisateur (timezone, devise, langue, theme, notifications).
+ * DTO pour les preferences utilisateur (timezone, devise, langue, theme, accent, notifications).
+ *
+ * <p><b>Partial-safe :</b> tous les champs optionnels sont initialises a {@code null}.
+ * Jackson execute les initialiseurs de champs dans le constructeur sans-arg, puis ne setter
+ * QUE les proprietes presentes dans le JSON. Un initialiseur non-null survivrait donc et serait
+ * applique a tort lors d'un PUT partiel. En laissant tout a {@code null}, un champ absent reste
+ * {@code null} et le service le laisse inchange. Bean Validation ignore les valeurs {@code null},
+ * donc seuls les champs reellement fournis sont valides.</p>
  */
 public class UserPreferencesDto {
 
     @Size(max = 50)
-    private String timezone = "Europe/Paris";
+    private String timezone;
 
     /** ISO 4217 (3 chars). */
     @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be a 3-letter ISO 4217 code")
-    private String currency = "EUR";
+    private String currency;
 
     /** Code langue (ex: fr, en, ar). */
     @Pattern(regexp = "^[a-z]{2,5}$", message = "Language must be a 2-5 letter code")
-    private String language = "fr";
+    private String language;
 
     /**
      * Mode d'affichage UI : {@code light}, {@code dark} ou {@code auto}.
      * Whitelist strict pour eviter qu'un client envoie n'importe quoi (Q3).
      */
     @Pattern(regexp = "^(light|dark|auto)$", message = "Theme mode must be 'light', 'dark' or 'auto'")
-    private String themeMode = "auto";
+    private String themeMode;
 
-    private boolean notifyEmail = true;
-    private boolean notifyPush = false;
-    private boolean notifySms = false;
+    /** Teinte d'accent Signature (whitelist des 7 teintes). */
+    @Pattern(regexp = "^(emeraude|terracotta|ambre|indigo|violet|ocean|slate)$",
+             message = "Accent must be one of the 7 Signature tints")
+    private String accent;
+
+    private Boolean notifyEmail;
+    private Boolean notifyPush;
+    private Boolean notifySms;
 
     public UserPreferencesDto() {}
 
     public UserPreferencesDto(String timezone, String currency, String language, String themeMode,
-                              boolean notifyEmail, boolean notifyPush, boolean notifySms) {
+                              String accent, Boolean notifyEmail, Boolean notifyPush, Boolean notifySms) {
         this.timezone = timezone;
         this.currency = currency;
         this.language = language;
         this.themeMode = themeMode;
+        this.accent = accent;
         this.notifyEmail = notifyEmail;
         this.notifyPush = notifyPush;
         this.notifySms = notifySms;
@@ -55,12 +68,15 @@ public class UserPreferencesDto {
     public String getThemeMode() { return themeMode; }
     public void setThemeMode(String themeMode) { this.themeMode = themeMode; }
 
-    public boolean isNotifyEmail() { return notifyEmail; }
-    public void setNotifyEmail(boolean notifyEmail) { this.notifyEmail = notifyEmail; }
+    public String getAccent() { return accent; }
+    public void setAccent(String accent) { this.accent = accent; }
 
-    public boolean isNotifyPush() { return notifyPush; }
-    public void setNotifyPush(boolean notifyPush) { this.notifyPush = notifyPush; }
+    public Boolean getNotifyEmail() { return notifyEmail; }
+    public void setNotifyEmail(Boolean notifyEmail) { this.notifyEmail = notifyEmail; }
 
-    public boolean isNotifySms() { return notifySms; }
-    public void setNotifySms(boolean notifySms) { this.notifySms = notifySms; }
+    public Boolean getNotifyPush() { return notifyPush; }
+    public void setNotifyPush(Boolean notifyPush) { this.notifyPush = notifyPush; }
+
+    public Boolean getNotifySms() { return notifySms; }
+    public void setNotifySms(Boolean notifySms) { this.notifySms = notifySms; }
 }

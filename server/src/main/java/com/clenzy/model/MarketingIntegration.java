@@ -54,6 +54,10 @@ public class MarketingIntegration {
     @Column(name = "prospects_list_id")
     private Long prospectsListId;
 
+    /** Liste Brevo des leads captés (exit-intent / panier abandonné) — 2.12. */
+    @Column(name = "leads_list_id")
+    private Long leadsListId;
+
     @Column(name = "sync_waitlist_enabled", nullable = false)
     private boolean syncWaitlistEnabled = true;
 
@@ -62,6 +66,9 @@ public class MarketingIntegration {
 
     @Column(name = "sync_prospects_enabled", nullable = false)
     private boolean syncProspectsEnabled = true;
+
+    @Column(name = "sync_leads_enabled", nullable = false)
+    private boolean syncLeadsEnabled = true;
 
     @Column(name = "sync_attributes_enabled", nullable = false)
     private boolean syncAttributesEnabled = true;
@@ -116,6 +123,9 @@ public class MarketingIntegration {
     public Long getProspectsListId() { return prospectsListId; }
     public void setProspectsListId(Long prospectsListId) { this.prospectsListId = prospectsListId; }
 
+    public Long getLeadsListId() { return leadsListId; }
+    public void setLeadsListId(Long leadsListId) { this.leadsListId = leadsListId; }
+
     public boolean isSyncWaitlistEnabled() { return syncWaitlistEnabled; }
     public void setSyncWaitlistEnabled(boolean syncWaitlistEnabled) { this.syncWaitlistEnabled = syncWaitlistEnabled; }
 
@@ -124,6 +134,9 @@ public class MarketingIntegration {
 
     public boolean isSyncProspectsEnabled() { return syncProspectsEnabled; }
     public void setSyncProspectsEnabled(boolean syncProspectsEnabled) { this.syncProspectsEnabled = syncProspectsEnabled; }
+
+    public boolean isSyncLeadsEnabled() { return syncLeadsEnabled; }
+    public void setSyncLeadsEnabled(boolean syncLeadsEnabled) { this.syncLeadsEnabled = syncLeadsEnabled; }
 
     public boolean isSyncAttributesEnabled() { return syncAttributesEnabled; }
     public void setSyncAttributesEnabled(boolean syncAttributesEnabled) { this.syncAttributesEnabled = syncAttributesEnabled; }

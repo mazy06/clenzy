@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
@@ -8,7 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Public } from '../../icons';
 import WelcomeGuideAdmin from '../welcome-guide/WelcomeGuideAdmin';
 import UpsellsAdmin from '../welcome-guide/UpsellsAdmin';
-import BookingEnginePage from '../booking-engine/BookingEnginePage';
+import StudioHome from '../booking-engine/studio/StudioHome';
 
 /**
  * Page parent "Reservation & accueil" : regroupe en deux onglets le livret
@@ -20,10 +21,15 @@ import BookingEnginePage from '../booking-engine/BookingEnginePage';
 const GuestExperiencePage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const location = useLocation();
   const isPlatformStaff =
     user?.platformRole === 'SUPER_ADMIN' || user?.platformRole === 'SUPER_MANAGER';
 
-  const [tab, setTab] = useState(0);
+  // Retour depuis l'éditeur Studio : on revient sur l'onglet « Booking Engine » (index 2).
+  // Repli sur 0 si l'onglet est masqué pour ce rôle (non-staff).
+  const requestedTab = (location.state as { tab?: number } | null)?.tab;
+  const initialTab = requestedTab === 2 && !isPlatformStaff ? 0 : (typeof requestedTab === 'number' ? requestedTab : 0);
+  const [tab, setTab] = useState(initialTab);
   // Slot DOM partagé : chaque onglet porte ses propres actions dans le PageHeader.
   const { slot, portalContainer } = usePageHeaderActionsSlot();
 
@@ -59,7 +65,7 @@ const GuestExperiencePage: React.FC = () => {
         <PageTabs options={tabs} value={tab} onChange={setTab} />
         <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
           {tab === 2 && isPlatformStaff ? (
-            <BookingEnginePage embedded />
+            <StudioHome embedded />
           ) : tab === 1 ? (
             <UpsellsAdmin />
           ) : (

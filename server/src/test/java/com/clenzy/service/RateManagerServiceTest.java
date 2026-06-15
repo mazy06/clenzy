@@ -71,7 +71,7 @@ class RateManagerServiceTest {
     void setUp() {
         ReservationService reservationService = new ReservationService(
                 null, userRepository, tenantContext, null, null, null, null, null,
-                null, null, null, null, null, null, propertyRepository, null, null);
+                null, null, null, null, null, null, propertyRepository, null, null, null);
         service = new RateManagerService(
                 advancedRateManager, rateDistributionService, null, priceEngine,
                 channelRateModifierRepository, lengthOfStayDiscountRepository,

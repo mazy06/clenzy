@@ -87,7 +87,7 @@ public class SupportController {
         try {
             String subjectLabel = SUBJECT_LABELS.getOrDefault(subject, subject);
 
-            receivedFormService.recordSupportForm(name, email, phone, subjectLabel, body, clientIp);
+            Long savedFormId = receivedFormService.recordSupportForm(name, email, phone, subjectLabel, body, clientIp);
 
             log.info("Demande de support sauvegardee : {} ({}) — Sujet : {}", name, email, subjectLabel);
 
@@ -96,7 +96,7 @@ public class SupportController {
                     NotificationKey.CONTACT_FORM_RECEIVED,
                     "Nouvelle demande de support — " + name,
                     "Sujet : " + subjectLabel + " — De : " + name + " (" + email + ")",
-                    "/contact?tab=2"
+                    savedFormId != null ? "/contact?highlight=" + savedFormId : "/contact"
             );
         } catch (Exception e) {
             log.error("Erreur sauvegarde formulaire support : {}", e.getMessage());

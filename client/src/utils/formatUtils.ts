@@ -9,6 +9,28 @@
 
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
+// ─── API timestamp parsing ──────────────────────────────────────────────────
+
+/**
+ * Parse un horodatage renvoyé par l'API. Les timestamps backend sont des
+ * LocalDateTime UTC SANS marqueur de fuseau ("2026-06-13T16:06:00") ; sans 'Z'
+ * le navigateur les lirait en heure LOCALE → décalage (UTC+2 l'été). On force
+ * donc l'interprétation UTC quand aucune info de fuseau n'est présente.
+ * Compatible avec un futur backend qui enverrait déjà 'Z' (no-op dans ce cas).
+ */
+export function parseApiDate(value: string | number | Date | null | undefined): Date {
+  if (value == null) return new Date(NaN);
+  if (value instanceof Date) return value;
+  if (typeof value === 'number') return new Date(value);
+  const s = value.trim();
+  const hasZone = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(s);
+  // ISO date-heure SANS fuseau → traiter comme UTC.
+  if (!hasZone && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(s)) {
+    return new Date(s.replace(' ', 'T') + 'Z');
+  }
+  return new Date(s);
+}
+
 // ─── Date formatting ────────────────────────────────────────────────────────
 
 /**
@@ -139,10 +161,15 @@ export function formatDuration(hours: number): string {
 /**
  * Format a Date to a relative "time ago" string.
  * Supports i18n via optional translation function.
+ *
+ * Accepte aussi une chaîne d'horodatage backend (UTC sans fuseau) qui sera
+ * interprétée via parseApiDate. Les appelants passant déjà un Date ne sont
+ * pas affectés.
  */
-export function formatTimeAgo(date: Date, t?: TranslationFn): string {
+export function formatTimeAgo(date: Date | string, t?: TranslationFn): string {
+  const d = typeof date === 'string' ? parseApiDate(date) : date;
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = now.getTime() - d.getTime();
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHours / 24);
 

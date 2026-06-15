@@ -1,0 +1,13 @@
+Fonctionnalite,Clenzy,Hostaway,Guesty,Smoobu,Lodgify,Hospitable,Avantio,Smily,Confiance
+Menage auto declenche au checkout,3,3,3,1,2,3,3,2,Confirme
+Auto-assignation cleaner/equipe,3,2,3,1,2,2,3,2,Confirme
+Routing geographique (zone+type+dispo),3,1,2,0,1,1,1,1,Probable
+Checklists de menage/inspection,2,2,3,1,2,1,2,2,Confirme
+Checklist custom par unite,1,2,2,0,1,1,2,1,Probable
+Photos avant/apres,3,2,3,1,1,1,2,1,Confirme
+Signalement anomalie / ticket maintenance,1,2,2,1,1,2,2,2,Probable
+Gestion d'equipes / staff,3,2,3,2,2,2,2,2,Confirme
+Paiement des prestataires integre,2,2,2,1,1,3,2,1,Probable
+App terrain dediee cleaner/tech,3,2,2,1,2,1,1,2,Probable
+Marketplace de sourcing de cleaners,0,1,1,0,0,3,0,0,Probable
+Rapports proprietaire d'execution (PDF/lien),2,2,2,1,1,1,2,1,A verifier

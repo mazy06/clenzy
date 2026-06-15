@@ -10,6 +10,7 @@ import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.access.OrganizationAccessGuard;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +63,7 @@ public class CalendarEngine {
     private final PriceEngine priceEngine;
     private final RateOverrideRepository rateOverrideRepository;
     private final SyncMetrics syncMetrics;
+    private final OrganizationAccessGuard organizationAccessGuard;
 
     public CalendarEngine(CalendarDayRepository calendarDayRepository,
                           CalendarCommandRepository calendarCommandRepository,
@@ -71,7 +73,8 @@ public class CalendarEngine {
                           RestrictionEngine restrictionEngine,
                           PriceEngine priceEngine,
                           RateOverrideRepository rateOverrideRepository,
-                          SyncMetrics syncMetrics) {
+                          SyncMetrics syncMetrics,
+                          OrganizationAccessGuard organizationAccessGuard) {
         this.calendarDayRepository = calendarDayRepository;
         this.calendarCommandRepository = calendarCommandRepository;
         this.propertyRepository = propertyRepository;
@@ -81,6 +84,7 @@ public class CalendarEngine {
         this.priceEngine = priceEngine;
         this.rateOverrideRepository = rateOverrideRepository;
         this.syncMetrics = syncMetrics;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     // ----------------------------------------------------------------
@@ -153,6 +157,9 @@ public class CalendarEngine {
             // 4. Recuperer la propriete et la reservation
             Property property = propertyRepository.findById(propertyId)
                     .orElseThrow(() -> new RuntimeException("Propriete introuvable: " + propertyId));
+            // Ownership (regle audit 2026-06 #3) : findById contourne le filtre Hibernate.
+            organizationAccessGuard.requireSameOrganization(property.getOrganizationId(), orgId,
+                    "Propriete " + propertyId + " hors de l'organisation " + orgId);
             Reservation reservation = resolveReservation(reservationId);
 
             // 5. Resoudre les prix par nuit via le PriceEngine (G7)
@@ -212,6 +219,10 @@ public class CalendarEngine {
 
             Reservation reservation = reservationRepository.findById(reservationId)
                     .orElseThrow(() -> new RuntimeException("Reservation introuvable: " + reservationId));
+
+            // Ownership (regle audit 2026-06 #3) : findById contourne le filtre Hibernate.
+            organizationAccessGuard.requireSameOrganization(reservation.getProperty().getOrganizationId(), orgId,
+                    "Reservation " + reservationId + " hors de l'organisation " + orgId);
 
             Long propertyId = reservation.getProperty().getId();
             MDC.put("propertyId", String.valueOf(propertyId));
@@ -469,6 +480,9 @@ public class CalendarEngine {
 
             Property property = propertyRepository.findById(propertyId)
                     .orElseThrow(() -> new RuntimeException("Propriete introuvable: " + propertyId));
+            // Ownership (regle audit 2026-06 #3) : findById contourne le filtre Hibernate.
+            organizationAccessGuard.requireSameOrganization(property.getOrganizationId(), orgId,
+                    "Propriete " + propertyId + " hors de l'organisation " + orgId);
 
             List<CalendarDay> days = upsertDays(property, from, to, orgId);
             for (CalendarDay day : days) {

@@ -1,0 +1,15 @@
+Domaine,Poids,Clenzy,Hostaway,Guesty,Smoobu,Lodgify,Hospitable,Avantio,Smily
+1. Channel Management,11,2.0,3.0,3.0,2.1,2.5,2.3,2.9,2.9
+2. Booking engine & site direct,6,1.4,2.3,2.5,1.4,2.2,1.9,2.1,2.1
+3. Calendrier & multi-tenant,8,2.6,2.8,2.8,2.1,2.1,2.2,2.6,2.7
+4. Tarification / Yield,9,1.7,2.7,2.7,1.6,2.2,2.4,2.2,1.5
+5. Operations menage/maintenance,9,2.2,1.9,2.3,0.8,1.3,1.8,1.8,1.4
+6. Communication voyageurs,11,1.6,2.7,2.6,1.2,1.9,2.4,2.1,2.2
+7. Guest Experience & Livret,7,1.6,1.9,2.3,1.0,1.3,1.5,1.5,1.3
+8. Finance & Compta,11,2.2,1.8,2.2,1.0,1.5,1.2,1.7,1.6
+9. Reporting & Analytics,7,1.7,2.3,2.6,1.1,2.1,2.1,2.0,1.8
+10. Integrations & API / IoT,6,1.4,2.4,2.6,1.5,1.7,2.1,1.8,1.8
+11. Application mobile,5,2.5,1.8,1.9,1.3,1.7,1.5,1.3,1.7
+12. Admin securite & conformite,5,1.6,1.8,2.3,1.3,1.7,1.4,1.7,1.6
+13. IA & automatisation,5,1.2,1.8,2.6,0.3,0.8,1.6,0.6,1.2
+SCORE GLOBAL PONDERE,100,1.86,2.31,2.52,1.32,1.81,1.92,1.96,1.89

@@ -23,6 +23,18 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
     @Query("SELECT r FROM GuestReview r WHERE r.organizationId = :orgId ORDER BY r.reviewDate DESC")
     Page<GuestReview> findAllByOrgId(@Param("orgId") Long orgId, Pageable pageable);
 
+    // ─── Avis PUBLICS (booking engine) : uniquement isPublic = true ───────────────
+
+    /** Distribution [rating, count] des avis publics d'une org (→ moyenne + total + distribution). */
+    @Query("SELECT r.rating, COUNT(r) FROM GuestReview r "
+            + "WHERE r.organizationId = :orgId AND r.isPublic = true AND r.rating IS NOT NULL GROUP BY r.rating")
+    List<Object[]> publicRatingDistributionByOrg(@Param("orgId") Long orgId);
+
+    /** Avis publics récents d'une org (avec texte), pour l'affichage social proof. */
+    @Query("SELECT r FROM GuestReview r WHERE r.organizationId = :orgId AND r.isPublic = true "
+            + "AND r.reviewText IS NOT NULL ORDER BY r.reviewDate DESC")
+    List<GuestReview> findPublicRecentByOrg(@Param("orgId") Long orgId, Pageable pageable);
+
     @Query("SELECT r FROM GuestReview r WHERE r.propertyId = :propertyId AND r.organizationId = :orgId " +
            "AND r.reviewDate BETWEEN :from AND :to ORDER BY r.reviewDate DESC")
     List<GuestReview> findByPropertyIdAndDateRange(@Param("propertyId") Long propertyId,

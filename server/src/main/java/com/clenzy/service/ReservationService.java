@@ -55,6 +55,7 @@ public class ReservationService {
     private final PropertyRepository propertyRepository;
     private final GuestRepository guestRepository;
     private final StripeService stripeService;
+    private final WebhookEventPublisher webhookEventPublisher;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -74,7 +75,8 @@ public class ReservationService {
                               PropertyRepository propertyRepository,
                               GuestRepository guestRepository,
                               // @Lazy : evite un cycle potentiel via les services de paiement.
-                              @Lazy StripeService stripeService) {
+                              @Lazy StripeService stripeService,
+                              WebhookEventPublisher webhookEventPublisher) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -92,6 +94,7 @@ public class ReservationService {
         this.propertyRepository = propertyRepository;
         this.guestRepository = guestRepository;
         this.stripeService = stripeService;
+        this.webhookEventPublisher = webhookEventPublisher;
     }
 
     /**
@@ -287,6 +290,7 @@ public class ReservationService {
             // Notification pour nouvelle reservation
             if (isNewConfirmed) {
                 notifyReservationCreated(saved);
+                webhookEventPublisher.publish(WebhookEventType.RESERVATION_CREATED, orgId, webhookPayload(saved));
                 seedAutomations(saved, orgId);
                 generateAccessCodes(saved, orgId);
             }
@@ -492,8 +496,23 @@ public class ReservationService {
         expireStripeSessionAfterCommit(cancelled);
 
         notifyReservationCancelled(cancelled);
+        webhookEventPublisher.publish(WebhookEventType.RESERVATION_CANCELLED, orgId, webhookPayload(cancelled));
 
         return cancelled;
+    }
+
+    /** Payload minimal (sans PII brute) emis vers les webhooks sortants pour une reservation. */
+    private java.util.Map<String, Object> webhookPayload(Reservation r) {
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("reservationId", r.getId());
+        data.put("status", r.getStatus());
+        data.put("source", r.getSource());
+        data.put("checkIn", r.getCheckIn() != null ? r.getCheckIn().toString() : null);
+        data.put("checkOut", r.getCheckOut() != null ? r.getCheckOut().toString() : null);
+        data.put("propertyId", r.getProperty() != null ? r.getProperty().getId() : null);
+        data.put("guestId", r.getGuest() != null ? r.getGuest().getId() : null);
+        data.put("totalPrice", r.getTotalPrice());
+        return data;
     }
 
     /**
@@ -660,7 +679,7 @@ public class ReservationService {
 
     private void notifyReservationCreated(Reservation reservation) {
         try {
-            String actionUrl = "/planning";
+            String actionUrl = "/reservations?highlight=" + reservation.getId();
             String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
             String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
             String dates = reservation.getCheckIn() + " → " + reservation.getCheckOut();
@@ -685,7 +704,7 @@ public class ReservationService {
 
     public void notifyReservationUpdated(Reservation reservation) {
         try {
-            String actionUrl = "/planning";
+            String actionUrl = "/reservations?highlight=" + reservation.getId();
             String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
             String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
 
@@ -707,7 +726,7 @@ public class ReservationService {
 
     private void notifyReservationCancelled(Reservation reservation) {
         try {
-            String actionUrl = "/planning";
+            String actionUrl = "/reservations?highlight=" + reservation.getId();
             String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
             String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
 

@@ -66,6 +66,7 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
             {serviceRequests.map((request) => (
               <TableRow
                 key={request.id}
+                data-highlight-id={String(request.id)}
                 hover
                 sx={{
                   cursor: 'pointer',

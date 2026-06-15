@@ -96,7 +96,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
   const listSelect = (
     label: string,
     value: number | null,
-    field: 'waitlistListId' | 'newsletterListId' | 'prospectsListId',
+    field: 'waitlistListId' | 'newsletterListId' | 'prospectsListId' | 'leadsListId',
   ) => (
     <TextField
       select
@@ -111,6 +111,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
           waitlistListId: field === 'waitlistListId' ? v : data.waitlistListId,
           newsletterListId: field === 'newsletterListId' ? v : data.newsletterListId,
           prospectsListId: field === 'prospectsListId' ? v : data.prospectsListId,
+          leadsListId: field === 'leadsListId' ? v : data.leadsListId,
         });
       }}
     >
@@ -263,7 +264,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
                 gap: 1,
                 mt: 0.75,
               }}
@@ -271,6 +272,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
               {listSelect('Waitlist', data.waitlistListId, 'waitlistListId')}
               {listSelect('Newsletter', data.newsletterListId, 'newsletterListId')}
               {listSelect('Prospects / devis', data.prospectsListId, 'prospectsListId')}
+              {listSelect('Leads booking engine', data.leadsListId, 'leadsListId')}
             </Box>
           )}
         </Box>
@@ -283,6 +285,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
           {toggleRow('Waitlist → Brevo', 'Pousse les inscrits de la liste d’attente.', data.syncWaitlistEnabled, 'syncWaitlist')}
           {toggleRow('Newsletter → Brevo', 'Pousse les opt-in newsletter (inscription).', data.syncNewsletterEnabled, 'syncNewsletter')}
           {toggleRow('Leads devis → Brevo', 'Pousse les demandes de devis de la landing.', data.syncProspectsEnabled, 'syncProspects')}
+          {toggleRow('Leads booking engine → Brevo', 'Pousse les leads captés (exit-intent / panier abandonné), segmentables par SOURCE.', data.syncLeadsEnabled, 'syncLeads')}
           {toggleRow('Attributs de contact', 'Envoie NOM / VILLE / SOURCE pour segmenter.', data.syncAttributesEnabled, 'syncAttributes')}
         </Box>
       </Box>

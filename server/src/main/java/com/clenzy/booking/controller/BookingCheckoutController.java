@@ -5,6 +5,8 @@ import com.clenzy.booking.dto.SelectedServiceOptionDto;
 import com.clenzy.booking.security.BookingPublicRateLimiter;
 import com.clenzy.booking.service.BookingCheckoutQuoteService;
 import com.clenzy.booking.service.BookingCheckoutQuoteService.CheckoutQuote;
+import com.clenzy.booking.service.BookingPaymentPolicyService;
+import com.clenzy.booking.service.BookingPaymentPolicyService.BookingPaymentPolicy;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.RestrictionViolationException;
@@ -23,6 +25,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -55,6 +59,7 @@ public class BookingCheckoutController {
     private final BookingCheckoutQuoteService quoteService;
     private final PublicBookingService publicBookingService;
     private final BookingPublicRateLimiter rateLimiter;
+    private final BookingPaymentPolicyService paymentPolicyService;
 
     @Value("${stripe.secret-key:}")
     private String stripeSecretKey;
@@ -64,10 +69,12 @@ public class BookingCheckoutController {
 
     public BookingCheckoutController(BookingCheckoutQuoteService quoteService,
                                      PublicBookingService publicBookingService,
-                                     BookingPublicRateLimiter rateLimiter) {
+                                     BookingPublicRateLimiter rateLimiter,
+                                     BookingPaymentPolicyService paymentPolicyService) {
         this.quoteService = quoteService;
         this.publicBookingService = publicBookingService;
         this.rateLimiter = rateLimiter;
+        this.paymentPolicyService = paymentPolicyService;
     }
 
     @PostMapping("/create-session")
@@ -125,12 +132,29 @@ public class BookingCheckoutController {
                                         Reservation hold) throws Exception {
         RequestOptions stripeOptions = RequestOptions.builder().setApiKey(stripeSecretKey).build();
 
-        long amountInCents = StripeAmounts.toMinorUnits(quote.totalAmount());
         Property property = quote.property();
-        String description = String.format("%s — %s au %s, %d voyageur(s)",
-            property.getName(), request.checkIn(), request.checkOut(), request.guests());
+        BookingPaymentPolicy policy = paymentPolicyService.resolve(property.getOrganizationId());
 
-        SessionCreateParams params = SessionCreateParams.builder()
+        // P0.7 Acompte : si un % d'acompte (1–99) est configuré, ne charger QUE l'acompte ;
+        // le solde (deposit_balance) est réclamé au voyageur via un lien de paiement avant l'arrivée.
+        BigDecimal fullTotal = quote.totalAmount();
+        Integer depositPercent = policy.depositPercent();
+        BigDecimal chargeNow = fullTotal;
+        BigDecimal depositBalance = BigDecimal.ZERO;
+        if (depositPercent != null && depositPercent >= 1 && depositPercent <= 99) {
+            chargeNow = fullTotal.multiply(BigDecimal.valueOf(depositPercent))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            depositBalance = fullTotal.subtract(chargeNow);
+        }
+        long amountInCents = StripeAmounts.toMinorUnits(chargeNow);
+        boolean isDeposit = depositBalance.compareTo(BigDecimal.ZERO) > 0;
+        String description = isDeposit
+            ? String.format("Acompte %d%% — %s, %s au %s, %d voyageur(s)",
+                depositPercent, property.getName(), request.checkIn(), request.checkOut(), request.guests())
+            : String.format("%s — %s au %s, %d voyageur(s)",
+                property.getName(), request.checkIn(), request.checkOut(), request.guests());
+
+        SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
             .setMode(SessionCreateParams.Mode.PAYMENT)
             .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
             .setRedirectOnCompletion(SessionCreateParams.RedirectOnCompletion.NEVER)
@@ -169,10 +193,26 @@ public class BookingCheckoutController {
             // webhook puisse recreer les lignes snapshot si le hold est perdu
             .putMetadata("service_options", serializeServiceOptions(request.serviceOptions()))
             .putMetadata("server_total", quote.totalAmount().toPlainString())
-            .putMetadata("reservation_id", hold.getId().toString())
-            .build();
+            // P0.7 Acompte : solde restant (>0 → le webhook passe la résa en PARTIALLY_PAID).
+            .putMetadata("deposit_balance", depositBalance.toPlainString())
+            .putMetadata("reservation_id", hold.getId().toString());
 
-        return Session.create(params, stripeOptions);
+        // P0.3 Caution : si configurée, enregistrer la carte (customer + off-session) au paiement
+        // du séjour → le webhook posera ensuite un hold de caution séparé sur cette carte.
+        BigDecimal securityDeposit = (policy.securityDepositAmount() != null
+            && policy.securityDepositAmount().compareTo(BigDecimal.ZERO) > 0)
+            ? policy.securityDepositAmount() : null;
+        if (securityDeposit != null) {
+            paramsBuilder
+                .setCustomerCreation(SessionCreateParams.CustomerCreation.ALWAYS)
+                .setPaymentIntentData(
+                    SessionCreateParams.PaymentIntentData.builder()
+                        .setSetupFutureUsage(SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION)
+                        .build())
+                .putMetadata("security_deposit_amount", securityDeposit.toPlainString());
+        }
+
+        return Session.create(paramsBuilder.build(), stripeOptions);
     }
 
     /** Devise de la propriete ; repli sur la devise globale si non renseignee. */

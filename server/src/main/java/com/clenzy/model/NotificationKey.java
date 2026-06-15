@@ -74,6 +74,8 @@ public enum NotificationKey {
     CHANNEX_SYNC_RECOVERED(NotificationType.SUCCESS, NotificationCategory.SYSTEM, true),
     // Phase 3 OTA pricing : detection d'ecarts Clenzy ↔ OTA
     CHANNEX_PRICE_DRIFT_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // Domaine 1 : divergence des restrictions de sejour (min stay / CTA / CTD) Clenzy ↔ OTA
+    CHANNEX_RESTRICTION_DRIFT_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
 
     // ─── AI MODEL HEALTH (1 cle) ───────────────────────────────────────────────
     // Emise quand un modele LLM configure repond 410 Gone (EOL chez le provider).
@@ -204,6 +206,9 @@ public enum NotificationKey {
     RESERVATION_CREATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     RESERVATION_UPDATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true),
+
+    // ─── INTEGRATIONS (webhooks sortants) ─────────────────────────────────
+    WEBHOOK_DELIVERY_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
 
     // ─── ASSISTANT (briefings proactifs) ──────────────────────────────────
     BRIEFING_READY(NotificationType.INFO, NotificationCategory.SYSTEM, true),

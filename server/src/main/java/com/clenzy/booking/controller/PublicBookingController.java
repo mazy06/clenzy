@@ -2,14 +2,18 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.service.PublicBookingCalendarService;
+import com.clenzy.booking.service.BookingDisplayCurrencyService;
 import com.clenzy.booking.service.BookingServiceOptionsService;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.booking.service.PublicBookingService.OrgContext;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +44,7 @@ import java.util.concurrent.TimeUnit;
  */
 @RestController
 @RequestMapping("/api/public/booking/{slug}")
+@Tag(name = "Booking Engine", description = "API publique du Booking Engine (reservation directe)")
 // Acces public : gere par SecurityConfigProd.java (.requestMatchers("/api/public/**").permitAll())
 public class PublicBookingController {
 
@@ -49,15 +54,56 @@ public class PublicBookingController {
     private final BookingServiceOptionsService serviceOptionsService;
     private final com.clenzy.service.PropertyPhotoService photoService;
     private final com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
+    private final BookingDisplayCurrencyService displayCurrencyService;
+    private final PublicBookingCalendarService calendarService;
+    private final com.clenzy.service.LeadCaptureService leadCaptureService;
+    private final com.clenzy.booking.service.PublicCancellationService cancellationService;
+    private final com.clenzy.booking.service.PublicReviewService reviewService;
+    private final com.clenzy.booking.service.BookingBalanceService balanceService;
+    private final com.clenzy.booking.service.BookingGuestAuthService guestAuthService;
+    private final com.clenzy.booking.service.PublicConciergeService conciergeService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
                                     com.clenzy.service.PropertyPhotoService photoService,
-                                    com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter) {
+                                    com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter,
+                                    BookingDisplayCurrencyService displayCurrencyService,
+                                    PublicBookingCalendarService calendarService,
+                                    com.clenzy.service.LeadCaptureService leadCaptureService,
+                                    com.clenzy.booking.service.PublicCancellationService cancellationService,
+                                    com.clenzy.booking.service.PublicReviewService reviewService,
+                                    com.clenzy.booking.service.BookingBalanceService balanceService,
+                                    com.clenzy.booking.service.BookingGuestAuthService guestAuthService,
+                                    com.clenzy.booking.service.PublicConciergeService conciergeService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
         this.rateLimiter = rateLimiter;
+        this.displayCurrencyService = displayCurrencyService;
+        this.calendarService = calendarService;
+        this.leadCaptureService = leadCaptureService;
+        this.cancellationService = cancellationService;
+        this.reviewService = reviewService;
+        this.balanceService = balanceService;
+        this.guestAuthService = guestAuthService;
+        this.conciergeService = conciergeService;
+    }
+
+    /**
+     * Tarif membre (2.8) : un voyageur connecté présente son token guest (Authorization: Bearer).
+     * On valide le token (Keycloak) → membre. Validé côté serveur (jamais un flag client). Best-effort :
+     * un token invalide/absent ⇒ non-membre (tarif public). Appelé sur le devis + reserve (autoritatif).
+     */
+    private boolean resolveMember(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return false;
+        }
+        try {
+            return guestAuthService.resolveGuestKeycloakId(header.substring(7).trim()) != null;
+        } catch (RuntimeException e) {
+            return false; // Keycloak indisponible / token invalide → tarif public (jamais bloquant)
+        }
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -79,9 +125,36 @@ public class PublicBookingController {
      */
     @GetMapping("/properties")
     public ResponseEntity<List<PublicPropertyDto>> getProperties(
-            @PathVariable String slug, HttpServletRequest request) {
+            @PathVariable String slug,
+            @RequestParam(required = false) String currency,
+            HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
-        return ResponseEntity.ok(bookingService.getProperties(ctx));
+        List<PublicPropertyDto> props = bookingService.getProperties(ctx);
+        return ResponseEntity.ok(displayCurrencyService.convertProperties(props, currency, java.time.LocalDate.now()));
+    }
+
+    /**
+     * GET /{slug}/currencies
+     * Devises d'affichage disponibles (multi-devise). La conversion est indicative ;
+     * le débit s'effectue dans la devise de la propriété.
+     */
+    @GetMapping("/currencies")
+    public ResponseEntity<java.util.Set<String>> getSupportedCurrencies(@PathVariable String slug) {
+        return ResponseEntity.ok(displayCurrencyService.supportedCurrencies());
+    }
+
+    /**
+     * POST /{slug}/leads
+     * Capture un lead (newsletter / waitlist / exit-intent) avec consentement RGPD obligatoire.
+     */
+    @PostMapping("/leads")
+    public ResponseEntity<com.clenzy.dto.MarketingContactDto> captureLead(
+            @PathVariable String slug,
+            @Valid @RequestBody com.clenzy.dto.CaptureLeadRequest request,
+            HttpServletRequest httpRequest) {
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(leadCaptureService.capture(
+            ctx.orgId(), request.email(), request.name(), request.source(), request.locale(), request.consent()));
     }
 
     /**
@@ -92,9 +165,34 @@ public class PublicBookingController {
     public ResponseEntity<PublicPropertyDetailDto> getProperty(
             @PathVariable String slug,
             @PathVariable Long id,
+            @RequestParam(required = false) String currency,
             HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
-        return ResponseEntity.ok(bookingService.getPropertyDetail(ctx, id));
+        PublicPropertyDetailDto detail = bookingService.getPropertyDetail(ctx, id);
+        return ResponseEntity.ok(displayCurrencyService.convertDetail(detail, currency, java.time.LocalDate.now()));
+    }
+
+    /**
+     * GET /{slug}/properties/{id}/calendar?month=YYYY-MM&months=2&currency=MAD
+     * Grille de calendrier (disponibilité + prix nuitée + min-nights) pour la sélection de dates.
+     */
+    @GetMapping("/properties/{id}/calendar")
+    public ResponseEntity<PropertyCalendarDto> getPropertyCalendar(
+            @PathVariable String slug,
+            @PathVariable Long id,
+            @RequestParam(required = false) String month,
+            @RequestParam(defaultValue = "2") int months,
+            @RequestParam(required = false) String currency,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        java.time.YearMonth ym;
+        try {
+            ym = (month != null && !month.isBlank()) ? java.time.YearMonth.parse(month) : java.time.YearMonth.now();
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("Parametre 'month' invalide (attendu YYYY-MM)");
+        }
+        PropertyCalendarDto calendar = calendarService.getCalendar(ctx, id, ym, months);
+        return ResponseEntity.ok(displayCurrencyService.convertCalendar(calendar, currency, java.time.LocalDate.now()));
     }
 
     /**
@@ -104,10 +202,13 @@ public class PublicBookingController {
     @PostMapping("/availability")
     public ResponseEntity<AvailabilityResponseDto> checkAvailability(
             @PathVariable String slug,
+            @RequestParam(required = false) String currency,
             @Valid @RequestBody AvailabilityRequestDto request,
             HttpServletRequest httpRequest) {
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.checkAvailability(ctx, request));
+        AvailabilityResponseDto resp = bookingService.checkAvailability(ctx, request, resolveMember(httpRequest));
+        java.time.LocalDate rateDate = resp.checkIn() != null ? resp.checkIn() : java.time.LocalDate.now();
+        return ResponseEntity.ok(displayCurrencyService.convertAvailability(resp, currency, rateDate));
     }
 
     // ─── Mutation endpoints ──────────────────────────────────────────────────────
@@ -128,7 +229,7 @@ public class PublicBookingController {
             return tooManyReservationAttempts();
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.reserve(ctx, request));
+        return ResponseEntity.ok(bookingService.reserve(ctx, request, resolveMember(httpRequest)));
     }
 
     /**
@@ -150,7 +251,7 @@ public class PublicBookingController {
             return tooManyReservationAttempts();
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.reserveBatch(ctx, request));
+        return ResponseEntity.ok(bookingService.reserveBatch(ctx, request, resolveMember(httpRequest)));
     }
 
     private ResponseEntity<Map<String, String>> tooManyReservationAttempts() {
@@ -182,6 +283,83 @@ public class PublicBookingController {
             HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
         return ResponseEntity.ok(bookingService.getConfirmation(ctx, code));
+    }
+
+    /**
+     * POST /{slug}/booking/{code}/cancellation-preview
+     * Aperçu self-service du remboursement applicable (politique d'annulation), sans annuler.
+     * Auth : code de confirmation + email guest (corps). Rate-limité par IP.
+     */
+    @PostMapping("/booking/{code}/cancellation-preview")
+    public ResponseEntity<?> cancellationPreview(
+            @PathVariable String slug,
+            @PathVariable String code,
+            @Valid @RequestBody com.clenzy.booking.dto.BookingCancellationRequest request,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(cancellationService.preview(ctx.orgId(), code, request.email()));
+    }
+
+    /**
+     * POST /{slug}/booking/{code}/cancel
+     * Annulation self-service : libère le calendrier + émet le remboursement applicable (politique).
+     * Auth : code de confirmation + email guest. Rate-limité par IP. Idempotent.
+     */
+    @PostMapping("/booking/{code}/cancel")
+    public ResponseEntity<?> cancelBooking(
+            @PathVariable String slug,
+            @PathVariable String code,
+            @Valid @RequestBody com.clenzy.booking.dto.BookingCancellationRequest request,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(cancellationService.cancel(ctx.orgId(), code, request.email(), request.reason()));
+    }
+
+    /**
+     * POST /{slug}/booking/{code}/pay-balance
+     * Crée la session Stripe Checkout pour régler le SOLDE d'un acompte (P0.7) et renvoie son URL.
+     * Org-scopé (X-Booking-Key). Rate-limité par IP.
+     */
+    @PostMapping("/booking/{code}/pay-balance")
+    public ResponseEntity<?> payBalance(
+            @PathVariable String slug,
+            @PathVariable String code,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        try {
+            String checkoutUrl = balanceService.createBalanceCheckoutUrl(ctx.orgId(), code);
+            return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
+        } catch (com.clenzy.exception.NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Booking Engine: erreur création paiement du solde {} : {}", code, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", "Erreur lors de la création du paiement"));
+        }
+    }
+
+    /**
+     * GET /{slug}/reviews/summary?limit=6
+     * Avis publics agrégés (org) + avis récents — preuve sociale sur la page publique.
+     * (Distinct de GET /reviews paginé par propriété pour éviter l'ambiguïté de mapping.)
+     */
+    @GetMapping("/reviews/summary")
+    public ResponseEntity<com.clenzy.booking.dto.PublicReviewsResponse> getReviewsSummary(
+            @PathVariable String slug,
+            @RequestParam(required = false, defaultValue = "6") int limit,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        return ResponseEntity.ok(reviewService.getReviews(ctx.orgId(), limit));
     }
 
     // ─── Helper : resolution contexte ─────────────────────────────────────────────
@@ -278,6 +456,36 @@ public class PublicBookingController {
             HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
         return ResponseEntity.ok(serviceOptionsService.listActiveCategories(ctx.orgId()));
+    }
+
+    // ─── Concierge IA (2.13) ───────────────────────────────────────────────────────
+
+    /**
+     * GET /{slug}/concierge/status
+     * Indique si le concierge IA est disponible (IA conversationnelle activée côté org) → le site
+     * public n'affiche le widget de chat que si {@code available=true}.
+     */
+    @GetMapping("/concierge/status")
+    public ResponseEntity<Map<String, Boolean>> conciergeStatus(@PathVariable String slug, HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        return ResponseEntity.ok(Map.of("available", conciergeService.isAvailable(ctx.orgId())));
+    }
+
+    /**
+     * POST /{slug}/concierge
+     * Question d'un voyageur au concierge IA (RAG sur le contenu de l'org). Rate-limité par IP
+     * (coût LLM). Réponse "indisponible" propre si l'IA est désactivée / budget atteint.
+     */
+    @PostMapping("/concierge")
+    public ResponseEntity<?> concierge(
+            @PathVariable String slug,
+            @RequestBody com.clenzy.booking.dto.ConciergeRequestDto request,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(conciergeService.answer(ctx.orgId(), request));
     }
 
     // ─── Exception handlers ──────────────────────────────────────────────────────

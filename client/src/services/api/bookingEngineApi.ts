@@ -76,10 +76,18 @@ export interface BookingEngineConfig {
   autoConfirm: boolean;
   showCleaningFee: boolean;
   showTouristTax: boolean;
+  // Book Direct & Save (2.8) : remise % réservation directe (1–100 ; null/0 = aucune)
+  directBookingDiscountPercent: number | null;
+  // Tarif membre (2.8) : remise % voyageur connecté (le membre obtient max(directe, membre))
+  memberDiscountPercent: number | null;
   // Custom CSS/JS + Component Config
   customCss: string | null;
   customJs: string | null;
   componentConfig: string | null;
+  // Site builder (page composée par blocs, JSON)
+  pageLayout: string | null;
+  // Propriétés affichées (curation) : IDs en CSV ; null/vide = toutes
+  featuredPropertyIds: string | null;
   // AI Design Analysis
   designTokens: string | null;
   sourceWebsiteUrl: string | null;

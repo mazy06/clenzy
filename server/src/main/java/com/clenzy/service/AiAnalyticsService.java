@@ -6,6 +6,7 @@ import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.config.ai.AiRequest;
 import com.clenzy.dto.AiInsightDto;
 import com.clenzy.dto.OccupancyForecastDto;
+import com.clenzy.dto.PeriodComparisonDto;
 import com.clenzy.dto.RevenueAnalyticsDto;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
@@ -68,6 +69,7 @@ public class AiAnalyticsService {
     private final AiAnonymizationService anonymizationService;
     private final AiTokenBudgetService tokenBudgetService;
     private final ObjectMapper objectMapper;
+    private final CurrencyConverterService currencyConverter;
 
     public AiAnalyticsService(ReservationRepository reservationRepository,
                                PropertyRepository propertyRepository,
@@ -75,7 +77,8 @@ public class AiAnalyticsService {
                                AiProviderRouter aiProviderRouter,
                                AiAnonymizationService anonymizationService,
                                AiTokenBudgetService tokenBudgetService,
-                               ObjectMapper objectMapper) {
+                               ObjectMapper objectMapper,
+                               CurrencyConverterService currencyConverter) {
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
         this.aiProperties = aiProperties;
@@ -83,6 +86,7 @@ public class AiAnalyticsService {
         this.anonymizationService = anonymizationService;
         this.tokenBudgetService = tokenBudgetService;
         this.objectMapper = objectMapper;
+        this.currencyConverter = currencyConverter;
     }
 
     /**
@@ -90,8 +94,20 @@ public class AiAnalyticsService {
      */
     public RevenueAnalyticsDto getAnalytics(Long propertyId, Long orgId,
                                               LocalDate from, LocalDate to) {
+        return getAnalytics(propertyId, orgId, from, to, null);
+    }
+
+    /**
+     * Analytics complets avec devise de reporting (CLZ-P0-14) : chaque reservation est
+     * convertie a sa date dans {@code reportingCurrency} (defaut = devise de la propriete),
+     * pour une consolidation portefeuille multi-pays (EUR/MAD/SAR) coherente.
+     */
+    public RevenueAnalyticsDto getAnalytics(Long propertyId, Long orgId,
+                                              LocalDate from, LocalDate to, String reportingCurrency) {
         Property property = propertyRepository.findById(propertyId)
             .orElseThrow(() -> new IllegalArgumentException("Property not found: " + propertyId));
+
+        String currency = resolveReportingCurrency(reportingCurrency, property);
 
         List<Reservation> reservations = reservationRepository.findByPropertyIdsAndDateRange(
             List.of(propertyId), from, to, orgId);
@@ -103,8 +119,8 @@ public class AiAnalyticsService {
         int bookedNights = calculateBookedNights(from, to, reservations);
         double occupancyRate = Math.min(1.0, (double) bookedNights / totalNights);
 
-        // Revenue calculations
-        BigDecimal totalRevenue = calculateTotalRevenue(reservations);
+        // Revenue calculations (converties dans la devise de reporting, CLZ-P0-14)
+        BigDecimal totalRevenue = calculateTotalRevenue(reservations, currency);
         BigDecimal adr = bookedNights > 0
             ? totalRevenue.divide(BigDecimal.valueOf(bookedNights), 2, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
@@ -112,17 +128,67 @@ public class AiAnalyticsService {
 
         // Monthly breakdowns
         Map<String, Double> occupancyByMonth = calculateOccupancyByMonth(from, to, reservations);
-        Map<String, BigDecimal> revenueByMonth = calculateRevenueByMonth(reservations);
+        Map<String, BigDecimal> revenueByMonth = calculateRevenueByMonth(reservations, currency);
         Map<String, Integer> bookingsBySource = calculateBookingsBySource(reservations);
 
         // Forecast for next 30 days after 'to'
         List<OccupancyForecastDto> forecast = getForecast(propertyId, to, to.plusDays(30), reservations);
 
+        // Comparaison N vs N-1 calculee serveur (CLZ-P0-13) — source unique opposable du delta.
+        PeriodComparisonDto comparison = buildYoYComparison(
+            propertyId, orgId, from, to, totalRevenue, adr, revPar, occupancyRate, currency);
+
         return new RevenueAnalyticsDto(
             propertyId, from, to, totalNights, bookedNights, occupancyRate,
             totalRevenue, adr, revPar,
-            occupancyByMonth, revenueByMonth, bookingsBySource, forecast
+            occupancyByMonth, revenueByMonth, bookingsBySource, forecast, comparison, currency
         );
+    }
+
+    /**
+     * Comparaison annuelle (N vs N-1) : recalcule les metriques sur la meme periode
+     * decalee d'un an et expose current/previous/growth%. BigDecimal.compareTo (jamais
+     * equals) + RoundingMode explicite (audit #10).
+     */
+    private PeriodComparisonDto buildYoYComparison(Long propertyId, Long orgId,
+            LocalDate from, LocalDate to,
+            BigDecimal currentRevenue, BigDecimal currentAdr, BigDecimal currentRevPar,
+            double currentOccupancy, String reportingCurrency) {
+        LocalDate prevFrom = from.minusYears(1);
+        LocalDate prevTo = to.minusYears(1);
+        List<Reservation> prev = reservationRepository.findByPropertyIdsAndDateRange(
+            List.of(propertyId), prevFrom, prevTo, orgId);
+
+        int prevTotalNights = (int) ChronoUnit.DAYS.between(prevFrom, prevTo);
+        if (prevTotalNights <= 0) prevTotalNights = 1;
+        int prevBooked = calculateBookedNights(prevFrom, prevTo, prev);
+        double prevOccupancy = Math.min(1.0, (double) prevBooked / prevTotalNights);
+        BigDecimal prevRevenue = calculateTotalRevenue(prev, reportingCurrency);
+        BigDecimal prevAdr = prevBooked > 0
+            ? prevRevenue.divide(BigDecimal.valueOf(prevBooked), 2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+        BigDecimal prevRevPar = prevRevenue.divide(BigDecimal.valueOf(prevTotalNights), 2, RoundingMode.HALF_UP);
+
+        return new PeriodComparisonDto(prevFrom, prevTo, "YEAR_OVER_YEAR",
+            metricComparison(currentRevenue, prevRevenue),
+            metricComparison(currentAdr, prevAdr),
+            metricComparison(currentRevPar, prevRevPar),
+            metricComparison(BigDecimal.valueOf(currentOccupancy), BigDecimal.valueOf(prevOccupancy)));
+    }
+
+    private PeriodComparisonDto.MetricComparison metricComparison(BigDecimal current, BigDecimal previous) {
+        BigDecimal cur = current != null ? current : BigDecimal.ZERO;
+        BigDecimal prev = previous != null ? previous : BigDecimal.ZERO;
+        BigDecimal growthPct;
+        if (prev.compareTo(BigDecimal.ZERO) == 0) {
+            growthPct = cur.compareTo(BigDecimal.ZERO) > 0 ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
+        } else {
+            growthPct = cur.subtract(prev)
+                .divide(prev.abs(), 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
+        }
+        return new PeriodComparisonDto.MetricComparison(cur, prev, growthPct);
     }
 
     /**
@@ -193,6 +259,56 @@ public class AiAnalyticsService {
         return reservations.stream()
             .map(r -> r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // ---- Consolidation multi-devise (CLZ-P0-14) ----
+
+    private String resolveReportingCurrency(String requested, Property property) {
+        if (requested != null && !requested.isBlank()) {
+            return requested.trim().toUpperCase(Locale.ROOT);
+        }
+        String propCurrency = property.getDefaultCurrency();
+        return (propCurrency != null && !propCurrency.isBlank())
+            ? propCurrency.trim().toUpperCase(Locale.ROOT) : "EUR";
+    }
+
+    /** Date du taux de change d'une reservation : paiement, sinon arrivee, sinon creation (audit #10, taux fige). */
+    private LocalDate rateDate(Reservation r) {
+        if (r.getPaidAt() != null) return r.getPaidAt().toLocalDate();
+        if (r.getCheckIn() != null) return r.getCheckIn();
+        if (r.getCreatedAt() != null) return r.getCreatedAt().toLocalDate();
+        return LocalDate.now();
+    }
+
+    private BigDecimal toReportingCurrency(BigDecimal amount, Reservation r, String reportingCurrency) {
+        if (amount == null) return BigDecimal.ZERO;
+        String from = (r.getCurrency() != null && !r.getCurrency().isBlank())
+            ? r.getCurrency() : reportingCurrency;
+        if (reportingCurrency == null || from.equalsIgnoreCase(reportingCurrency)) {
+            return amount;
+        }
+        return currencyConverter.convert(amount, from, reportingCurrency, rateDate(r));
+    }
+
+    /** Revenu total converti dans la devise de reporting (CLZ-P0-14). */
+    BigDecimal calculateTotalRevenue(List<Reservation> reservations, String reportingCurrency) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Reservation r : reservations) {
+            total = total.add(toReportingCurrency(r.getTotalPrice(), r, reportingCurrency));
+        }
+        return total;
+    }
+
+    /** Revenu par mois converti dans la devise de reporting (CLZ-P0-14). */
+    Map<String, BigDecimal> calculateRevenueByMonth(List<Reservation> reservations, String reportingCurrency) {
+        Map<String, BigDecimal> result = new LinkedHashMap<>();
+        for (Reservation r : reservations) {
+            if (r.getCheckIn() == null) continue;
+            String monthKey = r.getCheckIn().getMonth().getDisplayName(TextStyle.SHORT, Locale.FRENCH)
+                + " " + r.getCheckIn().getYear();
+            result.merge(monthKey, toReportingCurrency(r.getTotalPrice(), r, reportingCurrency), BigDecimal::add);
+        }
+        return result;
     }
 
     Map<String, Double> calculateOccupancyByMonth(LocalDate from, LocalDate to,

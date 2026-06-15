@@ -14,15 +14,18 @@ export { formatDateTime as formatDate, formatDuration } from '../../utils/format
 
 // ─── Tokens Signature (reskin Baitly) ────────────────────────────────────────
 // Chips -soft : texte couleur sémantique + fond `-soft` (baseline §2 chips).
-// Même système que PanelOperations (SoftTokens) — ne pas en créer un 2e.
+// Tons sémantiques mutualisés via la primitive partagée StatusChip — alias
+// rétro-compatibles conservés (SoftTokens, *_TOKENS) pour les consommateurs.
 
-export type SoftTokens = { color: string; bg: string };
+import { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 
-export const OK_TOKENS: SoftTokens = { color: 'var(--ok)', bg: 'var(--ok-soft)' };
-export const WARN_TOKENS: SoftTokens = { color: 'var(--warn)', bg: 'var(--warn-soft)' };
-export const ERR_TOKENS: SoftTokens = { color: 'var(--err)', bg: 'var(--err-soft)' };
-export const INFO_TOKENS: SoftTokens = { color: 'var(--info)', bg: 'var(--info-soft)' };
-export const NEUTRAL_TOKENS: SoftTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
+export type SoftTokens = ToneTokens;
+
+export const OK_TOKENS: SoftTokens = STATUS_TONES.ok;
+export const WARN_TOKENS: SoftTokens = STATUS_TONES.warn;
+export const ERR_TOKENS: SoftTokens = STATUS_TONES.err;
+export const INFO_TOKENS: SoftTokens = STATUS_TONES.info;
+export const NEUTRAL_TOKENS: SoftTokens = STATUS_TONES.neutral;
 
 const STATUS_TOKENS: Record<string, SoftTokens> = {
   PENDING: WARN_TOKENS,

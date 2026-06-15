@@ -8,6 +8,9 @@ yarn-error.log*
 # Production builds
 build/
 dist/
+
+# SDK widget buildé (artefact `npm run build:sdk` / prebuild) — généré au build, non commité
+client/public/booking/v1/
 target/
 **/target/
 

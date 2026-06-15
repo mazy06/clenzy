@@ -7,33 +7,25 @@ import {
   Box,
   Chip,
   IconButton,
-  LinearProgress,
-  Tooltip,
 } from '@mui/material';
 import {
   Visibility,
   Edit,
   LocationOn,
-  AutoAwesome,
-  Build,
-  Schedule,
-  AccessTime,
   Person as PersonIcon,
   Group as GroupIcon,
   MoreVert,
-  Category,
-  Yard,
-  BugReport,
-  AutoFixHigh,
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
-import LiveDashboardPulse from './LiveDashboardPulse';
 import { useTranslation } from '../../hooks/useTranslation';
-import { formatShortDate, formatTimeFromDate, formatDuration } from '../../utils/formatUtils';
+import { getServiceTypeBannerUrl } from '../../utils/serviceTypeBanner';
+import { formatDuration } from '../../utils/formatUtils';
+import { getDueMeta, dueToneColor } from '../../utils/dueDateUtils';
 import {
   getInterventionStatusLabel,
   getInterventionPriorityLabel,
   getInterventionTypeLabel,
+  getInterventionTypeHex,
 } from '../../utils/statusUtils';
 import { getStatusTokens, getPriorityTokens } from './interventionUtils';
 
@@ -62,9 +54,9 @@ interface InterventionCardProps {
   canEdit?: boolean;
 }
 
-// Icône de type en arrière-plan
-const getTypeIcon = (type: string, size: number = 48) => {
-  const iconProps = { size, color: "rgba(255,255,255,0.18)", strokeWidth: 1.5 };
+// Dégradé par catégorie de type (fallback derrière la photo) — identique à
+// ServiceRequestCard pour un design de bandeau unifié entre les deux cartes.
+const getTypeGradient = (type: string): string => {
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
     'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
@@ -74,39 +66,17 @@ const getTypeIcon = (type: string, size: number = 48) => {
     'EMERGENCY_REPAIR', 'ELECTRICAL_REPAIR', 'PLUMBING_REPAIR',
     'HVAC_REPAIR', 'APPLIANCE_REPAIR',
   ];
+  const maintenanceTypes = ['PREVENTIVE_MAINTENANCE', 'RESTORATION'];
+  const outdoorTypes = ['GARDENING', 'PEST_CONTROL'];
 
-  if (cleaningTypes.includes(type)) return <AutoAwesome {...iconProps} />;
-  if (repairTypes.includes(type)) return <Build {...iconProps} />;
-  if (type === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
-  if (type === 'GARDENING') return <Yard {...iconProps} />;
-  if (type === 'PEST_CONTROL') return <BugReport {...iconProps} />;
-  if (type === 'RESTORATION') return <AutoFixHigh {...iconProps} />;
-  return <Category {...iconProps} />;
+  if (cleaningTypes.includes(type)) return 'linear-gradient(135deg, #7BA3C2 0%, #9BB8D1 100%)';
+  if (repairTypes.includes(type)) return 'linear-gradient(135deg, #C07A7A 0%, #D4A0A0 100%)';
+  if (maintenanceTypes.includes(type)) return 'linear-gradient(135deg, #D4A574 0%, #E8C19A 100%)';
+  if (outdoorTypes.includes(type)) return 'linear-gradient(135deg, #6B9B8E 0%, #8BB5A8 100%)';
+  return 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)';
 };
 
-// Petite icône de type pour le header
-const getTypeSmallIcon = (type: string) => {
-  const iconProps = { size: 16, strokeWidth: 1.75, color: 'rgba(255,255,255,0.85)' };
-  const cleaningTypes = [
-    'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
-    'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
-    'EXTERIOR_CLEANING', 'DISINFECTION',
-  ];
-  const repairTypes = [
-    'EMERGENCY_REPAIR', 'ELECTRICAL_REPAIR', 'PLUMBING_REPAIR',
-    'HVAC_REPAIR', 'APPLIANCE_REPAIR',
-  ];
-
-  if (cleaningTypes.includes(type)) return <AutoAwesome {...iconProps} />;
-  if (repairTypes.includes(type)) return <Build {...iconProps} />;
-  if (type === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
-  if (type === 'GARDENING') return <Yard {...iconProps} />;
-  if (type === 'PEST_CONTROL') return <BugReport {...iconProps} />;
-  if (type === 'RESTORATION') return <AutoFixHigh {...iconProps} />;
-  return <Category {...iconProps} />;
-};
-
-// ─── Extracted sx styles (module-level constants for render perf) ───
+// ─── Styles alignés sur la référence .pr-card (PropertyCard / screen-properties) ───
 const styles = {
   cardRoot: {
     height: '100%',
@@ -114,38 +84,56 @@ const styles = {
     flexDirection: 'column',
     overflow: 'hidden',
     cursor: 'pointer',
-    transition: 'border-color .15s, box-shadow .15s',
+    transition: 'border-color .14s, box-shadow .14s, transform .14s',
     '&:hover': {
       borderColor: 'var(--line-2)',
       boxShadow: 'var(--shadow-card)',
+      transform: 'translateY(-2px)',
     },
-    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'none',
+      '&:hover': { transform: 'none' },
+    },
   },
-  typeLabelBox: {
+  // Bandeau statique photo + dégradé par type (h110) — identique à ServiceRequestCard.
+  bannerBox: {
+    position: 'relative',
+    height: 110,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  // Pastille statut top-left (fond translucide + blur, dot coloré + libellé).
+  statusPill: {
     position: 'absolute',
     top: 10,
     left: 12,
-    display: 'flex',
+    zIndex: 2,
+    display: 'inline-flex',
     alignItems: 'center',
-    gap: 0.6,
-    bgcolor: 'rgba(255,255,255,0.08)',
-    backdropFilter: 'blur(8px)',
-    borderRadius: 1.5,
-    border: '1px solid rgba(255,255,255,0.1)',
-    px: 1,
-    py: 0.4,
+    gap: 0.625,
+    fontSize: '10.5px',
+    fontWeight: 700,
+    px: '9px',
+    py: '4px',
+    borderRadius: '20px',
+    bgcolor: 'rgba(255,255,255,.92)',
+    backdropFilter: 'blur(4px)',
+    color: '#2A3942',
+    lineHeight: 1,
   },
-  typeLabelText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: 600,
-    fontSize: '0.68rem',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase',
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    flexShrink: 0,
   },
   menuButton: {
     position: 'absolute',
     top: 10,
     right: 12,
+    zIndex: 2,
     color: 'rgba(255,255,255,0.6)',
     bgcolor: 'rgba(255,255,255,0.06)',
     backdropFilter: 'blur(8px)',
@@ -154,79 +142,106 @@ const styles = {
     width: 28,
     height: 28,
   },
-  badgeBar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    px: 1.5,
-    py: 0.75,
-    bgcolor: 'var(--surface-2)',
-    borderBottom: '1px solid',
-    borderColor: 'var(--line)',
-    gap: 0.75,
-    minHeight: 34,
-  },
-  statusChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
-  },
-  priorityChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
-  },
-  dateBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.4,
-    flexShrink: 0,
-  },
-  dateText: {
-    color: 'text.secondary',
-    fontWeight: 600,
-    fontSize: '0.68rem',
-    lineHeight: 1,
-  },
   infoContent: {
     flexGrow: 1,
     p: 1.75,
-    pb: '8px !important',
+    pb: '12px !important',
   },
-  titleText: {
+  // Nom d'entité en display.
+  nameText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    fontSize: '0.95rem',
-    mb: 0.25,
-    color: 'text.primary',
+    fontFamily: 'var(--font-display)',
+    fontSize: '15px',
+    fontWeight: 600,
+    letterSpacing: '-.01em',
+    color: 'var(--ink)',
   },
-  descriptionText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    display: 'block',
-    fontSize: '0.7rem',
-    mb: 1,
+  // Chip type (soft, teinté par getInterventionTypeHex).
+  typeChip: {
+    height: 22,
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    borderRadius: '6px',
+    flexShrink: 0,
+    '& .MuiChip-label': { px: 0.75 },
   },
-  propertyText: {
+  // Ligne localisation (propriété).
+  locationRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.5,
+    mb: 1.25,
+  },
+  locationText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     flex: 1,
-    fontSize: '0.7rem',
+    fontSize: '11.5px',
+    color: 'var(--muted)',
   },
-  progressBar: {
-    height: 5,
-    borderRadius: 3,
-    bgcolor: 'var(--hover)',
-    '& .MuiLinearProgress-bar': {
-      borderRadius: 3,
-    },
+  // Bande de KPI (valeurs display tabular-nums).
+  statsBand: {
+    display: 'flex',
+    borderTop: '1px solid var(--line)',
+    borderBottom: '1px solid var(--line)',
+    mb: 1.25,
+  },
+  statCell: {
+    flex: 1,
+    py: '9px',
+    textAlign: 'center',
+    borderRight: '1px solid var(--line)',
+    minWidth: 0,
+    '&:last-child': { borderRight: 0 },
+  },
+  statValue: {
+    fontFamily: 'var(--font-display)',
+    fontSize: '15px',
+    fontWeight: 600,
+    color: 'var(--ink)',
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1.2,
+  },
+  statLabel: {
+    fontSize: '9.5px',
+    fontWeight: 700,
+    letterSpacing: '.04em',
+    textTransform: 'uppercase',
+    color: 'var(--faint)',
+    mt: '1px',
+  },
+  // Pied opérationnel : icône accent + libellé fort.
+  footRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.875,
+    fontSize: '11.5px',
+    color: 'var(--muted)',
+    minWidth: 0,
+  },
+  footIcon: {
+    display: 'inline-flex',
+    color: 'var(--accent)',
+    flexShrink: 0,
+  },
+  footStrong: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: 'var(--body)',
+    fontWeight: 600,
+  },
+  // Chip priorité (soft) dans le pied.
+  priorityChip: {
+    height: 20,
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    borderRadius: '6px',
+    flexShrink: 0,
+    '& .MuiChip-label': { px: 0.75 },
   },
   actionBar: {
     px: 1.75,
@@ -249,16 +264,21 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const statusTokens = getStatusTokens(intervention.status);
+  const priorityTokens = getPriorityTokens(intervention.priority);
+  const typeHex = getInterventionTypeHex(intervention.type);
+  const dueMeta = getDueMeta(intervention.scheduledDate, t);
+
+  const kpiCells = [
+    { value: dueMeta.label, color: dueToneColor(dueMeta.tone), label: t('interventions.kpi.due') },
+    { value: `${intervention.progressPercentage}%`, label: t('interventions.kpi.progress') },
+    { value: `~${formatDuration(intervention.estimatedDurationHours)}`, label: t('interventions.kpi.duration') },
+  ];
+
+  const assigneeName = intervention.assignedToName || intervention.requestorName || 'Non assigné';
+
   const handleViewDetails = () => {
     navigate(`/interventions/${intervention.id}`);
-  };
-
-  // Couleur de la barre de progression
-  const getProgressColor = (pct: number): 'inherit' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    if (pct >= 100) return 'success';
-    if (pct >= 50) return 'primary';
-    if (pct >= 25) return 'info';
-    return 'warning';
   };
 
   return (
@@ -266,29 +286,23 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       sx={styles.cardRoot}
       onClick={handleViewDetails}
     >
-      {/* ─── Zone visuelle : Bandeau Live Dashboard Pulse ─── */}
-      <LiveDashboardPulse
-        type={intervention.type}
-        priority={intervention.priority}
-        status={intervention.status}
-        height={110}
+      {/* ─── Bandeau statique photo + dégradé (par type) + pastille statut ─── */}
+      <Box
+        sx={{
+          ...styles.bannerBox,
+          background: getTypeGradient(intervention.type),
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.35)), url(${getServiceTypeBannerUrl(intervention.type)})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
       >
-        {/* Type en haut à gauche — label glassmorphism */}
-        <Box
-          sx={styles.typeLabelBox}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {getTypeSmallIcon(intervention.type)}
-          </Box>
-          <Typography
-            variant="caption"
-            sx={styles.typeLabelText}
-          >
-            {getInterventionTypeLabel(intervention.type, t)}
-          </Typography>
+        {/* Pastille statut top-left (dot coloré + libellé) */}
+        <Box sx={styles.statusPill}>
+          <Box sx={{ ...styles.statusDot, bgcolor: statusTokens.color }} />
+          {getInterventionStatusLabel(intervention.status, t)}
         </Box>
 
-        {/* Menu contextuel — coin supérieur droit */}
+        {/* Menu contextuel top-right */}
         <IconButton
           size="small"
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
@@ -296,119 +310,69 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
         >
           <MoreVert size={16} strokeWidth={1.75} />
         </IconButton>
-      </LiveDashboardPulse>
-
-      {/* ─── Barre de badges (entre bandeau et contenu) ─── */}
-      <Box sx={styles.badgeBar}>
-        {/* Gauche : statut + priorité */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          {(() => { const tk = getStatusTokens(intervention.status); return (
-            <Chip
-              label={getInterventionStatusLabel(intervention.status, t)}
-              size="small"
-              sx={{ ...styles.statusChip, backgroundColor: tk.bg, color: tk.color, borderRadius: '6px' }}
-            />
-          ); })()}
-          {(() => { const tk = getPriorityTokens(intervention.priority); return (
-            <Chip
-              label={getInterventionPriorityLabel(intervention.priority, t)}
-              size="small"
-              sx={{ ...styles.priorityChip, backgroundColor: tk.bg, color: tk.color, borderRadius: '6px' }}
-            />
-          ); })()}
-        </Box>
-
-        {/* Droite : date planifiée (short + heure) */}
-        <Box sx={styles.dateBox}>
-          <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Schedule size={13} strokeWidth={1.75} /></Box>
-          <Typography variant="caption" sx={styles.dateText}>
-            {formatShortDate(intervention.scheduledDate)}
-            {formatTimeFromDate(intervention.scheduledDate) && ` · ${formatTimeFromDate(intervention.scheduledDate)}`}
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* ─── Barre de progression (dans la même zone badges) ─── */}
-      <Box sx={{ px: 1.5, py: 0.5, bgcolor: 'var(--surface-2)', borderBottom: '1px solid', borderColor: 'var(--line)', display: 'flex', alignItems: 'center', gap: 0.75 }}>
-        <LinearProgress
-          variant="determinate"
-          value={intervention.progressPercentage}
-          color={getProgressColor(intervention.progressPercentage)}
-          sx={{ ...styles.progressBar, flex: 1 }}
-        />
-        <Typography variant="caption" sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'text.secondary', flexShrink: 0 }}>
-          {intervention.progressPercentage}%
-        </Typography>
       </Box>
 
       {/* ─── Zone info ─── */}
       <CardContent sx={styles.infoContent}>
-        {/* Titre */}
-        <Typography
-          variant="subtitle1"
-          fontWeight={700}
-          sx={styles.titleText}
-          title={intervention.title}
-        >
-          {intervention.title}
-        </Typography>
-
-        {/* Description */}
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={styles.descriptionText}
-          title={intervention.description}
-        >
-          {intervention.description}
-        </Typography>
+        {/* Titre + chip type */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, mb: 0.5 }}>
+          <Typography sx={{ ...styles.nameText, flex: 1 }} title={intervention.title}>
+            {intervention.title}
+          </Typography>
+          <Chip
+            label={getInterventionTypeLabel(intervention.type, t)}
+            size="small"
+            sx={{
+              ...styles.typeChip,
+              backgroundColor: `${typeHex}18`,
+              color: typeHex,
+              border: `1px solid ${typeHex}40`,
+            }}
+          />
+        </Box>
 
         {/* Propriété */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-          <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={14} strokeWidth={1.75} /></Box>
+        <Box sx={styles.locationRow}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0 }}>
+            <LocationOn size={14} strokeWidth={1.75} />
+          </Box>
           <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={styles.propertyText}
+            sx={styles.locationText}
             title={`${intervention.propertyName} - ${intervention.propertyAddress}`}
           >
             {intervention.propertyName}
           </Typography>
         </Box>
 
-        {/* Assignation · Demandeur · Durée — sur une seule ligne */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {/* Assignation */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, minWidth: 0 }}>
-            {intervention.assignedToType === 'team' ? (
-              <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", flexShrink: 0 }}><GroupIcon size={12} strokeWidth={1.75} /></Box>
-            ) : (
-              <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", flexShrink: 0 }}><PersonIcon size={12} strokeWidth={1.75} /></Box>
-            )}
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.62rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {intervention.assignedToName || 'Non assigné'}
-            </Typography>
+        {/* Bande de KPI : échéance / avancement / durée */}
+        <Box sx={styles.statsBand}>
+          {kpiCells.map((cell, idx) => (
+            <Box key={idx} sx={styles.statCell}>
+              <Typography sx={{ ...styles.statValue, ...(cell.color ? { color: cell.color } : {}) }}>
+                {cell.value}
+              </Typography>
+              <Typography sx={styles.statLabel}>{cell.label}</Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {/* Pied opérationnel : assigné (gauche) + priorité (droite) */}
+        <Box sx={{ ...styles.footRow, minHeight: 20 }}>
+          <Box component="span" sx={styles.footIcon}>
+            {intervention.assignedToType === 'team'
+              ? <GroupIcon size={13} strokeWidth={2} />
+              : <PersonIcon size={13} strokeWidth={2} />}
           </Box>
-
-          <Typography variant="caption" sx={{ fontSize: '0.55rem', color: 'text.disabled', lineHeight: 1 }}>·</Typography>
-
-          {/* Demandeur */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, minWidth: 0 }}>
-            <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", flexShrink: 0 }}><PersonIcon size={12} strokeWidth={1.75} /></Box>
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.62rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {intervention.requestorName}
-            </Typography>
-          </Box>
-
-          {/* Spacer */}
+          <Box component="span" sx={styles.footStrong}>{assigneeName}</Box>
           <Box sx={{ flex: 1 }} />
-
-          {/* Durée — chip style ServiceRequestCard */}
           <Chip
-            icon={<AccessTime size={12} strokeWidth={1.75} />}
-            label={`~${formatDuration(intervention.estimatedDurationHours)}`}
+            label={getInterventionPriorityLabel(intervention.priority, t)}
             size="small"
-            sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, backgroundColor: 'var(--info-soft)', color: 'var(--info)', fontVariantNumeric: 'tabular-nums', '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-icon': { fontSize: 12, ml: 0.5, color: 'var(--info)' }, flexShrink: 0 }}
+            sx={{
+              ...styles.priorityChip,
+              backgroundColor: priorityTokens.bg,
+              color: priorityTokens.color,
+            }}
           />
         </Box>
       </CardContent>
@@ -433,7 +397,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
             onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}/edit`); }}
             variant="outlined"
             color="primary"
-            sx={{ fontSize: '0.72rem', py: 0.5 }}
+            sx={styles.detailsButton}
           >
             Modifier
           </Button>

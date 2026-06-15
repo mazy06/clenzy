@@ -54,6 +54,9 @@ const DEFAULTS: Required<BaitlyTheme> = {
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   borderRadius: '8px',
   shadow: '0 4px 12px rgba(0,0,0,0.08)',
+  fontSize: '14px',
+  density: 'normal',
+  buttonStyle: 'filled',
 };
 
 /** Generate CSS custom properties string from theme config */
@@ -67,6 +70,17 @@ export function generateThemeCSS(theme?: BaitlyTheme): string {
   if (theme?.primaryColor && !theme.primaryLightColor) {
     t.primaryLightColor = lighten(t.primaryColor, 0.92);
   }
+
+  // Échelle typo dérivée d'une taille de base + facteur de densité + style de bouton.
+  const basePx = parseFloat(t.fontSize) || 14;
+  const fs = (factor: number) => `${(basePx * factor).toFixed(1)}px`;
+  const spaceFactor = t.density === 'compact' ? 0.82 : t.density === 'spacious' ? 1.22 : 1;
+  const sp = (n: number) => `${Math.round(4 * n * spaceFactor)}px`;
+  const filledBtn = t.buttonStyle !== 'outlined';
+  const btnBg = filledBtn ? t.primaryColor : 'transparent';
+  const btnBgHover = filledBtn ? t.primaryHoverColor : hexToRgba(t.primaryColor, 0.08);
+  const btnColor = filledBtn ? '#fff' : t.primaryColor;
+  const btnBorder = filledBtn ? '1.5px solid transparent' : `1.5px solid ${t.primaryColor}`;
 
   const focusShadow = `0 0 0 3px ${hexToRgba(t.primaryColor, 0.15)}`;
   const radiusSm = scaleRadius(t.borderRadius, 0.75);
@@ -88,26 +102,26 @@ export function generateThemeCSS(theme?: BaitlyTheme): string {
   --cb-color-warning: #F59E0B;
 
   --cb-font-family: ${t.fontFamily};
-  --cb-font-size-xs: 0.75rem;
-  --cb-font-size-sm: 0.8125rem;
-  --cb-font-size-base: 0.875rem;
-  --cb-font-size-md: 1rem;
-  --cb-font-size-lg: 1.25rem;
-  --cb-font-size-xl: 1.5rem;
+  --cb-font-size-xs: ${fs(0.82)};
+  --cb-font-size-sm: ${fs(0.9)};
+  --cb-font-size-base: ${fs(1)};
+  --cb-font-size-md: ${fs(1.14)};
+  --cb-font-size-lg: ${fs(1.43)};
+  --cb-font-size-xl: ${fs(1.7)};
   --cb-font-weight-normal: 400;
   --cb-font-weight-medium: 500;
   --cb-font-weight-semibold: 600;
   --cb-line-height: 1.5;
 
-  --cb-space-1: 4px;
-  --cb-space-2: 8px;
-  --cb-space-3: 12px;
-  --cb-space-4: 16px;
-  --cb-space-5: 20px;
-  --cb-space-6: 24px;
-  --cb-space-8: 32px;
-  --cb-space-10: 40px;
-  --cb-space-12: 48px;
+  --cb-space-1: ${sp(1)};
+  --cb-space-2: ${sp(2)};
+  --cb-space-3: ${sp(3)};
+  --cb-space-4: ${sp(4)};
+  --cb-space-5: ${sp(5)};
+  --cb-space-6: ${sp(6)};
+  --cb-space-8: ${sp(8)};
+  --cb-space-10: ${sp(10)};
+  --cb-space-12: ${sp(12)};
 
   --cb-radius-sm: ${radiusSm};
   --cb-radius-md: ${t.borderRadius};
@@ -118,6 +132,11 @@ export function generateThemeCSS(theme?: BaitlyTheme): string {
   --cb-shadow-md: ${t.shadow};
   --cb-shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
   --cb-shadow-focus: ${focusShadow};
+
+  --cb-btn-bg: ${btnBg};
+  --cb-btn-bg-hover: ${btnBgHover};
+  --cb-btn-color: ${btnColor};
+  --cb-btn-border: ${btnBorder};
 
   --cb-transition-fast: 100ms ease;
   --cb-transition-base: 150ms ease;

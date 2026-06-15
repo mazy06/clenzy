@@ -19,7 +19,8 @@ export type AccentName =
   | 'ocean'
   | 'slate';
 
-export const DEFAULT_ACCENT: AccentName = 'emeraude';
+// Indigo-violet = teinte signature Baitly (défaut/brand). Le picker per-user reste disponible.
+export const DEFAULT_ACCENT: AccentName = 'indigo';
 
 /** Pastilles du sélecteur de teinte (couleur = valeur claire des tokens). */
 export const ACCENT_OPTIONS: ReadonlyArray<{ value: AccentName; label: string; swatch: string }> = [

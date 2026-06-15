@@ -213,7 +213,7 @@ public class DocumentGenerationPipeline {
             }
 
             // 3.9 Garantir que tous les tags du template ont un fallback vide
-            renderer.ensureTemplateTagsPresent(template, context);
+            renderer.fillMissingTags(template, context, false); // tags optionnels : champ manquant -> vide, jamais d'echec
 
             // 4. Remplir le template via XDocReport
             byte[] filledOdt = renderer.fillTemplate(templateContent, context);
@@ -271,7 +271,7 @@ public class DocumentGenerationPipeline {
                                 NotificationKey.DOCUMENT_SENT_BY_EMAIL,
                                 "Document envoye par email",
                                 template.getDocumentType().getLabel() + " envoye a " + emailTo,
-                                "/documents",
+                                "/documents?tab=history&highlight=" + generation.getId(),
                                 orgId
                         );
                     } catch (Exception emailEx) {
@@ -284,12 +284,13 @@ public class DocumentGenerationPipeline {
             generation = generationRepository.save(generation);
 
             // 10. Notification + Audit + Metrics
-            //     tab=3 = onglet 'Historique' de la page Documents
+            //     tab=history = onglet 'Historique' de la page Documents ;
+            //     highlight = id de la DocumentGeneration pour le deep-link precis.
             notificationService.notifyAdminsAndManagers(
                     NotificationKey.DOCUMENT_GENERATED,
                     "Document genere : " + template.getDocumentType().getLabel(),
                     pdfFilename + " (" + formatFileSize(pdfBytes.length) + ") genere en " + generationTimeMs + "ms",
-                    "/documents?tab=3",
+                    "/documents?tab=history&highlight=" + generation.getId(),
                     orgId
             );
 

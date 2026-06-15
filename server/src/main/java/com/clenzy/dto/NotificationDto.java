@@ -4,7 +4,7 @@ import com.clenzy.model.Notification;
 import com.clenzy.model.NotificationCategory;
 import com.clenzy.model.NotificationType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * DTO pour les notifications — correspond exactement au type Notification du frontend.
@@ -20,7 +20,7 @@ public class NotificationDto {
     public String notificationKey;  // NotificationKey enum name (e.g. "INTERVENTION_CREATED")
     public boolean read;
     public String actionUrl;
-    public LocalDateTime createdAt;
+    public Instant createdAt;
 
     // ─── Constructeurs ──────────────────────────────────────────────────────────
 

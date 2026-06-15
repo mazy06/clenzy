@@ -1,0 +1,17 @@
+Fonctionnalite,Clenzy,Hostaway,Guesty,Smoobu,Lodgify,Hospitable,Avantio,Smily,Confiance
+Assistant conversationnel / copilote gestionnaire,3,2,3,0,1,1,0,1,Probable
+Multi-provider LLM (Anthropic/OpenAI/Bedrock),3,1,2,0,1,1,0,1,Probable
+RAG / knowledge base (embeddings),2,3,3,0,1,3,0,2,Probable
+Auto-reponse messagerie (copilote draft),1,3,3,0,2,3,2,3,Confirme
+Auto-reply / autopilot IA guest (envoi auto),0,2,3,0,1,3,1,2,Confirme
+IA agentique d'action (agents qui executent des taches),1,1,3,0,0,1,0,1,Probable
+Architecture multi-agent productisee,1,1,3,0,0,0,0,0,Confirme
+IA de pricing / revenue management,1,2,3,0,2,1,1,2,Confirme
+Detection d'anomalies / fraude paiement,0,2,3,0,0,1,0,0,Probable
+Guest screening / detection de risque IA,0,2,3,0,0,1,0,0,Probable
+Resumes IA (conversation / avis),0,2,2,0,1,2,0,1,Probable
+Generation de contenu (annonces / descriptions),0,2,2,1,1,2,1,1,Probable
+Vision / analyse d'images (usage metier),1,1,1,0,0,1,0,0,A verifier
+Multi-langue (IA / traduction),2,2,3,1,1,2,2,3,Probable
+Memoire long terme de l'assistant,2,0,1,0,0,1,0,0,A verifier
+Moteur d'automatisations (workflow no-code),2,3,3,2,2,3,3,2,Probable

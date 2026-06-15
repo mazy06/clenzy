@@ -7,60 +7,20 @@ import {
   Button,
   Chip,
   IconButton,
-  LinearProgress,
 } from '@mui/material';
 import {
   Visibility,
   MoreVert,
   LocationOn,
-  CalendarToday,
-  Timer,
   Person as PersonIcon,
   Group as GroupIcon,
-  AutoAwesome,
-  Build,
-  Category,
-  Yard,
-  BugReport,
-  AutoFixHigh,
-  Edit,
-  Payments,
 } from '../icons';
 import { useNavigate } from 'react-router-dom';
 import { getServiceTypeBannerUrl } from '../utils/serviceTypeBanner';
 import { useTranslation } from '../hooks/useTranslation';
-import ThemedTooltip from './ThemedTooltip';
-import { formatShortDate, formatTimeFromDate, formatDuration } from '../utils/formatUtils';
-// ─── Source logos ─────────────────────────────────────────────────────────────
-import airbnbLogoSmall from '../assets/logo/airbnb-logo-small.svg';
-import bookingLogoSmall from '../assets/logo/logo-booking-planning.png';
-import homeAwayLogo from '../assets/logo/HomeAway-logo.png';
-import expediaLogo from '../assets/logo/expedia-logo.png';
-import leboncoinLogo from '../assets/logo/Leboncoin-logo.png';
-import clenzyLogo from '../assets/logo/clenzy-logo.svg';
-
-const ICAL_SOURCE_LOGOS: Record<string, string> = {
-  airbnb: airbnbLogoSmall,
-  'booking.com': bookingLogoSmall,
-  booking: bookingLogoSmall,
-  vrbo: homeAwayLogo,
-  homeaway: homeAwayLogo,
-  expedia: expediaLogo,
-  leboncoin: leboncoinLogo,
-  direct: clenzyLogo,
-};
-
-/** Detect iCal source logo from description like "Import iCal Airbnb — Guest: ..." */
-function getICalSourceLogo(description: string): string | null {
-  if (!description) return null;
-  const match = description.match(/^Import iCal\s+(\S+)/i);
-  if (!match) return null;
-  const sourceKey = match[1].toLowerCase().replace(/[.,;:]$/, '');
-  return ICAL_SOURCE_LOGOS[sourceKey] || null;
-}
-
+import { formatDuration } from '../utils/formatUtils';
+import { getDueMeta, dueToneColor } from '../utils/dueDateUtils';
 import {
-  getServiceRequestStatusLabel,
   getServiceRequestStatusHex,
   getServiceRequestPriorityLabel,
   getServiceRequestPriorityHex,
@@ -130,192 +90,170 @@ const getTypeGradient = (type: string): string => {
   return 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)';
 };
 
-// Icône de type en arrière-plan
-const getTypeIcon = (type: string, size: number = 48) => {
-  const iconProps = { size, color: 'rgba(255,255,255,0.35)', strokeWidth: 1.5 };
-  const cleaningTypes = [
-    'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
-    'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
-    'EXTERIOR_CLEANING', 'DISINFECTION',
-  ];
-  const repairTypes = [
-    'EMERGENCY_REPAIR', 'ELECTRICAL_REPAIR', 'PLUMBING_REPAIR',
-    'HVAC_REPAIR', 'APPLIANCE_REPAIR',
-  ];
-
-  if (cleaningTypes.includes(type)) return <AutoAwesome {...iconProps} />;
-  if (repairTypes.includes(type)) return <Build {...iconProps} />;
-  if (type === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
-  if (type === 'GARDENING') return <Yard {...iconProps} />;
-  if (type === 'PEST_CONTROL') return <BugReport {...iconProps} />;
-  if (type === 'RESTORATION') return <AutoFixHigh {...iconProps} />;
-  return <Category {...iconProps} />;
-};
-
-// Petite icône de type pour le header
-const getTypeSmallIcon = (type: string) => {
-  const iconProps = { size: 18, color: 'rgba(255,255,255,0.9)', strokeWidth: 1.75 };
-  const cleaningTypes = [
-    'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
-    'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
-    'EXTERIOR_CLEANING', 'DISINFECTION',
-  ];
-  const repairTypes = [
-    'EMERGENCY_REPAIR', 'ELECTRICAL_REPAIR', 'PLUMBING_REPAIR',
-    'HVAC_REPAIR', 'APPLIANCE_REPAIR',
-  ];
-
-  if (cleaningTypes.includes(type)) return <AutoAwesome {...iconProps} />;
-  if (repairTypes.includes(type)) return <Build {...iconProps} />;
-  if (type === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
-  if (type === 'GARDENING') return <Yard {...iconProps} />;
-  if (type === 'PEST_CONTROL') return <BugReport {...iconProps} />;
-  if (type === 'RESTORATION') return <AutoFixHigh {...iconProps} />;
-  return <Category {...iconProps} />;
-};
-
+// Styles alignés sur la référence .pr-card (PropertyCard / screen-properties).
 const styles = {
+  // ── Card ── (hairline r14 du thème, hover border --line-2 + shadow-card + translateY)
   cardRoot: {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
     cursor: 'pointer',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'border-color .14s, box-shadow .14s, transform .14s',
     '&:hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: '0 12px 28px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08)',
+      borderColor: 'var(--line-2)',
+      boxShadow: 'var(--shadow-card)',
+      transform: 'translateY(-2px)',
+    },
+    '@media (prefers-reduced-motion: reduce)': {
+      transition: 'none',
+      '&:hover': { transform: 'none' },
     },
   },
   bannerBox: {
     position: 'relative',
-    height: 110,
+    height: 118,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  // Pastille statut top-left (fond translucide + blur, dot coloré + libellé).
+  statusPill: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    zIndex: 2,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 0.625,
+    fontSize: '10.5px',
+    fontWeight: 700,
+    px: '9px',
+    py: '4px',
+    borderRadius: '20px',
+    bgcolor: 'rgba(255,255,255,.92)',
+    backdropFilter: 'blur(4px)',
+    color: '#2A3942',
+    lineHeight: 1,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
   menuButton: {
     position: 'absolute',
     top: 8,
     right: 10,
+    zIndex: 2,
     color: 'rgba(255,255,255,0.7)',
     bgcolor: 'rgba(0,0,0,0.15)',
-    '&:hover': { bgcolor: 'rgba(0,0,0,0.3)', color: '#fff' },
+    '&:hover': { bgcolor: 'rgba(0,0,0,0.3)', color: 'var(--on-accent)' },
     width: 28,
     height: 28,
-  },
-  badgeBar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    px: 1.5,
-    py: 0.75,
-    bgcolor: 'grey.50',
-    borderBottom: '1px solid',
-    borderColor: 'grey.100',
-    gap: 0.75,
-    minHeight: 34,
-  },
-  badgeBarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.5,
-    flexShrink: 0,
-  },
-  statusChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
-  },
-  priorityChip: {
-    height: 22,
-    fontSize: '0.62rem',
-    fontWeight: 600,
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
-  },
-  dateBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.4,
-    flexShrink: 0,
-  },
-  dateText: {
-    color: 'text.secondary',
-    fontWeight: 600,
-    fontSize: '0.68rem',
-    lineHeight: 1,
   },
   infoContent: {
     flexGrow: 1,
     p: 1.75,
-    pb: '8px !important',
+    pb: '12px !important',
   },
-  titleText: {
+  // Nom d'entité en display.
+  nameText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    fontSize: '0.95rem',
-    mb: 0.25,
-    color: 'text.primary',
+    fontFamily: 'var(--font-display)',
+    fontSize: '15px',
+    fontWeight: 600,
+    letterSpacing: '-.01em',
+    color: 'var(--ink)',
   },
-  descriptionText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    display: 'block',
-    fontSize: '0.7rem',
-    mb: 1,
+  // Chip type (soft, teinté par getInterventionTypeHex).
+  typeChip: {
+    height: 22,
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    borderRadius: '6px',
+    flexShrink: 0,
+    '& .MuiChip-label': { px: 0.75 },
   },
-  propertyRow: {
+  // Ligne localisation (propriété).
+  locationRow: {
     display: 'flex',
     alignItems: 'center',
     gap: 0.5,
-    mb: 1,
+    mb: 1.25,
   },
-  propertyText: {
+  locationText: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     flex: 1,
-    fontSize: '0.7rem',
+    fontSize: '11.5px',
+    color: 'var(--muted)',
   },
-  bottomRow: {
+  // Bande de KPI (valeurs display tabular-nums).
+  statsBand: {
+    display: 'flex',
+    borderTop: '1px solid var(--line)',
+    borderBottom: '1px solid var(--line)',
+    mb: 1.25,
+  },
+  statCell: {
+    flex: 1,
+    py: '9px',
+    textAlign: 'center',
+    borderRight: '1px solid var(--line)',
+    minWidth: 0,
+    '&:last-child': { borderRight: 0 },
+  },
+  statValue: {
+    fontFamily: 'var(--font-display)',
+    fontSize: '15px',
+    fontWeight: 600,
+    color: 'var(--ink)',
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1.2,
+  },
+  statLabel: {
+    fontSize: '9.5px',
+    fontWeight: 700,
+    letterSpacing: '.04em',
+    textTransform: 'uppercase',
+    color: 'var(--faint)',
+    mt: '1px',
+  },
+  // Pied opérationnel : icône accent + libellé fort.
+  footRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 1,
-    mb: 0.5,
+    gap: 0.875,
+    fontSize: '11.5px',
+    color: 'var(--muted)',
+    minWidth: 0,
   },
-  metricsRow: {
-    display: 'flex',
-    gap: 0.75,
+  footIcon: {
+    display: 'inline-flex',
+    color: 'var(--accent)',
     flexShrink: 0,
-    alignItems: 'center',
   },
-  metricChip: {
-    height: 22,
+  footStrong: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: 'var(--body)',
+    fontWeight: 600,
+  },
+  // Chip priorité (soft) dans le pied.
+  priorityChip: {
+    height: 20,
     fontSize: '0.62rem',
     fontWeight: 600,
-    borderWidth: 1.5,
+    borderRadius: '6px',
+    flexShrink: 0,
     '& .MuiChip-label': { px: 0.75 },
-    '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
-  },
-  peopleCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    minWidth: 0,
-    flexShrink: 1,
-  },
-  personRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.5,
-    minWidth: 0,
   },
   actionBar: {
     px: 1.75,
@@ -327,42 +265,35 @@ const styles = {
   detailsButton: {
     fontSize: '0.72rem',
     py: 0.5,
-    borderColor: 'grey.300',
-    color: 'text.secondary',
-    '&:hover': {
-      borderColor: 'primary.main',
-      color: 'primary.main',
-      bgcolor: 'rgba(107, 138, 154, 0.04)',
-    },
-  },
-  locationIcon: {
-    fontSize: 14,
-    color: 'text.secondary',
-    flexShrink: 0,
-  },
-  teamBadge: {
-    ml: 0.5,
-    color: 'info.main',
-    fontSize: '0.6rem',
   },
 } as const;
 
 const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
   request,
   onMenuOpen,
-  typeIcons,
   statuses,
   priorities,
-  statusColors,
-  priorityColors,
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   const statusLabel = statuses.find(s => s.value === request.status)?.label || request.status;
-  const priorityLabel = priorities.find(p => p.value === request.priority)?.label || request.priority;
   const statusHex = getServiceRequestStatusHex(request.status);
+  const typeHex = getInterventionTypeHex(request.type);
   const priorityHex = getServiceRequestPriorityHex(request.priority);
+  const priorityLabel = getServiceRequestPriorityLabel(request.priority, t);
+  const dueMeta = getDueMeta(request.dueDate, t);
+
+  const kpiCells = [
+    { value: dueMeta.label, color: dueToneColor(dueMeta.tone), label: t('interventions.kpi.due') },
+    {
+      value: request.estimatedCost != null && request.estimatedCost > 0 ? `${request.estimatedCost}€` : '—',
+      label: t('interventions.kpi.cost'),
+    },
+    { value: `~${formatDuration(request.estimatedDuration)}`, label: t('interventions.kpi.duration') },
+  ];
+
+  const assigneeName = request.assignedToName || request.requestorName || 'Non assigné';
 
   const handleViewDetails = () => {
     navigate(`/service-requests/${request.id}`);
@@ -373,7 +304,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
       sx={styles.cardRoot}
       onClick={handleViewDetails}
     >
-      {/* ─── Zone visuelle : Bandeau image + gradient ─── */}
+      {/* ─── Bandeau image + gradient + pastille statut ─── */}
       <Box
         sx={{
           ...styles.bannerBox,
@@ -383,7 +314,13 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           backgroundPosition: 'center',
         }}
       >
-        {/* Menu contextuel */}
+        {/* Pastille statut top-left (dot coloré + libellé) */}
+        <Box sx={styles.statusPill}>
+          <Box sx={{ ...styles.statusDot, bgcolor: statusHex }} />
+          {statusLabel}
+        </Box>
+
+        {/* Menu contextuel top-right */}
         <IconButton
           size="small"
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
@@ -393,163 +330,68 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
         </IconButton>
       </Box>
 
-      {/* ─── Barre de badges (entre bandeau et contenu) ─── */}
-      <Box
-        sx={styles.badgeBar}
-      >
-        {/* Gauche : statut + priorité */}
-        <Box sx={styles.badgeBarLeft}>
-          <Chip
-            label={statusLabel}
-            size="small"
-            sx={{ ...styles.statusChip, backgroundColor: `${statusHex}18`, color: statusHex, border: `1px solid ${statusHex}40`, borderRadius: '6px' }}
-          />
-          <Chip
-            label={priorityLabel}
-            size="small"
-            sx={{ ...styles.priorityChip, backgroundColor: `${priorityHex}18`, color: priorityHex, border: `1px solid ${priorityHex}40`, borderRadius: '6px' }}
-          />
-        </Box>
-
-        {/* Droite : type + date d'échéance */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          {(() => { const c = getInterventionTypeHex(request.type); return (
+      {/* ─── Zone info ─── */}
+      <CardContent sx={styles.infoContent}>
+        {/* Titre + chip type */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, mb: 0.5 }}>
+          <Typography sx={{ ...styles.nameText, flex: 1 }} title={request.title}>
+            {request.title}
+          </Typography>
           <Chip
             label={getInterventionTypeLabel(request.type, t)}
             size="small"
             sx={{
-              backgroundColor: `${c}18`,
-              color: c,
-              border: `1px solid ${c}40`,
-              borderRadius: '6px',
-              fontWeight: 600,
-              fontSize: '0.62rem',
-              height: 22,
-              '& .MuiChip-label': { px: 0.75 },
+              ...styles.typeChip,
+              backgroundColor: `${typeHex}18`,
+              color: typeHex,
+              border: `1px solid ${typeHex}40`,
             }}
           />
-          ); })()}
-          <Box sx={styles.dateBox}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarToday size={13} strokeWidth={1.75} /></Box>
-            <Typography variant="caption" sx={styles.dateText}>
-              {formatShortDate(request.dueDate)}
-              {formatTimeFromDate(request.dueDate) && ` · ${formatTimeFromDate(request.dueDate)}`}
-            </Typography>
-          </Box>
         </Box>
-      </Box>
-
-      {/* ─── Zone info ─── */}
-      <CardContent sx={styles.infoContent}>
-        {/* Titre */}
-        <ThemedTooltip title={request.title} arrow placement="top" disableHoverListener={request.title.length < 35}>
-          <Typography
-            variant="subtitle1"
-            fontWeight={700}
-            sx={styles.titleText}
-          >
-            {request.title}
-          </Typography>
-        </ThemedTooltip>
-
-        {/* Description (with iCal source logo if applicable) */}
-        <ThemedTooltip title={request.description} arrow placement="top" disableHoverListener={request.description.length < 60}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1, minWidth: 0 }}>
-            {(() => {
-              const logo = getICalSourceLogo(request.description);
-              return logo ? (
-                <Box
-                  sx={{
-                    width: 18,
-                    height: 18,
-                    minWidth: 18,
-                    borderRadius: '50%',
-                    border: '1.5px solid',
-                    borderColor: 'divider',
-                    backgroundColor: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <img src={logo} alt="" width={12} height={12} style={{ objectFit: 'contain', borderRadius: '50%' }} />
-                </Box>
-              ) : null;
-            })()}
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ ...styles.descriptionText, mb: 0, flex: 1 }}
-            >
-              {request.description}
-            </Typography>
-          </Box>
-        </ThemedTooltip>
 
         {/* Propriété */}
-        <Box sx={styles.propertyRow}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}><LocationOn size={14} strokeWidth={1.75} /></Box>
-          <ThemedTooltip title={`${request.propertyName} — ${request.propertyAddress}, ${request.propertyCity}`} arrow placement="top">
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={styles.propertyText}
-            >
-              {request.propertyName}
-            </Typography>
-          </ThemedTooltip>
+        <Box sx={styles.locationRow}>
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0 }}>
+            <LocationOn size={14} strokeWidth={1.75} />
+          </Box>
+          <Typography
+            sx={styles.locationText}
+            title={`${request.propertyName} — ${request.propertyAddress}, ${request.propertyCity}`}
+          >
+            {request.propertyName}
+          </Typography>
         </Box>
 
-        {/* Personnes + Métriques — deux colonnes sur une ligne */}
-        <Box sx={styles.bottomRow}>
-          {/* Colonne gauche : demandeur / assigné */}
-          <Box sx={styles.peopleCol}>
-            {request.assignedToName ? (
-              <Box sx={styles.personRow}>
-                {request.assignedToType === 'team' ? (
-<Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><GroupIcon size={13} strokeWidth={1.75} /></Box>
-                ) : (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PersonIcon size={13} strokeWidth={1.75} /></Box>
-                )}
-                <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {request.assignedToName}
-                  {request.assignedToType === 'team' && (
-                    <Box component="span" sx={styles.teamBadge}>(Équipe)</Box>
-                  )}
-                </Typography>
-              </Box>
-            ) : (
-              <Box sx={styles.personRow}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><PersonIcon size={13} strokeWidth={1.75} /></Box>
-                <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {request.requestorName}
-                </Typography>
-              </Box>
-            )}
-          </Box>
+        {/* Bande de KPI : échéance / coût est. / durée */}
+        <Box sx={styles.statsBand}>
+          {kpiCells.map((cell, idx) => (
+            <Box key={idx} sx={styles.statCell}>
+              <Typography sx={{ ...styles.statValue, ...(cell.color ? { color: cell.color } : {}) }}>
+                {cell.value}
+              </Typography>
+              <Typography sx={styles.statLabel}>{cell.label}</Typography>
+            </Box>
+          ))}
+        </Box>
 
-          {/* Colonne droite : chips métriques */}
-          <Box sx={styles.metricsRow}>
-            {request.estimatedCost != null && request.estimatedCost > 0 && (
-              <Chip
-                icon={<Payments size={12} strokeWidth={1.75} />}
-                label={`${request.estimatedCost}€ estimé / intervention`}
-                size="small"
-                color="primary"
-                variant="outlined"
-                sx={{ ...styles.metricChip, cursor: 'default' }}
-              />
-            )}
-            <Chip
-              icon={<Timer size={12} strokeWidth={1.75} />}
-              label={`~${formatDuration(request.estimatedDuration)}`}
-              size="small"
-              color="info"
-              variant="outlined"
-              sx={{ ...styles.metricChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
-            />
+        {/* Pied opérationnel : assigné (gauche) + priorité (droite) */}
+        <Box sx={{ ...styles.footRow, minHeight: 20 }}>
+          <Box component="span" sx={styles.footIcon}>
+            {request.assignedToType === 'team'
+              ? <GroupIcon size={13} strokeWidth={2} />
+              : <PersonIcon size={13} strokeWidth={2} />}
           </Box>
+          <Box component="span" sx={styles.footStrong}>{assigneeName}</Box>
+          <Box sx={{ flex: 1 }} />
+          <Chip
+            label={priorityLabel}
+            size="small"
+            sx={{
+              ...styles.priorityChip,
+              backgroundColor: `${priorityHex}18`,
+              color: priorityHex,
+            }}
+          />
         </Box>
       </CardContent>
 

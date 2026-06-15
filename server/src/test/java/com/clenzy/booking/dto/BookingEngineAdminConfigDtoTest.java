@@ -19,7 +19,10 @@ class BookingEngineAdminConfigDtoTest {
                 "Cancellation policy text", "https://terms", "https://privacy",
                 "https://example.com",
                 true, false, true, false,
+                new java.math.BigDecimal("250.00"), 30, 7, 20, 15,
                 "body { color: red }", "console.log('hi')", "{\"layout\":\"grid\"}",
+                "[{\"type\":\"hero\"}]",
+                "12,7",
                 "{\"primary\":\"#FF\"}", "https://source", analysisAt,
                 "bottom", "target", "after",
                 "Acme Corp"
@@ -46,9 +49,16 @@ class BookingEngineAdminConfigDtoTest {
         assertFalse(dto.autoConfirm());
         assertTrue(dto.showCleaningFee());
         assertFalse(dto.showTouristTax());
+        assertEquals(new java.math.BigDecimal("250.00"), dto.securityDepositAmount());
+        assertEquals(30, dto.depositPercent());
+        assertEquals(7, dto.balanceDueDays());
+        assertEquals(20, dto.directBookingDiscountPercent());
+        assertEquals(15, dto.memberDiscountPercent());
         assertEquals("body { color: red }", dto.customCss());
         assertEquals("console.log('hi')", dto.customJs());
         assertEquals("{\"layout\":\"grid\"}", dto.componentConfig());
+        assertEquals("[{\"type\":\"hero\"}]", dto.pageLayout());
+        assertEquals("12,7", dto.featuredPropertyIds());
         assertEquals("{\"primary\":\"#FF\"}", dto.designTokens());
         assertEquals("https://source", dto.sourceWebsiteUrl());
         assertEquals(analysisAt, dto.aiAnalysisAt());
@@ -88,6 +98,8 @@ class BookingEngineAdminConfigDtoTest {
         assertEquals("css", dto.customCss());
         assertEquals("js", dto.customJs());
         assertEquals("cfg", dto.componentConfig());
+        assertEquals("layout-json", dto.pageLayout());
+        assertEquals("4,5,6", dto.featuredPropertyIds());
         assertEquals("tokens", dto.designTokens());
         assertEquals("https://source.example", dto.sourceWebsiteUrl());
         assertEquals("inline", dto.widgetPosition());
@@ -114,7 +126,10 @@ class BookingEngineAdminConfigDtoTest {
                 "STRICT", "terms2", "privacy2",
                 "origin2",
                 true, true, false, true,
+                new java.math.BigDecimal("99.99"), 15, 45, 25, 10,
                 "css-new", "js-new", "cfg-new",
+                "layout-new",
+                "3,4",
                 "tokens-new", "https://new.source", null,
                 "inline", "elem", "after",
                 null
@@ -139,9 +154,16 @@ class BookingEngineAdminConfigDtoTest {
         assertTrue(target.isAutoConfirm());
         assertFalse(target.isShowCleaningFee());
         assertTrue(target.isShowTouristTax());
+        assertEquals(new java.math.BigDecimal("99.99"), target.getSecurityDepositAmount());
+        assertEquals(15, target.getDepositPercent());
+        assertEquals(45, target.getBalanceDueDays());
+        assertEquals(25, target.getDirectBookingDiscountPercent());
+        assertEquals(10, target.getMemberDiscountPercent());
         assertEquals("css-new", target.getCustomCss());
         assertEquals("js-new", target.getCustomJs());
         assertEquals("cfg-new", target.getComponentConfig());
+        assertEquals("layout-new", target.getPageLayout());
+        assertEquals("3,4", target.getFeaturedPropertyIds());
         assertEquals("tokens-new", target.getDesignTokens());
         assertEquals("https://new.source", target.getSourceWebsiteUrl());
         assertEquals("inline", target.getWidgetPosition());
@@ -164,7 +186,8 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
-                null, null, null,
+                null, null, null, null, null,
+                null, null, null, null, null,
                 null, null, null,
                 null, null, null,
                 null
@@ -187,7 +210,8 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
-                null, null, null, null, null, null,
+                null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 null, null, null, null
         );
         BookingEngineAdminConfigDto b = new BookingEngineAdminConfigDto(
@@ -195,7 +219,8 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
-                null, null, null, null, null, null,
+                null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 null, null, null, null
         );
         assertEquals(a, b);
@@ -230,6 +255,8 @@ class BookingEngineAdminConfigDtoTest {
         config.setCustomCss("css");
         config.setCustomJs("js");
         config.setComponentConfig("cfg");
+        config.setPageLayout("layout-json");
+        config.setFeaturedPropertyIds("4,5,6");
         config.setDesignTokens("tokens");
         config.setSourceWebsiteUrl("https://source.example");
         config.setWidgetPosition("inline");

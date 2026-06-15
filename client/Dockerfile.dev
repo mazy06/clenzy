@@ -9,7 +9,16 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Fix ETXTBSY connu sur Docker + Alpine + esbuild (cf. Dockerfile prod).
-RUN npm ci --ignore-scripts \
+# Resilience reseau : ECONNRESET transitoires sur le registre npm → retries npm natifs
+# + boucle (3 tentatives, echec propre si toutes echouent via le sous-shell `exit 1`).
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set fetch-timeout 600000 \
+    && (for i in 1 2 3; do \
+          echo "=== Tentative $i/3: npm ci ===" && npm ci --ignore-scripts && exit 0 || \
+          { echo "=== Tentative $i echouee, attente 10s ===" && sleep 10; }; \
+        done; exit 1) \
     && node node_modules/esbuild/install.js \
     && npm cache clean --force
 

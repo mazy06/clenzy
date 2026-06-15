@@ -2,8 +2,6 @@ import React, { useState, useMemo } from 'react';
 import {
   Box,
   Paper,
-  TextField,
-  InputAdornment,
   FormControl,
   InputLabel,
   Select,
@@ -16,13 +14,13 @@ import {
 } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
 import {
-  Search,
   GridView,
   ViewList,
   MapIcon,
   FilterList as FilterListIcon,
   Close as CloseIcon,
 } from '../icons';
+import HeaderSearchField from './HeaderSearchField';
 
 export interface FilterOption {
   value: string;
@@ -72,6 +70,9 @@ export interface FilterSearchBarProps {
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
+// SEARCH_SX retiré : la recherche est désormais une loupe → modale top-centrée
+// (HeaderSearchField), plus un TextField inline.
+
 const PAPER_SX = {
   p: 1,
   mb: 1,
@@ -81,25 +82,6 @@ const PAPER_SX = {
   bgcolor: 'var(--card)',
 } as const;
 
-// Recherche — pattern .mg-search (messagerie) : h38, fond --field, r11, 12.5px
-const SEARCH_SX = {
-  minWidth: '200px',
-  flex: '0 0 auto',
-  '& .MuiOutlinedInput-root': {
-    fontSize: '12.5px',
-    height: 38,
-    color: 'var(--body)',
-  },
-  '& .MuiInputBase-input': {
-    fontSize: '12.5px',
-    py: 0.5,
-  },
-  '& .MuiInputBase-input::placeholder': {
-    fontSize: '12.5px',
-    color: 'var(--faint)',
-    opacity: 1,
-  },
-} as const;
 
 const FILTER_SX = {
   minWidth: '160px',
@@ -233,20 +215,11 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
 
   const content = (
     <>
-      {/* Search field */}
-      <TextField
-        placeholder={searchPlaceholder}
+      {/* Recherche repliée : loupe → modale top-centrée (cf. HeaderSearchField). */}
+      <HeaderSearchField
         value={searchTerm}
-        onChange={(e) => onSearchChange(e.target.value)}
-        size="small"
-        sx={SEARCH_SX}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Search size={15} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
-            </InputAdornment>
-          ),
-        }}
+        onChange={onSearchChange}
+        placeholder={searchPlaceholder}
       />
 
       {/* Active filter chips (inline) */}

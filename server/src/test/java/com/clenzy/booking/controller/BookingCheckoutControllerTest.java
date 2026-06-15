@@ -58,6 +58,7 @@ class BookingCheckoutControllerTest {
     @Mock private BookingServiceOptionsService serviceOptionsService;
     @Mock private PublicBookingService publicBookingService;
     @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
+    @Mock private com.clenzy.booking.service.BookingPaymentPolicyService paymentPolicyService;
     @Mock private jakarta.servlet.http.HttpServletRequest httpRequest;
 
     private BookingCheckoutController controller;
@@ -68,10 +69,12 @@ class BookingCheckoutControllerTest {
         // pour conserver la couverture bout-en-bout (stubs/verify inchanges).
         BookingCheckoutQuoteService quoteService = new BookingCheckoutQuoteService(
             propertyRepository, serviceOptionsService, publicBookingService);
-        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter);
+        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter, paymentPolicyService);
         setField("stripeSecretKey", "sk_test_xxx");
         setField("currency", "eur");
         org.mockito.Mockito.lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
+        org.mockito.Mockito.lenient().when(paymentPolicyService.resolve(anyLong()))
+            .thenReturn(com.clenzy.booking.service.BookingPaymentPolicyService.BookingPaymentPolicy.none());
     }
 
     private void setField(String fieldName, Object value) throws Exception {
@@ -109,7 +112,7 @@ class BookingCheckoutControllerTest {
         return new AvailabilityResponseDto(true, PROPERTY_ID, "Studio Riviera",
             LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2, 4,
             List.of(), new BigDecimal(total), BigDecimal.ZERO, BigDecimal.ZERO,
-            new BigDecimal(total), "EUR", 1, 4, "15:00", "11:00", List.of());
+            new BigDecimal(total), BigDecimal.ZERO, "EUR", 1, 4, "15:00", "11:00", List.of());
     }
 
     private Reservation buildHold(Long id) {
@@ -241,7 +244,7 @@ class BookingCheckoutControllerTest {
             AvailabilityResponseDto quote = new AvailabilityResponseDto(true, PROPERTY_ID, "Studio Riviera",
                 LocalDate.parse(CHECK_IN), LocalDate.parse(CHECK_OUT), 2, 4,
                 List.of(), new BigDecimal("90.00"), new BigDecimal("10.00"), new BigDecimal("5.00"),
-                new BigDecimal("105.00"), "EUR", 1, 4, "15:00", "11:00", List.of());
+                new BigDecimal("105.00"), BigDecimal.ZERO, "EUR", 1, 4, "15:00", "11:00", List.of());
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(buildProperty()));
             when(publicBookingService.resolveOrgById(ORG_ID)).thenReturn(buildCtx());
             when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))

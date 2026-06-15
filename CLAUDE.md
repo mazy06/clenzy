@@ -10,6 +10,12 @@
 - Chaque changeset dans le YAML utilise : `id: "NNNN-description-avec-tirets"`, `author: clenzy-team`
 - Pour les blocs PL/pgSQL (`DO $$`), ajouter `splitStatements: false` et `stripComments: false`
 
+### Nom de table/colonne : vérifier contre l'entité — `mvn package` n'exécute PAS Liquibase
+
+- **Avant d'écrire un `ALTER TABLE` / `CREATE TABLE`, vérifier le nom EXACT de la table contre le `@Table(name=...)` de l'entité JPA ET les changesets existants** (`grep "CREATE TABLE <table>" server/src/main/resources/db/changelog`). Ne PAS déduire le nom depuis le nom de la classe Java : les tables sont souvent au **pluriel** alors que l'entité est au singulier (ex. entité `BookingEngineConfig` → table `booking_engine_configs` ; `Organization` → `organizations`). Idem pour les colonnes (`@Column(name=...)`).
+- **`mvn package` ne valide PAS les migrations** : la suite de tests utilise le schéma **Hibernate** (`ddl-auto`), pas Liquibase. Un changeset avec une mauvaise table/colonne **passe `mvn package` vert** et n'échoue qu'au **boot réel** (`SpringLiquibase` au démarrage → `relation "xxx" does not exist`, l'app ne démarre pas). Incident 2026-06-14 : changesets 0249/0251 écrits `booking_engine_config` (singulier) au lieu de `booking_engine_configs`.
+- Un changeset qui échoue **avant** d'être enregistré dans `databasechangelog` (et le lock relâché) est **rejoué proprement au boot suivant** une fois corrigé — aucun nettoyage DB requis, tant qu'il n'a pas déjà été appliqué ailleurs (sinon : problème de checksum, cf. `liquibase-bootstrap.yml`).
+
 ### Production : Liquibase = source de vérité du schéma (INVARIANT, ne pas modifier)
 
 - En prod, `clenzy-infra/docker-compose.prod.yml` fixe sur le service `pms-server` :

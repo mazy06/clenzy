@@ -30,6 +30,7 @@ import DashboardOverview from './DashboardOverview';
 import UpgradeBanner from './UpgradeBanner';
 import { AnalyticsSimulator } from './analytics';
 import { getVisibleTabs } from '../../config/dashboardConfig';
+import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 
 // ─── Tab icon mapping ────────────────────────────────────────────────────────
@@ -72,6 +73,8 @@ const Dashboard: React.FC = () => {
 
   const [period, setPeriod] = useState<DashboardPeriod>('month');
   const [tabValue, setTabValue] = useState(0);
+  // Channel Manager : ouvre la modale guidee de distribution OTA (Channex).
+  const [cmOpen, setCmOpen] = useState(false);
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
@@ -178,24 +181,32 @@ const Dashboard: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 {headerActionsPortal}
                 {(isAdmin || isManager || isHost) && (
-                  <Tooltip title="Channel Manager (bientôt disponible)" arrow>
-                    <span>
-                      <Chip
-                        icon={<SyncIcon size={14} strokeWidth={1.75} />}
-                        label="Channel Manager"
-                        size="small"
-                        variant="outlined"
-                        disabled
-                        sx={{
-                          fontSize: '0.6875rem',
-                          fontWeight: 600,
-                          height: 28,
-                          borderColor: 'divider',
-                          color: 'text.disabled',
-                          '& .MuiChip-icon': { fontSize: 14, color: 'text.disabled' },
-                        }}
-                      />
-                    </span>
+                  <Tooltip title="Connecter vos OTA via le Channel Manager (Channex)" arrow>
+                    <Chip
+                      icon={<SyncIcon size={14} strokeWidth={1.75} />}
+                      label="Channel Manager"
+                      size="small"
+                      variant="outlined"
+                      clickable
+                      onClick={() => setCmOpen(true)}
+                      sx={{
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        height: 28,
+                        cursor: 'pointer',
+                        borderColor: 'var(--line-2)',
+                        color: 'var(--body)',
+                        '& .MuiChip-icon': { fontSize: 14, color: 'var(--accent)' },
+                        '&:hover': {
+                          borderColor: 'var(--accent)',
+                          color: 'var(--accent)',
+                          backgroundColor: 'var(--accent-soft)',
+                          '& .MuiChip-icon': { color: 'var(--accent)' },
+                        },
+                        transition: 'border-color .15s, color .15s, background-color .15s',
+                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+                      }}
+                    />
                   </Tooltip>
                 )}
                 {dateFilterElement && (
@@ -275,6 +286,9 @@ const Dashboard: React.FC = () => {
           </Box>
         )}
 
+        {/* Channel Manager : modale guidee de distribution OTA (Channex).
+            Mode guided = formulation end-user + degradation gracieuse. */}
+        <ChannexMappingDialog open={cmOpen} guided onClose={() => setCmOpen(false)} />
       </Box>
     </PageHeaderActionsProvider>
   );

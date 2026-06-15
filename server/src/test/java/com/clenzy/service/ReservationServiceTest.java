@@ -44,6 +44,7 @@ class ReservationServiceTest {
     @Mock private com.clenzy.repository.PropertyRepository propertyRepository;
     @Mock private com.clenzy.repository.GuestRepository guestRepository;
     @Mock private StripeService stripeService;
+    @Mock private com.clenzy.service.WebhookEventPublisher webhookEventPublisher;
 
     private TenantContext tenantContext;
     private ReservationService reservationService;
@@ -66,7 +67,8 @@ class ReservationServiceTest {
                 minNightsOverrideRepository, automationEvaluationService,
                 smartLockDeviceRepository, smartLockAccessCodeService,
                 reservationMapper, interventionRepository,
-                propertyRepository, guestRepository, stripeService
+                propertyRepository, guestRepository, stripeService,
+                webhookEventPublisher
         );
 
         // Pas d'override min-nights par defaut dans les tests (resolution

@@ -1,4 +1,18 @@
 {
+  "channexGuided": {
+    "title": "وزّع عقاراتك",
+    "subtitle": "اعرض عقاراتك على Airbnb وBooking وVrbo… وزامن كل شيء من Baitly.",
+    "intro": "وزّع عقاراتك على Airbnb وBooking وVrbo… في بضع نقرات.",
+    "importTitle": "استيراد إعلاناتي الحالية",
+    "importDesc": "من Airbnb أو Booking أو Vrbo — بيانات معبّأة مسبقًا.",
+    "connectTitle": "ربط أحد عقاراتي",
+    "connectDesc": "عقار موجود في Baitly، منشور على المنصّات.",
+    "manageTitle": "إدارة منصّات OTA المرتبطة",
+    "manageDesc": "عرض وفصل المنصّات المرتبطة.",
+    "techToggleShow": "الحالة التقنية للاتصال",
+    "techToggleHide": "إخفاء الحالة التقنية",
+    "configuringNote": "جارٍ إعداد الاتصال بمدير القنوات. لا يزال بإمكانك تجهيز عقاراتك أدناه."
+  },
   "guestExperience": {
     "navLabel": "الحجز والاستقبال",
     "title": "الحجز والاستقبال",
@@ -396,7 +410,8 @@
     "refresh": "تحديث",
     "expandMenu": "فتح القائمة",
     "collapseMenu": "طي القائمة",
-    "ratesAt": "الأسعار في"
+    "ratesAt": "الأسعار في",
+    "download": "تحميل"
   },
   "connectedObjects": {
     "previewBadge": "معاينة",
@@ -714,7 +729,14 @@
       "viewAll": "عرض جميع العقود",
       "moreContracts": "+{{count}} أخرى",
       "noPayouts": "لا توجد دورة دفع بعد",
-      "avgRate": "متوسط النسبة"
+      "avgRate": "متوسط النسبة",
+      "mergedTitle": "الإدارة والتحويلات",
+      "reversed": "تم تحويله",
+      "toReverse": "للتحويل",
+      "inTransit": "قيد التحويل",
+      "nextPayoutPrefix": "التحويل القادم في",
+      "noNextPayout": "لا يوجد تحويل مجدول",
+      "viewPayouts": "عرض التحويلات"
     },
     "miniPlanning": {
       "title": "تخطيط 7 أيام",
@@ -1307,6 +1329,21 @@
         "DEEP_CLEANING": "عميق"
       }
     },
+    "kpi": {
+      "occupancy": "إشغال",
+      "adr": "متوسط السعر",
+      "revenue": "الإيراد"
+    },
+    "ops": {
+      "occupied": "مشغول",
+      "available": "متاح",
+      "checkout": "المغادرة",
+      "cleaning": "تنظيف",
+      "maintenance": "صيانة",
+      "inProgress": "جارٍ",
+      "today": "اليوم",
+      "tomorrow": "غدًا"
+    },
     "cleaningEstimate": "تقدير التنظيف",
     "cleaningEstimateTooltip": "تقدير إرشادي لتكلفة تدخل التنظيف. السعر النهائي يخضع لقبول مقدم الخدمة.",
     "cleaningDurationTooltip": "المدة التقديرية لتدخل التنظيف بناءً على خصائص العقار. قد تختلف المدة الفعلية.",
@@ -1317,6 +1354,25 @@
     "addressAutocomplete": "البحث عن عنوان..."
   },
   "serviceRequests": {
+    "detail": {
+      "contextLabel": "طلب خدمة"
+    },
+    "progressLabels": {
+      "pending": "قيد الانتظار",
+      "approved": "تمت الموافقة",
+      "inProgress": "قيد التنفيذ",
+      "completed": "مكتمل"
+    },
+    "layout": {
+      "timeDetail": "تفاصيل الوقت",
+      "propertyCleaningDuration": "مدة التنظيف (العقار)",
+      "bedroomsShort": "غرف",
+      "bathroomsShort": "حمام",
+      "guestsShort": "ضيوف",
+      "floorsShort": "طوابق",
+      "exterior": "خارجي",
+      "laundry": "غسيل"
+    },
     "title": "طلبات الخدمة",
     "subtitle": "إدارة طلبات الصيانة والتنظيف",
     "create": "طلب جديد",
@@ -1481,6 +1537,18 @@
     "approvedDateShort": "تمت الموافقة في"
   },
   "interventions": {
+    "due": {
+      "overdue": "متأخر {{count}} يوم",
+      "today": "اليوم",
+      "tomorrow": "غدًا",
+      "inDays": "خلال {{count}} يوم"
+    },
+    "kpi": {
+      "due": "الاستحقاق",
+      "cost": "التكلفة",
+      "duration": "المدة",
+      "progress": "التقدم"
+    },
     "title": "التدخلات",
     "subtitle": "إدارة ومتابعة التدخلات",
     "create": "تدخل جديد",
@@ -1614,6 +1682,8 @@
     "detail": {
       "title": "تفاصيل التدخل",
       "subtitle": "استشارة وإدارة معلومات التدخل",
+      "contextLabel": "تدخل",
+      "workflowTitle": "متابعة التدخل",
       "backToList": "العودة إلى التدخلات",
       "editButton": "تعديل",
       "unauthorized": "وصول غير مصرح",
@@ -3348,6 +3418,9 @@
       "searchTag": "البحث عن علامة..."
     },
     "history": {
+      "pdfPreview": "معاينة المستند",
+      "pdfNotSupported": "متصفحك لا يدعم معاينة PDF.",
+      "pdfLoadError": "خطأ أثناء تحميل المستند",
       "filterAll": "الكل",
       "filterMessages": "الرسائل",
       "filterDocuments": "المستندات",

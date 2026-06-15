@@ -206,8 +206,10 @@ class AiTokenBudgetServiceTest {
             assertEquals(2_000L, stats.usageByFeature().get("DESIGN"));
             // ASSISTANT_CHAT ajoute (audit pre-prod 2026-05) — meme defaut 100k
             assertEquals(0L, stats.usageByFeature().get("ASSISTANT_CHAT"));
+            // CONTENT ajoute (BE-L0-2, generation de contenu) — meme defaut 100k
+            assertEquals(0L, stats.usageByFeature().get("CONTENT"));
             assertEquals(11_000L, stats.totalUsed());
-            assertEquals(600_000L, stats.totalBudget()); // 6 features * 100k default
+            assertEquals(700_000L, stats.totalBudget()); // 7 features * 100k default
             assertEquals("2026-03", stats.monthYear());
         }
     }

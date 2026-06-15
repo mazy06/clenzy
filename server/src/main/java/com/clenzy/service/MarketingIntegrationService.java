@@ -94,6 +94,11 @@ public class MarketingIntegrationService {
         return (id != null && id > 0) ? id : null;
     }
 
+    public Long resolveLeadsListId() {
+        Long id = getOrCreate().getLeadsListId();
+        return (id != null && id > 0) ? id : null;
+    }
+
     public boolean isWaitlistSyncEnabled() {
         return getOrCreate().isSyncWaitlistEnabled() && resolveApiKey() != null && resolveWaitlistListId() != null;
     }
@@ -104,6 +109,10 @@ public class MarketingIntegrationService {
 
     public boolean isProspectsSyncEnabled() {
         return getOrCreate().isSyncProspectsEnabled() && resolveApiKey() != null && resolveProspectsListId() != null;
+    }
+
+    public boolean isLeadsSyncEnabled() {
+        return getOrCreate().isSyncLeadsEnabled() && resolveApiKey() != null && resolveLeadsListId() != null;
     }
 
     public boolean isAttributesSyncEnabled() {
@@ -124,22 +133,25 @@ public class MarketingIntegrationService {
     }
 
     @Transactional
-    public MarketingIntegration updateLists(Long waitlistListId, Long newsletterListId, Long prospectsListId, String by) {
+    public MarketingIntegration updateLists(Long waitlistListId, Long newsletterListId, Long prospectsListId,
+                                            Long leadsListId, String by) {
         MarketingIntegration m = getOrCreate();
         m.setWaitlistListId(normalize(waitlistListId));
         m.setNewsletterListId(normalize(newsletterListId));
         m.setProspectsListId(normalize(prospectsListId));
+        m.setLeadsListId(normalize(leadsListId));
         m.setUpdatedBy(by);
         return repository.save(m);
     }
 
     @Transactional
     public MarketingIntegration updateToggles(Boolean syncWaitlist, Boolean syncNewsletter,
-                                              Boolean syncProspects, Boolean syncAttributes, String by) {
+                                              Boolean syncProspects, Boolean syncLeads, Boolean syncAttributes, String by) {
         MarketingIntegration m = getOrCreate();
         if (syncWaitlist != null) m.setSyncWaitlistEnabled(syncWaitlist);
         if (syncNewsletter != null) m.setSyncNewsletterEnabled(syncNewsletter);
         if (syncProspects != null) m.setSyncProspectsEnabled(syncProspects);
+        if (syncLeads != null) m.setSyncLeadsEnabled(syncLeads);
         if (syncAttributes != null) m.setSyncAttributesEnabled(syncAttributes);
         m.setUpdatedBy(by);
         return repository.save(m);

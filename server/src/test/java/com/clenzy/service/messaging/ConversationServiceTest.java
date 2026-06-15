@@ -34,13 +34,15 @@ class ConversationServiceTest {
     @Mock private WhatsAppChannel whatsAppChannel;
     @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
     @Mock private com.clenzy.repository.GuestRepository guestRepository;
+    @Mock private com.clenzy.repository.UserRepository userRepository;
 
     private ConversationService service;
 
     @BeforeEach
     void setUp() {
         service = new ConversationService(conversationRepository, messageRepository,
-            eventPublisher, notificationService, whatsAppChannel, reservationRepository, guestRepository);
+            eventPublisher, notificationService, whatsAppChannel, reservationRepository, guestRepository,
+            userRepository);
     }
 
     @Test
@@ -175,12 +177,30 @@ class ConversationServiceTest {
         conv.setOrganizationId(1L);
         when(conversationRepository.findByIdAndOrganizationId(1L, 1L)).thenReturn(Optional.of(conv));
         when(conversationRepository.save(any())).thenReturn(conv);
+        com.clenzy.model.User assignee = new com.clenzy.model.User();
+        assignee.setOrganizationId(1L);
+        when(userRepository.findByKeycloakId("user-kc-id")).thenReturn(Optional.of(assignee));
 
         Conversation result = service.assignConversation(1L, 1L, "user-kc-id");
 
         assertThat(result.getAssignedToKeycloakId()).isEqualTo("user-kc-id");
         verify(notificationService).send(eq("user-kc-id"), eq(NotificationKey.CONVERSATION_ASSIGNED),
             anyString(), anyString(), any());
+    }
+
+    @Test
+    void assignConversation_rejectsAssigneeFromAnotherOrg() {
+        Conversation conv = new Conversation();
+        conv.setId(1L);
+        conv.setOrganizationId(1L);
+        when(conversationRepository.findByIdAndOrganizationId(1L, 1L)).thenReturn(Optional.of(conv));
+        com.clenzy.model.User otherOrgUser = new com.clenzy.model.User();
+        otherOrgUser.setOrganizationId(2L); // autre org
+        when(userRepository.findByKeycloakId("user-kc-id")).thenReturn(Optional.of(otherOrgUser));
+
+        assertThatThrownBy(() -> service.assignConversation(1L, 1L, "user-kc-id"))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(conversationRepository, never()).save(any());
     }
 
     @Test
@@ -298,7 +318,7 @@ class ConversationServiceTest {
 
         verify(notificationService).send(eq("assignee-kc-id"),
                 eq(NotificationKey.CONVERSATION_NEW_MESSAGE),
-                anyString(), anyString(), org.mockito.ArgumentMatchers.isNull());
+                anyString(), anyString(), eq("/contact?highlight=1"));
     }
 
     @Test

@@ -6,6 +6,7 @@ import { useIconSize } from '../hooks/useResponsiveSize';
 import { useAuth } from '../hooks/useAuth';
 import { getScreenIdentity, type HubAccess } from '../config/navigationHubs';
 import HubScreenSwitcher from './HubScreenSwitcher';
+import PageHeaderActions from './PageHeaderActions';
 
 interface PageHeaderProps {
   title: string;
@@ -106,28 +107,29 @@ export default function PageHeader({
 
   // Rendu partage du bouton « Retour » (utilise par showBackButton et
   // showBackButtonWithActions — meme comportement exact qu'avant factorisation).
+  // Retour = icon-only à toute taille (libellé en tooltip), cohérent avec la
+  // règle « actions du header en icônes seules ».
   const backButton = (
-    <Tooltip title={isCompact ? backLabel : ''} arrow>
+    <Tooltip title={backLabel} arrow>
       <Button
         variant="outlined"
         size="small"
-        startIcon={isCompact ? undefined : <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />}
         onClick={handleBack}
+        aria-label={backLabel}
         sx={{
           height: 32,
+          minWidth: 32,
+          px: 0.75,
           borderRadius: '9px',
-          fontSize: '12.5px',
-          fontWeight: 600,
           color: 'var(--body)',
           borderColor: 'var(--line-2)',
           '&:hover': {
             borderColor: 'var(--line-2)',
             bgcolor: 'var(--faint)',
           },
-          ...(isCompact && { minWidth: 30, px: 0.75 }),
         }}
       >
-        {isCompact ? <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} /> : backLabel}
+        <ArrowBackIcon size={badgeIconSize} strokeWidth={1.75} />
       </Button>
     </Tooltip>
   );
@@ -137,32 +139,9 @@ export default function PageHeader({
       <Box display="flex" justifyContent="space-between" alignItems="center" gap={1} flexWrap="wrap">
         {screenIdentity ? (
           /* Mode identité : pastille + pilule(s) tiennent lieu de titre (Direction A).
-             Hubs multi-écrans → switcher sans sous-titre (densité). Écran autonome →
-             pilule unique + sous-titre conservé s'il porte une info utile
-             (ex : mois synchronisé du Planning). */
+             Plus de sous-titre/description (choix produit : header dense). */
           <Box sx={{ minWidth: 0, flex: 1, mr: 1 }}>
             <HubScreenSwitcher identity={screenIdentity} />
-            {screenIdentity.kind === 'single' && subtitle && (
-              <Typography
-                variant="caption"
-                sx={{
-                  display: 'block',
-                  mt: 0.5,
-                  ml: '40px',
-                  color: 'var(--muted)',
-                  fontSize: '11.5px',
-                  lineHeight: 1.3,
-                  ...(isCompact && {
-                    ml: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }),
-                }}
-              >
-                {subtitle}
-              </Typography>
-            )}
           </Box>
         ) : (
         /* Titre et sous-titre (avec optionally iconBadge) */
@@ -234,34 +213,12 @@ export default function PageHeader({
         </Box>
         )}
 
-        {/* Filters + Actions a droite */}
-        <Box
-          display="flex"
-          gap={1}
-          alignItems="center"
-          sx={{
-            flexShrink: 0,
-            // Les boutons/icônes des slots héritent du langage Signature GLOBAL
-            // (signatureTheme MuiButton/MuiIconButton — réf « .s-btn ») :
-            // primaire = contour accent, neutre hairline, danger contour err,
-            // ghost, tailles sm/lg, press .97, disabled .45. Rien à dupliquer ici.
-            // En mode compact, les boutons avec icone deviennent icon-only + tooltip.
-            ...(isCompact && {
-              '& .MuiButton-root:has(.MuiButton-startIcon), & .MuiButton-root:has(.MuiButton-endIcon)': {
-                fontSize: 0,
-                minWidth: 30,
-                '& .MuiButton-startIcon': { margin: 0 },
-                '& .MuiButton-endIcon':   { margin: 0 },
-              },
-            }),
-          }}
-        >
-          {filters}
-          {actions}
+        {/* Filters + Actions a droite — icon-only à toute taille, repli overflow
+            (un seul ⋯ + dropdown) en responsive. Cf. PageHeaderActions. */}
+        <Box display="flex" gap={1} alignItems="center" sx={{ flexShrink: 0 }}>
+          <PageHeaderActions filters={filters} actions={actions} narrow={isCompact} />
 
-          {showBackButton && backButton}
-
-          {showBackButtonWithActions && backButton}
+          {(showBackButton || showBackButtonWithActions) && backButton}
         </Box>
       </Box>
     </Box>

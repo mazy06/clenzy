@@ -161,9 +161,15 @@ public class CalendarController {
     public ResponseEntity<List<Map<String, Object>>> getBlockedDays(
             @RequestParam List<Long> propertyIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal Jwt jwt) {
 
         Long orgId = tenantContext.getRequiredOrganizationId();
+
+        // Ownership : valider chaque propriete du lot (anti-IDOR, regle audit #3).
+        for (Long propertyId : propertyIds) {
+            validatePropertyAccess(propertyId, jwt.getSubject(), orgId);
+        }
 
         List<CalendarDay> days = calendarEngine.getBlockedOrMaintenanceDays(propertyIds, from, to, orgId);
 

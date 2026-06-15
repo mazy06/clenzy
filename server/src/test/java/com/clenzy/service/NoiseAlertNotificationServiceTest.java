@@ -130,7 +130,7 @@ class NoiseAlertNotificationServiceTest {
             eq(NotificationKey.NOISE_ALERT_WARNING),
             contains("Studio Paris"),
             contains("75 dB"),
-            isNull()
+            contains("/connected-objects/property/")
         );
         assertTrue(alert.isNotifiedInApp());
     }
@@ -147,7 +147,7 @@ class NoiseAlertNotificationServiceTest {
             eq(NotificationKey.NOISE_ALERT_CRITICAL),
             contains("critique"),
             anyString(),
-            isNull()
+            contains("/connected-objects/property/")
         );
     }
 

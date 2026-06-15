@@ -2,6 +2,8 @@ package com.clenzy.booking.dto;
 
 import com.clenzy.booking.model.BookingEngineConfig;
 
+import java.math.BigDecimal;
+
 /**
  * Configuration publique du Booking Engine.
  * Expose uniquement les infos utiles a l'integrateur (pas d'API key, pas d'ID interne).
@@ -23,9 +25,28 @@ public record BookingEngineConfigDto(
     boolean showTouristTax,
     String customCss,
     String customJs,
-    String componentConfig
+    String componentConfig,
+    // Page composée par blocs (builder) — rendue par la page publique hébergée.
+    String pageLayout,
+    // Design tokens (JSON, 21 props : rayon, ombres, surfaces, typo…) — appliqués au widget + blocs.
+    String designTokens,
+    // Caution pré-autorisée sur la carte (affichage voyageur ; NULL = aucune).
+    BigDecimal securityDepositAmount,
+    // Acompte : % prélevé à la réservation (NULL = intégral) + délai du solde (affichage voyageur).
+    Integer depositPercent,
+    Integer balanceDueDays,
+    // Book Direct & Save (2.8) — remise % réservation directe (affichage de l'économie côté widget).
+    Integer directBookingDiscountPercent,
+    // Tarif membre (2.8) — remise % voyageur connecté (le widget incite à se connecter / affiche l'éco).
+    Integer memberDiscountPercent,
+    // Capture de leads activée au niveau org (2.12) — pilote l'affichage du form exit-intent du widget.
+    boolean leadCaptureEnabled
 ) {
     public static BookingEngineConfigDto from(BookingEngineConfig config) {
+        return from(config, true);
+    }
+
+    public static BookingEngineConfigDto from(BookingEngineConfig config, boolean leadCaptureEnabled) {
         return new BookingEngineConfigDto(
             config.getPrimaryColor(),
             config.getAccentColor(),
@@ -43,7 +64,15 @@ public record BookingEngineConfigDto(
             config.isShowTouristTax(),
             config.getCustomCss(),
             config.getCustomJs(),
-            config.getComponentConfig()
+            config.getComponentConfig(),
+            config.getPageLayout(),
+            config.getDesignTokens(),
+            config.getSecurityDepositAmount(),
+            config.getDepositPercent(),
+            config.getBalanceDueDays(),
+            config.getDirectBookingDiscountPercent(),
+            config.getMemberDiscountPercent(),
+            leadCaptureEnabled
         );
     }
 }

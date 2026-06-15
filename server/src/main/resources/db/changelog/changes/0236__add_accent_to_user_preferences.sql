@@ -1,0 +1,1 @@
+ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS accent VARCHAR(20) NOT NULL DEFAULT 'emeraude';

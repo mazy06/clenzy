@@ -20,6 +20,8 @@ public record AvailabilityResponseDto(
     BigDecimal cleaningFee,
     BigDecimal touristTax,
     BigDecimal total,
+    /** Économie « réservation directe » (Book Direct & Save 2.8) — déjà déduite de subtotal/total. */
+    BigDecimal directDiscount,
     String currency,
     Integer minStay,
     Integer maxGuests,
@@ -33,6 +35,16 @@ public record AvailabilityResponseDto(
         String rateType
     ) {}
 
+    /** Copie avec montants convertis dans une devise d'affichage (CLZ Domaine 2 — multi-devise). */
+    public AvailabilityResponseDto withDisplayCurrency(BigDecimal newSubtotal, BigDecimal newCleaningFee,
+                                                       BigDecimal newTouristTax, BigDecimal newTotal,
+                                                       BigDecimal newDirectDiscount,
+                                                       List<NightBreakdown> newBreakdown, String newCurrency) {
+        return new AvailabilityResponseDto(available, propertyId, propertyName, checkIn, checkOut, guests, nights,
+            newBreakdown, newSubtotal, newCleaningFee, newTouristTax, newTotal, newDirectDiscount, newCurrency,
+            minStay, maxGuests, checkInTime, checkOutTime, violations);
+    }
+
     /**
      * Fabrique pour un resultat "non disponible".
      */
@@ -41,7 +53,7 @@ public record AvailabilityResponseDto(
                                                        List<String> violations) {
         return new AvailabilityResponseDto(
             false, propertyId, null, checkIn, checkOut, guests, 0,
-            List.of(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+            List.of(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
             null, null, null, null, null, violations
         );
     }

@@ -1,0 +1,24 @@
+ID,Titre,Phase,Domaine,Cible,Estimation,JoursHomme,Dependances,Multipays
+CLZ-P0-01,Entite Country + branchement des registries,Phase 0,0. Socle multi-pays,Differenciation,M,5,,FR/MA/KSA
+CLZ-P0-02,Isolation multi-tenant calendrier (requireSameOrganization + ArchUnit),Phase 0,3. Calendrier & multi-tenant,Parite,S,3,,FR/MA/KSA
+CLZ-P0-03,Activation du flag multi-country + rollout par pays,Phase 0,0. Socle multi-pays,Parite,S,2,CLZ-P0-01,FR/MA/KSA
+CLZ-P0-04,Abstraction EInvoicingProvider + registry,Phase 1,8. Finance & Comptabilite,Differenciation,L,8,CLZ-P0-01,FR/MA/KSA
+CLZ-P0-05,Contrat ChannelConnector unique (natif vs Channex),Phase 1/4,1. Channel Management,Parite,XL,15,CLZ-P0-01,"FR/MA/KSA (routage par pays)"
+CLZ-P0-06,Sync temps reel dispo/prix bidirectionnelle (Outbox/Kafka),Phase 1,1. Channel Management,Parite,M,5,CLZ-P0-05,"FR/MA/KSA (timezone propriete)"
+CLZ-P0-07,Sync des restrictions de sejour (pushRestrictions par adapter),Phase 1,1. Channel Management,Parite,L,8,"CLZ-P0-05, CLZ-P0-06","FR/MA/KSA (modele OTA MENA a valider)"
+CLZ-P0-08,OTAs MENA - Gathern (KSA) et marketplaces locaux,Phase 3,1. Channel Management,Parite,XL,15,"CLZ-P0-01, CLZ-P0-05, CLZ-P0-06",KSA
+CLZ-P0-09,Authentification a deux facteurs (2FA / TOTP),Phase 0,"12. Admin, securite & conformite",Parite,M,5,CLZ-P0-02,"FR/MA/KSA (TOTP, pas SMS seul)"
+CLZ-P0-10,Edition groupee massive multi-propriete (bulk calendrier),Phase 1,3. Calendrier & multi-tenant,Parite,L,8,"CLZ-P0-02, CLZ-P0-06","FR/MA/KSA (timezone+devise par bien)"
+CLZ-P0-11,Emails de confirmation et rappels de reservation (site direct),Phase 0,2. Booking engine & site direct,Parite,M,5,CLZ-P0-01,"FR/MA/KSA (templates fr/en/ar + RTL)"
+CLZ-P0-12,i18n et RTL embarques dans le booking-sdk,Phase 1,2. Booking engine & site direct,Parite,M,5,,"FR/MA/KSA (RTL arabe, EUR/MAD/SAR)"
+CLZ-P0-13,Comparaison periode N vs N-1 (delta backend canonique),Phase 1,9. Reporting & Analytics,Parite,S,3,,"FR/MA/KSA (devise reporting)"
+CLZ-P0-14,Agregation multi-devise et consolidation portefeuille,Phase 1,9. Reporting & Analytics,Differenciation,M,5,"CLZ-P0-01, CLZ-P0-13","EUR/MAD/SAR"
+CLZ-P0-15,Report builder leger (vues sauvegardables + colonnes ad hoc),Phase 1,9. Reporting & Analytics,Parite,L,8,"CLZ-P0-01, CLZ-P0-14","FR/MA/KSA (pays comme axe)"
+CLZ-P0-16,Moteur IA de tarification livre en prod (shadow/reco/auto),Phase 1,4. Tarification / Yield,Parite,L,8,"CLZ-P0-01, CLZ-P0-17","FR/MA/KSA (week-end+Hijri dans prompt)"
+CLZ-P0-17,Architecture de recommandation de prix (CAS-safe),Phase 1,4. Tarification / Yield,Parite,M,5,CLZ-P0-01,"FR/MA/KSA (arrondis devise)"
+CLZ-P0-18,Injection des taxes par pays dans la simulation de prix,Phase 1,4. Tarification / Yield,Parite,M,5,CLZ-P0-01,"FR (TVA 10%) / MA (10-20%) / KSA (15%)"
+CLZ-P0-19,FrancePdpProvider - Factur-X / PDP 2026-2027,Phase 1,8. Finance & Comptabilite,Differenciation,XL,15,CLZ-P0-04,FR
+CLZ-P0-20,ZatcaProvider - generation UBL 2.1 + signature XAdES,Phase 3,8. Finance & Comptabilite,Differenciation,XL,15,"CLZ-P0-04, CLZ-P0-21, CLZ-P0-22",KSA
+CLZ-P0-21,ZATCA - chaine PIH atomique (anti check-then-act),Phase 3,8. Finance & Comptabilite,Differenciation,L,8,CLZ-P0-01,KSA
+CLZ-P0-22,ZATCA - QR TLV + onboarding CSID (KMS),Phase 3,8. Finance & Comptabilite,Differenciation,L,8,CLZ-P0-01,KSA
+CLZ-P0-23,ZATCA - clearance B2B / reporting B2C (hors transaction),Phase 3,8. Finance & Comptabilite,Differenciation,L,8,"CLZ-P0-04, CLZ-P0-20, CLZ-P0-21, CLZ-P0-22",KSA
