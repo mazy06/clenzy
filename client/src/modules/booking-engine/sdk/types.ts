@@ -35,6 +35,12 @@ export interface BaitlyTheme {
   fontFamily?: string;
   borderRadius?: string;
   shadow?: string;
+  /** Taille de police de base (ex. '16px') — met à l'échelle tout le texte du widget. */
+  fontSize?: string;
+  /** Densité d'espacement : met à l'échelle les paddings/gaps du widget. */
+  density?: 'compact' | 'normal' | 'spacious';
+  /** Style des boutons d'action. */
+  buttonStyle?: 'filled' | 'outlined';
 }
 
 // ─── Internal State ──────────────────────────────────────────────────────────
