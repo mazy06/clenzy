@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Box, ButtonBase, InputBase, Tooltip } from '@mui/material';
-import { Plus, Pencil, X, House } from 'lucide-react';
+import { Plus, Pencil, X, House, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { SitePage } from '../../../../services/api/sitesApi';
 
 /**
@@ -16,10 +16,11 @@ export interface PagesBarProps {
   onAdd: () => void;
   onRename: (id: number, title: string) => void;
   onDelete: (id: number) => void;
+  onMove?: (id: number, dir: -1 | 1) => void;
   busy?: boolean;
 }
 
-export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename, onDelete, busy }: PagesBarProps) {
+export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename, onDelete, onMove, busy }: PagesBarProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState('');
 
@@ -34,10 +35,12 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, height: 38, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--bg)', overflowX: 'auto' }}>
-      {pages.map((p) => {
+      {pages.map((p, index) => {
         const active = p.id === selectedId;
         const isHome = p.type === 'HOME';
         const editing = editingId === p.id;
+        const canLeft = index >= 2; // garde la page d'accueil (index 0) en tête
+        const canRight = index >= 1 && index < pages.length - 1;
         return (
           <Box
             key={p.id}
@@ -76,6 +79,20 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
             )}
             {active && !editing && (
               <>
+                {onMove && !isHome && canLeft && (
+                  <Tooltip title="Déplacer à gauche">
+                    <ButtonBase onClick={() => onMove(p.id, -1)} aria-label="Déplacer la page à gauche" sx={tabIconSx}>
+                      <ChevronLeft size={14} strokeWidth={2} />
+                    </ButtonBase>
+                  </Tooltip>
+                )}
+                {onMove && !isHome && canRight && (
+                  <Tooltip title="Déplacer à droite">
+                    <ButtonBase onClick={() => onMove(p.id, 1)} aria-label="Déplacer la page à droite" sx={tabIconSx}>
+                      <ChevronRight size={14} strokeWidth={2} />
+                    </ButtonBase>
+                  </Tooltip>
+                )}
                 <Tooltip title="Renommer">
                   <ButtonBase onClick={() => startRename(p)} aria-label="Renommer la page" sx={tabIconSx}>
                     <Pencil size={12} strokeWidth={2} />

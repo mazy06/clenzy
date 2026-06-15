@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
-import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2 } from 'lucide-react';
+import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2, FileText } from 'lucide-react';
 import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
 import PagePreview from './PagePreview';
@@ -9,6 +9,7 @@ import SiteWidgetPreview, { type WidgetPlacement } from './SiteWidgetPreview';
 import BlockInspector from './BlockInspector';
 import ThemeInspector from './ThemeInspector';
 import CssInspector from './CssInspector';
+import PageInspector from './PageInspector';
 import PagesBar from './PagesBar';
 import { BLOCK_REGISTRY, getBlockDef, type BlockProps, type BlockType } from './blockRegistry';
 import type { Breakpoint } from '../StudioShell';
@@ -63,11 +64,12 @@ function parseLayout(json: string | null | undefined): BlockInstance[] | null {
   }
 }
 
-type RightTab = 'block' | 'theme' | 'css';
+type RightTab = 'block' | 'page' | 'theme' | 'css';
 
-/** Onglets du pane droit (icônes utilisées en mode replié). */
-const RIGHT_TABS: { value: RightTab; label: string; icon: typeof SquarePen }[] = [
+/** Onglets du pane droit (icônes utilisées en mode replié). « Page » n'apparaît qu'en multi-page. */
+const ALL_RIGHT_TABS: { value: RightTab; label: string; icon: typeof SquarePen }[] = [
   { value: 'block', label: 'Bloc', icon: SquarePen },
+  { value: 'page', label: 'Page', icon: FileText },
   { value: 'theme', label: 'Thème', icon: Palette },
   { value: 'css', label: 'CSS', icon: Code2 },
 ];
@@ -102,6 +104,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const pages = useSitePages(cfg.config?.id ?? undefined);
   const pageMode = pages.ready && pages.selectedPage != null;
   const isHomeActive = pages.selectedPage?.type === 'HOME';
+  const rightTabs = ALL_RIGHT_TABS.filter((t) => t.value !== 'page' || pageMode);
 
   // Hydratation des blocs depuis la page active (re-déclenchée à chaque changement de page). Un ref
   // garde l'id déjà hydraté pour NE PAS ré-hydrater quand la config change (chaque frappe = nouvel
@@ -309,6 +312,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
           onAdd={handleAddPage}
           onRename={pages.renamePage}
           onDelete={pages.deletePage}
+          onMove={pages.movePage}
           busy={pageSaving}
         />
       )}
@@ -352,7 +356,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
                   <PanelRightOpen size={16} strokeWidth={2} />
                 </ButtonBase>
               </Tooltip>
-              {RIGHT_TABS.map((t) => {
+              {rightTabs.map((t) => {
                 const Icon = t.icon;
                 const active = rightTab === t.value;
                 return (
@@ -375,7 +379,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
           <Segmented
             value={rightTab}
             onChange={setRightTab}
-            options={[{ value: 'block', label: 'Bloc' }, { value: 'theme', label: 'Thème' }, { value: 'css', label: 'CSS' }]}
+            options={rightTabs.map((t) => ({ value: t.value, label: t.label }))}
           />
           <Tooltip title="Replier" placement="left">
             <ButtonBase onClick={() => setRightCollapsed(true)} aria-label="Replier le panneau" sx={paneIconBtnSx}>
@@ -385,12 +389,14 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
         </Box>
 
         <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-          {rightTab === 'block' ? (
-            <BlockInspector block={selected} onChange={handleChange} />
+          {rightTab === 'page' && pageMode && pages.selectedPage ? (
+            <PageInspector page={pages.selectedPage} onSave={(c) => pages.updatePageMeta(pages.selectedPage!.id, c)} />
           ) : rightTab === 'theme' ? (
             <ThemeInspector config={cfg.config} patch={cfg.patch} />
-          ) : (
+          ) : rightTab === 'css' ? (
             <CssInspector config={cfg.config} patch={cfg.patch} blockTypes={blocks.map((b) => b.type)} />
+          ) : (
+            <BlockInspector block={selected} onChange={handleChange} />
           )}
         </Box>
 
