@@ -24,6 +24,8 @@ export interface SitePagesState {
   movePage: (id: number, dir: -1 | 1) => Promise<void>;
   updatePageMeta: (id: number, changes: Partial<SitePage>) => Promise<void>;
   savePageBlocks: (id: number, blocks: string) => Promise<void>;
+  /** Draft/Live (2.7) : fige le brouillon courant dans la version publiée (servie au public). */
+  publishPage: (id: number) => Promise<void>;
 }
 
 function sortPages(list: SitePage[]): SitePage[] {
@@ -132,8 +134,14 @@ export function useSitePages(configId: number | undefined): SitePagesState {
     setPages((prev) => prev.map((p) => (p.id === id ? updated : p)));
   }, [site, pages]);
 
+  const publishPage = useCallback(async (id: number) => {
+    if (!site) return;
+    const updated = await sitesApi.publishPage(site.id, id);
+    setPages((prev) => sortPages(prev.map((p) => (p.id === id ? updated : p))));
+  }, [site]);
+
   return {
     ready, loading, error, site, pages, selectedPageId, selectedPage,
-    selectPage, addPage, renamePage, deletePage, movePage, updatePageMeta, savePageBlocks,
+    selectPage, addPage, renamePage, deletePage, movePage, updatePageMeta, savePageBlocks, publishPage,
   };
 }

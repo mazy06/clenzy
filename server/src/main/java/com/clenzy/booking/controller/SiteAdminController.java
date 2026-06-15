@@ -99,6 +99,12 @@ public class SiteAdminController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Publie une page (2.7) : fige le brouillon courant dans la version servie au public. */
+    @PostMapping("/{id}/pages/{pageId}/publish")
+    public ResponseEntity<SitePageDto> publishPage(@PathVariable Long id, @PathVariable Long pageId) {
+        return ResponseEntity.ok(service.publishPage(orgId(), id, pageId));
+    }
+
     /** Génère un titre + meta SEO (IA) pour une page à partir de son contenu (2.13). */
     @PostMapping("/{id}/pages/{pageId}/ai/seo")
     public ResponseEntity<com.clenzy.booking.dto.GeneratedSeoDto> generatePageSeo(@PathVariable Long id,

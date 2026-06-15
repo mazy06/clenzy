@@ -37,6 +37,13 @@ public class SitePage {
     @Column(name = "blocks", columnDefinition = "TEXT")
     private String blocks;
 
+    /** Instantané publié des blocs (2.7) : servi au public. {@code blocks} est le brouillon de travail. */
+    @Column(name = "published_blocks", columnDefinition = "TEXT")
+    private String publishedBlocks;
+
+    @Column(name = "published_at")
+    private LocalDateTime publishedAt;
+
     /** Locale de la page ; NULL = page commune à toutes les locales du site. */
     @Column(name = "locale", length = 5)
     private String locale;
@@ -82,6 +89,12 @@ public class SitePage {
 
     public String getBlocks() { return blocks; }
     public void setBlocks(String blocks) { this.blocks = blocks; }
+
+    public String getPublishedBlocks() { return publishedBlocks; }
+    public void setPublishedBlocks(String publishedBlocks) { this.publishedBlocks = publishedBlocks; }
+
+    public LocalDateTime getPublishedAt() { return publishedAt; }
+    public void setPublishedAt(LocalDateTime publishedAt) { this.publishedAt = publishedAt; }
 
     public String getLocale() { return locale; }
     public void setLocale(String locale) { this.locale = locale; }
