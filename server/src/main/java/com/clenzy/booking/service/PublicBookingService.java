@@ -160,7 +160,7 @@ public class PublicBookingService {
     // ─── Config ──────────────────────────────────────────────────────────────────
 
     public BookingEngineConfigDto getConfig(OrgContext ctx) {
-        return BookingEngineConfigDto.from(ctx.config());
+        return BookingEngineConfigDto.from(ctx.config(), ctx.org().isLeadCaptureEnabled());
     }
 
     // ─── Properties ──────────────────────────────────────────────────────────────

@@ -72,6 +72,10 @@ public class AbandonedBooking {
     @Column(name = "recovery_sent_at")
     private Instant recoverySentAt;
 
+    /** Nombre de relances déjà envoyées (multi-étapes 2.12 : 1h / 24h / 72h). */
+    @Column(name = "reminder_count", nullable = false)
+    private int reminderCount = 0;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getOrganizationId() { return organizationId; }
@@ -102,4 +106,6 @@ public class AbandonedBooking {
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getRecoverySentAt() { return recoverySentAt; }
     public void setRecoverySentAt(Instant recoverySentAt) { this.recoverySentAt = recoverySentAt; }
+    public int getReminderCount() { return reminderCount; }
+    public void setReminderCount(int reminderCount) { this.reminderCount = reminderCount; }
 }

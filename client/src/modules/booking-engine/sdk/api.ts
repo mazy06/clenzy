@@ -133,6 +133,11 @@ export class BookingApi {
     return this.request('/currencies');
   }
 
+  /** Capture d'un lead (exit-intent / form embarquable — 2.12). 403 si l'org a désactivé la capture. */
+  postLead(params: { email: string; name?: string; source: string; locale?: string; consent: boolean }): Promise<void> {
+    return this.request('/leads', { method: 'POST', body: JSON.stringify(params) });
+  }
+
   getProperties(currency?: string): Promise<ApiProperty[]> {
     return this.request(`/properties${this.currencyQuery(currency)}`);
   }

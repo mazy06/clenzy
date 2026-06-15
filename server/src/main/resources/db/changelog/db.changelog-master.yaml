@@ -2517,3 +2517,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0255__create_blog_posts.sql
         relativeToChangelogFile: true
+
+  # Booking engine (2.12) : relance de panier abandonne multi-etapes (compteur de relances 1h/24h/72h).
+  - changeSet:
+      id: "0256-abandoned-reminder-count"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0256__add_reminder_count_to_abandoned_bookings.sql
+        relativeToChangelogFile: true

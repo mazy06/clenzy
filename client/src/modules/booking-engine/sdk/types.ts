@@ -24,6 +24,8 @@ export interface BaitlyBookingConfig {
   showPropertyFilter?: boolean;
   showAddons?: boolean;
   showReviews?: boolean;
+  /** Capture de lead par exit-intent (2.12). Défaut activé ; mettre `false` pour désactiver. */
+  leadCapture?: boolean;
   onBook?: (reservation: BookingResult) => void;
   onError?: (error: BookingError) => void;
   onPriceChange?: (price: PriceBreakdown) => void;
