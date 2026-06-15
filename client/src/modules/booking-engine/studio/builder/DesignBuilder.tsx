@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
-import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2, FileText } from 'lucide-react';
+import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2, FileText, Undo2, Redo2 } from 'lucide-react';
 import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
 import PagePreview from './PagePreview';
@@ -99,6 +99,9 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [hydrated, setHydrated] = useState(false);
   const [pageDirty, setPageDirty] = useState(false);
   const [pageSaving, setPageSaving] = useState(false);
+  // Historique undo/redo (2.7) : piles d'états de blocs. Réinitialisées au changement de page.
+  const [past, setPast] = useState<BlockInstance[][]>([]);
+  const [future, setFuture] = useState<BlockInstance[][]>([]);
 
   const { patch } = cfg;
   const pages = useSitePages(cfg.config?.id ?? undefined);
@@ -123,6 +126,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     setBlocks(initial);
     setSelectedId(initial[0]?.id ?? null);
     setPageDirty(false);
+    setPast([]);
+    setFuture([]);
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages.ready, pages.error, pages.selectedPageId, cfg.loading]);
@@ -139,7 +144,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   // Applique l'édition à la page active. Multi-page : marque la page « dirty » (persistée par page) ;
   // la page d'accueil est aussi reflétée dans config.pageLayout pour garder la page publique React
   // (SPA) en phase. Mode mono-page (repli si API sites indisponible) : tout va dans config.pageLayout.
-  const commit = useCallback((next: BlockInstance[]) => {
+  // Effets de persistance d'une nouvelle liste de blocs (sans toucher l'historique).
+  const persist = useCallback((next: BlockInstance[]) => {
     setBlocks(next);
     if (pageMode) {
       setPageDirty(true);
@@ -148,6 +154,31 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
       patch({ pageLayout: serializeLayout(next) });
     }
   }, [patch, pageMode, isHomeActive]);
+
+  // Mutation utilisateur : empile l'état courant (undo), purge le redo, puis applique.
+  const commit = useCallback((next: BlockInstance[]) => {
+    setPast((p) => [...p, blocks]);
+    setFuture([]);
+    persist(next);
+  }, [blocks, persist]);
+
+  const undo = useCallback(() => {
+    if (past.length === 0) return;
+    const prev = past[past.length - 1];
+    setPast(past.slice(0, -1));
+    setFuture((f) => [blocks, ...f]);
+    persist(prev);
+    setSelectedId((cur) => (prev.some((b) => b.id === cur) ? cur : prev[0]?.id ?? null));
+  }, [past, blocks, persist]);
+
+  const redo = useCallback(() => {
+    if (future.length === 0) return;
+    const next = future[0];
+    setFuture(future.slice(1));
+    setPast((p) => [...p, blocks]);
+    persist(next);
+    setSelectedId((cur) => (next.some((b) => b.id === cur) ? cur : next[0]?.id ?? null));
+  }, [future, blocks, persist]);
 
   // Sauvegarde unifiée : page active (multi-page) + config (thème/CSS, et miroir pageLayout home).
   const dirty = cfg.dirty || (pageMode && pageDirty);
@@ -292,19 +323,31 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             )}
           </Box>
         ) : (
-          <ButtonBase
-            onClick={() => setTemplatesOpen(true)}
-            sx={{
-              display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 30, px: 1.5,
-              borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', color: 'var(--body)',
-              fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-              transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-              '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
-              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-            }}
-          >
-            <LayoutTemplate size={15} strokeWidth={2} /> Modèles
-          </ButtonBase>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Tooltip title="Annuler">
+              <ButtonBase onClick={undo} disabled={past.length === 0} aria-label="Annuler" sx={paneIconBtnSx}>
+                <Undo2 size={16} strokeWidth={2} />
+              </ButtonBase>
+            </Tooltip>
+            <Tooltip title="Rétablir">
+              <ButtonBase onClick={redo} disabled={future.length === 0} aria-label="Rétablir" sx={paneIconBtnSx}>
+                <Redo2 size={16} strokeWidth={2} />
+              </ButtonBase>
+            </Tooltip>
+            <ButtonBase
+              onClick={() => setTemplatesOpen(true)}
+              sx={{
+                display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 30, px: 1.5,
+                borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', color: 'var(--body)',
+                fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
+                transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
+                '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
+                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+              }}
+            >
+              <LayoutTemplate size={15} strokeWidth={2} /> Modèles
+            </ButtonBase>
+          </Box>
         )}
         <Segmented
           value={mode}
