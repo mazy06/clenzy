@@ -25,7 +25,9 @@ public record BookingEngineConfigDto(
     String customJs,
     String componentConfig,
     // Page composée par blocs (builder) — rendue par la page publique hébergée.
-    String pageLayout
+    String pageLayout,
+    // Design tokens (JSON, 21 props : rayon, ombres, surfaces, typo…) — appliqués au widget + blocs.
+    String designTokens
 ) {
     public static BookingEngineConfigDto from(BookingEngineConfig config) {
         return new BookingEngineConfigDto(
@@ -46,7 +48,8 @@ public record BookingEngineConfigDto(
             config.getCustomCss(),
             config.getCustomJs(),
             config.getComponentConfig(),
-            config.getPageLayout()
+            config.getPageLayout(),
+            config.getDesignTokens()
         );
     }
 }
