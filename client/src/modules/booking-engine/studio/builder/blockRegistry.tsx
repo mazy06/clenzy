@@ -9,6 +9,10 @@ import {
   PanelBottom,
   Check,
   Search,
+  HelpCircle,
+  Images,
+  BarChart3,
+  PlayCircle,
   type LucideIcon,
 } from 'lucide-react';
 // Feuille de base des blocs : classes `bkly-*` surchargeables par du CSS custom (Phase A).
@@ -29,7 +33,11 @@ export type BlockType =
   | 'richText'
   | 'testimonial'
   | 'cta'
-  | 'footer';
+  | 'footer'
+  | 'faq'
+  | 'gallery'
+  | 'stats'
+  | 'video';
 
 export type FieldType = 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'color' | 'url' | 'image';
 
@@ -91,6 +99,23 @@ function lines(value: unknown): string[] {
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
+}
+
+/** Découpe des lignes « a | b » en paires (FAQ, Stats). */
+function pairs(value: unknown): { a: string; b: string }[] {
+  return lines(value).map((l) => {
+    const i = l.indexOf('|');
+    return i >= 0 ? { a: l.slice(0, i).trim(), b: l.slice(i + 1).trim() } : { a: l.trim(), b: '' };
+  });
+}
+
+/** Convertit une URL YouTube/Vimeo en URL d'embed ; sinon renvoie l'URL telle quelle. */
+function toEmbedUrl(raw: string): string {
+  const yt = raw.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vimeo = raw.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return raw;
 }
 
 const HERO: BlockDef = {
@@ -284,6 +309,134 @@ const FOOTER: BlockDef = {
   ),
 };
 
+const FAQ: BlockDef = {
+  type: 'faq',
+  label: 'FAQ',
+  description: 'Questions fréquentes (une par ligne : Question | Réponse).',
+  icon: HelpCircle,
+  defaultProps: {
+    heading: 'Questions fréquentes',
+    items: 'Annulation gratuite ?|Oui, jusqu’à 48h avant l’arrivée.\nAnimaux acceptés ?|Sur demande, contactez-nous.\nArrivée autonome ?|Oui, boîte à clés sécurisée 24/7.',
+  },
+  fields: [
+    { key: 'heading', label: 'Titre', type: 'text' },
+    { key: 'items', label: 'Questions (Question | Réponse, une par ligne)', type: 'textarea' },
+    ALIGN_FIELD,
+    BG_COLOR_FIELD,
+  ],
+  render: (p) => (
+    <div className="bkly-section bkly-faq" style={sectionStyle(p)}>
+      {p.heading ? <div className="bkly-faq__heading">{String(p.heading)}</div> : null}
+      <div className="bkly-faq__list">
+        {pairs(p.items).map((qa, i) => (
+          <div key={i} className="bkly-faq__item">
+            <div className="bkly-faq__q">{qa.a}</div>
+            {qa.b ? <div className="bkly-faq__a">{qa.b}</div> : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  ),
+};
+
+const GALLERY: BlockDef = {
+  type: 'gallery',
+  label: 'Galerie',
+  description: 'Grille d’images (une URL par ligne).',
+  icon: Images,
+  defaultProps: {
+    heading: 'En images',
+    images: '',
+    columns: 3,
+  },
+  fields: [
+    { key: 'heading', label: 'Titre', type: 'text' },
+    { key: 'images', label: 'Images (une URL par ligne)', type: 'textarea' },
+    { key: 'columns', label: 'Colonnes', type: 'number', min: 1, max: 4 },
+    BG_COLOR_FIELD,
+  ],
+  render: (p) => {
+    const cols = Math.min(4, Math.max(1, Number(p.columns) || 3));
+    const imgs = lines(p.images);
+    const cells = imgs.length ? imgs : ['', '', ''];
+    return (
+      <div className="bkly-section bkly-gallery" style={sectionStyle(p)}>
+        {p.heading ? <div className="bkly-gallery__heading">{String(p.heading)}</div> : null}
+        <div className="bkly-gallery__grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+          {cells.map((src, i) => (
+            src
+              ? <img key={i} className="bkly-gallery__img" src={src} alt="" loading="lazy" />
+              : <div key={i} className="bkly-gallery__img bkly-gallery__img--empty" />
+          ))}
+        </div>
+      </div>
+    );
+  },
+};
+
+const STATS: BlockDef = {
+  type: 'stats',
+  label: 'Chiffres clés',
+  description: 'Statistiques (une par ligne : Valeur | Libellé).',
+  icon: BarChart3,
+  defaultProps: {
+    items: '4.9/5|Note moyenne\n+500|Voyageurs accueillis\n24/7|Conciergerie',
+  },
+  fields: [
+    { key: 'items', label: 'Chiffres (Valeur | Libellé, un par ligne)', type: 'textarea' },
+    BG_COLOR_FIELD,
+  ],
+  render: (p) => (
+    <div className="bkly-section bkly-stats" style={sectionStyle(p)}>
+      <div className="bkly-stats__row">
+        {pairs(p.items).map((s, i) => (
+          <div key={i} className="bkly-stats__item">
+            <div className="bkly-stats__value">{s.a}</div>
+            {s.b ? <div className="bkly-stats__label">{s.b}</div> : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  ),
+};
+
+const VIDEO: BlockDef = {
+  type: 'video',
+  label: 'Vidéo',
+  description: 'Vidéo intégrée (YouTube / Vimeo).',
+  icon: PlayCircle,
+  defaultProps: {
+    heading: '',
+    url: '',
+  },
+  fields: [
+    { key: 'heading', label: 'Titre', type: 'text' },
+    { key: 'url', label: 'URL YouTube / Vimeo', type: 'url' },
+    BG_COLOR_FIELD,
+  ],
+  render: (p) => {
+    const url = String(p.url ?? '').trim();
+    return (
+      <div className="bkly-section bkly-video" style={sectionStyle(p)}>
+        {p.heading ? <div className="bkly-video__heading">{String(p.heading)}</div> : null}
+        <div className="bkly-video__frame">
+          {url ? (
+            <iframe
+              className="bkly-video__iframe"
+              src={toEmbedUrl(url)}
+              title={String(p.heading) || 'Vidéo'}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <div className="bkly-video__placeholder">Colle une URL YouTube ou Vimeo</div>
+          )}
+        </div>
+      </div>
+    );
+  },
+};
+
 export const BLOCK_REGISTRY: Record<BlockType, BlockDef> = {
   hero: HERO,
   propertyGrid: PROPERTY_GRID,
@@ -292,10 +445,14 @@ export const BLOCK_REGISTRY: Record<BlockType, BlockDef> = {
   testimonial: TESTIMONIAL,
   cta: CTA,
   footer: FOOTER,
+  faq: FAQ,
+  gallery: GALLERY,
+  stats: STATS,
+  video: VIDEO,
 };
 
 /** Ordre d'apparition dans la bibliothèque de blocs. */
-export const BLOCK_ORDER: BlockType[] = ['hero', 'propertyGrid', 'amenities', 'richText', 'testimonial', 'cta', 'footer'];
+export const BLOCK_ORDER: BlockType[] = ['hero', 'propertyGrid', 'gallery', 'amenities', 'stats', 'testimonial', 'faq', 'video', 'richText', 'cta', 'footer'];
 
 export function getBlockDef(type: BlockType): BlockDef {
   return BLOCK_REGISTRY[type];
