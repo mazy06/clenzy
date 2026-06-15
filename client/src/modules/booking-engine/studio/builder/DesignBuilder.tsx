@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
 import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2 } from 'lucide-react';
 import BlockTree from './BlockTree';
@@ -9,9 +9,11 @@ import SiteWidgetPreview, { type WidgetPlacement } from './SiteWidgetPreview';
 import BlockInspector from './BlockInspector';
 import ThemeInspector from './ThemeInspector';
 import CssInspector from './CssInspector';
+import PagesBar from './PagesBar';
 import { BLOCK_REGISTRY, getBlockDef, type BlockProps, type BlockType } from './blockRegistry';
 import type { Breakpoint } from '../StudioShell';
 import type { StudioConfigState } from '../useStudioConfig';
+import { useSitePages } from '../useSitePages';
 import SiteTemplatePicker from '../SiteTemplatePicker';
 import type { SiteTemplate } from '../siteTemplates';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
@@ -93,18 +95,34 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [pageDirty, setPageDirty] = useState(false);
+  const [pageSaving, setPageSaving] = useState(false);
 
   const { patch } = cfg;
+  const pages = useSitePages(cfg.config?.id ?? undefined);
+  const pageMode = pages.ready && pages.selectedPage != null;
+  const isHomeActive = pages.selectedPage?.type === 'HOME';
 
-  // Hydratation unique : depuis config.pageLayout, sinon page de démarrage.
+  // Hydratation des blocs depuis la page active (re-déclenchée à chaque changement de page). Un ref
+  // garde l'id déjà hydraté pour NE PAS ré-hydrater quand la config change (chaque frappe = nouvel
+  // objet config) ni après une sauvegarde (l'identité de la page change mais pas son id).
+  const lastHydratedRef = useRef<number | 'legacy' | null>(null);
   useEffect(() => {
-    if (hydrated || cfg.loading) return;
-    const parsed = parseLayout(cfg.config?.pageLayout);
-    const initial = parsed ?? makeStarter();
+    if (cfg.loading) return;
+    const sitesPending = cfg.config != null && !pages.ready && pages.error == null;
+    if (sitesPending) return; // attendre la résolution des pages
+    const key: number | 'legacy' = pageMode && pages.selectedPage ? pages.selectedPage.id : 'legacy';
+    if (lastHydratedRef.current === key) return;
+    lastHydratedRef.current = key;
+    const initial = pageMode && pages.selectedPage
+      ? parseLayout(pages.selectedPage.blocks) ?? (pages.selectedPage.type === 'HOME' ? makeStarter() : [])
+      : parseLayout(cfg.config?.pageLayout) ?? makeStarter();
     setBlocks(initial);
     setSelectedId(initial[0]?.id ?? null);
+    setPageDirty(false);
     setHydrated(true);
-  }, [hydrated, cfg.loading, cfg.config]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages.ready, pages.error, pages.selectedPageId, cfg.loading]);
 
   // Repli intelligent par breakpoint : en desktop le canvas a besoin de toute la largeur → on
   // replie les deux colonnes ; en tablette/mobile le canvas est étroit → on les rouvre. (L'utilisateur
@@ -115,11 +133,67 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     setRightCollapsed(collapse);
   }, [breakpoint]);
 
-  // Réinjecte la page dans la config → la barre d'enregistrement persiste tout (PUT).
+  // Applique l'édition à la page active. Multi-page : marque la page « dirty » (persistée par page) ;
+  // la page d'accueil est aussi reflétée dans config.pageLayout pour garder la page publique React
+  // (SPA) en phase. Mode mono-page (repli si API sites indisponible) : tout va dans config.pageLayout.
   const commit = useCallback((next: BlockInstance[]) => {
     setBlocks(next);
-    patch({ pageLayout: serializeLayout(next) });
-  }, [patch]);
+    if (pageMode) {
+      setPageDirty(true);
+      if (isHomeActive) patch({ pageLayout: serializeLayout(next) });
+    } else {
+      patch({ pageLayout: serializeLayout(next) });
+    }
+  }, [patch, pageMode, isHomeActive]);
+
+  // Sauvegarde unifiée : page active (multi-page) + config (thème/CSS, et miroir pageLayout home).
+  const dirty = cfg.dirty || (pageMode && pageDirty);
+  const saving = cfg.saving || pageSaving;
+
+  const handleSave = useCallback(async () => {
+    try {
+      if (pageMode && pageDirty && pages.selectedPageId != null) {
+        setPageSaving(true);
+        await pages.savePageBlocks(pages.selectedPageId, serializeLayout(blocks));
+        setPageDirty(false);
+      }
+      if (cfg.dirty) await cfg.save();
+    } catch {
+      /* erreurs exposées par les hooks */
+    } finally {
+      setPageSaving(false);
+    }
+  }, [pageMode, pageDirty, pages, blocks, cfg]);
+
+  // Bascule de page : enregistre la page courante si modifiée (évite la perte), puis change.
+  const handleSelectPage = useCallback(async (id: number) => {
+    if (id === pages.selectedPageId) return;
+    if (pageMode && pageDirty && pages.selectedPageId != null) {
+      setPageSaving(true);
+      try {
+        await pages.savePageBlocks(pages.selectedPageId, serializeLayout(blocks));
+        setPageDirty(false);
+      } catch {
+        setPageSaving(false);
+        return; // on reste sur la page courante si l'enregistrement échoue
+      }
+      setPageSaving(false);
+    }
+    pages.selectPage(id);
+  }, [pageMode, pageDirty, pages, blocks]);
+
+  // Ajout de page : enregistre la page courante au préalable (l'ajout sélectionne la nouvelle page).
+  const handleAddPage = useCallback(async () => {
+    if (pageMode && pageDirty && pages.selectedPageId != null) {
+      try {
+        await pages.savePageBlocks(pages.selectedPageId, serializeLayout(blocks));
+        setPageDirty(false);
+      } catch {
+        return;
+      }
+    }
+    await pages.addPage();
+  }, [pageMode, pageDirty, pages, blocks]);
 
   const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
 
@@ -156,17 +230,18 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     const next: BlockInstance[] = tpl
       ? tpl.blocks.map((b) => ({ id: makeBlock(b.type).id, type: b.type, props: { ...getBlockDef(b.type).defaultProps, ...b.props } }))
       : [];
-    setBlocks(next);
+    commit(next);
     setSelectedId(next[0]?.id ?? null);
     setRightTab('block');
     setMode('edit');
-    const changes: Partial<BookingEngineConfig> = { pageLayout: serializeLayout(next) };
     if (tpl) {
-      changes.primaryColor = tpl.preset.primaryColor;
-      changes.fontFamily = tpl.preset.fontFamily;
-      changes.designTokens = JSON.stringify(tpl.preset.tokens);
+      const changes: Partial<BookingEngineConfig> = {
+        primaryColor: tpl.preset.primaryColor,
+        fontFamily: tpl.preset.fontFamily,
+        designTokens: JSON.stringify(tpl.preset.tokens),
+      };
+      patch(changes);
     }
-    patch(changes);
   };
 
   if (!hydrated) {
@@ -225,6 +300,18 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
           options={[{ value: 'edit', label: 'Éditer' }, { value: 'preview', label: 'Aperçu' }]}
         />
       </Box>
+
+      {mode === 'edit' && pageMode && (
+        <PagesBar
+          pages={pages.pages}
+          selectedId={pages.selectedPageId}
+          onSelect={handleSelectPage}
+          onAdd={handleAddPage}
+          onRename={pages.renamePage}
+          onDelete={pages.deletePage}
+          busy={pageSaving}
+        />
+      )}
 
       {mode === 'preview' ? (
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
@@ -307,14 +394,14 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
           )}
         </Box>
 
-        {cfg.dirty && (
+        {dirty && (
           <Box sx={{ flexShrink: 0, borderTop: '1px solid var(--line)', p: 1.25, display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ flex: 1, fontSize: 'var(--text-2xs)', color: cfg.error ? 'var(--err)' : 'var(--muted)' }}>
               {cfg.error ?? 'Modifications non enregistrées'}
             </Box>
             <ButtonBase
-              onClick={() => { cfg.save().catch(() => { /* erreur exposée par le hook */ }); }}
-              disabled={cfg.saving}
+              onClick={() => { handleSave(); }}
+              disabled={saving}
               sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 32, px: 1.5,
                 borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
@@ -324,8 +411,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
                 '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
               }}
             >
-              {!cfg.saving && <Check size={14} strokeWidth={2.4} />}
-              {cfg.saving ? 'Enregistrement…' : 'Enregistrer'}
+              {!saving && <Check size={14} strokeWidth={2.4} />}
+              {saving ? 'Enregistrement…' : 'Enregistrer'}
             </ButtonBase>
           </Box>
         )}
