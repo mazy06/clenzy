@@ -48,6 +48,9 @@ function widgetTheme(config: PublicBookingConfig, t: DesignTokens | null): Baitl
     borderColor: t?.borderColor || undefined,
     textColor: t?.textColor || undefined,
     textSecondaryColor: t?.textSecondaryColor || undefined,
+    fontSize: t?.baseFontSize || undefined,
+    density: (t?.spacing as 'compact' | 'normal' | 'spacious') || undefined,
+    buttonStyle: (t?.buttonStyle as 'filled' | 'outlined') || undefined,
   };
 }
 

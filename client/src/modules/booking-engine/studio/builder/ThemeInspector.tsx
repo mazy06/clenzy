@@ -31,6 +31,15 @@ const SHADOW_OPTIONS = [
   { value: '0 4px 14px rgba(0,0,0,0.10)', label: 'Moyenne' },
   { value: '0 14px 36px rgba(0,0,0,0.16)', label: 'Prononcée' },
 ];
+const DENSITY_OPTIONS = [
+  { value: 'compact', label: 'Compacte' },
+  { value: 'normal', label: 'Normale' },
+  { value: 'spacious', label: 'Spacieuse' },
+];
+const BUTTON_OPTIONS = [
+  { value: 'filled', label: 'Plein' },
+  { value: 'outlined', label: 'Contour' },
+];
 
 const SWATCHES = ['#5453D6', '#0F7A6B', '#C2410C', '#B91C6B', '#1D4ED8', '#15803D', '#7C3AED', '#0E7490'];
 
@@ -65,6 +74,8 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
   const baseSize = tokens.baseFontSize || '16px';
   const radius = tokens.borderRadius || '12px';
   const shadow = tokens.cardShadow || tokens.boxShadow || 'none';
+  const density = tokens.spacing || 'normal';
+  const buttonStyle = tokens.buttonStyle || 'filled';
 
   return (
     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
@@ -108,9 +119,15 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
         <SelectControl id="theme-shadow" value={shadow}
           onChange={(v) => writeTokens({ boxShadow: v, cardShadow: v })} options={SHADOW_OPTIONS} />
       </Field>
+      <Field label="Densité" htmlFor="theme-density">
+        <SelectControl id="theme-density" value={density} onChange={(v) => writeTokens({ spacing: v })} options={DENSITY_OPTIONS} />
+      </Field>
+      <Field label="Style des boutons" htmlFor="theme-btn">
+        <SelectControl id="theme-btn" value={buttonStyle} onChange={(v) => writeTokens({ buttonStyle: v })} options={BUTTON_OPTIONS} />
+      </Field>
 
       <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--faint)', lineHeight: 1.5 }}>
-        L’aperçu reflète couleur, polices, rayon et ombre. Style de bouton et densité (widget) arrivent à l’étape suivante.
+        Couleur, polices, rayon et ombre se reflètent dans l’aperçu. Taille, densité et style de bouton s’appliquent au widget de réservation sur la page publiée.
       </Box>
     </Box>
   );
