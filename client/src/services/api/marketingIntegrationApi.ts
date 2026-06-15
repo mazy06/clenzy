@@ -8,9 +8,11 @@ export interface MarketingIntegration {
   waitlistListId: number | null;
   newsletterListId: number | null;
   prospectsListId: number | null;
+  leadsListId: number | null;
   syncWaitlistEnabled: boolean;
   syncNewsletterEnabled: boolean;
   syncProspectsEnabled: boolean;
+  syncLeadsEnabled: boolean;
   syncAttributesEnabled: boolean;
   status: 'UNCONFIGURED' | 'ACTIVE' | 'ERROR' | string;
   errorMessage: string | null;
@@ -33,12 +35,14 @@ export interface MarketingListsPayload {
   waitlistListId: number | null;
   newsletterListId: number | null;
   prospectsListId: number | null;
+  leadsListId: number | null;
 }
 
 export interface MarketingTogglesPayload {
   syncWaitlist?: boolean;
   syncNewsletter?: boolean;
   syncProspects?: boolean;
+  syncLeads?: boolean;
   syncAttributes?: boolean;
 }
 
