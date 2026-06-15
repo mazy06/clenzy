@@ -44,7 +44,7 @@ class BookingEngineAdminControllerTest {
     private BookingEngineAdminConfigDto dto(Long id) {
         return new BookingEngineAdminConfigDto(id, 1L, "Template", true, "key-xxxxxxxxxxxxxxxxxxxx-1234",
                 "#000", "#fff", null, null, "fr", "EUR", 0, 365, "Flex", null, null,
-                "https://*", true, true, true, true, null, null, null, null, null, null, null,
+                "https://*", true, true, true, true, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null);
     }
 

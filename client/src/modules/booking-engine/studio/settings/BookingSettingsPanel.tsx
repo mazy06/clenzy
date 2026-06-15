@@ -80,6 +80,15 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
           helper="Les réservations sont confirmées sans validation manuelle."
           control={<ToggleControl checked={config.autoConfirm} onChange={(v) => patch({ autoConfirm: v })} />}
         />
+        <SettingRow
+          label="Durée du hold (minutes)"
+          helper="Délai avant qu'une réservation non payée soit annulée et les dates libérées (défaut 30)."
+          htmlFor="cfg-hold-minutes"
+          control={
+            <NumberControl id="cfg-hold-minutes" value={config.pendingHoldMinutes ?? 30}
+              onChange={(v) => patch({ pendingHoldMinutes: v >= 1 ? v : null })} min={1} max={1440} />
+          }
+        />
       </SettingCard>
 
       <SettingCard title="Frais affichés" description="Lignes de prix visibles dans le récapitulatif.">

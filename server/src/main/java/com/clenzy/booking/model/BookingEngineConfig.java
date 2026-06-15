@@ -118,6 +118,14 @@ public class BookingEngineConfig {
     @Column(name = "member_discount_percent")
     private Integer memberDiscountPercent;
 
+    /**
+     * Durée du hold avant annulation auto d'une réservation PENDING non payée (minutes). Au-delà,
+     * le scheduler de nettoyage expire la session Stripe, annule la résa et libère le calendrier.
+     * NULL = défaut système (30 min).
+     */
+    @Column(name = "pending_hold_minutes")
+    private Integer pendingHoldMinutes;
+
     // ─── Custom CSS/JS ──────────────────────────────────────────────────
 
     @Column(name = "custom_css", columnDefinition = "TEXT")
@@ -252,6 +260,9 @@ public class BookingEngineConfig {
 
     public Integer getMemberDiscountPercent() { return memberDiscountPercent; }
     public void setMemberDiscountPercent(Integer memberDiscountPercent) { this.memberDiscountPercent = memberDiscountPercent; }
+
+    public Integer getPendingHoldMinutes() { return pendingHoldMinutes; }
+    public void setPendingHoldMinutes(Integer pendingHoldMinutes) { this.pendingHoldMinutes = pendingHoldMinutes; }
 
     public String getCustomCss() { return customCss; }
     public void setCustomCss(String customCss) { this.customCss = customCss; }
