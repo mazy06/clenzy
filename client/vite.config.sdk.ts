@@ -20,6 +20,9 @@ export default defineConfig({
     },
     outDir: 'public/booking/v1',
     emptyOutDir: true,
+    // outDir est DANS publicDir (`public`) : sans ceci, vite copie `public/` dans lui-même à
+    // l'infini (ENAMETOOLONG). Un build de lib n'a de toute façon pas à recopier `public/`.
+    copyPublicDir: false,
     minify: 'esbuild',
     sourcemap: false,
   },

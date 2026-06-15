@@ -36,6 +36,9 @@ export function createInitialState(defaults?: Partial<WidgetState>): WidgetState
       message: '',
     },
     guestFormErrors: {},
+    guestToken: null,
+    guestEmail: null,
+    wishlist: [],
     ...defaults,
   };
 }

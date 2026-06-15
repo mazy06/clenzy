@@ -26,6 +26,8 @@ export interface BaitlyBookingConfig {
   showReviews?: boolean;
   /** Capture de lead par exit-intent (2.12). Défaut activé ; mettre `false` pour désactiver. */
   leadCapture?: boolean;
+  /** Id numérique de l'organisation (2.11) — requis pour le compte voyageur (login/wishlist). */
+  organizationId?: number;
   onBook?: (reservation: BookingResult) => void;
   onError?: (error: BookingError) => void;
   onPriceChange?: (price: PriceBreakdown) => void;
@@ -78,6 +80,10 @@ export interface WidgetState {
   error: string | null;
   guestForm: GuestFormData;
   guestFormErrors: Partial<Record<keyof GuestFormData, string>>;
+  // Compte voyageur (2.11) — session in-memory (jamais en localStorage, cf. règle #7) + favoris.
+  guestToken: string | null;
+  guestEmail: string | null;
+  wishlist: number[];
   // Champs conserves pour compat composants legacy (PropertyFilter/AddonsPanel), hors flux property-first
   selectedPropertyType: string | null;
   propertyTypes: PropertyTypeInfo[];

@@ -15,6 +15,7 @@ import { createPropertyList } from './components/PropertyList';
 import { createCurrencySelector } from './components/CurrencySelector';
 import { createCartList } from './components/CartList';
 import { mountLeadCapture } from './components/LeadCapture';
+import { mountWishlistAuth, type WishlistAuthController } from './components/WishlistAuth';
 
 // CSS (imported as strings by bundler)
 import resetCSS from './styles/reset.css?raw';
@@ -33,6 +34,8 @@ export class BaitlyWidget {
   private shadowRoot: ShadowRoot | null = null;
   private host: HTMLElement | null = null;
   private unsubscribers: (() => void)[] = [];
+  // Compte voyageur (2.11) — contrôleur du modal login/favoris (créé si organizationId fourni).
+  private wishlistAuth: WishlistAuthController | null = null;
   // Suivi des champs déclencheurs de fetch (property / mois / devise).
   private prevPropertyId: number | null = null;
   private prevMonth = '';
@@ -67,6 +70,18 @@ export class BaitlyWidget {
 
     this.shadowRoot = this.host.attachShadow({ mode: 'open' });
     this.injectStyles();
+
+    // Compte voyageur (2.11) : modal login/favoris monté seulement si l'org est connue.
+    if (this.config.organizationId != null) {
+      this.wishlistAuth = mountWishlistAuth({
+        root: this.shadowRoot,
+        api: this.api,
+        i18n: this.i18n,
+        state: this.state,
+        organizationId: this.config.organizationId,
+      });
+    }
+
     this.renderWidget();
     this.bindStateEffects();
 
@@ -154,8 +169,15 @@ export class BaitlyWidget {
     // Sélecteur de devise (masqué si une seule devise)
     page.appendChild(createCurrencySelector(this.state));
 
-    // Liste de propriétés (sélection property-first)
-    page.appendChild(createPropertyList(this.state, this.i18n, this.config.baseUrl || window.location.origin));
+    // Liste de propriétés (sélection property-first) + cœurs favoris si compte voyageur actif.
+    page.appendChild(createPropertyList(
+      this.state,
+      this.i18n,
+      this.config.baseUrl || window.location.origin,
+      this.config.organizationId != null
+        ? { wishlistEnabled: true, onWishlistToggle: (id) => this.handleWishlistToggle(id) }
+        : {},
+    ));
 
     // Sélection des dates (date picker + calendrier alimenté par /calendar de la propriété)
     page.appendChild(createDatePicker(this.state, this.i18n));
@@ -364,6 +386,33 @@ export class BaitlyWidget {
     }, 'stateChange');
   }
 
+  /**
+   * Bascule un favori (2.11) : ouvre le login si la session guest est absente, sinon toggle.
+   * Mise à jour optimiste (cœur instantané) puis réconciliation avec la liste serveur ; rollback
+   * en cas d'échec réseau.
+   */
+  private handleWishlistToggle(propertyId: number): void {
+    const orgId = this.config.organizationId;
+    if (orgId == null || !this.wishlistAuth) return;
+    this.wishlistAuth.requireAuth(() => {
+      const s = this.state.get();
+      const token = s.guestToken;
+      if (!token) return;
+      const previous = s.wishlist;
+      const isWishlisted = previous.includes(propertyId);
+      const optimistic = isWishlisted
+        ? previous.filter(id => id !== propertyId)
+        : [...previous, propertyId];
+      this.state.set({ wishlist: optimistic }, 'stateChange');
+      const request = isWishlisted
+        ? this.api.wishlistRemove(orgId, propertyId, token)
+        : this.api.wishlistAdd(orgId, propertyId, token);
+      request
+        .then((ids) => this.state.set({ wishlist: ids }, 'stateChange'))
+        .catch(() => this.state.set({ wishlist: previous }, 'stateChange'));
+    });
+  }
+
   private async handleCheckout(): Promise<void> {
     const s = this.state.get();
     const name = `${s.guestForm.firstName} ${s.guestForm.lastName}`.trim();
@@ -478,6 +527,8 @@ export class BaitlyWidget {
   destroy(): void {
     this.unsubscribers.forEach(fn => fn());
     this.unsubscribers = [];
+    this.wishlistAuth?.destroy();
+    this.wishlistAuth = null;
     this.state.destroy();
     if (this.host) {
       this.host.remove();
