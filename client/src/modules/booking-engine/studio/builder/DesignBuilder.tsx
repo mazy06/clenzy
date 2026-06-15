@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, ButtonBase } from '@mui/material';
-import { Check, LayoutTemplate } from 'lucide-react';
+import { Box, ButtonBase, Tooltip } from '@mui/material';
+import { Check, LayoutTemplate, PanelRightClose, PanelRightOpen, SquarePen, Palette, Code2 } from 'lucide-react';
 import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
 import PagePreview from './PagePreview';
@@ -62,6 +62,20 @@ function parseLayout(json: string | null | undefined): BlockInstance[] | null {
 
 type RightTab = 'block' | 'theme' | 'css';
 
+/** Onglets du pane droit (icônes utilisées en mode replié). */
+const RIGHT_TABS: { value: RightTab; label: string; icon: typeof SquarePen }[] = [
+  { value: 'block', label: 'Bloc', icon: SquarePen },
+  { value: 'theme', label: 'Thème', icon: Palette },
+  { value: 'css', label: 'CSS', icon: Code2 },
+];
+
+const paneIconBtnSx = {
+  width: 36, height: 32, borderRadius: 'var(--radius-md)', cursor: 'pointer',
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)',
+  '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' },
+  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+} as const;
+
 export interface DesignBuilderProps {
   breakpoint: Breakpoint;
   cfg: StudioConfigState;
@@ -73,6 +87,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [rightTab, setRightTab] = useState<RightTab>('block');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [previewView, setPreviewView] = useState<'page' | 'widget'>('page');
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -161,7 +177,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {/* Barre : modèles (gauche) + bascule Éditer / Aperçu (droite). */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, height: 44, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1, height: 42, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
         {mode === 'preview' ? (
           <Segmented
             value={previewView}
@@ -205,6 +221,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             onAdd={handleAdd}
             onMove={handleMove}
             onRemove={handleRemove}
+            collapsed={leftCollapsed}
+            onToggleCollapse={() => setLeftCollapsed((v) => !v)}
           />
 
           <BuilderCanvas
@@ -215,14 +233,44 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             theme={theme}
           />
 
-          {/* Pane droit : onglets Bloc / Thème + corps + barre de sauvegarde. */}
+          {rightCollapsed ? (
+            /* Pane droit replié : bande d'icônes (déplier + onglets). */
+            <Box sx={{ width: 52, flexShrink: 0, borderLeft: '1px solid var(--line)', bgcolor: 'var(--card)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, py: 1 }}>
+              <Tooltip title="Déplier" placement="left">
+                <ButtonBase onClick={() => setRightCollapsed(false)} aria-label="Déplier le panneau" sx={paneIconBtnSx}>
+                  <PanelRightOpen size={16} strokeWidth={2} />
+                </ButtonBase>
+              </Tooltip>
+              {RIGHT_TABS.map((t) => {
+                const Icon = t.icon;
+                const active = rightTab === t.value;
+                return (
+                  <Tooltip key={t.value} title={t.label} placement="left">
+                    <ButtonBase
+                      onClick={() => { setRightTab(t.value); setRightCollapsed(false); }}
+                      aria-label={t.label}
+                      sx={{ ...paneIconBtnSx, color: active ? 'var(--accent)' : 'var(--muted)', bgcolor: active ? 'var(--accent-soft)' : 'transparent' }}
+                    >
+                      <Icon size={17} strokeWidth={2} />
+                    </ButtonBase>
+                  </Tooltip>
+                );
+              })}
+            </Box>
+          ) : (
+          /* Pane droit : onglets Bloc / Thème / CSS + corps + barre de sauvegarde. */
           <Box sx={{ width: 296, flexShrink: 0, borderLeft: '1px solid var(--line)', bgcolor: 'var(--card)', display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', px: 1, height: 48, borderBottom: '1px solid var(--line)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, px: 1, height: 48, borderBottom: '1px solid var(--line)' }}>
           <Segmented
             value={rightTab}
             onChange={setRightTab}
             options={[{ value: 'block', label: 'Bloc' }, { value: 'theme', label: 'Thème' }, { value: 'css', label: 'CSS' }]}
           />
+          <Tooltip title="Replier" placement="left">
+            <ButtonBase onClick={() => setRightCollapsed(true)} aria-label="Replier le panneau" sx={paneIconBtnSx}>
+              <PanelRightClose size={16} strokeWidth={2} />
+            </ButtonBase>
+          </Tooltip>
         </Box>
 
         <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
@@ -258,6 +306,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
           </Box>
         )}
           </Box>
+          )}
         </Box>
       )}
 

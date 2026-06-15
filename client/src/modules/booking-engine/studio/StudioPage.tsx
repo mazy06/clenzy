@@ -8,15 +8,18 @@ import {
   TrendingUp,
   Share2,
   Rocket,
+  Wand2,
 } from 'lucide-react';
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
 import DesignBuilder from './builder/DesignBuilder';
+import DesignAnalysisModal from './DesignAnalysisModal';
 import BookingSettingsPanel from './settings/BookingSettingsPanel';
 import ContentSection from './settings/ContentSection';
 import DistributionPanel from './settings/DistributionPanel';
 import GrowthSettingsPanel from './settings/GrowthSettingsPanel';
 import { useStudioConfig } from './useStudioConfig';
+import type { BookingEngineConfig, DesignTokens } from '../../../services/api/bookingEngineApi';
 
 /**
  * Baitly Studio — page hôte : assemble StudioShell + palette ⌘K + les 5 sections.
@@ -41,6 +44,18 @@ export default function StudioPage() {
   const [previewLang, setPreviewLang] = useState('fr');
   const [previewCurrency, setPreviewCurrency] = useState('EUR');
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [designAnalysisOpen, setDesignAnalysisOpen] = useState(false);
+
+  // Applique le design extrait (analyse IA d'un site) au booking engine courant : tokens (widget +
+  // blocs), CSS généré, couleur/police miroir. Reflété en direct (canvas + widget) ; persisté au save.
+  const applyAnalyzedDesign = (tokens: DesignTokens, generatedCss: string) => {
+    const changes: Partial<BookingEngineConfig> = { designTokens: JSON.stringify(tokens) };
+    if (generatedCss) changes.customCss = generatedCss;
+    if (tokens.primaryColor) changes.primaryColor = tokens.primaryColor;
+    if (tokens.bodyFontFamily) changes.fontFamily = tokens.bodyFontFamily;
+    cfg.patch(changes);
+    setDesignAnalysisOpen(false);
+  };
 
   // Raccourci ⌘K / Ctrl+K global.
   useEffect(() => {
@@ -64,6 +79,7 @@ export default function StudioPage() {
       run: () => setActiveSection(s.key),
     }));
     const actions: StudioCommand[] = [
+      { id: 'design-analysis', label: 'Analyse du design', group: 'Actions', keywords: 'ia design site couleur typo url analyser', icon: Wand2, run: () => setDesignAnalysisOpen(true) },
       { id: 'publish', label: 'Publier le booking engine', group: 'Actions', icon: Rocket, run: () => {/* F5 */} },
     ];
     return [...navCmds, ...actions];
@@ -85,6 +101,7 @@ export default function StudioPage() {
         breakpoint={breakpoint}
         onBreakpointChange={setBreakpoint}
         onOpenCommand={() => setPaletteOpen(true)}
+        onAnalyzeDesign={() => setDesignAnalysisOpen(true)}
         onBack={() => navigate('/booking-engine')}
       >
         {active.key === 'design' && <DesignBuilder breakpoint={breakpoint} cfg={cfg} />}
@@ -105,6 +122,14 @@ export default function StudioPage() {
       </StudioShell>
 
       <StudioCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
+
+      <DesignAnalysisModal
+        open={designAnalysisOpen}
+        onClose={() => setDesignAnalysisOpen(false)}
+        configId={cfg.config?.id ?? null}
+        initialUrl={cfg.config?.sourceWebsiteUrl ?? ''}
+        onApply={applyAnalyzedDesign}
+      />
     </>
   );
 }
