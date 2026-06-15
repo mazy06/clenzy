@@ -2590,3 +2590,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0264__add_blog_post_review.sql
         relativeToChangelogFile: true
+
+  # Book Direct & Save (2.8) : tarif membre — remise pour voyageur connecte (member_discount_percent).
+  - changeSet:
+      id: "0265-add-member-discount"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0265__add_member_discount.sql
+        relativeToChangelogFile: true

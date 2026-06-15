@@ -97,6 +97,15 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
               onChange={(v) => patch({ directBookingDiscountPercent: v > 0 ? v : null })} min={0} max={100} />
           }
         />
+        <SettingRow
+          label="Tarif membre (%)"
+          helper="Remise pour un voyageur connecté à son compte. Le membre obtient la meilleure des deux remises (directe ou membre) ; 0 = aucune."
+          htmlFor="cfg-member-discount"
+          control={
+            <NumberControl id="cfg-member-discount" value={config.memberDiscountPercent ?? 0}
+              onChange={(v) => patch({ memberDiscountPercent: v > 0 ? v : null })} min={0} max={100} />
+          }
+        />
       </SettingCard>
 
       <SettingCard title="Fenêtre de réservation" description="Anticipation minimale et maximale, en jours.">

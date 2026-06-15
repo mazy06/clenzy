@@ -114,6 +114,10 @@ public class BookingEngineConfig {
     @Column(name = "direct_booking_discount_percent")
     private Integer directBookingDiscountPercent;
 
+    /** Tarif membre (2.8) : remise % pour un voyageur CONNECTÉ (le membre obtient max(directe, membre)). */
+    @Column(name = "member_discount_percent")
+    private Integer memberDiscountPercent;
+
     // ─── Custom CSS/JS ──────────────────────────────────────────────────
 
     @Column(name = "custom_css", columnDefinition = "TEXT")
@@ -245,6 +249,9 @@ public class BookingEngineConfig {
 
     public Integer getDirectBookingDiscountPercent() { return directBookingDiscountPercent; }
     public void setDirectBookingDiscountPercent(Integer directBookingDiscountPercent) { this.directBookingDiscountPercent = directBookingDiscountPercent; }
+
+    public Integer getMemberDiscountPercent() { return memberDiscountPercent; }
+    public void setMemberDiscountPercent(Integer memberDiscountPercent) { this.memberDiscountPercent = memberDiscountPercent; }
 
     public String getCustomCss() { return customCss; }
     public void setCustomCss(String customCss) { this.customCss = customCss; }

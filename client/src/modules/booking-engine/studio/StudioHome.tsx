@@ -38,6 +38,7 @@ function buildConfigPayload(name: string, preset: DesignPreset | null): BookingE
     showCleaningFee: true,
     showTouristTax: true,
     directBookingDiscountPercent: null,
+    memberDiscountPercent: null,
     customCss: null,
     customJs: null,
     componentConfig: null,

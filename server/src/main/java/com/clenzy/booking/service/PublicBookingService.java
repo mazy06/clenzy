@@ -237,6 +237,16 @@ public class PublicBookingService {
     // ─── Availability + Pricing ──────────────────────────────────────────────────
 
     public AvailabilityResponseDto checkAvailability(OrgContext ctx, AvailabilityRequestDto req) {
+        return checkAvailability(ctx, req, false);
+    }
+
+    /**
+     * Variante tarif membre (2.8) : si {@code member} (voyageur connecté), la remise appliquée est
+     * max(remise réservation directe, remise membre) → jamais moins bien que le public. Calcul 100%
+     * côté serveur (règle argent : on ne fait pas confiance au client) ; le résultat coule dans
+     * reserve/checkout → le montant Stripe en hérite.
+     */
+    public AvailabilityResponseDto checkAvailability(OrgContext ctx, AvailabilityRequestDto req, boolean member) {
         Long orgId = ctx.orgId();
         Long propertyId = req.propertyId();
         LocalDate checkIn = req.checkIn();
@@ -352,10 +362,13 @@ public class PublicBookingService {
         // EST le tarif facturé ; l'économie est exposée pour l'affichage). La taxe de séjour reste
         // calculée sur le sous-total plein ci-dessus. Le breakdown garde le tarif plein par nuit ;
         // l'écart (= directDiscount) est présenté comme une ligne « réservation directe » côté widget.
+        // Tarif membre (2.8) : un voyageur connecté obtient max(remise directe, remise membre).
         BigDecimal directDiscount = BigDecimal.ZERO;
-        Integer directPct = config.getDirectBookingDiscountPercent();
-        if (directPct != null && directPct > 0) {
-            int pct = Math.min(directPct, 100);
+        int directPct = config.getDirectBookingDiscountPercent() != null ? config.getDirectBookingDiscountPercent() : 0;
+        int memberPct = (member && config.getMemberDiscountPercent() != null) ? config.getMemberDiscountPercent() : 0;
+        int effectivePct = Math.max(directPct, memberPct);
+        if (effectivePct > 0) {
+            int pct = Math.min(effectivePct, 100);
             directDiscount = subtotal.multiply(BigDecimal.valueOf(pct))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         }
@@ -407,12 +420,17 @@ public class PublicBookingService {
 
     @Transactional
     public BookingReserveResponseDto reserve(OrgContext ctx, BookingReserveRequestDto req) {
+        return reserve(ctx, req, false);
+    }
+
+    /** Variante tarif membre (2.8) : recalcule le total (autoritatif) avec la remise membre si connecté. */
+    public BookingReserveResponseDto reserve(OrgContext ctx, BookingReserveRequestDto req, boolean member) {
         Long orgId = ctx.orgId();
 
         // 1. Re-verifier la disponibilite (anti double-booking)
         AvailabilityResponseDto availability = checkAvailability(ctx, new AvailabilityRequestDto(
             req.propertyId(), req.checkIn(), req.checkOut(), req.guests()
-        ));
+        ), member);
         if (!availability.available()) {
             throw new IllegalStateException("Dates non disponibles : "
                 + String.join(", ", availability.violations()));
@@ -605,6 +623,11 @@ public class PublicBookingService {
      */
     @Transactional
     public BookingReserveBatchResponseDto reserveBatch(OrgContext ctx, BookingReserveBatchRequestDto req) {
+        return reserveBatch(ctx, req, false);
+    }
+
+    /** Variante tarif membre (2.8) : applique la remise membre à chaque item du panier si connecté. */
+    public BookingReserveBatchResponseDto reserveBatch(OrgContext ctx, BookingReserveBatchRequestDto req, boolean member) {
         Long orgId = ctx.orgId();
         BookingEngineConfig config = ctx.config();
 
@@ -627,7 +650,7 @@ public class PublicBookingService {
             BookingReserveBatchRequestDto.Item item = req.items().get(i);
             AvailabilityResponseDto availability = checkAvailability(ctx, new AvailabilityRequestDto(
                 item.propertyId(), item.checkIn(), item.checkOut(), item.guests()
-            ));
+            ), member);
             if (!availability.available()) {
                 throw new IllegalStateException("Item " + (i + 1) + " (propriete " + item.propertyId()
                     + ") non disponible : " + String.join(", ", availability.violations()));

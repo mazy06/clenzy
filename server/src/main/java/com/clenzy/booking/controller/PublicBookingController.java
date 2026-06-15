@@ -60,6 +60,7 @@ public class PublicBookingController {
     private final com.clenzy.booking.service.PublicCancellationService cancellationService;
     private final com.clenzy.booking.service.PublicReviewService reviewService;
     private final com.clenzy.booking.service.BookingBalanceService balanceService;
+    private final com.clenzy.booking.service.BookingGuestAuthService guestAuthService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
@@ -70,7 +71,8 @@ public class PublicBookingController {
                                     com.clenzy.service.LeadCaptureService leadCaptureService,
                                     com.clenzy.booking.service.PublicCancellationService cancellationService,
                                     com.clenzy.booking.service.PublicReviewService reviewService,
-                                    com.clenzy.booking.service.BookingBalanceService balanceService) {
+                                    com.clenzy.booking.service.BookingBalanceService balanceService,
+                                    com.clenzy.booking.service.BookingGuestAuthService guestAuthService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
@@ -81,6 +83,24 @@ public class PublicBookingController {
         this.cancellationService = cancellationService;
         this.reviewService = reviewService;
         this.balanceService = balanceService;
+        this.guestAuthService = guestAuthService;
+    }
+
+    /**
+     * Tarif membre (2.8) : un voyageur connecté présente son token guest (Authorization: Bearer).
+     * On valide le token (Keycloak) → membre. Validé côté serveur (jamais un flag client). Best-effort :
+     * un token invalide/absent ⇒ non-membre (tarif public). Appelé sur le devis + reserve (autoritatif).
+     */
+    private boolean resolveMember(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return false;
+        }
+        try {
+            return guestAuthService.resolveGuestKeycloakId(header.substring(7).trim()) != null;
+        } catch (RuntimeException e) {
+            return false; // Keycloak indisponible / token invalide → tarif public (jamais bloquant)
+        }
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -183,7 +203,7 @@ public class PublicBookingController {
             @Valid @RequestBody AvailabilityRequestDto request,
             HttpServletRequest httpRequest) {
         OrgContext ctx = resolveContext(slug, httpRequest);
-        AvailabilityResponseDto resp = bookingService.checkAvailability(ctx, request);
+        AvailabilityResponseDto resp = bookingService.checkAvailability(ctx, request, resolveMember(httpRequest));
         java.time.LocalDate rateDate = resp.checkIn() != null ? resp.checkIn() : java.time.LocalDate.now();
         return ResponseEntity.ok(displayCurrencyService.convertAvailability(resp, currency, rateDate));
     }
@@ -206,7 +226,7 @@ public class PublicBookingController {
             return tooManyReservationAttempts();
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.reserve(ctx, request));
+        return ResponseEntity.ok(bookingService.reserve(ctx, request, resolveMember(httpRequest)));
     }
 
     /**
@@ -228,7 +248,7 @@ public class PublicBookingController {
             return tooManyReservationAttempts();
         }
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.reserveBatch(ctx, request));
+        return ResponseEntity.ok(bookingService.reserveBatch(ctx, request, resolveMember(httpRequest)));
     }
 
     private ResponseEntity<Map<String, String>> tooManyReservationAttempts() {
