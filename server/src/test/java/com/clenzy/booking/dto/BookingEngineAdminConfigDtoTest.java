@@ -19,6 +19,7 @@ class BookingEngineAdminConfigDtoTest {
                 "Cancellation policy text", "https://terms", "https://privacy",
                 "https://example.com",
                 true, false, true, false,
+                new java.math.BigDecimal("250.00"), 30, 7,
                 "body { color: red }", "console.log('hi')", "{\"layout\":\"grid\"}",
                 "[{\"type\":\"hero\"}]",
                 "12,7",
@@ -48,6 +49,9 @@ class BookingEngineAdminConfigDtoTest {
         assertFalse(dto.autoConfirm());
         assertTrue(dto.showCleaningFee());
         assertFalse(dto.showTouristTax());
+        assertEquals(new java.math.BigDecimal("250.00"), dto.securityDepositAmount());
+        assertEquals(30, dto.depositPercent());
+        assertEquals(7, dto.balanceDueDays());
         assertEquals("body { color: red }", dto.customCss());
         assertEquals("console.log('hi')", dto.customJs());
         assertEquals("{\"layout\":\"grid\"}", dto.componentConfig());
@@ -120,6 +124,7 @@ class BookingEngineAdminConfigDtoTest {
                 "STRICT", "terms2", "privacy2",
                 "origin2",
                 true, true, false, true,
+                new java.math.BigDecimal("99.99"), 15, 45,
                 "css-new", "js-new", "cfg-new",
                 "layout-new",
                 "3,4",
@@ -147,6 +152,9 @@ class BookingEngineAdminConfigDtoTest {
         assertTrue(target.isAutoConfirm());
         assertFalse(target.isShowCleaningFee());
         assertTrue(target.isShowTouristTax());
+        assertEquals(new java.math.BigDecimal("99.99"), target.getSecurityDepositAmount());
+        assertEquals(15, target.getDepositPercent());
+        assertEquals(45, target.getBalanceDueDays());
         assertEquals("css-new", target.getCustomCss());
         assertEquals("js-new", target.getCustomJs());
         assertEquals("cfg-new", target.getComponentConfig());
@@ -174,6 +182,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
+                null, null, null,
                 null, null, null, null, null,
                 null, null, null,
                 null, null, null,
@@ -197,6 +206,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
+                null, null, null,
                 null, null, null, null, null, null, null, null,
                 null, null, null, null
         );
@@ -205,6 +215,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null, null, null,
                 null, null, null, null,
                 false, false, false, false,
+                null, null, null,
                 null, null, null, null, null, null, null, null,
                 null, null, null, null
         );

@@ -82,6 +82,7 @@ public class PublicBookingService {
     private final NotificationService notificationService;
     private final BookingServiceOptionsService serviceOptionsService;
     private final BookingConfirmationEmailService bookingConfirmationEmailService;
+    private final BookingEngineDepositService depositService;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -99,7 +100,8 @@ public class PublicBookingService {
             VoucherEngine voucherEngine,
             NotificationService notificationService,
             BookingServiceOptionsService serviceOptionsService,
-            BookingConfirmationEmailService bookingConfirmationEmailService) {
+            BookingConfirmationEmailService bookingConfirmationEmailService,
+            BookingEngineDepositService depositService) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -116,6 +118,7 @@ public class PublicBookingService {
         this.notificationService = notificationService;
         this.serviceOptionsService = serviceOptionsService;
         this.bookingConfirmationEmailService = bookingConfirmationEmailService;
+        this.depositService = depositService;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -962,19 +965,19 @@ public class PublicBookingService {
         Optional<Reservation> existing = reservationRepository.findByStripeSessionId(sessionId);
         if (existing.isPresent()) {
             Reservation r = existing.get();
-            if (r.getPaymentStatus() == PaymentStatus.PAID) {
+            if (r.getPaymentStatus() == PaymentStatus.PAID || r.getPaymentStatus() == PaymentStatus.PARTIALLY_PAID) {
                 log.info("Booking Engine: session {} deja confirmee pour reservation {} - skip",
                     sessionId, r.getConfirmationCode());
                 return;
             }
             log.info("Booking Engine: confirmation reservation existante {} via session {}",
                 r.getConfirmationCode(), sessionId);
-            stripeService.confirmReservationPayment(sessionId);
+            finalizeBookingPayment(session, r);
             return;
         }
 
         // ─── 1b. Hold cree au create-session mais session non rattachee ─────────
-        if (confirmPendingHoldFromMetadata(sessionId, metadata)) {
+        if (confirmPendingHoldFromMetadata(session, metadata)) {
             return;
         }
 
@@ -1024,7 +1027,8 @@ public class PublicBookingService {
      * create-session, on retrouve le hold via {@code metadata.reservation_id}
      * pour eviter une double creation de reservation.
      */
-    private boolean confirmPendingHoldFromMetadata(String sessionId, Map<String, String> metadata) {
+    private boolean confirmPendingHoldFromMetadata(Session session, Map<String, String> metadata) {
+        String sessionId = session.getId();
         String holdIdStr = metadata.get("reservation_id");
         if (holdIdStr == null || holdIdStr.isBlank()) {
             return false;
@@ -1045,8 +1049,130 @@ public class PublicBookingService {
         reservationRepository.save(reservation);
         log.warn("Booking Engine: session {} non rattachee au hold {} — rattrapage via metadata",
             sessionId, reservation.getConfirmationCode());
-        stripeService.confirmReservationPayment(sessionId);
+        finalizeBookingPayment(session, reservation);
         return true;
+    }
+
+    /**
+     * P0.3 — programme la mise en place de la caution APRÈS commit (appel Stripe hors transaction,
+     * audit #2). No-op si aucune caution configurée pour la session. Idempotent (dédup côté service).
+     */
+    private void scheduleCautionSetup(Session session, Reservation reservation) {
+        Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
+        BigDecimal caution = parseAmountOrZero(md.get("security_deposit_amount"));
+        if (caution.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        final Long reservationId = reservation.getId();
+        final Long orgId = reservation.getOrganizationId();
+        final String currency = reservation.getCurrency();
+        final String customerId = session.getCustomer();
+        final String paymentIntentId = session.getPaymentIntent();
+        runAfterCommit(() ->
+            depositService.setupCautionAfterPayment(reservationId, orgId, caution, currency, customerId, paymentIntentId));
+    }
+
+    /**
+     * P0.7 — aiguille la confirmation du paiement booking engine : acompte (solde > 0) →
+     * {@code PARTIALLY_PAID} (effets ledger/facture différés à l'encaissement du solde) ; sinon
+     * paiement intégral classique. La caution (si configurée) est posée dans les deux cas.
+     */
+    private void finalizeBookingPayment(Session session, Reservation reservation) {
+        Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
+        BigDecimal balance = parseAmountOrZero(md.get("deposit_balance"));
+        if (balance.compareTo(BigDecimal.ZERO) > 0) {
+            confirmReservationDeposit(session, reservation, balance);
+        } else {
+            stripeService.confirmReservationPayment(session.getId());
+        }
+        scheduleCautionSetup(session, reservation);
+    }
+
+    /**
+     * P0.7 — confirme l'ACOMPTE (paiement partiel) : {@code PARTIALLY_PAID} + solde dû recalculé
+     * serveur. Les effets complets (ledger, escrow, facture) sont volontairement différés à
+     * l'encaissement du solde ({@link #confirmBookingEngineBalance}). Idempotent.
+     */
+    private void confirmReservationDeposit(Session session, Reservation reservation, BigDecimal balanceFromMeta) {
+        PaymentStatus ps = reservation.getPaymentStatus();
+        if (ps == PaymentStatus.PARTIALLY_PAID || ps == PaymentStatus.PAID) {
+            return;
+        }
+        BigDecimal total = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO;
+        BigDecimal paid = session.getAmountTotal() != null
+            ? BigDecimal.valueOf(session.getAmountTotal()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
+            : total.subtract(balanceFromMeta);
+        BigDecimal balance = total.subtract(paid);
+        if (balance.compareTo(BigDecimal.ZERO) < 0) {
+            balance = BigDecimal.ZERO;
+        }
+        reservation.setPaymentStatus(PaymentStatus.PARTIALLY_PAID);
+        reservation.setPaidAt(LocalDateTime.now());
+        reservation.setAmountPaid(paid);
+        reservation.setAmountDue(balance);
+        if (reservation.getCheckIn() != null) {
+            reservation.setBalanceDueDate(reservation.getCheckIn().minusDays(resolveBalanceDueDays(reservation.getOrganizationId())));
+        }
+        if ("pending".equalsIgnoreCase(reservation.getStatus())) {
+            reservation.setStatus("confirmed");
+        }
+        reservationRepository.save(reservation);
+        log.info("Booking Engine: acompte confirmé résa {} (payé={}, solde={}, dû le {})",
+            reservation.getConfirmationCode(), paid, balance, reservation.getBalanceDueDate());
+
+        final Long resId = reservation.getId();
+        runAfterCommit(() -> {
+            try {
+                bookingConfirmationEmailService.sendForReservation(resId);
+            } catch (Exception e) {
+                log.warn("Email d'acompte non envoyé pour la réservation {}: {}", resId, e.getMessage());
+            }
+        });
+    }
+
+    private int resolveBalanceDueDays(Long orgId) {
+        return configRepository.findFirstByOrganizationId(orgId)
+            .map(BookingEngineConfig::getBalanceDueDays)
+            .filter(d -> d > 0)
+            .orElse(30);
+    }
+
+    /**
+     * P0.7 — encaissement du SOLDE d'un acompte via lien de paiement (session Checkout dédiée,
+     * metadata {@code type=booking_engine_balance}). Passe la résa de {@code PARTIALLY_PAID} à
+     * {@code PAID} et déclenche les effets complets (ledger, facture) via
+     * {@link StripeService#confirmReservationPayment}. Idempotent.
+     */
+    @Transactional
+    public void confirmBookingEngineBalance(Session session) {
+        Map<String, String> md = session.getMetadata() != null ? session.getMetadata() : Collections.emptyMap();
+        String resIdStr = md.get("reservation_id");
+        if (resIdStr == null || resIdStr.isBlank()) {
+            log.error("Booking Engine balance: metadata reservation_id absente (session {})", session.getId());
+            return;
+        }
+        final Long resId;
+        try {
+            resId = Long.parseLong(resIdStr);
+        } catch (NumberFormatException e) {
+            return;
+        }
+        Reservation reservation = reservationRepository.findById(resId).orElse(null);
+        if (reservation == null) {
+            log.error("Booking Engine balance: réservation {} introuvable (session {})", resId, session.getId());
+            return;
+        }
+        if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
+            log.info("Booking Engine balance: résa {} déjà soldée — skip (idempotence)", reservation.getConfirmationCode());
+            return;
+        }
+        // Rattache la session du solde puis délègue la confirmation COMPLÈTE (PARTIALLY_PAID → PAID
+        // + ledger + facture) à confirmReservationPayment (keyé par stripeSessionId).
+        reservation.setStripeSessionId(session.getId());
+        reservation.setAmountPaid(reservation.getTotalPrice());
+        reservation.setAmountDue(BigDecimal.ZERO);
+        reservationRepository.save(reservation);
+        stripeService.confirmReservationPayment(session.getId());
     }
 
     /** Donnees extraites des metadata Stripe du flux Embedded Checkout. */
