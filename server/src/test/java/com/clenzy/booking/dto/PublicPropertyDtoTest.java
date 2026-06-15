@@ -21,7 +21,8 @@ class PublicPropertyDtoTest {
                 new BigDecimal("100.00"), new BigDecimal("30.00"),
                 2, "EUR", "https://main",
                 List.of("https://p1", "https://p2"),
-                List.of("wifi"), "15:00", "11:00"
+                List.of("wifi"), "15:00", "11:00",
+                7, 12
         );
 
         assertEquals(1L, dto.id());
@@ -42,6 +43,8 @@ class PublicPropertyDtoTest {
         assertEquals(List.of("wifi"), dto.amenities());
         assertEquals("15:00", dto.checkInTime());
         assertEquals("11:00", dto.checkOutTime());
+        assertEquals(7, dto.totalBookings());
+        assertEquals(12, dto.availableDays30());
     }
 
     @Test

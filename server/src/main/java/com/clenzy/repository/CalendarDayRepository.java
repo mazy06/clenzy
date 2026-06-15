@@ -123,6 +123,18 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
             @Param("orgId") Long orgId);
 
     /**
+     * Jours INDISPONIBLES (≠ AVAILABLE) par propriété sur [from, to) (batch, urgence honnête 2.9).
+     * Convention Clenzy : absence de ligne = disponible → dispo = (jours fenêtre) − (count retourné).
+     */
+    @Query("SELECT cd.property.id, COUNT(cd) FROM CalendarDay cd WHERE cd.property.id IN :propertyIds " +
+           "AND cd.date >= :from AND cd.date < :to " +
+           "AND cd.status <> com.clenzy.model.CalendarDayStatus.AVAILABLE GROUP BY cd.property.id")
+    List<Object[]> countUnavailableByPropertyIds(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
+    /**
      * Recupere les jours BLOCKED ou MAINTENANCE pour plusieurs proprietes dans une plage [from, to).
      * Utilise par le planning pour afficher les periodes bloquees.
      */

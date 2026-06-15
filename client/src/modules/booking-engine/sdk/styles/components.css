@@ -819,6 +819,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ─── Badges preuve sociale / urgence honnêtes (2.9) ─────────────────────── */
+.cb-property-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cb-space-1);
+  margin-top: var(--cb-space-2);
+}
+.cb-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--cb-font-size-xs);
+  font-weight: var(--cb-font-weight-semibold);
+  line-height: 1.45;
+  white-space: nowrap;
+}
+.cb-badge--popular {
+  background: var(--cb-color-primary-soft, rgba(107, 138, 154, 0.12));
+  color: var(--cb-color-primary, var(--cb-color-text));
+}
+.cb-badge--urgent {
+  background: rgba(201, 122, 122, 0.14);
+  color: #9A3E3E;
+}
+
 /* ─── Currency selector ──────────────────────────────────────────────────── */
 .cb-currency-selector {
   display: flex;

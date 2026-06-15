@@ -85,6 +85,21 @@ function card(
     body.appendChild(price);
   }
 
+  // Preuve sociale / urgence HONNÊTES (2.9) : données réelles, seuils pour n'afficher que du signal.
+  const badges: HTMLElement[] = [];
+  if (p.totalBookings != null && p.totalBookings >= 3) {
+    badges.push(badge(i18n.t('card.bookedTimes').replace('{count}', String(p.totalBookings)), 'cb-badge--popular'));
+  }
+  if (p.availableDays30 != null && p.availableDays30 > 0 && p.availableDays30 <= 8) {
+    badges.push(badge(i18n.t('card.fewDatesLeft').replace('{count}', String(p.availableDays30)), 'cb-badge--urgent'));
+  }
+  if (badges.length) {
+    const row = document.createElement('div');
+    row.className = 'cb-property-card__badges';
+    badges.forEach((b) => row.appendChild(b));
+    body.appendChild(row);
+  }
+
   el.appendChild(body);
   el.addEventListener('click', () => {
     // Sélection d'une propriété : reset des dates + prix, le widget recharge le calendrier.
@@ -92,6 +107,13 @@ function card(
   });
 
   return el;
+}
+
+function badge(text: string, variant: string): HTMLElement {
+  const b = document.createElement('span');
+  b.className = `cb-badge ${variant}`;
+  b.textContent = text;
+  return b;
 }
 
 function formatPrice(amount: number, currency: string): string {

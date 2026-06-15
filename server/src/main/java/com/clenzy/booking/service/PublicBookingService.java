@@ -169,11 +169,36 @@ public class PublicBookingService {
         // Curation « propriétés affichées » : si le booking engine a une sélection, on s'y restreint
         // (vide/NULL = toutes les propriétés visibles). Curation d'affichage, pas de contrôle d'accès.
         java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
-        return propertyRepository.findBookingEngineVisible(ctx.orgId())
+        List<PublicPropertyDto> base = propertyRepository.findBookingEngineVisible(ctx.orgId())
             .stream()
             .filter(p -> featured.isEmpty() || featured.contains(p.getId()))
             .map(PublicPropertyDto::from)
             .toList();
+        if (base.isEmpty()) {
+            return base;
+        }
+        // Signaux honnêtes (2.9), 2 requêtes batch (pas de N+1) : « réservé N× » + jours disponibles
+        // sur 30 jours (urgence). Le frontend décide des seuils d'affichage.
+        final int windowDays = 30;
+        List<Long> ids = base.stream().map(PublicPropertyDto::id).toList();
+        java.util.Map<Long, Integer> bookings = toCountMap(reservationRepository.countByPropertyIds(ids, ctx.orgId()));
+        LocalDate today = LocalDate.now();
+        java.util.Map<Long, Integer> unavailable =
+            toCountMap(calendarDayRepository.countUnavailableByPropertyIds(ids, today, today.plusDays(windowDays)));
+        return base.stream()
+            .map(dto -> dto.withSignals(
+                bookings.getOrDefault(dto.id(), 0),
+                Math.max(0, windowDays - unavailable.getOrDefault(dto.id(), 0))))
+            .toList();
+    }
+
+    /** Agrège un résultat group-by `(propertyId, count)` en map id→compte. */
+    private static java.util.Map<Long, Integer> toCountMap(List<Object[]> rows) {
+        java.util.Map<Long, Integer> map = new java.util.HashMap<>();
+        for (Object[] row : rows) {
+            map.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue());
+        }
+        return map;
     }
 
     /** Parse une liste d'IDs de propriétés en CSV de façon défensive (entrées non numériques ignorées). */

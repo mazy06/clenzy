@@ -46,7 +46,7 @@
 | 2.6 ✅ | **FAIT** — Templates de site par vertical : 6 designs réels (Lodge, Épuré, Bord de mer, Urbain, Riad/MENA, Nordique) = thème + composition de blocs + copy. Bouton « Modèles » dans le Studio + à la création ; « Page vierge » = custom. (Plus de blocs 2.3 enrichiront les compositions.) | 🟡 | ⭐⭐ | M | 2.3 |
 | 2.7 | Drag-and-drop + conteneurs lignes/colonnes ; undo/redo + autosave + draft/live | 🟡 | ⭐ | M | — |
 | 2.8 | **Book Direct & Save** (parité tarifaire, rate membre, wallet/crédit) | ❌ | ⭐⭐⭐ | L | — |
-| 2.9 | Urgence & preuve sociale honnête (« 2 dates restantes », « réservé X× ») | ❌ | ⭐⭐ | M | viewing data |
+| 2.9 ✅ | Urgence & preuve sociale honnête (« 2 dates restantes », « réservé X× ») | ✅ | ⭐⭐ | M | — | **FAIT — données 100% réelles** : `PublicPropertyDto` enrichi de `totalBookings` + `availableDays30` (2 requêtes **batch**, pas de N+1 : `countByPropertyIds` + `countUnavailableByPropertyIds` sur 30 j). Widget : badges **« Réservé N× »** (si ≥3) et **« Plus que N dates en 30 j »** (si ≤8) sur les cartes (i18n fr/en/ar, CSS tokens + accent `#C97A7A`). Seuils = on n'affiche que du vrai signal. *Pas de « X personnes regardent » (refusé : pas de tracking réel = malhonnête). Note/avis par propriété = extension possible (requête à ajouter).* |
 | 2.10 | Upsells productisés (bundles, conditionnel, fenêtres horaires) | 🟡 | ⭐⭐ | M | — |
 | 2.11 | Comptes voyageur : wishlist, cartes enregistrées, re-booking 1-clic, fidélité/parrainage | 🟡 | ⭐⭐ | L | — |
 | 2.12 | Capture leads (exit-intent/pré-checkout/form embarquable) + abandoned multi-étapes + segments Brevo | 🟡 | ⭐⭐ | M | — |
