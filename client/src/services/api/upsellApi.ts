@@ -24,6 +24,9 @@ export interface UpsellOffer {
   imageUrl: string | null;
   active: boolean;
   sortOrder: number;
+  // Productisation (2.10) : conditionnel + fenêtre horaire
+  minNights: number | null;
+  leadTimeHours: number | null;
 }
 
 /** Création / mise à jour d'une offre. */
@@ -37,6 +40,10 @@ export interface UpsellOfferRequest {
   imageUrl?: string | null;
   active?: boolean;
   sortOrder?: number;
+  /** Séjour minimal (nuits) pour proposer l'offre ; null/0 = toujours. */
+  minNights?: number | null;
+  /** Délai minimal (heures) avant l'arrivée pour commander ; null/0 = aucun. */
+  leadTimeHours?: number | null;
 }
 
 /** Commande d'upsell (vente). */

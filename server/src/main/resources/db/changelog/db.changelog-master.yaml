@@ -2549,3 +2549,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0259__add_direct_booking_discount.sql
         relativeToChangelogFile: true
+
+  # Upsells (2.10) : productisation — conditionnel (min_nights) + fenetre horaire (lead_time_hours).
+  - changeSet:
+      id: "0260-add-upsell-conditions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0260__add_upsell_conditions.sql
+        relativeToChangelogFile: true
