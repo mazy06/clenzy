@@ -313,3 +313,17 @@
 .bkly-logos__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 32px; }
 .bkly-logos__img { height: 36px; max-width: 140px; object-fit: contain; opacity: .75; }
 .bkly-logos__img--empty { width: 120px; height: 36px; background: var(--field); border-radius: var(--radius-sm); opacity: 1; }
+
+/* ── Visibilité responsive par bloc (2.5) ────────────────────────────────────
+ * Container queries : le conteneur (cadre canvas / preview / page publique) porte
+ * `container-type: inline-size`, donc le masquage suit la largeur SIMULÉE dans le
+ * Studio comme la largeur réelle en public. Breakpoints alignés sur FRAME_WIDTH. */
+@container (max-width: 600px) {
+  .bkly-vis--hide-mobile { display: none !important; }
+}
+@container (min-width: 600.02px) and (max-width: 1024px) {
+  .bkly-vis--hide-tablet { display: none !important; }
+}
+@container (min-width: 1024.02px) {
+  .bkly-vis--hide-desktop { display: none !important; }
+}
