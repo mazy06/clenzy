@@ -1,90 +1,92 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SmartRedirect from '../components/SmartRedirect';
+import RouteFallback from '../components/RouteFallback';
 
-// Pages principales
-import Dashboard from './dashboard/Dashboard';
-import AssistantPage from './assistant/AssistantPage';
-import NotFoundPage from './NotFoundPage';
-import PropertiesPage from './properties/PropertiesPage';
-import PropertyCreate from './properties/PropertyCreate';
-import PropertyDetails from './properties/PropertyDetails';
-import PropertyEdit from './properties/PropertyEdit';
+// Pages : chargées en lazy (code-splitting par route). Chaque page + son sous-arbre devient un
+// chunk séparé → sort le module booking-engine/studio et les dialogs paiements du bundle initial.
+const Dashboard = lazy(() => import('./dashboard/Dashboard'));
+const AssistantPage = lazy(() => import('./assistant/AssistantPage'));
+const NotFoundPage = lazy(() => import('./NotFoundPage'));
+const PropertiesPage = lazy(() => import('./properties/PropertiesPage'));
+const PropertyCreate = lazy(() => import('./properties/PropertyCreate'));
+const PropertyDetails = lazy(() => import('./properties/PropertyDetails'));
+const PropertyEdit = lazy(() => import('./properties/PropertyEdit'));
 
 // Service requests
-import ServiceRequestCreate from './service-requests/ServiceRequestCreate';
-import ServiceRequestDetails from './service-requests/ServiceRequestDetails';
-import ServiceRequestEdit from './service-requests/ServiceRequestEdit';
+const ServiceRequestCreate = lazy(() => import('./service-requests/ServiceRequestCreate'));
+const ServiceRequestDetails = lazy(() => import('./service-requests/ServiceRequestDetails'));
+const ServiceRequestEdit = lazy(() => import('./service-requests/ServiceRequestEdit'));
 
 // Interventions & Work Orders (unified page with tabs)
-import WorkOrdersPage from './work-orders/WorkOrdersPage';
-import InterventionForm from './interventions/InterventionForm';
-import InterventionDetails from './interventions/InterventionDetails';
-import InterventionEdit from './interventions/InterventionEdit';
-import PaymentSuccess from './interventions/PaymentSuccess';
-import PaymentCancel from './interventions/PaymentCancel';
-import InterventionsPendingPayment from './interventions/InterventionsPendingPayment';
+const WorkOrdersPage = lazy(() => import('./work-orders/WorkOrdersPage'));
+const InterventionForm = lazy(() => import('./interventions/InterventionForm'));
+const InterventionDetails = lazy(() => import('./interventions/InterventionDetails'));
+const InterventionEdit = lazy(() => import('./interventions/InterventionEdit'));
+const PaymentSuccess = lazy(() => import('./interventions/PaymentSuccess'));
+const PaymentCancel = lazy(() => import('./interventions/PaymentCancel'));
+const InterventionsPendingPayment = lazy(() => import('./interventions/InterventionsPendingPayment'));
 
 // Teams
-import TeamForm from './teams/TeamForm';
-import TeamDetails from './teams/TeamDetails';
-import TeamEdit from './teams/TeamEdit';
+const TeamForm = lazy(() => import('./teams/TeamForm'));
+const TeamDetails = lazy(() => import('./teams/TeamDetails'));
+const TeamEdit = lazy(() => import('./teams/TeamEdit'));
 
 // Directory (Annuaire — merged Teams + Portfolios + Guests)
-import DirectoryPage from './directory/DirectoryPage';
+const DirectoryPage = lazy(() => import('./directory/DirectoryPage'));
 
 // Reports
-import Reports from './reports/Reports';
+const Reports = lazy(() => import('./reports/Reports'));
 import ErrorBoundary from '../components/ErrorBoundary';
 
 // Users
-import UserForm from './users/UserForm';
-import UserDetails from './users/UserDetails';
-import UserEdit from './users/UserEdit';
+const UserForm = lazy(() => import('./users/UserForm'));
+const UserDetails = lazy(() => import('./users/UserDetails'));
+const UserEdit = lazy(() => import('./users/UserEdit'));
 
 // Settings
-import Settings from './settings/Settings';
+const Settings = lazy(() => import('./settings/Settings'));
 
 // Tarification
-import Tarification from './tarification/Tarification';
+const Tarification = lazy(() => import('./tarification/Tarification'));
 
 // Permissions
-import PermissionConfig from '../components/PermissionConfig';
+const PermissionConfig = lazy(() => import('../components/PermissionConfig'));
 
 // Messagerie unifiée (hub : conversations · archives · formulaires reçus · OTA)
 // — remplace l'ancienne ContactPage sur la route /contact (mêmes ?tab= legacy).
-import MessagingHubPage from './messaging/MessagingHubPage';
-import ContactCreatePage from './contact/ContactCreatePage';
+const MessagingHubPage = lazy(() => import('./messaging/MessagingHubPage'));
+const ContactCreatePage = lazy(() => import('./contact/ContactCreatePage'));
 
 // Documents
-import DocumentsPage from './documents/DocumentsPage';
+const DocumentsPage = lazy(() => import('./documents/DocumentsPage'));
 // ConnectedObjectsHub : plus de route standalone — rendu comme onglet de PropertiesPage.
 // /connected-objects redirige desormais vers /properties?tab=connected-objects.
-import PropertyDevicesView from './connected-objects/PropertyDevicesView';
-import DeviceDetail from './connected-objects/DeviceDetail';
-import CamerasScreen from './connected-objects/cameras/CamerasScreen';
-import ThermostatsScreen from './connected-objects/thermostats/ThermostatsScreen';
-import TemplateDetails from './documents/TemplateDetails';
+const PropertyDevicesView = lazy(() => import('./connected-objects/PropertyDevicesView'));
+const DeviceDetail = lazy(() => import('./connected-objects/DeviceDetail'));
+const CamerasScreen = lazy(() => import('./connected-objects/cameras/CamerasScreen'));
+const ThermostatsScreen = lazy(() => import('./connected-objects/thermostats/ThermostatsScreen'));
+const TemplateDetails = lazy(() => import('./documents/TemplateDetails'));
 
 // Notifications
-import NotificationsPage from './notifications/NotificationsPage';
+const NotificationsPage = lazy(() => import('./notifications/NotificationsPage'));
 
 // Calendar
-import CalendarPage from './calendar/CalendarPage';
+const CalendarPage = lazy(() => import('./calendar/CalendarPage'));
 
 // Portfolios (sub-routes only — main list is inside DirectoryPage)
-import ClientPropertyAssignmentForm from './portfolios/ClientPropertyAssignmentForm';
-import TeamUserAssignmentForm from './portfolios/TeamUserAssignmentForm';
+const ClientPropertyAssignmentForm = lazy(() => import('./portfolios/ClientPropertyAssignmentForm'));
+const TeamUserAssignmentForm = lazy(() => import('./portfolios/TeamUserAssignmentForm'));
 
 // Billing (Payments + Invoices)
-import BillingPage from './billing/BillingPage';
+const BillingPage = lazy(() => import('./billing/BillingPage'));
 
 // Reservations
-import ReservationsList from './reservations/ReservationsList';
+const ReservationsList = lazy(() => import('./reservations/ReservationsList'));
 
 // Planning
-import PlanningPage from './planning/PlanningPage';
+const PlanningPage = lazy(() => import('./planning/PlanningPage'));
 
 // Guests (main list is inside DirectoryPage)
 
@@ -92,50 +94,51 @@ import PlanningPage from './planning/PlanningPage';
 
 
 // Admin pages
-import TokenMonitoringPage from './admin/TokenMonitoringPage';
-import MonitoringPage from './admin/MonitoringPage';
-import SyncAdminPage from './admin/SyncAdminPage';
-import PromoCodesPage from './admin/PromoCodesPage';
+const TokenMonitoringPage = lazy(() => import('./admin/TokenMonitoringPage'));
+const MonitoringPage = lazy(() => import('./admin/MonitoringPage'));
+const SyncAdminPage = lazy(() => import('./admin/SyncAdminPage'));
+const PromoCodesPage = lazy(() => import('./admin/PromoCodesPage'));
 // VouchersPage est desormais monte comme tab dans PropertiesPage
 // (cf. /properties?tab=vouchers). L'ancienne route /vouchers est conservee
 // en redirection pour preserver les bookmarks.
-import KpiReadinessPage from './admin/KpiReadinessPage';
-import DatabaseAdminPage from './admin/DatabaseAdminPage';
-import ExchangeRateHistoryPage from './admin/ExchangeRateHistoryPage';
+const KpiReadinessPage = lazy(() => import('./admin/KpiReadinessPage'));
+const DatabaseAdminPage = lazy(() => import('./admin/DatabaseAdminPage'));
+const ExchangeRateHistoryPage = lazy(() => import('./admin/ExchangeRateHistoryPage'));
 
 // Channels & Integrations
-import ChannelsPage from './channels/ChannelsPage';
-import ReviewsPage from './channels/ReviewsPage';
-import GuestExperiencePage from './guest-experience/GuestExperiencePage';
-import StudioHome from './booking-engine/studio/StudioHome';
-import StudioPage from './booking-engine/studio/StudioPage';
+const ChannelsPage = lazy(() => import('./channels/ChannelsPage'));
+const ReviewsPage = lazy(() => import('./channels/ReviewsPage'));
+const GuestExperiencePage = lazy(() => import('./guest-experience/GuestExperiencePage'));
+const StudioHome = lazy(() => import('./booking-engine/studio/StudioHome'));
+const StudioPage = lazy(() => import('./booking-engine/studio/StudioPage'));
 
 // Messaging — pages now merged into Documents module (redirected via Navigate)
 // import MessageTemplatesPage from './messaging/MessageTemplatesPage';
 // import MessageHistoryPage from './messaging/MessageHistoryPage';
 
 // Channel Promotions
-import ChannelPromotionsPage from './promotions/ChannelPromotionsPage';
+const ChannelPromotionsPage = lazy(() => import('./promotions/ChannelPromotionsPage'));
 
 // AccountingPage import removed — tabs now embedded in BillingPage
 
 // Owner Portal
-import OwnerPortalPage from './owner-portal/OwnerPortalPage';
+const OwnerPortalPage = lazy(() => import('./owner-portal/OwnerPortalPage'));
 
 // Automation Rules
-import AutomationRulesPage from './automation/AutomationRulesPage';
+const AutomationRulesPage = lazy(() => import('./automation/AutomationRulesPage'));
 
 // Shop
-import ShopPage from './shop/ShopPage';
+const ShopPage = lazy(() => import('./shop/ShopPage'));
 
 // Management Contracts
-import ManagementContractsPage from './contracts/ManagementContractsPage';
+const ManagementContractsPage = lazy(() => import('./contracts/ManagementContractsPage'));
 
 // InvoicesList import removed — now embedded in BillingPage
 
 
 const AuthenticatedApp: React.FC = () => {
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/dashboard" element={
         <Dashboard />
@@ -562,6 +565,7 @@ const AuthenticatedApp: React.FC = () => {
         {/* Catch-all 404 — toute route non matchee atterrit ici (au lieu d'un ecran blanc) */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+    </Suspense>
   );
 };
 
