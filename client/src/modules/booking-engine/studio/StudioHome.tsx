@@ -4,6 +4,7 @@ import { Box, ButtonBase, Skeleton } from '@mui/material';
 import { Plus, LayoutTemplate, ArrowRight, AlertTriangle } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfig, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { type DesignPreset } from '../constants';
+import { templateBlocksForPreset } from './siteTemplates';
 import TemplateGallery from './TemplateGallery';
 
 /**
@@ -38,7 +39,7 @@ function buildConfigPayload(name: string, preset: DesignPreset | null): BookingE
     customCss: null,
     customJs: null,
     componentConfig: null,
-    pageLayout: null,
+    pageLayout: preset ? (() => { const b = templateBlocksForPreset(preset.id); return b ? JSON.stringify(b) : null; })() : null,
     featuredPropertyIds: null,
     designTokens: preset ? JSON.stringify(preset.tokens) : null,
     sourceWebsiteUrl: null,

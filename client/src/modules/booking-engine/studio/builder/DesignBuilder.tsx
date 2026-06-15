@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, ButtonBase } from '@mui/material';
-import { Check } from 'lucide-react';
+import { Check, LayoutTemplate } from 'lucide-react';
 import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
 import PagePreview from './PagePreview';
@@ -9,6 +9,9 @@ import ThemeInspector from './ThemeInspector';
 import { BLOCK_REGISTRY, getBlockDef, type BlockProps, type BlockType } from './blockRegistry';
 import type { Breakpoint } from '../StudioShell';
 import type { StudioConfigState } from '../useStudioConfig';
+import SiteTemplatePicker from '../SiteTemplatePicker';
+import type { SiteTemplate } from '../siteTemplates';
+import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
 
 /**
  * Builder 3-pane du Baitly Studio (F2 + F2b) : arbre de blocs (gauche) · canvas WYSIWYG (centre) ·
@@ -67,6 +70,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>('block');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   const { patch } = cfg;
@@ -116,6 +120,25 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     commit(blocks.map((b) => (b.id === id ? { ...b, props: { ...b.props, [key]: value } } : b)));
   };
 
+  // Applique un template (thème + composition) ; null = page vierge (custom). Remplace la page courante.
+  const applyTemplate = (tpl: SiteTemplate | null) => {
+    setTemplatesOpen(false);
+    const next: BlockInstance[] = tpl
+      ? tpl.blocks.map((b) => ({ id: makeBlock(b.type).id, type: b.type, props: { ...getBlockDef(b.type).defaultProps, ...b.props } }))
+      : [];
+    setBlocks(next);
+    setSelectedId(next[0]?.id ?? null);
+    setRightTab('block');
+    setMode('edit');
+    const changes: Partial<BookingEngineConfig> = { pageLayout: serializeLayout(next) };
+    if (tpl) {
+      changes.primaryColor = tpl.preset.primaryColor;
+      changes.fontFamily = tpl.preset.fontFamily;
+      changes.designTokens = JSON.stringify(tpl.preset.tokens);
+    }
+    patch(changes);
+  };
+
   if (!hydrated) {
     return (
       <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 'var(--text-md)' }}>
@@ -128,8 +151,21 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* Barre : bascule Éditer / Aperçu. */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', px: 1.5, height: 44, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+      {/* Barre : modèles (gauche) + bascule Éditer / Aperçu (droite). */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, height: 44, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+        <ButtonBase
+          onClick={() => setTemplatesOpen(true)}
+          sx={{
+            display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 30, px: 1.5,
+            borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', color: 'var(--body)',
+            fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
+            transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
+            '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
+            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+          }}
+        >
+          <LayoutTemplate size={15} strokeWidth={2} /> Modèles
+        </ButtonBase>
         <Segmented
           value={mode}
           onChange={setMode}
@@ -201,6 +237,8 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
           </Box>
         </Box>
       )}
+
+      <SiteTemplatePicker open={templatesOpen} onClose={() => setTemplatesOpen(false)} onSelect={applyTemplate} />
     </Box>
   );
 }

@@ -43,7 +43,7 @@
 | 2.3 | + de blocs (Galerie/lightbox, Carte, FAQ, Formulaire, Table prix, Stats, Logos, Vidéo, Détail propriété) | 🟡 | ⭐⭐ | M | 2.1 |
 | 2.4 | Édition par bloc enrichie (color/url/image/align/spacing/select) + éditeur tokens complet (21) | 🟡 | ⭐⭐ | M | 2.1 |
 | 2.5 | Responsive : overrides + visibilité par breakpoint | 🟡 | ⭐⭐ | M | — |
-| 2.6 | Templates de site par vertical (villa, riad/MENA RTL, chalet, B&B) | 🟡 | ⭐⭐ | M | 2.3 |
+| 2.6 ✅ | **FAIT** — Templates de site par vertical : 6 designs réels (Lodge, Épuré, Bord de mer, Urbain, Riad/MENA, Nordique) = thème + composition de blocs + copy. Bouton « Modèles » dans le Studio + à la création ; « Page vierge » = custom. (Plus de blocs 2.3 enrichiront les compositions.) | 🟡 | ⭐⭐ | M | 2.3 |
 | 2.7 | Drag-and-drop + conteneurs lignes/colonnes ; undo/redo + autosave + draft/live | 🟡 | ⭐ | M | — |
 | 2.8 | **Book Direct & Save** (parité tarifaire, rate membre, wallet/crédit) | ❌ | ⭐⭐⭐ | L | — |
 | 2.9 | Urgence & preuve sociale honnête (« 2 dates restantes », « réservé X× ») | ❌ | ⭐⭐ | M | viewing data |
