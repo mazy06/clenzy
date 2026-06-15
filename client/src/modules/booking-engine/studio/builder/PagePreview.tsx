@@ -40,7 +40,7 @@ export default function PagePreview({ blocks, theme, breakpoint }: PagePreviewPr
             Page vide — ajoutez des blocs en mode édition.
           </Box>
         ) : (
-          blocks.map((b) => <Box key={b.id} className={visibilityClassName(b.props)}>{renderBlock(b)}</Box>)
+          blocks.map((b) => <Box key={b.id} className={visibilityClassName(b.props)}>{renderBlock(b, breakpoint)}</Box>)
         )}
       </Box>
     </Box>

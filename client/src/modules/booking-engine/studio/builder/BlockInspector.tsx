@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, ButtonBase, InputBase, Switch } from '@mui/material';
 import { ImagePlus } from 'lucide-react';
-import { getBlockDef, type BlockProps, type FieldDef } from './blockRegistry';
+import { getBlockDef, type BlockProps, type FieldDef, type RenderBreakpoint } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 import MediaPicker from './MediaPicker';
 
@@ -9,14 +9,22 @@ import MediaPicker from './MediaPicker';
  * Corps de l'inspecteur de bloc (onglet « Bloc » du pane droit, F2). Édite les props du bloc
  * sélectionné via les champs déclarés dans le registre. Aucun bloc → invite. Le chrome du pane
  * (largeur, bordure, switch Bloc/Thème) est fourni par DesignBuilder.
+ *
+ * Overrides responsive (2.5) : quand le canvas est en tablette/mobile, l'édition d'un champ écrit
+ * une valeur DÉDIÉE à ce breakpoint (clé `key@mobile`/`key@tablet`) ; un champ non surchargé hérite
+ * du desktop. Un bouton « réinitialiser » retire l'override. `columnCount` reste non-responsive.
  */
 
 export interface BlockInspectorProps {
   block: BlockInstance | null;
+  breakpoint: RenderBreakpoint;
   onChange: (id: string, key: string, value: string | number | boolean) => void;
+  onClear: (id: string, key: string) => void;
 }
 
-export default function BlockInspector({ block, onChange }: BlockInspectorProps) {
+const NON_RESPONSIVE_FIELDS = new Set(['columnCount']);
+
+export default function BlockInspector({ block, breakpoint, onChange, onClear }: BlockInspectorProps) {
   if (!block) {
     return (
       <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 3, color: 'var(--muted)', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
@@ -26,14 +34,39 @@ export default function BlockInspector({ block, onChange }: BlockInspectorProps)
   }
 
   const def = getBlockDef(block.type);
+  const responsive = breakpoint !== 'desktop';
+  const bpLabel = breakpoint === 'mobile' ? 'Mobile' : 'Tablette';
   return (
     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>
         {def.label}
       </Box>
-      {def.fields.map((field) => (
-        <Field key={field.key} field={field} value={block.props[field.key]} onChange={(v) => onChange(block.id, field.key, v)} />
-      ))}
+      {responsive && (
+        <Box sx={{ p: 1, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 'var(--text-2xs)', lineHeight: 1.4 }}>
+          Affichage <strong>{bpLabel}</strong> — les champs modifiés ici ne s'appliquent qu'en {bpLabel.toLowerCase()} ; les autres héritent du desktop.
+        </Box>
+      )}
+      {def.fields.map((field) => {
+        const useOverride = responsive && !NON_RESPONSIVE_FIELDS.has(field.key);
+        const ovKey = `${field.key}@${breakpoint}`;
+        const overridden = useOverride && block.props[ovKey] !== undefined;
+        const effectiveKey = useOverride ? ovKey : field.key;
+        const value = overridden ? block.props[ovKey] : block.props[field.key];
+        return (
+          <Box key={field.key}>
+            <Field field={field} value={value} onChange={(v) => onChange(block.id, effectiveKey, v)} />
+            {overridden && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, fontSize: 'var(--text-2xs)', color: 'var(--accent)' }}>
+                <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'var(--accent)', flexShrink: 0 }} />
+                Spécifique {bpLabel}
+                <ButtonBase onClick={() => onClear(block.id, ovKey)} sx={{ ml: 0.5, color: 'var(--muted)', textDecoration: 'underline', cursor: 'pointer', fontSize: 'var(--text-2xs)', '&:hover': { color: 'var(--ink)' } }}>
+                  réinitialiser
+                </ButtonBase>
+              </Box>
+            )}
+          </Box>
+        );
+      })}
 
       {/* Visibilité responsive (2.5) — commune à tous les blocs (props hideMobile/Tablet/Desktop). */}
       <Box sx={{ mt: 0.5, pt: 1.5, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 1.25 }}>

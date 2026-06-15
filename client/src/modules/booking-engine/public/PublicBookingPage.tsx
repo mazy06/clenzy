@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { AlertTriangle, Star } from 'lucide-react';
-import { renderBlock, parsePageLayout, visibilityClassName } from '../studio/builder/blockRegistry';
+import { renderBlock, parsePageLayout, visibilityClassName, type RenderBreakpoint } from '../studio/builder/blockRegistry';
 import { themeStyle } from '../studio/builder/BuilderCanvas';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
 import type { DesignTokens } from '../../../services/api/bookingEngineApi';
@@ -11,6 +11,26 @@ import { API_CONFIG } from '../../../config/api';
 
 // Même résolution que le reste de l'app (VITE_API_BASE_URL) : pas de proxy /api en dev.
 const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
+
+/**
+ * Breakpoint courant du viewport (2.5) — applique les overrides responsive par breakpoint côté
+ * client. Seuils alignés sur le Studio (mobile ≤600 / tablette 601–1024 / desktop). SSR (clenzy-sites)
+ * n'a pas de viewport : il sert la base (desktop), ce qui reste correct par défaut.
+ */
+function useViewportBreakpoint(): RenderBreakpoint {
+  const get = (): RenderBreakpoint => {
+    if (typeof window === 'undefined') return 'desktop';
+    const w = window.innerWidth;
+    return w <= 600 ? 'mobile' : w <= 1024 ? 'tablet' : 'desktop';
+  };
+  const [bp, setBp] = useState<RenderBreakpoint>(get);
+  useEffect(() => {
+    const onResize = () => setBp(get());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return bp;
+}
 
 /**
  * Page publique hébergée du booking engine (P0.1) — rend la PAGE COMPOSÉE dans le Studio
@@ -82,6 +102,7 @@ export default function PublicBookingPage() {
 
   const blocks = useMemo(() => parsePageLayout(config?.pageLayout), [config?.pageLayout]);
   const tokens = useMemo(() => parseTokens(config?.designTokens ?? null), [config?.designTokens]);
+  const breakpoint = useViewportBreakpoint();
 
   // Monte le widget de réservation fonctionnel une fois la config chargée.
   useEffect(() => {
@@ -121,7 +142,7 @@ export default function PublicBookingPage() {
       {config.customCss && <style>{config.customCss}</style>}
 
       {/* Page composée (blocs marketing) en flux document. */}
-      {blocks.map((b) => <Box key={b.id} className={visibilityClassName(b.props)}>{renderBlock(b)}</Box>)}
+      {blocks.map((b) => <Box key={b.id} className={visibilityClassName(b.props)}>{renderBlock(b, breakpoint)}</Box>)}
 
       {/* Preuve sociale : avis publics (affichée seulement s'il y en a). */}
       {reviews?.stats && reviews.stats.totalCount > 0 && <ReviewsSection data={reviews} />}
