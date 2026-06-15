@@ -21,6 +21,8 @@ export interface ApiProperty {
   amenities: string[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
+  totalBookings: number | null;
+  availableDays30: number | null;
 }
 
 export interface ApiCalendarDay {

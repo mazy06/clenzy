@@ -71,6 +71,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.property.id = :propertyId AND r.organizationId = :orgId")
     long countByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
+    /** Nombre de réservations par propriété (batch, preuve sociale honnête 2.9 — évite le N+1). */
+    @Query("SELECT r.property.id, COUNT(r) FROM Reservation r WHERE r.property.id IN :propertyIds AND r.organizationId = :orgId GROUP BY r.property.id")
+    List<Object[]> countByPropertyIds(@Param("propertyIds") List<Long> propertyIds, @Param("orgId") Long orgId);
+
     /**
      * Reservations confirmees avec check-in dans la plage donnee.
      * Utilise par GuestMessagingScheduler pour l'envoi automatique des instructions.

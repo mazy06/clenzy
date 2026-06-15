@@ -494,6 +494,8 @@ function mapProperty(p: ApiProperty): WidgetProperty {
     amenities: p.amenities,
     checkInTime: p.checkInTime,
     checkOutTime: p.checkOutTime,
+    totalBookings: p.totalBookings,
+    availableDays30: p.availableDays30,
   };
 }
 

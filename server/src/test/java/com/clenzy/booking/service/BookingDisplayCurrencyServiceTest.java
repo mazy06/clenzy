@@ -48,7 +48,7 @@ class BookingDisplayCurrencyServiceTest {
 
     private PublicPropertyDto propertyEur() {
         return new PublicPropertyDto(1L, "Apt", "APARTMENT", "Paris", "FR", 1, 1, 2, 40,
-            new BigDecimal("100.00"), new BigDecimal("30.00"), 2, "EUR", null, List.of(), List.of(), "15:00", "11:00");
+            new BigDecimal("100.00"), new BigDecimal("30.00"), 2, "EUR", null, List.of(), List.of(), "15:00", "11:00", null, null);
     }
 
     private AvailabilityResponseDto availabilityEur() {

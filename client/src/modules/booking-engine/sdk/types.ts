@@ -109,6 +109,10 @@ export interface WidgetProperty {
   amenities: string[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** Preuve sociale honnête (2.9) : nombre de réservations. */
+  totalBookings: number | null;
+  /** Urgence honnête (2.9) : jours disponibles sur 30 jours. */
+  availableDays30: number | null;
 }
 
 export interface DayAvailability {
