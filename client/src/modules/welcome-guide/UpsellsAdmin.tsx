@@ -65,6 +65,7 @@ interface EditState {
   active: boolean;
   minNights: string;
   leadTimeHours: string;
+  bundleOfferIds: string[];
 }
 
 const emptyEdit: EditState = {
@@ -80,6 +81,7 @@ const emptyEdit: EditState = {
   active: true,
   minNights: '',
   leadTimeHours: '',
+  bundleOfferIds: [],
 };
 
 /**
@@ -222,6 +224,7 @@ const UpsellsAdmin: React.FC = () => {
       active: o.active,
       minNights: o.minNights != null ? String(o.minNights) : '',
       leadTimeHours: o.leadTimeHours != null ? String(o.leadTimeHours) : '',
+      bundleOfferIds: o.bundleOfferIds ? o.bundleOfferIds.split(',').map((x) => x.trim()).filter(Boolean) : [],
     });
 
   // Upload d'une image → compressée en data URL base64, stockée en base (pas d'URL externe).
@@ -268,6 +271,7 @@ const UpsellsAdmin: React.FC = () => {
         active: edit.active,
         minNights: edit.minNights ? Number(edit.minNights) : null,
         leadTimeHours: edit.leadTimeHours ? Number(edit.leadTimeHours) : null,
+        bundleOfferIds: edit.bundleOfferIds.length ? edit.bundleOfferIds.join(',') : null,
       };
       if (edit.id == null) {
         await upsellApi.createOffer(payload);
@@ -596,6 +600,23 @@ const UpsellsAdmin: React.FC = () => {
                 inputProps={{ min: 0, step: 1 }}
               />
             </Box>
+            <TextField
+              select
+              label={t('upsells.fields.bundle', 'Offres incluses (bundle)')}
+              helperText={t('upsells.fields.bundleHelp', 'Sélectionne des offres → celle-ci devient un bundle (prix combiné, défini ci-dessus).')}
+              value={edit.bundleOfferIds}
+              onChange={(e) => {
+                const v = e.target.value as unknown as string[];
+                setEdit((s) => ({ ...s, bundleOfferIds: typeof v === 'string' ? (v as string).split(',') : v }));
+              }}
+              size="small"
+              fullWidth
+              SelectProps={{ multiple: true }}
+            >
+              {offers.filter((o) => o.id !== edit.id).map((o) => (
+                <MenuItem key={o.id} value={String(o.id)}>{o.title}</MenuItem>
+              ))}
+            </TextField>
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
                 {t('upsells.fields.image', 'Image (optionnel)')}

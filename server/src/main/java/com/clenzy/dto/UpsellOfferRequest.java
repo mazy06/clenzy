@@ -19,4 +19,6 @@ public record UpsellOfferRequest(
         Integer sortOrder,
         // Productisation (2.10) : conditionnel (séjour mini) + fenêtre horaire (délai mini avant arrivée)
         Integer minNights,
-        Integer leadTimeHours) {}
+        Integer leadTimeHours,
+        // Bundle (2.10) : CSV des ids d'offres incluses (non vide = bundle)
+        String bundleOfferIds) {}

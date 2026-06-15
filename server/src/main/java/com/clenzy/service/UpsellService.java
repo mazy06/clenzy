@@ -129,6 +129,7 @@ public class UpsellService {
         if (req.sortOrder() != null) offer.setSortOrder(req.sortOrder());
         offer.setMinNights(req.minNights());
         offer.setLeadTimeHours(req.leadTimeHours());
+        offer.setBundleOfferIds(req.bundleOfferIds());
     }
 
     /**
@@ -210,13 +211,38 @@ public class UpsellService {
         // Sélection par livret : null = tous les services applicables ; sinon uniquement ces ids.
         java.util.Set<Long> selected = parseOfferIds(tok.getGuide().getUpsellOfferIds());
         Reservation reservation = tok.getReservation();
-        return offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(tok.getOrganizationId())
-            .stream()
+        List<UpsellOffer> all = offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(tok.getOrganizationId());
+        // Map id → titre, pour résoudre les éléments inclus des bundles (2.10).
+        java.util.Map<Long, String> titlesById = new java.util.HashMap<>();
+        for (UpsellOffer o : all) {
+            titlesById.put(o.getId(), o.getTitle());
+        }
+        return all.stream()
             .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
             .filter(o -> selected == null || selected.contains(o.getId()))
             .filter(o -> matchesStayConditions(o, reservation))
-            .map(PublicUpsellDto::from)
+            .map(o -> PublicUpsellDto.from(o, resolveBundleItems(o, titlesById)))
             .toList();
+    }
+
+    /** Résout les titres des offres incluses dans un bundle (CSV d'ids → titres connus). */
+    private List<String> resolveBundleItems(UpsellOffer offer, java.util.Map<Long, String> titlesById) {
+        String csv = offer.getBundleOfferIds();
+        if (csv == null || csv.isBlank()) {
+            return List.of();
+        }
+        List<String> items = new java.util.ArrayList<>();
+        for (String token : csv.split(",")) {
+            String t = token.trim();
+            if (t.isEmpty()) continue;
+            try {
+                String title = titlesById.get(Long.parseLong(t));
+                if (title != null) items.add(title);
+            } catch (NumberFormatException ignored) {
+                // id corrompu : ignoré
+            }
+        }
+        return items;
     }
 
     /**
