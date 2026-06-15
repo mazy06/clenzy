@@ -1,5 +1,6 @@
 import { Box } from '@mui/material';
 import { getBlockDef, visibilityClassName, resolveProps, type BlockRenderCtx } from './blockRegistry';
+import SiteNavHeader, { type PageNavItem } from './SiteNavHeader';
 import type { BlockInstance } from './DesignBuilder';
 import type { Breakpoint } from '../StudioShell';
 import type { DesignTokens } from '../../../../services/api/bookingEngineApi';
@@ -28,6 +29,11 @@ export interface BuilderCanvasProps {
   breakpoint: Breakpoint;
   onSelect: (id: string) => void;
   theme?: CanvasTheme;
+  /** Nav auto (multi-page) affichée en tête du canvas — miroir du SSR. Vide = pas d'en-tête. */
+  navItems?: PageNavItem[];
+  brandName?: string;
+  logoUrl?: string | null;
+  reserveLabel?: string;
 }
 
 /**
@@ -45,14 +51,17 @@ export function themeStyle(theme?: CanvasTheme): React.CSSProperties {
     '--on-accent': '#ffffff',
   };
   const body = t.bodyFontFamily || theme.fontFamily;
-  if (body) { style.fontFamily = body; style['--font-display'] = t.headingFontFamily || body; }
+  if (body) { style.fontFamily = body; style['--body'] = body; style['--font-display'] = t.headingFontFamily || body; }
+  if (t.headingFontWeight) style['--fw-heading'] = String(t.headingFontWeight);
   if (t.backgroundColor) style['--bg'] = t.backgroundColor;
   if (t.surfaceColor) style['--card'] = t.surfaceColor;
   if (t.textColor) style['--ink'] = t.textColor;
   if (t.textSecondaryColor) style['--muted'] = t.textSecondaryColor;
-  if (t.borderColor) style['--line'] = t.borderColor;
+  if (t.borderColor) { style['--line'] = t.borderColor; style['--line-2'] = t.dividerColor || t.borderColor; }
   if (t.cardBorderRadius || t.borderRadius) style['--radius-lg'] = (t.cardBorderRadius || t.borderRadius)!;
-  if (t.borderRadius) style['--radius-md'] = t.borderRadius;
+  if (t.borderRadius) { style['--radius-md'] = t.borderRadius; style['--radius-sm'] = t.borderRadius; }
+  const shadow = t.cardShadow || t.boxShadow;
+  if (shadow) style['--shadow-card'] = shadow;
   if (t.baseFontSize) style.fontSize = t.baseFontSize;
   return style as React.CSSProperties;
 }
@@ -108,7 +117,7 @@ function BlockNode({ block, selectedId, breakpoint, onSelect }: { block: BlockIn
   );
 }
 
-export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect, theme }: BuilderCanvasProps) {
+export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect, theme, navItems, brandName, logoUrl, reserveLabel }: BuilderCanvasProps) {
   const width = FRAME_WIDTH[breakpoint];
 
   return (
@@ -124,6 +133,9 @@ export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect
           }),
         }}
       >
+        {navItems && navItems.length > 0 ? (
+          <SiteNavHeader navItems={navItems} brandName={brandName} logoUrl={logoUrl} reserveLabel={reserveLabel} />
+        ) : null}
         {blocks.length === 0 ? (
           <Box sx={{ minHeight: 360, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--muted)', fontSize: 'var(--text-md)', p: 4 }}>
             Ajoute des blocs depuis le panneau de gauche pour composer ta page.
