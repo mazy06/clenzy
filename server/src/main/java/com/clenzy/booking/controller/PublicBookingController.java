@@ -61,6 +61,7 @@ public class PublicBookingController {
     private final com.clenzy.booking.service.PublicReviewService reviewService;
     private final com.clenzy.booking.service.BookingBalanceService balanceService;
     private final com.clenzy.booking.service.BookingGuestAuthService guestAuthService;
+    private final com.clenzy.booking.service.PublicConciergeService conciergeService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
@@ -72,7 +73,8 @@ public class PublicBookingController {
                                     com.clenzy.booking.service.PublicCancellationService cancellationService,
                                     com.clenzy.booking.service.PublicReviewService reviewService,
                                     com.clenzy.booking.service.BookingBalanceService balanceService,
-                                    com.clenzy.booking.service.BookingGuestAuthService guestAuthService) {
+                                    com.clenzy.booking.service.BookingGuestAuthService guestAuthService,
+                                    com.clenzy.booking.service.PublicConciergeService conciergeService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
@@ -84,6 +86,7 @@ public class PublicBookingController {
         this.reviewService = reviewService;
         this.balanceService = balanceService;
         this.guestAuthService = guestAuthService;
+        this.conciergeService = conciergeService;
     }
 
     /**
@@ -453,6 +456,36 @@ public class PublicBookingController {
             HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
         return ResponseEntity.ok(serviceOptionsService.listActiveCategories(ctx.orgId()));
+    }
+
+    // ─── Concierge IA (2.13) ───────────────────────────────────────────────────────
+
+    /**
+     * GET /{slug}/concierge/status
+     * Indique si le concierge IA est disponible (IA conversationnelle activée côté org) → le site
+     * public n'affiche le widget de chat que si {@code available=true}.
+     */
+    @GetMapping("/concierge/status")
+    public ResponseEntity<Map<String, Boolean>> conciergeStatus(@PathVariable String slug, HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        return ResponseEntity.ok(Map.of("available", conciergeService.isAvailable(ctx.orgId())));
+    }
+
+    /**
+     * POST /{slug}/concierge
+     * Question d'un voyageur au concierge IA (RAG sur le contenu de l'org). Rate-limité par IP
+     * (coût LLM). Réponse "indisponible" propre si l'IA est désactivée / budget atteint.
+     */
+    @PostMapping("/concierge")
+    public ResponseEntity<?> concierge(
+            @PathVariable String slug,
+            @RequestBody com.clenzy.booking.dto.ConciergeRequestDto request,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(conciergeService.answer(ctx.orgId(), request));
     }
 
     // ─── Exception handlers ──────────────────────────────────────────────────────
