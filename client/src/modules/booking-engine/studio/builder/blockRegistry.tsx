@@ -555,6 +555,19 @@ export function getBlockDef(type: BlockType): BlockDef {
   return BLOCK_REGISTRY[type];
 }
 
+/**
+ * Classes de visibilité responsive (2.5) à poser sur le wrapper du bloc. Pilotées par les props
+ * `hideMobile`/`hideTablet`/`hideDesktop` ; masquage via container queries (cf. blockStyles.css), ce
+ * qui fonctionne aussi dans le canvas simulé (le cadre est le conteneur). Vide si aucune restriction.
+ */
+export function visibilityClassName(props: BlockProps): string {
+  const classes: string[] = [];
+  if (props.hideMobile) classes.push('bkly-vis--hide-mobile');
+  if (props.hideTablet) classes.push('bkly-vis--hide-tablet');
+  if (props.hideDesktop) classes.push('bkly-vis--hide-desktop');
+  return classes.join(' ');
+}
+
 /** Bloc prêt au rendu (structurellement identique à BlockInstance du builder). */
 export interface ParsedBlock {
   id: string;

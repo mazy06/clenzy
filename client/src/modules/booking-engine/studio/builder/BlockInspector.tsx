@@ -34,6 +34,30 @@ export default function BlockInspector({ block, onChange }: BlockInspectorProps)
       {def.fields.map((field) => (
         <Field key={field.key} field={field} value={block.props[field.key]} onChange={(v) => onChange(block.id, field.key, v)} />
       ))}
+
+      {/* Visibilité responsive (2.5) — commune à tous les blocs (props hideMobile/Tablet/Desktop). */}
+      <Box sx={{ mt: 0.5, pt: 1.5, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+        <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)' }}>
+          Visibilité par écran
+        </Box>
+        <VisibilityToggle label="Masquer sur mobile" checked={Boolean(block.props.hideMobile)} onChange={(v) => onChange(block.id, 'hideMobile', v)} />
+        <VisibilityToggle label="Masquer sur tablette" checked={Boolean(block.props.hideTablet)} onChange={(v) => onChange(block.id, 'hideTablet', v)} />
+        <VisibilityToggle label="Masquer sur desktop" checked={Boolean(block.props.hideDesktop)} onChange={(v) => onChange(block.id, 'hideDesktop', v)} />
+      </Box>
+    </Box>
+  );
+}
+
+function VisibilityToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Box component="label" sx={labelSx}>{label}</Box>
+      <Switch
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        size="small"
+        sx={{ '& .Mui-checked': { color: 'var(--accent)' }, '& .Mui-checked + .MuiSwitch-track': { bgcolor: 'var(--accent) !important', opacity: 0.5 } }}
+      />
     </Box>
   );
 }

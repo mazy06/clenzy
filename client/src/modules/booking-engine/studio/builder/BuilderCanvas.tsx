@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import { getBlockDef } from './blockRegistry';
+import { getBlockDef, visibilityClassName } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 import type { Breakpoint } from '../StudioShell';
 import type { DesignTokens } from '../../../../services/api/bookingEngineApi';
@@ -66,6 +66,7 @@ export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect
         style={themeStyle(theme)}
         sx={{
           width, maxWidth: '100%', minHeight: '100%', bgcolor: 'var(--card)',
+          containerType: 'inline-size',
           ...(breakpoint !== 'desktop' && {
             my: 'auto', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
             border: '1px solid var(--line)', boxShadow: 'var(--shadow-card)', minHeight: 'auto',
@@ -83,6 +84,7 @@ export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect
             return (
               <Box
                 key={b.id}
+                className={visibilityClassName(b.props)}
                 onClick={(e) => { e.preventDefault(); onSelect(b.id); }}
                 role="button"
                 tabIndex={0}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { AlertTriangle, Star } from 'lucide-react';
-import { getBlockDef, parsePageLayout } from '../studio/builder/blockRegistry';
+import { getBlockDef, parsePageLayout, visibilityClassName } from '../studio/builder/blockRegistry';
 import { themeStyle } from '../studio/builder/BuilderCanvas';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
 import type { DesignTokens } from '../../../services/api/bookingEngineApi';
@@ -117,11 +117,11 @@ export default function PublicBookingPage() {
 
   return (
     <Box style={themeStyle({ primaryColor: config.primaryColor, fontFamily: config.fontFamily, tokens })}
-      sx={{ minHeight: '100vh', bgcolor: 'var(--card)', color: 'var(--ink)' }}>
+      sx={{ minHeight: '100vh', bgcolor: 'var(--card)', color: 'var(--ink)', containerType: 'inline-size' }}>
       {config.customCss && <style>{config.customCss}</style>}
 
       {/* Page composée (blocs marketing) en flux document. */}
-      {blocks.map((b) => <Box key={b.id}>{getBlockDef(b.type).render(b.props)}</Box>)}
+      {blocks.map((b) => <Box key={b.id} className={visibilityClassName(b.props)}>{getBlockDef(b.type).render(b.props)}</Box>)}
 
       {/* Preuve sociale : avis publics (affichée seulement s'il y en a). */}
       {reviews?.stats && reviews.stats.totalCount > 0 && <ReviewsSection data={reviews} />}

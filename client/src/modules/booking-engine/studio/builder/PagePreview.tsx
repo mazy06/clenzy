@@ -1,5 +1,5 @@
 import { Box } from '@mui/material';
-import { getBlockDef } from './blockRegistry';
+import { getBlockDef, visibilityClassName } from './blockRegistry';
 import { FRAME_WIDTH, themeStyle, type CanvasTheme } from './BuilderCanvas';
 import type { BlockInstance } from './DesignBuilder';
 import type { Breakpoint } from '../StudioShell';
@@ -28,6 +28,7 @@ export default function PagePreview({ blocks, theme, breakpoint }: PagePreviewPr
         style={themeStyle(theme)}
         sx={{
           width, maxWidth: '100%', minHeight: '100%', bgcolor: 'var(--card)',
+          containerType: 'inline-size',
           ...(breakpoint !== 'desktop' && {
             my: 'auto', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
             border: '1px solid var(--line)', boxShadow: 'var(--shadow-card)', minHeight: 'auto',
@@ -39,7 +40,7 @@ export default function PagePreview({ blocks, theme, breakpoint }: PagePreviewPr
             Page vide — ajoutez des blocs en mode édition.
           </Box>
         ) : (
-          blocks.map((b) => <Box key={b.id}>{getBlockDef(b.type).render(b.props)}</Box>)
+          blocks.map((b) => <Box key={b.id} className={visibilityClassName(b.props)}>{getBlockDef(b.type).render(b.props)}</Box>)
         )}
       </Box>
     </Box>
