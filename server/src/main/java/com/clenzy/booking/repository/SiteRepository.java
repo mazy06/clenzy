@@ -14,6 +14,9 @@ public interface SiteRepository extends JpaRepository<Site, Long> {
 
     Optional<Site> findByIdAndOrganizationId(Long id, Long organizationId);
 
+    /** Site lié à une config de widget (1 site par config — bootstrap multi-page du Studio). */
+    Optional<Site> findFirstByBookingEngineConfigIdAndOrganizationId(Long bookingEngineConfigId, Long organizationId);
+
     /** Résolution par sous-domaine `{slug}.clenzy.site` (service SSR). */
     Optional<Site> findBySlug(String slug);
 
