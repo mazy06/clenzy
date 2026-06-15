@@ -2557,3 +2557,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0260__add_upsell_conditions.sql
         relativeToChangelogFile: true
+
+  # Comptes voyageur (2.11) Phase 1 : wishlist (favoris) du guest, scopee par (guest, org).
+  - changeSet:
+      id: "0261-create-guest-wishlist"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0261__create_guest_wishlist.sql
+        relativeToChangelogFile: true
