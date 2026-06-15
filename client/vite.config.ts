@@ -65,7 +65,7 @@ export default defineConfig({
         // peut le servir si le reseau timeout. Avec html exclus, navigation
         // tombe sur runtimeCaching html-cache uniquement (NetworkFirst 3s).
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MiB — index.js a depasse 3 MB suite aux ajouts payments+payouts P1/P2 (TODO: lazy-load PayoutMethodEditDialog + PaymentProviderConfigDialog via React.lazy pour reduire le bundle initial)
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6 MiB — index.js a depasse 4 MiB suite a la campagne booking-engine/Studio (TODO: lazy-load le module booking-engine/studio + PayoutMethodEditDialog/PaymentProviderConfigDialog via React.lazy pour reduire le bundle initial)
         runtimeCaching: [
           {
             // index.html : NetworkFirst avec fallback cache si offline.
