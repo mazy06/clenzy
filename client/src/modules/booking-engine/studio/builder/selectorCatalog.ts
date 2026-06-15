@@ -92,6 +92,11 @@ export const BLOCK_SELECTORS: Record<BlockType, SelectorDef[]> = {
     { sel: '.bkly-logos__heading', label: 'Titre' },
     { sel: '.bkly-logos__img', label: 'Logo' },
   ],
+  columns: [
+    { sel: '.bkly-columns', label: 'Colonnes (section)' },
+    { sel: '.bkly-columns__grid', label: 'Grille de colonnes' },
+    { sel: '.bkly-columns__col', label: 'Colonne' },
+  ],
 };
 
 /** Sélecteurs clés du widget de réservation (Shadow DOM). Sous-ensemble curé des classes réelles. */

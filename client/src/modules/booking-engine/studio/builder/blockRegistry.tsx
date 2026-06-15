@@ -16,6 +16,7 @@ import {
   MapPin,
   Table,
   BadgeCheck,
+  Columns3,
   type LucideIcon,
 } from 'lucide-react';
 // Feuille de base des blocs : classes `bkly-*` surchargeables par du CSS custom (Phase A).
@@ -43,7 +44,8 @@ export type BlockType =
   | 'video'
   | 'map'
   | 'pricing'
-  | 'logos';
+  | 'logos'
+  | 'columns';
 
 export type FieldType = 'text' | 'textarea' | 'number' | 'toggle' | 'select' | 'color' | 'url' | 'image';
 
@@ -89,6 +91,15 @@ function sectionStyle(p: BlockProps): CSSProperties {
   return style;
 }
 
+/**
+ * Contexte de rendu optionnel passé à `render`. Pour le bloc conteneur `columns` : le contenu
+ * DÉJÀ rendu de chaque colonne (chaque site de rendu — canvas / aperçu / public / SSR — fournit
+ * sa propre version, avec ou sans chrome d'édition). Les autres blocs l'ignorent.
+ */
+export interface BlockRenderCtx {
+  columns?: ReactNode[];
+}
+
 export interface BlockDef {
   type: BlockType;
   label: string;
@@ -96,7 +107,7 @@ export interface BlockDef {
   icon: LucideIcon;
   defaultProps: BlockProps;
   fields: FieldDef[];
-  render: (props: BlockProps) => ReactNode;
+  render: (props: BlockProps, ctx?: BlockRenderCtx) => ReactNode;
 }
 
 /** Découpe un champ multi-lignes en items non vides. */
@@ -531,6 +542,59 @@ const LOGOS: BlockDef = {
   },
 };
 
+const COLUMN_COUNT_OPTIONS = [
+  { value: '2', label: '2 colonnes' },
+  { value: '3', label: '3 colonnes' },
+  { value: '4', label: '4 colonnes' },
+];
+const GAP_OPTIONS = [
+  { value: 'sm', label: 'Petit' },
+  { value: 'md', label: 'Moyen' },
+  { value: 'lg', label: 'Grand' },
+];
+const GAP_PX: Record<string, string> = { sm: '12px', md: '24px', lg: '40px' };
+
+/** Nombre de colonnes effectif d'un bloc `columns` (borné 1–4). Source unique builder + rendu. */
+export function columnCountOf(props: BlockProps): number {
+  return Math.min(4, Math.max(1, Number(props.columnCount) || 2));
+}
+
+/**
+ * Conteneur de mise en page (2.7) : place d'autres blocs côte à côte. Ses enfants vivent dans
+ * `BlockInstance.children` (un tableau par colonne), pas dans `props` (qui reste primitif) ; chaque
+ * site de rendu fournit le contenu des colonnes via `ctx.columns`. Sans ctx → colonnes vides
+ * (placeholders), utile pour un aperçu dégradé.
+ */
+const COLUMNS: BlockDef = {
+  type: 'columns',
+  label: 'Colonnes',
+  description: 'Met des blocs côte à côte (2 à 4 colonnes).',
+  icon: Columns3,
+  defaultProps: { columnCount: 2, gap: 'md' },
+  fields: [
+    { key: 'columnCount', label: 'Nombre de colonnes', type: 'select', options: COLUMN_COUNT_OPTIONS },
+    { key: 'gap', label: 'Espacement', type: 'select', options: GAP_OPTIONS },
+    ALIGN_FIELD,
+    BG_COLOR_FIELD,
+  ],
+  render: (p, ctx) => {
+    const n = columnCountOf(p);
+    const gap = GAP_PX[String(p.gap)] ?? GAP_PX.md;
+    const cols: (ReactNode | null)[] = ctx?.columns ?? Array.from({ length: n }, () => null);
+    return (
+      <div className="bkly-section bkly-columns" style={sectionStyle(p)}>
+        <div className="bkly-columns__grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, gap }}>
+          {Array.from({ length: n }, (_, i) => (
+            <div className="bkly-columns__col" key={i}>
+              {cols[i] ?? <div className="bkly-columns__placeholder">Colonne {i + 1}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  },
+};
+
 export const BLOCK_REGISTRY: Record<BlockType, BlockDef> = {
   hero: HERO,
   propertyGrid: PROPERTY_GRID,
@@ -546,10 +610,14 @@ export const BLOCK_REGISTRY: Record<BlockType, BlockDef> = {
   map: MAP,
   pricing: PRICING,
   logos: LOGOS,
+  columns: COLUMNS,
 };
 
 /** Ordre d'apparition dans la bibliothèque de blocs. */
-export const BLOCK_ORDER: BlockType[] = ['hero', 'propertyGrid', 'gallery', 'amenities', 'stats', 'pricing', 'testimonial', 'logos', 'faq', 'video', 'map', 'richText', 'cta', 'footer'];
+export const BLOCK_ORDER: BlockType[] = ['hero', 'propertyGrid', 'gallery', 'amenities', 'stats', 'pricing', 'testimonial', 'logos', 'faq', 'video', 'map', 'columns', 'richText', 'cta', 'footer'];
+
+/** Blocs autorisés DANS une colonne : tout sauf `columns` (pas d'imbrication de conteneurs). */
+export const NESTABLE_BLOCK_ORDER: BlockType[] = BLOCK_ORDER.filter((t) => t !== 'columns');
 
 export function getBlockDef(type: BlockType): BlockDef {
   return BLOCK_REGISTRY[type];
@@ -573,23 +641,64 @@ export interface ParsedBlock {
   id: string;
   type: BlockType;
   props: BlockProps;
+  /** Conteneur `columns` : un tableau de blocs par colonne (un niveau d'imbrication). */
+  children?: ParsedBlock[][];
+}
+
+function isBlockLike(b: unknown): b is { type: BlockType; props?: BlockProps; children?: unknown } {
+  return !!b && typeof (b as { type?: unknown }).type === 'string' && (b as { type: string }).type in BLOCK_REGISTRY;
+}
+
+/** Parse un tableau de blocs feuilles (dans une colonne) — pas de ré-imbrication de `columns`. */
+function parseLeafArray(arr: unknown, idPrefix: string): ParsedBlock[] {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter(isBlockLike)
+    .filter((b) => b.type !== 'columns')
+    .map((b, i) => ({ id: `${idPrefix}${i}`, type: b.type, props: { ...getBlockDef(b.type).defaultProps, ...(b.props ?? {}) } }));
+}
+
+/** Parse un tableau de blocs (niveau racine : `columns` voit ses colonnes parsées récursivement). */
+function parseBlockArray(arr: unknown, idPrefix: string): ParsedBlock[] {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(isBlockLike).map((b, i) => {
+    const block: ParsedBlock = {
+      id: `${idPrefix}${i}`,
+      type: b.type,
+      props: { ...getBlockDef(b.type).defaultProps, ...(b.props ?? {}) },
+    };
+    if (b.type === 'columns' && Array.isArray(b.children)) {
+      block.children = (b.children as unknown[]).map((col, ci) => parseLeafArray(col, `${idPrefix}${i}c${ci}_`));
+    }
+    return block;
+  });
 }
 
 /**
- * Parse un layout JSON persisté (liste de {type, props}) en blocs prêts au rendu.
+ * Parse un layout JSON persisté (liste de {type, props, children?}) en blocs prêts au rendu.
  * Tolérant : entrées invalides ou types inconnus ignorés ; props complétées par les défauts.
  * Utilisé par le rendu public (page hébergée) et réutilisable par le builder.
  */
 export function parsePageLayout(json: string | null | undefined): ParsedBlock[] {
   if (!json) return [];
   try {
-    const arr: unknown = JSON.parse(json);
-    if (!Array.isArray(arr)) return [];
-    return arr
-      .filter((b): b is { type: BlockType; props?: BlockProps } =>
-        !!b && typeof (b as { type?: unknown }).type === 'string' && (b as { type: string }).type in BLOCK_REGISTRY)
-      .map((b, i) => ({ id: `p${i}`, type: b.type, props: { ...getBlockDef(b.type).defaultProps, ...(b.props ?? {}) } }));
+    return parseBlockArray(JSON.parse(json), 'p');
   } catch {
     return [];
   }
+}
+
+/** Contexte de rendu d'un bloc `columns` (rendu public/aperçu, SANS chrome d'édition). */
+function publicColumnsCtx(block: ParsedBlock): BlockRenderCtx | undefined {
+  if (block.type !== 'columns' || !block.children) return undefined;
+  return {
+    columns: block.children.map((col) => (
+      <>{col.map((ch) => <div key={ch.id} className={visibilityClassName(ch.props)}>{renderBlock(ch)}</div>)}</>
+    )),
+  };
+}
+
+/** Rend un bloc et, pour `columns`, ses enfants récursivement (rendu public/aperçu sans chrome). */
+export function renderBlock(block: ParsedBlock): ReactNode {
+  return getBlockDef(block.type).render(block.props, publicColumnsCtx(block));
 }

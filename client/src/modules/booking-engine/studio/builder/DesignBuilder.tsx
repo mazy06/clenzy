@@ -11,7 +11,7 @@ import ThemeInspector from './ThemeInspector';
 import CssInspector from './CssInspector';
 import PageInspector from './PageInspector';
 import PagesBar from './PagesBar';
-import { BLOCK_REGISTRY, getBlockDef, type BlockProps, type BlockType } from './blockRegistry';
+import { BLOCK_REGISTRY, getBlockDef, columnCountOf, type BlockProps, type BlockType } from './blockRegistry';
 import type { Breakpoint } from '../StudioShell';
 import type { StudioConfigState } from '../useStudioConfig';
 import { useSitePages } from '../useSitePages';
@@ -30,13 +30,17 @@ export interface BlockInstance {
   id: string;
   type: BlockType;
   props: BlockProps;
+  /** Conteneur `columns` : un tableau de blocs par colonne (un niveau d'imbrication). */
+  children?: BlockInstance[][];
 }
 
 let blockIdSeq = 0;
 const nextBlockId = () => `b${++blockIdSeq}`;
 
 function makeBlock(type: BlockType): BlockInstance {
-  return { id: nextBlockId(), type, props: { ...getBlockDef(type).defaultProps } };
+  const block: BlockInstance = { id: nextBlockId(), type, props: { ...getBlockDef(type).defaultProps } };
+  if (type === 'columns') block.children = Array.from({ length: columnCountOf(block.props) }, () => []);
+  return block;
 }
 
 /** Page de démarrage : structure crédible proposée si aucune page n'a encore été composée. */
@@ -44,9 +48,29 @@ function makeStarter(): BlockInstance[] {
   return (['hero', 'propertyGrid', 'amenities', 'cta', 'footer'] as BlockType[]).map(makeBlock);
 }
 
-/** Sérialise les blocs pour la persistance (type + props, sans les ids éphémères). */
+/** Sérialise un bloc (récursif pour les colonnes), sans les ids éphémères. */
+function serializeBlock(b: BlockInstance): unknown {
+  const out: { type: BlockType; props: BlockProps; children?: unknown[][] } = { type: b.type, props: b.props };
+  if (b.children) out.children = b.children.map((col) => col.map(serializeBlock));
+  return out;
+}
+
+/** Sérialise les blocs pour la persistance (type + props + children). */
 function serializeLayout(blocks: BlockInstance[]): string {
-  return JSON.stringify(blocks.map((b) => ({ type: b.type, props: b.props })));
+  return JSON.stringify(blocks.map(serializeBlock));
+}
+
+function isBlockLike(b: unknown): b is { type: BlockType; props?: BlockProps; children?: unknown } {
+  return !!b && typeof (b as { type?: unknown }).type === 'string' && (b as { type: string }).type in BLOCK_REGISTRY;
+}
+
+/** Parse les blocs feuilles d'une colonne (pas de `columns` imbriqué). */
+function parseLeaf(arr: unknown): BlockInstance[] {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter(isBlockLike)
+    .filter((b) => b.type !== 'columns')
+    .map((b) => ({ id: nextBlockId(), type: b.type, props: { ...getBlockDef(b.type).defaultProps, ...(b.props ?? {}) } }));
 }
 
 /** Parse un layout persisté. null si absent/invalide ; [] si page sauvegardée vide. */
@@ -55,13 +79,80 @@ function parseLayout(json: string | null | undefined): BlockInstance[] | null {
   try {
     const arr: unknown = JSON.parse(json);
     if (!Array.isArray(arr)) return null;
-    return arr
-      .filter((b): b is { type: BlockType; props?: BlockProps } =>
-        !!b && typeof (b as { type?: unknown }).type === 'string' && (b as { type: string }).type in BLOCK_REGISTRY)
-      .map((b) => ({ id: nextBlockId(), type: b.type, props: { ...getBlockDef(b.type).defaultProps, ...(b.props ?? {}) } }));
+    return arr.filter(isBlockLike).map((b) => {
+      const block: BlockInstance = { id: nextBlockId(), type: b.type, props: { ...getBlockDef(b.type).defaultProps, ...(b.props ?? {}) } };
+      if (b.type === 'columns') {
+        block.children = Array.isArray(b.children)
+          ? (b.children as unknown[]).map(parseLeaf)
+          : Array.from({ length: columnCountOf(block.props) }, () => []);
+      }
+      return block;
+    });
   } catch {
     return null;
   }
+}
+
+// ─── Helpers d'arbre (mutations tree-aware : top-level + blocs imbriqués dans les colonnes) ───
+
+/** Mappe le bloc d'id `id` (recherche récursive dans les colonnes) via `fn`. */
+function mapBlockById(blocks: BlockInstance[], id: string, fn: (b: BlockInstance) => BlockInstance): BlockInstance[] {
+  return blocks.map((b) => {
+    if (b.id === id) return fn(b);
+    if (b.children) return { ...b, children: b.children.map((col) => mapBlockById(col, id, fn)) };
+    return b;
+  });
+}
+
+function findBlockById(blocks: BlockInstance[], id: string | null): BlockInstance | null {
+  if (!id) return null;
+  for (const b of blocks) {
+    if (b.id === id) return b;
+    if (b.children) {
+      for (const col of b.children) {
+        const found = findBlockById(col, id);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+}
+
+function removeBlockById(blocks: BlockInstance[], id: string): BlockInstance[] {
+  return blocks
+    .filter((b) => b.id !== id)
+    .map((b) => (b.children ? { ...b, children: b.children.map((col) => removeBlockById(col, id)) } : b));
+}
+
+/** Déplace un bloc parmi SES frères (liste top-level OU colonne). No-op si en bord. */
+function moveBlockById(blocks: BlockInstance[], id: string, dir: -1 | 1): BlockInstance[] {
+  const i = blocks.findIndex((b) => b.id === id);
+  if (i >= 0) {
+    const j = i + dir;
+    if (j < 0 || j >= blocks.length) return blocks;
+    const next = [...blocks];
+    [next[i], next[j]] = [next[j], next[i]];
+    return next;
+  }
+  return blocks.map((b) => (b.children ? { ...b, children: b.children.map((col) => moveBlockById(col, id, dir)) } : b));
+}
+
+/** Ajoute `block` à la fin de la colonne `colIndex` du conteneur `parentId`. */
+function addToColumn(blocks: BlockInstance[], parentId: string, colIndex: number, block: BlockInstance): BlockInstance[] {
+  return mapBlockById(blocks, parentId, (parent) => {
+    if (!parent.children) return parent;
+    return { ...parent, children: parent.children.map((col, ci) => (ci === colIndex ? [...col, block] : col)) };
+  });
+}
+
+/** Redimensionne le tableau de colonnes à `n` ; le contenu des colonnes en trop bascule dans la dernière. */
+function resizeColumns(children: BlockInstance[][] | undefined, n: number): BlockInstance[][] {
+  const cur = children ?? [];
+  if (n >= cur.length) return Array.from({ length: n }, (_, i) => cur[i] ?? []);
+  const kept = cur.slice(0, n).map((col) => [...col]);
+  const overflow = cur.slice(n).flat();
+  kept[n - 1] = [...kept[n - 1], ...overflow];
+  return kept;
 }
 
 type RightTab = 'block' | 'page' | 'theme' | 'css';
@@ -168,7 +259,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     setPast(past.slice(0, -1));
     setFuture((f) => [blocks, ...f]);
     persist(prev);
-    setSelectedId((cur) => (prev.some((b) => b.id === cur) ? cur : prev[0]?.id ?? null));
+    setSelectedId((cur) => (findBlockById(prev, cur) ? cur : prev[0]?.id ?? null));
   }, [past, blocks, persist]);
 
   const redo = useCallback(() => {
@@ -177,7 +268,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     setFuture(future.slice(1));
     setPast((p) => [...p, blocks]);
     persist(next);
-    setSelectedId((cur) => (next.some((b) => b.id === cur) ? cur : next[0]?.id ?? null));
+    setSelectedId((cur) => (findBlockById(next, cur) ? cur : next[0]?.id ?? null));
   }, [future, blocks, persist]);
 
   // Sauvegarde unifiée : page active (multi-page) + config (thème/CSS, et miroir pageLayout home).
@@ -229,7 +320,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     await pages.addPage();
   }, [pageMode, pageDirty, pages, blocks]);
 
-  const selected = useMemo(() => blocks.find((b) => b.id === selectedId) ?? null, [blocks, selectedId]);
+  const selected = useMemo(() => findBlockById(blocks, selectedId), [blocks, selectedId]);
 
   const onSelectBlock = (id: string) => { setSelectedId(id); setRightTab('block'); };
 
@@ -240,16 +331,20 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     setRightTab('block');
   };
 
-  const handleMove = (id: string, dir: -1 | 1) => {
-    const i = blocks.findIndex((b) => b.id === id);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= blocks.length) return;
-    const next = [...blocks];
-    [next[i], next[j]] = [next[j], next[i]];
-    commit(next);
+  /** Ajoute un bloc DANS une colonne d'un conteneur (2.7). */
+  const handleAddToColumn = (parentId: string, colIndex: number, type: BlockType) => {
+    const block = makeBlock(type);
+    commit(addToColumn(blocks, parentId, colIndex, block));
+    setSelectedId(block.id);
+    setRightTab('block');
   };
 
-  // Réordonnancement par glisser-déposer : déplace le bloc de `from` vers `to`.
+  // Déplacement ↑/↓ parmi les frères (top-level ou colonne).
+  const handleMove = (id: string, dir: -1 | 1) => {
+    commit(moveBlockById(blocks, id, dir));
+  };
+
+  // Réordonnancement par glisser-déposer (top-level uniquement) : déplace le bloc de `from` vers `to`.
   const handleReorder = (from: number, to: number) => {
     if (from === to || from < 0 || to < 0 || from >= blocks.length || to >= blocks.length) return;
     const next = [...blocks];
@@ -259,12 +354,19 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   };
 
   const handleRemove = (id: string) => {
-    commit(blocks.filter((b) => b.id !== id));
+    commit(removeBlockById(blocks, id));
     setSelectedId((cur) => (cur === id ? null : cur));
   };
 
   const handleChange = (id: string, key: string, value: string | number | boolean) => {
-    commit(blocks.map((b) => (b.id === id ? { ...b, props: { ...b.props, [key]: value } } : b)));
+    commit(mapBlockById(blocks, id, (b) => {
+      const props = { ...b.props, [key]: value };
+      // Conteneur : changer le nombre de colonnes redimensionne le tableau de colonnes.
+      if (b.type === 'columns' && key === 'columnCount') {
+        return { ...b, props, children: resizeColumns(b.children, columnCountOf(props)) };
+      }
+      return { ...b, props };
+    }));
   };
 
   // Applique un template (thème + composition) ; null = page vierge (custom). Remplace la page courante.
@@ -386,6 +488,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
             selectedId={selectedId}
             onSelect={onSelectBlock}
             onAdd={handleAdd}
+            onAddToColumn={handleAddToColumn}
             onMove={handleMove}
             onReorder={handleReorder}
             onRemove={handleRemove}
