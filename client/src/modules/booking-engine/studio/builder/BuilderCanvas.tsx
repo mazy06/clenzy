@@ -2,6 +2,7 @@ import { Box } from '@mui/material';
 import { getBlockDef } from './blockRegistry';
 import type { BlockInstance } from './DesignBuilder';
 import type { Breakpoint } from '../StudioShell';
+import type { DesignTokens } from '../../../../services/api/bookingEngineApi';
 
 /**
  * Canvas WYSIWYG (pane centre du builder F2). Rend la page composée de blocs dans un cadre dont
@@ -18,6 +19,7 @@ export const FRAME_WIDTH: Record<Breakpoint, number | string> = {
 export interface CanvasTheme {
   primaryColor: string;
   fontFamily: string | null;
+  tokens?: DesignTokens | null;
 }
 
 export interface BuilderCanvasProps {
@@ -28,20 +30,30 @@ export interface BuilderCanvasProps {
   theme?: CanvasTheme;
 }
 
-/** Surcharge les CSS vars de marque sur le cadre pour un aperçu fidèle au thème choisi. */
+/**
+ * Surcharge les CSS vars de marque + design tokens sur le cadre pour un aperçu fidèle au thème.
+ * Consommé par le canvas, l'aperçu Studio ET la page publique (rendu cohérent partout).
+ */
 export function themeStyle(theme?: CanvasTheme): React.CSSProperties {
   if (!theme) return {};
-  const c = theme.primaryColor || '#5453D6';
+  const t = theme.tokens || {};
+  const accent = t.primaryColor || theme.primaryColor || '#5453D6';
   const style: Record<string, string> = {
-    '--accent': c,
-    '--accent-deep': `color-mix(in srgb, ${c} 84%, #000)`,
-    '--accent-soft': `color-mix(in srgb, ${c} 12%, transparent)`,
+    '--accent': accent,
+    '--accent-deep': `color-mix(in srgb, ${accent} 84%, #000)`,
+    '--accent-soft': `color-mix(in srgb, ${accent} 12%, transparent)`,
     '--on-accent': '#ffffff',
   };
-  if (theme.fontFamily) {
-    style['--font-display'] = theme.fontFamily;
-    style.fontFamily = theme.fontFamily;
-  }
+  const body = t.bodyFontFamily || theme.fontFamily;
+  if (body) { style.fontFamily = body; style['--font-display'] = t.headingFontFamily || body; }
+  if (t.backgroundColor) style['--bg'] = t.backgroundColor;
+  if (t.surfaceColor) style['--card'] = t.surfaceColor;
+  if (t.textColor) style['--ink'] = t.textColor;
+  if (t.textSecondaryColor) style['--muted'] = t.textSecondaryColor;
+  if (t.borderColor) style['--line'] = t.borderColor;
+  if (t.cardBorderRadius || t.borderRadius) style['--radius-lg'] = (t.cardBorderRadius || t.borderRadius)!;
+  if (t.borderRadius) style['--radius-md'] = t.borderRadius;
+  if (t.baseFontSize) style.fontSize = t.baseFontSize;
   return style as React.CSSProperties;
 }
 

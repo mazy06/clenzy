@@ -147,7 +147,13 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     );
   }
 
-  const theme = cfg.config ? { primaryColor: cfg.config.primaryColor, fontFamily: cfg.config.fontFamily } : undefined;
+  const theme = cfg.config
+    ? {
+        primaryColor: cfg.config.primaryColor,
+        fontFamily: cfg.config.fontFamily,
+        tokens: (() => { try { return cfg.config.designTokens ? JSON.parse(cfg.config.designTokens) : null; } catch { return null; } })(),
+      }
+    : undefined;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
