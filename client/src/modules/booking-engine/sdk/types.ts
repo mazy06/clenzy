@@ -14,6 +14,14 @@ export interface BaitlyBookingConfig {
    * `.bkly-*` y sont simplement inertes (aucun élément correspondant dans le shadow).
    */
   customCss?: string;
+  /**
+   * Disposition de la barre de réservation composée dans le Studio (micro-widgets), sérialisée en
+   * JSON `{ widgetLayout: [...] }` (champ `componentConfig` de la config). Si présente et valide, le
+   * widget rend cette composition ; sinon il retombe sur le formulaire de recherche par défaut. La
+   * disposition est purement présentationnelle — le flux de réservation et les montants restent
+   * pilotés par le serveur.
+   */
+  componentConfig?: string;
   language?: 'fr' | 'en' | 'ar';
   currency?: string;
   defaultGuests?: { adults: number; children: number };

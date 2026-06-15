@@ -48,6 +48,7 @@ interface PublicBookingConfig {
   defaultLanguage: string;
   defaultCurrency: string;
   customCss: string | null;
+  componentConfig: string | null;
   pageLayout: string | null;
   designTokens: string | null;
 }
@@ -115,6 +116,7 @@ export default function PublicBookingPage() {
       theme: widgetThemeFromTokens(config.primaryColor, config.fontFamily, tokens),
       // Le CSS de page (<style> plus bas) ne franchit pas le Shadow DOM → on le passe aussi au widget.
       customCss: config.customCss ?? undefined,
+      componentConfig: config.componentConfig ?? undefined,
       language: (['fr', 'en', 'ar'].includes(config.defaultLanguage) ? config.defaultLanguage : 'fr') as 'fr' | 'en' | 'ar',
       currency: config.defaultCurrency,
     });

@@ -26,6 +26,12 @@ public record SitePublicDto(
     Long bookingEngineConfigId,
     /** Clé publique du booking engine (X-Booking-Key) pour monter le widget de réservation côté SSR. */
     String bookingEngineApiKey,
+    /** CSS custom du site (injecté dans le layout SSR + déjà appliqué au widget/SPA). */
+    String customCss,
+    /** JS custom du site (injecté dans le layout SSR). Code de confiance (config org). */
+    String customJs,
+    /** Composition de micro-widgets de la barre/flux de réservation (JSON `{widgetLayout,styleMode}`) ; le SDK la rend au montage du widget. */
+    String componentConfig,
     List<PageSummary> pages
 ) {
     /** Entrée de la table des pages (navigation + génération du sitemap côté SSR). */
@@ -37,12 +43,13 @@ public record SitePublicDto(
         }
     }
 
-    public static SitePublicDto from(Site s, String bookingEngineApiKey, List<SitePage> pages) {
+    public static SitePublicDto from(Site s, String bookingEngineApiKey, String customCss, String customJs,
+                                     String componentConfig, List<SitePage> pages) {
         return new SitePublicDto(
             s.getId(), s.getSlug(), s.getName(), s.getDefaultLocale(), s.getLocales(),
             s.getDesignTokens(), s.getPrimaryColor(), s.getFontFamily(), s.getLogoUrl(),
             s.getSeoTitle(), s.getSeoDescription(), s.getSeoOgImageUrl(), s.getBookingEngineConfigId(),
-            bookingEngineApiKey,
+            bookingEngineApiKey, customCss, customJs, componentConfig,
             pages.stream().map(PageSummary::from).toList());
     }
 }

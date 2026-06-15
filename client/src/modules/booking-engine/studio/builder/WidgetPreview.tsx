@@ -31,9 +31,9 @@ export default function WidgetPreview({ config, breakpoint }: WidgetPreviewProps
   const sig = useMemo(
     () => JSON.stringify([
       config?.primaryColor, config?.fontFamily, config?.designTokens,
-      config?.customCss, config?.defaultCurrency, config?.defaultLanguage,
+      config?.customCss, config?.componentConfig, config?.defaultCurrency, config?.defaultLanguage,
     ]),
-    [config?.primaryColor, config?.fontFamily, config?.designTokens, config?.customCss, config?.defaultCurrency, config?.defaultLanguage],
+    [config?.primaryColor, config?.fontFamily, config?.designTokens, config?.customCss, config?.componentConfig, config?.defaultCurrency, config?.defaultLanguage],
   );
 
   useEffect(() => {
@@ -46,6 +46,9 @@ export default function WidgetPreview({ config, breakpoint }: WidgetPreviewProps
       baseUrl: API_CONFIG.BASE_URL,
       theme: widgetThemeFromTokens(config.primaryColor, config.fontFamily, tokens),
       customCss: config.customCss ?? undefined,
+      componentConfig: config.componentConfig ?? undefined,
+      // Org connue ici → les widgets compte/favoris/re-booking sont prévisualisables.
+      organizationId: config.organizationId,
       language: lang,
       currency: config.defaultCurrency,
     });

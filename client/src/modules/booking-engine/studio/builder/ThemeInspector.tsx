@@ -13,6 +13,13 @@ import { SelectControl } from '../settings/settingsControls';
 const FONTS = ['Inter', 'Poppins', 'Montserrat', 'Playfair Display', 'Lora', 'Merriweather', 'Work Sans', 'Nunito', 'system-ui'];
 const FONT_OPTIONS = FONTS.map((f) => ({ value: f, label: f }));
 
+const WEIGHT_OPTIONS = [
+  { value: '500', label: 'Medium' },
+  { value: '600', label: 'Semi-bold' },
+  { value: '700', label: 'Bold' },
+  { value: '800', label: 'Extra-bold' },
+];
+
 const SIZE_OPTIONS = [
   { value: '14px', label: 'Compacte (14)' },
   { value: '15px', label: 'Moyenne (15)' },
@@ -71,6 +78,7 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
   const primary = tokens.primaryColor || config.primaryColor || '#5453D6';
   const bodyFont = config.fontFamily || tokens.bodyFontFamily || 'Inter';
   const headingFont = tokens.headingFontFamily || bodyFont;
+  const headingWeight = tokens.headingFontWeight || '700';
   const baseSize = tokens.baseFontSize || '16px';
   const radius = tokens.borderRadius || '12px';
   const shadow = tokens.cardShadow || tokens.boxShadow || 'none';
@@ -107,6 +115,9 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
       </Field>
       <Field label="Police des titres" htmlFor="theme-headfont">
         <SelectControl id="theme-headfont" value={headingFont} onChange={(v) => writeTokens({ headingFontFamily: v })} options={FONT_OPTIONS} />
+      </Field>
+      <Field label="Graisse des titres" htmlFor="theme-headweight">
+        <SelectControl id="theme-headweight" value={headingWeight} onChange={(v) => writeTokens({ headingFontWeight: v })} options={WEIGHT_OPTIONS} />
       </Field>
       <Field label="Taille de texte" htmlFor="theme-size">
         <SelectControl id="theme-size" value={baseSize} onChange={(v) => writeTokens({ baseFontSize: v })} options={SIZE_OPTIONS} />

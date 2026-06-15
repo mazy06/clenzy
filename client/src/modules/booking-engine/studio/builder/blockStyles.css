@@ -13,6 +13,8 @@
 
 .bkly-section {
   box-sizing: border-box;
+  /* Position fine X/Y (par bloc) — décale le bloc ; le hero décale son contenu (cf. plus bas). */
+  transform: translate(var(--ox, 0px), var(--oy, 0px));
 }
 .bkly-section *,
 .bkly-section *::before,
@@ -25,9 +27,40 @@
   padding: 64px 40px;
   text-align: center;
   background: var(--accent-soft);
+  /* L'image/fond reste fixe ; c'est le contenu (.bkly-hero__inner) qui suit le décalage X/Y. */
+  transform: none;
+}
+.bkly-hero__inner {
+  transform: translate(var(--ox, 0px), var(--oy, 0px));
+}
+/* Hero avec image de fond : scrim sombre + texte clair (lisibilité + parité avec le rendu SSR). */
+.bkly-hero--image {
+  position: relative;
+  background-color: var(--ink);
+}
+.bkly-hero--image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20, 24, 28, 0.30), rgba(20, 24, 28, 0.62));
+  pointer-events: none;
+}
+.bkly-hero--image > * {
+  position: relative;
+  z-index: 1;
+}
+.bkly-hero--image .bkly-hero__eyebrow {
+  color: #fff;
+  opacity: 0.92;
+}
+.bkly-hero--image .bkly-hero__title {
+  color: #fff;
+}
+.bkly-hero--image .bkly-hero__subtitle {
+  color: rgba(255, 255, 255, 0.88);
 }
 .bkly-hero__eyebrow {
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -36,8 +69,8 @@
 }
 .bkly-hero__title {
   font-family: var(--font-display);
-  font-size: 40px;
-  font-weight: 700;
+  font-size: calc(40px * var(--text-scale, 1));
+  font-weight: var(--fw-heading, 700);
   line-height: 1.1;
   color: var(--ink);
   max-width: 620px;
@@ -45,7 +78,7 @@
   text-wrap: balance;
 }
 .bkly-hero__subtitle {
-  font-size: 17px;
+  font-size: calc(17px * var(--text-scale, 1));
   color: var(--muted);
   max-width: 520px;
   margin: 16px auto 0;
@@ -96,7 +129,7 @@
 .bkly-property-grid__heading {
   font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 700;
+  font-weight: var(--fw-heading, 700);
   color: var(--ink);
 }
 .bkly-property-grid__subheading {
@@ -137,7 +170,7 @@
 }
 .bkly-property-card__price {
   margin-top: 14px;
-  font-weight: 700;
+  font-weight: var(--fw-heading, 700);
   color: var(--ink);
   font-size: 15px;
 }
@@ -155,7 +188,7 @@
 .bkly-amenities__heading {
   font-family: var(--font-display);
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--fw-heading, 700);
   color: var(--ink);
   margin-bottom: 20px;
 }
@@ -233,7 +266,7 @@
 .bkly-cta__title {
   font-family: var(--font-display);
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--fw-heading, 700);
   color: var(--on-accent);
   text-wrap: balance;
 }
@@ -246,7 +279,7 @@
   border-radius: 999px;
   background: var(--card);
   color: var(--accent);
-  font-weight: 700;
+  font-weight: var(--fw-heading, 700);
   font-size: 15px;
   text-decoration: none;
   cursor: pointer;

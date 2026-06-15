@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import {
   LayoutPanelTop,
   LayoutGrid,
@@ -17,11 +17,15 @@ import {
   Table,
   BadgeCheck,
   Columns3,
+  CalendarSearch,
   type LucideIcon,
 } from 'lucide-react';
 // Feuille de base des blocs : classes `bkly-*` surchargeables par du CSS custom (Phase A).
 // Importée ici → injectée partout où les blocs sont rendus (canvas Studio, aperçu, page publique).
 import './blockStyles.css';
+// Registre des micro-widgets de réservation : réutilisé par le bloc `bookingWidget` pour insérer
+// un micro-widget / une composition directement dans une page ou un site.
+import { getWidgetDef, renderRawWidget, type WidgetType, type WidgetProps } from './widgetRegistry';
 
 /**
  * Registre de blocs du Baitly Studio (F2). Chaque type de bloc déclare : son libellé, son icône,
@@ -32,6 +36,7 @@ import './blockStyles.css';
 
 export type BlockType =
   | 'hero'
+  | 'bookingWidget'
   | 'propertyGrid'
   | 'amenities'
   | 'richText'
@@ -78,15 +83,44 @@ const BG_COLOR_FIELD: FieldDef = { key: 'bgColor', label: 'Couleur de fond', typ
  * Overrides inline par bloc à partir des props granulaires (align / bgColor / bgImage).
  * Appliqués sur la racine `bkly-*` → priment sur les défauts de blockStyles.css.
  */
+/** Luminance perçue d'une couleur hex (#RGB ou #RRGGBB) ; true si « foncée » → texte clair requis. */
+function isDarkColor(hex: string): boolean {
+  const m = hex.trim().match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return false;
+  let h = m[1];
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) < 150;
+}
+
 function sectionStyle(p: BlockProps): CSSProperties {
   const style: CSSProperties = {};
+  const s = style as Record<string, string>;
   if (p.align) style.textAlign = p.align as CSSProperties['textAlign'];
+  // Typographie par bloc (surcharge le thème) : police cascade nativement, graisse/taille via vars
+  // consommées par blockStyles.css (--fw-heading / --text-scale).
+  if (p.fontFamily) { style.fontFamily = String(p.fontFamily); s['--font-display'] = String(p.fontFamily); }
+  if (p.fontWeight) s['--fw-heading'] = String(p.fontWeight);
+  if (p.textScale) s['--text-scale'] = String(p.textScale);
+  // Position fine : décalage X/Y du contenu (via --ox/--oy ; cf. .bkly-section / .bkly-hero__inner).
+  const ox = Number(p.offsetX) || 0;
+  const oy = Number(p.offsetY) || 0;
+  if (ox) s['--ox'] = `${ox}px`;
+  if (oy) s['--oy'] = `${oy}px`;
   if (p.bgImage) {
     style.backgroundImage = `url("${String(p.bgImage)}")`;
     style.backgroundSize = 'cover';
     style.backgroundPosition = 'center';
   } else if (p.bgColor) {
     style.background = String(p.bgColor);
+    // Fond foncé → bascule le texte en clair (les blocs utilisent var(--ink)/--muted, qui cascadent).
+    if (isDarkColor(String(p.bgColor))) {
+      s.color = '#ffffff';
+      s['--ink'] = '#ffffff';
+      s['--muted'] = 'rgba(255,255,255,0.80)';
+      s['--faint'] = 'rgba(255,255,255,0.62)';
+      s['--line'] = 'rgba(255,255,255,0.20)';
+    }
   }
   return style;
 }
@@ -156,17 +190,19 @@ const HERO: BlockDef = {
     { key: 'bgImage', label: 'Image de fond (URL)', type: 'image' },
   ],
   render: (p) => (
-    <div className="bkly-section bkly-hero" style={sectionStyle(p)}>
-      {p.eyebrow ? <div className="bkly-hero__eyebrow">{String(p.eyebrow)}</div> : null}
-      <div className="bkly-hero__title">{String(p.title)}</div>
-      {p.subtitle ? <div className="bkly-hero__subtitle">{String(p.subtitle)}</div> : null}
-      {p.showSearch ? (
-        <a href="#reserver" className="bkly-hero__search">
-          <span className="bkly-hero__search-icon"><Search size={18} strokeWidth={2} /></span>
-          <span className="bkly-hero__search-text">Quand souhaitez-vous partir ?</span>
-          <span className="bkly-hero__search-btn">Rechercher</span>
-        </a>
-      ) : null}
+    <div className={`bkly-section bkly-hero${p.bgImage ? ' bkly-hero--image' : ''}`} style={sectionStyle(p)}>
+      <div className="bkly-hero__inner">
+        {p.eyebrow ? <div className="bkly-hero__eyebrow">{String(p.eyebrow)}</div> : null}
+        <div className="bkly-hero__title">{String(p.title)}</div>
+        {p.subtitle ? <div className="bkly-hero__subtitle">{String(p.subtitle)}</div> : null}
+        {p.showSearch ? (
+          <a href="#reserver" className="bkly-hero__search">
+            <span className="bkly-hero__search-icon"><Search size={18} strokeWidth={2} /></span>
+            <span className="bkly-hero__search-text">Quand souhaitez-vous partir ?</span>
+            <span className="bkly-hero__search-btn">Rechercher</span>
+          </a>
+        ) : null}
+      </div>
     </div>
   ),
 };
@@ -595,8 +631,73 @@ const COLUMNS: BlockDef = {
   },
 };
 
+// ─── Bloc « Widget de réservation » (micro-widget / composition positionnable) ─────────────────
+
+interface WidgetNodePreset { type: WidgetType; props?: WidgetProps; children?: WidgetType[] }
+interface WidgetPreset { value: string; label: string; nodes: WidgetNodePreset[] }
+
+/**
+ * Presets insérables dans une page/site : un micro-widget seul OU une composition (barre de
+ * recherche…). Le rendu réutilise le registre de micro-widgets (`getWidgetDef`) — fidèle à l'aperçu
+ * du composeur. Sur le site réel, le widget interactif (SDK) est monté à l'ancre `#reserver`.
+ */
+const WIDGET_PRESETS: WidgetPreset[] = [
+  { value: 'searchBar', label: 'Barre de recherche', nodes: [{ type: 'group', props: { direction: 'row', gap: 'md', wrap: true }, children: ['citySearch', 'dates', 'guests', 'searchButton'] }] },
+  { value: 'searchFull', label: 'Recherche complète', nodes: [{ type: 'group', props: { direction: 'row', gap: 'md', wrap: true }, children: ['citySearch', 'dates', 'guests', 'propertyType', 'filter', 'searchButton'] }] },
+  { value: 'propertyResults', label: 'Logements disponibles', nodes: [{ type: 'propertyResults' }] },
+  { value: 'priceSummary', label: 'Récapitulatif prix', nodes: [{ type: 'priceSummary' }] },
+  { value: 'cart', label: 'Panier', nodes: [{ type: 'cart' }] },
+  { value: 'guestForm', label: 'Coordonnées voyageur', nodes: [{ type: 'guestForm' }] },
+  { value: 'account', label: 'Connexion / compte', nodes: [{ type: 'account' }] },
+];
+
+const WIDGET_PRESET_OPTIONS = WIDGET_PRESETS.map((p) => ({ value: p.value, label: p.label }));
+
+/** Rend une liste de nœuds de widgets : design template (registre) ou HTML brut (`renderRawWidget`). */
+function renderWidgetNodes(nodes: WidgetNodePreset[], raw: boolean): ReactNode {
+  const leaf = (t: WidgetType) => (raw ? renderRawWidget(t, getWidgetDef(t).defaultProps) : getWidgetDef(t).render(getWidgetDef(t).defaultProps));
+  return nodes.map((node, i) => {
+    if (node.type === 'group') {
+      const kids = (node.children ?? []).map((t, ci) => <Fragment key={ci}>{leaf(t)}</Fragment>);
+      return (
+        <Fragment key={i}>
+          {raw ? <div className="cb-wgroup">{kids}</div> : getWidgetDef('group').render(node.props ?? getWidgetDef('group').defaultProps, kids)}
+        </Fragment>
+      );
+    }
+    return <Fragment key={i}>{leaf(node.type)}</Fragment>;
+  });
+}
+
+const BOOKING_WIDGET: BlockDef = {
+  type: 'bookingWidget',
+  label: 'Widget de réservation',
+  description: 'Insère un micro-widget ou une composition de réservation, positionnable où tu veux.',
+  icon: CalendarSearch,
+  defaultProps: { preset: 'searchBar', applyDesign: true, align: 'center' },
+  fields: [
+    { key: 'preset', label: 'Contenu', type: 'select', options: WIDGET_PRESET_OPTIONS },
+    { key: 'applyDesign', label: 'Design du template (sinon HTML brut)', type: 'toggle' },
+    ALIGN_FIELD,
+    BG_COLOR_FIELD,
+  ],
+  render: (p) => {
+    const preset = WIDGET_PRESETS.find((x) => x.value === p.preset) ?? WIDGET_PRESETS[0];
+    const raw = p.applyDesign === false;
+    const justify = p.align === 'left' ? 'flex-start' : p.align === 'right' ? 'flex-end' : 'center';
+    return (
+      <div className="bkly-section bkly-bookingwidget" style={sectionStyle(p)}>
+        <div className="bkly-bookingwidget__inner" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: justify }}>
+          {renderWidgetNodes(preset.nodes, raw)}
+        </div>
+      </div>
+    );
+  },
+};
+
 export const BLOCK_REGISTRY: Record<BlockType, BlockDef> = {
   hero: HERO,
+  bookingWidget: BOOKING_WIDGET,
   propertyGrid: PROPERTY_GRID,
   amenities: AMENITIES,
   richText: RICH_TEXT,
@@ -614,7 +715,7 @@ export const BLOCK_REGISTRY: Record<BlockType, BlockDef> = {
 };
 
 /** Ordre d'apparition dans la bibliothèque de blocs. */
-export const BLOCK_ORDER: BlockType[] = ['hero', 'propertyGrid', 'gallery', 'amenities', 'stats', 'pricing', 'testimonial', 'logos', 'faq', 'video', 'map', 'columns', 'richText', 'cta', 'footer'];
+export const BLOCK_ORDER: BlockType[] = ['hero', 'bookingWidget', 'propertyGrid', 'gallery', 'amenities', 'stats', 'pricing', 'testimonial', 'logos', 'faq', 'video', 'map', 'columns', 'richText', 'cta', 'footer'];
 
 /** Blocs autorisés DANS une colonne : tout sauf `columns` (pas d'imbrication de conteneurs). */
 export const NESTABLE_BLOCK_ORDER: BlockType[] = BLOCK_ORDER.filter((t) => t !== 'columns');
