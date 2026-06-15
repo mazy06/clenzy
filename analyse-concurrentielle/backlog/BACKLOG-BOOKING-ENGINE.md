@@ -51,6 +51,8 @@
 | 2.11 | Comptes voyageur : wishlist, cartes enregistrées, re-booking 1-clic, fidélité/parrainage | 🟡 | ⭐⭐ | L | — |
 | 2.12 | Capture leads (exit-intent/pré-checkout/form embarquable) + abandoned multi-étapes + segments Brevo | 🟡 | ⭐⭐ | M | — |
 | 2.13 | IA contenu/SEO/blog multilingue + concierge RAG sur le site | 🟡 | ⭐⭐⭐ | L | 1.1 partiel |
+| 2.14 ✅ | **Design custom (import CSS)** : classes stables + structure exposée + injection page & widget + éditeur CSS | ✅ | ⭐⭐ | M | — | **FAIT (A+B+C)**. A : 7 blocs rendent des classes namespacées `bkly-*` ; cosmétique sortie de l'inline → `blockStyles.css` surchargeable (sans `!important`). B : CSS custom injecté **dans le Shadow DOM du widget** (`customCss` sur `BaitlyBookingConfig` → `<style>` en dernier → atteint les `.cb-*`) + page. C : onglet **CSS** dans le pane droit du Studio = éditeur (persiste `config.customCss`) + palette **« Sélecteurs »** auto-générée (`selectorCatalog.ts` : blocs présents `bkly-*` + widget `cb-*`), clic = insertion d'une règle. *Polish futur : coloration syntaxique, import de fichier .css.* |
+| 2.15 ✅ | **Aperçu du widget de réservation dans le Studio** (switch Page ↔ Réservation) + réservation atteignable sur la page publique | ✅ | ⭐⭐ | S | 2.14 | **FAIT**. Mode Aperçu : segmented **Page / Réservation** ; « Réservation » monte le **vrai** `BaitlyWidget` (thème + CSS custom courants, fidèle au public) via `WidgetPreview` + helper partagé `widgetThemeFromTokens`. Page publique : la barre de recherche du hero et le bouton CTA pointent vers `#reserver` (section du widget). Canvas/aperçu rendus inertes (les ancres ne naviguent pas dans le Studio). |
 
 ## P3 — Plateforme, conformité, robustesse
 

@@ -7,6 +7,13 @@ export interface BaitlyBookingConfig {
   /** Slug de l'org dans le path public ; placeholder (l'org est resolue par la cle API X-Booking-Key). */
   slug?: string;
   theme?: BaitlyTheme;
+  /**
+   * CSS custom de l'organisation, injecté DANS le Shadow DOM du widget (en dernier → surcharge
+   * les `.cb-*` de base). Le CSS posé sur la page hôte ne pénètre PAS le shadow : c'est l'unique
+   * moyen de styler le module de réservation. Même chaîne que le CSS de page ; les sélecteurs
+   * `.bkly-*` y sont simplement inertes (aucun élément correspondant dans le shadow).
+   */
+  customCss?: string;
   language?: 'fr' | 'en' | 'ar';
   currency?: string;
   defaultGuests?: { adults: number; children: number };

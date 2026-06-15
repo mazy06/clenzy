@@ -4,8 +4,10 @@ import { Check, LayoutTemplate } from 'lucide-react';
 import BlockTree from './BlockTree';
 import BuilderCanvas from './BuilderCanvas';
 import PagePreview from './PagePreview';
+import WidgetPreview from './WidgetPreview';
 import BlockInspector from './BlockInspector';
 import ThemeInspector from './ThemeInspector';
+import CssInspector from './CssInspector';
 import { BLOCK_REGISTRY, getBlockDef, type BlockProps, type BlockType } from './blockRegistry';
 import type { Breakpoint } from '../StudioShell';
 import type { StudioConfigState } from '../useStudioConfig';
@@ -58,7 +60,7 @@ function parseLayout(json: string | null | undefined): BlockInstance[] | null {
   }
 }
 
-type RightTab = 'block' | 'theme';
+type RightTab = 'block' | 'theme' | 'css';
 
 export interface DesignBuilderProps {
   breakpoint: Breakpoint;
@@ -70,6 +72,7 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>('block');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+  const [previewView, setPreviewView] = useState<'page' | 'widget'>('page');
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -159,19 +162,27 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {/* Barre : modèles (gauche) + bascule Éditer / Aperçu (droite). */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, height: 44, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-        <ButtonBase
-          onClick={() => setTemplatesOpen(true)}
-          sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 30, px: 1.5,
-            borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', color: 'var(--body)',
-            fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-            transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-            '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
-            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-          }}
-        >
-          <LayoutTemplate size={15} strokeWidth={2} /> Modèles
-        </ButtonBase>
+        {mode === 'preview' ? (
+          <Segmented
+            value={previewView}
+            onChange={setPreviewView}
+            options={[{ value: 'page', label: 'Page' }, { value: 'widget', label: 'Réservation' }]}
+          />
+        ) : (
+          <ButtonBase
+            onClick={() => setTemplatesOpen(true)}
+            sx={{
+              display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 30, px: 1.5,
+              borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', color: 'var(--body)',
+              fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
+              transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
+              '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
+              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+            }}
+          >
+            <LayoutTemplate size={15} strokeWidth={2} /> Modèles
+          </ButtonBase>
+        )}
         <Segmented
           value={mode}
           onChange={setMode}
@@ -181,7 +192,9 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
 
       {mode === 'preview' ? (
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
-          <PagePreview blocks={blocks} theme={theme} breakpoint={breakpoint} />
+          {previewView === 'page'
+            ? <PagePreview blocks={blocks} theme={theme} breakpoint={breakpoint} />
+            : <WidgetPreview config={cfg.config} breakpoint={breakpoint} />}
         </Box>
       ) : (
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex' }}>
@@ -208,14 +221,18 @@ export default function DesignBuilder({ breakpoint, cfg }: DesignBuilderProps) {
           <Segmented
             value={rightTab}
             onChange={setRightTab}
-            options={[{ value: 'block', label: 'Bloc' }, { value: 'theme', label: 'Thème' }]}
+            options={[{ value: 'block', label: 'Bloc' }, { value: 'theme', label: 'Thème' }, { value: 'css', label: 'CSS' }]}
           />
         </Box>
 
         <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-          {rightTab === 'block'
-            ? <BlockInspector block={selected} onChange={handleChange} />
-            : <ThemeInspector config={cfg.config} patch={cfg.patch} />}
+          {rightTab === 'block' ? (
+            <BlockInspector block={selected} onChange={handleChange} />
+          ) : rightTab === 'theme' ? (
+            <ThemeInspector config={cfg.config} patch={cfg.patch} />
+          ) : (
+            <CssInspector config={cfg.config} patch={cfg.patch} blockTypes={blocks.map((b) => b.type)} />
+          )}
         </Box>
 
         {cfg.dirty && (

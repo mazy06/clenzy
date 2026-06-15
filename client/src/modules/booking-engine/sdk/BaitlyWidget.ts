@@ -89,6 +89,16 @@ export class BaitlyWidget {
     const mainStyle = document.createElement('style');
     mainStyle.textContent = [resetCSS, baseCSS, componentsCSS].join('\n');
     this.shadowRoot.appendChild(mainStyle);
+
+    // CSS custom de l'org : injecté EN DERNIER (même spécificité → l'emporte sur les `.cb-*` de base).
+    // Unique moyen d'atteindre le widget : le CSS de la page hôte ne franchit pas le Shadow DOM.
+    const custom = this.config.customCss?.trim();
+    if (custom) {
+      const customStyle = document.createElement('style');
+      customStyle.setAttribute('data-clenzy-custom', '');
+      customStyle.textContent = custom;
+      this.shadowRoot.appendChild(customStyle);
+    }
   }
 
   private renderWidget(): void {

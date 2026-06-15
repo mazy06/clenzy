@@ -20,7 +20,10 @@ export default function PagePreview({ blocks, theme, breakpoint }: PagePreviewPr
   const width = FRAME_WIDTH[breakpoint];
 
   return (
-    <Box sx={{ flex: 1, minWidth: 0, height: '100%', overflowY: 'auto', bgcolor: 'var(--bg-2, var(--bg))', display: 'flex', justifyContent: 'center', p: breakpoint === 'desktop' ? 0 : 3 }}>
+    <Box
+      // Aperçu inerte : les ancres des blocs (ex. CTA → #reserver) ne naviguent pas dans le Studio.
+      onClickCapture={(e) => { if ((e.target as HTMLElement).closest('a')) e.preventDefault(); }}
+      sx={{ flex: 1, minWidth: 0, height: '100%', overflowY: 'auto', bgcolor: 'var(--bg-2, var(--bg))', display: 'flex', justifyContent: 'center', p: breakpoint === 'desktop' ? 0 : 3 }}>
       <Box
         style={themeStyle(theme)}
         sx={{
