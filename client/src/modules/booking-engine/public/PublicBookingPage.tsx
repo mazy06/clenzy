@@ -5,8 +5,8 @@ import { AlertTriangle, Star } from 'lucide-react';
 import { getBlockDef, parsePageLayout } from '../studio/builder/blockRegistry';
 import { themeStyle } from '../studio/builder/BuilderCanvas';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
-import type { BaitlyTheme } from '../sdk/types';
 import type { DesignTokens } from '../../../services/api/bookingEngineApi';
+import { widgetThemeFromTokens } from '../widgetTheme';
 import { API_CONFIG } from '../../../config/api';
 
 // Même résolution que le reste de l'app (VITE_API_BASE_URL) : pas de proxy /api en dev.
@@ -35,25 +35,6 @@ function parseTokens(json: string | null): DesignTokens | null {
   if (!json) return null;
   try { return JSON.parse(json) as DesignTokens; } catch { return null; }
 }
-
-/** Map les design tokens (preset/template) vers le thème du widget (rayon, ombre, surfaces, couleurs, police). */
-function widgetTheme(config: PublicBookingConfig, t: DesignTokens | null): BaitlyTheme {
-  return {
-    primaryColor: t?.primaryColor || config.primaryColor,
-    fontFamily: t?.bodyFontFamily || config.fontFamily || undefined,
-    borderRadius: t?.borderRadius || undefined,
-    shadow: t?.boxShadow || t?.cardShadow || undefined,
-    backgroundColor: t?.backgroundColor || undefined,
-    surfaceColor: t?.surfaceColor || undefined,
-    borderColor: t?.borderColor || undefined,
-    textColor: t?.textColor || undefined,
-    textSecondaryColor: t?.textSecondaryColor || undefined,
-    fontSize: t?.baseFontSize || undefined,
-    density: (t?.spacing as 'compact' | 'normal' | 'spacious') || undefined,
-    buttonStyle: (t?.buttonStyle as 'filled' | 'outlined') || undefined,
-  };
-}
-
 
 interface PublicReview {
   guestName: string;
@@ -109,7 +90,9 @@ export default function PublicBookingPage() {
       container: widgetHostRef.current,
       apiKey,
       baseUrl: API_CONFIG.BASE_URL,
-      theme: widgetTheme(config, tokens),
+      theme: widgetThemeFromTokens(config.primaryColor, config.fontFamily, tokens),
+      // Le CSS de page (<style> plus bas) ne franchit pas le Shadow DOM → on le passe aussi au widget.
+      customCss: config.customCss ?? undefined,
       language: (['fr', 'en', 'ar'].includes(config.defaultLanguage) ? config.defaultLanguage : 'fr') as 'fr' | 'en' | 'ar',
       currency: config.defaultCurrency,
     });

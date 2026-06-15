@@ -1,0 +1,263 @@
+/*
+ * Feuille de base des blocs du Baitly Studio (Phase A — design custom).
+ * Chaque bloc rend des classes STABLES et namespacées `bkly-*` (BEM léger) ; les styles
+ * cosmétiques vivent ici (et non en inline) pour qu'un CSS custom puisse les SURCHARGER
+ * sans `!important` (même spécificité → l'ordre source du <style> custom, injecté plus bas
+ * dans le document, l'emporte).
+ *
+ * Les valeurs s'appuient sur les variables de thème posées par themeStyle() (--accent,
+ * --ink, --font-display, …) : le thème continue donc de piloter couleurs/polices/rayons.
+ * Importée par blockRegistry.tsx → injectée partout où les blocs sont rendus (canvas Studio,
+ * aperçu, page publique). Toutes les règles sont préfixées `bkly-` : aucun débordement global.
+ */
+
+.bkly-section {
+  box-sizing: border-box;
+}
+.bkly-section *,
+.bkly-section *::before,
+.bkly-section *::after {
+  box-sizing: border-box;
+}
+
+/* ── Bannière (hero) ─────────────────────────────────────────────────────── */
+.bkly-hero {
+  padding: 64px 40px;
+  text-align: center;
+  background: var(--accent-soft);
+}
+.bkly-hero__eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.bkly-hero__title {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink);
+  max-width: 620px;
+  margin: 0 auto;
+  text-wrap: balance;
+}
+.bkly-hero__subtitle {
+  font-size: 17px;
+  color: var(--muted);
+  max-width: 520px;
+  margin: 16px auto 0;
+  line-height: 1.5;
+}
+.bkly-hero__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 460px;
+  margin: 28px auto 0;
+  padding: 10px 10px 10px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+.bkly-hero__search-icon {
+  display: inline-flex;
+  color: var(--muted);
+}
+.bkly-hero__search-text {
+  flex: 1;
+  text-align: left;
+  color: var(--faint);
+  font-size: 15px;
+}
+.bkly-hero__search-btn {
+  height: 36px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ── Grille de logements ─────────────────────────────────────────────────── */
+.bkly-property-grid {
+  padding: 48px 40px;
+  background: var(--bg);
+}
+.bkly-property-grid__heading {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.bkly-property-grid__subheading {
+  font-size: 15px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.bkly-property-grid__list {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+  /* grid-template-columns piloté en inline (prop « Colonnes » de l'inspecteur). */
+}
+.bkly-property-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--card);
+}
+.bkly-property-card__image {
+  height: 120px;
+  background: var(--field);
+}
+.bkly-property-card__body {
+  padding: 14px;
+}
+.bkly-property-card__line {
+  height: 12px;
+  width: 70%;
+  border-radius: 4px;
+  background: var(--line-2);
+}
+.bkly-property-card__line--sub {
+  height: 10px;
+  width: 45%;
+  background: var(--line);
+  margin-top: 8px;
+}
+.bkly-property-card__price {
+  margin-top: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 15px;
+}
+.bkly-property-card__price-unit {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ── Équipements ─────────────────────────────────────────────────────────── */
+.bkly-amenities {
+  padding: 48px 40px;
+  background: var(--card);
+}
+.bkly-amenities__heading {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+.bkly-amenities__list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-width: 560px;
+}
+.bkly-amenities__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--body);
+  font-size: 15px;
+}
+.bkly-amenities__icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ── Texte libre ─────────────────────────────────────────────────────────── */
+.bkly-rich-text {
+  padding: 40px;
+  background: var(--bg);
+}
+.bkly-rich-text__content {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--body);
+  max-width: 640px;
+  white-space: pre-wrap;
+}
+
+/* ── Témoignage ──────────────────────────────────────────────────────────── */
+.bkly-testimonial {
+  padding: 56px 40px;
+  background: var(--accent-soft);
+  text-align: center;
+}
+.bkly-testimonial__icon {
+  display: inline-block;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+.bkly-testimonial__quote {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.4;
+  color: var(--ink);
+  max-width: 600px;
+  margin: 0 auto;
+  text-wrap: balance;
+}
+.bkly-testimonial__author {
+  margin-top: 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ── Appel à l'action (CTA) ──────────────────────────────────────────────── */
+.bkly-cta {
+  padding: 56px 40px;
+  background: var(--accent);
+  text-align: center;
+}
+.bkly-cta__title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--on-accent);
+  text-wrap: balance;
+}
+.bkly-cta__button {
+  display: inline-flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 26px;
+  margin-top: 22px;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* ── Pied de page ────────────────────────────────────────────────────────── */
+.bkly-footer {
+  padding: 28px 40px;
+  background: var(--surface-2, var(--field));
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}

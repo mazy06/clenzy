@@ -83,7 +83,7 @@ export default function BuilderCanvas({ blocks, selectedId, breakpoint, onSelect
             return (
               <Box
                 key={b.id}
-                onClick={() => onSelect(b.id)}
+                onClick={(e) => { e.preventDefault(); onSelect(b.id); }}
                 role="button"
                 tabIndex={0}
                 aria-label={`Sélectionner le bloc ${def.label}`}
