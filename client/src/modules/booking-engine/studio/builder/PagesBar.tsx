@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Box, ButtonBase, InputBase, Tooltip } from '@mui/material';
-import { Plus, Pencil, X, House, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import type { SitePage } from '../../../../services/api/sitesApi';
 
 /**
  * Barre d'onglets des pages du site (multi-page 2.2). Sélection, ajout, renommage (double-clic ou
  * crayon) et suppression (sauf page d'accueil). N'apparaît qu'en mode Éditer quand le multi-page
- * est disponible (cf. DesignBuilder). Style aligné sur les segments du builder (tokens var(--*)).
+ * est disponible. Style aligné sur les segments du Studio (tokens var(--*)).
  */
 
 export interface PagesBarProps {
@@ -17,12 +17,15 @@ export interface PagesBarProps {
   onRename: (id: number, title: string) => void;
   onDelete: (id: number) => void;
   onMove?: (id: number, dir: -1 | 1) => void;
+  /** Repartir de zéro : supprime toutes les pages sauf une accueil vierge (confirmation inline). */
+  onReset?: () => void;
   busy?: boolean;
 }
 
-export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename, onDelete, onMove, busy }: PagesBarProps) {
+export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename, onDelete, onMove, onReset, busy }: PagesBarProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const startRename = (p: SitePage) => { setEditingId(p.id); setDraft(p.title ?? ''); };
   const commitRename = () => {
@@ -115,6 +118,44 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
           <Plus size={16} strokeWidth={2} />
         </ButtonBase>
       </Tooltip>
+
+      {onReset && (
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, flexShrink: 0, ml: 0.5, pl: 0.5, borderLeft: '1px solid var(--line)' }}>
+          {confirmReset ? (
+            <>
+              <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>Tout effacer ?</Box>
+              <ButtonBase
+                onClick={() => { setConfirmReset(false); onReset(); }}
+                sx={{ height: 24, px: 1, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--on-accent)', bgcolor: 'var(--err, #C97A7A)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                Oui, effacer
+              </ButtonBase>
+              <ButtonBase
+                onClick={() => setConfirmReset(false)}
+                sx={{ height: 24, px: 1, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)', color: 'var(--body)', border: '1px solid var(--line)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)' } }}
+              >
+                Annuler
+              </ButtonBase>
+            </>
+          ) : (
+            <Tooltip title="Supprimer toutes les pages et repartir d'une page d'accueil vierge">
+              <ButtonBase
+                onClick={() => setConfirmReset(true)}
+                disabled={busy}
+                sx={{
+                  display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 24, px: 1, flexShrink: 0,
+                  borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-medium)',
+                  color: 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap',
+                  '&:hover': { color: 'var(--err, #C97A7A)', bgcolor: 'var(--hover)' },
+                  '&.Mui-disabled': { opacity: 0.4 },
+                }}
+              >
+                <RotateCcw size={12} strokeWidth={2} /> Repartir de zéro
+              </ButtonBase>
+            </Tooltip>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }

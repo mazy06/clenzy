@@ -2638,3 +2638,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0270__create_site_templates.sql
         relativeToChangelogFile: true
+
+  # Popup exit-intent de capture de leads (org-level) — opt-in, off par défaut.
+  - changeSet:
+      id: "0271-add-lead-capture-popup"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0271__add_lead_capture_popup.sql
+        relativeToChangelogFile: true

@@ -32,7 +32,7 @@ export interface BaitlyBookingConfig {
   showPropertyFilter?: boolean;
   showAddons?: boolean;
   showReviews?: boolean;
-  /** Capture de lead par exit-intent (2.12). Défaut activé ; mettre `false` pour désactiver. */
+  /** Capture de lead par exit-intent (2.12). OPT-IN : mettre `true` pour activer (off par défaut). */
   leadCapture?: boolean;
   /** Id numérique de l'organisation (2.11) — requis pour le compte voyageur (login/wishlist). */
   organizationId?: number;

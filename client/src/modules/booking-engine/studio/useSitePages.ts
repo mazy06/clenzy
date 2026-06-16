@@ -14,9 +14,9 @@ export interface ImportPageInput {
 /**
  * État multi-page du Studio (2.2). Au montage : find-or-create du site rattaché à la config de
  * widget (`ensureForConfig`) puis chargement des pages. La page d'accueil (HOME) est garantie par
- * le backend (migration du `pageLayout` mono-page). Le builder édite la page sélectionnée ; les
- * blocs sont persistés par page (`savePageBlocks`). En cas d'indisponibilité de l'API sites, le
- * builder retombe en mode mono-page (cf. DesignBuilder) — ce hook expose alors `ready=false`.
+ * le backend (migration du `pageLayout` mono-page). L'éditeur GrapesJS édite la page sélectionnée ;
+ * les blocs sont persistés par page (`savePageBlocks`). En cas d'indisponibilité de l'API sites, ce
+ * hook expose `ready=false` (l'éditeur retombe alors sur un état mono-page neutre).
  */
 
 export interface SitePagesState {
@@ -31,6 +31,8 @@ export interface SitePagesState {
   addPage: () => Promise<void>;
   renamePage: (id: number, title: string) => Promise<void>;
   deletePage: (id: number) => Promise<void>;
+  /** Repart de zéro : supprime toutes les pages SAUF l'accueil, et vide le contenu de l'accueil. */
+  resetSite: () => Promise<void>;
   movePage: (id: number, dir: -1 | 1) => Promise<void>;
   updatePageMeta: (id: number, changes: Partial<SitePage>) => Promise<void>;
   savePageBlocks: (id: number, blocks: string) => Promise<void>;
@@ -117,6 +119,23 @@ export function useSitePages(configId: number | undefined): SitePagesState {
     setSelectedPageId((cur) => (cur === id ? home?.id ?? null : cur));
   }, [site, pages]);
 
+  const resetSite = useCallback(async () => {
+    if (!site) return;
+    const home = pages.find((p) => p.type === 'HOME') ?? pages[0] ?? null;
+    // Supprime toutes les pages SAUF l'accueil (l'accueil ne peut pas être supprimé).
+    for (const p of pages) {
+      if (home && p.id === home.id) continue;
+      await sitesApi.deletePage(site.id, p.id);
+    }
+    // Vide le contenu de l'accueil → page vierge.
+    let blankHome: SitePage | null = home;
+    if (home) {
+      blankHome = await sitesApi.updatePage(site.id, home.id, { ...home, blocks: '' });
+    }
+    setPages(blankHome ? [blankHome] : []);
+    setSelectedPageId(blankHome?.id ?? null);
+  }, [site, pages]);
+
   const updatePageMeta = useCallback(async (id: number, changes: Partial<SitePage>) => {
     if (!site) return;
     const page = pages.find((p) => p.id === id);
@@ -196,6 +215,6 @@ export function useSitePages(configId: number | undefined): SitePagesState {
 
   return {
     ready, loading, error, site, pages, selectedPageId, selectedPage,
-    selectPage, addPage, renamePage, deletePage, movePage, updatePageMeta, savePageBlocks, publishPage, importPages,
+    selectPage, addPage, renamePage, deletePage, resetSite, movePage, updatePageMeta, savePageBlocks, publishPage, importPages,
   };
 }

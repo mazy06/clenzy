@@ -87,7 +87,7 @@ class PublicBookingControllerTest {
         when(bookingService.resolveFromFilter(filterConfig)).thenReturn(ctx);
 
         BookingEngineConfigDto dto = new BookingEngineConfigDto("#fff", "#000", null, null, "fr",
-                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true);
+                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true, false, null);
         when(bookingService.getConfig(ctx)).thenReturn(dto);
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
@@ -100,7 +100,7 @@ class PublicBookingControllerTest {
         when(bookingService.resolveOrg("slug")).thenReturn(ctx);
 
         BookingEngineConfigDto dto = new BookingEngineConfigDto("#fff", "#000", null, null, "fr",
-                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true);
+                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true, false, null);
         when(bookingService.getConfig(ctx)).thenReturn(dto);
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
@@ -211,7 +211,7 @@ class PublicBookingControllerTest {
         when(request.getAttribute("bookingConfig")).thenReturn(ctx.config());
         when(bookingService.resolveFromFilter(any())).thenReturn(ctx);
 
-        BookingCheckoutRequestDto req = new BookingCheckoutRequestDto("code-1");
+        BookingCheckoutRequestDto req = new BookingCheckoutRequestDto("code-1", null);
         BookingCheckoutResponseDto resp = new BookingCheckoutResponseDto("https://stripe.test", "s_1");
         when(bookingService.checkout(ctx, req)).thenReturn(resp);
 

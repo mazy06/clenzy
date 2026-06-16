@@ -32,6 +32,8 @@ public record SitePublicDto(
     String customJs,
     /** Composition de micro-widgets de la barre/flux de réservation (JSON `{widgetLayout,styleMode}`) ; le SDK la rend au montage du widget. */
     String componentConfig,
+    /** Popup exit-intent de capture de leads activé au niveau org (opt-in) — le SDK affiche le popup si true. */
+    boolean leadCapturePopupEnabled,
     List<PageSummary> pages
 ) {
     /** Entrée de la table des pages (navigation + génération du sitemap côté SSR). */
@@ -44,12 +46,12 @@ public record SitePublicDto(
     }
 
     public static SitePublicDto from(Site s, String bookingEngineApiKey, String customCss, String customJs,
-                                     String componentConfig, List<SitePage> pages) {
+                                     String componentConfig, boolean leadCapturePopupEnabled, List<SitePage> pages) {
         return new SitePublicDto(
             s.getId(), s.getSlug(), s.getName(), s.getDefaultLocale(), s.getLocales(),
             s.getDesignTokens(), s.getPrimaryColor(), s.getFontFamily(), s.getLogoUrl(),
             s.getSeoTitle(), s.getSeoDescription(), s.getSeoOgImageUrl(), s.getBookingEngineConfigId(),
-            bookingEngineApiKey, customCss, customJs, componentConfig,
+            bookingEngineApiKey, customCss, customJs, componentConfig, leadCapturePopupEnabled,
             pages.stream().map(PageSummary::from).toList());
     }
 }

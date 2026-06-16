@@ -82,9 +82,13 @@ public class Organization {
 
     // --- Booking engine : croissance (org-level, defaut active) ---
 
-    /** Autorise la capture de leads (newsletter / waitlist) sur les booking engines de l'org. */
+    /** Autorise la capture de leads (newsletter / waitlist) sur les booking engines de l'org : gate l'endpoint /leads. */
     @Column(name = "lead_capture_enabled", nullable = false)
     private boolean leadCaptureEnabled = true;
+
+    /** Affiche le popup exit-intent de capture de leads dans le widget (OPT-IN, off par défaut). */
+    @Column(name = "lead_capture_popup_enabled", nullable = false)
+    private boolean leadCapturePopupEnabled = false;
 
     /** Active la relance automatique des paniers abandonnes pour l'org. */
     @Column(name = "abandoned_cart_recovery_enabled", nullable = false)
@@ -167,6 +171,9 @@ public class Organization {
 
     public boolean isLeadCaptureEnabled() { return leadCaptureEnabled; }
     public void setLeadCaptureEnabled(boolean leadCaptureEnabled) { this.leadCaptureEnabled = leadCaptureEnabled; }
+
+    public boolean isLeadCapturePopupEnabled() { return leadCapturePopupEnabled; }
+    public void setLeadCapturePopupEnabled(boolean leadCapturePopupEnabled) { this.leadCapturePopupEnabled = leadCapturePopupEnabled; }
 
     public boolean isAbandonedCartRecoveryEnabled() { return abandonedCartRecoveryEnabled; }
     public void setAbandonedCartRecoveryEnabled(boolean abandonedCartRecoveryEnabled) { this.abandonedCartRecoveryEnabled = abandonedCartRecoveryEnabled; }

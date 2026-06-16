@@ -101,6 +101,21 @@ public class StripeCheckoutSessionFactory {
                                                     String customerEmail, String guestName,
                                                     String propertyName,
                                                     java.time.Duration expiresIn) throws StripeException {
+        return createReservationCheckoutSession(reservationId, amount, customerEmail,
+            guestName, propertyName, expiresIn, null);
+    }
+
+    /**
+     * Variante avec {@code successUrl} explicite (B3, parcours template-driven). {@code successUrl} null
+     * = comportement historique ({@code stripe.success-url} par defaut). L'appelant ({@code PublicBookingService})
+     * a la responsabilite de N'AVOIR VALIDE cette URL (HTTPS + host de l'org) qu'avant de la passer ici :
+     * la factory l'utilise telle quelle, jamais une URL venant directement du client.
+     */
+    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
+                                                    String customerEmail, String guestName,
+                                                    String propertyName,
+                                                    java.time.Duration expiresIn,
+                                                    String successUrl) throws StripeException {
         // Resoudre la devise depuis la reservation
         String resCurrency = reservationRepository.findById(reservationId)
             .map(Reservation::getCurrency)
@@ -113,7 +128,8 @@ public class StripeCheckoutSessionFactory {
                 StripeAmounts.toMinorUnits(amount),
                 "Reservation: " + propertyName,
                 "Paiement pour la reservation de " + (guestName != null ? guestName : "guest"),
-                customerEmail)
+                customerEmail,
+                successUrl)
             .putMetadata("reservation_id", reservationId.toString())
             .putMetadata("type", "reservation");
         if (expiresIn != null) {
@@ -190,6 +206,19 @@ public class StripeCheckoutSessionFactory {
     private SessionCreateParams.Builder baseCheckoutParams(boolean embedded, String currencyCode,
                                                            long amountInCents, String productName,
                                                            String productDescription, String customerEmail) {
+        return baseCheckoutParams(embedded, currencyCode, amountInCents, productName,
+            productDescription, customerEmail, null);
+    }
+
+    /**
+     * Variante de {@link #baseCheckoutParams(boolean, String, long, String, String, String)} avec
+     * {@code successUrlOverride} optionnel (mode HOSTED uniquement). Null/blank → {@code stripe.success-url}
+     * par defaut. Sans effet en mode EMBEDDED (pas de redirection).
+     */
+    private SessionCreateParams.Builder baseCheckoutParams(boolean embedded, String currencyCode,
+                                                           long amountInCents, String productName,
+                                                           String productDescription, String customerEmail,
+                                                           String successUrlOverride) {
         SessionCreateParams.Builder builder = SessionCreateParams.builder()
             .setMode(SessionCreateParams.Mode.PAYMENT);
         if (embedded) {
@@ -199,7 +228,9 @@ public class StripeCheckoutSessionFactory {
                 // Only card payments — no iDEAL/Klarna/Bancontact that open external tabs
                 .addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD);
         } else {
-            builder.setSuccessUrl(successUrl)
+            String effectiveSuccessUrl = (successUrlOverride != null && !successUrlOverride.isBlank())
+                ? successUrlOverride : successUrl;
+            builder.setSuccessUrl(effectiveSuccessUrl)
                 .setCancelUrl(cancelUrl);
         }
         SessionCreateParams.LineItem.PriceData.ProductData.Builder productData =

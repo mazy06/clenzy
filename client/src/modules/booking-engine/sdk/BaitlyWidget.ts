@@ -1,7 +1,8 @@
 import type { BaitlyBookingConfig, WidgetState, WidgetProperty, DayAvailability, PriceBreakdown } from './types';
-import { StateManager, createInitialState } from './state';
+import { StateManager } from './state';
 import { generateThemeCSS } from './theme';
 import { BookingApi, type ApiProperty, type ApiCalendar, type ApiAvailability } from './api';
+import { BaitlyBookingCore } from './core/BaitlyBookingCore';
 import { createBookingI18n } from './i18n';
 
 // Components
@@ -12,7 +13,7 @@ import { createPriceSummary } from './components/PriceSummary';
 import { createCTAButton } from './components/CTAButton';
 import { createGuestForm } from './components/GuestForm';
 import { createStepper } from './components/Stepper';
-import { createPropertyList } from './components/PropertyList';
+import { createPropertyList, type PropertyListOptions } from './components/PropertyList';
 import { createPropertyFilter } from './components/PropertyFilter';
 import { createCurrencySelector } from './components/CurrencySelector';
 import { createCartList } from './components/CartList';
@@ -32,6 +33,8 @@ import componentsCSS from './styles/components.css?raw';
  */
 export class BaitlyWidget {
   private config: BaitlyBookingConfig;
+  // Cœur headless (B1) : possède state + api + persistance du parcours (survit à la navigation).
+  private core: BaitlyBookingCore;
   private state: StateManager;
   private api: BookingApi;
   private i18n: ReturnType<typeof createBookingI18n>;
@@ -50,14 +53,19 @@ export class BaitlyWidget {
   constructor(config: BaitlyBookingConfig) {
     this.config = config;
     this.i18n = createBookingI18n(config.language || 'fr');
-    this.api = new BookingApi(config.baseUrl || window.location.origin, config.apiKey, config.slug);
-    this.state = new StateManager(
-      createInitialState({
+    // Le cœur crée l'API + l'état, restaure le parcours persisté (sessionStorage/URL) et le maintient.
+    this.core = new BaitlyBookingCore({
+      apiKey: config.apiKey,
+      baseUrl: config.baseUrl || window.location.origin,
+      slug: config.slug,
+      defaults: {
         adults: config.defaultGuests?.adults ?? 2,
         children: config.defaultGuests?.children ?? 0,
         displayCurrency: config.currency || 'EUR',
-      }),
-    );
+      },
+    });
+    this.api = this.core.api;
+    this.state = this.core.state;
   }
 
   mount(): void {
@@ -94,14 +102,15 @@ export class BaitlyWidget {
     this.renderWidget();
     this.bindStateEffects();
 
-    // Capture de lead par exit-intent (2.12) — affichée une fois par session, gated par config.
+    // Capture de lead par exit-intent (2.12) — OPT-IN : affichée seulement si activée explicitement
+    // (`leadCapture === true`). Off par défaut → n'apparaît jamais sans qu'on l'ait demandée.
     this.unsubscribers.push(
       mountLeadCapture({
         root: this.shadowRoot,
         api: this.api,
         i18n: this.i18n,
         locale: this.config.language || 'fr',
-        enabled: this.config.leadCapture !== false,
+        enabled: this.config.leadCapture === true,
         storageKey: `cb_lead_${this.config.apiKey}`,
       }),
     );
@@ -144,8 +153,11 @@ export class BaitlyWidget {
 
   private renderWidget(): void {
     if (!this.shadowRoot) return;
+    // Mode composé : l'hôte a défini sa propre composition → le widget n'est qu'un conteneur de
+    // mise en page (pas de « carte » beige imposée, pas de marque). Sinon : expérience par défaut.
+    const composed = parseWidgetLayout(this.config.componentConfig).length > 0;
     const widget = document.createElement('div');
-    widget.className = 'cb-widget';
+    widget.className = composed ? 'cb-widget cb-widget--composed' : 'cb-widget';
 
     const searchPage = this.renderSearchPage();
     widget.appendChild(searchPage);
@@ -158,10 +170,13 @@ export class BaitlyWidget {
     confirmPage.hidden = true;
     widget.appendChild(confirmPage);
 
-    const powered = document.createElement('div');
-    powered.className = 'cb-powered';
-    powered.textContent = 'Powered by Baitly';
-    widget.appendChild(powered);
+    // « Powered by » : seulement pour l'expérience par défaut (WYSIWYG en composé : pas de marque ajoutée).
+    if (!composed) {
+      const powered = document.createElement('div');
+      powered.className = 'cb-powered';
+      powered.textContent = 'Powered by Baitly';
+      widget.appendChild(powered);
+    }
 
     this.shadowRoot.appendChild(widget);
 
@@ -226,19 +241,15 @@ export class BaitlyWidget {
    * en ajoute un (sinon le séjour ne pourrait jamais être validé).
    */
   private renderComposedSearch(page: HTMLElement, layout: LayoutNode[], currency: string, goToForm: () => void, styleMode: 'template' | 'none'): void {
-    let hasCTA = false;
-    const used = new Set<string>();
-    const claim = (type: string): boolean => {
-      const k = WIDGET_DEDUP_KEY[type] ?? type;
-      if (used.has(k)) return false;
-      used.add(k);
-      return true;
+    // Builder LIBRE : aucun dédoublonnage — l'hôte peut placer le même micro-widget plusieurs fois
+    // (ex. deux listes de logements stylées différemment). Chaque nœud composé est rendu tel quel.
+    // Mappe clic→calque dans l'aperçu d'édition : on tague chaque élément rendu avec l'id éphémère
+    // du nœud (injecté par le composeur). Absent en prod → aucun effet.
+    const tag = (el: HTMLElement | null, node: LayoutNode): HTMLElement | null => {
+      if (el && node.id) el.dataset.cbNode = node.id;
+      return el;
     };
-    const markCTA = (node: LayoutNode) => {
-      if (node.type === 'searchButton') hasCTA = true;
-      (node.children ?? []).forEach(markCTA);
-    };
-    const leaf = (type: string): HTMLElement | null => (claim(type) ? this.buildLayoutWidget(type, currency, goToForm) : null);
+    const leaf = (node: LayoutNode): HTMLElement | null => tag(this.buildLayoutWidget(node, currency, goToForm), node);
     const build = (node: LayoutNode): HTMLElement | null => {
       if (node.type === 'group') {
         const box = document.createElement('div');
@@ -260,27 +271,56 @@ export class BaitlyWidget {
         }
         (node.children ?? []).forEach((child) => {
           if (child.type === 'group') return; // pas d'imbrication de conteneur
-          const el = leaf(child.type);
+          const el = leaf(child);
           if (el) box.appendChild(el);
         });
-        return box.childElementCount > 0 ? box : null;
+        return box.childElementCount > 0 ? tag(box, node) : null;
       }
-      return leaf(node.type);
+      return leaf(node);
     };
+    // WYSIWYG : on rend UNIQUEMENT la composition. Aucun bouton « Réserver » auto-ajouté — pour valider
+    // un séjour, l'hôte ajoute le micro-widget « Bouton Rechercher » ou « Ajouter au panier ».
     layout.forEach((node) => {
-      markCTA(node);
       const el = build(node);
       if (el) page.appendChild(el);
     });
-    if (!hasCTA) page.appendChild(createCTAButton(this.state, this.i18n, goToForm));
   }
 
   /** Mappe un micro-widget Studio vers son composant fonctionnel (ou null si type inconnu/indispo). */
-  private buildLayoutWidget(type: string, currency: string, goToForm: () => void): HTMLElement | null {
+  private buildLayoutWidget(node: LayoutNode, currency: string, goToForm: () => void): HTMLElement | null {
+    const type = node.type;
     switch (type) {
       case 'citySearch':
-      case 'propertyResults':
         return this.buildPropertyList();
+      case 'propertyResults': {
+        // Paramètres du composeur : mode (limite/pagination), disposition, colonnes, cartes vides, toggles.
+        const props = node.props ?? {};
+        const mode = String(props.mode ?? 'all');
+        const limit = mode === 'limited' ? Number(props.limit) || 0 : 0;
+        const pageSize = mode === 'paginated' ? Number(props.pageSize) || 0 : 0;
+        // Typographie par élément (vide / 0 = hérité du thème).
+        const str = (k: string): string | undefined => { const v = props[k]; return v != null && v !== '' ? String(v) : undefined; };
+        const num = (k: string): number | undefined => { const n = Number(props[k]); return Number.isFinite(n) && n > 0 ? n : undefined; };
+        // Charge les Google Fonts choisies (sinon système → rien).
+        [str('titleFont'), str('locationFont'), str('priceFont')].forEach(ensureFontLoaded);
+        return this.buildPropertyList({
+          limit, pageSize,
+          cardStyle: cardStyleOf(props.cardStyle),
+          direction: props.direction === 'row' ? 'row' : 'column',
+          columns: Number(props.columns) || 0,
+          horizontalScroll: props.horizontalScroll === true,
+          fillEmpty: props.fillEmpty === true,
+          showImage: props.showImage !== false,
+          showLocation: props.showLocation !== false,
+          showPrice: props.showPrice !== false,
+          showBadges: props.showBadges !== false,
+          cardText: {
+            title: { font: str('titleFont'), size: num('titleSize'), weight: str('titleWeight'), color: str('titleColor') },
+            location: { font: str('locationFont'), size: num('locationSize'), color: str('locationColor') },
+            price: { font: str('priceFont'), size: num('priceSize'), weight: str('priceWeight'), color: str('priceColor') },
+          },
+        });
+      }
       case 'dates': {
         const wrap = document.createElement('div');
         wrap.className = 'cb-wdates';
@@ -345,14 +385,33 @@ export class BaitlyWidget {
   }
 
   /** Liste de propriétés (sélection property-first) + cœurs favoris si compte voyageur actif. */
-  private buildPropertyList(): HTMLElement {
+  private buildPropertyList(opts?: {
+    limit?: number; pageSize?: number; cardStyle?: 'vertical' | 'horizontal' | 'overlay' | 'minimal';
+    direction?: 'row' | 'column'; columns?: number; horizontalScroll?: boolean; fillEmpty?: boolean;
+    showImage?: boolean; showLocation?: boolean; showPrice?: boolean; showBadges?: boolean;
+    cardText?: PropertyListOptions['cardText'];
+  }): HTMLElement {
     return createPropertyList(
       this.state,
       this.i18n,
       this.config.baseUrl || window.location.origin,
-      this.config.organizationId != null
-        ? { wishlistEnabled: true, onWishlistToggle: (id) => this.handleWishlistToggle(id) }
-        : {},
+      {
+        ...(this.config.organizationId != null
+          ? { wishlistEnabled: true, onWishlistToggle: (id: number) => this.handleWishlistToggle(id) }
+          : {}),
+        ...(opts?.limit ? { limit: opts.limit } : {}),
+        ...(opts?.pageSize ? { pageSize: opts.pageSize } : {}),
+        ...(opts?.direction ? { direction: opts.direction } : {}),
+        ...(opts?.columns ? { columns: opts.columns } : {}),
+        ...(opts?.cardStyle ? { cardStyle: opts.cardStyle } : {}),
+        ...(opts?.cardText ? { cardText: opts.cardText } : {}),
+        ...(opts?.horizontalScroll ? { horizontalScroll: true } : {}),
+        ...(opts?.fillEmpty ? { fillEmpty: true } : {}),
+        ...(opts && opts.showImage === false ? { showImage: false } : {}),
+        ...(opts && opts.showLocation === false ? { showLocation: false } : {}),
+        ...(opts && opts.showPrice === false ? { showPrice: false } : {}),
+        ...(opts && opts.showBadges === false ? { showBadges: false } : {}),
+      },
     );
   }
 
@@ -687,7 +746,7 @@ export class BaitlyWidget {
     this.unsubscribers = [];
     this.wishlistAuth?.destroy();
     this.wishlistAuth = null;
-    this.state.destroy();
+    this.core.destroy();
     if (this.host) {
       this.host.remove();
       this.host = null;
@@ -703,21 +762,41 @@ interface LayoutNode {
   type: string;
   props?: Record<string, unknown>;
   children?: LayoutNode[];
+  /** Id ÉPHÉMÈRE injecté par le composeur (aperçu d'édition) pour mapper clic→calque. Absent en prod. */
+  id?: string;
 }
 
 const WGROUP_GAP: Record<string, string> = { sm: '8px', md: '12px', lg: '20px' };
 
-/**
- * Clé de dédoublonnage par COMPOSANT : deux types qui rendent le même composant fonctionnel ne
- * doivent pas être montés deux fois (ex. `citySearch` et `propertyResults` = la liste de logements).
- * Un type absent vaut sa propre clé (pas de dédoublonnage croisé).
- */
-const WIDGET_DEDUP_KEY: Record<string, string> = {
-  citySearch: 'propertyList',
-  propertyResults: 'propertyList',
-  propertyType: 'filter',
-  filter: 'filter',
+/** Normalise la disposition de carte du composeur vers une valeur valide (défaut `vertical`). */
+function cardStyleOf(v: unknown): 'vertical' | 'horizontal' | 'overlay' | 'minimal' {
+  return v === 'horizontal' || v === 'overlay' || v === 'minimal' ? v : 'vertical';
+}
+
+/** Google Fonts proposées dans le composeur (typographie par élément) → params css2. */
+const GOOGLE_FONTS: Record<string, string> = {
+  'playfair display': 'Playfair+Display:wght@400;500;600;700',
+  'montserrat': 'Montserrat:wght@400;500;600;700',
+  'poppins': 'Poppins:wght@400;500;600;700',
+  'lora': 'Lora:wght@400;500;600;700',
+  'cormorant garamond': 'Cormorant+Garamond:wght@400;500;600;700',
 };
+
+/**
+ * Charge à la volée la police choisie si c'est une Google Font connue (sinon : système, rien à faire).
+ * Injectée dans `document.head` : le chargement de polices est global → s'applique aussi au Shadow DOM.
+ */
+function ensureFontLoaded(css?: string): void {
+  if (!css || typeof document === 'undefined') return;
+  const primary = css.split(',')[0].trim().replace(/^["']|["']$/g, '').toLowerCase();
+  const fam = GOOGLE_FONTS[primary];
+  if (!fam || document.querySelector(`link[data-cb-font="${primary}"]`)) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${fam}&display=swap`;
+  link.dataset.cbFont = primary;
+  document.head.appendChild(link);
+}
 
 /** Mode de style du widget : `template` (défaut, design appliqué) ou `none` (headless, aucun CSS). */
 function parseStyleMode(componentConfig?: string): 'template' | 'none' {

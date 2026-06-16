@@ -16,6 +16,8 @@ import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.repository.SiteDomainRepository;
 import com.clenzy.booking.repository.SitePageRepository;
 import com.clenzy.booking.repository.SiteRepository;
+import com.clenzy.model.Organization;
+import com.clenzy.repository.OrganizationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,17 +41,20 @@ public class SiteDeliveryService {
     private final SiteDomainRepository domainRepository;
     private final BlogPostRepository blogPostRepository;
     private final BookingEngineConfigRepository bookingEngineConfigRepository;
+    private final OrganizationRepository organizationRepository;
 
     public SiteDeliveryService(SiteRepository siteRepository,
                                SitePageRepository pageRepository,
                                SiteDomainRepository domainRepository,
                                BlogPostRepository blogPostRepository,
-                               BookingEngineConfigRepository bookingEngineConfigRepository) {
+                               BookingEngineConfigRepository bookingEngineConfigRepository,
+                               OrganizationRepository organizationRepository) {
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
         this.domainRepository = domainRepository;
         this.blogPostRepository = blogPostRepository;
         this.bookingEngineConfigRepository = bookingEngineConfigRepository;
+        this.organizationRepository = organizationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -70,7 +75,11 @@ public class SiteDeliveryService {
         String customJs = config != null ? config.getCustomJs() : null;
         // Composition de réservation (micro-widgets) → le SDK la rend au montage côté SSR.
         String componentConfig = config != null ? config.getComponentConfig() : null;
-        return Optional.of(SitePublicDto.from(site, apiKey, customCss, customJs, componentConfig, pages));
+        // Popup exit-intent (opt-in, org-level) → le SDK l'affiche si activé sur l'org.
+        boolean leadCapturePopupEnabled = config != null
+            && organizationRepository.findById(config.getOrganizationId())
+                .map(Organization::isLeadCapturePopupEnabled).orElse(false);
+        return Optional.of(SitePublicDto.from(site, apiKey, customCss, customJs, componentConfig, leadCapturePopupEnabled, pages));
     }
 
     @Transactional(readOnly = true)

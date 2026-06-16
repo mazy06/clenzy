@@ -219,7 +219,9 @@ export default function StudioShell({
           })}
         </Box>
 
-        <Box component="main" sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+        {/* overflowX hidden = la zone principale du Studio ne défile JAMAIS horizontalement
+            (le scroll horizontal appartient à un widget précis, jamais à « l'écran »). */}
+        <Box component="main" sx={{ flex: 1, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
           {children}
         </Box>
       </Box>

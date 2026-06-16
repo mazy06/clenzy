@@ -93,6 +93,28 @@ export interface ApiBatchReserveResult {
   requiresPayment: boolean;
 }
 
+/** Confirmation post-paiement (GET /{slug}/booking/{code}) — re-fetch au retour Stripe (B3). */
+export interface ApiConfirmation {
+  reservationCode: string;
+  status: string;
+  paymentStatus: string;
+  propertyName: string | null;
+  propertyCity: string | null;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  guests: number;
+  subtotal: number;
+  cleaningFee: number;
+  touristTax: number;
+  total: number;
+  currency: string;
+  guestName: string | null;
+  guestEmail: string | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+}
+
 /** Séjour direct passé d'un voyageur connecté (re-booking 1-clic, 2.11). */
 export interface ApiGuestBooking {
   code: string;
@@ -263,11 +285,22 @@ export class BookingApi {
     return this.request('/reserve', { method: 'POST', body: JSON.stringify(params) }, guestToken);
   }
 
-  checkout(reservationCode: string): Promise<ApiCheckoutResult> {
+  /**
+   * Cree la session Stripe Checkout. `returnUrl` (B3) est OPTIONNEL : URL absolue de la page de
+   * confirmation du template (`data-clenzy-return`) que le serveur utilisera comme `success_url` Stripe
+   * APRES validation stricte (HTTPS + host de l'org). Un host non autorise est ignore cote serveur, qui
+   * retombe sur son `success_url` par defaut — jamais de redirection vers un host arbitraire (anti open-redirect).
+   */
+  checkout(reservationCode: string, returnUrl?: string): Promise<ApiCheckoutResult> {
     return this.request('/checkout', {
       method: 'POST',
-      body: JSON.stringify({ reservationCode }),
+      body: JSON.stringify(returnUrl ? { reservationCode, returnUrl } : { reservationCode }),
     });
+  }
+
+  /** Confirmation d'une réservation par son code (re-fetch du statut au retour Stripe, B3). */
+  getConfirmation(reservationCode: string): Promise<ApiConfirmation> {
+    return this.request(`/booking/${encodeURIComponent(reservationCode)}`);
   }
 
   /** Panier multi-séjours : crée N réservations PENDING (paiement item par item ensuite). */

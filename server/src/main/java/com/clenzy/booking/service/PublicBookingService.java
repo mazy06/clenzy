@@ -2,7 +2,13 @@ package com.clenzy.booking.service;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.model.Site;
+import com.clenzy.booking.model.SitePage;
+import com.clenzy.booking.model.SitePageType;
+import com.clenzy.booking.model.SiteStatus;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
+import com.clenzy.booking.repository.SitePageRepository;
+import com.clenzy.booking.repository.SiteRepository;
 import com.clenzy.dto.TouristTaxCalculationDto;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.RestrictionViolationException;
@@ -25,6 +31,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -87,6 +96,9 @@ public class PublicBookingService {
     private final BookingConfirmationEmailService bookingConfirmationEmailService;
     private final BookingEngineDepositService depositService;
     private final GuestCreditService guestCreditService;
+    // Résolution de la page HOME publiée du site rattaché à la config (exposée dans le DTO de config).
+    private final SiteRepository siteRepository;
+    private final SitePageRepository sitePageRepository;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -106,7 +118,9 @@ public class PublicBookingService {
             BookingServiceOptionsService serviceOptionsService,
             BookingConfirmationEmailService bookingConfirmationEmailService,
             BookingEngineDepositService depositService,
-            GuestCreditService guestCreditService) {
+            GuestCreditService guestCreditService,
+            SiteRepository siteRepository,
+            SitePageRepository sitePageRepository) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -125,6 +139,8 @@ public class PublicBookingService {
         this.bookingConfirmationEmailService = bookingConfirmationEmailService;
         this.depositService = depositService;
         this.guestCreditService = guestCreditService;
+        this.siteRepository = siteRepository;
+        this.sitePageRepository = sitePageRepository;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -166,7 +182,40 @@ public class PublicBookingService {
     // ─── Config ──────────────────────────────────────────────────────────────────
 
     public BookingEngineConfigDto getConfig(OrgContext ctx) {
-        return BookingEngineConfigDto.from(ctx.config(), ctx.org().isLeadCaptureEnabled());
+        return BookingEngineConfigDto.from(
+            ctx.config(),
+            ctx.org().isLeadCaptureEnabled(),
+            ctx.org().isLeadCapturePopupEnabled(),
+            resolveHomePageBlocks(ctx));
+    }
+
+    /**
+     * Résout le contenu publié de la page HOME du site rattaché à cette config, pour la SPA publique
+     * `/booking/:apiKey`. Lecture seule, tolérante : tout maillon manquant (site absent, non publié,
+     * aucune page HOME publiée) → {@code null} ; la SPA retombe alors sur un état vide (jamais d'erreur).
+     *
+     * <p>Le lookup est org-scopé via {@code findFirstByBookingEngineConfigIdAndOrganizationId}
+     * (respecte la règle ownership/tenant). On ne sert que le contenu d'un site PUBLISHED et d'une
+     * page de type HOME au statut PUBLISHED, avec le même repli Draft/Live que
+     * {@link SitePagePublicDto#from} (instantané publié, sinon brouillon).</p>
+     */
+    private String resolveHomePageBlocks(OrgContext ctx) {
+        Site site = siteRepository
+            .findFirstByBookingEngineConfigIdAndOrganizationId(ctx.config().getId(), ctx.orgId())
+            .orElse(null);
+        if (site == null || site.getStatus() != SiteStatus.PUBLISHED) {
+            return null;
+        }
+        SitePage home = sitePageRepository.findBySiteIdOrderBySortOrderAsc(site.getId())
+            .stream()
+            .filter(p -> p.getType() == SitePageType.HOME && p.getStatus() == SiteStatus.PUBLISHED)
+            .findFirst()
+            .orElse(null);
+        if (home == null) {
+            return null;
+        }
+        // Repli Draft/Live (cf. SitePagePublicDto.from) : instantané publié, sinon brouillon de travail.
+        return home.getPublishedBlocks() != null ? home.getPublishedBlocks() : home.getBlocks();
     }
 
     // ─── Properties ──────────────────────────────────────────────────────────────
@@ -830,6 +879,11 @@ public class PublicBookingService {
             String guestEmail = reservation.getGuest() != null
                 ? reservation.getGuest().getEmail() : null;
 
+            // Retour Stripe template-driven (B3) : success_url = page confirmation du SITE de l'org,
+            // STRICTEMENT validee (HTTPS + host autorise) ; sinon null → success_url par defaut.
+            String successUrl = resolveCheckoutSuccessUrl(
+                ctx.config(), req.returnUrl(), reservation.getConfirmationCode());
+
             // expires_at ~35 min : la session devient inutilisable peu apres
             // l'expiration du hold de 30 min (reliquat revue A3).
             Session session = stripeService.createReservationCheckoutSession(
@@ -838,7 +892,8 @@ public class PublicBookingService {
                 guestEmail,
                 reservation.getGuestName(),
                 propertyName,
-                java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES)
+                java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES),
+                successUrl
             );
 
             reservation.setStripeSessionId(session.getId());
@@ -853,6 +908,79 @@ public class PublicBookingService {
                 reservation.getConfirmationCode(), e.getMessage(), e);
             throw new RuntimeException("Erreur lors de la creation du paiement", e);
         }
+    }
+
+    // ─── Retour Stripe template-driven : success_url valide (anti open-redirect, B3) ─────────────
+
+    /**
+     * Resout le {@code success_url} Stripe a partir du {@code returnUrl} fourni par le client (page
+     * confirmation du template), avec un GARDE-FOU OPEN-REDIRECT STRICT et OBLIGATOIRE :
+     * <ul>
+     *   <li>{@code returnUrl} null/blank → {@code null} (la factory utilise {@code stripe.success-url}) ;</li>
+     *   <li>l'URL DOIT etre absolue et en <b>HTTPS</b> ;</li>
+     *   <li>son <b>host</b> DOIT correspondre a l'un des hosts des {@code allowedOrigins} de l'org
+     *       (memes origines que celles autorisees pour les appels API, source de verite du domaine du site).</li>
+     * </ul>
+     * Toute valeur non conforme est IGNOREE (log d'avertissement) et la methode renvoie {@code null} →
+     * repli sur le {@code success_url} par defaut. JAMAIS de redirection vers un host arbitraire.
+     *
+     * <p>En cas de succes, le code de reservation est ajoute en query (`?reservation={code}` ou
+     * `&reservation={code}` selon l'URL) pour que la primitive `confirmation` puisse re-fetch le statut.</p>
+     */
+    private String resolveCheckoutSuccessUrl(BookingEngineConfig config, String returnUrl, String reservationCode) {
+        if (returnUrl == null || returnUrl.isBlank()) {
+            return null;
+        }
+        final URI uri;
+        try {
+            uri = URI.create(returnUrl.trim());
+        } catch (IllegalArgumentException e) {
+            log.warn("Booking Engine — returnUrl illisible ignore pour l'org {} (anti open-redirect)", config.getOrganizationId());
+            return null;
+        }
+        // HTTPS obligatoire + host present.
+        if (uri.getScheme() == null || !"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) {
+            log.warn("Booking Engine — returnUrl non-HTTPS ou sans host ignore pour l'org {} (anti open-redirect)", config.getOrganizationId());
+            return null;
+        }
+        if (!isHostAllowedForOrg(config, uri.getHost())) {
+            log.warn("Booking Engine — returnUrl host '{}' hors origines autorisees de l'org {} : ignore (anti open-redirect)",
+                uri.getHost(), config.getOrganizationId());
+            return null;
+        }
+        // URL validee : on y appose le code de reservation pour la page confirmation.
+        String separator = (uri.getRawQuery() == null || uri.getRawQuery().isEmpty()) ? "?" : "&";
+        return returnUrl.trim() + separator + "reservation="
+            + URLEncoder.encode(reservationCode, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Vrai si {@code host} correspond au host de l'une des origines autorisees de l'org
+     * ({@code allowedOrigins}, CSV de {@code scheme://host[:port]}). Comparaison de host insensible a la
+     * casse (pas de port). Si aucune origine n'est configuree, on refuse (fail-closed) : sans domaine de
+     * site connu, on ne peut garantir la cible → repli sur le success_url par defaut.
+     */
+    private boolean isHostAllowedForOrg(BookingEngineConfig config, String host) {
+        String allowedOrigins = config.getAllowedOrigins();
+        if (allowedOrigins == null || allowedOrigins.isBlank()) {
+            return false;
+        }
+        String target = host.toLowerCase(Locale.ROOT);
+        for (String origin : allowedOrigins.split(",")) {
+            String trimmed = origin.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                String allowedHost = URI.create(trimmed).getHost();
+                if (allowedHost != null && allowedHost.toLowerCase(Locale.ROOT).equals(target)) {
+                    return true;
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Origine mal formee en config : on l'ignore (ne doit pas relacher la garde).
+            }
+        }
+        return false;
     }
 
     // ─── Embedded Checkout : retenue des dates (Z4A-BUGS-03) ─────────────────────

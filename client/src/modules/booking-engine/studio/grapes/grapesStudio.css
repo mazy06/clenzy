@@ -1,0 +1,111 @@
+/*
+ * Habillage de l'éditeur GrapesJS aux couleurs du Studio Baitly (document HÔTE : panneaux, palette,
+ * calques, gestionnaire de styles, barre d'outils). Le canvas (iframe) est thémé séparément par
+ * `buildCanvasThemeCss` (ce fichier ne franchit pas la frontière de l'iframe).
+ *
+ * Principe : GrapesJS applique PARTOUT 4 classes utilitaires liées à ses 4 couleurs de thème
+ * (`gjs-one-bg`, `gjs-two-color`, `gjs-three-bg`, `gjs-four-color` + variantes `-h` au survol).
+ * On les remappe vers les tokens Baitly (`tokens.css`) → le chrome sombre par défaut bascule en
+ * clair « Signature », et suit AUTOMATIQUEMENT le dark mode ([data-theme="dark"]) et la teinte
+ * d'accent ([data-accent]) puisque tout pointe vers var(--card)/--ink/--accent/etc.
+ *
+ * Tout est scopé sous `.clenzy-grapes` (classe posée sur le conteneur de l'éditeur) → aucun
+ * débordement hors du Studio.
+ */
+
+.clenzy-grapes { height: 100%; font-family: var(--font-sans); }
+
+/* Sélecteur de device NATIF de GrapesJS masqué : la bascule desktop/tablet/mobile passe par le toggle
+   du page header (état `breakpoint` → editor.setDevice). */
+.clenzy-grapes .gjs-pn-devices-c { display: none; }
+
+/* ── Remap des 4 couleurs de thème GrapesJS → tokens Baitly ─────────────────── */
+.clenzy-grapes .gjs-one-bg { background-color: var(--card); }
+.clenzy-grapes .gjs-two-bg { background-color: var(--surface-2); }
+.clenzy-grapes .gjs-two-color,
+.clenzy-grapes .gjs-two-color-h:hover { color: var(--body); }
+.clenzy-grapes .gjs-three-bg { background-color: var(--accent); color: var(--on-accent); }
+.clenzy-grapes .gjs-four-color,
+.clenzy-grapes .gjs-four-color-h:hover { color: var(--accent); }
+
+/* ── Cadre & panneaux ───────────────────────────────────────────────────────── */
+.clenzy-grapes .gjs-editor,
+.clenzy-grapes .gjs-pn-panel { background-color: var(--card); color: var(--body); }
+.clenzy-grapes .gjs-pn-panel { border-color: var(--line); box-shadow: none; }
+.clenzy-grapes .gjs-pn-commands { background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.clenzy-grapes .gjs-pn-views,
+.clenzy-grapes .gjs-pn-views-container { background: var(--card); border-color: var(--line); }
+.clenzy-grapes .gjs-cv-canvas { background-color: var(--bg); }
+.clenzy-grapes .gjs-cv-canvas__frames { background-color: var(--bg); }
+
+/* ── Boutons de panneau (barre d'actions) ───────────────────────────────────── */
+.clenzy-grapes .gjs-pn-btn {
+  color: var(--muted); border-radius: var(--radius-sm); box-shadow: none;
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.clenzy-grapes .gjs-pn-btn:hover { color: var(--ink); background: var(--hover); }
+.clenzy-grapes .gjs-pn-btn.gjs-pn-active { color: var(--accent); background: var(--accent-soft); box-shadow: none; }
+
+/* ── Gestionnaire de blocs ──────────────────────────────────────────────────── */
+/* Palette de blocs sur DEUX colonnes (grille) plutôt qu'empilée. */
+.clenzy-grapes .gjs-blocks-c { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+.clenzy-grapes .gjs-block {
+  width: auto; min-width: 0;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-md);
+  color: var(--body); box-shadow: none; min-height: auto; padding: 12px 8px;
+  transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.clenzy-grapes .gjs-block:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.clenzy-grapes .gjs-block svg { fill: none; stroke: currentColor; }
+.clenzy-grapes .gjs-block-label { font-size: var(--text-xs); font-weight: var(--fw-medium); }
+.clenzy-grapes .gjs-block-categories .gjs-title,
+.clenzy-grapes .gjs-blocks-cs .gjs-title {
+  color: var(--ink); font-weight: var(--fw-semibold); background: transparent; border-color: var(--line);
+}
+
+/* ── Gestionnaire de styles (secteurs / propriétés) ─────────────────────────── */
+.clenzy-grapes .gjs-sm-sectors,
+.clenzy-grapes .gjs-clm-tags,
+.clenzy-grapes .gjs-layer-manager,
+.clenzy-grapes .gjs-trt-traits { background: var(--card); }
+.clenzy-grapes .gjs-sm-sector-title,
+.clenzy-grapes .gjs-sm-sector .gjs-sm-title {
+  color: var(--ink); background: var(--surface-2); border-color: var(--line); font-weight: var(--fw-semibold);
+}
+.clenzy-grapes .gjs-sm-label,
+.clenzy-grapes .gjs-sm-property .gjs-label,
+.clenzy-grapes .gjs-trt-trait .gjs-label { color: var(--muted); font-size: var(--text-2xs); }
+
+/* ── Champs / saisies ───────────────────────────────────────────────────────── */
+.clenzy-grapes .gjs-field,
+.clenzy-grapes .gjs-sm-field input,
+.clenzy-grapes .gjs-clm-select,
+.clenzy-grapes input[type="text"],
+.clenzy-grapes input[type="number"],
+.clenzy-grapes select,
+.clenzy-grapes textarea {
+  background: var(--field); border: 1px solid var(--field-line); border-radius: var(--radius-sm); color: var(--ink);
+}
+.clenzy-grapes .gjs-field:focus-within { border-color: var(--accent); }
+
+/* ── Calques ────────────────────────────────────────────────────────────────── */
+.clenzy-grapes .gjs-layer-title { color: var(--body); border-color: var(--line); }
+.clenzy-grapes .gjs-layer.gjs-hovered > .gjs-layer-title,
+.clenzy-grapes .gjs-layer-title:hover { background: var(--hover); }
+.clenzy-grapes .gjs-layer.gjs-selected > .gjs-layer-title .gjs-layer-title-inn { color: var(--accent); }
+
+/* ── Sélection / barre d'outils de composant / badges ───────────────────────── */
+.clenzy-grapes .gjs-toolbar { background: var(--accent); border-radius: var(--radius-sm); }
+.clenzy-grapes .gjs-badge,
+.clenzy-grapes .gjs-com-badge { background: var(--accent); color: var(--on-accent); border-radius: var(--radius-sm); }
+.clenzy-grapes .gjs-selected { outline-color: var(--accent) !important; }
+.clenzy-grapes .gjs-resizer-h { border-color: var(--accent); }
+
+/* ── Bouton « Importer » (panneau d'options) : pilule accent discrète ───────── */
+.clenzy-grapes .gjs-pn-btn#clenzy\:open-import,
+.gjs-pn-btn#clenzy\:open-import {
+  width: auto; padding: 0 12px; height: 28px; display: inline-flex; align-items: center;
+  font-size: var(--text-xs); font-weight: var(--fw-semibold);
+  color: var(--accent); border: 1px solid var(--accent); border-radius: var(--radius-pill);
+}
+.clenzy-grapes .gjs-pn-btn#clenzy\:open-import:hover { background: var(--accent-soft); }
