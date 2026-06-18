@@ -210,6 +210,14 @@ public enum NotificationKey {
     // ─── INTEGRATIONS (webhooks sortants) ─────────────────────────────────
     WEBHOOK_DELIVERY_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
 
+    // ─── OPS / MONITORING (1 cle) ──────────────────────────────────────────
+    // Emise via POST /api/ops/alerts (OpsAlertController) par le CI/CD (cd-deploy.yml)
+    // ou Alertmanager : echec de deploiement, statut deploy KO, pic d'echecs de
+    // generation de documents, etc. Destinataires : tout le staff plateforme
+    // (notifyAllPlatformStaff). But : ne plus rester aveugle sur un incident infra
+    // silencieux (cf. incident CD Deploy casse 2026-06).
+    OPS_ALERT(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+
     // ─── ASSISTANT (briefings proactifs) ──────────────────────────────────
     BRIEFING_READY(NotificationType.INFO, NotificationCategory.SYSTEM, true),
     VISION_USAGE_THRESHOLD_REACHED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
