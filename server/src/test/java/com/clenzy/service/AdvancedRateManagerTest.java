@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,6 +43,11 @@ class AdvancedRateManagerTest {
     private static final Long ORG_ID = 1L;
     private static final LocalDate DATE = LocalDate.of(2025, 7, 15);
     private static final BigDecimal BASE_PRICE = new BigDecimal("100.00");
+    // Zone de calcul de "today" du service (applyYieldRules -> LocalDate.now(propertyZone),
+    // defaut Europe/Paris). Le test DOIT utiliser la MEME zone, sinon entre 22h et minuit UTC
+    // le test (zone systeme = UTC en CI) et le service (Paris) tombent sur des jours differents
+    // -> la date cible mockee ne matche pas -> save() jamais appele -> echec flaky (CI #281).
+    private static final ZoneId PROPERTY_ZONE = AdvancedRateManager.DEFAULT_PROPERTY_ZONE;
 
     @BeforeEach
     void setUp() {
@@ -453,7 +459,7 @@ class AdvancedRateManagerTest {
 
             // Target date = today + 30 days
             // Le yield calcule depuis le prix de base HORS overrides YIELD_RULE (Z5-BUGS-02)
-            LocalDate targetDate = LocalDate.now().plusDays(30);
+            LocalDate targetDate = LocalDate.now(PROPERTY_ZONE).plusDays(30);
             when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(targetDate), eq(ORG_ID), anySet()))
                     .thenReturn(new BigDecimal("100.00"));
             when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, targetDate, ORG_ID))
@@ -581,7 +587,7 @@ class AdvancedRateManagerTest {
             when(objectMapper.readTree("{\"daysAhead\": 30}"))
                     .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
-            LocalDate target = LocalDate.now().plusDays(30);
+            LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
             // Prix de base hors overrides YIELD_RULE = 100 (Z5-BUGS-02)
             when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(target), eq(ORG_ID), anySet()))
                     .thenReturn(new BigDecimal("100"));
@@ -622,7 +628,7 @@ class AdvancedRateManagerTest {
             when(objectMapper.readTree("{\"daysAhead\": 30}"))
                     .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
-            LocalDate target = LocalDate.now().plusDays(30);
+            LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
 
             // Un override importe d'un OTA existe sur la date ciblee par le yield
             RateOverride otaOverride = new RateOverride();
@@ -662,7 +668,7 @@ class AdvancedRateManagerTest {
             when(objectMapper.readTree("{\"daysAhead\": 30}"))
                     .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
-            LocalDate target = LocalDate.now().plusDays(30);
+            LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
             // Le prix de base HORS overrides YIELD_RULE reste 100 d'un run a l'autre
             when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(target), eq(ORG_ID), anySet()))
                     .thenReturn(new BigDecimal("100.00"));
@@ -708,7 +714,7 @@ class AdvancedRateManagerTest {
             when(objectMapper.readTree("{\"daysAhead\": 30}"))
                     .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
-            LocalDate target = LocalDate.now().plusDays(30);
+            LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
             RateOverride external = new RateOverride();
             external.setNightlyPrice(new BigDecimal("140.00"));
             external.setSource("EXTERNAL_PRICING");
@@ -747,7 +753,7 @@ class AdvancedRateManagerTest {
             when(objectMapper.readTree("{\"daysAhead\": 30}"))
                     .thenReturn(new com.fasterxml.jackson.databind.ObjectMapper().readTree("{\"daysAhead\": 30}"));
 
-            LocalDate target = LocalDate.now().plusDays(30);
+            LocalDate target = LocalDate.now(PROPERTY_ZONE).plusDays(30);
             when(priceEngine.resolvePrice(eq(PROPERTY_ID), eq(target), eq(ORG_ID), anySet()))
                     .thenReturn(new BigDecimal("100.00"));
             when(rateOverrideRepository.findByPropertyIdAndDate(PROPERTY_ID, target, ORG_ID))
