@@ -46,6 +46,13 @@ management:
   metrics:
     tags:
       application: clenzy
+    distribution:
+      # Active les buckets d'histogramme pour http.server.requests -> debloque les
+      # panels de latence p50/p95/p99 dans Grafana (sans ca, _bucket est absent).
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 50ms,100ms,200ms,500ms,1s,2s
 
 # ─── Resilience4j — Circuit Breakers (Niveau 8 scalabilite) ─────────────────
 resilience4j:

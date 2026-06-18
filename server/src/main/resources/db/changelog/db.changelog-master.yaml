@@ -2650,3 +2650,14 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Drop de la contrainte CHECK Hibernate sur audit_log.action : rejette la nouvelle valeur d'enum
+  # COMPLIANCE_CHECK (verif NF 525) -> audit perdu, prod-only. 3e cas (cf. 0164, 0272). DO block.
+  - changeSet:
+      id: "0273-drop-audit-log-action-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0273__drop_audit_log_action_check.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
