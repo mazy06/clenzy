@@ -2650,3 +2650,26 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Drop de la contrainte CHECK Hibernate sur audit_log.action : rejette la nouvelle valeur d'enum
+  # COMPLIANCE_CHECK (verif NF 525) -> audit perdu, prod-only. 3e cas (cf. 0164, 0272). DO block.
+  - changeSet:
+      id: "0273-drop-audit-log-action-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0273__drop_audit_log_action_check.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
+
+  # Sweep nomme : drop des 175 contraintes CHECK d'enum heritees de Hibernate (diagnostic prod
+  # 2026-06-18) -> elimine definitivement la classe de bug "nouvelle valeur d'enum rejetee"
+  # (cf. 0164/0272/0273). Validite garantie par @Enumerated(STRING). DO block idempotent.
+  - changeSet:
+      id: "0274-drop-legacy-enum-check-constraints"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0274__drop_legacy_enum_check_constraints.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
