@@ -145,6 +145,10 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/nuki/**").permitAll()
                         .requestMatchers("/api/webhooks/pennylane/**").permitAll()
                         .requestMatchers("/api/webhooks/channex/**").permitAll()
+                        // Alertes ops (CI/CD, Alertmanager) -> notif in-app. Pas de JWT :
+                        // securite par token partage (X-Ops-Token / Bearer) valide dans
+                        // OpsAlertController (fail-closed). Couvre /api/ops/alerts et /alertmanager.
+                        .requestMatchers(HttpMethod.POST, "/api/ops/alerts", "/api/ops/alerts/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/booking-engine/auth/**").permitAll()
                         .requestMatchers("/api/booking-engine/checkout/**").permitAll()
