@@ -2638,3 +2638,15 @@ databaseChangeLog:
       sqlFile:
         path: changes/0270__create_site_templates.sql
         relativeToChangelogFile: true
+
+  # Drop des contraintes CHECK Hibernate sur notification_key : elles rejettent toute nouvelle
+  # cle d'enum (ex. OPS_ALERT) -> insert avorte -> 500 prod-only. Cf. incident 0164. DO block
+  # PL/pgSQL -> splitStatements/stripComments false.
+  - changeSet:
+      id: "0272-drop-notification-key-check-constraints"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0272__drop_notification_key_check_constraints.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
