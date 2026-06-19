@@ -54,7 +54,7 @@ public class ICalCleaningScheduler {
         if (!session.request.isAutoCreateInterventions() || reservationId == null) {
             return;
         }
-        ServiceRequest existingSR = findExistingCleaningRequest(session, event);
+        ServiceRequest existingSR = findExistingCleaningRequest(session, event, reservationId);
         if (existingSR == null) {
             // Aucune SR : on la cree puis on planifie l'auto-assignation post-commit
             // (cf. srsToAutoAssign) pour eviter qu'une exception interne ne marque
@@ -79,14 +79,19 @@ public class ICalCleaningScheduler {
         }
     }
 
-    private ServiceRequest findExistingCleaningRequest(ICalImportSession session, ICalEventPreview event) {
-        if (event.getUid() == null) {
-            return null;
-        }
-        String marker = "[ICAL:" + event.getUid() + "]";
+    private ServiceRequest findExistingCleaningRequest(ICalImportSession session, ICalEventPreview event,
+                                                       Long reservationId) {
+        final String marker = event.getUid() != null ? "[ICAL:" + event.getUid() + "]" : null;
         return serviceRequestRepository.findByPropertyId(session.property.getId(), session.orgId).stream()
-                .filter(sr -> sr.getSpecialInstructions() != null
-                        && sr.getSpecialInstructions().contains(marker))
+                .filter(sr -> {
+                    if (marker != null) {
+                        return sr.getSpecialInstructions() != null
+                                && sr.getSpecialInstructions().contains(marker);
+                    }
+                    // Pas d'UID : repli sur la reservation (une demande de menage par
+                    // reservation) pour ne pas reduplifier le menage a chaque re-import.
+                    return reservationId != null && reservationId.equals(sr.getReservationId());
+                })
                 .findFirst()
                 .orElse(null);
     }
