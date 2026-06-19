@@ -451,7 +451,37 @@ class PricingConfigServiceTest {
 
             assertThat(quote.forfaitId()).isEqualTo("premium");
             assertThat(quote.forfaitLabel()).isEqualTo("Premium");
-            assertThat(quote.monthlySubscriptionPrice()).isEqualTo(100);
+        }
+
+        @Test
+        void whenManualCalendar_thenPmsUsesBaseMonthlyPrice() {
+            when(repository.findTopByOrganizationIdOrderByIdDesc(ORG_ID)).thenReturn(Optional.empty());
+
+            var quote = service.computeDevisQuote("appartement", "1", "1-2", 30,
+                    java.util.List.of(), "manual", "regulier");
+
+            // Pas de synchro auto -> tarif PMS de base (defaut 3000 cents = 30 EUR)
+            assertThat(quote.pmsSyncIncluded()).isFalse();
+            assertThat(quote.pmsMonthlyPrice()).isEqualTo(30);
+            // Formule 2 (menage + PMS) = menage seul + abonnement PMS
+            assertThat(quote.monthlyTotalWithPms()).isEqualTo(quote.monthlyTotalCleaningOnly() + 30);
+        }
+
+        @Test
+        void whenSyncCalendar_thenPmsUsesSyncPriceAndFlagSet() {
+            when(repository.findTopByOrganizationIdOrderByIdDesc(ORG_ID)).thenReturn(Optional.empty());
+
+            var quote = service.computeDevisQuote("appartement", "1", "1-2", 30,
+                    java.util.List.of(), "sync", "regulier");
+
+            // Synchro auto demandee -> tarif PMS "avec synchro" (defaut 1500 cents = 15 EUR)
+            assertThat(quote.pmsSyncIncluded()).isTrue();
+            assertThat(quote.pmsMonthlyPrice()).isEqualTo(15);
+            assertThat(quote.monthlyTotalWithPms()).isEqualTo(quote.monthlyTotalCleaningOnly() + 15);
+            // Le PMS est remise en annuel (17 %), pas le menage.
+            assertThat(quote.pmsAnnualWithDiscount()).isLessThan(quote.pmsAnnualWithoutDiscount());
+            assertThat(quote.pmsAnnualSavings()).isEqualTo(
+                    quote.pmsAnnualWithoutDiscount() - quote.pmsAnnualWithDiscount());
         }
 
         @Test
@@ -686,10 +716,11 @@ class PricingConfigServiceTest {
             when(repository.findTopByOrganizationIdOrderByIdDesc(ORG_ID)).thenReturn(Optional.empty());
             var quote = service.computeDevisQuote("appartement", "1", "1-2", 30,
                     java.util.List.of(), "manual", "regulier");
-            assertThat(quote.monthlyTotal()).isGreaterThan(0);
-            assertThat(quote.annualTotalWithDiscount()).isGreaterThan(0);
+            assertThat(quote.monthlyTotalCleaningOnly()).isGreaterThan(0);
+            assertThat(quote.monthlyTotalWithPms()).isGreaterThan(quote.monthlyTotalCleaningOnly());
+            assertThat(quote.annualTotalWithPms()).isGreaterThan(0);
             assertThat(quote.annualCleaningCost()).isGreaterThan(0);
-            assertThat(quote.annualSubscriptionSavings()).isGreaterThan(0);
+            assertThat(quote.pmsAnnualSavings()).isGreaterThan(0);
         }
     }
 }

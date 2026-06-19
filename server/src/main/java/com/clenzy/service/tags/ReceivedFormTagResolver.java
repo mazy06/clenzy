@@ -178,10 +178,10 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
             // ── Ligne (premiere ligne du tableau devis, retro-compat) ──
             Map<String, Object> ligne = new LinkedHashMap<>();
             if (quote != null) {
-                ligne.put("description", "Forfait " + quote.forfaitLabel() + " — abonnement mensuel");
-                ligne.put("quantite", "1");
-                ligne.put("prix_unitaire", formatEur(quote.monthlySubscriptionPrice()) + "/mois");
-                ligne.put("total", formatEur(quote.monthlySubscriptionPrice()));
+                ligne.put("description", "Prestation de ménage — Forfait " + quote.forfaitLabel());
+                ligne.put("quantite", String.valueOf(quote.interventionsPerMonth()) + " /mois");
+                ligne.put("prix_unitaire", formatEur(quote.interventionPrice()) + "/intervention");
+                ligne.put("total", formatEur(quote.monthlyCleaningCost()) + "/mois");
             } else {
                 ligne.put("description", typeService);
                 ligne.put("quantite", "1");
@@ -198,7 +198,7 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
             intervention.put("description", description);
             intervention.put("date_debut", form.getCreatedAt() != null ? form.getCreatedAt().format(DATE_FORMAT) : "");
             intervention.put("date_fin", "");
-            intervention.put("cout_reel", quote != null ? formatEur(quote.monthlyTotal()) : "Sur demande");
+            intervention.put("cout_reel", quote != null ? formatEur(quote.monthlyTotalWithPms()) : "Sur demande");
             context.put("intervention", intervention);
         });
     }
@@ -215,7 +215,8 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
             return lignes;
         }
 
-        // Ligne 1 : Ménage par intervention
+        // Ligne 1 : Ménage à l'intervention — la seule prestation récurrente de
+        // conciergerie (facturée à l'usage, pas d'abonnement de gestion).
         lignes.add(makeLine(
                 "Prestation de ménage (forfait " + q.forfaitLabel() + ")",
                 String.valueOf(q.interventionsPerMonth()) + " /mois",
@@ -223,30 +224,43 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
                 formatEur(q.monthlyCleaningCost()) + "/mois"
         ));
 
-        // Ligne 2 : Abonnement mensuel
+        // Ligne 2 : Abonnement PMS — OPTION (logiciel de gestion). Tarif issu des
+        // parametres "Abonnement PMS" (base, ou avec synchro auto si demandee).
+        String pmsDescription = q.pmsSyncIncluded()
+                ? "Option — Abonnement PMS (logiciel : calendrier, réservations, facturation + synchro auto)"
+                : "Option — Abonnement PMS (logiciel : calendrier, réservations, facturation)";
         lignes.add(makeLine(
-                "Abonnement Clenzy — Forfait " + q.forfaitLabel() + " (mensuel)",
+                pmsDescription,
                 "1",
-                formatEur(q.monthlySubscriptionPrice()) + "/mois",
-                formatEur(q.monthlySubscriptionPrice()) + "/mois"
+                formatEur(q.pmsMonthlyPrice()) + "/mois",
+                formatEur(q.pmsMonthlyPrice()) + "/mois"
         ));
 
-        // Ligne 3 : Sous-total mensuel
+        // Ligne 3 : Option paiement annuel de l'abonnement PMS (le menage, facture
+        // a l'intervention, n'est pas remise — seul le logiciel se prepaie a l'annee).
         lignes.add(makeLine(
-                "Sous-total mensuel",
-                "—",
-                "—",
-                formatEur(q.monthlyTotal()) + "/mois"
-        ));
-
-        // Ligne 4 : Option paiement annuel (avec promo)
-        lignes.add(makeLine(
-                "Option paiement annuel — Abonnement Clenzy ("
+                "Option paiement annuel — Abonnement PMS ("
                         + q.annualDiscountPercent() + " % de remise, "
-                        + formatEur(q.annualSubscriptionSavings()) + " économisés)",
+                        + formatEur(q.pmsAnnualSavings()) + " économisés)",
                 "1",
-                formatEur(q.annualSubscriptionWithDiscount()) + "/an",
-                formatEur(q.annualSubscriptionWithDiscount()) + "/an"
+                formatEur(q.pmsAnnualWithDiscount()) + "/an",
+                formatEur(q.pmsAnnualWithDiscount()) + "/an"
+        ));
+
+        // Lignes 4-5 : Choix de formule — cases a cocher sur le document.
+        // Le prospect coche soit la gestion menage seule, soit avec l'abonnement PMS.
+        lignes.add(makeLine(
+                "☐ Formule 1 — Gestion ménage seule (conciergerie)",
+                "—",
+                "—",
+                formatEur(q.monthlyTotalCleaningOnly()) + "/mois"
+        ));
+        lignes.add(makeLine(
+                "☐ Formule 2 — Gestion ménage + Abonnement PMS (+"
+                        + formatEur(q.pmsMonthlyPrice()) + "/mois)",
+                "—",
+                "—",
+                formatEur(q.monthlyTotalWithPms()) + "/mois"
         ));
 
         return lignes;
@@ -289,8 +303,16 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
         abonnement.put("remise_pct", "");
         tags.put("abonnement", abonnement);
 
+        Map<String, Object> pms = new LinkedHashMap<>();
+        pms.put("mensuel", "");
+        pms.put("annuel_avec_remise", "");
+        pms.put("synchro_incluse", "");
+        tags.put("pms", pms);
+
         Map<String, Object> total = new LinkedHashMap<>();
         total.put("mensuel", "");
+        total.put("mensuel_sans_pms", "");
+        total.put("mensuel_avec_pms", "");
         total.put("annuel_avec_remise", "");
         tags.put("total", total);
 
@@ -315,19 +337,30 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
         menage.put("estimation_annuelle", formatEur(q.annualCleaningCost()));
         tags.put("menage", menage);
 
-        // devis.abonnement.*
+        // devis.abonnement.* — DESORMAIS = l'abonnement PMS (logiciel), seul element
+        // remise en annuel. (Avant : le forfait de gestion, supprime.) Les libelles
+        // "Dont abonnement" du template designent donc bien le PMS.
         Map<String, Object> abonnement = new LinkedHashMap<>();
-        abonnement.put("mensuel", formatEur(q.monthlySubscriptionPrice()));
-        abonnement.put("annuel_sans_remise", formatEur(q.annualSubscriptionWithoutDiscount()));
-        abonnement.put("annuel_avec_remise", formatEur(q.annualSubscriptionWithDiscount()));
-        abonnement.put("economie_annuelle", formatEur(q.annualSubscriptionSavings()));
+        abonnement.put("mensuel", formatEur(q.pmsMonthlyPrice()));
+        abonnement.put("annuel_sans_remise", formatEur(q.pmsAnnualWithoutDiscount()));
+        abonnement.put("annuel_avec_remise", formatEur(q.pmsAnnualWithDiscount()));
+        abonnement.put("economie_annuelle", formatEur(q.pmsAnnualSavings()));
         abonnement.put("remise_pct", q.annualDiscountPercent() + " %");
         tags.put("abonnement", abonnement);
 
-        // devis.total.*
+        // devis.pms.* (alias explicite de l'abonnement PMS)
+        Map<String, Object> pms = new LinkedHashMap<>();
+        pms.put("mensuel", formatEur(q.pmsMonthlyPrice()));
+        pms.put("annuel_avec_remise", formatEur(q.pmsAnnualWithDiscount()));
+        pms.put("synchro_incluse", q.pmsSyncIncluded() ? "oui" : "non");
+        tags.put("pms", pms);
+
+        // devis.total.* — le pack recommande = menage + PMS (cf. boite « DEUX FORMULES »).
         Map<String, Object> total = new LinkedHashMap<>();
-        total.put("mensuel", formatEur(q.monthlyTotal()));
-        total.put("annuel_avec_remise", formatEur(q.annualTotalWithDiscount()));
+        total.put("mensuel", formatEur(q.monthlyTotalWithPms()));
+        total.put("mensuel_sans_pms", formatEur(q.monthlyTotalCleaningOnly()));
+        total.put("mensuel_avec_pms", formatEur(q.monthlyTotalWithPms()));
+        total.put("annuel_avec_remise", formatEur(q.annualTotalWithPms()));
         tags.put("total", total);
 
         return tags;
@@ -386,12 +419,13 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
         // Annexe : recap chiffre du devis si calcul disponible
         if (quote != null) {
             sb.append("\nRecommandation tarifaire — Forfait ").append(quote.forfaitLabel()).append(" :")
-              .append("\n  • Ménage : ").append(formatEur(quote.interventionPrice())).append(" par intervention")
-              .append("\n  • Abonnement mensuel : ").append(formatEur(quote.monthlySubscriptionPrice()))
-              .append("\n  • Abonnement annuel : ").append(formatEur(quote.annualSubscriptionWithDiscount()))
-              .append(" (au lieu de ").append(formatEur(quote.annualSubscriptionWithoutDiscount()))
+              .append("\n  • Ménage : ").append(formatEur(quote.interventionPrice())).append(" par intervention (~")
+              .append(formatEur(quote.monthlyCleaningCost())).append("/mois)")
+              .append("\n  • Option Abonnement PMS (logiciel) : ").append(formatEur(quote.pmsMonthlyPrice())).append(" / mois")
+              .append("\n  • Abonnement PMS annuel : ").append(formatEur(quote.pmsAnnualWithDiscount()))
+              .append("/an (au lieu de ").append(formatEur(quote.pmsAnnualWithoutDiscount()))
               .append(", soit ").append(quote.annualDiscountPercent())
-              .append(" % de remise / ").append(formatEur(quote.annualSubscriptionSavings())).append(" économisés)");
+              .append(" % de remise / ").append(formatEur(quote.pmsAnnualSavings())).append(" économisés)");
         }
         return sb.toString().trim();
     }
