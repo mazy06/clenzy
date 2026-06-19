@@ -9,6 +9,8 @@ public class OrganizationMemberDto {
     private String lastName;
     private String email;
     private String roleInOrg;
+    /** Role PLATEFORME (User.role : SUPER_ADMIN, SUPER_MANAGER, HOST...) — distinct du role d'org. */
+    private String userRole;
     private LocalDateTime joinedAt;
 
     public OrganizationMemberDto() {}
@@ -32,6 +34,9 @@ public class OrganizationMemberDto {
 
     public String getRoleInOrg() { return roleInOrg; }
     public void setRoleInOrg(String roleInOrg) { this.roleInOrg = roleInOrg; }
+
+    public String getUserRole() { return userRole; }
+    public void setUserRole(String userRole) { this.userRole = userRole; }
 
     public LocalDateTime getJoinedAt() { return joinedAt; }
     public void setJoinedAt(LocalDateTime joinedAt) { this.joinedAt = joinedAt; }

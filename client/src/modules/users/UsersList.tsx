@@ -9,6 +9,7 @@ import {
   CardContent,
   CardActions,
   Chip,
+  Tooltip,
   IconButton,
   Menu,
   MenuItem,
@@ -279,16 +280,12 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
     return userRoles.find(r => r.value === role) || userRoles[0];
   };
 
-  // Rôle à afficher dans l'Annuaire : pour un membre d'organisation, on montre son
-  // rôle d'org réel (Manager, Administrateur…) ; pour le staff plateforme
-  // (Super Admin/Manager), on garde le rôle plateforme.
-  const getEffectiveRoleInfo = (user: User) => {
-    const isPlatformStaff = user.role === 'SUPER_ADMIN' || user.role === 'SUPER_MANAGER';
-    if (!isPlatformStaff && user.organizationRole && orgRoleDisplay[user.organizationRole]) {
-      return orgRoleDisplay[user.organizationRole];
-    }
-    return getRoleInfo(user.role);
-  };
+  // Rôles affichés dans l'Annuaire : on montre LES DEUX — le rôle plateforme
+  // (User.role) ET le rôle d'org (organizationRole) — pour lever l'ambiguïté.
+  const getOrgRoleInfo = (user: User) =>
+    user.organizationRole && orgRoleDisplay[user.organizationRole]
+      ? orgRoleDisplay[user.organizationRole]
+      : null;
 
   const getStatusInfo = (status: string) => {
     return userStatuses.find(s => s.value === status) || userStatuses[0];
@@ -505,11 +502,15 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           </Grid>
         ) : (
           filteredUsers.map((user) => {
-            const r = getEffectiveRoleInfo(user);
+            const platformRole = getRoleInfo(user.role);
+            const orgRole = getOrgRoleInfo(user);
+            // Eviter le doublon si le role d'org a le meme libelle que le role plateforme.
+            const showOrgRole = orgRole && orgRole.label !== platformRole.label;
             const s = getStatusInfo(user.status);
-            const roleColor = r.hex;
+            const roleColor = platformRole.hex;
             const statusToken = USER_STATUS_TOKEN[user.status] ?? { fg: 'var(--muted)', bg: 'var(--hover)' };
-            const RoleIcon = r.Icon;
+            const PlatformIcon = platformRole.Icon;
+            const OrgIcon = orgRole?.Icon;
             return (
             <Grid item xs={12} sm={6} md={4} lg={3} key={user.id}>
               {/* Carte hairline r14 (thème global) — hover lift + shadow-card (cliquable) */}
@@ -587,18 +588,36 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                     </IconButton>
                   </Box>
 
-                  {/* Rôle et statut — chips -soft (pilule/typo via thème global MuiChip) */}
+                  {/* Rôles (plateforme + org) et statut — chips -soft */}
                   <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
-                    <Chip
-                      icon={<RoleIcon size={11} strokeWidth={2} />}
-                      label={r.label}
-                      size="small"
-                      sx={{
-                        backgroundColor: `${roleColor}18`,
-                        color: roleColor,
-                        '& .MuiChip-icon': { color: roleColor, ml: '8px', mr: '-4px' },
-                      }}
-                    />
+                    <Tooltip title="Rôle sur la plateforme">
+                      <Chip
+                        icon={<PlatformIcon size={11} strokeWidth={2} />}
+                        label={platformRole.label}
+                        size="small"
+                        sx={{
+                          backgroundColor: `${roleColor}18`,
+                          color: roleColor,
+                          '& .MuiChip-icon': { color: roleColor, ml: '8px', mr: '-4px' },
+                        }}
+                      />
+                    </Tooltip>
+                    {showOrgRole && orgRole && OrgIcon && (
+                      <Tooltip title="Rôle dans l'organisation">
+                        <Chip
+                          icon={<OrgIcon size={11} strokeWidth={2} />}
+                          label={orgRole.label}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            backgroundColor: 'transparent',
+                            color: orgRole.hex,
+                            borderColor: `${orgRole.hex}55`,
+                            '& .MuiChip-icon': { color: orgRole.hex, ml: '8px', mr: '-4px' },
+                          }}
+                        />
+                      </Tooltip>
+                    )}
                     <Chip
                       label={s.label}
                       size="small"
