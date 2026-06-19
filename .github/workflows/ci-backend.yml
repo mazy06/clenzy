@@ -109,6 +109,10 @@ jobs:
 
       - name: Upload test results
         if: always()
+        # L'upload d'artefacts ne doit JAMAIS bloquer le build/deploy : un quota
+        # d'artefacts GitHub atteint ("Artifact storage quota has been hit") faisait
+        # echouer tout le job et skippait le deploy alors que les tests passaient.
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: test-results
