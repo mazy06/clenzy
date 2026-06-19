@@ -53,16 +53,18 @@ public class UserUiPreferencesService {
         return result;
     }
 
-    /** Cree ou remplace la preference pour la cle donnee (valeur JSON deja serialisee). */
+    /**
+     * Cree ou remplace la preference pour la cle donnee (valeur JSON deja serialisee).
+     * Upsert ATOMIQUE (INSERT ... ON CONFLICT) : evite la race check-then-act qui faisait
+     * echouer en 500 deux PUT concurrents de la meme cle (violation de la contrainte unique,
+     * cf. regle CLAUDE.md #8). Re-lecture pour renvoyer l'entite persistee.
+     */
     @Transactional
     public UserUiPreference upsert(String keycloakId, String key, String serializedValue) {
-        final UserUiPreference pref = repository.findByKeycloakIdAndPrefKey(keycloakId, key)
-                .map(existing -> {
-                    existing.setPrefValue(serializedValue);
-                    return existing;
-                })
-                .orElseGet(() -> new UserUiPreference(keycloakId, key, serializedValue));
-        return repository.save(pref);
+        repository.upsertPreference(keycloakId, key, serializedValue);
+        return repository.findByKeycloakIdAndPrefKey(keycloakId, key)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Preference UI introuvable apres upsert (key=" + key + ")"));
     }
 
     @Transactional
