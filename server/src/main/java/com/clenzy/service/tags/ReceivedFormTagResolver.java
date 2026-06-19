@@ -143,7 +143,7 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
                 typeService = "Forfait " + forfaitLabel + " — Gestion locative Clenzy";
                 titre = safeStr(form.getSubject() != null ? form.getSubject() :
                         "Devis " + propertyType + " — " + safeStr(form.getCity()));
-                description = buildDevisDescription(payload, quote);
+                description = buildDevisDescription(payload);
                 priorite = "Normale";
             } else if ("MAINTENANCE".equalsIgnoreCase(form.getFormType())) {
                 typeService = "Travaux / maintenance";
@@ -381,52 +381,40 @@ public class ReceivedFormTagResolver implements ReferenceTagResolver {
     }
 
     /** Resume textuel des champs DEVIS + pricing calcule pour la description du document. */
-    private String buildDevisDescription(JsonNode payload, PricingConfigService.DevisQuoteBreakdown quote) {
+    private String buildDevisDescription(JsonNode payload) {
         StringBuilder sb = new StringBuilder();
         if (payload != null) {
-            String type = labelize(jsonText(payload, "propertyType"));
-            String surface = jsonText(payload, "surface");
+            // Capacite uniquement : le type et la surface figurent deja dans le bloc
+            // "Logement concerne" du template (on evite la redite).
             String capacite = labelize(jsonText(payload, "guestCapacity"));
             String nombre = jsonText(payload, "propertyCount");
-            if (!type.isEmpty() || !surface.isEmpty() || !capacite.isEmpty() || !nombre.isEmpty()) {
-                sb.append("Bien : ");
-                List<String> bits = new ArrayList<>();
-                if (!type.isEmpty()) bits.add(type);
-                if (!surface.isEmpty()) bits.add(surface + " m²");
-                if (!capacite.isEmpty()) bits.add(capacite + " voyageurs");
-                if (!nombre.isEmpty() && !"1".equals(nombre)) bits.add(nombre + " logements");
-                sb.append(String.join(", ", bits)).append(".\n");
+            List<String> bienBits = new ArrayList<>();
+            if (!capacite.isEmpty()) bienBits.add(capacite + " voyageurs");
+            if (!nombre.isEmpty() && !"1".equals(nombre)) bienBits.add(nombre + " logements");
+            if (!bienBits.isEmpty()) {
+                sb.append("Capacité : ").append(String.join(" · ", bienBits)).append("\n");
             }
+
+            // "Votre demande" : fusion des anciens "Services souhaités" + "Planning".
             String forfaitServices = joinJsonArray(payload, "services");
             String devisServices = joinJsonArray(payload, "servicesDevis");
             String cal = labelize(jsonText(payload, "calendarSync"));
-            if (!forfaitServices.isEmpty() || !devisServices.isEmpty() || !cal.isEmpty()) {
-                sb.append("Services souhaités :");
-                if (!forfaitServices.isEmpty()) sb.append("\n  • Forfait : ").append(forfaitServices);
-                if (!devisServices.isEmpty()) sb.append("\n  • Sur devis : ").append(devisServices);
-                if (!cal.isEmpty()) sb.append("\n  • Synchro calendrier : ").append(cal);
-                sb.append('\n');
-            }
             String freq = labelize(jsonText(payload, "bookingFrequency"));
             String menage = labelize(jsonText(payload, "cleaningSchedule"));
-            if (!freq.isEmpty() || !menage.isEmpty()) {
-                sb.append("Planning :");
+            boolean hasDemande = !forfaitServices.isEmpty() || !devisServices.isEmpty()
+                    || !cal.isEmpty() || !freq.isEmpty() || !menage.isEmpty();
+            if (hasDemande) {
+                if (sb.length() > 0) sb.append("\n");
+                sb.append("Votre demande :");
+                if (!forfaitServices.isEmpty()) sb.append("\n  • Forfait : ").append(forfaitServices);
+                if (!devisServices.isEmpty()) sb.append("\n  • Sur devis : ").append(devisServices);
+                if (!cal.isEmpty()) sb.append("\n  • Synchronisation calendrier : ").append(cal);
                 if (!freq.isEmpty()) sb.append("\n  • Fréquence des réservations : ").append(freq);
-                if (!menage.isEmpty()) sb.append("\n  • Planning ménage : ").append(menage);
-                sb.append('\n');
+                if (!menage.isEmpty()) sb.append("\n  • Ménage : ").append(menage);
             }
         }
-        // Annexe : recap chiffre du devis si calcul disponible
-        if (quote != null) {
-            sb.append("\nRecommandation tarifaire — Forfait ").append(quote.forfaitLabel()).append(" :")
-              .append("\n  • Ménage : ").append(formatEur(quote.interventionPrice())).append(" par intervention (~")
-              .append(formatEur(quote.monthlyCleaningCost())).append("/mois)")
-              .append("\n  • Option Abonnement PMS (logiciel) : ").append(formatEur(quote.pmsMonthlyPrice())).append(" / mois")
-              .append("\n  • Abonnement PMS annuel : ").append(formatEur(quote.pmsAnnualWithDiscount()))
-              .append("/an (au lieu de ").append(formatEur(quote.pmsAnnualWithoutDiscount()))
-              .append(", soit ").append(quote.annualDiscountPercent())
-              .append(" % de remise / ").append(formatEur(quote.pmsAnnualSavings())).append(" économisés)");
-        }
+        // Plus de bloc "Recommandation tarifaire" ici : le tarif est presente une
+        // seule fois, dans le tableau des prestations + la boite "DEUX FORMULES".
         return sb.toString().trim();
     }
 
