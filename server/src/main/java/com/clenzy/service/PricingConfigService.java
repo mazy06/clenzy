@@ -239,17 +239,23 @@ public class PricingConfigService {
     public record DevisQuoteBreakdown(
             String forfaitId,
             String forfaitLabel,
+            // Menage a l'intervention : seule prestation recurrente de conciergerie.
             int interventionPrice,
             int interventionsPerMonth,
             int monthlyCleaningCost,
             int annualCleaningCost,
-            int monthlySubscriptionPrice,
-            int annualSubscriptionWithoutDiscount,
-            int annualSubscriptionWithDiscount,
-            int annualSubscriptionSavings,
+            // Abonnement PMS (logiciel de gestion) — OPTIONNEL. C'est le SEUL element
+            // remise en paiement annuel (un logiciel se prepaie a l'annee, pas le menage).
+            int pmsMonthlyPrice,
+            boolean pmsSyncIncluded,
+            int pmsAnnualWithoutDiscount,
+            int pmsAnnualWithDiscount,
+            int pmsAnnualSavings,
             int annualDiscountPercent,
-            int monthlyTotal,
-            int annualTotalWithDiscount
+            // Totaux des deux formules proposees (cases a cocher)
+            int monthlyTotalCleaningOnly,   // Formule 1 : menage seul
+            int monthlyTotalWithPms,        // Formule 2 : menage + PMS (mensuel)
+            int annualTotalWithPms          // menage (non remise) + PMS annuel remise
     ) {}
 
     /**
@@ -290,16 +296,23 @@ public class PricingConfigService {
         int monthlyCleaningCost = interventionPrice * interventionsPerMonth;
         int annualCleaningCost = monthlyCleaningCost * 12;
 
-        // 4. Abonnement
-        int monthlySubscription = getBasePrices().getOrDefault(pkg, DEFAULT_BASE_ESSENTIEL);
-        int annualWithout = monthlySubscription * 12;
+        // 4. Abonnement PMS (logiciel de gestion) — OPTIONNEL. Lit la tarification
+        //    "Abonnement PMS" (centimes). Si le prospect veut la synchro auto des
+        //    calendriers, on prend le tarif "avec synchro auto" ; sinon le tarif de base.
+        //    C'est le SEUL element remise en paiement annuel (un logiciel se prepaie a
+        //    l'annee ; le menage est facture a l'intervention et n'est pas remise).
+        boolean pmsSyncIncluded = "sync".equalsIgnoreCase(calendarSync);
+        int pmsMonthlyCents = pmsSyncIncluded ? getPmsSyncPriceCents() : getPmsMonthlyPriceCents();
+        int pmsMonthly = Math.round(pmsMonthlyCents / 100.0f);
         int discountPct = ANNUAL_DISCOUNT_PERCENT;
-        int annualWith = (int) Math.round(annualWithout * (1.0 - discountPct / 100.0));
-        int savings = annualWithout - annualWith;
+        int pmsAnnualWithout = pmsMonthly * 12;
+        int pmsAnnualWith = (int) Math.round(pmsAnnualWithout * (1.0 - discountPct / 100.0));
+        int pmsAnnualSavings = pmsAnnualWithout - pmsAnnualWith;
 
-        // 5. Totaux
-        int totalMonthly = monthlySubscription + monthlyCleaningCost;
-        int totalAnnualWithDiscount = annualWith + annualCleaningCost;
+        // 5. Totaux des deux formules
+        int monthlyTotalCleaningOnly = monthlyCleaningCost;                 // Formule 1
+        int monthlyTotalWithPms = monthlyCleaningCost + pmsMonthly;         // Formule 2 (mensuel)
+        int annualTotalWithPms = annualCleaningCost + pmsAnnualWith;        // menage + PMS annuel remise
 
         return new DevisQuoteBreakdown(
                 pkg,
@@ -308,13 +321,15 @@ public class PricingConfigService {
                 interventionsPerMonth,
                 monthlyCleaningCost,
                 annualCleaningCost,
-                monthlySubscription,
-                annualWithout,
-                annualWith,
-                savings,
+                pmsMonthly,
+                pmsSyncIncluded,
+                pmsAnnualWithout,
+                pmsAnnualWith,
+                pmsAnnualSavings,
                 discountPct,
-                totalMonthly,
-                totalAnnualWithDiscount
+                monthlyTotalCleaningOnly,
+                monthlyTotalWithPms,
+                annualTotalWithPms
         );
     }
 
