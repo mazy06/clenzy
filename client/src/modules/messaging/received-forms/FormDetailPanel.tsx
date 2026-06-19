@@ -68,6 +68,10 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewMeta, setPreviewMeta] = useState<{ generationId: number; filename: string; createdAt?: string } | null>(null);
 
+  // Détail d'erreur de génération : la liste n'affiche que la 1re ligne ;
+  // un clic ouvre la modale avec le message complet.
+  const [errorDetail, setErrorDetail] = useState<{ message: string; date?: string } | null>(null);
+
   const updateStatusMutation = useUpdateFormStatus();
   const { data: templates } = useTemplates();
   const generateDocumentMutation = useGenerateDocument();
@@ -378,16 +382,18 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
               return (
                 <Box
                   key={gen.id}
-                  onClick={isFailed ? undefined : () => openPreview(gen)}
+                  onClick={isFailed
+                    ? () => setErrorDetail({ message: gen.errorMessage || 'Cause inconnue', date: gen.createdAt })
+                    : () => openPreview(gen)}
                   sx={{
                     display: 'flex', alignItems: 'center', gap: '12px', p: '13px 15px',
                     border: '1px solid', borderColor: isFailed ? 'var(--err)' : 'var(--line)',
-                    borderRadius: '12px', cursor: isFailed ? 'default' : 'pointer',
+                    borderRadius: '12px', cursor: 'pointer',
                     bgcolor: isFailed ? 'var(--err-soft)' : 'transparent',
                     transition: 'border-color .14s, box-shadow .14s',
-                    ...(isFailed ? {} : {
-                      '&:hover': { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
-                    }),
+                    '&:hover': isFailed
+                      ? { borderColor: 'var(--err)', boxShadow: '0 8px 22px -16px var(--err)' }
+                      : { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
                   }}
                 >
                   <Box sx={{
@@ -397,29 +403,32 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
                   }}>
                     {isFailed ? <AlertTriangleIcon size={15} strokeWidth={1.75} /> : 'PDF'}
                   </Box>
-                  <Box sx={{ minWidth: 0 }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{
                       fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isFailed ? 'normal' : 'nowrap',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {isFailed ? 'Échec de génération' : (gen.fileName || `document-${gen.id}.pdf`)}
                     </Typography>
-                    <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: '1px' }}>
+                    {/* Erreur : 1re ligne uniquement (tronquée) — détail complet dans la modale au clic. */}
+                    <Typography sx={{
+                      fontSize: '11.5px', color: 'var(--muted)', mt: '1px',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
                       {isFailed
                         ? `${gen.errorMessage || 'Cause inconnue'}${gen.createdAt ? ` · ${formatFormDate(gen.createdAt)}` : ''}`
                         : [gen.legalNumber, gen.createdAt ? formatFormDate(gen.createdAt) : '']
                             .filter(Boolean).join(' · ')}
                     </Typography>
                   </Box>
-                  {!isFailed && (
-                    <Box component="span" sx={{
-                      ml: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap', flexShrink: 0,
-                    }}>
-                      Aperçu
-                      <ArrowRightIcon size={14} strokeWidth={1.75} />
-                    </Box>
-                  )}
+                  <Box component="span" sx={{
+                    ml: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    fontSize: '12.5px', fontWeight: 600,
+                    color: isFailed ? 'var(--err)' : 'var(--accent)', whiteSpace: 'nowrap', flexShrink: 0,
+                  }}>
+                    {isFailed ? 'Détail' : 'Aperçu'}
+                    <ArrowRightIcon size={14} strokeWidth={1.75} />
+                  </Box>
                 </Box>
               );
             })}
@@ -560,6 +569,37 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             Renvoyer
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Modale : message d'erreur de génération complet (la liste n'en montre que la 1re ligne). */}
+      <Dialog
+        open={errorDetail !== null}
+        onClose={() => setErrorDetail(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, fontSize: '1rem', color: 'var(--err)' }}>
+          <AlertTriangleIcon size={18} strokeWidth={1.75} />
+          Échec de génération
+          <IconButton size="small" onClick={() => setErrorDetail(null)} sx={{ ml: 'auto' }}>
+            <CloseIcon size={16} strokeWidth={1.75} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {errorDetail?.date && (
+            <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mb: 1 }}>
+              {formatFormDate(errorDetail.date)}
+            </Typography>
+          )}
+          <Box sx={{
+            fontFamily: 'monospace', fontSize: '12.5px', lineHeight: 1.6, color: 'var(--ink)',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            bgcolor: 'var(--err-soft)', border: '1px solid var(--err)', borderRadius: '10px',
+            p: 1.5, maxHeight: '55vh', overflowY: 'auto', userSelect: 'text',
+          }}>
+            {errorDetail?.message}
+          </Box>
+        </DialogContent>
       </Dialog>
     </Box>
   );
