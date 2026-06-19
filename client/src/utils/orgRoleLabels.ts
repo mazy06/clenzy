@@ -102,6 +102,46 @@ export function getOrgRoleIcon(role: string): LucideIcon {
   return ORG_ROLE_ICONS[role] || Person;
 }
 
+// ─── Roles PLATEFORME (User.role) ───────────────────────────────────────────
+// Distincts des roles d'org : un membre a un role d'org (ADMIN/MANAGER...) ET un
+// role plateforme (SUPER_ADMIN/SUPER_MANAGER/HOST...). Libelles/couleurs alignes
+// sur l'Annuaire (UsersList) pour que les deux ecrans affichent la meme chose.
+
+const PLATFORM_ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  SUPER_MANAGER: 'Super Manager',
+  SUPERVISOR: 'Superviseur',
+  TECHNICIAN: 'Technicien',
+  HOUSEKEEPER: 'Agent de menage',
+  LAUNDRY: 'Blanchisserie',
+  EXTERIOR_TECH: 'Tech. Exterieur',
+  HOST: 'Proprietaire',
+};
+
+export function getPlatformRoleLabel(role: string): string {
+  return PLATFORM_ROLE_LABELS[role] || role;
+}
+
+const PLATFORM_ROLE_HEX: Record<string, string> = {
+  SUPER_ADMIN: '#C97A7A',
+  SUPER_MANAGER: '#7B68A8',
+  SUPERVISOR: '#7BA3C2',
+  TECHNICIAN: '#6B8A9A',
+  HOUSEKEEPER: '#8A8378',
+  LAUNDRY: '#8A8378',
+  EXTERIOR_TECH: '#6B8A9A',
+  HOST: '#4A9B8E',
+};
+
+export function getPlatformRoleHex(role: string): string {
+  return PLATFORM_ROLE_HEX[role] || '#8A8378';
+}
+
+/** Icone plateforme — reutilise la table d'icones partagee. */
+export function getPlatformRoleIcon(role: string): LucideIcon {
+  return ORG_ROLE_ICONS[role] || Person;
+}
+
 // ─── Roles assignables (pour les selects) ───────────────────────────────────
 
 /** Roles que l'on peut attribuer a un membre (tout sauf OWNER). */

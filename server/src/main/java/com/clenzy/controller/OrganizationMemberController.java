@@ -135,6 +135,11 @@ public class OrganizationMemberController {
             dto.setFirstName(user.getFirstName());
             dto.setLastName(user.getLastName());
             dto.setEmail(user.getEmail());
+            // Role PLATEFORME (User.role) en plus du role d'org, pour afficher les deux
+            // (parite avec l'Annuaire). Distinct de roleInOrg (appartenance org).
+            if (user.getRole() != null) {
+                dto.setUserRole(user.getRole().name());
+            }
         }
 
         dto.setRoleInOrg(member.getRoleInOrg().name());

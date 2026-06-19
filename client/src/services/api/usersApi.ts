@@ -144,16 +144,13 @@ export function userAvatarSrc(
     updatedAt?: string | null;
   } | null | undefined,
 ): string | undefined {
-  if (!user) return undefined;
-  if (!user.profilePictureUrl) return undefined;
-  // Prefer databaseId (numeric Long) when present; fall back to id if it's numeric.
-  const candidate = user.databaseId != null ? user.databaseId : user.id;
-  const numericId
-    = typeof candidate === 'number'
-      ? candidate
-      : typeof candidate === 'string' && /^\d+$/.test(candidate)
-        ? Number(candidate)
-        : undefined;
-  if (numericId == null) return undefined;
-  return usersApi.profilePictureUrl(numericId, user.updatedAt ?? null);
+  if (!user || !user.profilePictureUrl) return undefined;
+  // Le backend renvoie deja une URL directement affichable : URL SIGNEE (ticket HMAC,
+  // cf. UserService.toDto -> publicAvatarUrl) pour les avatars uploades, ou URL externe
+  // (SSO) telle quelle. On l'utilise DIRECTEMENT — la reconstruire sans ticket cassait
+  // l'affichage car une balise <img> ne porte pas le JWT (401 intermittent -> initiales).
+  const url = user.profilePictureUrl;
+  if (!user.updatedAt) return url;
+  // Cache-bust sur upload (l'URL signee a deja un '?ticket=').
+  return `${url}${url.includes('?') ? '&' : '?'}v=${encodeURIComponent(user.updatedAt)}`;
 }

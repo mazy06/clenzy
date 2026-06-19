@@ -87,11 +87,13 @@ describe('PlanningBar', () => {
     expect(style.touchAction).toBe('none');
   });
 
-  it('shows grab cursor for draggable reservation', () => {
+  it('shows pointer cursor on the bar (drag reste actif via dnd-kit)', () => {
+    // Spec .s-brick : le curseur est volontairement « pointer » (et non « grab ») ;
+    // le drag reste géré par @dnd-kit. cf. PlanningBar.tsx.
     const { container } = renderBar();
     const barElement = container.querySelector('[data-planning-bar]') as HTMLElement;
     expect(barElement).toBeTruthy();
-    expect(window.getComputedStyle(barElement).cursor).toBe('grab');
+    expect(window.getComputedStyle(barElement).cursor).toBe('pointer');
   });
 
   it('displays the event label when bar is wide enough', () => {
@@ -99,12 +101,19 @@ describe('PlanningBar', () => {
     expect(screen.getByText('John Doe')).toBeTruthy();
   });
 
-  it('calls onClick when clicked and no drag is active', () => {
+  it('calls onClick when a non-reservation bar is clicked (no drag active)', () => {
+    // Le clic sur une RÉSERVATION ouvre désormais un popover récap (cf.
+    // PlanningBar.tsx) ; onClick(event) reste déclenché pour les interventions
+    // (ménage/maintenance), testé ici via un événement de ménage.
     const handleClick = vi.fn();
-    const { container } = renderBar({ onClick: handleClick });
+    const cleaningEvent: PlanningEvent = { ...baseEvent, id: 'clean-1', type: 'cleaning' };
+    const { container } = renderBar({
+      layout: { ...baseLayout, event: cleaningEvent },
+      onClick: handleClick,
+    });
     const barElement = container.querySelector('[data-planning-bar]') as HTMLElement;
     fireEvent.click(barElement);
-    expect(handleClick).toHaveBeenCalledWith(baseEvent);
+    expect(handleClick).toHaveBeenCalledWith(cleaningEvent);
   });
 
   it('does NOT call onClick when drag is active', () => {
