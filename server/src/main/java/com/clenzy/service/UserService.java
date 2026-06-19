@@ -59,6 +59,7 @@ public class UserService {
     private final AvatarSelfHealer avatarSelfHealer;
     private final OutboxPublisher outboxPublisher;
     private final UserProfileSyncService profileSyncService;
+    private final MediaTicketService mediaTicketService;
 
     @org.springframework.beans.factory.annotation.Value("${clenzy.app.url:https://app.clenzy.fr}")
     private String appUrl;
@@ -71,7 +72,8 @@ public class UserService {
                        UserAvatarStorageService avatarStorage,
                        AvatarSelfHealer avatarSelfHealer,
                        ObjectProvider<OutboxPublisher> outboxPublisherProvider,
-                       ObjectProvider<UserProfileSyncService> profileSyncProvider) {
+                       ObjectProvider<UserProfileSyncService> profileSyncProvider,
+                       MediaTicketService mediaTicketService) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.memberRepository = memberRepository;
@@ -88,6 +90,7 @@ public class UserService {
         // ContactMessageEventPublisher).
         this.outboxPublisher = outboxPublisherProvider.getIfAvailable();
         this.profileSyncService = profileSyncProvider.getIfAvailable();
+        this.mediaTicketService = mediaTicketService;
     }
 
     public UserDto create(UserDto dto) {
@@ -554,10 +557,13 @@ public class UserService {
 
     /**
      * Build the public URL the frontend uses to fetch the avatar. We don't expose the
-     * storage path directly — the URL is stable so it can be cached/shared safely.
+     * storage path directly. The URL carries an HMAC ticket (scope {@code avatar:{id}}) so it
+     * can be consumed in {@code <img src>} WITHOUT a JWT (browsers don't send Authorization on
+     * image requests) — the GET endpoint validates the ticket (fail-closed) instead of the
+     * Authorization header. The ticket is window-stable (~15 min) so the URL stays cacheable.
      */
-    private String publicAvatarUrl(Long userId) {
-        return "/api/users/" + userId + "/profile-picture";
+    public String publicAvatarUrl(Long userId) {
+        return "/api/users/" + userId + "/profile-picture?ticket=" + mediaTicketService.mint("avatar:" + userId);
     }
 
     /**

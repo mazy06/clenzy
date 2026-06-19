@@ -73,7 +73,8 @@ class ContactMessageServiceTest {
                 fileStorageService,
                 notificationService,
                 tenantContext,
-                eventPublisher
+                eventPublisher,
+                new MediaTicketService("test-secret")
         );
 
         // Build JWTs
@@ -1335,7 +1336,7 @@ class ContactMessageServiceTest {
             when(userRepository.findByKeycloakIdIn(any())).thenReturn(List.of(recipientUser));
 
             var threads = service.getThreads(senderJwt);
-            assertThat(threads.get(0).counterpartProfilePictureUrl()).isEqualTo("/api/users/2/profile-picture");
+            assertThat(threads.get(0).counterpartProfilePictureUrl()).startsWith("/api/users/2/profile-picture?ticket=");
         }
 
         @Test
