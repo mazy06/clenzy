@@ -22,7 +22,10 @@ import {
 } from '../../icons';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { usersApi } from '../../services/api/usersApi';
-import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
+import {
+  getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon,
+  getPlatformRoleLabel, getPlatformRoleHex, getPlatformRoleIcon,
+} from '../../utils/orgRoleLabels';
 import { useAuth } from '../../hooks/useAuth';
 import ChangeRoleDialog from './ChangeRoleDialog';
 import RemoveMemberDialog from './RemoveMemberDialog';
@@ -207,18 +210,42 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                     </Box>
                   </TableCell>
 
-                  {/* Role */}
+                  {/* Role : org + plateforme (les deux, parite avec l'Annuaire) */}
                   <TableCell sx={CELL_NOWRAP_SX}>
-                    <Chip
-                      icon={<RoleIcon size={11} strokeWidth={2} />}
-                      label={getOrgRoleLabel(member.roleInOrg)}
-                      size="small"
-                      sx={{
-                        backgroundColor: `${roleColor}18`,
-                        color: roleColor,
-                        '& .MuiChip-icon': { color: roleColor, ml: '6px', mr: '-2px' },
-                      }}
-                    />
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                      <Tooltip title="Rôle dans l'organisation">
+                        <Chip
+                          icon={<RoleIcon size={11} strokeWidth={2} />}
+                          label={getOrgRoleLabel(member.roleInOrg)}
+                          size="small"
+                          sx={{
+                            backgroundColor: `${roleColor}18`,
+                            color: roleColor,
+                            '& .MuiChip-icon': { color: roleColor, ml: '6px', mr: '-2px' },
+                          }}
+                        />
+                      </Tooltip>
+                      {member.userRole && member.userRole !== member.roleInOrg && (() => {
+                        const pHex = getPlatformRoleHex(member.userRole);
+                        const PlatformIcon = getPlatformRoleIcon(member.userRole);
+                        return (
+                          <Tooltip title="Rôle sur la plateforme">
+                            <Chip
+                              icon={<PlatformIcon size={11} strokeWidth={2} />}
+                              label={getPlatformRoleLabel(member.userRole)}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                backgroundColor: 'transparent',
+                                color: pHex,
+                                borderColor: `${pHex}55`,
+                                '& .MuiChip-icon': { color: pHex, ml: '6px', mr: '-2px' },
+                              }}
+                            />
+                          </Tooltip>
+                        );
+                      })()}
+                    </Box>
                   </TableCell>
 
                   {/* Depuis */}
