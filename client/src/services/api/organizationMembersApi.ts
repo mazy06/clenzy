@@ -9,6 +9,8 @@ export interface OrganizationMemberDto {
   lastName: string;
   email: string;
   roleInOrg: string;
+  /** Role PLATEFORME (User.role) — affiche en plus du role d'org. */
+  userRole?: string;
   joinedAt: string;
 }
 

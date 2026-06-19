@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -90,19 +91,27 @@ public class InterventionPlanningService {
                     .collect(Collectors.toList());
         }
 
-        // Construire la map interventionId -> reservationId
-        final Map<Long, Long> interventionToReservation;
+        // Construire la map interventionId -> reservationId (pour l'affichage dans la brique).
+        // 1) Lien explicite via Reservation.intervention (FK posee au PAIEMENT de l'intervention).
+        // 2) Repli via ServiceRequest.reservationId : un menage encore "A payer" n'a pas
+        //    encore Reservation.intervention, mais sa demande de service porte deja la
+        //    reservation -> sans ce repli, son icone derive HORS de la brique (cas de la
+        //    reservation en cours, turnover). Acces lazy OK : classe @Transactional(readOnly).
+        final Map<Long, Long> interventionToReservation = new HashMap<>();
         List<Long> interventionIds = interventions.stream().map(Intervention::getId).collect(Collectors.toList());
         if (!interventionIds.isEmpty()) {
-            List<Reservation> linkedReservations = reservationRepository.findByInterventionIdIn(interventionIds, orgId);
-            interventionToReservation = linkedReservations.stream()
-                    .filter(r -> r.getIntervention() != null)
-                    .collect(Collectors.toMap(
-                            r -> r.getIntervention().getId(),
-                            Reservation::getId,
-                            (a, b) -> a));
-        } else {
-            interventionToReservation = Map.of();
+            for (Reservation r : reservationRepository.findByInterventionIdIn(interventionIds, orgId)) {
+                if (r.getIntervention() != null) {
+                    interventionToReservation.putIfAbsent(r.getIntervention().getId(), r.getId());
+                }
+            }
+            for (Intervention i : interventions) {
+                if (!interventionToReservation.containsKey(i.getId())
+                        && i.getServiceRequest() != null
+                        && i.getServiceRequest().getReservationId() != null) {
+                    interventionToReservation.put(i.getId(), i.getServiceRequest().getReservationId());
+                }
+            }
         }
 
         // Pre-load team names

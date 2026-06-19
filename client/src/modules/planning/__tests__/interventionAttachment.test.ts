@@ -168,4 +168,69 @@ describe('resolveAttachedReservationId', () => {
       expect(id).toBeNull();
     });
   });
+
+  describe('ménage anticipé / pré-arrivée (cas 4)', () => {
+    it('la veille du check-in, aucun séjour avant → rattaché au séjour à venir', () => {
+      // gérard : check-in 03-11. Ménage anticipé le 10 → rattaché à gérard.
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-10' },
+        [gerard],
+      );
+      expect(id).toBe(42);
+    });
+
+    it('3 jours avant le check-in (borne de la fenêtre) → rattaché', () => {
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-08' },
+        [gerard],
+      );
+      expect(id).toBe(42);
+    });
+
+    it('4 jours avant le check-in (hors fenêtre) → orphelin (null)', () => {
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-07' },
+        [gerard],
+      );
+      expect(id).toBeNull();
+    });
+
+    it('plusieurs séjours à venir → le plus proche (check-in le plus tôt)', () => {
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-10' },
+        [gerard, nextGuest], // gérard 03-11, nextGuest 03-15
+      );
+      expect(id).toBe(42);
+    });
+
+    it('dans un gap : la vacance post-checkout (cas 3) reste prioritaire sur l’anticipation', () => {
+      // gérard part le 15, séjour suivant le 19 → le 18 reste à gérard (cas 3),
+      // PAS rattaché au séjour à venir bien qu’il soit à 1 jour de son check-in.
+      const later: AttachmentCandidate = {
+        id: 44, propertyId: 1, checkIn: '2026-03-19', checkOut: '2026-03-24', status: 'confirmed',
+      };
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-18' },
+        [gerard, later],
+      );
+      expect(id).toBe(42);
+    });
+  });
+
+  describe('lien explicite cassé/annulé (ré-import iCal)', () => {
+    it('linkedReservationId pointe une réservation ANNULÉE → repli heuristique vers la réservation active', () => {
+      // Cas ré-import : la réservation 42 a été dupliquée puis annulée ;
+      // la 43 (active) couvre les mêmes dates. Le lien explicite vers 42
+      // (annulée) est ignoré → on rattache à la 43 active.
+      const cancelled: AttachmentCandidate = { ...gerard, status: 'cancelled' };
+      const active: AttachmentCandidate = {
+        id: 43, propertyId: 1, checkIn: '2026-03-11', checkOut: '2026-03-15', status: 'confirmed',
+      };
+      const id = resolveAttachedReservationId(
+        { propertyId: 1, startDate: '2026-03-15', linkedReservationId: 42 },
+        [cancelled, active],
+      );
+      expect(id).toBe(43);
+    });
+  });
 });
