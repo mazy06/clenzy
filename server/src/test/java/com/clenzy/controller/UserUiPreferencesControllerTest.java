@@ -27,7 +27,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -113,18 +113,16 @@ class UserUiPreferencesControllerTest {
     @Test
     @DisplayName("upsert creates a new preference when none exists for the key")
     void upsert_createsNewPreference() {
-        when(repository.findByKeycloakIdAndPrefKey(KC_ID, "newKey")).thenReturn(Optional.empty());
-        when(repository.save(any(UserUiPreference.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repository.findByKeycloakIdAndPrefKey(KC_ID, "newKey"))
+                .thenReturn(Optional.of(new UserUiPreference(KC_ID, "newKey", "{\"zoom\":1.5}")));
 
         ObjectNode value = JsonNodeFactory.instance.objectNode().put("zoom", 1.5);
         ResponseEntity<UserUiPreferenceDto> response = controller.upsert(jwt, "newKey", value);
 
-        ArgumentCaptor<UserUiPreference> captor = ArgumentCaptor.forClass(UserUiPreference.class);
-        verify(repository).save(captor.capture());
-        UserUiPreference saved = captor.getValue();
-        assertThat(saved.getKeycloakId()).isEqualTo(KC_ID);
-        assertThat(saved.getPrefKey()).isEqualTo("newKey");
-        assertThat(saved.getPrefValue()).contains("\"zoom\":1.5");
+        // Upsert atomique : on verifie l'appel + la valeur serialisee (plus de save() check-then-act).
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(repository).upsertPreference(eq(KC_ID), eq("newKey"), captor.capture());
+        assertThat(captor.getValue()).contains("\"zoom\":1.5");
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().key()).isEqualTo("newKey");
@@ -134,15 +132,15 @@ class UserUiPreferencesControllerTest {
     @Test
     @DisplayName("upsert updates an existing preference (same row)")
     void upsert_updatesExistingPreference() {
-        UserUiPreference existing = new UserUiPreference(KC_ID, "filters", "{\"old\":true}");
-        when(repository.findByKeycloakIdAndPrefKey(KC_ID, "filters")).thenReturn(Optional.of(existing));
-        when(repository.save(any(UserUiPreference.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repository.findByKeycloakIdAndPrefKey(KC_ID, "filters"))
+                .thenReturn(Optional.of(new UserUiPreference(KC_ID, "filters", "{\"v\":42}")));
 
         ObjectNode newValue = JsonNodeFactory.instance.objectNode().put("v", 42);
         controller.upsert(jwt, "filters", newValue);
 
-        assertThat(existing.getPrefValue()).contains("\"v\":42");
-        // Mockito.verify(repository).save(existing); // same instance
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(repository).upsertPreference(eq(KC_ID), eq("filters"), captor.capture());
+        assertThat(captor.getValue()).contains("\"v\":42");
     }
 
     @Test
@@ -165,23 +163,23 @@ class UserUiPreferencesControllerTest {
     @Test
     @DisplayName("upsert with a null JsonNode treats it as 'null' literal and succeeds")
     void upsert_nullJsonNode_writesNullLiteral() {
-        when(repository.findByKeycloakIdAndPrefKey(KC_ID, "nullable")).thenReturn(Optional.empty());
-        when(repository.save(any(UserUiPreference.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repository.findByKeycloakIdAndPrefKey(KC_ID, "nullable"))
+                .thenReturn(Optional.of(new UserUiPreference(KC_ID, "nullable", "null")));
 
         JsonNode nullNode = JsonNodeFactory.instance.nullNode();
         ResponseEntity<UserUiPreferenceDto> response = controller.upsert(jwt, "nullable", nullNode);
 
-        ArgumentCaptor<UserUiPreference> captor = ArgumentCaptor.forClass(UserUiPreference.class);
-        verify(repository).save(captor.capture());
-        assertThat(captor.getValue().getPrefValue()).isEqualTo("null");
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(repository).upsertPreference(eq(KC_ID), eq("nullable"), captor.capture());
+        assertThat(captor.getValue()).isEqualTo("null");
         assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
     @Test
     @DisplayName("upsert accepts arrays as values")
     void upsert_arrayValue_succeeds() {
-        when(repository.findByKeycloakIdAndPrefKey(KC_ID, "arr")).thenReturn(Optional.empty());
-        when(repository.save(any(UserUiPreference.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repository.findByKeycloakIdAndPrefKey(KC_ID, "arr"))
+                .thenReturn(Optional.of(new UserUiPreference(KC_ID, "arr", "[1,2,3]")));
 
         JsonNode arr = objectMapper.createArrayNode().add(1).add(2).add(3);
         ResponseEntity<UserUiPreferenceDto> response = controller.upsert(jwt, "arr", arr);
