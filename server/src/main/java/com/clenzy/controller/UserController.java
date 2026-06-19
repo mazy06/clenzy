@@ -39,12 +39,15 @@ public class UserController {
     private final UserService userService;
     private final LoginProtectionService loginProtectionService;
     private final DeviceTokenService deviceTokenService;
+    private final com.clenzy.service.MediaTicketService mediaTicketService;
 
     public UserController(UserService userService,
-                          LoginProtectionService loginProtectionService, DeviceTokenService deviceTokenService) {
+                          LoginProtectionService loginProtectionService, DeviceTokenService deviceTokenService,
+                          com.clenzy.service.MediaTicketService mediaTicketService) {
         this.userService = userService;
         this.loginProtectionService = loginProtectionService;
         this.deviceTokenService = deviceTokenService;
+        this.mediaTicketService = mediaTicketService;
     }
 
     /**
@@ -230,10 +233,20 @@ public class UserController {
      * d'enumeration cross-org des photos par id.</p>
      */
     @GetMapping("/{id}/profile-picture")
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Recuperer la photo de profil")
     public ResponseEntity<Resource> getProfilePicture(@PathVariable Long id,
+                                                      @RequestParam(value = "ticket", required = false) String ticket,
                                                       @AuthenticationPrincipal Jwt jwt) {
-        validateSameOrganizationOrPlatformStaff(id, jwt);
+        // Acces (fail-closed) : soit un ticket HMAC valide scope avatar:{id} — pour la
+        // consommation en <img src> ou le navigateur n'envoie pas le header Authorization —,
+        // soit, a defaut, un utilisateur authentifie de la meme organisation (Z2-SEC-06).
+        if (!mediaTicketService.verify("avatar:" + id, ticket)) {
+            if (jwt == null) {
+                return ResponseEntity.status(401).build();
+            }
+            validateSameOrganizationOrPlatformStaff(id, jwt);
+        }
         Object[] payload = userService.streamProfilePicture(id);
         if (payload == null) {
             return ResponseEntity.notFound().build();

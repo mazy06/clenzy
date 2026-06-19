@@ -314,7 +314,7 @@ public class AuthController {
                     if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
                         claims.put("profilePictureUrl", avatar);
                     } else {
-                        claims.put("profilePictureUrl", "/api/users/" + user.getId() + "/profile-picture");
+                        claims.put("profilePictureUrl", userService.publicAvatarUrl(user.getId()));
                     }
                 }
                 if (user.getOrganizationId() != null) {
