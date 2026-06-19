@@ -1,344 +1,16 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { Box, Typography, Tooltip, useTheme, Chip, Divider } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { Box, Typography, Tooltip } from '@mui/material';
 import PropertyPopover from './PropertyPopover';
 import type { PlanningProperty, DensityMode } from './types';
-import { useTranslation } from '../../hooks/useTranslation';
-import { getCleaningFrequencyLabel } from '../../utils/statusUtils';
-import {
-  LocationOn,
-  People,
-  Bed,
-  Euro,
-  AccessTime,
-  CleaningServices,
-  Person,
-  CalendarMonth,
-  ChevronRight,
-  Label as TagIcon,
-  Wifi as ChannelIcon,
-} from '../../icons';
+import { Label as TagIcon, Wifi as ChannelIcon } from '../../icons';
 import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
 
-// ─── Static map URL helper (Mapbox Static Images API) ───────────────────────
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
-
-function buildStaticMapUrl(
-  lat: number | undefined,
-  lng: number | undefined,
-  width: number,
-  height: number,
-  dark: boolean,
-): string | null {
-  if (!MAPBOX_TOKEN || lat == null || lng == null) return null;
-  const style = dark ? 'dark-v11' : 'streets-v12';
-  // Pin couleur ambrée pour être visible sur les deux fonds
-  const marker = `pin-s+f59e0b(${lng},${lat})`;
-  // Plafonner pour éviter de payer plus que nécessaire (Mapbox max 1280)
-  const w = Math.min(1280, Math.max(60, Math.round(width)));
-  const h = Math.min(1280, Math.max(60, Math.round(height)));
-  return `https://api.mapbox.com/styles/v1/mapbox/${style}/static/${marker}/${lng},${lat},13,0/${w}x${h}@2x?access_token=${MAPBOX_TOKEN}`;
-}
-
-// ─── Rich tooltip content ────────────────────────────────────────────────────
+// ─── Colonne logements (gauche, sticky) ──────────────────────────────────────
 //
-// Echelle typo coherente (4 paliers uniquement) :
-//   TITLE_FS  = 0.8125rem (13px) — nom de la propriete (h6 like)
-//   BODY_FS   = 0.6875rem (11px) — texte body (adresse, owner, check-in, valeur stat)
-//   LABEL_FS  = 0.5625rem  (9px) — label uppercase (stat label, chip type, footer)
-//   ICON_SIZE = 11px              — toutes les icones (sauf header pin = 10)
-//
-// Spacing aéré (Phase 2) : padding outer 1.5, photo height 100, gap stat
-// grid 1, divider my 1.25. Plus de respiration entre les sections sans
-// alourdir le tooltip total.
-
-const TITLE_FS = '0.8125rem';
-const BODY_FS  = '11.5px';
-const LABEL_FS = '10.5px';
-const ICON_SIZE = 11;
-const TOOLTIP_WIDTH = 264;
-const HEADER_HEIGHT = 100;
-
-function PropertyTooltipContent({ property }: { property: PlanningProperty }) {
-  const theme = useTheme();
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const currency = property.currency || 'EUR';
-  const fmt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 });
-  const rawPhoto = property.photoUrls?.[0];
-  const photo = rawPhoto && rawPhoto.trim().length > 0 ? rawPhoto : undefined;
-  // Pre-build map URL si coords + token dispo (fallback OU header alternatif)
-  const mapUrl = buildStaticMapUrl(
-    property.latitude,
-    property.longitude,
-    TOOLTIP_WIDTH,
-    HEADER_HEIGHT,
-    theme.palette.mode === 'dark',
-  );
-  // Si la photo echoue (URL cassée, 404, CORS), on bascule sur la carte
-  const [photoFailed, setPhotoFailed] = useState(false);
-  const showPhoto = photo && !photoFailed;
-  const showMap = !showPhoto && Boolean(mapUrl);
-  const hasHeader = Boolean(showPhoto || showMap);
-
-  return (
-    <Box sx={{ width: TOOLTIP_WIDTH }}>
-      {showPhoto && (
-        <Box
-          sx={{
-            width: '100%',
-            height: HEADER_HEIGHT,
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            overflow: 'hidden',
-            mb: 1.25,
-            bgcolor: 'var(--hover)',
-          }}
-        >
-          <Box
-            component="img"
-            src={photo}
-            alt={property.name}
-            onError={() => setPhotoFailed(true)}
-            sx={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center',
-              display: 'block',
-            }}
-          />
-        </Box>
-      )}
-      {showMap && (
-        <Box
-          sx={{
-            position: 'relative',
-            width: '100%',
-            height: HEADER_HEIGHT,
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            overflow: 'hidden',
-            mb: 1.25,
-            bgcolor: 'var(--hover)',
-          }}
-        >
-          <Box
-            component="img"
-            src={mapUrl ?? undefined}
-            alt={`Carte ${property.city || property.name}`}
-            loading="lazy"
-            sx={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center',
-              display: 'block',
-            }}
-          />
-          <Chip
-            size="small"
-            icon={<LocationOn size={10} strokeWidth={2} />}
-            label="Localisation"
-            sx={{
-              position: 'absolute',
-              top: 5,
-              left: 5,
-              height: 16,
-              fontSize: LABEL_FS,
-              fontWeight: 600,
-              bgcolor: 'var(--card)',
-              color: 'var(--ink)',
-              border: '1px solid var(--line)',
-              '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: 'var(--warn)' },
-              '& .MuiChip-label': { px: 0.5 },
-            }}
-          />
-        </Box>
-      )}
-      <Box sx={{ px: 1.5, pb: 1.5, pt: hasHeader ? 0.25 : 1.5 }}>
-        <Typography sx={{ fontSize: TITLE_FS, fontWeight: 600, lineHeight: 1.3, color: 'var(--ink)' }}>
-          {property.name}
-        </Typography>
-        {property.type && (
-          <Chip
-            label={property.type}
-            size="small"
-            sx={{
-              mt: 0.75,
-              height: 18,
-              fontSize: LABEL_FS,
-              fontWeight: 600,
-              bgcolor: 'var(--accent-soft)',
-              color: 'var(--accent)',
-              textTransform: 'capitalize',
-              '& .MuiChip-label': { px: 0.625 },
-            }}
-          />
-        )}
-
-        {(property.address || property.city) && (
-          <Box sx={{ display: 'flex', gap: 0.625, mt: 1, alignItems: 'flex-start' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', mt: 0.15 }}>
-              <LocationOn size={ICON_SIZE} strokeWidth={1.75} />
-            </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', lineHeight: 1.4 }}>
-              {[property.address, property.city].filter(Boolean).join(', ')}
-            </Typography>
-          </Box>
-        )}
-
-        {property.ownerName && (
-          <Box sx={{ display: 'flex', gap: 0.625, mt: 0.625, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
-              <Person size={ICON_SIZE} strokeWidth={1.75} />
-            </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-              {property.ownerName}
-            </Typography>
-          </Box>
-        )}
-
-        <Divider sx={{ my: 1.25, borderColor: 'var(--line)' }} />
-
-        {/* Stats grid */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1 }}>
-          <StatPill
-            icon={<People size={ICON_SIZE} strokeWidth={1.75} />}
-            label="Voyageurs max"
-            value={`${property.maxGuests}`}
-          />
-          {property.minimumNights != null && property.minimumNights > 0 && (
-            <StatPill
-              icon={<Bed size={ICON_SIZE} strokeWidth={1.75} />}
-              label="Nuits min."
-              value={`${property.minimumNights}`}
-            />
-          )}
-          {property.nightlyPrice != null && property.nightlyPrice > 0 && (
-            <StatPill
-              icon={<Euro size={ICON_SIZE} strokeWidth={1.75} />}
-              label="Prix / nuit"
-              value={fmt.format(property.nightlyPrice)}
-              highlight
-            />
-          )}
-          {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
-            <StatPill
-              icon={<CleaningServices size={ICON_SIZE} strokeWidth={1.75} />}
-              label="Ménage"
-              value={fmt.format(property.cleaningBasePrice)}
-            />
-          )}
-        </Box>
-
-        {/* Check-in / check-out times */}
-        {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: 0.75, flexWrap: 'wrap' }}>
-            {property.defaultCheckInTime && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}>
-                  <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
-                </Box>
-                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-                  Check-in <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
-                </Typography>
-              </Box>
-            )}
-            {property.defaultCheckOutTime && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
-                  <AccessTime size={ICON_SIZE} strokeWidth={1.75} />
-                </Box>
-                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-                  Check-out <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        )}
-
-        {property.cleaningFrequency && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
-              <CalendarMonth size={ICON_SIZE} strokeWidth={1.75} />
-            </Box>
-            <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-              Fréquence ménage : <Box component="strong" sx={{ color: 'var(--ink)' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
-            </Typography>
-          </Box>
-        )}
-
-        {/* CTA navigable vers la fiche complète. Tooltip rendu dans un portail
-            → cet element est cliquable directement (les clicks ne bubblent pas
-            au Box parent dans le planning, donc on declenche la nav ici). */}
-        <Box
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/properties/${property.id}`);
-          }}
-          sx={{
-            mt: 1.25,
-            pt: 1,
-            borderTop: '1px dashed',
-            borderColor: 'var(--line)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'pointer',
-            color: 'var(--accent)',
-            transition: 'color 150ms',
-            '&:hover': { color: 'var(--accent-deep)' },
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-          }}
-        >
-          <Typography sx={{ fontSize: LABEL_FS, fontWeight: 600, color: 'inherit' }}>
-            Ouvrir la fiche complète
-          </Typography>
-          <ChevronRight size={ICON_SIZE} strokeWidth={2} />
-        </Box>
-      </Box>
-    </Box>
-  );
-}
-
-function StatPill({
-  icon,
-  label,
-  value,
-  highlight,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  return (
-    <Box
-      sx={{
-        p: 0.875,
-        borderRadius: 1,
-        bgcolor: highlight
-          ? 'var(--ok-soft)'
-          : 'color-mix(in srgb, var(--ink) 2.5%, transparent)',
-        border: '1px solid',
-        borderColor: highlight ? 'var(--ok)' : 'var(--line)',
-        minWidth: 0,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'var(--ok)' : 'var(--muted)', mb: 0.375 }}>
-        {icon}
-        <Typography sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'inherit', lineHeight: 1 }}>
-          {label}
-        </Typography>
-      </Box>
-      <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: highlight ? 'var(--ok)' : 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
-        {value}
-      </Typography>
-    </Box>
-  );
-}
+// Au clic sur le nom d'un logement → PropertyPopover (carte détaillée fusionnée :
+// héro + type + adresse + propriétaire + stats + heures + fréquence ménage). Il
+// n'y a plus de tooltip de survol séparé : tout est dans le popover au clic.
+// Seul subsiste le petit tooltip de l'indicateur de sync canaux (wifi).
 
 interface PlanningPropertyColumnProps {
   properties: PlanningProperty[];
@@ -365,8 +37,6 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   channelSyncMap,
 }) => {
   // ── Popover logement (maquette) : ouvert au clic sur le nom ──────────────
-  // Le tooltip hover riche reste en place (info au survol) ; il est suspendu
-  // pour la ligne dont le popover est ouvert afin d'éviter le chevauchement.
   const [popover, setPopover] = useState<{ anchorEl: HTMLElement; propertyId: number } | null>(null);
   const popoverProperty = popover
     ? properties.find((p) => p.id === popover.propertyId) ?? null
@@ -466,187 +136,154 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             : sync.synced > 0 ? 'var(--warn)' : 'var(--err)'
           : 'var(--faint)';
         return (
-          <Tooltip
+          <Box
             key={property.id}
-            title={popover?.propertyId === property.id ? '' : <PropertyTooltipContent property={property} />}
-            placement="right"
-            arrow
-            enterDelay={350}
-            enterNextDelay={200}
-            leaveDelay={100}
-            slotProps={{
-              tooltip: {
-                // Carte riche : peau popover Signature (hairline, r12, shadow-pop)
-                sx: {
-                  bgcolor: 'var(--card)',
-                  color: 'var(--ink)',
-                  border: '1px solid var(--line)',
-                  borderRadius: '12px',
-                  p: 0,
-                  maxWidth: 'none',
-                  boxShadow: 'var(--shadow-pop)',
-                  '& .MuiTooltip-arrow': {
-                    color: 'var(--card)',
-                    '&::before': {
-                      border: '1px solid var(--line)',
-                      backgroundColor: 'var(--card)',
-                    },
-                  },
-                },
-              },
-              popper: {
-                modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
+            onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })}
+            sx={{
+              position: 'relative',
+              height: effectiveRowHeight,
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 0,
+              px: 0,
+              cursor: 'pointer',
+              borderBottom: '1px solid var(--line)',
+              // Spec .pl-name : fond plat var(--card) (pas de zebra)
+              backgroundColor: selectedPropertyId === property.id || popover?.propertyId === property.id
+                ? 'var(--accent-soft)'
+                : 'var(--card)',
+              transition: 'background-color 0.15s ease',
+              '&:hover': {
+                backgroundColor: 'var(--hover)',
               },
             }}
           >
+            {/* Bloc texte (spec .pl-name : padding 0 16px, colonne centrée) :
+                nom + ville dessous. Le count de reservations en cours reste
+                visible en pastille discrete inline a cote du nom. */}
             <Box
-              onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })}
               sx={{
-                position: 'relative',
-                height: effectiveRowHeight,
+                flex: 1,
+                minWidth: 0,
                 display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 0,
-                px: 0,
-                cursor: 'pointer',
-                borderBottom: '1px solid var(--line)',
-                // Spec .pl-name : fond plat var(--card) (pas de zebra)
-                backgroundColor: selectedPropertyId === property.id || popover?.propertyId === property.id
-                  ? 'var(--accent-soft)'
-                  : 'var(--card)',
-                transition: 'background-color 0.15s ease',
-                '&:hover': {
-                  backgroundColor: 'var(--hover)',
-                },
+                flexDirection: 'column',
+                gap: 0.125,
+                px: '16px',
               }}
             >
-              {/* Bloc texte (spec .pl-name : padding 0 16px, colonne centrée) :
-                  nom + ville dessous. Le count de reservations en cours reste
-                  visible en pastille discrete inline a cote du nom. */}
-              <Box
-                sx={{
-                  flex: 1,
-                  minWidth: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.125,
-                  px: '16px',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, minWidth: 0 }}>
-                  {/* Box component=span : evite l'heritage du variant body1 du
-                      Typography (le theme MUI a des fontSize responsive en
-                      media-query qui peuvent surcharger sx en breakpoint large). */}
-                  {/* Spec .pl-name .nm : 12.5px fw600 var(--ink), 1 ligne ellipsis */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, minWidth: 0 }}>
+                {/* Box component=span : evite l'heritage du variant body1 du
+                    Typography (le theme MUI a des fontSize responsive en
+                    media-query qui peuvent surcharger sx en breakpoint large). */}
+                {/* Spec .pl-name .nm : 12.5px fw600 var(--ink), 1 ligne ellipsis */}
+                <Box
+                  component="span"
+                  sx={{
+                    fontSize: density === 'compact' ? '11.5px' : '12.5px',
+                    fontWeight: 600,
+                    color: 'var(--ink)',
+                    lineHeight: 1.25,
+                    letterSpacing: '-0.01em',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    minWidth: 0,
+                  }}
+                >
+                  {property.name}
+                </Box>
+                {/* Reservations en cours / a venir : pastille inline discrete */}
+                {reservationCount > 0 && (
                   <Box
                     component="span"
                     sx={{
-                      fontSize: density === 'compact' ? '11.5px' : '12.5px',
-                      fontWeight: 600,
-                      color: 'var(--ink)',
-                      lineHeight: 1.25,
-                      letterSpacing: '-0.01em',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      minWidth: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.25,
+                      flexShrink: 0,
+                      color: 'var(--faint)',
                     }}
                   >
-                    {property.name}
-                  </Box>
-                  {/* Reservations en cours / a venir : pastille inline discrete */}
-                  {reservationCount > 0 && (
+                    <TagIcon size={10} strokeWidth={1.75} />
                     <Box
                       component="span"
                       sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 0.25,
-                        flexShrink: 0,
-                        color: 'var(--faint)',
+                        fontSize: '0.625rem',
+                        fontWeight: 600,
+                        lineHeight: 1,
+                        fontVariantNumeric: 'tabular-nums',
                       }}
                     >
-                      <TagIcon size={10} strokeWidth={1.75} />
-                      <Box
-                        component="span"
-                        sx={{
-                          fontSize: '0.625rem',
-                          fontWeight: 600,
-                          lineHeight: 1,
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
-                        {reservationCount}
-                      </Box>
+                      {reservationCount}
                     </Box>
-                  )}
-                </Box>
-                {/* Spec .pl-name .ci : 10.5px var(--muted) */}
-                {subtitle && (
-                  <Box
-                    component="span"
-                    sx={{
-                      fontSize: density === 'compact' ? '9.5px' : '10.5px',
-                      fontWeight: 400,
-                      color: 'var(--muted)',
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      display: 'block',
-                    }}
-                  >
-                    {subtitle}
                   </Box>
                 )}
               </Box>
-              {/* Indicateur en bas-droite : sync canaux (wifi) */}
-              {sync && sync.total > 0 && (
+              {/* Spec .pl-name .ci : 10.5px var(--muted) */}
+              {subtitle && (
                 <Box
+                  component="span"
                   sx={{
-                    position: 'absolute',
-                    right: 6,
-                    bottom: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.75,
-                    pointerEvents: 'none',
+                    fontSize: density === 'compact' ? '9.5px' : '10.5px',
+                    fontWeight: 400,
+                    color: 'var(--muted)',
+                    lineHeight: 1.2,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'block',
                   }}
                 >
-                  <Tooltip
-                    title={`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
-                    placement="top"
-                    arrow
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.25,
-                        color: syncColor,
-                        pointerEvents: 'auto',
-                      }}
-                    >
-                      <ChannelIcon size={11} strokeWidth={1.75} />
-                      <Box
-                        component="span"
-                        sx={{
-                          fontSize: '0.5625rem',
-                          fontWeight: 600,
-                          color: 'inherit',
-                          lineHeight: 1,
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
-                        {sync.synced}/{sync.total}
-                      </Box>
-                    </Box>
-                  </Tooltip>
+                  {subtitle}
                 </Box>
               )}
             </Box>
-          </Tooltip>
+            {/* Indicateur en bas-droite : sync canaux (wifi) */}
+            {sync && sync.total > 0 && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  right: 6,
+                  bottom: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  pointerEvents: 'none',
+                }}
+              >
+                <Tooltip
+                  title={`${sync.synced} sur ${sync.total} canaux synchronises (sync < 24h)`}
+                  placement="top"
+                  arrow
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.25,
+                      color: syncColor,
+                      pointerEvents: 'auto',
+                    }}
+                  >
+                    <ChannelIcon size={11} strokeWidth={1.75} />
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: '0.5625rem',
+                        fontWeight: 600,
+                        color: 'inherit',
+                        lineHeight: 1,
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {sync.synced}/{sync.total}
+                    </Box>
+                  </Box>
+                </Tooltip>
+              </Box>
+            )}
+          </Box>
         );
       })}
       {/* Empty filler rows — fond plat (spec : pas de zebra) */}
