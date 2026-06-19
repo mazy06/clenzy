@@ -1,23 +1,22 @@
 import { Box, ButtonBase } from '@mui/material';
 import { LayoutTemplate } from 'lucide-react';
-import type { Editor } from 'grapesjs';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
-import { loadHtmlIntoEditor } from './loadIntoEditor';
 
 /**
- * Onglet « Galerie » de l'Importer : grille de templates de démarrage (HTML+CSS). Au clic, le template
- * est chargé dans l'éditeur via `loadHtmlIntoEditor` (canevas remplacé + CSS ajouté), puis `onDone()`.
+ * Onglet « Galerie » de l'Importer : grille de templates NATIFS multi-page. Au clic, le template est
+ * importé via `onImportTemplate` (géré par `GrapesStudio` : crée une `SitePage` par page, charge
+ * l'accueil dans le canvas, applique le thème), puis `onDone()` ferme le panneau.
  */
 export interface ImportGalleryProps {
-  /** Éditeur GrapesJS cible. */
-  editor: Editor;
-  /** Appelé après le chargement d'un template (ferme le panneau). */
+  /** Importe un template multi-page (résolu par `GrapesStudio` : pages + thème + chargement accueil). */
+  onImportTemplate: (template: GalleryTemplate) => void;
+  /** Appelé après le déclenchement de l'import (ferme le panneau). */
   onDone: () => void;
 }
 
-export default function ImportGallery({ editor, onDone }: ImportGalleryProps) {
+export default function ImportGallery({ onImportTemplate, onDone }: ImportGalleryProps) {
   const choose = (tpl: GalleryTemplate) => {
-    loadHtmlIntoEditor(editor, { html: tpl.html, css: tpl.css });
+    onImportTemplate(tpl);
     onDone();
   };
 
@@ -51,7 +50,10 @@ export default function ImportGallery({ editor, onDone }: ImportGalleryProps) {
           >
             {/* Aperçu : vignette si fournie, sinon bande d'accent du template. */}
             <Box sx={{ height: 96, bgcolor: 'var(--field)', backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-            <Box sx={{ p: 1.25, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{tpl.name}</Box>
+            <Box sx={{ p: 1.25, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+              <Box sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{tpl.name}</Box>
+              {tpl.description ? <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{tpl.description}</Box> : null}
+            </Box>
           </ButtonBase>
         ))}
       </Box>

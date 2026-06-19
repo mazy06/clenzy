@@ -27,6 +27,8 @@ const DURABLE_KEYS = [
   'checkOut',
   'adults',
   'children',
+  'infants',
+  'destination',
   'displayCurrency',
   'cart',
   'guestForm',

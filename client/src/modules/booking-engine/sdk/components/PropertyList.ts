@@ -78,6 +78,12 @@ function render(
   const limit = options.limit && options.limit > 0 ? Math.floor(options.limit) : 0;
   const pageSize = options.pageSize && options.pageSize > 0 ? Math.floor(options.pageSize) : 0;
   let list = s.properties;
+  // Filtre par destination (ville) saisie dans la barre de recherche : nom / ville / pays (insensible
+  // à la casse). Vide = tous les logements.
+  const dest = s.destination?.trim().toLowerCase();
+  if (dest) {
+    list = list.filter((p) => `${p.name} ${p.city ?? ''} ${p.country ?? ''}`.toLowerCase().includes(dest));
+  }
   if (limit > 0) list = list.slice(0, limit);
   const paginate = pageSize > 0 && list.length > pageSize;
   const pageCount = paginate ? Math.ceil(list.length / pageSize) : 1;

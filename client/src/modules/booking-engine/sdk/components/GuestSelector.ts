@@ -65,8 +65,19 @@ export function createGuestSelector(state: StateManager, i18n: I18n, maxGuests: 
     maxGuests,
   );
 
+  // Bébés (0-3 ans) : gratuits, non comptés dans la capacité (total = adultes + enfants).
+  const infantsRow = createCounterRow(
+    i18n.t('guests.babies'),
+    i18n.t('guests.babiesAge'),
+    () => state.get().infants,
+    (v: number) => state.set({ infants: v }, 'stateChange'),
+    0,
+    maxGuests,
+  );
+
   panel.appendChild(adultsRow.el);
   panel.appendChild(childrenRow.el);
+  panel.appendChild(infantsRow.el);
 
   container.appendChild(toggle);
   container.appendChild(panel);
@@ -82,6 +93,7 @@ export function createGuestSelector(state: StateManager, i18n: I18n, maxGuests: 
 
     adultsRow.update(s.adults);
     childrenRow.update(s.children);
+    infantsRow.update(s.infants);
   });
 
   return container;

@@ -8,6 +8,8 @@ import type { BookingEngineConfig, DesignTokens } from '../../../../services/api
 import { registerBookingComponents } from './bookingComponents';
 import { BOOKING_WIDGET_DEFS } from './bookingWidgetDefs';
 import ImportPanel from './ImportPanel';
+import type { GalleryTemplate } from './import/galleryTemplates';
+import { sanitizeHtml, sanitizeCss } from './import/sanitizeHtml';
 import PagesBar from '../builder/PagesBar';
 import { useSitePages } from '../useSitePages';
 import type { Breakpoint } from '../StudioShell';
@@ -102,6 +104,53 @@ function parseInitialProject(blocks: string | null | undefined): ProjectData | u
     /* JSON illisible → vierge */
   }
   return undefined;
+}
+
+/**
+ * Lit l'enveloppe grapes « HTML+CSS sans projectData » (= graine d'un template natif importé : cf.
+ * `galleryTemplates`/`importPages`). `parseInitialProject` ne la voit pas (aucun `projectData.pages`) ;
+ * c'est `loadPageInto` qui la charge alors via `setComponents`+`setStyle`. Renvoie `null` sinon.
+ */
+function parseHtmlCssEnvelope(blocks: string | null | undefined): { html: string; css: string } | null {
+  if (!blocks) return null;
+  try {
+    const data = JSON.parse(blocks) as unknown;
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const obj = data as Record<string, unknown>;
+      if (obj.format === GRAPES_FORMAT && typeof obj.html === 'string') {
+        return { html: obj.html, css: typeof obj.css === 'string' ? obj.css : '' };
+      }
+    }
+  } catch {
+    /* JSON illisible → null */
+  }
+  return null;
+}
+
+const BLANK_PROJECT = { pages: [{ component: '' }] } as unknown as ProjectData;
+
+/**
+ * Charge le contenu d'une page dans l'éditeur, depuis sa string `blocks`/`pageLayout` :
+ *   1. enveloppe/projectData ré-éditable → `loadProjectData` (source de vérité, sans flash) ;
+ *   2. sinon enveloppe HTML+CSS seule (template importé) → `setComponents` + `setStyle` (assainis) ;
+ *      le 1er edit re-sérialisera la page AVEC projectData (auto-conversion, voir le listener `update`) ;
+ *   3. sinon → canvas vierge.
+ * L'appelant suspend la persistance (`hydratingRef`) autour de cet appel.
+ */
+function loadPageInto(editor: Editor, source: string | null | undefined): void {
+  const project = parseInitialProject(source);
+  if (project) {
+    editor.loadProjectData(project);
+    return;
+  }
+  const hc = parseHtmlCssEnvelope(source);
+  if (hc) {
+    editor.loadProjectData(BLANK_PROJECT);
+    editor.setComponents(sanitizeHtml(hc.html));
+    if (hc.css.trim()) editor.setStyle(sanitizeCss(hc.css));
+    return;
+  }
+  editor.loadProjectData(BLANK_PROJECT);
 }
 
 /**
@@ -311,6 +360,9 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     const container = containerRef.current;
     if (!container || cfg.loading || !cfg.config) return;
 
+    // projectData ré-éditable de la page initiale (undefined si page vierge OU enveloppe html+css seule).
+    const initialProject = parseInitialProject(initialBlocksRef.current);
+
     const editor = grapesjs.init({
       container,
       height: '100%',
@@ -328,13 +380,28 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       // Thème initial de l'iframe du canvas. Les changements ultérieurs passent par l'effet réactif
       // (`applyCanvasThemeCss`), qui met à jour un `<style>` dédié sans réinitialiser l'éditeur.
       canvasCss: buildCanvasThemeCss(cfg.config),
-      projectData: parseInitialProject(initialBlocksRef.current),
+      projectData: initialProject,
     });
     editorRef.current = editor;
     setEditorInstance(editor);
     // Le contenu initial vient d'être chargé via `projectData` : l'effet d'hydratation par page ne doit
     // pas le ré-écraser. On marque la page initiale comme déjà hydratée (clé = id, ou 'legacy').
     lastHydratedRef.current = persistTargetRef.current.pageMode ? persistTargetRef.current.pageId : 'legacy';
+    // Page initiale en enveloppe HTML+CSS seule (template natif importé, pas encore re-sérialisé avec
+    // projectData) : `projectData` était undefined → on charge via setComponents+setStyle. Persistance
+    // suspendue (l'auto-conversion en projectData se fera au 1er edit).
+    if (!initialProject) {
+      const hc = parseHtmlCssEnvelope(initialBlocksRef.current);
+      if (hc) {
+        hydratingRef.current = true;
+        try {
+          editor.setComponents(sanitizeHtml(hc.html));
+          if (hc.css.trim()) editor.setStyle(sanitizeCss(hc.css));
+        } finally {
+          setTimeout(() => { hydratingRef.current = false; }, 0);
+        }
+      }
+    }
 
     // Contexte des coutures : accesseur de config courante (lu au (re)mount des vues live SDK).
     const ctx = { getConfig: () => configRef.current };
@@ -395,12 +462,11 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     if (lastHydratedRef.current === key) return;
     lastHydratedRef.current = key;
     const source = pageMode && pages.selectedPage ? pages.selectedPage.blocks : cfg.config?.pageLayout;
-    const project = parseInitialProject(source);
-    // Suspend la persistance le temps du chargement (loadProjectData émet des `update`).
+    // Suspend la persistance le temps du chargement (load émet des `update`).
     hydratingRef.current = true;
     try {
-      // Projet vierge si la page n'a pas (encore) de contenu grapes : on repart d'un canvas propre.
-      editor.loadProjectData(project ?? ({ pages: [{ component: '' }] } as unknown as ProjectData));
+      // Charge projectData (ré-éditable) OU enveloppe html+css (template importé) OU canvas vierge.
+      loadPageInto(editor, source);
     } finally {
       // Relâche au prochain tick : laisse passer les `update` synchrones émis par le load.
       setTimeout(() => { hydratingRef.current = false; }, 0);
@@ -479,6 +545,59 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     lastHydratedRef.current = homeId;
   }, [pages]);
 
+  // Import d'un template natif multi-page (galerie) : crée/maj une SitePage par page (non destructif),
+  // applique le thème (couleur/police de marque), charge l'accueil dans le canvas. Repli mono-page si
+  // l'API sites est indisponible : charge juste l'accueil (persisté dans config.pageLayout).
+  const handleImportTemplate = useCallback(async (template: GalleryTemplate) => {
+    setImportOpen(false);
+    const editor = editorRef.current;
+
+    // Thème de marque : reflété live via l'effet réactif + persisté par le hook config.
+    const themeChanges: Partial<BookingEngineConfig> = {};
+    if (template.theme?.primaryColor) themeChanges.primaryColor = template.theme.primaryColor;
+    if (template.theme?.fontFamily) themeChanges.fontFamily = template.theme.fontFamily;
+    if (Object.keys(themeChanges).length > 0) cfg.patch(themeChanges);
+
+    const envelopeOf = (p: { html: string; css: string }) =>
+      JSON.stringify({ format: GRAPES_FORMAT, html: p.html, css: p.css });
+
+    if (pages.ready) {
+      try {
+        const result = await pages.importPages(
+          template.pages.map((p) => ({
+            path: p.path,
+            type: p.type,
+            title: p.title,
+            seoTitle: p.seoTitle ?? null,
+            seoDescription: p.seoDescription ?? null,
+            blocks: envelopeOf(p),
+          })),
+        );
+        // L'accueil est désormais sélectionné ; s'il l'était déjà, l'effet d'hydratation ne se redéclenche
+        // pas → on charge son contenu manuellement dans le canvas (comme handleReset). Persistance
+        // suspendue : importPages a déjà écrit les pages (auto-conversion projectData au 1er edit).
+        if (editor && result) {
+          hydratingRef.current = true;
+          try {
+            loadPageInto(editor, result.homeBlocks);
+          } finally {
+            setTimeout(() => { hydratingRef.current = false; }, 0);
+          }
+          lastHydratedRef.current = result.homeId;
+        }
+      } catch {
+        /* échec API : erreurs exposées par le hook ; on n'écrase pas le canvas courant */
+      }
+      return;
+    }
+
+    // Repli mono-page : pas de SitePages → on charge l'accueil (NON suspendu → persisté en pageLayout).
+    if (editor) {
+      const home = template.pages.find((p) => p.type === 'HOME') ?? template.pages[0];
+      if (home) loadPageInto(editor, envelopeOf(home));
+    }
+  }, [pages, cfg]);
+
   // Publication (B4) : enregistre le brouillon courant puis fige l'instantané publié (servi au public).
   const handlePublish = useCallback(async () => {
     if (!pageMode || pages.selectedPageId == null) return;
@@ -555,7 +674,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         editor={editorInstance}
-        config={cfg.config}
+        onImportTemplate={handleImportTemplate}
       />
     </Box>
   );

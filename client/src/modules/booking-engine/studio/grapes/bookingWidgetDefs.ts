@@ -84,25 +84,11 @@ export interface BookingWidgetDef {
 /** Attribut-marqueur émis à l'export (ancre d'hydratation SDK/SSR). Valeur = `BookingWidgetDef.id`. */
 export const BOOKING_WIDGET_ATTR = 'data-clenzy-widget';
 
-/** Type historique du widget de réservation complet (compat G0 : marqueur `data-clenzy-widget="booking"`). */
-export const BOOKING_WIDGET_TYPE = 'booking-widget';
-/** Valeur de marqueur du widget de réservation complet (rétro-compatible avec le projet G0). */
-export const BOOKING_WIDGET_ATTR_VALUE = 'booking';
-
 /** Catégorie unique du BlockManager pour tous les widgets de réservation. */
 const CATEGORY = 'Clenzy/Réservation';
 
 /* ── Icônes SVG statiques (alignées sur lucide-react, mêmes glyphes que `widgetRegistry`) ──
  * Chaque icône est un DOM 100 % statique (aucun innerHTML) construit par `bookingComponents.buildIcon`. */
-
-/** Calendrier coché — widget de réservation COMPLET (lucide `CalendarCheck`). */
-const CALENDAR_ICON: BookingIconShape = {
-  paths: [
-    { tag: 'rect', attrs: { x: '3', y: '4', width: '18', height: '18', rx: '2' } },
-    { tag: 'path', attrs: { d: 'M16 2v4M8 2v4M3 10h18' } },
-    { tag: 'path', attrs: { d: 'm9 16 2 2 4-4' } },
-  ],
-};
 
 /** Loupe — recherche ville (lucide `Search`). */
 const SEARCH_ICON: BookingIconShape = {
@@ -234,20 +220,7 @@ const ROTATE_ICON: BookingIconShape = {
 };
 
 /**
- * Widget de réservation COMPLET (G1). `widgetType: null` → layout SDK vide → le SDK rend son
- * formulaire de recherche par défaut (property-first). Conserve l'id/valeur de marqueur du socle G0
- * pour ne pas casser les projets déjà persistés.
- */
-const BOOKING_WIDGET: BookingWidgetDef = {
-  id: BOOKING_WIDGET_TYPE,
-  label: 'Widget de réservation',
-  category: CATEGORY,
-  icon: CALENDAR_ICON,
-  widgetType: null,
-};
-
-/**
- * Micro-widgets SDK exposés en blocs GrapesJS (G2). Chaque entrée cible UN `WidgetType` réel,
+ * Micro-widgets SDK exposés en blocs GrapesJS. Chaque entrée cible UN `WidgetType` réel,
  * câblé par `BaitlyWidget.buildLayoutWidget`. Les `defaultProps` reprennent ceux du `widgetRegistry`
  * (source de vérité de l'aperçu Studio) pour que le bloc déposé rende un état par défaut cohérent.
  *
@@ -256,9 +229,9 @@ const BOOKING_WIDGET: BookingWidgetDef = {
  *
  * NB : le conteneur `group` (17e `WidgetType`) n'est PAS exposé : c'est un agrégateur SDK qui n'a de
  * sens qu'AVEC des enfants, ce que le `componentConfig` mono-nœud (`widgetLayout[0]`) ne peut pas
- * transporter. La composition se fait nativement en GrapesJS (plusieurs blocs côte à côte), pas via un
- * `group` vide. Pour une « barre de recherche complète », utiliser le widget de réservation complet
- * (`booking-widget`, layout vide → formulaire de recherche par défaut du SDK).
+ * transporter. La composition se fait nativement en GrapesJS (plusieurs blocs côte à côte). La barre de
+ * recherche du parcours est rendue par la primitive `search` du SDK (marqueur `data-clenzy-widget="search"`),
+ * PAS par un widget « tout-en-un » (l'ancien widget monolithique a été supprimé).
  */
 
 // ── Recherche ──
@@ -437,11 +410,11 @@ const REBOOK_WIDGET: BookingWidgetDef = {
 };
 
 /**
- * Registre des widgets de réservation montables dans GrapesJS.
- * Widget complet (G0/G1) + les 16 micro-widgets SDK (G2), ordonnés par étape du parcours.
+ * Registre des widgets de réservation montables dans GrapesJS : les micro-widgets SDK, ordonnés par
+ * étape du parcours. Il n'y a PLUS de widget « tout-en-un » (l'ancien monolithe a été supprimé) — la
+ * barre de recherche est la primitive `search` du SDK.
  */
 export const BOOKING_WIDGET_DEFS: BookingWidgetDef[] = [
-  BOOKING_WIDGET,
   // Recherche
   CITY_SEARCH_WIDGET,
   DATES_WIDGET,
@@ -465,10 +438,7 @@ export const BOOKING_WIDGET_DEFS: BookingWidgetDef[] = [
   REBOOK_WIDGET,
 ];
 
-/**
- * Valeur de marqueur (`data-clenzy-widget`) pour une def : l'id du composant. Le widget complet
- * historique garde sa valeur dédiée (`booking`) pour rester rétro-compatible avec le projet G0.
- */
+/** Valeur de marqueur (`data-clenzy-widget`) pour une def = l'id du composant. */
 export function attrValueOf(def: BookingWidgetDef): string {
-  return def.id === BOOKING_WIDGET_TYPE ? BOOKING_WIDGET_ATTR_VALUE : def.id;
+  return def.id;
 }

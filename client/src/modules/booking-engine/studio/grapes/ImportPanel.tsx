@@ -1,23 +1,21 @@
 import { useState, type ReactNode } from 'react';
 import { Box, ButtonBase, Modal } from '@mui/material';
-import { X, Globe, ClipboardPaste, FileUp, LayoutTemplate } from 'lucide-react';
+import { X, ClipboardPaste, FileUp, LayoutTemplate } from 'lucide-react';
 import type { Editor } from 'grapesjs';
-import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
-import ImportFromUrl from './ImportFromUrl';
+import type { GalleryTemplate } from './import/galleryTemplates';
 import ImportPaste from './ImportPaste';
 import ImportFile from './ImportFile';
 import ImportGallery from './ImportGallery';
 
 /**
- * Panneau « Importer » du Studio GrapesJS : modale multi-onglets qui rend l'un des 4 composants de slot
- * (« Depuis une URL », « Coller », « Fichier », « Galerie »). Le seul onglet fonctionnel en fondation est
- * « Depuis une URL » (logique migrée de l'ancienne commande d'import URL) ; les 3 autres sont des stubs.
- *
- * Tout converge vers HTML+CSS : chaque slot injecte via `loadHtmlIntoEditor` puis appelle `onDone`
- * (= fermeture du panneau). L'éditeur GrapesJS et la config courante sont fournis par `GrapesStudio`.
+ * Panneau « Importer » du Studio GrapesJS : modale multi-onglets qui rend l'un des 3 composants de slot
+ * (« Coller », « Fichier », « Galerie »). On importe des EXPORTS de templates (fichiers issus de
+ * générateurs/CMS : HTML/Bootstrap, Webflow, Gutenberg, Elementor, GrapesJS…), jamais une URL live
+ * (le scraping live a été abandonné : fidélité non garantie). Chaque slot converge vers HTML+CSS via
+ * la couche d'adaptation (`import/*`) puis injecte via `loadHtmlIntoEditor` et appelle `onDone`.
  */
 
-type TabId = 'url' | 'paste' | 'file' | 'gallery';
+type TabId = 'file' | 'paste' | 'gallery';
 
 interface TabDef {
   id: TabId;
@@ -26,9 +24,8 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: 'url', label: 'Depuis une URL', icon: <Globe size={15} strokeWidth={2} /> },
-  { id: 'paste', label: 'Coller', icon: <ClipboardPaste size={15} strokeWidth={2} /> },
   { id: 'file', label: 'Fichier', icon: <FileUp size={15} strokeWidth={2} /> },
+  { id: 'paste', label: 'Coller', icon: <ClipboardPaste size={15} strokeWidth={2} /> },
   { id: 'gallery', label: 'Galerie', icon: <LayoutTemplate size={15} strokeWidth={2} /> },
 ];
 
@@ -39,12 +36,12 @@ export interface ImportPanelProps {
   onClose: () => void;
   /** Éditeur GrapesJS cible (transmis aux slots pour l'injection). `null` tant que non monté. */
   editor: Editor | null;
-  /** Config courante (résolution du site cible pour l'import URL). */
-  config: BookingEngineConfig | null;
+  /** Import d'un template natif multi-page (résolu par `GrapesStudio` : pages + thème + accueil). */
+  onImportTemplate: (template: GalleryTemplate) => void;
 }
 
-export default function ImportPanel({ open, onClose, editor, config }: ImportPanelProps) {
-  const [tab, setTab] = useState<TabId>('url');
+export default function ImportPanel({ open, onClose, editor, onImportTemplate }: ImportPanelProps) {
+  const [tab, setTab] = useState<TabId>('file');
 
   // Garde-fou : sans éditeur monté, aucun slot ne peut injecter — on ne rend pas le corps.
   const renderSlot = (): ReactNode => {
@@ -56,14 +53,12 @@ export default function ImportPanel({ open, onClose, editor, config }: ImportPan
       );
     }
     switch (tab) {
-      case 'url':
-        return <ImportFromUrl editor={editor} config={config} onDone={onClose} />;
-      case 'paste':
-        return <ImportPaste editor={editor} onDone={onClose} />;
       case 'file':
         return <ImportFile editor={editor} onDone={onClose} />;
+      case 'paste':
+        return <ImportPaste editor={editor} onDone={onClose} />;
       case 'gallery':
-        return <ImportGallery editor={editor} onDone={onClose} />;
+        return <ImportGallery onImportTemplate={onImportTemplate} onDone={onClose} />;
     }
   };
 

@@ -121,15 +121,53 @@ function renderStep(step: PrimitiveStep, ctx: MountContext, el: HTMLElement): HT
 
   switch (step) {
     case 'search': {
-      // Recherche = barre composite : logements + dates + voyageurs + bouton. Le bouton mémorise le
-      // séjour ; si `data-clenzy-next` est déclaré, on navigue vers la page résultats du template (B3).
+      // Barre de RECHERCHE (≠ ancien widget monolithique : aucune carte logement ni panier ici).
+      // Champs : ville + dates + voyageurs (adultes/enfants/bébés) + filtres avancés (repliés) + bouton.
+      // Le bouton « Rechercher » navigue vers la page résultats déclarée par le template (data-clenzy-next).
       const wrap = document.createElement('div');
       wrap.className = 'cb-section cb-search';
-      wrap.appendChild(createPropertyList(state, i18n, baseUrl, propertyListOpts(config)));
+
+      // Ville / destination : alimente `state.destination` (filtre la liste des logements, cf. PropertyList).
+      const dest = document.createElement('input');
+      dest.type = 'text';
+      dest.className = 'cb-input cb-search__destination';
+      dest.placeholder = i18n.t('search.destination');
+      dest.value = state.get().destination;
+      dest.setAttribute('aria-label', i18n.t('search.destination'));
+      dest.addEventListener('input', () => { state.set({ destination: dest.value }, 'stateChange'); });
+      wrap.appendChild(dest);
+
+      // Dates + voyageurs (le sélecteur inclut désormais les bébés).
       wrap.appendChild(createDatePicker(state, i18n));
       wrap.appendChild(createCalendar(state, i18n, currency));
       wrap.appendChild(createGuestSelector(state, i18n, config.maxGuests || 10));
-      wrap.appendChild(createCTAButton(state, i18n, () => { navigateTo(readNext(el)); }));
+
+      // Filtres avancés (type de logement…), repliés par défaut, révélés par un bouton.
+      const filters = createPropertyFilter(state, i18n, currency);
+      filters.style.display = 'none';
+      const filtersToggle = document.createElement('button');
+      filtersToggle.type = 'button';
+      filtersToggle.className = 'cb-search__filters-toggle';
+      filtersToggle.textContent = i18n.t('search.filters');
+      filtersToggle.setAttribute('aria-expanded', 'false');
+      filtersToggle.addEventListener('click', () => {
+        const open = filters.style.display === 'none';
+        filters.style.display = open ? '' : 'none';
+        filtersToggle.setAttribute('aria-expanded', String(open));
+      });
+      wrap.appendChild(filtersToggle);
+      wrap.appendChild(filters);
+
+      // Bouton Rechercher (toujours actif, ≠ CTA « Réserver » qui exige des dates) → navigation template.
+      const submitWrap = document.createElement('div');
+      submitWrap.className = 'cb-section';
+      const submit = document.createElement('button');
+      submit.type = 'button';
+      submit.className = 'cb-cta cb-search__submit';
+      submit.textContent = i18n.t('search.submit');
+      submit.addEventListener('click', () => { navigateTo(readNext(el)); });
+      submitWrap.appendChild(submit);
+      wrap.appendChild(submitWrap);
       return wrap;
     }
     case 'results':

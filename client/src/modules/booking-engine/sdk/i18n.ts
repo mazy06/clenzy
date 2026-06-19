@@ -17,6 +17,9 @@ const fr: Dict = {
   'searchBar.select': 'Sélectionner...',
   'searchBar.stayDates': 'Dates de séjour',
   'searchBar.allTypes': 'Tous',
+  'search.destination': 'Où allez-vous ?',
+  'search.filters': 'Filtres avancés',
+  'search.submit': 'Rechercher',
   // Guests
   'guests.adults': 'Adultes',
   'guests.adultsAge': '12 ans et +',
@@ -196,6 +199,7 @@ const fr: Dict = {
 const en: Dict = {
   'searchBar.travelers': 'Travelers', 'searchBar.accommodations': 'Accommodations', 'searchBar.dates': 'Dates',
   'searchBar.select': 'Select...', 'searchBar.stayDates': 'Stay dates', 'searchBar.allTypes': 'All',
+  'search.destination': 'Where are you going?', 'search.filters': 'Advanced filters', 'search.submit': 'Search',
   'guests.adults': 'Adults', 'guests.adultsAge': '12 and over', 'guests.children': 'Children',
   'guests.childrenAge': '3 to 11 years', 'guests.babies': 'Babies', 'guests.babiesAge': '0 to 3 years',
   'guests.adult': 'Adult(s)', 'guests.child': 'Child(ren)', 'guests.baby': 'Baby(ies)',
@@ -288,6 +292,7 @@ const en: Dict = {
 const ar: Dict = {
   'searchBar.travelers': 'المسافرون', 'searchBar.accommodations': 'أماكن الإقامة', 'searchBar.dates': 'التواريخ',
   'searchBar.select': 'اختر...', 'searchBar.stayDates': 'تواريخ الإقامة', 'searchBar.allTypes': 'الكل',
+  'search.destination': 'إلى أين تذهب؟', 'search.filters': 'تصفية متقدمة', 'search.submit': 'بحث',
   'guests.adults': 'بالغون', 'guests.adultsAge': '12 سنة وأكثر', 'guests.children': 'أطفال',
   'guests.childrenAge': '3 إلى 11 سنة', 'guests.babies': 'رضع', 'guests.babiesAge': '0 إلى 3 سنوات',
   'guests.adult': 'بالغ(ون)', 'guests.child': 'طفل (أطفال)', 'guests.baby': 'رضيع (رضع)',

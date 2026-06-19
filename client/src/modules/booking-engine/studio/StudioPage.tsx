@@ -8,7 +8,6 @@ import {
   CalendarCheck,
   TrendingUp,
   Share2,
-  Rocket,
   Wand2,
   Newspaper,
 } from 'lucide-react';
@@ -86,9 +85,9 @@ export default function StudioPage() {
       icon: s.icon,
       run: () => setActiveSection(s.key),
     }));
+    // La publication est par page (badge + bouton Publier dans l'éditeur GrapesJS), pas une action globale.
     const actions: StudioCommand[] = [
       { id: 'design-analysis', label: 'Analyse du design', group: 'Actions', keywords: 'ia design site couleur typo url analyser', icon: Wand2, run: () => setDesignAnalysisOpen(true) },
-      { id: 'publish', label: 'Publier le booking engine', group: 'Actions', icon: Rocket, run: () => {/* F5 */} },
     ];
     return [...navCmds, ...actions];
   }, []);

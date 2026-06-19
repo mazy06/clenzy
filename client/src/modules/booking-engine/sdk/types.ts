@@ -72,9 +72,13 @@ export interface WidgetState {
   checkOut: string | null;
   adults: number;
   children: number;
+  /** Bébés (0-3 ans) : saisis dans la recherche, NON comptés dans la capacité (gratuits). */
+  infants: number;
   calendarOpen: boolean;
   calendarBaseMonth: string; // YYYY-MM
   guestsOpen: boolean;
+  /** Destination saisie dans la barre de recherche (ville) ; filtre la liste des logements. */
+  destination: string;
   // Property-first : liste + propriete selectionnee
   properties: WidgetProperty[];
   selectedPropertyId: number | null;

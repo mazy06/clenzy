@@ -194,11 +194,148 @@ function registerOne(editor: Editor, def: BookingWidgetDef, ctx: BookingComponen
 }
 
 /**
- * Enregistre tous les widgets de réservation (`BOOKING_WIDGET_DEFS`) sur l'éditeur fourni.
+ * Réconciliation des marqueurs — vocabulaire RUNTIME (parcours `mountPrimitive` / `BaitlyBooking.hydrate`).
+ *
+ * Les templates natifs (cf. `galleryTemplates`) utilisent les valeurs de PARCOURS (`search`, `results`,
+ * `property`, `confirmation`…) : c'est ce que le SDK hydrate à la PUBLICATION. Pour que ces marqueurs
+ * s'AFFICHENT aussi dans le canvas de l'éditeur, on enregistre un type de composant par step, mappé sur
+ * le micro-widget d'aperçu correspondant — SANS jamais réécrire la valeur du marqueur (préservée à
+ * l'export, donc l'hydratation runtime reste correcte). property/confirmation/checkout n'ont pas de
+ * micro-widget dédié → encart libellé neutre.
+ */
+const STEP_TO_DEF_ID: Record<string, string | null> = {
+  search: null, // aperçu = mock de barre de recherche (rendu réel = primitive `search` du SDK à la publication)
+  results: 'booking-property-results',
+  'property-list': 'booking-property-results',
+  dates: 'booking-dates',
+  availability: 'booking-dates',
+  guests: 'booking-guests',
+  currency: 'booking-currency',
+  price: 'booking-price-summary',
+  cart: 'booking-cart',
+  'guest-form': 'booking-guest-form',
+  account: 'booking-account',
+  property: null,
+  checkout: null,
+  confirmation: null,
+};
+
+/** Libellés des steps sans micro-widget d'aperçu (rendu réel à la publication). */
+const STEP_LABELS: Record<string, string> = {
+  property: 'Détail du logement',
+  checkout: 'Paiement',
+  confirmation: 'Confirmation de réservation',
+};
+
+const DEF_BY_ID = new Map(BOOKING_WIDGET_DEFS.map((d) => [d.id, d]));
+
+/** Encart neutre libellé (steps sans micro-widget : property/checkout/confirmation). Démontage simple. */
+function mountStepLabel(el: HTMLElement, label: string): () => void {
+  const doc = el.ownerDocument || document;
+  el.replaceChildren();
+  el.classList.add('clenzy-booking-mount');
+  const box = doc.createElement('div');
+  box.className = 'clenzy-booking-placeholder';
+  const inner = doc.createElement('div');
+  inner.className = 'clenzy-booking-placeholder__inner';
+  const title = doc.createElement('div');
+  title.className = 'clenzy-booking-placeholder__title';
+  title.textContent = label;
+  const sub = doc.createElement('div');
+  sub.className = 'clenzy-booking-placeholder__hint';
+  sub.textContent = 'Rendu à la publication.';
+  inner.append(title, sub);
+  box.appendChild(inner);
+  el.appendChild(box);
+  return () => el.replaceChildren();
+}
+
+/**
+ * Aperçu STATIQUE de la barre de recherche (step `search`) dans le canvas : ville + arrivée + départ +
+ * voyageurs + bouton. Purement visuel (aucun SDK, aucun fetch) → pas l'ancien widget monolithique. Le
+ * rendu RÉEL (fonctionnel) est la primitive `search` du SDK, à la publication (`BaitlyBooking.hydrate`).
+ */
+function mountSearchMock(el: HTMLElement): () => void {
+  const doc = el.ownerDocument || document;
+  el.replaceChildren();
+  el.classList.add('clenzy-booking-mount');
+  const bar = doc.createElement('div');
+  bar.setAttribute('style', 'display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:14px;border:1px solid rgba(0,0,0,.12);border-radius:12px;background:#fff;');
+  const field = (label: string) => {
+    const f = doc.createElement('div');
+    f.setAttribute('style', 'flex:1 1 110px;min-width:90px;');
+    const t = doc.createElement('div');
+    t.setAttribute('style', 'font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:5px;');
+    t.textContent = label;
+    const v = doc.createElement('div');
+    v.setAttribute('style', 'font-size:14px;color:#475569;');
+    v.textContent = '—';
+    f.append(t, v);
+    return f;
+  };
+  bar.append(field('Ville'), field('Arrivée'), field('Départ'), field('Voyageurs'));
+  const btn = doc.createElement('div');
+  btn.setAttribute('style', 'flex:0 0 auto;padding:11px 22px;border-radius:999px;background:#64748b;color:#fff;font-size:14px;font-weight:600;');
+  btn.textContent = 'Rechercher';
+  bar.appendChild(btn);
+  el.appendChild(bar);
+  return () => el.replaceChildren();
+}
+
+/** Enregistre un type de composant par step de parcours (vocabulaire runtime), pour l'aperçu éditeur. */
+function registerStepType(editor: Editor, step: string, ctx: BookingComponentsCtx): void {
+  const typeId = `clenzy-step-${step}`;
+  const defId = STEP_TO_DEF_ID[step];
+  const def = defId ? DEF_BY_ID.get(defId) ?? null : null;
+  let unmount: (() => void) | null = null;
+
+  editor.DomComponents.addType(typeId, {
+    // Re-typage au chargement : un div `data-clenzy-widget="<step>"` redevient ce composant d'aperçu.
+    isComponent: (el) =>
+      el.getAttribute?.(BOOKING_WIDGET_ATTR) === step ? { type: typeId } : undefined,
+    model: {
+      defaults: {
+        tagName: 'div',
+        name: def?.label ?? STEP_LABELS[step] ?? step,
+        // La valeur du marqueur est PRÉSERVÉE (= step) → l'hydratation runtime reste correcte.
+        attributes: { [BOOKING_WIDGET_ATTR]: step },
+        droppable: false,
+        editable: false,
+        highlightable: true,
+        components: [],
+      },
+    },
+    view: {
+      onRender({ el }) {
+        if (unmount) unmount();
+        if (step === 'search') {
+          unmount = mountSearchMock(el as HTMLElement);
+        } else {
+          unmount = def
+            ? mountLiveWidget(el as HTMLElement, def, ctx.getConfig())
+            : mountStepLabel(el as HTMLElement, STEP_LABELS[step] ?? step);
+        }
+      },
+      removed() {
+        if (unmount) {
+          unmount();
+          unmount = null;
+        }
+      },
+    },
+  });
+}
+
+/**
+ * Enregistre tous les widgets de réservation (`BOOKING_WIDGET_DEFS`, vocabulaire éditeur = blocs
+ * drag&drop) PLUS les types de step du parcours (vocabulaire runtime, pour l'aperçu des templates).
  * Idempotent à l'échelle d'une instance d'éditeur (appelé une fois après l'init).
  */
 export function registerBookingComponents(editor: Editor, ctx: BookingComponentsCtx): void {
   for (const def of BOOKING_WIDGET_DEFS) {
     registerOne(editor, def, ctx);
+  }
+  for (const step of Object.keys(STEP_TO_DEF_ID)) {
+    registerStepType(editor, step, ctx);
   }
 }
