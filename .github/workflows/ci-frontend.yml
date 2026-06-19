@@ -75,6 +75,10 @@ jobs:
           find dist -type f -name "*.js" -exec du -sh {} \; | sort -rh | head -10
 
       - name: Upload build artifacts
+        # L'upload d'artefacts ne doit JAMAIS bloquer le build/deploy : un quota
+        # d'artefacts GitHub atteint ("Artifact storage quota has been hit") faisait
+        # echouer tout le job (tsc + build OK) et skippait le deploy frontend.
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
