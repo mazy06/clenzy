@@ -118,16 +118,20 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
     const linked = new Map<string, PlanningEvent[]>();
     const visible: BarLayout[] = [];
     for (const l of barLayouts) {
-      // Seules les vraies interventions sont rattachables — les plages
-      // bloquées (type maintenance sans `intervention`) et les service
-      // requests en attente de paiement restent rendues telles quelles.
+      // Un ménage/maintenance rattachable provient soit d'une INTERVENTION
+      // (linkedReservationId), soit d'une SERVICE REQUEST « A payer »
+      // (reservationId) — les deux doivent s'afficher DANS la brique de leur
+      // réservation. Les plages bloquées (ni l'un ni l'autre) restent telles quelles.
       const isInterventionType = l.event.type === 'cleaning' || l.event.type === 'maintenance';
-      if (isInterventionType && l.event.intervention) {
+      const attachable = l.event.intervention || l.event.serviceRequest;
+      if (isInterventionType && attachable) {
+        const linkedReservationId = l.event.intervention?.linkedReservationId
+          ?? l.event.serviceRequest?.reservationId;
         const attachedResId = resolveAttachedReservationId(
           {
             propertyId: l.event.propertyId,
             startDate: l.event.startDate,
-            linkedReservationId: l.event.intervention.linkedReservationId,
+            linkedReservationId,
           },
           loadedReservations,
         );
