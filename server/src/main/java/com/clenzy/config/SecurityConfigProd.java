@@ -136,6 +136,10 @@ public class SecurityConfigProd {
                         // Autorisation des flux media : appele par nginx (auth_request) serveur-a-serveur,
                         // sans JWT. La securite vient du ticket HMAC scope au flux (MediaTicketService).
                         .requestMatchers(HttpMethod.GET, "/api/media/verify").permitAll()
+                        // Avatars : consommes en <img src> (pas de header Authorization possible).
+                        // Securite par ticket HMAC scope avatar:{id} valide dans UserController
+                        // (fail-closed : ticket valide OU, a defaut, JWT meme-org). Cf. MediaTicketService.
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/profile-picture").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/webhooks/expedia").permitAll()
                         .requestMatchers("/api/webhooks/whatsapp").permitAll()
