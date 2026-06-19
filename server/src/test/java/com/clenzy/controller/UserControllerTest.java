@@ -38,12 +38,13 @@ class UserControllerTest {
     @Mock private UserService userService;
     @Mock private LoginProtectionService loginProtectionService;
     @Mock private DeviceTokenService deviceTokenService;
+    @Mock private com.clenzy.service.MediaTicketService mediaTicketService;
 
     private UserController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new UserController(userService, loginProtectionService, deviceTokenService);
+        controller = new UserController(userService, loginProtectionService, deviceTokenService, mediaTicketService);
     }
 
     private Jwt buildJwt(String subject, boolean isSuperAdmin) {
@@ -588,7 +589,7 @@ class UserControllerTest {
             when(userService.streamProfilePicture(1L)).thenReturn(null);
 
             ResponseEntity<org.springframework.core.io.Resource> response =
-                    controller.getProfilePicture(1L, jwt);
+                    controller.getProfilePicture(1L, null, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(404);
         }
@@ -603,7 +604,7 @@ class UserControllerTest {
                     .thenReturn(new Object[]{resource, "image/jpeg"});
 
             ResponseEntity<org.springframework.core.io.Resource> response =
-                    controller.getProfilePicture(1L, jwt);
+                    controller.getProfilePicture(1L, null, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).isSameAs(resource);
@@ -626,7 +627,7 @@ class UserControllerTest {
 
             // Act
             ResponseEntity<org.springframework.core.io.Resource> response =
-                    controller.getProfilePicture(1L, jwt);
+                    controller.getProfilePicture(1L, null, jwt);
 
             // Assert
             assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -642,7 +643,7 @@ class UserControllerTest {
                     .when(userService).requireSameOrganizationOrSelf(1L, "kc-intruder", false);
 
             // Act & Assert : pas de fuite de photo cross-org
-            assertThatThrownBy(() -> controller.getProfilePicture(1L, jwt))
+            assertThatThrownBy(() -> controller.getProfilePicture(1L, null, jwt))
                     .isInstanceOf(AccessDeniedException.class);
             verify(userService, never()).streamProfilePicture(any());
         }
@@ -655,7 +656,7 @@ class UserControllerTest {
                     "Acces refuse : vous ne pouvez consulter que les photos de votre organisation"))
                     .when(userService).requireSameOrganizationOrSelf(999L, "kc-123", false);
 
-            assertThatThrownBy(() -> controller.getProfilePicture(999L, jwt))
+            assertThatThrownBy(() -> controller.getProfilePicture(999L, null, jwt))
                     .isInstanceOf(AccessDeniedException.class);
             verify(userService, never()).streamProfilePicture(any());
         }
@@ -670,7 +671,7 @@ class UserControllerTest {
                     .thenReturn(new Object[]{resource, "image/jpeg"});
 
             ResponseEntity<org.springframework.core.io.Resource> response =
-                    controller.getProfilePicture(1L, jwt);
+                    controller.getProfilePicture(1L, null, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(userService).requireSameOrganizationOrSelf(1L, "kc-admin", true);
@@ -692,7 +693,7 @@ class UserControllerTest {
                     .thenReturn(new Object[]{resource, "image/jpeg"});
 
             ResponseEntity<org.springframework.core.io.Resource> response =
-                    controller.getProfilePicture(1L, jwt);
+                    controller.getProfilePicture(1L, null, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(userService).requireSameOrganizationOrSelf(1L, "kc-staff", true);
