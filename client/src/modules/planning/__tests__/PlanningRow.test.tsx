@@ -41,6 +41,7 @@ import PlanningRow from '../PlanningRow';
 import type { BarLayout, PlanningEvent, PlanningProperty, PlanningDragState } from '../types';
 import type { PricingMap } from '../hooks/usePlanningPricing';
 import type { Reservation, PlanningIntervention } from '../../../services/api';
+import type { PlanningServiceRequest } from '../../../services/api/serviceRequestsApi';
 
 // ─── Test fixtures ──────────────────────────────────────────────────────────
 
@@ -330,6 +331,53 @@ describe('PlanningRow', () => {
         loadedReservations: [],
       });
       const bars = container.querySelectorAll('[data-planning-bar]');
+      expect(bars.length).toBe(1);
+    });
+
+    // Ménage « A payer » = SERVICE REQUEST (pas encore une intervention). Lié à la
+    // réservation via reservationId. Doit AUSSI s'afficher DANS la brique.
+    const cleaningSr: PlanningServiceRequest = {
+      id: 2000,
+      propertyId: 1,
+      propertyName: 'Villa Test',
+      serviceType: 'CLEANING',
+      title: 'Ménage Airbnb (A payer)',
+      startDate: '2026-03-05',
+      estimatedDurationHours: 3,
+      status: 'AWAITING_PAYMENT',
+      reservationId: 42,
+    };
+
+    const cleaningSrEvent: PlanningEvent = {
+      id: 'sr-2000',
+      type: 'cleaning',
+      propertyId: 1,
+      startDate: '2026-03-05',
+      endDate: '2026-03-05',
+      label: 'Ménage Airbnb (A payer)',
+      status: 'awaiting_payment',
+      color: '#5083C9',
+      isAwaitingPayment: true,
+      serviceRequest: cleaningSr,
+    };
+
+    const cleaningSrLayout: BarLayout = {
+      event: cleaningSrEvent,
+      left: 320,
+      width: 80,
+      top: 4,
+      height: 34,
+      layer: 'primary',
+    };
+
+    it('absorbe une SERVICE REQUEST « A payer » liée (reservationId) dans la brique', () => {
+      const { container } = renderRow({
+        barLayouts: [hostLayout, cleaningSrLayout],
+        allEvents: [hostEvent, cleaningSrEvent],
+        loadedReservations: [hostReservation],
+      });
+      const bars = container.querySelectorAll('[data-planning-bar]');
+      // Une seule brique : la réservation. La SR ménage est une pastille DEDANS.
       expect(bars.length).toBe(1);
     });
   });
