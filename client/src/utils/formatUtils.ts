@@ -40,7 +40,7 @@ export function parseApiDate(value: string | number | Date | null | undefined): 
 export function formatDate(dateString: string | undefined | null): string {
   if (!dateString) return '';
   try {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
+    return parseApiDate(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -56,7 +56,7 @@ export function formatDate(dateString: string | undefined | null): string {
 export function formatDateTime(dateString: string | undefined | null): string {
   if (!dateString) return '';
   try {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
+    return parseApiDate(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -78,7 +78,7 @@ export function formatRelativeDate(
 ): string {
   if (!dateString) return '';
   try {
-    const date = new Date(dateString);
+    const date = parseApiDate(dateString);
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -106,7 +106,7 @@ export function formatRelativeDate(
 export function formatShortDate(dateString: string | undefined | null): string {
   if (!dateString) return '';
   try {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
+    return parseApiDate(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: 'short',
     });
@@ -122,7 +122,7 @@ export function formatShortDate(dateString: string | undefined | null): string {
 export function formatTimeFromDate(dateString: string | undefined | null): string {
   if (!dateString) return '';
   try {
-    const d = new Date(dateString);
+    const d = parseApiDate(dateString);
     const h = d.getHours();
     const m = d.getMinutes();
     if (h === 0 && m === 0) return ''; // midnight = no meaningful time
