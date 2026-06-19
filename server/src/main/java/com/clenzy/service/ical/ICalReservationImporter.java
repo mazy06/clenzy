@@ -66,18 +66,28 @@ public class ICalReservationImporter {
         Long feedId = session.feed.getId();
         for (Reservation reservation : reservationRepository.findByPropertyId(
                 session.property.getId(), session.orgId)) {
-            String uid = reservation.getExternalUid();
-            if (uid == null) {
-                continue;
-            }
             ICalFeed reservationFeed = reservation.getIcalFeed();
             if (reservationFeed != null && !feedId.equals(reservationFeed.getId())) {
-                continue; // UID d'un autre feed : pas un doublon pour ce feed
+                continue; // reservation d'un AUTRE feed : pas un doublon pour ce feed
             }
-            if (reservationFeed != null || !session.knownUidToReservationId.containsKey(uid)) {
-                session.knownUidToReservationId.put(uid, reservation.getId());
+            String uid = reservation.getExternalUid();
+            if (uid != null) {
+                if (reservationFeed != null || !session.knownUidToReservationId.containsKey(uid)) {
+                    session.knownUidToReservationId.put(uid, reservation.getId());
+                }
+            } else {
+                // Sans UID : repli sur la cle dates (priorite a CE feed comme pour l'UID).
+                String dateKey = dateKey(reservation.getCheckIn(), reservation.getCheckOut());
+                if (reservationFeed != null || !session.knownDateKeyToReservationId.containsKey(dateKey)) {
+                    session.knownDateKeyToReservationId.put(dateKey, reservation.getId());
+                }
             }
         }
+    }
+
+    /** Cle de dedoublonnage de repli pour les evenements sans UID. */
+    private static String dateKey(LocalDate checkIn, LocalDate checkOut) {
+        return checkIn + "_" + checkOut;
     }
 
     /**
@@ -99,10 +109,15 @@ public class ICalReservationImporter {
      * retourne l'id de la Reservation si elle existe deja pour CE feed.
      */
     private Long findExistingReservationId(ICalImportSession session, ICalEventPreview event) {
-        if (event.getUid() == null) {
+        if (event.getUid() != null) {
+            return session.knownUidToReservationId.get(event.getUid());
+        }
+        // Pas d'UID : repli sur la cle dates pour eviter une duplication au re-import.
+        if (event.getDtStart() == null) {
             return null;
         }
-        return session.knownUidToReservationId.get(event.getUid());
+        LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
+        return session.knownDateKeyToReservationId.get(dateKey(event.getDtStart(), checkOut));
     }
 
     /** Reservation deja existante — verifier si annulee cote OTA, sinon skip. */
@@ -131,9 +146,13 @@ public class ICalReservationImporter {
         reservation = reservationRepository.save(reservation);
         Long reservationId = reservation.getId();
 
-        // Dedup intra-batch : un meme UID repete dans ce feed sera skippe.
+        // Dedup intra-batch : un meme UID (ou, a defaut, memes dates) repete dans ce
+        // feed sera skippe au lieu d'etre reduplique.
         if (event.getUid() != null) {
             session.knownUidToReservationId.put(event.getUid(), reservationId);
+        } else {
+            session.knownDateKeyToReservationId.put(
+                    dateKey(reservation.getCheckIn(), reservation.getCheckOut()), reservationId);
         }
 
         // Auto-facture OTA : reservation de canal externe (deja payee). Facturee APRES

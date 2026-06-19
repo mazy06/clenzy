@@ -57,6 +57,13 @@ public final class ICalImportSession {
      */
     public final Map<String, Long> knownUidToReservationId = new HashMap<>();
     /**
+     * Dedoublonnage de REPLI pour les evenements iCal SANS UID (certains flux n'en
+     * fournissent pas) : sans cle stable, chaque re-import dupliquerait la
+     * reservation et son menage, orphelinant le lien intervention<->reservation.
+     * Cle = checkIn + "_" + checkOut (scope au feed, comme la map UID).
+     */
+    public final Map<String, Long> knownDateKeyToReservationId = new HashMap<>();
+    /**
      * Compteur local pour les noms generiques (ex: "Reserved" -> #1, #2, #3...).
      * Cle = propertyId + "_" + nomGenerique (lowercase).
      */

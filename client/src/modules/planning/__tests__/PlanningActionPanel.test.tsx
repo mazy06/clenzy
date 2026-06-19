@@ -241,14 +241,15 @@ describe('PlanningActionPanel', () => {
       expect(matches.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('should show "Reservation" for reservation events', () => {
+    it('should show "Réservation" for reservation events', () => {
       render(
         <PlanningActionPanel
           {...defaultProps}
           event={makeReservationEvent()}
         />,
       );
-      const matches = screen.getAllByText(/Reservation/);
+      // En-tête : « Réservation · {guest} » (libellé FR accentué).
+      const matches = screen.getAllByText(/Réservation/);
       expect(matches.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -271,11 +272,10 @@ describe('PlanningActionPanel', () => {
           event={makeReservationEvent()}
         />,
       );
-      // Dates appear in header + possibly tab content
-      const startDates = screen.getAllByText(/2025-06-01/);
-      expect(startDates.length).toBeGreaterThanOrEqual(1);
-      const endDates = screen.getAllByText(/2025-06-05/);
-      expect(endDates.length).toBeGreaterThanOrEqual(1);
+      // En-tête : plage de séjour formatée en français (date-fns, locale fr) —
+      // ex. « 1 → 5 juin 2025 · 4 nuits ». Plus d'ISO brut (2025-06-01).
+      const range = screen.getAllByText(/juin 2025/);
+      expect(range.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should have close button', () => {
