@@ -15,8 +15,8 @@ import java.util.List;
 
 /**
  * Initialise les mentions legales obligatoires par type de document au demarrage.
- * Idempotent : ne cree pas de doublon (les donnees initiales sont dans V31).
- * Verifie simplement que les mentions requises existent et log le resultat.
+ * Idempotent : ne cree pas de doublon (les donnees initiales sont seedees par les
+ * changesets Liquibase 0027 + 0275). Verifie que les mentions requises existent et log le resultat.
  */
 @Component
 public class LegalRequirementsInitializer {
@@ -40,7 +40,7 @@ public class LegalRequirementsInitializer {
 
         if (allRequirements.isEmpty()) {
             log.warn("Aucune mention legale trouvee en base. "
-                    + "Verifier que la migration V31 a ete executee.");
+                    + "Verifier que les changesets Liquibase 0027/0275 ont ete appliques.");
             return;
         }
 
