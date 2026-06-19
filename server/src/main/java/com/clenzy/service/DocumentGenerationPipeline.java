@@ -369,7 +369,9 @@ public class DocumentGenerationPipeline {
     static String buildPdfFilename(DocumentType type, Long referenceId) {
         String typeName = type.getLabel().replace(" ", "_");
         String refStr = referenceId != null ? "_REF-" + referenceId : "";
-        return typeName + refStr + "_" + LocalDateTime.now().format(
+        // Horodatage du nom de fichier en heure metier (Europe/Paris), jamais la
+        // zone JVM (UTC en prod) qui donnait un decalage de 2h (regle dates #9).
+        return typeName + refStr + "_" + LocalDateTime.now(java.time.ZoneId.of("Europe/Paris")).format(
                 java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".pdf";
     }
 

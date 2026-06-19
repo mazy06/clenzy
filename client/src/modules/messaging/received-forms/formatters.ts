@@ -1,4 +1,5 @@
 import type { ReceivedForm } from '../../../services/api/receivedFormsApi';
+import { parseApiDate } from '../../../utils/formatUtils';
 
 /**
  * Formatage des formulaires reçus (devis / maintenance / support).
@@ -58,7 +59,9 @@ export function initialsOf(name: string): string {
 
 export function formatFormDate(d: string): string {
   try {
-    return new Date(d).toLocaleDateString('fr-FR', {
+    // parseApiDate : les timestamps backend sont du LocalDateTime UTC sans
+    // fuseau ; sans cette conversion ils s'affichaient avec 2h de retard.
+    return parseApiDate(d).toLocaleDateString('fr-FR', {
       day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   } catch {
