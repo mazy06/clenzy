@@ -247,6 +247,73 @@ class ICalImportServiceImportFlowTest {
         verify(auditLogService).logSync(eq("ICalImport"), eq("50"), anyString());
     }
 
+    @Test
+    @DisplayName("re-import d'un VEVENT SANS UID : dedup par dates → aucun doublon")
+    void importIcalFeed_noUid_dedupByDates_noDuplicate() {
+        // Arrange — flux iCal sans UID (certains fournisseurs n'en emettent pas).
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        when(userRepository.findByKeycloakId("kc")).thenReturn(Optional.of(owner));
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(prop));
+        when(icalFeedRepository.findByUrlAndDifferentProperty(eq(FEED_URL), eq(20L), eq(ORG_ID)))
+            .thenReturn(List.of());
+        when(icalFeedRepository.findByPropertyIdAndUrl(eq(20L), eq(FEED_URL), eq(ORG_ID)))
+            .thenReturn(null);
+        when(icalFeedRepository.save(any(ICalFeed.class))).thenAnswer(inv -> {
+            ICalFeed f = inv.getArgument(0);
+            if (f.getId() == null) f.setId(50L);
+            return f;
+        });
+
+        // Une reservation SANS UID existe deja pour ces dates (feed precedent
+        // supprime → ical_feed_id = NULL). C'est elle qui doit etre retrouvee.
+        Reservation existing = new Reservation();
+        existing.setId(900L);
+        existing.setProperty(prop);
+        existing.setExternalUid(null);
+        existing.setIcalFeed(null);
+        existing.setCheckIn(LocalDate.of(2026, 7, 1));
+        existing.setCheckOut(LocalDate.of(2026, 7, 3));
+        existing.setStatus("confirmed");
+        existing.setOrganizationId(ORG_ID);
+        when(reservationRepository2.findByPropertyId(eq(20L), eq(ORG_ID)))
+            .thenReturn(List.of(existing));
+        when(reservationRepository2.findByExternalUidAndPropertyId(anyString(), eq(20L)))
+            .thenReturn(Optional.empty());
+        when(reservationRepository2.findCancelledOverlapping(eq(20L), any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of());
+        when(reservationRepository2.findActiveByICalFeedId(50L, ORG_ID)).thenReturn(List.of());
+
+        // Meme evenement, memes dates, mais AUCUNE ligne UID.
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            BEGIN:VEVENT
+            DTSTART;VALUE=DATE:20260701
+            DTEND;VALUE=DATE:20260703
+            SUMMARY:Reserved
+            STATUS:CONFIRMED
+            END:VEVENT
+            END:VCALENDAR
+            """;
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+        req.setAutoCreateInterventions(false);
+
+        // Act
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        // Assert — la reservation existante est retrouvee par dates : pas de creation.
+        assertThat(response.getImported()).isZero();
+        assertThat(response.getErrors()).isEmpty();
+        verify(reservationRepository2, never()).save(any(Reservation.class));
+    }
+
     // ─── Z6-SECBUGS-04 : propagation de la timezone de la propriete ──────────
 
     @Test
