@@ -1118,9 +1118,9 @@ class TagResolverServiceTest {
 
             PricingConfigService.DevisQuoteBreakdown quote = new PricingConfigService.DevisQuoteBreakdown(
                     "essentiel", "Essentiel",
-                    75, 4, 300, 3600,
-                    100, 1200, 1000, 200, 17,
-                    400, 4800
+                    75, 4, 300, 3600,                 // menage : 75/intervention, 4/mois, 300/mois, 3600/an
+                    31, false, 372, 309, 63, 17,      // PMS : 31/mois, 372/an -> 309 (remise 17 %, 63 economises)
+                    300, 331, 3909                    // formules : menage seul 300, +PMS 331, annuel 3909
             );
             when(pricingConfigService.computeDevisQuote(
                     anyString(), anyString(), anyString(), anyInt(), anyList(), anyString(), anyString()))
@@ -1146,8 +1146,9 @@ class TagResolverServiceTest {
             Map<String, Object> intTags = (Map<String, Object>) context.get("intervention");
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> lignes = (List<Map<String, Object>>) intTags.get("lignes");
-            // 4 lignes: cleaning, abonnement, sous-total, annuel
-            assertThat(lignes).hasSize(4);
+            // 5 lignes : menage, option PMS (mensuel), option PMS (annuel remise),
+            // formule 1 (menage seul), formule 2 (menage + PMS)
+            assertThat(lignes).hasSize(5);
         }
 
         @Test
