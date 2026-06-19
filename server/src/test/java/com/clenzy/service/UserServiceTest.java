@@ -63,6 +63,8 @@ class UserServiceTest {
     @Mock private AvatarSelfHealer avatarSelfHealer;
     @Mock private ObjectProvider<OutboxPublisher> outboxPublisherProvider;
     @Mock private ObjectProvider<UserProfileSyncService> profileSyncProvider;
+    // Service reel (HMAC) : mint() doit renvoyer un vrai ticket pour les URLs d'avatar.
+    private final MediaTicketService mediaTicketService = new MediaTicketService("test-secret");
 
     private TenantContext tenantContext;
     private UserService userService;
@@ -84,7 +86,8 @@ class UserServiceTest {
                 userRepository, organizationRepository, memberRepository,
                 organizationService, permissionService,
                 newUserService, notificationService, emailService, tenantContext,
-                avatarStorage, avatarSelfHealer, outboxPublisherProvider, profileSyncProvider);
+                avatarStorage, avatarSelfHealer, outboxPublisherProvider, profileSyncProvider,
+                mediaTicketService);
     }
 
     private User buildUser(Long id, String email, UserRole role) {
@@ -602,7 +605,7 @@ class UserServiceTest {
             UserDto result = userService.update(1L, dto);
 
             // dto.profilePictureUrl exposed via publicAvatarUrl
-            assertThat(result.profilePictureUrl).isEqualTo("/api/users/1/profile-picture");
+            assertThat(result.profilePictureUrl).startsWith("/api/users/1/profile-picture?ticket=");
         }
 
         @Test
@@ -904,7 +907,7 @@ class UserServiceTest {
 
             UserDto result = userService.uploadProfilePicture(1L, file);
 
-            assertThat(result.profilePictureUrl).isEqualTo("/api/users/1/profile-picture");
+            assertThat(result.profilePictureUrl).startsWith("/api/users/1/profile-picture?ticket=");
             verify(avatarStorage).delete("avatars/old.png");
         }
 
