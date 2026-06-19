@@ -51,6 +51,7 @@ public class ContactMessageService {
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
     private final ContactMessageEventPublisher eventPublisher;
+    private final MediaTicketService mediaTicketService;
 
     @Value("${clenzy.mail.contact.max-attachments:10}")
     private int maxAttachments;
@@ -68,7 +69,8 @@ public class ContactMessageService {
             ContactFileStorageService fileStorageService,
             NotificationService notificationService,
             TenantContext tenantContext,
-            ContactMessageEventPublisher eventPublisher
+            ContactMessageEventPublisher eventPublisher,
+            MediaTicketService mediaTicketService
     ) {
         this.contactMessageRepository = contactMessageRepository;
         this.attachmentFileRepository = attachmentFileRepository;
@@ -80,6 +82,7 @@ public class ContactMessageService {
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
+        this.mediaTicketService = mediaTicketService;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────
@@ -651,7 +654,9 @@ public class ContactMessageService {
                     if (stored.startsWith("http://") || stored.startsWith("https://")) {
                         counterpartAvatarUrl = stored;
                     } else {
-                        counterpartAvatarUrl = "/api/users/" + counterpart.getId() + "/profile-picture";
+                        // URL signee (ticket HMAC avatar:{id}) : consommable en <img> sans JWT.
+                        counterpartAvatarUrl = "/api/users/" + counterpart.getId()
+                                + "/profile-picture?ticket=" + mediaTicketService.mint("avatar:" + counterpart.getId());
                     }
                 }
             }
