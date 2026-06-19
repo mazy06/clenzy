@@ -71,7 +71,8 @@ describe('PanelPropertyDetails', () => {
     it('should display address', () => {
       render(<PanelPropertyDetails propertyId={42} />);
       expect(screen.getByText(/15 Rue de Rivoli/)).toBeInTheDocument();
-      expect(screen.getByText(/Paris/)).toBeInTheDocument();
+      // « Paris » apparaît 2× (ligne méta « ville · m² · ch » + ligne adresse).
+      expect(screen.getAllByText(/Paris/).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/75001/)).toBeInTheDocument();
     });
   });
@@ -191,15 +192,15 @@ describe('PanelPropertyDetails', () => {
 
   // ── External link ──────────────────────────────────────────────────────────
   describe('external link', () => {
-    it('should display "Voir la fiche logement" button', () => {
+    it('should display "Ouvrir la fiche logement" button', () => {
       render(<PanelPropertyDetails propertyId={42} />);
-      expect(screen.getByText('Voir la fiche logement')).toBeInTheDocument();
+      expect(screen.getByText('Ouvrir la fiche logement')).toBeInTheDocument();
     });
 
     it('should navigate to property page when clicked', () => {
       render(<PanelPropertyDetails propertyId={42} />);
 
-      fireEvent.click(screen.getByText('Voir la fiche logement'));
+      fireEvent.click(screen.getByText('Ouvrir la fiche logement'));
       expect(mockNavigate).toHaveBeenCalledWith('/properties/42');
     });
   });
