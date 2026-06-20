@@ -250,7 +250,6 @@ export interface StandaloneScreen {
 export const STANDALONE_SCREENS: StandaloneScreen[] = [
   { path: '/planning', translationKey: 'navigation.planning', fallbackLabel: 'Planning' },
   { path: '/dashboard', translationKey: 'navigation.dashboard', fallbackLabel: 'Tableau de bord' },
-  { path: '/assistant', translationKey: 'navigation.assistant', fallbackLabel: 'Assistant' },
   { path: '/reports', translationKey: 'navigation.reports', fallbackLabel: 'Rapports' },
   { path: '/settings', translationKey: 'navigation.settings', fallbackLabel: 'Paramètres' },
   { path: '/permissions-test', translationKey: 'navigation.rolesPermissions', fallbackLabel: 'Rôles & permissions' },

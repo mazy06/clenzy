@@ -20,6 +20,7 @@ import {
   TuneOutlined,
   Public as GlobeIcon,
   CleaningServices,
+  Build,
 } from '../../icons';
 import type { ZoomLevel, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
@@ -431,9 +432,13 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             onClick={() => onShowInterventionsChange(!filters.showInterventions)}
             sx={legendToggleSx(filters.showInterventions)}
           >
-            {/* Icône balai à la couleur ménage (spec --menage) */}
+            {/* Balai (ménage) + outil (maintenance) : la chip couvre les DEUX
+                types d'intervention, chacun à sa couleur token. */}
             <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
               <CleaningServices size={15} strokeWidth={1.75} />
+            </Box>
+            <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+              <Build size={15} strokeWidth={1.75} />
             </Box>
             Interventions
           </Box>
