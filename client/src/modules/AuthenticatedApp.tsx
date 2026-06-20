@@ -7,7 +7,6 @@ import RouteFallback from '../components/RouteFallback';
 // Pages : chargées en lazy (code-splitting par route). Chaque page + son sous-arbre devient un
 // chunk séparé → sort le module booking-engine/studio et les dialogs paiements du bundle initial.
 const Dashboard = lazy(() => import('./dashboard/Dashboard'));
-const AssistantPage = lazy(() => import('./assistant/AssistantPage'));
 const NotFoundPage = lazy(() => import('./NotFoundPage'));
 const PropertiesPage = lazy(() => import('./properties/PropertiesPage'));
 const PropertyCreate = lazy(() => import('./properties/PropertyCreate'));
@@ -177,13 +176,11 @@ const AuthenticatedApp: React.FC = () => {
           </ErrorBoundary>
         } />
 
-        {/* Assistant conversationnel + redirect pour la typo courante */}
-        <Route path="/assistant" element={
-          <ErrorBoundary>
-            <AssistantPage />
-          </ErrorBoundary>
-        } />
-        <Route path="/assitant" element={<Navigate to="/assistant" replace />} />
+        {/* Assistant : page dediee supprimee (remplacee par le widget bulle +
+            plein ecran accessible partout). Redirects pour les anciens bookmarks
+            et la typo courante. */}
+        <Route path="/assistant" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/assitant" element={<Navigate to="/dashboard" replace />} />
 
         <Route path="/properties" element={
           <ErrorBoundary>

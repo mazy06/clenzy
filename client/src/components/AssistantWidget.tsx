@@ -1,14 +1,17 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Box, IconButton, Drawer, Typography, useTheme, alpha, Tooltip } from '@mui/material';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Close as CloseIcon, OpenInNew as OpenInNewIcon } from '../icons';
+import { Box, IconButton, Popper, Paper, Grow, ClickAwayListener, Typography, useTheme, alpha, Tooltip } from '@mui/material';
+import type { PopperPlacementType } from '@mui/material';
+import type { Instance as PopperInstance } from '@popperjs/core';
+import { useLocation } from 'react-router-dom';
+import { Close as CloseIcon, Fullscreen as FullscreenIcon } from '../icons';
 import BaitlyMarkLogo from './BaitlyMarkLogo';
 import { useAgent } from '../hooks/useAgent';
 import { MessageList } from '../modules/assistant/components/MessageList';
 import { ChatInput } from '../modules/assistant/components/ChatInput';
 import { ToolConfirmationDialog } from '../modules/assistant/components/ToolConfirmationDialog';
+import AssistantExpandedDialog from '../modules/assistant/components/AssistantExpandedDialog';
 
-const DRAWER_WIDTH = 420;
+const BUBBLE_WIDTH = 400;
 const FAB_SIZE = 80;
 const FAB_OFFSET = 24;
 
@@ -109,6 +112,18 @@ function edgeOffsetPct(edge: FabEdge, x: number, y: number): number {
 }
 
 /**
+ * Sens d'ouverture de la bulle depuis le centre du logo (en px viewport) :
+ * up = logo dans la moitie basse (bulle vers le haut), right = logo dans la
+ * moitie droite (bulle a sa gauche). Recalcule en continu pendant le drag.
+ */
+function dirFromCenter(centerX: number, centerY: number): { up: boolean; right: boolean } {
+  return {
+    up: centerY > window.innerHeight / 2,
+    right: centerX > window.innerWidth / 2,
+  };
+}
+
+/**
  * Convertit {edge, offsetPct} en proprietes CSS top/right/bottom/left.
  * Le FAB est position:fixed donc ces proprietes positionnent par rapport
  * au viewport.
@@ -131,38 +146,48 @@ function positionToStyle(pos: FabPosition): Pick<React.CSSProperties, 'top' | 'r
 }
 
 /**
- * Widget assistant flottant accessible depuis toutes les pages.
+ * Widget assistant flottant — UNIQUE point d'entree de l'assistant (la page
+ * dediee /assistant a ete supprimee, ce widget la remplace), present sur toutes
+ * les pages.
  *
- * <p>Compose un FAB bottom-right + un Drawer slide-in qui ouvre une mini chat
- * UI reutilisant les memes primitives ({@link MessageList}, {@link ChatInput})
- * que la page dediee {@code /assistant}.</p>
+ * <p>Compose un FAB draggable (le logo Baitly) + une bulle (Popper) ancree a ce
+ * logo (mini chat), agrandissable en plein ecran via {@link AssistantExpandedDialog}
+ * qui ajoute l'historique des conversations. Reutilise les memes primitives
+ * ({@link MessageList}, {@link ChatInput}).</p>
  *
  * <p><b>Comportement</b> :</p>
  * <ul>
- *   <li>FAB hidden quand on est deja sur {@code /assistant} (eviter la
- *       redondance — l'UI complete est deja visible)</li>
- *   <li>Drawer en mode {@code temporary} (overlay sombre, ferme au clic
- *       exterieur) — non-bloquant pour la navigation</li>
- *   <li>Bouton "ouvrir en pleine page" qui ferme le drawer et navigue vers
- *       {@code /assistant} (continuera la conversation si on partage le state
- *       via Context dans une iteration future)</li>
+ *   <li>Bulle ancree au COTE du logo (logo a droite -> a sa gauche, etc.),
+ *       collee a l'orbe, suit le logo en temps reel quand on le deplace, fermee
+ *       au clic exterieur. Hauteur bornee (~70vh), angles "bulle", ombre brand.</li>
+ *   <li>Bouton "Agrandir" -> plein ecran (Dialog) avec sidebar historique +
+ *       chat ; "Reduire" revient a la bulle. Meme {@code useAgent} -> la
+ *       conversation se poursuit sans rupture.</li>
  * </ul>
  *
- * <p>Le state d'assistant ici est INDEPENDANT de la page {@code /assistant} :
- * chaque instance de {@code useAgent()} a son propre conversation_id. Les
- * conversations restent persistees backend → l'utilisateur peut les retrouver
- * dans l'historique cote {@code /assistant}.</p>
+ * <p>Le {@code useAgent} a son propre conversation_id ; les conversations sont
+ * persistees backend et listees dans l'historique du mode plein ecran.</p>
  */
 const AssistantWidget: React.FC = () => {
   const theme = useTheme();
   const location = useLocation();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-
-  // Hide FAB if already on /assistant (UI dediee deja visible)
-  const isOnAssistantPage = location.pathname === '/assistant';
+  // Mode d'affichage : bulle compacte ancree au logo, ou plein ecran (Dialog
+  // avec sidebar historique). La meme instance useAgent alimente les deux : la
+  // conversation se poursuit sans rupture quand on agrandit / reduit.
+  const [view, setView] = useState<'bubble' | 'expanded'>('bubble');
+  // Ancre de la bulle = le FAB (logo). Sens d'ouverture calcule a l'ouverture
+  // depuis la position reelle du FAB : logo en bas -> bulle vers le haut, en
+  // haut -> vers le bas ; a droite -> alignee a droite (s'etend vers le centre),
+  // a gauche -> alignee a gauche.
+  const fabRef = useRef<HTMLButtonElement | null>(null);
+  // Instance Popper.js : permet de forcer un repositionnement (update) quand le
+  // logo bouge, pour que la bulle suive l'orbe en temps reel.
+  const popperRef = useRef<PopperInstance | null>(null);
+  const [bubbleDir, setBubbleDir] = useState<{ up: boolean; right: boolean }>({ up: true, right: true });
 
   const {
+    conversationId,
     messages,
     status,
     error,
@@ -171,16 +196,27 @@ const AssistantWidget: React.FC = () => {
     confirmTool,
     abort,
     reset,
+    loadConversation,
   } = useAgent({
     currentPage: location.pathname.replace(/^\//, '') || 'home',
   });
 
-  const handleOpen = useCallback(() => setOpen(true), []);
-  const handleClose = useCallback(() => setOpen(false), []);
-  const handleOpenFullPage = useCallback(() => {
+  const handleOpen = useCallback(() => {
+    const r = fabRef.current?.getBoundingClientRect();
+    if (r) {
+      setBubbleDir(dirFromCenter(r.left + r.width / 2, r.top + r.height / 2));
+    }
+    setOpen(true);
+  }, []);
+  // Fermeture complete : on repart en mode bulle au prochain ouvre.
+  const handleClose = useCallback(() => {
     setOpen(false);
-    navigate('/assistant');
-  }, [navigate]);
+    setView('bubble');
+  }, []);
+  // Agrandir : bascule la bulle en plein ecran (meme conversation).
+  const handleExpand = useCallback(() => setView('expanded'), []);
+  // Reduire : revient a la bulle ancree au logo (meme conversation).
+  const handleMinimize = useCallback(() => setView('bubble'), []);
 
   // "Working" = l'IA est en train de generer une reponse (sending = envoi
   // initial, streaming = reponse en cours). Pilote l'animation active du mark.
@@ -212,6 +248,13 @@ const AssistantWidget: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // La bulle suit l'orbe en temps reel : a chaque mouvement du logo (offset de
+  // drag, snap au relache, ou bascule de cote/alignement), on force le Popper a
+  // recalculer sa position. update() est no-op si la bulle n'est pas montee.
+  useEffect(() => {
+    popperRef.current?.update();
+  }, [fabPosition, dragOffset, bubbleDir]);
+
   const handleFabPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     dragStateRef.current = {
@@ -240,6 +283,16 @@ const AssistantWidget: React.FC = () => {
     }
     if (dragStateRef.current.moved) {
       setDragOffset({ dx, dy });
+      // Suivi temps reel : recalcule cote/alignement depuis la position courante
+      // du logo (centre = depart + delta). Ne met a jour que si ca change, pour
+      // limiter les re-renders. Le useEffect ci-dessus force ensuite le Popper a
+      // suivre l'orbe.
+      if (open) {
+        const left = dragStateRef.current.startFabLeft + dx;
+        const top = dragStateRef.current.startFabTop + dy;
+        const next = dirFromCenter(left + FAB_SIZE / 2, top + FAB_SIZE / 2);
+        setBubbleDir((prev) => (prev.up === next.up && prev.right === next.right ? prev : next));
+      }
     }
   };
 
@@ -258,6 +311,12 @@ const AssistantWidget: React.FC = () => {
       const newPos: FabPosition = { edge, offsetPct };
       setFabPosition(newPos);
       saveFabPosition(newPos);
+      // Au relache : fige le cote/alignement depuis la position de drop. Le snap
+      // est instantane quand la bulle est ouverte (transition desactivee), donc
+      // la bulle reste synchro avec l'orbe.
+      if (open) {
+        setBubbleDir(dirFromCenter(centerX, centerY));
+      }
     }
     setDragOffset(null);
     // Garde le moved flag jusqu'au click handler pour qu'il puisse l'inspecter.
@@ -277,10 +336,22 @@ const AssistantWidget: React.FC = () => {
       return;
     }
     dragStateRef.current = null;
-    handleOpen();
+    if (open) {
+      handleClose();
+    } else {
+      handleOpen();
+    }
   };
 
-  if (isOnAssistantPage) return null;
+  // La bulle se place TOUJOURS sur le COTE du logo : logo a droite -> bulle a
+  // gauche du logo (donc sur le bord droit de l'ecran), logo a gauche -> bulle
+  // a droite du logo. L'alignement vertical suit la moitie haute/basse (logo en
+  // bas -> la bulle s'etend vers le haut, en haut -> vers le bas). L'origine du
+  // Grow est le coin face au logo, pour que la bulle "sorte" du logo.
+  const bubblePlacement: PopperPlacementType =
+    `${bubbleDir.right ? 'left' : 'right'}-${bubbleDir.up ? 'end' : 'start'}`;
+  const growOrigin = `${bubbleDir.right ? 'right' : 'left'} ${bubbleDir.up ? 'bottom' : 'top'}`;
+  const bubbleBorder = alpha(theme.palette.text.primary, 0.08);
 
   return (
     <>
@@ -296,6 +367,7 @@ const AssistantWidget: React.FC = () => {
           de page. La zone de clic reste le 80x80 du IconButton. */}
       <Tooltip title={dragOffset ? '' : 'Assistant'} placement="left">
         <IconButton
+          ref={fabRef}
           onClick={handleFabClick}
           onPointerDown={handleFabPointerDown}
           onPointerMove={handleFabPointerMove}
@@ -313,11 +385,17 @@ const AssistantWidget: React.FC = () => {
             // touchAction: none empeche le browser de scroller pendant le drag
             // tactile (sinon iOS/Android prennent le geste pour un scroll).
             touchAction: 'none',
-            zIndex: theme.zIndex.speedDial,
+            // Au-dessus de la navbar (Drawer MUI = zIndex.drawer 1200) pour que
+            // le logo ne passe jamais derriere la sidebar, ouverte ou fermee.
+            // Reste sous les modales (1300) : un dialog ouvert recouvre le FAB.
+            zIndex: theme.zIndex.drawer + 1,
             // Transform pour drag visuel (free), CSS transition seulement
             // hors drag (sinon snap n'est pas anime).
             transform: dragOffset ? `translate(${dragOffset.dx}px, ${dragOffset.dy}px)` : 'none',
-            transition: dragOffset
+            // Snap anime quand la bulle est FERMEE ; instantane quand elle est
+            // OUVERTE (sinon la bulle, qui suit l'orbe via popperRef.update(),
+            // courrait apres l'animation de snap et se desynchroniserait).
+            transition: dragOffset || open
               ? 'none'
               : 'top 280ms cubic-bezier(0.4, 0, 0.2, 1), right 280ms cubic-bezier(0.4, 0, 0.2, 1), bottom 280ms cubic-bezier(0.4, 0, 0.2, 1), left 280ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms ease-out',
             '&:hover': {
@@ -334,29 +412,82 @@ const AssistantWidget: React.FC = () => {
               etat hover-equivalent (lines absorbees, centre pulsant avec
               glow, nodes orbitant) — c'est la "signature vivante" du
               widget assistant, comme l'orb de Siri/Copilot. */}
-          <BaitlyMarkLogo
-            variant="mark"
-            size={72}
-            idleAnimation={false}
-            active
-          />
+          {/* Le logo retrecit quand la fenetre est ouverte et reprend sa taille
+              a la fermeture (effet inverse), pour lier visuellement le logo a la
+              bulle qui "sort" de lui. Scale applique sur ce wrapper (pas sur le
+              IconButton) pour ne pas entrer en conflit avec le translate du drag.
+              Easing legerement elastique (overshoot) pour un "pop". */}
+          <Box
+            sx={{
+              display: 'flex',
+              transform: open ? 'scale(0.62)' : 'scale(1)',
+              transition: 'transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            }}
+          >
+            <BaitlyMarkLogo
+              variant="mark"
+              size={72}
+              idleAnimation={false}
+              active
+            />
+          </Box>
         </IconButton>
       </Tooltip>
 
-      {/* ── Drawer ──────────────────────────────────────────────────── */}
-      <Drawer
-        anchor="right"
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          sx: {
-            width: { xs: '100vw', sm: DRAWER_WIDTH },
-            display: 'flex',
-            flexDirection: 'column',
-            bgcolor: theme.palette.background.default,
-          },
-        }}
+      {/* ── Bulle ancree au logo (FAB) ─────────────────────────────────
+          Remplace l'ancien Drawer pleine hauteur : un Popper ancre au FAB,
+          place TOUJOURS sur le COTE du logo (logo a droite -> bulle a sa gauche
+          = bord droit de l'ecran ; logo a gauche -> a sa droite), aligne en haut
+          ou en bas selon la moitie, et colle tout pres de l'orbe (offset negatif).
+          flip desactive pour rester coherent ; preventOverflow garde la bulle a
+          l'ecran. */}
+      <Popper
+        open={open && view === 'bubble'}
+        anchorEl={fabRef.current}
+        popperRef={popperRef}
+        placement={bubblePlacement}
+        transition
+        modifiers={[
+          // Offset NEGATIF : le FAB fait 80px avec l'orbe (reduit) centre dedans
+          // (~17px de vide jusqu'au bord). On "mord" dans ce vide pour coller la
+          // fenetre tout pres de l'orbe au lieu du bord de la zone de clic.
+          { name: 'offset', options: { offset: [0, -14] } },
+          { name: 'preventOverflow', options: { boundary: 'viewport', padding: 8 } },
+          { name: 'flip', enabled: false },
+        ]}
+        sx={{ zIndex: theme.zIndex.modal }}
       >
+        {({ TransitionProps }) => (
+          <Grow {...TransitionProps} timeout={220} style={{ transformOrigin: growOrigin }}>
+            <Box sx={{ position: 'relative' }}>
+              {/* Fleche retiree : la bulle est collee tout pres de l'orbe et
+                  l'animation de retrecissement du logo suffit a les relier. */}
+              <ClickAwayListener
+                onClickAway={(e) => {
+                  // Ne pas fermer si on reclique le FAB (il gere le toggle).
+                  if (fabRef.current && fabRef.current.contains(e.target as Node)) return;
+                  handleClose();
+                }}
+              >
+                <Paper
+                  elevation={0}
+                  sx={{
+                    position: 'relative',
+                    zIndex: 1,
+                    width: { xs: 'calc(100vw - 32px)', sm: BUBBLE_WIDTH },
+                    maxWidth: 'calc(100vw - 32px)',
+                    height: { xs: 'calc(100dvh - 160px)', sm: 'min(70vh, 600px)' },
+                    maxHeight: 'calc(100dvh - 32px)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    borderRadius: '22px',
+                    border: `0.5px solid ${bubbleBorder}`,
+                    bgcolor: theme.palette.background.default,
+                    boxShadow: `0 20px 50px -12px ${alpha(theme.palette.primary.main, 0.42)}, 0 6px 16px -6px ${alpha(theme.palette.primary.main, 0.22)}`,
+                  }}
+                >
         {/* Header — L2 panel teinte, pas de border-bottom (le contraste bg-vs-flux
             de messages cree la separation visuelle) */}
         <Box
@@ -397,14 +528,14 @@ const AssistantWidget: React.FC = () => {
               {messages.length === 0 ? 'Que veux-tu savoir ?' : `${messages.length} message${messages.length > 1 ? 's' : ''}`}
             </Typography>
           </Box>
-          <Tooltip title="Ouvrir en pleine page">
+          <Tooltip title="Agrandir">
             <IconButton
               size="small"
-              onClick={handleOpenFullPage}
-              aria-label="Ouvrir en pleine page"
+              onClick={handleExpand}
+              aria-label="Agrandir en plein ecran"
               sx={{ cursor: 'pointer' }}
             >
-              <OpenInNewIcon size={16} />
+              <FullscreenIcon size={16} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Fermer">
@@ -522,7 +653,33 @@ const AssistantWidget: React.FC = () => {
             </Typography>
           </Box>
         )}
-      </Drawer>
+                </Paper>
+              </ClickAwayListener>
+            </Box>
+          </Grow>
+        )}
+      </Popper>
+
+      {/* ── Vue agrandie : plein ecran + historique des conversations ──────
+          Montee uniquement en mode plein ecran (les hooks d'historique/usage
+          ne fetchent donc pas sur chaque page). Memes valeurs useAgent que la
+          bulle -> la conversation se poursuit sans rupture. Remplace l'ancienne
+          page dediee /assistant (supprimee). */}
+      {open && view === 'expanded' && (
+        <AssistantExpandedDialog
+          open
+          onMinimize={handleMinimize}
+          onClose={handleClose}
+          conversationId={conversationId}
+          messages={messages}
+          status={status}
+          error={error}
+          sendMessage={sendMessage}
+          abort={abort}
+          reset={reset}
+          loadConversation={loadConversation}
+        />
+      )}
 
       {/* Tool confirmation dialog — meme primitive que la page dediee */}
       <ToolConfirmationDialog

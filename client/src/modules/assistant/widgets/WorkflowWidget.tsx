@@ -55,9 +55,9 @@ interface WorkflowWidgetProps {
 }
 
 /**
- * Evenement DOM emis par le widget pour demander au parent (AssistantPage) de
- * poster un message a l'assistant. Permet d'eviter le prop-drilling tout en
- * gardant le widget pur (pas d'acces direct au hook useAgent).
+ * Evenement DOM emis par le widget pour demander au parent (AssistantExpandedDialog
+ * ou AssistantWidget) de poster un message a l'assistant. Permet d'eviter le
+ * prop-drilling tout en gardant le widget pur (pas d'acces direct au hook useAgent).
  */
 export const ASSISTANT_QUICK_REPLY_EVENT = 'clenzy:assistant:quick-reply';
 
