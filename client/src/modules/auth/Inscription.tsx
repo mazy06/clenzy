@@ -154,8 +154,13 @@ function getPmsFirstPayment(t: TFunction, period: BillingPeriod, baseCents: numb
   if (baseCents === null) return '…';
   const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
   if (period === 'MONTHLY') return formatCents(monthlyCents);
-  const totalCents = monthlyCents * 12;
-  return `${formatCents(totalCents)} / an`;
+  // Facture = mensuel remisé × nombre de mois de la période (12 pour l'annuel,
+  // 24 pour les 2 ans) — pas un ×12 codé en dur, sinon « 2 ans » facturait 1 an.
+  const totalCents = monthlyCents * BILLING_PERIOD_MONTHS[period];
+  const suffix = period === 'BIENNIAL'
+    ? t('auth.inscription.perBiennial', ' / 2 ans')
+    : t('auth.inscription.perYear', ' / an');
+  return `${formatCents(totalCents)}${suffix}`;
 }
 
 /** Libellé prix intervention : utilise le prix transmis par la landing page, sinon le prix de base */
@@ -725,6 +730,10 @@ export default function Inscription() {
                 onChange={(e) => setReferralSource(e.target.value as ReferralSource)}
                 helperText={t('auth.inscription.referralHelper', 'Optionnel — nous aide à mieux vous servir')}
                 SelectProps={{ displayEmpty: true }}
+                // displayEmpty affiche le placeholder « Sélectionner… » dans le
+                // champ ; sans shrink, le label flottant ne remonte pas et
+                // CHEVAUCHE le placeholder. On force le label remonté (notch).
+                InputLabelProps={{ shrink: true }}
               >
                 <MenuItem value="">
                   <Typography component="span" variant="body2" sx={{ color: 'text.disabled' }}>

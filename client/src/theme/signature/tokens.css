@@ -6,7 +6,8 @@
    baitly-theme.ts). Issu de la page login (charcoal + slate-blue).
    ============================================================ */
 
-:root {
+:root,
+[data-theme="light"] {
   /* ---- Surfaces & lignes ---- */
   --bg:        #F5F8F9;   /* fond application */
   --card:      #FFFFFF;   /* surface carte / panneau */
@@ -193,6 +194,9 @@
    device) ne doit pas teinter ces écrans. On fige la teinte de marque
    (indigo-violet #5453D6 — signature Baitly, cohérente avec le logo / le hero /
    les liens) sur tout le sous-arbre, quel que soit data-accent. Appliqué via
-   className="brand-accent" sur la racine AuthLayout. */
+   className="brand-accent" sur la racine AuthLayout.
+   NB : les écrans auth forcent AUSSI data-theme="light" sur ce même conteneur
+   (cf. AuthLayout) pour rester clairs même si le device est en mode sombre —
+   donc PAS de variante [data-theme="dark"] .brand-accent ici, qui réassombrirait
+   l'accent. */
 .brand-accent           { --accent:#5453D6; --accent-deep:#4341BE; --accent-soft:rgba(84,83,214,.10); }
-[data-theme="dark"] .brand-accent { --accent:#8584F0; --accent-deep:#6F6EE6; --accent-soft:rgba(133,132,240,.18); }
