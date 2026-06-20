@@ -159,8 +159,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       {/* PWA install prompt */}
       <PWAInstallBanner />
 
-      {/* Assistant FAB + Drawer — accessible depuis toutes les pages
-          (auto-hide sur /assistant ou l'UI complete est deja affichee) */}
+      {/* Assistant : widget bulle (logo flottant) accessible depuis toutes les
+          pages, agrandissable en plein ecran. Unique point d'entree de
+          l'assistant (la page dediee /assistant a ete supprimee). */}
       <AssistantWidget />
     </Box>
   );

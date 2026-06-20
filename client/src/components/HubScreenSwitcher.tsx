@@ -28,7 +28,6 @@ import {
   AdminPanelSettings,
   CalendarViewWeek,
 } from '../icons';
-import BaitlyMarkLogo from './BaitlyMarkLogo';
 import { tabRoutePrefixes, type ScreenIdentity } from '../config/navigationHubs';
 
 /** Icône d'identité du hub (pastille à gauche du switcher multi-écrans). */
@@ -63,7 +62,6 @@ const SCREEN_ICON: Record<string, React.ReactNode> = {
   // Écrans autonomes
   '/planning': <CalendarViewWeek />,
   '/dashboard': <Dashboard />,
-  '/assistant': <BaitlyMarkLogo variant="mark" disableAnimation />,
   '/reports': <Assessment />,
   '/settings': <Settings />,
   '/permissions-test': <AdminPanelSettings />,
