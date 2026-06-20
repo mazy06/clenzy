@@ -77,12 +77,13 @@ export default function GrowthSettingsPanel() {
       title="Croissance"
       description="Capture de leads et relance de panier — réellement appliquées côté serveur."
       footer={<SaveBar dirty={dirty} saving={saving} onSave={save} error={error} />}
+      intro={
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2.5, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--body)', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
+          <Box component="span" sx={{ color: 'var(--accent)', mt: 0.1 }}><Info size={16} strokeWidth={2} /></Box>
+          Ces réglages s’appliquent à <b>toute l’organisation</b> — donc à l’ensemble de vos booking engines.
+        </Box>
+      }
     >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2.5, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--body)', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
-        <Box component="span" sx={{ color: 'var(--accent)', mt: 0.1 }}><Info size={16} strokeWidth={2} /></Box>
-        Ces réglages s’appliquent à <b>toute l’organisation</b> — donc à l’ensemble de vos booking engines.
-      </Box>
-
       <SettingCard title="Capture de leads" description="Newsletter / liste d’attente avec consentement RGPD.">
         <SettingRow
           label="Activer la capture de leads"
