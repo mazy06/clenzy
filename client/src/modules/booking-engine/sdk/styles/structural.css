@@ -1,0 +1,460 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Feuille STRUCTURELLE des widgets — mode « headless » (light DOM).
+ *
+ * Contient UNIQUEMENT de la mise en page invisible (display/flex/grid/position/
+ * gap/dimensions) — AUCUN cosmétique (couleurs, polices, bordures, ombres, radius,
+ * look des boutons/inputs). But : le widget est « vierge » et c'est le CSS du
+ * TEMPLATE (qui atteint le light DOM) qui l'habille. Les éléments natifs
+ * (`button`, `input`, texte) héritent donc des styles du template ; ces règles ne
+ * servent qu'à garder fonctionnels les contrôles composites (calendrier, sélecteur
+ * de voyageurs, dropdowns) qui n'ont pas d'équivalent dans le CSS du template.
+ *
+ * Tous les sélecteurs sont préfixés `.cb-*` (propres aux widgets) → aucune fuite
+ * possible vers le template. Valeurs en dur (pas de tokens `--cb-*`, supprimés en
+ * headless).
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+.cb-widget, .cb-widget *, .cb-widget *::before, .cb-widget *::after { box-sizing: border-box; }
+.cb-widget [hidden] { display: none !important; }
+
+/* Conteneur : simple bloc en flux, sans « carte » (ni fond/bordure/ombre/padding). */
+.cb-widget { display: block; width: 100%; position: relative; }
+
+/* Helpers de flux (ex-base.css). */
+.cb-row { display: flex; align-items: center; }
+.cb-row-between { display: flex; align-items: center; justify-content: space-between; }
+.cb-col { display: flex; flex-direction: column; }
+.cb-gap-1 { gap: 4px; } .cb-gap-2 { gap: 8px; } .cb-gap-3 { gap: 12px; } .cb-gap-4 { gap: 16px; }
+.cb-section { margin-bottom: 20px; }
+.cb-section:last-child { margin-bottom: 0; }
+
+/* Widget COMPOSÉ (ex. barre de recherche) : rangée de champs + bouton + ligne d'options pleine largeur.
+ * structural.css est injecté EN DERNIER (cf. headless.ts) → gagne sur égalité de spécificité, ce qui
+ * PROTÈGE ce layout fonctionnel. On ne fixe PAS le flex-basis des champs ici : le template en garde la
+ * maîtrise (`.cb-widget--composed > *` + media queries) sans conflit, puisque structural ne le déclare pas. */
+.cb-widget--composed { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.cb-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; }
+.cb-widget--composed > .cb-cta { flex: 0 0 auto; }
+.cb-widget--composed > .cb-search__advanced { flex: 1 1 100%; }
+/* Déroulants (calendrier, voyageurs) en POPOVER flottant dans toute BARRE HORIZONTALE : recherche
+ * composée (`.cb-widget--composed`) ET barres de composite (`.clenzy-search-bar`, `.clenzy-row`) — pour ne
+ * pas déformer la rangée à l'ouverture. L'ancre est déjà en position:relative (`.cb-field` pour la recherche
+ * composée ; le marqueur `.cb-widget` pour les composites). En COLONNE (`.clenzy-funnel`) on garde
+ * l'expansion en flux (pas de popover). */
+.cb-widget--composed .cb-calendar-wrapper, .cb-widget--composed .cb-guests-panel,
+.clenzy-search-bar .cb-calendar-wrapper, .clenzy-search-bar .cb-guests-panel,
+.clenzy-row .cb-calendar-wrapper, .clenzy-row .cb-guests-panel,
+.sb .cb-calendar-wrapper, .sb .cb-guests-panel { position: absolute; top: calc(100% + 8px); z-index: 40; }
+.cb-widget--composed .cb-calendar-wrapper, .clenzy-search-bar .cb-calendar-wrapper, .clenzy-row .cb-calendar-wrapper, .sb .cb-calendar-wrapper { inset-inline-start: 0; }
+.cb-widget--composed .cb-guests-panel, .clenzy-search-bar .cb-guests-panel, .clenzy-row .cb-guests-panel, .sb .cb-guests-panel { inset-inline-end: 0; }
+/* Dans la barre `.sb` : popover Voyageurs aligné À GAUCHE sous le champ (cohérent avec le calendrier). */
+.sb .cb-guests-panel { inset-inline-start: 0; inset-inline-end: auto; }
+/* Ancre les popovers (calendrier / voyageurs) sur le CHAMP `.sb__control` qui les contient → alignés sous le
+ * champ. Le marqueur `.cb-widget` (relative par défaut) est NEUTRALISÉ comme ancre ici : sinon le popover
+ * s'ancre sur lui (placé APRÈS l'icône du champ) → décalage horizontal. L'ancre devient `.sb__control` (qui
+ * englobe l'icône), donc le popover s'aligne sur le bord gauche du champ et juste en dessous. */
+.sb__control:has(.cb-calendar-wrapper), .sb__control:has(.cb-guests-panel) { position: relative; }
+.sb__control:has(.cb-calendar-wrapper) > .cb-widget, .sb__control:has(.cb-guests-panel) > .cb-widget { position: static; }
+.cb-widget--composed .cb-calendar-wrapper.cb-open, .cb-widget--composed .cb-guests-panel.cb-open,
+.clenzy-search-bar .cb-calendar-wrapper.cb-open, .clenzy-search-bar .cb-guests-panel.cb-open,
+.clenzy-row .cb-calendar-wrapper.cb-open, .clenzy-row .cb-guests-panel.cb-open,
+.sb .cb-calendar-wrapper.cb-open, .sb .cb-guests-panel.cb-open { max-height: none; }
+/* Le popover calendrier s'élargit à son contenu (2 mois côte à côte) au lieu d'être contraint à la
+ * largeur du champ d'ancrage (sinon flex-wrap empile les mois verticalement). */
+.cb-widget--composed .cb-calendar-wrapper.cb-open,
+.clenzy-search-bar .cb-calendar-wrapper.cb-open,
+.clenzy-row .cb-calendar-wrapper.cb-open,
+.sb .cb-calendar-wrapper.cb-open { width: max-content; max-width: 92vw; }
+
+/* Dates. */
+.cb-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cb-date-input { display: flex; flex-direction: column; min-height: 56px; justify-content: center; }
+/* Label + valeur/placeholder sur UNE ligne → la HAUTEUR du champ ne change pas au focus / à la saisie. */
+.cb-date-input__label, .cb-date-input__placeholder, .cb-date-input__value { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* ── Date picker (calendrier) — deux couches ────────────────────────────────────────────────────────
+ * 1) FONCTIONNEL (ci-dessous, NON-layered) : layout 2 mois, ouverture/fermeture, grille, popover, curseur,
+ *    media query mobile. Injecté en dernier → le template ne peut PAS casser le fonctionnement.
+ * 2) HABILLAGE (`@layer cz-skin` plus bas) : couleurs, formes (radius), ombres. Une @layer perd face au
+ *    CSS du template (non-layered) → le template change librement couleur/forme, le fonctionnement reste. */
+.cb-calendar-wrapper { overflow: hidden; max-height: 0; }
+.cb-calendar-wrapper.cb-open { max-height: 560px; }
+.cb-calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cb-calendar-nav { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; cursor: pointer; }
+.cb-calendar-nav:disabled { cursor: not-allowed; }
+/* 2 mois CÔTE À CÔTE par défaut ; empilés en mobile. LARGEUR FIXE par mois → le calendrier ne change
+ * pas de largeur d'un mois à l'autre (indépendant du contenu des prix). */
+.cb-calendar-months { display: flex; gap: 20px; }
+.cb-calendar-month { flex: 0 0 16.5rem; min-width: 0; }
+.cb-calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cb-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cb-calendar-day { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 42px; position: relative; cursor: pointer; }
+.cb-calendar-day.cb-disabled { cursor: not-allowed; }
+@media (max-width: 560px) { .cb-calendar-months { flex-direction: column; gap: 12px; } }
+
+/* Habillage par défaut du date picker — SURCHARGEABLE par le template (le CSS du template, non-layered,
+ * l'emporte sur cette @layer). Couleurs/formes via variables `--cb-*` avec repli → visible out-of-the-box. */
+@layer cz-skin {
+  .cb-calendar-wrapper.cb-open {
+    background: var(--cb-surface, #fff);
+    color: var(--cb-text, inherit);
+    border: 1px solid var(--cb-border, rgba(0,0,0,.14));
+    border-radius: var(--cb-radius, 12px);
+    box-shadow: 0 16px 40px rgba(0,0,0,.16);
+    padding: 14px;
+  }
+  .cb-calendar-header { margin-bottom: 6px; }
+  .cb-calendar-title { font-weight: 600; font-size: 0.95em; color: var(--cb-text, inherit); }
+  .cb-calendar-nav {
+    appearance: none; -webkit-appearance: none; background: none; border: 0; color: var(--cb-text, inherit);
+    border-radius: 50%; transition: background .15s ease;
+  }
+  /* Survol piloté par currentColor → s'adapte clair ET sombre (sans noir codé en dur). */
+  .cb-calendar-nav:hover:not(:disabled) {
+    background: rgba(0,0,0,.06);
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+  .cb-calendar-nav:disabled { opacity: .3; }
+  .cb-calendar-weekdays { margin-bottom: 4px; }
+  .cb-calendar-weekday { text-align: center; font-size: 0.72em; color: var(--cb-muted, rgba(0,0,0,.5)); padding: 4px 0; }
+  .cb-calendar-day {
+    appearance: none; -webkit-appearance: none; background: none; border: 0;
+    font-family: inherit; color: var(--cb-text, inherit); font-size: 0.9em;
+    border-radius: var(--cb-radius, 10px); transition: background .15s ease, color .15s ease;
+  }
+  .cb-calendar-day__price { font-size: 0.62em; line-height: 1; opacity: .75; margin-top: 2px; }
+  .cb-calendar-day:hover:not(.cb-disabled):not(.cb-selected):not(.cb-range-start):not(.cb-range-end) {
+    background: rgba(107,138,154,.14);
+    background: color-mix(in srgb, var(--cb-accent, #6B8A9A) 14%, transparent);
+  }
+  .cb-calendar-day.cb-in-range {
+    border-radius: 0;
+    background: rgba(107,138,154,.16);
+    background: color-mix(in srgb, var(--cb-accent, #6B8A9A) 16%, transparent);
+  }
+  .cb-calendar-day.cb-selected, .cb-calendar-day.cb-range-start, .cb-calendar-day.cb-range-end {
+    background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff);
+  }
+  .cb-calendar-day.cb-range-start { border-radius: var(--cb-radius, 10px) 0 0 var(--cb-radius, 10px); }
+  .cb-calendar-day.cb-range-end { border-radius: 0 var(--cb-radius, 10px) var(--cb-radius, 10px) 0; }
+  .cb-calendar-day.cb-disabled { opacity: .32; text-decoration: line-through; }
+  .cb-calendar-day.cb-today::after { content: ''; position: absolute; bottom: 5px; width: 4px; height: 4px; border-radius: 50%; background: var(--cb-accent, #6B8A9A); }
+  .cb-calendar-day.cb-selected.cb-today::after, .cb-calendar-day.cb-range-start.cb-today::after, .cb-calendar-day.cb-range-end.cb-today::after { background: var(--cb-on-accent, #fff); }
+
+  /* Panneaux déroulants (voyageurs, filtre) : même boîte que le calendrier (fond, bordure, ombre, padding)
+   * → contenu aéré out-of-the-box. SURCHARGEABLE par le template (son CSS non-layered l'emporte). */
+  .cb-guests-panel.cb-open, .cb-filters__panel.cb-open {
+    background: var(--cb-surface, #fff);
+    color: var(--cb-text, inherit);
+    border: 1px solid var(--cb-border, rgba(0,0,0,.14));
+    border-radius: var(--cb-radius, 12px);
+    box-shadow: 0 16px 40px rgba(0,0,0,.16);
+    padding: 16px;
+  }
+
+  /* Thème SOMBRE opt-in : poser `data-cb-theme="dark"` (ou la classe `.cb-theme-dark`) sur le `.cb-widget`
+   * ou un parent → bascule les variables `--cb-*` en sombre. Le clair est le défaut. L'accent reste celui
+   * du template. Surchargeable (le template peut ajuster une variable). */
+  .cb-widget[data-cb-theme="dark"], [data-cb-theme="dark"] .cb-widget, .cb-theme-dark {
+    --cb-surface: #1e2330;
+    --cb-text: #e8eaed;
+    --cb-muted: rgba(255,255,255,.55);
+    --cb-border: rgba(255,255,255,.16);
+  }
+}
+
+/* Sélecteur de voyageurs (toggle + panneau déroulant + lignes + compteurs). */
+.cb-guests-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 56px; cursor: pointer; }
+/* Label + valeur sur UNE ligne → la hauteur du champ Voyageurs ne change pas quand la valeur apparaît/grandit. */
+.cb-guests-toggle__label, .cb-guests-toggle__value { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* Espacement label/valeur aligné sur les dates (≈2px) + ligne valeur RÉSERVÉE → hauteur identique aux autres
+ * champs et stable, que des voyageurs soient sélectionnés ou non. */
+.cb-guests-toggle .cb-col { gap: 2px; }
+.cb-guests-toggle__value { min-height: 1.2em; }
+.cb-guests-toggle__chevron { transition: transform 200ms ease; }
+.cb-guests-toggle.cb-open .cb-guests-toggle__chevron { transform: rotate(180deg); }
+.cb-guests-panel { overflow: hidden; max-height: 0; }
+.cb-guests-panel.cb-open { max-height: 200px; }
+.cb-guests-row { display: flex; align-items: center; justify-content: space-between; }
+.cb-guests-row__info { display: flex; flex-direction: column; }
+.cb-counter { display: flex; align-items: center; gap: 12px; }
+.cb-counter__btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; cursor: pointer; }
+.cb-counter__value { min-width: 24px; text-align: center; }
+
+/* Widget « Filtre » : panneau repliable (max-height) + popover flottant en barre horizontale. */
+.cb-filters__panel { overflow: hidden; max-height: 0; }
+.cb-filters__panel.cb-open { max-height: 70vh; overflow-y: auto; }
+.cb-widget--composed .cb-filters__panel,
+.clenzy-search-bar .cb-filters__panel,
+.clenzy-row .cb-filters__panel { position: absolute; top: calc(100% + 8px); inset-inline-end: 0; z-index: 40; width: 340px; max-width: 92vw; }
+/* Largeur mini du panneau voyageurs en popover → les libellés (« 12 ans et + ») ne s'enroulent pas. */
+.cb-widget--composed .cb-guests-panel.cb-open,
+.clenzy-search-bar .cb-guests-panel.cb-open,
+.clenzy-row .cb-guests-panel.cb-open,
+.sb .cb-guests-panel.cb-open { min-width: 260px; }
+.cb-filters__footer { display: flex; flex-direction: column; gap: 8px; }
+.cb-filters__reset { display: block; width: 100%; text-align: center; padding: 6px 0; cursor: pointer; }
+
+/* Dans la barre `.sb`, le widget Filtre s'ouvre EN FLUX (sous-filtres « à la suite »), PAS en dropdown :
+ * à l'ouverture, le bloc Filtre prend une LIGNE pleine largeur dans la barre et les sous-filtres s'y
+ * disposent en toolbar (chips type, prix, chambres…). Fermé = simple icône compacte. */
+/* `.sb__icon` = bouton filtre COMPACT qui garde sa boîte (compatible GrapesJS — `display:contents` y casse) :
+ *  - FERMÉ : `flex: 0 0 auto` → tient sur la rangée des critères, à côté du bouton Rechercher ;
+ *  - OUVERT : `flex: 1 1 100%` → prend une rangée pleine largeur, les sous-filtres s'y déploient (le bouton
+ *    Rechercher passe alors sous le bloc filtre). */
+.sb__icon { display: flex; align-items: flex-end; flex: 0 0 auto; width: auto; align-self: flex-end; }
+.sb__icon:has(.cb-filters__panel.cb-open) { flex: 1 1 100%; }
+/* nowrap : le panneau s'enchaîne INLINE juste après l'icône (pas de retour à la ligne sous le déclencheur). */
+.sb .cb-filters { display: flex; flex-wrap: nowrap; align-items: flex-end; gap: 12px; flex: 1; min-width: 0; margin: 0; }
+.sb .cb-filters__toggle { flex: 0 0 auto; }
+.sb .cb-filters__panel:not(.cb-open) { display: none; }
+.sb .cb-filters__panel.cb-open {
+  flex: 1 1 0; min-width: 0; position: static; max-height: none; overflow: visible;
+  display: flex; flex-wrap: nowrap; align-items: flex-end; gap: 12px;
+  background: none; box-shadow: none; border: 0; border-radius: 0; padding: 0; margin: 4px 0 0;
+}
+/* Sous-filtres sur UNE SEULE rangée (nowrap), chaque section S'ADAPTE À SON CONTENU (flex content-based :
+ * `flex: 0 1 auto` → largeur = contenu, ni étirée ni tronquée). `min-width:auto` (défaut flex) empêche de
+ * rétrécir sous le libellé. La section Prix (2 champs) garde un plancher pour ses deux entrées. */
+.sb .cb-filters__panel.cb-open .cb-section { flex: 0 1 auto; margin-bottom: 0; }
+.sb .cb-filters__panel.cb-open .cb-section:has(.cb-row) { flex: 0 1 auto; min-width: 170px; }
+/* Libellés des sous-filtres : MÊME design que les libellés de la barre (`.sb__label`). */
+.sb .cb-filters__panel.cb-open .cb-section-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 6px; }
+.sb .cb-filters__panel.cb-open .cb-property-select,
+.sb .cb-filters__panel.cb-open .cb-multiselect { width: 100%; }
+.sb .cb-filters__panel.cb-open .cb-row .cb-input { flex: 1 1 0; min-width: 0; width: 0; }
+/* Habillage des sous-contrôles via les variables `--cb-*` du template (sa règle `.cb-input` n'atteint pas
+ * le panneau) + `appearance:none` → pas de double flèche. NON-layered → bat les défauts UA/app (fond gris). */
+.sb .cb-filters__panel .cb-property-select__control,
+.sb .cb-multiselect__trigger {
+  appearance: none !important; -webkit-appearance: none !important; background-image: none !important;
+  background-color: var(--cb-surface, #fff); color: var(--cb-text, inherit);
+  border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 10px);
+  min-height: var(--cb-control-h, 48px); padding: 0 36px 0 12px; font: inherit;
+}
+.sb .cb-filters__panel .cb-row .cb-input {
+  appearance: none !important; -webkit-appearance: none !important; background-image: none !important;
+  background-color: var(--cb-surface, #fff); color: var(--cb-text, inherit);
+  border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 10px);
+  min-height: var(--cb-control-h, 48px); padding: 0 12px; font: inherit;
+}
+
+/* Sélecteur de type de logement (dropdown) : select pleine largeur + chevron superposé à droite
+ * (le template met `appearance:none` sur .cb-input → on dessine notre propre chevron). */
+.cb-property-select { position: relative; width: 100%; }
+.cb-property-select__control { width: 100%; padding-inline-end: 38px; }
+.cb-property-select__chevron { position: absolute; inset-inline-end: 14px; top: 50%; transform: translateY(-50%); display: flex; pointer-events: none; }
+.cb-property-select__chevron svg { width: 16px; height: 16px; }
+/* On dessine notre propre chevron → JAMAIS la flèche native du <select> (sinon DOUBLE chevron), quel que soit
+ * le contexte (barre, panneau filtre, critère autonome). `!important` car certains thèmes la réactivent. */
+.cb-property-select__control { appearance: none !important; -webkit-appearance: none !important; background-image: none !important; }
+
+/* ── Barre de recherche composite « .sb » ────────────────────────────────────────────────────────────
+ * Markup DYNAMIQUE (cf. buildSearchBarHtml) : .sb > .sb__field( .sb__label + .sb__control( icône + champ ) )
+ * + .sb__cta. Chaque champ headless (`.cb-*`) est monté DANS le contrôle (champs directs éditables).
+ *  - FONCTIONNEL (ci-dessous, non-layered, immuable) : layout + le champ `.cb-*` est « nu » dans le contrôle
+ *    (le .sb__control est l'unique boîte → pas de double bordure/fond), popover déjà géré plus haut (`.sb`).
+ *  - HABILLAGE (`@layer cz-skin` plus bas) : couleurs/bordures/formes via `--cb-*` → le template surcharge
+ *    librement en stylant `.sb-*` (son CSS non-layered l'emporte sur la @layer). */
+.sb { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+/* Accent du composite = celui du TEMPLATE : capté au niveau `.sb` (qui n'est PAS un `.cb-widget`, donc y
+ * garde la valeur héritée de `:root`/template), puis réimposé sur les `.cb-widget` internes → bat la couleur
+ * de marque que « Styles widgets » pose sur `.cb-widget` (0,2,0 > 0,1,0). Le composite reste fidèle au template. */
+.sb { --sb-accent: var(--cb-accent, #6B8A9A); }
+.sb .cb-widget { --cb-accent: var(--sb-accent); }
+.sb__field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 160px; min-width: 0; }
+.sb__label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.07em; }
+/* `min-width: 0` → le contrôle (et donc le champ) peut RÉTRÉCIR sous sa largeur de contenu → critères +
+ * icône Filtre + bouton Rechercher tiennent sur UNE seule ligne (sinon le contenu force une largeur mini
+ * et pousse filtre/bouton à la ligne). */
+.sb__control { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; min-height: var(--cb-control-h, 52px); cursor: text; }
+.sb__control > .cb-widget { flex: 1; min-width: 0; }
+.sb__control svg { flex: 0 0 auto; width: 18px; height: 18px; stroke: currentColor; fill: none; }
+.sb__chev { margin-inline-start: auto; }
+.sb__cta { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: auto; align-self: flex-end; min-height: var(--cb-control-h, 52px); cursor: pointer; }
+/* Le DÉCLENCHEUR est NU dans le contrôle (le .sb__control est l'unique boîte → pas de double bordure).
+ * Sélecteurs SPÉCIFIQUES aux déclencheurs (jamais l'intérieur des popovers : les prix du filtre `.cb-input`
+ * et les jours du calendrier restent habillés). Destination ciblée via `.cb-search__destination` (≠ `.cb-input`).
+ * `!important` : c'est la couche FONCTIONNELLE (le .sb__control EST la boîte, immuable) → l'emporte sur tout
+ * habillage template, quelle que soit sa spécificité. */
+.sb__control .cb-search__destination,
+.sb__control .cb-dates,
+.sb__control .cb-date-input,
+.sb__control .cb-guests-toggle,
+.sb__control .cb-property-select__control,
+.sb__control .cb-multiselect__trigger,
+.sb__control .cb-row .cb-input,
+.sb__control .cb-currency-select {
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+  border-radius: 0 !important; padding: 0 !important; min-height: 0 !important;
+}
+.sb__control .cb-search__destination { width: 100%; }
+.sb__control .cb-property-select__control { padding-inline-end: 28px !important; } /* garde la place du chevron du select */
+/* Critère SELECT : le <select> remplit TOUTE la boîte `.sb__control` (largeur + hauteur) → le clic ouvre le
+ * menu partout dans le champ, pas seulement sur le texte. On retire le padding latéral de la boîte (le select
+ * porte le sien) et on étire le marqueur + le wrapper + le select sur 100 % de la hauteur. */
+.sb__control:has(.cb-property-select) { padding-inline: 0 !important; }
+.sb__control:has(.cb-property-select) > [data-clenzy-widget],
+.sb__control .cb-property-select { display: block; height: 100%; }
+.sb__control .cb-property-select__control { height: 100% !important; padding-inline-start: 14px !important; }
+.sb__cta > .cb-widget, .sb__cta .cb-cta { width: 100%; height: 100%; }
+.sb__cta .cb-cta { background: none; border: 0; color: inherit; font: inherit; min-height: 0; cursor: pointer; }
+/* ── Groupe FILTRE éditable & conservé, basculable compact ↔ déplié (sous-filtres = vrais widgets) ──────
+ * Layout = FONCTIONNEL (non-layered → l'emporte) ; l'habillage du popover/déclencheur passe par var(--cb-*)
+ * pilotées par le template. */
+.cb-filter-group { position: relative; }
+.cb-filter-group__toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; min-height: var(--cb-control-h, 52px); padding: 0 16px; background: transparent; color: var(--cb-accent, #6B8A9A); border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 10px); font: inherit; }
+.cb-filter-group__toggle > svg { width: 18px; height: 18px; flex: 0 0 auto; stroke: currentColor; fill: currentColor; }
+.cb-filter-group__panel { display: flex; align-items: flex-end; gap: 12px; }
+/* Critères du groupe : largeur = contenu (flex content-based) → ni étirés ni tronqués. */
+.cb-filter-group__panel > .sb__field { flex: 0 1 auto; }
+/* DÉPLIÉ : les critères suivent EN LIGNE (pas de saut à la ligne) ; le déclencheur icône est masqué. */
+.cb-filter-group--expanded { display: flex; align-items: flex-end; gap: 12px; }
+.cb-filter-group--expanded > .cb-filter-group__toggle { display: none; }
+.cb-filter-group--expanded > .cb-filter-group__panel { flex-wrap: nowrap; }
+/* COMPACT : déclencheur icône visible ; panneau en POPOVER, caché jusqu'à `.cb-open`. */
+.cb-filter-group--compact > .cb-filter-group__panel {
+  position: absolute; top: calc(100% + 8px); inset-inline-start: 0; z-index: 40; display: none;
+  flex-wrap: wrap; min-width: 320px;
+  background: var(--cb-surface, #fff); color: var(--cb-text, inherit);
+  border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 10px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.16); padding: 12px;
+}
+.cb-filter-group--compact > .cb-filter-group__panel.cb-open { display: flex; }
+
+/* Widget « Filtre » dans la barre = bouton ICÔNE (déclencheur du bloc `.sb__icon`). */
+.cb-filters__toggle { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--cb-control-h, 52px); cursor: pointer; position: relative; }
+.cb-filters__toggle > svg { width: 18px; height: 18px; flex: 0 0 auto; stroke: currentColor; fill: none; }
+.cb-filters__badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; font-size: 0.7em; line-height: 1; font-variant-numeric: tabular-nums; }
+/* Chevron du filtre : haut/bas = ouvert/fermé. */
+.cb-filters__chevron { display: inline-flex; flex: 0 0 auto; transition: transform 200ms ease; }
+.cb-filters__chevron svg { width: 16px; height: 16px; }
+.cb-filters__toggle.cb-open .cb-filters__chevron { transform: rotate(180deg); }
+/* Multi-select (équipements) : déclencheur façon select (`.cb-input`) + popover de cases à cocher. */
+.cb-multiselect { position: relative; }
+.cb-multiselect__trigger { display: inline-flex; align-items: center; width: 100%; text-align: start; cursor: pointer; }
+.cb-multiselect__panel { position: absolute; top: calc(100% + 6px); inset-inline-start: 0; z-index: 50; min-width: 220px; max-height: 0; overflow: hidden; }
+.cb-multiselect__panel.cb-open { max-height: 300px; overflow-y: auto; }
+.cb-multiselect__option { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.cb-multiselect__option input { flex: 0 0 auto; cursor: pointer; }
+/* Dropdown SINGLE-SELECT custom (sous-filtres) : déclencheur stylé + popover (réutilise `.cb-multiselect__panel`).
+ * Les options sont des boutons (texte tronqué proprement, état sélectionné via `.cb-selected`). */
+.cb-singleselect { position: relative; }
+.cb-singleselect__trigger { white-space: nowrap; overflow: hidden; }
+.cb-singleselect__trigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb-singleselect__option { width: 100%; text-align: start; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
+
+@layer cz-skin {
+  /* Conteneur de la barre : FOND TRANSPARENT + bordure/forme via les tokens du template (`--cb-*`) → s'intègre
+   * au template (filet subtil, pas de carte blanche). Surchargeable si le template stylise `.sb`. */
+  .sb { background: transparent; border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 12px); padding: 16px 18px; font-family: var(--cb-font, inherit); }
+  /* Libellés PLUS MARQUÉS : couleur accent du template (au lieu du muet). */
+  .sb__label, .sb .cb-filters__panel .cb-section-label { color: var(--cb-accent, #6B8A9A); font-weight: 600; }
+  .cb-filters__toggle {
+    padding: 0 14px;
+    background: var(--cb-surface, #fff);
+    color: var(--cb-text, inherit);
+    border: 1px solid var(--cb-border, rgba(0,0,0,.14));
+    border-radius: var(--cb-radius, 10px);
+    transition: border-color .15s ease;
+  }
+  .cb-filters__toggle:hover, .cb-filters__toggle.cb-has-active { border-color: var(--cb-accent, #6B8A9A); }
+  .cb-filters__badge { background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff); border-radius: 999px; font-weight: 600; }
+  .cb-multiselect__panel.cb-open {
+    background: var(--cb-surface, #fff);
+    color: var(--cb-text, inherit);
+    border: 1px solid var(--cb-border, rgba(0,0,0,.14));
+    border-radius: var(--cb-radius, 10px);
+    box-shadow: 0 16px 40px rgba(0,0,0,.16);
+    padding: 8px;
+  }
+  .cb-multiselect__option { padding: 6px 8px; border-radius: var(--cb-radius, 8px); }
+  .cb-multiselect__option:hover { background: rgba(107,138,154,.12); background: color-mix(in srgb, var(--cb-accent, #6B8A9A) 12%, transparent); }
+  .cb-singleselect__option.cb-selected { font-weight: 600; color: var(--cb-accent, #6B8A9A); }
+  .sb__control {
+    padding: 0 14px;
+    background: var(--cb-surface, #fff);
+    color: var(--cb-text, inherit);
+    border: 1px solid var(--cb-border, rgba(0,0,0,.14));
+    border-radius: var(--cb-radius, 10px);
+  }
+  .sb__control svg, .cb-filters__toggle > svg { opacity: 0.6; }
+  .sb__cta {
+    padding: 0 22px;
+    background: var(--cb-accent, #6B8A9A);
+    color: var(--cb-on-accent, #fff);
+    border-radius: var(--cb-radius, 10px);
+    font-weight: 600;
+  }
+}
+
+/* Récap prix. */
+.cb-price-line { display: flex; justify-content: space-between; align-items: center; }
+.cb-price-total { display: flex; justify-content: space-between; align-items: center; }
+
+/* Formulaire (coordonnées / devis). */
+.cb-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cb-input-group { display: flex; flex-direction: column; gap: 4px; }
+.cb-input { width: 100%; height: 48px; }
+.cb-textarea { width: 100%; height: 80px; }
+
+/* Stepper (progression). */
+.cb-stepper { display: flex; align-items: center; }
+.cb-step { display: flex; align-items: center; gap: 8px; }
+.cb-step__dot { width: 8px; height: 8px; }
+.cb-step.cb-active .cb-step__dot { transform: scale(1.25); }
+.cb-step__line { width: 24px; height: 2px; }
+
+/* Options & extras. */
+.cb-addon { display: flex; align-items: center; justify-content: space-between; }
+.cb-addon__info { display: flex; flex-direction: column; gap: 2px; }
+.cb-addon__check { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; }
+
+/* Confirmation. */
+.cb-confirmation__icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; }
+.cb-confirmation__icon svg { width: 32px; height: 32px; }
+
+/* Liste / cartes de logements. */
+.cb-property-card { position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.cb-property-card__img { display: block; width: 100%; height: 96px; }
+.cb-property-card__body { display: flex; flex-direction: column; gap: 2px; }
+.cb-property-card--horizontal .cb-property-card__img { width: 104px; height: auto; align-self: stretch; flex: 0 0 auto; }
+.cb-property-card--horizontal .cb-property-card__body { flex: 1 1 auto; min-width: 0; justify-content: center; }
+.cb-property-card--overlay .cb-property-card__img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cb-property-card--overlay .cb-property-card__body { position: relative; z-index: 1; }
+.cb-property-summary__image { display: block; width: 100%; }
+.cb-property-tabs { display: flex; overflow-x: auto; }
+.cb-property-tabs::-webkit-scrollbar { display: none; }
+
+/* Équipements. */
+.cb-amenities__list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Panier. */
+.cb-cart__item { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cb-cart__item-right { display: inline-flex; align-items: center; gap: 8px; }
+.cb-cart__total { display: flex; justify-content: space-between; }
+
+/* Re-booking. */
+.cb-rebook__row { display: flex; gap: 8px; overflow-x: auto; }
+.cb-rebook__card { display: flex; flex-direction: column; gap: 2px; flex: 0 0 auto; min-width: 168px; max-width: 220px; }
+.cb-rebook__cta { align-self: flex-start; }
+
+/* Devise. */
+.cb-currency-selector { display: inline-flex; align-items: center; }
+
+/* Badges. */
+.cb-badge { display: inline-flex; align-items: center; }
+
+/* Spinner. */
+.cb-spinner svg { width: 20px; height: 20px; }
+.cb-spinner--sm svg { width: 16px; height: 16px; }
+.cb-spinner--lg svg { width: 28px; height: 28px; }
+
+/* Overlays modaux (compte voyageur / capture de lead) — centrage plein écran. */
+.cb-lead-overlay { position: fixed; inset: 0; z-index: 2147483600; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.cb-lead-card { position: relative; width: 100%; max-width: 380px; }
+.cb-lead-card__close { position: absolute; top: 8px; inset-inline-end: 10px; width: 28px; height: 28px; cursor: pointer; }
+.cb-lead-form { display: flex; flex-direction: column; gap: 12px; }
+.cb-lead-consent { display: flex; align-items: flex-start; gap: 8px; }
+.cb-auth-row { display: flex; gap: 8px; }
+.cb-auth-row > * { flex: 1; min-width: 0; }

@@ -13,6 +13,7 @@ import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberCo
 export default function GrowthSettingsPanel() {
   const [loaded, setLoaded] = useState<GrowthSettings | null>(null);
   const [leadCapture, setLeadCapture] = useState(false);
+  const [leadCapturePopup, setLeadCapturePopup] = useState(false);
   const [abandoned, setAbandoned] = useState(false);
   const [loyalty, setLoyalty] = useState(0);
   // Crédit de parrainage saisi en EUROS (le backend stocke des centimes).
@@ -23,6 +24,7 @@ export default function GrowthSettingsPanel() {
   const hydrate = (s: GrowthSettings) => {
     setLoaded(s);
     setLeadCapture(s.leadCaptureEnabled);
+    setLeadCapturePopup(s.leadCapturePopupEnabled);
     setAbandoned(s.abandonedCartRecoveryEnabled);
     setLoyalty(s.loyaltyCreditPercent ?? 0);
     setReferralEuros((s.referralCreditCents ?? 0) / 100);
@@ -38,6 +40,7 @@ export default function GrowthSettingsPanel() {
 
   const referralCents = Math.round(referralEuros * 100);
   const dirty = !!loaded && (leadCapture !== loaded.leadCaptureEnabled
+    || leadCapturePopup !== loaded.leadCapturePopupEnabled
     || abandoned !== loaded.abandonedCartRecoveryEnabled
     || loyalty !== (loaded.loyaltyCreditPercent ?? 0)
     || referralCents !== (loaded.referralCreditCents ?? 0));
@@ -47,6 +50,7 @@ export default function GrowthSettingsPanel() {
     setError(null);
     growthSettingsApi.update({
       leadCaptureEnabled: leadCapture,
+      leadCapturePopupEnabled: leadCapturePopup,
       abandonedCartRecoveryEnabled: abandoned,
       loyaltyCreditPercent: loyalty > 0 ? loyalty : null,
       referralCreditCents: referralCents > 0 ? referralCents : null,
@@ -89,6 +93,11 @@ export default function GrowthSettingsPanel() {
           label="Activer la capture de leads"
           helper="Désactivé, l’endpoint public de capture est refusé (403)."
           control={<ToggleControl checked={leadCapture} onChange={setLeadCapture} />}
+        />
+        <SettingRow
+          label="Popup de sortie (exit-intent)"
+          helper="Affiche un popup « Ne partez pas les mains vides » à l’intention de sortie. Désactivé par défaut."
+          control={<ToggleControl checked={leadCapturePopup} onChange={setLeadCapturePopup} />}
         />
       </SettingCard>
 

@@ -50,6 +50,11 @@
   --err:  #C97A7A;  --err-soft:  rgba(201,122,122,.13);
   --info: #7BA3C2;  --info-soft: rgba(123,163,194,.14);
 
+  /* ---- Paiement réservation (brique planning .pl-price) ---- */
+  --paid:          #3E9C80;  /* payé — vert (= --st-confirmee) */
+  --unpaid:        #C9803F;  /* non réglé — ambre (icône carte) */
+  --unpaid-strong: #B25A2A;  /* non réglé — ambre foncé (montant, contraste sur blanc) */
+
   /* ---- Canaux de distribution ---- */
   --airbnb:  #E0735A;  --airbnb-soft:  rgba(224,115,90,.12);  --airbnb-ink:  #A24A33;
   --booking: #4A6B9A;  --booking-soft: rgba(74,107,154,.12);  --booking-ink: #39527A;
@@ -116,6 +121,10 @@
   --warn-soft: rgba(194,138,82,.22);
   --err-soft:  rgba(201,122,122,.22);
   --info-soft: rgba(123,163,194,.22);
+
+  /* Paiement — éclairci pour le contraste sur surfaces sombres */
+  --unpaid:        #D98E4A;
+  --unpaid-strong: #E6A765;
 
   --airbnb-soft:  rgba(224,115,90,.20);  --airbnb-ink:  #EC9580;
   --booking-soft: rgba(74,107,154,.26);  --booking-ink: #A6BCDB;

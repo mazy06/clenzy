@@ -118,6 +118,21 @@ public class StripeService {
     }
 
     /**
+     * Variante avec {@code successUrl} explicite (B3, parcours booking engine template-driven).
+     * {@code successUrl} null = {@code stripe.success-url} par defaut. L'appelant DOIT avoir valide
+     * cette URL (HTTPS + host autorise de l'org) — la factory l'utilise telle quelle.
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
+                                                     String customerEmail, String guestName,
+                                                     String propertyName,
+                                                     java.time.Duration expiresIn,
+                                                     String successUrl) throws StripeException {
+        return checkoutSessionFactory.createReservationCheckoutSession(reservationId, amount,
+            customerEmail, guestName, propertyName, expiresIn, successUrl);
+    }
+
+    /**
      * Cree une session Stripe EMBEDDED pour un upsell guest (clientSecret cote livret).
      * Chargee sur le compte plateforme comme les reservations ; la repartition part
      * hote / part plateforme est creditee au ledger a la confirmation du paiement

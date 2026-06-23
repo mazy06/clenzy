@@ -19,7 +19,7 @@ import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
 import { Delete as DeleteIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
@@ -64,7 +64,6 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
   deleteLoading,
 }) => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const handleDelete = async () => {
@@ -154,7 +153,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
 
             {/* Price — display tabular-nums */}
             <Typography variant="body2" fontWeight={600} sx={{ minWidth: 60, textAlign: 'right', fontSize: '0.8125rem', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ink)' }}>
-              {convertAndFormat(plan.nightlyPrice, plan.currency || 'EUR')}
+              <Money value={plan.nightlyPrice} from={plan.currency || 'EUR'} />
             </Typography>
 
             {/* Active toggle */}

@@ -23,7 +23,7 @@ import {
 } from '../../icons';
 import { walletApi } from '../../services/api/walletApi';
 import { useCurrency } from '../../hooks/useCurrency';
-import { formatCurrency } from '../../utils/currencyUtils';
+import { Money } from '../../components/Money';
 import type { WalletDto, LedgerEntryDto } from '../../types/payment';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -241,7 +241,7 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                         lineHeight: 1.1,
                       }}
                     >
-                      {formatCurrency(wallet.balance, wallet.currency)}
+                      <Money value={wallet.balance} from={wallet.currency} />
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
                       {wallet.currency}
@@ -335,11 +335,11 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                                 }}
                               >
                                 {entry.entryType === 'CREDIT' ? '+' : '-'}
-                                {formatCurrency(entry.amount, entry.currency)}
+                                <Money value={entry.amount} from={entry.currency} />
                               </Typography>
                             </TableCell>
                             <TableCell align="right" sx={{ ...moneySx, color: 'var(--ink)' }}>
-                              {formatCurrency(entry.balanceAfter, entry.currency)}
+                              <Money value={entry.balanceAfter} from={entry.currency} />
                             </TableCell>
                           </TableRow>
                         ))}

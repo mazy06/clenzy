@@ -26,7 +26,7 @@ import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { SPACING } from '../../theme/spacing';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -116,7 +116,6 @@ interface GuestsListPageProps {
 const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => {
   const { user } = useAuth();
   const isSuperAdmin = user?.platformRole === 'SUPER_ADMIN' || user?.platformRole === 'SUPER_MANAGER';
-  const { convertAndFormat } = useCurrency();
 
   // ── Filters ─────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
@@ -343,7 +342,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                     </TableCell>
                     <TableCell align="right">
                       <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
-                        {guest.totalSpent ? convertAndFormat(guest.totalSpent, 'EUR') : '-'}
+                        {guest.totalSpent ? <Money value={guest.totalSpent} from="EUR" /> : '-'}
                       </Typography>
                     </TableCell>
                     <TableCell>

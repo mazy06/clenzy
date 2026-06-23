@@ -16,21 +16,24 @@ export function createDatePicker(state: StateManager, i18n: I18n): HTMLElement {
   container.appendChild(checkOutBox);
 
   // Click handlers
+  // Ouvrir le calendrier ferme les autres popovers (un seul ouvert à la fois).
   checkInBox.addEventListener('click', () => {
-    state.set({ calendarOpen: true }, 'calendarToggle');
+    state.set({ calendarOpen: true, guestsOpen: false, multiselectOpen: null }, 'calendarToggle');
   });
   checkOutBox.addEventListener('click', () => {
-    state.set({ calendarOpen: true }, 'calendarToggle');
+    state.set({ calendarOpen: true, guestsOpen: false, multiselectOpen: null }, 'calendarToggle');
   });
 
-  // State sync
-  state.on('*', (s: WidgetState) => {
+  // State sync — rendu initial INCLUS (hauteur stable dès le montage : label + valeur/placeholder = 2 lignes).
+  const render = (s: WidgetState): void => {
     updateDateBox(checkInBox, s.checkIn, i18n.t('searchBar.addDate'));
     updateDateBox(checkOutBox, s.checkOut, i18n.t('searchBar.addDate'));
 
     checkInBox.classList.toggle('cb-active', s.calendarOpen && !s.checkIn);
     checkOutBox.classList.toggle('cb-active', s.calendarOpen && !!s.checkIn && !s.checkOut);
-  });
+  };
+  state.on('*', render);
+  render(state.get());
 
   return container;
 }

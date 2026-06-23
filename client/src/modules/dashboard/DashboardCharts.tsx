@@ -24,6 +24,7 @@ import {
   Label,
 } from 'recharts';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 import type { InterventionReportData, FinancialReportData } from '../../services/api/reportsApi';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -214,6 +215,7 @@ const StatusLegend: React.FC<StatusLegendProps> = ({ data, total }) => (
 
 const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ charts, loading }) => {
   const { t } = useTranslation();
+  const { currencySymbol } = useCurrency();
 
   const interventionData = charts.interventionData;
   const financialData = charts.financialData;
@@ -347,7 +349,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ charts, lo
                     <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
                     <XAxis dataKey="month" tick={AXIS_TICK} />
                     <YAxis tick={AXIS_TICK} />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => `${value} €`} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => `${value} ${currencySymbol}`} />
                     <Legend wrapperStyle={LEGEND_STYLE} iconSize={6} />
                     <Bar dataKey="revenue" name={t('dashboard.charts.revenue')} fill={CHART_SUCCESS} radius={[3, 3, 0, 0]} />
                     <Bar dataKey="expenses" name={t('dashboard.charts.expenses')} fill={CHART_ERROR} radius={[3, 3, 0, 0]} />

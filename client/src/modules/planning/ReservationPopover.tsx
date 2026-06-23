@@ -16,6 +16,7 @@ import {
   RESERVATION_SOURCE_LABELS,
 } from '../../services/api/reservationsApi';
 import type { ReservationStatus } from '../../services/api';
+import GuestAvatar from '../../components/GuestAvatar';
 import type { PlanningEvent } from './types';
 import { RESERVATION_STATUS_TOKEN_COLORS } from './constants';
 import { getSourceLogo } from './utils/sourceLogos';
@@ -28,17 +29,6 @@ import { toDate, daysBetween } from './utils/dateUtils';
 // valeur séparées hairline ; pied : « Message » (messagerie existante) +
 // « Détail » (panneau de détail existant). N'affiche QUE des données déjà
 // présentes sur l'objet réservation — une ligne sans donnée est omise.
-
-/** Initiales du voyageur (max 2 lettres) — même règle que la brique. */
-function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
 
 /** Format séjour maquette : « 10 → 13 févr. · 3n » (mois sur le départ,
  *  répété sur l'arrivée uniquement si différent). */
@@ -162,23 +152,12 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
     >
       {/* Entête : avatar 40 + nom + canal (logo + label) */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '12px 14px' }}>
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            flexShrink: 0,
-            backgroundColor: 'var(--accent-soft)',
-            color: 'var(--accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-          }}
-        >
-          {getInitials(event.label)}
-        </Box>
+        <GuestAvatar
+          name={event.label}
+          photoUrl={reservation.guestAvatarUrl}
+          size={40}
+          sx={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: '0.8125rem' }}
+        />
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Box
             component="span"

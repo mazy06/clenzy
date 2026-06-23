@@ -54,6 +54,10 @@ public record BookingEngineAdminConfigDto(
     String componentConfig,
     // Site builder (page composée par blocs, JSON)
     String pageLayout,
+    // Parcours de réservation custom (bibliothèque de funnels, JSON) — éditée dans le Studio.
+    String funnelPresets,
+    // Widgets composites custom (bibliothèque, JSON) — éditée dans le Studio.
+    String compositeWidgets,
     // Propriétés affichées (curation) : IDs en CSV
     String featuredPropertyIds,
     // AI Design Analysis
@@ -105,6 +109,8 @@ public record BookingEngineAdminConfigDto(
             config.getCustomJs(),
             config.getComponentConfig(),
             config.getPageLayout(),
+            config.getFunnelPresets(),
+            config.getCompositeWidgets(),
             config.getFeaturedPropertyIds(),
             config.getDesignTokens(),
             config.getSourceWebsiteUrl(),
@@ -148,6 +154,8 @@ public record BookingEngineAdminConfigDto(
         config.setCustomJs(customJs);
         config.setComponentConfig(componentConfig);
         config.setPageLayout(pageLayout);
+        config.setFunnelPresets(funnelPresets);
+        config.setCompositeWidgets(compositeWidgets);
         config.setFeaturedPropertyIds(featuredPropertyIds);
         config.setDesignTokens(designTokens);
         config.setSourceWebsiteUrl(sourceWebsiteUrl);

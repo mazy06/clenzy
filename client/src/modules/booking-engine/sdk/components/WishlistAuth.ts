@@ -12,7 +12,7 @@ import type { StateManager } from '../state';
  */
 
 export interface WishlistAuthOptions {
-  root: ShadowRoot;
+  root: ShadowRoot | HTMLElement;
   api: BookingApi;
   i18n: BookingI18n;
   state: StateManager;

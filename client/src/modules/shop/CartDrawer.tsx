@@ -16,7 +16,7 @@ import {
   CheckCircleOutline,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 import { SHOP_PRODUCTS } from './shopProducts';
 import ProductHero from './ProductHero';
 
@@ -38,9 +38,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   onCheckout,
 }) => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
 
-  const formatPrice = (cents: number) => convertAndFormat(cents / 100, 'EUR');
+  const formatPrice = (cents: number) => <Money value={cents / 100} from="EUR" />;
 
   const cartItems = Array.from(cart.entries())
     .map(([id, qty]) => {

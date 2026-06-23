@@ -22,6 +22,8 @@ class BookingEngineAdminConfigDtoTest {
                 new java.math.BigDecimal("250.00"), 30, 7, 20, 15, 40,
                 "body { color: red }", "console.log('hi')", "{\"layout\":\"grid\"}",
                 "[{\"type\":\"hero\"}]",
+                "[{\"id\":\"c1\",\"label\":\"Custom\",\"widgetIds\":[\"booking-dates\"]}]",
+                "[{\"id\":\"cw1\",\"name\":\"Recherche\",\"kind\":\"searchBar\",\"widgetIds\":[\"booking-dates\"]}]",
                 "12,7",
                 "{\"primary\":\"#FF\"}", "https://source", analysisAt,
                 "bottom", "target", "after",
@@ -59,6 +61,8 @@ class BookingEngineAdminConfigDtoTest {
         assertEquals("console.log('hi')", dto.customJs());
         assertEquals("{\"layout\":\"grid\"}", dto.componentConfig());
         assertEquals("[{\"type\":\"hero\"}]", dto.pageLayout());
+        assertEquals("[{\"id\":\"c1\",\"label\":\"Custom\",\"widgetIds\":[\"booking-dates\"]}]", dto.funnelPresets());
+        assertEquals("[{\"id\":\"cw1\",\"name\":\"Recherche\",\"kind\":\"searchBar\",\"widgetIds\":[\"booking-dates\"]}]", dto.compositeWidgets());
         assertEquals("12,7", dto.featuredPropertyIds());
         assertEquals("{\"primary\":\"#FF\"}", dto.designTokens());
         assertEquals("https://source", dto.sourceWebsiteUrl());
@@ -130,6 +134,8 @@ class BookingEngineAdminConfigDtoTest {
                 new java.math.BigDecimal("99.99"), 15, 45, 25, 10, 90,
                 "css-new", "js-new", "cfg-new",
                 "layout-new",
+                "presets-new",
+                "composites-new",
                 "3,4",
                 "tokens-new", "https://new.source", null,
                 "inline", "elem", "after",
@@ -165,6 +171,8 @@ class BookingEngineAdminConfigDtoTest {
         assertEquals("js-new", target.getCustomJs());
         assertEquals("cfg-new", target.getComponentConfig());
         assertEquals("layout-new", target.getPageLayout());
+        assertEquals("presets-new", target.getFunnelPresets());
+        assertEquals("composites-new", target.getCompositeWidgets());
         assertEquals("3,4", target.getFeaturedPropertyIds());
         assertEquals("tokens-new", target.getDesignTokens());
         assertEquals("https://new.source", target.getSourceWebsiteUrl());
@@ -189,7 +197,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null,
                 false, false, false, false,
                 null, null, null, null, null, null,
-                null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null,
                 null, null, null,
                 null
@@ -213,7 +221,8 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null,
                 false, false, false, false,
                 null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
                 null, null, null, null
         );
         BookingEngineAdminConfigDto b = new BookingEngineAdminConfigDto(
@@ -222,7 +231,8 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null,
                 false, false, false, false,
                 null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null,
                 null, null, null, null
         );
         assertEquals(a, b);

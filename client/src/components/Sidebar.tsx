@@ -17,9 +17,10 @@ import {
   ChevronsRight,
   Logout,
   Notifications,
-  Language as LanguageIcon,
+  Faders as PreferencesIcon,
   Check as CheckIcon,
 } from '../icons';
+import { CurrencySymbol } from './Money';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
@@ -414,10 +415,10 @@ export default function Sidebar({
             flexShrink: 0,
           }}
         >
-          {/* Langue / devise / Apparence — menu existant conservé */}
+          {/* Apparence / langue / devise — menu de préférences (icône faders) */}
           <Tooltip title={t('navigation.languageAndCurrency')} placement={collapsed ? sidePlacement : 'top'}>
             <IconButton size="small" onClick={handleSettingsOpen} sx={footBtnSx}>
-              <LanguageIcon size={footerIconSize} strokeWidth={1.75} />
+              <PreferencesIcon size={footerIconSize} />
             </IconButton>
           </Tooltip>
 
@@ -625,9 +626,10 @@ export default function Sidebar({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography
                     component="span"
-                    sx={{ fontSize: '0.8125rem', fontWeight: 600, minWidth: 28, textAlign: 'center' }}
+                    sx={{ fontSize: '0.8125rem', fontWeight: 600, minWidth: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {opt.symbol}
+                    {/* SAR/MAD en icône (pas de glyphe Unicode rendu) ; € reste textuel. */}
+                    <CurrencySymbol code={opt.code} size={15} />
                   </Typography>
                   <span>{opt.label}</span>
                 </Box>

@@ -4,10 +4,11 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
 } from '@mui/material';
 import type { NavigateFunction } from 'react-router-dom';
-import { Visibility, Edit, Sanitizer, Power, Delete, Business } from '../../icons';
+import { Visibility, Edit, BroomFill, Power, Delete, Business } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import ThemedTooltip from '../../components/ThemedTooltip';
+import { Money } from '../../components/Money';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
@@ -260,14 +261,14 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       {(() => { const freq = property.cleaningFrequency || 'ON_DEMAND'; return (
                         <Tooltip title={`Ménage auto : ${getCleaningFrequencyLabel(freq, t)}`}>
                           <Box component="span" sx={{ display: 'inline-flex', color: getCleaningFrequencyHex(freq), flexShrink: 0 }}>
-                            <Sanitizer size={16} strokeWidth={1.75} />
+                            <BroomFill size={16} />
                           </Box>
                         </Tooltip>
                       ); })()}
                       {price != null ? (
                         <Box sx={{ minWidth: 0 }}>
                           <Typography variant="body2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13px', lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
-                            {price}€
+                            <Money value={price} from="EUR" decimals={0} />
                           </Typography>
                           {duration != null && (
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>

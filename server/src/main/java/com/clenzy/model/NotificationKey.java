@@ -206,6 +206,8 @@ public enum NotificationKey {
     RESERVATION_CREATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     RESERVATION_UPDATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
     RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true),
+    // Demande de réservation (« devis ») soumise depuis le booking engine public (parcours sans paiement).
+    BOOKING_INQUIRY_RECEIVED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
 
     // ─── INTEGRATIONS (webhooks sortants) ─────────────────────────────────
     WEBHOOK_DELIVERY_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),

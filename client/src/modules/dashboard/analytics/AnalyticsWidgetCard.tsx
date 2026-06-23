@@ -17,7 +17,10 @@ import {
 
 interface AnalyticsWidgetCardProps {
   title: string;
-  value?: string;
+  value?: React.ReactNode;
+  /** Texte indicatif pour dimensionner la police + l'attribut title quand
+   *  `value` est un nœud (ex: <Money/> qui affiche le glyphe de devise). */
+  valueText?: string;
   subtitle?: string;
   trend?: { value: number; label?: string };
   icon?: React.ReactNode;
@@ -68,7 +71,8 @@ const VALUE_SX = {
  * « 1 » ou « 46.7% » peut être affiché en grand.
  */
 function valueFontSize(value?: string): { xs: string; md: string } {
-  const len = (value ?? '').length;
+  if (value == null) return { xs: '1.05rem', md: '1.2rem' }; // nœud sans hint → taille moyenne sûre
+  const len = value.length;
   if (len <= 5) return { xs: '1.5rem', md: '1.75rem' };
   if (len <= 8) return { xs: '1.25rem', md: '1.45rem' };
   if (len <= 12) return { xs: '1.05rem', md: '1.2rem' };
@@ -99,6 +103,7 @@ const GROWTH_SX = {
 const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
   title,
   value,
+  valueText,
   subtitle,
   trend,
   icon,
@@ -112,6 +117,8 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
   // La description vit dans le tooltip (jamais en double sur la carte).
   // Si aucun tooltip explicite, on y bascule le subtitle (ex. « X total »).
   const resolvedTooltip = tooltip || subtitle;
+  // Texte de dimensionnement : la value si c'est une string, sinon le hint.
+  const sizingText = typeof value === 'string' ? value : valueText;
 
   const cardContent = (
     <Card
@@ -161,8 +168,8 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
             </Box>
 
             {/* Value */}
-            {value && (
-              <Typography variant="h6" component="div" sx={{ ...VALUE_SX, fontSize: valueFontSize(value) }} title={value}>
+            {value != null && value !== '' && (
+              <Typography variant="h6" component="div" sx={{ ...VALUE_SX, fontSize: valueFontSize(sizingText) }} title={sizingText}>
                 {value}
               </Typography>
             )}

@@ -64,6 +64,7 @@ import type { PlanningIntervention } from '../../../services/api';
 import { managersApi } from '../../../services/api';
 import type { PortfolioTeam, OperationalUser } from '../../../services/api';
 import { interventionsApi } from '../../../services/api/interventionsApi';
+import { Money } from '../../../components/Money';
 import type { TeamMemberAvailability } from '../../../services/api/interventionsApi';
 import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
 import type { ServiceRequest } from '../../../services/api/serviceRequestsApi';
@@ -1357,7 +1358,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                         {cost > 0 && payStatusCfg && (
                           <Chip
                             icon={<Payment size={10} strokeWidth={1.75} />}
-                            label={`${payStatusCfg.label} (${cost.toFixed(0)}€)`}
+                            label={<>{payStatusCfg.label} (<Money value={cost} from="EUR" decimals={0} />)</>}
                             size="small"
                             sx={{
                               fontSize: '0.5625rem', height: 20, fontWeight: 600,

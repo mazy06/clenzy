@@ -34,7 +34,6 @@ import {
   SuccessDialog,
 } from './ServiceRequestsDialogs';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
-import { useCurrency } from '../../hooks/useCurrency';
 import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
@@ -158,7 +157,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     ['grid', 'list', 'map'] as const,
     autoDefaultMode,
   );
-  const { convertAndFormat } = useCurrency();
 
   // ─── Map state ──────────────────────────────────────────────
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
@@ -398,7 +396,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           rowsPerPage={rowsPerPage}
           onPageChange={setPage}
           containerRef={listContainerRef}
-          convertAndFormat={convertAndFormat}
           onMenuOpen={handleMenuOpen}
           navigate={navigate}
         />

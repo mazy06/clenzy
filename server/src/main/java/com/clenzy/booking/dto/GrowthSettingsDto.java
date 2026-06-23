@@ -5,7 +5,8 @@ package com.clenzy.booking.dto;
  * Les drapeaux sont réellement appliqués : capture de leads (endpoint /leads) et relance de
  * panier abandonné (scheduler). Les compteurs sont en lecture seule (ignorés en écriture).
  *
- * @param leadCaptureEnabled            la capture de leads est-elle active pour l'org
+ * @param leadCaptureEnabled            la capture de leads est-elle active pour l'org (gate endpoint /leads)
+ * @param leadCapturePopupEnabled       le popup exit-intent est-il affiché dans le widget (opt-in)
  * @param abandonedCartRecoveryEnabled  la relance de panier abandonné est-elle active
  * @param contactsCaptured              nombre de contacts marketing capturés (org)
  * @param cartsRecovered                nombre de paniers relancés (statut RECOVERY_SENT)
@@ -14,6 +15,7 @@ package com.clenzy.booking.dto;
  */
 public record GrowthSettingsDto(
         boolean leadCaptureEnabled,
+        boolean leadCapturePopupEnabled,
         boolean abandonedCartRecoveryEnabled,
         long contactsCaptured,
         long cartsRecovered,

@@ -60,6 +60,7 @@ import { usePropertyDetails } from '../../hooks/usePropertyDetails';
 import type { PropertyDetailsData } from '../../hooks/usePropertyDetails';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import { Money } from '../../components/Money';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDate } from '../../utils/formatUtils';
 import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
@@ -437,7 +438,7 @@ const PropertyDetails: React.FC = () => {
                 <Box sx={{ ...METRIC_CARD_SX, cursor: 'help' }}>
                   <Box sx={METRIC_ICON_BADGE_SX}><Payments size={16} strokeWidth={1.75} /></Box>
                   <Typography sx={METRIC_VALUE_SX}>
-                    {cleaningEstimate ? `${cleaningEstimate.min}€` : '—'}
+                    {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
                   </Typography>
                   <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningEstimate')}</Typography>
                 </Box>
@@ -591,7 +592,7 @@ const PropertyDetails: React.FC = () => {
                       <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payments size={16} strokeWidth={1.75} /></Box>
                       <Box>
                         <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
-                        <Typography sx={{ ...INFO_VALUE_SX, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>{property.cleaningBasePrice}€</Typography>
+                        <Typography sx={{ ...INFO_VALUE_SX, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></Typography>
                       </Box>
                     </Box>
                   )}

@@ -48,7 +48,7 @@ import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 
 interface PaymentHistoryPageProps {
   embedded?: boolean;
@@ -269,8 +269,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  const { convertAndFormat } = useCurrency();
-
   const formatDate = (dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleDateString('fr-FR', {
@@ -364,19 +362,19 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     ? [
         {
           label: t('payments.history.totalPaid'),
-          value: convertAndFormat(summary.totalPaid, 'EUR'),
+          value: <Money value={summary.totalPaid} from="EUR" />,
           color: '#4A9B8E',
           icon: <CheckCircleIcon />,
         },
         {
           label: t('payments.history.totalPending'),
-          value: convertAndFormat(summary.totalPending, 'EUR'),
+          value: <Money value={summary.totalPending} from="EUR" />,
           color: '#D4A574',
           icon: <HourglassEmptyIcon />,
         },
         {
           label: t('payments.history.totalRefunded'),
-          value: convertAndFormat(summary.totalRefunded, 'EUR'),
+          value: <Money value={summary.totalRefunded} from="EUR" />,
           color: '#7BA3C2',
           icon: <MoneyOffIcon />,
         },
@@ -390,13 +388,13 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     : [
         {
           label: t('payments.history.totalPaid'),
-          value: convertAndFormat(summary.totalPaid, 'EUR'),
+          value: <Money value={summary.totalPaid} from="EUR" />,
           color: '#4A9B8E',
           icon: <CheckCircleIcon />,
         },
         {
           label: t('payments.history.totalDue'),
-          value: convertAndFormat(totalDue, 'EUR'),
+          value: <Money value={totalDue} from="EUR" />,
           color: totalDue > 0 ? '#C97A7A' : '#D4A574',
           icon: <WarningIcon />,
         },
@@ -601,7 +599,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                         color: 'var(--ink)',
                       }}
                     >
-                      {convertAndFormat(payment.amount, payment.currency ?? 'EUR')}
+                      <Money value={payment.amount} from={payment.currency ?? 'EUR'} />
                     </Typography>
                   </TableCell>
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
@@ -740,7 +738,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         <DialogContent>
           {refundTarget && (
             <Typography variant="body2" sx={{ mb: 1 }}>
-              Voulez-vous rembourser <strong>{convertAndFormat(refundTarget.amount, refundTarget.currency ?? 'EUR')}</strong> pour
+              Voulez-vous rembourser <strong><Money value={refundTarget.amount} from={refundTarget.currency ?? 'EUR'} /></strong> pour
               <strong> {refundTarget.description}</strong> ?
             </Typography>
           )}
