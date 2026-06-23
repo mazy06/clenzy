@@ -4,6 +4,7 @@ import { CleaningServices, TrendingUp, Timer, CheckCircle } from '../../icons';
 import { useWatch } from 'react-hook-form';
 import type { Control, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
+import { Money } from '../../components/Money';
 import type { PropertyFormValues } from '../../schemas';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
@@ -499,7 +500,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                   }}
                 />
                 <Typography sx={isSelected ? PRICE_RANGE_SX : PRICE_RANGE_SECONDARY_SX}>
-                  {min === max ? `${min}€` : `${min}€ – ${max}€`}
+                  {min === max ? <Money value={min} from="EUR" decimals={0} /> : <><Money value={min} from="EUR" decimals={0} /> – <Money value={max} from="EUR" decimals={0} /></>}
                 </Typography>
                 <Typography sx={PER_LABEL_SX}>
                   {t('properties.priceEstimation.perIntervention')}

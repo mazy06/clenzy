@@ -10,6 +10,7 @@ import {
 } from '../../icons';
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
 import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -338,7 +339,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                     whiteSpace: 'nowrap',
                     lineHeight: 1.2,
                   }}>
-                    {min === max ? convertAndFormat(min, 'EUR') : `${convertAndFormat(min, 'EUR')} – ${convertAndFormat(max, 'EUR')}`}
+                    {min === max ? <Money value={min} from="EUR" /> : `${convertAndFormat(min, 'EUR')} – ${convertAndFormat(max, 'EUR')}`}
                   </Typography>
                   <Typography sx={{ fontSize: '10px', color: 'var(--faint)', lineHeight: 1 }}>
                     par intervention

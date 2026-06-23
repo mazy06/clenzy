@@ -26,6 +26,7 @@ import {
 import type { PlanningEvent, PanelView } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import PanelPhotoGallery from './PanelPhotoGallery';
+import { Money } from '../../../components/Money';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -184,7 +185,7 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
         {estimatedCost > 0 && (
           <Chip
             icon={<AttachMoney size={12} strokeWidth={1.75} color="#4A9B8E" />}
-            label={`${estimatedCost.toFixed(0)} €`}
+            label={<Money value={estimatedCost} from="EUR" decimals={0} />}
             size="small"
             sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />

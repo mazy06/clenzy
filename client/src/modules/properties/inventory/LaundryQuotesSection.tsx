@@ -8,7 +8,7 @@ import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
 } from '../../../icons';
 import type { LaundryQuote, GenerateLaundryQuoteRequest } from '../../../services/api/propertyInventoryApi';
-import { useCurrency } from '../../../hooks/useCurrency';
+import { Money } from '../../../components/Money';
 
 const STATUS_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   DRAFT: { label: 'Brouillon', color: 'warning' },
@@ -25,7 +25,6 @@ interface Props {
 }
 
 export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit, onGenerate, onConfirm }: Props) {
-  const { convertAndFormat } = useCurrency();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
 
@@ -119,7 +118,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                         <Chip label={statusConf.label} color={statusConf.color} size="small" variant="outlined" />
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 600 }}>
-                        {convertAndFormat(Number(quote.totalHt), quote.currency ?? 'EUR')}
+                        <Money value={Number(quote.totalHt)} from={quote.currency ?? 'EUR'} />
                       </TableCell>
                       {canEdit && (
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
@@ -160,9 +159,9 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                                   <TableRow key={idx}>
                                     <TableCell>{line.label}</TableCell>
                                     <TableCell align="center">{line.quantity}</TableCell>
-                                    <TableCell align="right">{Number(line.unitPrice).toFixed(2)} {'\u20AC'}</TableCell>
+                                    <TableCell align="right"><Money value={Number(line.unitPrice)} from="EUR" /></TableCell>
                                     <TableCell align="right" sx={{ fontWeight: 500 }}>
-                                      {Number(line.lineTotal).toFixed(2)} {'\u20AC'}
+                                      <Money value={Number(line.lineTotal)} from="EUR" />
                                     </TableCell>
                                   </TableRow>
                                 ))}

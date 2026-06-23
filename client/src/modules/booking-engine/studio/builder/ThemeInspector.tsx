@@ -84,6 +84,7 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
   const shadow = tokens.cardShadow || tokens.boxShadow || 'none';
   const density = tokens.spacing || 'normal';
   const buttonStyle = tokens.buttonStyle || 'filled';
+  const bg = tokens.backgroundColor || '#FFFFFF';
 
   return (
     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
@@ -107,6 +108,24 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
                 boxShadow: '0 0 0 1px var(--line)', '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 } }}
             />
           ))}
+        </Box>
+      </Box>
+
+      {/* Couleur de fond de la page (site publié). L'éditeur GrapesJS garde, lui, un canvas blanc neutre. */}
+      <Box>
+        <Box component="label" htmlFor="theme-bg" sx={labelSx}>Couleur de fond</Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75 }}>
+          <Box component="input" id="theme-bg" type="color" value={bg}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => writeTokens({ backgroundColor: e.target.value })}
+            sx={{ width: 38, height: 38, p: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'transparent', cursor: 'pointer', flexShrink: 0, '&::-webkit-color-swatch-wrapper': { p: '3px' }, '&::-webkit-color-swatch': { border: 'none', borderRadius: 6 } }}
+          />
+          <InputBase value={bg} onChange={(e) => writeTokens({ backgroundColor: e.target.value })}
+            sx={{ flex: 1, px: 1.25, py: 0.75, fontSize: 'var(--text-md)', fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
+          />
+          <Box component="button" type="button" onClick={() => writeTokens({ backgroundColor: '#FFFFFF' })}
+            sx={{ px: 1.25, py: 0.75, fontSize: 'var(--text-sm)', color: 'var(--body)', bgcolor: 'transparent', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', '&:hover': { bgcolor: 'var(--hover)' } }}>
+            Blanc
+          </Box>
         </Box>
       </Box>
 

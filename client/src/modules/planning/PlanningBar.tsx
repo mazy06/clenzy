@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
 import { Box, Tooltip } from '@mui/material';
 import { useDraggable } from '@dnd-kit/core';
-import { Lock as LockIcon, Close, CreditCard, Warning, CleaningServices, Build } from '../../icons';
+import { Lock as LockIcon, Close, Warning, BroomFill, WrenchFill, CreditCardFill, CheckBold } from '../../icons';
 import { INTERVENTION_TYPE_LABELS } from '../../services/api/reservationsApi';
 import type { PlanningInterventionType } from '../../services/api';
 import ReservationPopover from './ReservationPopover';
 import SendMessageDialog from '../messaging/SendMessageDialog';
 import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
-import { BAR_BORDER_RADIUS, INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
+import {
+  BAR_BORDER_RADIUS,
+  INTERVENTION_TYPE_TOKEN_COLORS,
+  BAR_PRICE_AMOUNT_MIN as PRICE_AMOUNT_MIN,
+  BAR_PRICE_INLINE_MIN as PRICE_INLINE_MIN,
+  BAR_FEE_PILL_MIN as FEE_PILL_MIN,
+} from './constants';
 import { getEventDisplayColor } from './utils/colorUtils';
 import { getSourceLogo } from './utils/sourceLogos';
 import { daysBetween } from './utils/dateUtils';
 import { useAuth } from '../../hooks/useAuth';
+import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
+import GuestAvatar from '../../components/GuestAvatar';
 import './planningUrgency.css';
+
+/** Montant compact pour la brique : sans décimales, « ~ » si converti
+ *  (même normalisation que les prix par cellule dans PlanningRow). */
+function compactMoney(formatted: string): string {
+  return formatted.replace(/[.,]\d+/g, '').replace(/^≈\s*/, '~');
+}
 
 /** Compte le nombre de nuits d'une reservation (endDate - startDate). */
 function getNights(startDate: string, endDate: string): number {
@@ -23,16 +38,6 @@ function getNights(startDate: string, endDate: string): number {
   }
 }
 
-/** Initiales du voyageur pour l'avatar rond (max 2 lettres). */
-function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
 
 interface PlanningBarProps {
   layout: BarLayout;
@@ -48,6 +53,9 @@ interface PlanningBarProps {
   /** Interventions (menage/maintenance) rattachees a cette reservation —
    *  affichees en pastilles blanches dans la brique (maquette). */
   linkedInterventions?: PlanningEvent[];
+  /** Devise SOURCE des montants de la propriété (prix réservation + tarifs
+   *  prestation), convertie vers la devise d'affichage. Défaut EUR. */
+  currency?: string;
 }
 
 /** Icone des interventions. Menage/maintenance sont rendues en pastille
@@ -198,6 +206,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   onClick,
   onHide,
   linkedInterventions,
+  currency,
 }) => {
   const { event, left, top, height } = layout;
   const isIntervention = event.type !== 'reservation';
@@ -206,6 +215,11 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
 
   // Role check: only SUPER_ADMIN, SUPER_MANAGER, or org ADMIN can drag interventions
   const { user } = useAuth();
+  // Devise d'affichage : convertit les montants (stockés dans la devise de la
+  // propriété, défaut EUR) vers la devise de l'utilisateur. Appelé
+  // inconditionnellement — avant tout early return.
+  const { convertAndFormat } = useCurrency();
+  const srcCurrency = currency ?? 'EUR';
   const canEditIntervention = isReservation || (
     user?.roles?.some(r => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ||
     user?.orgRole === 'ADMIN'
@@ -293,8 +307,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           }}
         >
           {isCleaning
-            ? <CleaningServices size={13} strokeWidth={2} />
-            : <Build size={13} strokeWidth={2} />}
+            ? <BroomFill size={14} />
+            : <WrenchFill size={13} />}
         </Box>
       </Tooltip>
     );
@@ -321,33 +335,45 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   // Avatar voyageur (rond initiales) — affiché si la brique est assez large.
   const showAvatar = isReservation && displayWidth > 90 && height >= 32;
 
-  // ── Indicateurs (paiement, info manquante) ────────────────────────────────
-  const missingEmail = isReservation && !!event.reservation && !event.reservation.guestEmail && !isCancelled;
   const paymentTooltip = event.paymentBadgeStatus === 'FAILED'
-    ? 'Paiement echoue'
+    ? 'Paiement échoué'
     : event.paymentBadgeStatus === 'PROCESSING'
       ? 'Paiement en cours de traitement'
       : 'Paiement en attente';
+
+  // ── Prix réservation (pilule .pl-price) — toujours affiché, couleur = état ─
+  // Montant stocké en EUR, converti vers la devise d'affichage. L'état réutilise
+  // needsPaymentBadge (déjà neutre pour les OTA réglés / séjours terminés) :
+  // « non réglé » = blanc + montant ambre + carte ; « réglé / OTA » = verre
+  // translucide + check. La pilule absorbe l'ancien badge paiement séparé.
+  const totalPrice = isReservation ? event.reservation?.totalPrice ?? null : null;
+  const hasPrice = totalPrice != null && totalPrice > 0;
+  const priceUnpaid = !!event.needsPaymentBadge;
+  const priceLabel = hasPrice ? compactMoney(convertAndFormat(totalPrice, srcCurrency)) : '';
+  const priceFull = hasPrice ? convertAndFormat(totalPrice, srcCurrency) : '';
+  const showPrice = hasPrice && height >= 28;
+  const priceAmountVisible = showPrice && displayWidth >= PRICE_AMOUNT_MIN; // icône + montant
+  const priceInline = showPrice && displayWidth >= PRICE_INLINE_MIN;        // pilule sur la ligne
+  const priceFolded = showPrice && !priceInline;                           // → « +N »
+  // Brique medium (PRICE_INLINE_MIN..PRICE_AMOUNT_MIN) : le prix prend la ligne,
+  // tout le reste (tarif, alerte, logo canal) se replie dans un unique « +N ».
+  const compactRightZone = priceInline && !priceAmountVisible;
+
+  // ── Indicateurs (info manquante + tarif prestation) ───────────────────────
+  const missingEmail = isReservation && !!event.reservation && !event.reservation.guestEmail && !isCancelled;
   const indicators: {
     key: string;
-    /** Libellé court pour la liste du tooltip « +N ». */
+    /** Libellé pour la liste du « +N ». */
     label: string;
     tooltip: string;
     color: string;
     icon: React.ReactNode;
+    /** Tarif de prestation formaté (libellé « +N ») → pilule .pl-badge--fee si présent. */
+    fee?: string;
+    /** Montant brut du tarif (devise propriété) — rendu en pilule via <Money>. */
+    feeRaw?: number;
     onClick?: (e: React.MouseEvent) => void;
   }[] = [];
-  if (event.needsPaymentBadge) {
-    indicators.push({
-      key: 'pay',
-      label: paymentTooltip,
-      tooltip: paymentTooltip,
-      color: event.paymentBadgeStatus === 'FAILED'
-        ? 'color-mix(in srgb, var(--err) 75%, var(--ink))'
-        : 'var(--err)',
-      icon: <CreditCard size={13} strokeWidth={2} />,
-    });
-  }
   if (missingEmail) {
     indicators.push({
       key: 'miss',
@@ -357,21 +383,26 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
       icon: <Warning size={13} strokeWidth={2} />,
     });
   }
-  // Interventions rattachees a la reservation : pastille blanche avec l'icone
-  // du type (menage / maintenance), cliquable → ouvre le detail intervention.
+  // Interventions rattachées : pastille du type (balai = ménage, clé =
+  // maintenance), cliquable → détail. Avec un tarif, elle s'élargit en pilule
+  // « icône + montant » (.pl-badge--fee) ; sinon elle reste le carré-icône.
   for (const linked of linkedInterventions ?? []) {
     const isCleaning = linked.type === 'cleaning';
     const typeLabel = INTERVENTION_TYPE_LABELS[(isCleaning ? 'cleaning' : 'maintenance') as PlanningInterventionType];
+    const rawFee = linked.intervention?.actualCost || linked.intervention?.estimatedCost || 0;
+    const feeLabel = rawFee > 0 ? compactMoney(convertAndFormat(rawFee, srcCurrency)) : undefined;
     indicators.push({
       key: linked.id,
-      label: typeLabel,
+      label: feeLabel ? `${typeLabel} · ${feeLabel}` : typeLabel,
       tooltip: linked.label && linked.label !== typeLabel ? `${typeLabel} — ${linked.label}` : typeLabel,
       color: isCleaning
         ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning
         : INTERVENTION_TYPE_TOKEN_COLORS.maintenance,
       icon: isCleaning
-        ? <CleaningServices size={13} strokeWidth={2} />
-        : <Build size={13} strokeWidth={2} />,
+        ? <BroomFill size={14} />
+        : <WrenchFill size={13} />,
+      fee: feeLabel,
+      feeRaw: rawFee > 0 ? rawFee : undefined,
       onClick: (e) => {
         e.stopPropagation();
         onClick(linked);
@@ -381,20 +412,28 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
 
   // Pastilles blanches inline (langage maquette). Seuil bas (56px = une
   // pastille 20px + padding) : les interventions absorbées restent TOUJOURS
-  // représentées — sur brique étroite elles comptent dans le « +N ». Le repli
-  // radar ne subsiste que pour les briques où plus rien ne tient.
+  // représentées — sur brique étroite elles comptent dans le « +N ». Sur brique
+  // medium (compactRightZone), tout se replie pour laisser la place au prix.
   const showBadgeGroup = isReservation && displayWidth > 56 && height >= 28;
-  const indicatorSlots = displayWidth > 175 ? 2 : 1;
+  const indicatorSlots = compactRightZone ? 0 : (displayWidth > (priceInline ? 220 : 175) ? 2 : 1);
   const shownIndicators = indicators.length <= indicatorSlots
     ? indicators
     : indicators.slice(0, Math.max(0, indicatorSlots - 1));
   const hiddenIndicators = indicators.slice(shownIndicators.length);
 
-  // ── Repli « +N » : contenu du tooltip (une ligne par indicateur masqué) ──
+  // ── Repli « +N » : prix réservation (si replié) > tarif prestation > canal ──
   // Le canal rejoint la liste si sa pastille logo n'a pas la place d'être
-  // affichée (brique étroite) : « Canal : Airbnb ».
-  const channelFolded = !!sourceLogo && displayWidth <= 60;
+  // affichée (brique étroite ou medium) : « Canal : Airbnb ».
+  const channelFolded = !!sourceLogo && (displayWidth <= 60 || compactRightZone);
   const overflowItems: { key: string; label: string; color?: string; icon: React.ReactNode }[] = [
+    ...(priceFolded
+      ? [{
+          key: 'price',
+          label: priceUnpaid ? `${paymentTooltip} · ${priceLabel}` : `Réglé · ${priceLabel}`,
+          color: priceUnpaid ? 'var(--unpaid-strong)' : 'var(--paid)',
+          icon: priceUnpaid ? <CreditCardFill size={13} /> : <CheckBold size={12} />,
+        }]
+      : []),
     ...hiddenIndicators.map(({ key, label, color, icon }) => ({ key, label, color, icon })),
     ...(channelFolded
       ? [{
@@ -572,21 +611,17 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         >
           {/* Avatar voyageur : rond 26px (spec .pl-bar__av), bord clair,
               initiales 9.5px fw700. Pas de pastille d'alerte dessus (les
-              alertes sont portées par les pastilles à droite). */}
-          {showAvatar && (
-            <Box
+              alertes sont portées par les pastilles à droite). Cède la place
+              au prix sur brique medium (priorité nom > prix > … du repli). */}
+          {showAvatar && !compactRightZone && (
+            <GuestAvatar
+              name={event.label}
+              photoUrl={event.reservation?.guestAvatarUrl}
+              size={26}
               sx={{
-                width: 26,
-                height: 26,
-                borderRadius: '50%',
-                flexShrink: 0,
                 border: '1.5px solid rgba(255,255,255,.55)',
                 backgroundColor: 'rgba(255,255,255,.22)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 fontSize: '9.5px',
-                fontWeight: 700,
                 color: isCancelled ? 'var(--muted)' : '#fff',
                 ...(isCancelled && {
                   filter: 'grayscale(1)',
@@ -594,9 +629,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   borderColor: 'var(--line-2)',
                 }),
               }}
-            >
-              {getInitials(event.label)}
-            </Box>
+            />
           )}
           {/* Spec .s-brick__t : colonne centrée, line-height 1.2. */}
           <Box
@@ -640,23 +673,127 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
               </Box>
             )}
           </Box>
+          {/* Prix réservation (pilule .pl-price) — toujours visible quand la
+              brique a la place ; couleur = état paiement. Sous PRICE_AMOUNT_MIN
+              le montant se masque (icône d'état seule, .is-narrow). */}
+          {priceInline && (
+            <Tooltip
+              arrow
+              title={priceUnpaid ? `${paymentTooltip} · ${priceFull}` : `Réglé · ${priceFull}`}
+            >
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  flexShrink: 0,
+                  height: 21,
+                  padding: priceAmountVisible ? '0 8px' : '0 6px',
+                  borderRadius: '7px',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '-.01em',
+                  whiteSpace: 'nowrap',
+                  // Couleur = sens : non réglé = blanc + ambre + carte ;
+                  // réglé/OTA = verre translucide + check ; annulé = neutre.
+                  ...(priceUnpaid
+                    ? {
+                        backgroundColor: '#fff',
+                        color: 'var(--unpaid-strong)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,.14)',
+                      }
+                    : isCancelled
+                      ? {
+                          backgroundColor: 'var(--surface-2)',
+                          color: 'var(--muted)',
+                          boxShadow: 'inset 0 0 0 1px var(--line-2)',
+                        }
+                      : {
+                          backgroundColor: 'rgba(255,255,255,.22)',
+                          color: '#fff',
+                          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.3)',
+                        }),
+                  '& > .pl-price-ic': {
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    color: priceUnpaid ? 'var(--unpaid)' : 'inherit',
+                  },
+                }}
+              >
+                <Box component="span" className="pl-price-ic">
+                  {priceUnpaid ? <CreditCardFill size={13} /> : <CheckBold size={12} />}
+                </Box>
+                {priceAmountVisible && (
+                  <Box component="span">
+                    <Money value={totalPrice} from={srcCurrency} compact symbolSize={11} symbolSx={{ ml: '2px' }} />
+                  </Box>
+                )}
+              </Box>
+            </Tooltip>
+          )}
           {/* Pastilles a droite : indicateurs (+N) + logo canal */}
           {(showBadgeGroup || (sourceLogo && displayWidth > 60)) && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-              {showBadgeGroup && shownIndicators.map((it) => (
-                <Tooltip key={it.key} title={it.tooltip} arrow>
-                  <Box
-                    onClick={it.onClick}
-                    sx={{
-                      ...BAR_BADGE_SX,
-                      color: it.color,
-                      ...(it.onClick && { cursor: 'pointer' }),
-                    }}
-                  >
-                    {it.icon}
-                  </Box>
-                </Tooltip>
-              ))}
+              {showBadgeGroup && shownIndicators.map((it) => {
+                // Tarif de prestation : pilule « icône + montant » quand la
+                // brique est large ; sinon carré-icône d'origine (.is-narrow).
+                const asFeePill = !!it.fee && displayWidth >= FEE_PILL_MIN;
+                return (
+                  <Tooltip key={it.key} title={it.tooltip} arrow>
+                    <Box
+                      onClick={it.onClick}
+                      {...(it.onClick && {
+                        role: 'button',
+                        tabIndex: 0,
+                        'aria-label': it.tooltip,
+                        onKeyDown: (e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            it.onClick?.(e as unknown as React.MouseEvent);
+                          }
+                        },
+                      })}
+                      sx={{
+                        ...BAR_BADGE_SX,
+                        ...(asFeePill && {
+                          width: 'auto',
+                          minWidth: BAR_BADGE_SIZE,
+                          padding: '0 7px 0 5px',
+                          gap: '4px',
+                        }),
+                        color: it.color,
+                        ...(it.onClick && {
+                          cursor: 'pointer',
+                          '&:focus-visible': {
+                            outline: '2px solid var(--accent)',
+                            outlineOffset: 1,
+                          },
+                        }),
+                      }}
+                    >
+                      {it.icon}
+                      {asFeePill && (
+                        <Box
+                          component="span"
+                          sx={{
+                            fontFamily: 'var(--font-display)',
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            fontVariantNumeric: 'tabular-nums',
+                            letterSpacing: '-.01em',
+                            color: 'var(--ink)',
+                          }}
+                        >
+                          <Money value={it.feeRaw} from={srcCurrency} compact symbolSize={10} />
+                        </Box>
+                      )}
+                    </Box>
+                  </Tooltip>
+                );
+              })}
               {showBadgeGroup && overflowItems.length > 0 && (
                 <Tooltip
                   arrow
@@ -739,7 +876,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   </Box>
                 </Tooltip>
               )}
-              {sourceLogo && displayWidth > 60 && (
+              {sourceLogo && displayWidth > 60 && !compactRightZone && (
                 <Tooltip title={event.sublabel || ''} arrow>
                   <Box sx={BAR_BADGE_SX}>
                     <Box

@@ -39,8 +39,28 @@ export function createGuestSelector(state: StateManager, i18n: I18n, maxGuests: 
 
   toggle.addEventListener('click', () => {
     const s = state.get();
-    state.set({ guestsOpen: !s.guestsOpen }, 'guestsToggle');
+    // Toggle voyageurs ; à l'ouverture, ferme les autres popovers (un seul ouvert à la fois).
+    state.set({ guestsOpen: !s.guestsOpen, calendarOpen: false, multiselectOpen: null }, 'guestsToggle');
   });
+
+  // Fermeture au clic EN DEHORS (zone = `container`, qui contient le déclencheur + le panneau).
+  let outsideDoc: Document | null = null;
+  const onOutsidePointer = (e: Event): void => {
+    if (!container.isConnected) { removeOutside(); return; }
+    if (!state.get().guestsOpen) return;
+    const target = e.target as Node | null;
+    if (target && !container.contains(target)) state.set({ guestsOpen: false }, 'guestsToggle');
+  };
+  const ensureOutside = (): void => {
+    const doc = container.ownerDocument;
+    if (outsideDoc === doc) return;
+    if (outsideDoc) outsideDoc.removeEventListener('pointerdown', onOutsidePointer, true);
+    doc.addEventListener('pointerdown', onOutsidePointer, true);
+    outsideDoc = doc;
+  };
+  const removeOutside = (): void => {
+    if (outsideDoc) { outsideDoc.removeEventListener('pointerdown', onOutsidePointer, true); outsideDoc = null; }
+  };
 
   // Panel
   const panel = document.createElement('div');
@@ -65,24 +85,40 @@ export function createGuestSelector(state: StateManager, i18n: I18n, maxGuests: 
     maxGuests,
   );
 
+  // Bébés (0-3 ans) : gratuits, non comptés dans la capacité (total = adultes + enfants).
+  const infantsRow = createCounterRow(
+    i18n.t('guests.babies'),
+    i18n.t('guests.babiesAge'),
+    () => state.get().infants,
+    (v: number) => state.set({ infants: v }, 'stateChange'),
+    0,
+    maxGuests,
+  );
+
   panel.appendChild(adultsRow.el);
   panel.appendChild(childrenRow.el);
+  panel.appendChild(infantsRow.el);
 
   container.appendChild(toggle);
   container.appendChild(panel);
 
-  // State sync
-  state.on('*', (s: WidgetState) => {
+  // State sync — rendu initial INCLUS (sinon la valeur est vide au montage → 1 ligne, puis 2 lignes au 1er
+  // changement = la hauteur du champ « saute ». On peuple dès le départ pour une hauteur stable).
+  const render = (s: WidgetState): void => {
     const totalGuests = s.adults + s.children;
     toggleValue.textContent = `${totalGuests} ${totalGuests === 1 ? i18n.t('guests.guest') : i18n.t('guests.guests')}`;
 
     toggle.classList.toggle('cb-open', s.guestsOpen);
     toggle.setAttribute('aria-expanded', String(s.guestsOpen));
     panel.classList.toggle('cb-open', s.guestsOpen);
+    if (s.guestsOpen) ensureOutside(); else removeOutside();
 
     adultsRow.update(s.adults);
     childrenRow.update(s.children);
-  });
+    infantsRow.update(s.infants);
+  };
+  state.on('*', render);
+  render(state.get());
 
   return container;
 }

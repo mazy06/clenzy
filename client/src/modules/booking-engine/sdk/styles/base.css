@@ -29,6 +29,21 @@
   overflow: hidden;
 }
 
+/* Mode composé : le widget n'est qu'un CONTENEUR de mise en page — la composition de l'hôte gère
+   tout le visuel. Aucune « carte » imposée (pas de fond/bordure/ombre/padding/max-width) → seuls
+   les widgets composés s'affichent. Spécificité (2 classes) > .cb-widget pour primer même en responsive. */
+.cb-widget.cb-widget--composed {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  max-width: none;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
 /* ─── Sections ────────────────────────────────────────────────────────────── */
 
 .cb-section {

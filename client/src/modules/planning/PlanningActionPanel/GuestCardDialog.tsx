@@ -22,6 +22,7 @@ import {
   Edit,
   Check,
 } from '../../../icons';
+import { Money } from '../../../components/Money';
 import type { PlanningEvent } from '../types';
 import type { Reservation } from '../../../services/api';
 import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
@@ -348,7 +349,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
             <StatBox label="Sejours" value={String(guestReservations.length)} />
             <StatBox
               label="Total depense"
-              value={totalSpent > 0 ? `${totalSpent.toFixed(0)} €` : (isICalSource ? '—' : '0 €')}
+              value={totalSpent <= 0 && isICalSource ? '—' : <Money value={totalSpent} from="EUR" decimals={0} />}
             />
             <StatBox
               label="Source"
@@ -417,7 +418,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       </Typography>
                     ) : (
                       <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
-                        {reservation.totalPrice?.toFixed(2)} €
+                        <Money value={reservation.totalPrice} from="EUR" />
                       </Typography>
                     )}
                   </Box>
@@ -499,7 +500,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                            {r.totalPrice?.toFixed(0)} €
+                            <Money value={r.totalPrice} from="EUR" decimals={0} />
                           </Typography>
                           <Chip
                             label={

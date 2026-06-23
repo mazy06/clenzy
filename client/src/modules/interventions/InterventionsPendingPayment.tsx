@@ -35,7 +35,7 @@ import PageHeader from '../../components/PageHeader';
 import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
 import StatTile from '../../components/StatTile';
 import { interventionsKeys } from './useInterventionsList';
-import { formatCurrency } from '../../utils/currencyUtils';
+import { Money } from '../../components/Money';
 import { getTypeTokens } from './interventionUtils';
 
 // Couleurs sémantiques Signature (hex requis par StatTile/alpha — valeurs tokens.css)
@@ -120,8 +120,6 @@ const InterventionsPendingPayment: React.FC = () => {
     setProcessingPayment(null);
     loadInterventions(); // Recharger la liste apres paiement
   };
-
-  const formatCost = (cost: number | null | undefined) => formatCurrency(cost);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '--';
@@ -211,7 +209,7 @@ const InterventionsPendingPayment: React.FC = () => {
         <StatTile
           icon={<EuroIcon size={16} strokeWidth={1.75} />}
           label="Total a regler"
-          value={formatCost(totalDue)}
+          value={<Money value={totalDue} from="EUR" />}
           color={ERR_HEX}
         />
       </Box>
@@ -326,7 +324,7 @@ const InterventionsPendingPayment: React.FC = () => {
                   </TableCell>
                   <TableCell align="right" onClick={() => navigate(`/interventions/${intervention.id}`)}>
                     <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--warn)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
-                      {formatCost(intervention.estimatedCost)}
+                      <Money value={intervention.estimatedCost} from="EUR" />
                     </Typography>
                   </TableCell>
                   <TableCell align="center">

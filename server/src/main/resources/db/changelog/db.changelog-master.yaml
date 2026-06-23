@@ -2639,6 +2639,14 @@ databaseChangeLog:
         path: changes/0270__create_site_templates.sql
         relativeToChangelogFile: true
 
+  # Popup exit-intent de capture de leads (org-level) — opt-in, off par défaut.
+  - changeSet:
+      id: "0271-add-lead-capture-popup"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0271__add_lead_capture_popup.sql
+        relativeToChangelogFile: true
+
   # Drop des contraintes CHECK Hibernate sur notification_key : elles rejettent toute nouvelle
   # cle d'enum (ex. OPS_ALERT) -> insert avorte -> 500 prod-only. Cf. incident 0164. DO block
   # PL/pgSQL -> splitStatements/stripComments false.
@@ -2682,3 +2690,39 @@ databaseChangeLog:
       sqlFile:
         path: changes/0275__seed_legal_requirements.sql
         relativeToChangelogFile: true
+
+  # Bibliothèque de parcours de réservation custom (funnels) éditée dans le Studio (JSON, org-level).
+  - changeSet:
+      id: "0276-add-funnel-presets"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0276__add_funnel_presets.sql
+        relativeToChangelogFile: true
+
+  # Demandes de réservation (« devis ») du booking engine public — parcours « Demande de devis ».
+  - changeSet:
+      id: "0277-create-booking-inquiries"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0277__create_booking_inquiries.sql
+        relativeToChangelogFile: true
+
+  # Bibliothèque de widgets composites custom (Studio) — colonne JSON sur booking_engine_configs.
+  - changeSet:
+      id: "0278-add-composite-widgets"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0278__add_composite_widgets.sql
+        relativeToChangelogFile: true
+
+  # Drop de la contrainte UNIQUE héritée sur booking_engine_configs(organization_id) seul (ancien
+  # modèle 1-engine/org). Le modèle actuel = plusieurs engines/org, unicité (organization_id, name)
+  # via uq_bec_org_name. Sans ce drop, créer un 2e booking engine -> POST /configs en 500. DO idempotent.
+  - changeSet:
+      id: "0279-drop-legacy-booking-engine-org-unique"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0279__drop_legacy_booking_engine_org_unique.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

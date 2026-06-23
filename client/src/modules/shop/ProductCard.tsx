@@ -16,7 +16,7 @@ import {
   ShoppingCartOutlined,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 import type { ShopProduct } from './shopProducts';
 import ProductHero, { PRODUCT_PALETTE } from './ProductHero';
 
@@ -51,14 +51,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onRemoveFromCart,
 }) => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
 
   const isKit = product.category === 'kit';
   const badgeStyle = product.badge ? BADGE_STYLES[product.badge] : null;
   const palette = PRODUCT_PALETTE[product.icon];
   const tint = isKit ? KIT_TINT : palette?.tint ?? DEFAULT_TINT;
 
-  const formatPrice = (cents: number) => convertAndFormat(cents / 100, 'EUR');
+  const formatPrice = (cents: number) => <Money value={cents / 100} from="EUR" />;
 
   const savingsPct =
     product.originalPrice && product.originalPrice > product.price

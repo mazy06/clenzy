@@ -2,6 +2,8 @@
 // (PublicBookingController, base path /api/public/booking/{slug}, header X-Booking-Key).
 // L'org est resolue par la cle API ; {slug} est un placeholder de routage.
 
+import type { SearchFilters } from './types';
+
 export interface ApiProperty {
   id: number;
   name: string;
@@ -23,6 +25,23 @@ export interface ApiProperty {
   checkOutTime: string | null;
   totalBookings: number | null;
   availableDays30: number | null;
+}
+
+export interface ApiFilterFacet {
+  code: string;
+  count: number;
+}
+
+/** Facettes de recherche (options de filtres) renvoyées par GET /search-filters. */
+export interface ApiSearchFilters {
+  propertyTypes: ApiFilterFacet[];
+  amenities: ApiFilterFacet[];
+  priceMin: number | null;
+  priceMax: number | null;
+  maxBedrooms: number;
+  maxBathrooms: number;
+  maxGuests: number;
+  currency: string | null;
 }
 
 export interface ApiCalendarDay {
@@ -91,6 +110,28 @@ export interface ApiBatchReserveResult {
   grandTotal: number;
   currency: string;
   requiresPayment: boolean;
+}
+
+/** Confirmation post-paiement (GET /{slug}/booking/{code}) — re-fetch au retour Stripe (B3). */
+export interface ApiConfirmation {
+  reservationCode: string;
+  status: string;
+  paymentStatus: string;
+  propertyName: string | null;
+  propertyCity: string | null;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  guests: number;
+  subtotal: number;
+  cleaningFee: number;
+  touristTax: number;
+  total: number;
+  currency: string;
+  guestName: string | null;
+  guestEmail: string | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
 }
 
 /** Séjour direct passé d'un voyageur connecté (re-booking 1-clic, 2.11). */
@@ -231,8 +272,59 @@ export class BookingApi {
     return this.request('/leads', { method: 'POST', body: JSON.stringify(params) });
   }
 
-  getProperties(currency?: string): Promise<ApiProperty[]> {
-    return this.request(`/properties${this.currencyQuery(currency)}`);
+  /**
+   * Demande de réservation (« devis ») — parcours « Demande de devis » SANS paiement immédiat.
+   * Enregistrée côté serveur + notifie le host (in-app). `email` obligatoire ; le reste optionnel.
+   */
+  submitInquiry(params: {
+    propertyId?: number; checkIn?: string; checkOut?: string; guests?: number;
+    name?: string; email: string; phone?: string; message?: string;
+  }): Promise<void> {
+    return this.request('/inquiry', { method: 'POST', body: JSON.stringify(params) });
+  }
+
+  getProperties(currency?: string, filters?: SearchFilters): Promise<ApiProperty[]> {
+    return this.request(`/properties${this.buildPropertiesQuery(currency, filters)}`);
+  }
+
+  /** Facettes de recherche (options de filtres) pour construire l'UI du widget « Filtre ». */
+  getSearchFilters(currency?: string): Promise<ApiSearchFilters> {
+    return this.request(`/search-filters${this.currencyQuery(currency)}`);
+  }
+
+  /**
+   * Calendrier AGRÉGÉ (recherche) : prix nuitée le plus bas par jour selon filtres + capacité voyageurs.
+   * Renvoie le même shape que /calendar (réutilise `toAvailabilityMap`).
+   */
+  getPriceCalendar(month: string, months: number, guests: number | null, currency?: string, filters?: SearchFilters): Promise<ApiCalendar> {
+    const params = new URLSearchParams();
+    params.set('month', month);
+    params.set('months', String(months));
+    if (guests != null) params.set('guests', String(guests));
+    if (currency) params.set('currency', currency);
+    this.appendFilters(params, filters);
+    return this.request(`/price-calendar?${params.toString()}`);
+  }
+
+  /** Construit la query string de /properties : devise + critères de filtre (params répétés). */
+  private buildPropertiesQuery(currency?: string, filters?: SearchFilters): string {
+    const params = new URLSearchParams();
+    if (currency) params.set('currency', currency);
+    this.appendFilters(params, filters);
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  }
+
+  /** Ajoute les critères de filtre à une query string (params répétés pour types/amenities). */
+  private appendFilters(params: URLSearchParams, filters?: SearchFilters): void {
+    if (!filters) return;
+    filters.types.forEach((t) => params.append('types', t));
+    filters.amenities.forEach((a) => params.append('amenities', a));
+    if (filters.minPrice != null) params.set('minPrice', String(filters.minPrice));
+    if (filters.maxPrice != null) params.set('maxPrice', String(filters.maxPrice));
+    if (filters.minBedrooms != null) params.set('minBedrooms', String(filters.minBedrooms));
+    if (filters.minBathrooms != null) params.set('minBathrooms', String(filters.minBathrooms));
+    if (filters.minGuests != null) params.set('minGuests', String(filters.minGuests));
   }
 
   getCalendar(propertyId: number, month: string, months = 2, currency?: string): Promise<ApiCalendar> {
@@ -263,11 +355,22 @@ export class BookingApi {
     return this.request('/reserve', { method: 'POST', body: JSON.stringify(params) }, guestToken);
   }
 
-  checkout(reservationCode: string): Promise<ApiCheckoutResult> {
+  /**
+   * Cree la session Stripe Checkout. `returnUrl` (B3) est OPTIONNEL : URL absolue de la page de
+   * confirmation du template (`data-clenzy-return`) que le serveur utilisera comme `success_url` Stripe
+   * APRES validation stricte (HTTPS + host de l'org). Un host non autorise est ignore cote serveur, qui
+   * retombe sur son `success_url` par defaut — jamais de redirection vers un host arbitraire (anti open-redirect).
+   */
+  checkout(reservationCode: string, returnUrl?: string): Promise<ApiCheckoutResult> {
     return this.request('/checkout', {
       method: 'POST',
-      body: JSON.stringify({ reservationCode }),
+      body: JSON.stringify(returnUrl ? { reservationCode, returnUrl } : { reservationCode }),
     });
+  }
+
+  /** Confirmation d'une réservation par son code (re-fetch du statut au retour Stripe, B3). */
+  getConfirmation(reservationCode: string): Promise<ApiConfirmation> {
+    return this.request(`/booking/${encodeURIComponent(reservationCode)}`);
   }
 
   /** Panier multi-séjours : crée N réservations PENDING (paiement item par item ensuite). */

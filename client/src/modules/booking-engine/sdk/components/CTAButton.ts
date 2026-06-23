@@ -30,7 +30,7 @@ export function createCTAButton(state: StateManager, i18n: I18n, onClick: () => 
   wrapper.appendChild(btn);
   wrapper.appendChild(subtitle);
 
-  state.on('*', (s: WidgetState) => {
+  const renderBtn = (s: WidgetState): void => {
     const canBook = !!s.checkIn && !!s.checkOut;
     btn.disabled = !canBook || s.loading;
 
@@ -49,7 +49,10 @@ export function createCTAButton(state: StateManager, i18n: I18n, onClick: () => 
 
     // Hide subtitle when loading or no dates
     subtitle.style.display = canBook && !s.loading ? '' : 'none';
-  });
+  };
+  state.on('*', renderBtn);
+  // Rendu initial : `state.on` ne déclenche pas à l'abonnement → sans ça le label reste vide au montage.
+  renderBtn(state.get());
 
   return wrapper;
 }

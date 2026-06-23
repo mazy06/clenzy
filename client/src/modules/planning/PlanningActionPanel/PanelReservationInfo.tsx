@@ -28,6 +28,7 @@ import { RESERVATION_STATUS_TOKEN_COLORS, PLANNING_DEPARTURE_VIOLET } from '../c
 import { getSourceLogo } from '../utils/sourceLogos';
 import { toDate } from '../utils/dateUtils';
 import { toneTokensSx } from '../../../components/StatusChip';
+import GuestAvatar from '../../../components/GuestAvatar';
 
 // ─── Onglet Infos (maquette Signature) ───────────────────────────────────────
 //
@@ -66,17 +67,6 @@ function getChannelChipTokens(source: string): { bg: string; color: string } {
     case 'direct': return { bg: 'var(--direct-soft)', color: 'var(--direct-ink)' };
     default: return { bg: 'var(--field)', color: 'var(--muted)' };
   }
-}
-
-/** Initiales du voyageur (max 2 lettres) — même règle que la brique. */
-function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
 }
 
 interface PanelReservationInfoProps {
@@ -131,24 +121,12 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
       {/* ─── Identité : avatar 56 + nom (display) + canal · statut ────── */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              flexShrink: 0,
-              backgroundColor: 'var(--accent-soft)',
-              color: 'var(--accent)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.125rem',
-              fontWeight: 700,
-            }}
-          >
-            {getInitials(reservation.guestName)}
-          </Box>
+          <GuestAvatar
+            name={reservation.guestName}
+            photoUrl={reservation.guestAvatarUrl}
+            size={56}
+            sx={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: '1.125rem' }}
+          />
           <Box sx={{ minWidth: 0, flex: 1 }}>
             {editingName ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

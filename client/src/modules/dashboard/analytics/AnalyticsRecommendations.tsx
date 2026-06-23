@@ -5,6 +5,7 @@ import {
 } from '../../../icons';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { Money } from '../../../components/Money';
 import type { Recommendation, RecommendationType, RecommendationPriority } from '../../../hooks/useAnalyticsEngine';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
                         fontVariantNumeric: 'tabular-nums',
                       }}
                     >
-                      +{rec.estimatedImpact.toLocaleString('fr-FR')} €
+                      +<Money value={rec.estimatedImpact} from="EUR" decimals={0} />
                     </Typography>
                     <Chip
                       label={`${rec.confidence}%`}

@@ -7,6 +7,8 @@ import apiClient from '../apiClient';
 
 export interface GrowthSettings {
   leadCaptureEnabled: boolean;
+  /** Popup exit-intent dans le widget (opt-in) — distinct du gate endpoint `leadCaptureEnabled`. */
+  leadCapturePopupEnabled: boolean;
   abandonedCartRecoveryEnabled: boolean;
   contactsCaptured: number;
   cartsRecovered: number;
@@ -20,6 +22,7 @@ export const growthSettingsApi = {
   get: () => apiClient.get<GrowthSettings>('/booking-engine/growth/settings'),
   update: (settings: {
     leadCaptureEnabled: boolean;
+    leadCapturePopupEnabled: boolean;
     abandonedCartRecoveryEnabled: boolean;
     loyaltyCreditPercent: number | null;
     referralCreditCents: number | null;

@@ -59,6 +59,7 @@ import { INTERVENTION_TYPE_OPTIONS } from '../../../types/interventionTypes';
 import { getPropertyTypeLabel } from '../../../utils/statusUtils';
 import { computeEstimatedDuration, formatDuration, computeRangeFromForfait } from '../../service-requests/ServiceRequestPriceEstimate';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { Money } from '../../../components/Money';
 
 // Sub-components from full form
 import ServiceRequestFormInfo from '../../service-requests/ServiceRequestFormInfo';
@@ -828,7 +829,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                         {priceRange ? (
                           <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
                             {priceRange.min === priceRange.max
-                              ? convertAndFormat(priceRange.min, 'EUR')
+                              ? <Money value={priceRange.min} from="EUR" />
                               : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
                           </Typography>
                         ) : (

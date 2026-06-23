@@ -9,7 +9,7 @@ import type { BookingI18n } from '../i18n';
  */
 
 export interface LeadCaptureOptions {
-  root: ShadowRoot;
+  root: ShadowRoot | HTMLElement;
   api: BookingApi;
   i18n: BookingI18n;
   locale: string;

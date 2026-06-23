@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
+import { CurrencySymbol } from '../../components/Money';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -48,7 +49,7 @@ const RatePlanFormDialog: React.FC<RatePlanFormDialogProps> = ({
 }) => {
   const { t, isFrench } = useTranslation();
 
-  const { currency: activeCurrency, currencySymbol } = useCurrency();
+  const { currency: activeCurrency } = useCurrency();
   const [name, setName] = useState('');
   const [type, setType] = useState<string>('BASE');
   const [nightlyPrice, setNightlyPrice] = useState<string>('');
@@ -156,7 +157,7 @@ const RatePlanFormDialog: React.FC<RatePlanFormDialogProps> = ({
               InputProps={{
                 startAdornment: (
                   <Typography variant="body2" sx={{ mr: 0.5, fontWeight: 600, color: 'text.secondary' }}>
-                    {currencySymbol}
+                    <CurrencySymbol code={activeCurrency} />
                   </Typography>
                 ),
               }}

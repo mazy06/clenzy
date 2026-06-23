@@ -7,6 +7,8 @@ import { Timeline, TrendingUp as TrendIcon } from '../../../icons';
 import GridSection from './GridSection';
 import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useCurrency } from '../../../hooks/useCurrency';
+import { Money } from '../../../components/Money';
 import type { ForecastMetrics } from '../../../hooks/useAnalyticsEngine';
 
 const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
@@ -43,6 +45,7 @@ interface Props {
 
 const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
 
   return (
     <GridSection
@@ -68,7 +71,7 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
                       <XAxis dataKey="month" tick={AXIS_TICK} />
                       <YAxis tick={AXIS_TICK} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${Number(v).toLocaleString('fr-FR')} €`} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                       {/* Confidence zone */}
                       <Area type="monotone" dataKey="upper" stroke="none" fill="#6B8A9A" fillOpacity={0.08} />
                       <Area type="monotone" dataKey="lower" stroke="none" fill="#ffffff" fillOpacity={1} />
@@ -90,21 +93,24 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
             {/* Forecast KPI cards stacked */}
             <AnalyticsWidgetCard
               title={t('dashboard.analytics.forecast30d')}
-              value={data ? `${data.revenue30d.toLocaleString('fr-FR')} €` : '-'}
+              value={data ? <Money value={data.revenue30d} from="EUR" /> : '-'}
+              valueText={data ? convertAndFormat(data.revenue30d, 'EUR') : undefined}
               subtitle={t('dashboard.analytics.next30days')}
               icon={<Timeline color="primary" />}
               loading={loading}
             />
             <AnalyticsWidgetCard
               title={t('dashboard.analytics.forecast90d')}
-              value={data ? `${data.revenue90d.toLocaleString('fr-FR')} €` : '-'}
+              value={data ? <Money value={data.revenue90d} from="EUR" /> : '-'}
+              valueText={data ? convertAndFormat(data.revenue90d, 'EUR') : undefined}
               subtitle={t('dashboard.analytics.next90days')}
               icon={<Timeline color="info" />}
               loading={loading}
             />
             <AnalyticsWidgetCard
               title={t('dashboard.analytics.forecast365d')}
-              value={data ? `${data.revenue365d.toLocaleString('fr-FR')} €` : '-'}
+              value={data ? <Money value={data.revenue365d} from="EUR" /> : '-'}
+              valueText={data ? convertAndFormat(data.revenue365d, 'EUR') : undefined}
               subtitle={t('dashboard.analytics.next365days')}
               icon={<TrendIcon color="success" />}
               loading={loading}
@@ -132,7 +138,7 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
                               {s.label}
                             </Typography>
                             <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
-                              {s.revenue.toLocaleString('fr-FR')} € • {s.occupancy}% occ.
+                              <Money value={s.revenue} from="EUR" decimals={0} /> • {s.occupancy}% occ.
                             </Typography>
                           </Box>
                         </Box>

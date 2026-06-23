@@ -7,6 +7,8 @@ import {
 import GridSection from './GridSection';
 import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useCurrency } from '../../../hooks/useCurrency';
+import { Money } from '../../../components/Money';
 import type { RevenueMetrics } from '../../../hooks/useAnalyticsEngine';
 
 // ─── Chart constants (Baitly palette) ────────────────────────────────────────
@@ -47,6 +49,7 @@ interface Props {
 
 const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
 
   return (
     <GridSection
@@ -72,7 +75,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
                       <XAxis dataKey="month" tick={AXIS_TICK} />
                       <YAxis tick={AXIS_TICK} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${Number(v).toLocaleString('fr-FR')} €`} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                       <Area type="monotone" dataKey="revenue" stroke={CHART_SUCCESS} fill={CHART_SUCCESS} fillOpacity={0.1} strokeWidth={1.5} />
                       <Area type="monotone" dataKey="expenses" stroke={CHART_ERROR} fill={CHART_ERROR} fillOpacity={0.08} strokeWidth={1.5} />
                     </AreaChart>
@@ -110,7 +113,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                             <Cell key={i} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${Number(v).toLocaleString('fr-FR')} €`} />
+                        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                       </PieChart>
                     </ResponsiveContainer>
                   </Box>
@@ -149,7 +152,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
                       <XAxis type="number" tick={AXIS_TICK} />
                       <YAxis dataKey="name" type="category" tick={AXIS_TICK} width={90} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${Number(v).toLocaleString('fr-FR')} €`} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                       <Bar dataKey="revenue" fill="#6B8A9A" radius={[0, 3, 3, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -163,7 +166,8 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         <Grid item xs={6} sm={4}>
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgPerBooking')}
-            value={data ? `${data.avgRevenuePerBooking.toLocaleString('fr-FR')} €` : '-'}
+            value={data ? <Money value={data.avgRevenuePerBooking} from="EUR" /> : '-'}
+            valueText={data ? convertAndFormat(data.avgRevenuePerBooking, 'EUR') : undefined}
             trend={data ? { value: data.revenueGrowth } : undefined}
             tooltip={t('dashboard.analytics.avgPerBookingTooltip')}
             loading={loading}

@@ -40,11 +40,13 @@ public class GrowthSettingsService {
     }
 
     @Transactional
-    public GrowthSettingsDto updateSettings(boolean leadCaptureEnabled, boolean abandonedCartRecoveryEnabled,
+    public GrowthSettingsDto updateSettings(boolean leadCaptureEnabled, boolean leadCapturePopupEnabled,
+                                            boolean abandonedCartRecoveryEnabled,
                                             Integer loyaltyCreditPercent, Integer referralCreditCents) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         Organization org = requireOrg(orgId);
         org.setLeadCaptureEnabled(leadCaptureEnabled);
+        org.setLeadCapturePopupEnabled(leadCapturePopupEnabled);
         org.setAbandonedCartRecoveryEnabled(abandonedCartRecoveryEnabled);
         // Borné 0–100 ; 0/NULL = programme désactivé.
         Integer pct = loyaltyCreditPercent == null ? null : Math.max(0, Math.min(100, loyaltyCreditPercent));
@@ -64,7 +66,8 @@ public class GrowthSettingsService {
     private GrowthSettingsDto toDto(Organization org, Long orgId) {
         long contacts = marketingContactRepository.countByOrganizationId(orgId);
         long recovered = abandonedBookingRepository.countByOrganizationIdAndStatus(orgId, AbandonedBookingStatus.RECOVERY_SENT);
-        return new GrowthSettingsDto(org.isLeadCaptureEnabled(), org.isAbandonedCartRecoveryEnabled(), contacts, recovered,
+        return new GrowthSettingsDto(org.isLeadCaptureEnabled(), org.isLeadCapturePopupEnabled(),
+            org.isAbandonedCartRecoveryEnabled(), contacts, recovered,
             org.getLoyaltyCreditPercent(), org.getReferralCreditCents());
     }
 }

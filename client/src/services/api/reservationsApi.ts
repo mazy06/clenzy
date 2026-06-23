@@ -13,6 +13,9 @@ export interface Reservation {
   guestName: string;
   guestEmail?: string;
   guestPhone?: string;
+  /** Photo de profil du voyageur (avatar de la brique planning). Absente →
+   *  repli sur les initiales. */
+  guestAvatarUrl?: string;
   guestCount: number;
   checkIn: string;      // ISO date string (YYYY-MM-DD)
   checkOut: string;     // ISO date string (YYYY-MM-DD)
@@ -250,11 +253,13 @@ function generateMockReservations(): Reservation[] {
     { id: 41, propertyId: 10, propertyName: 'Penthouse Trocadéro', guestName: 'Victoria Lane', guestCount: 6, checkIn: isoDate(y, m, d + 14), checkOut: isoDate(y, m, d + 21), status: 'confirmed', source: 'direct', totalPrice: 4200 },
   ];
 
-  // Ajouter les heures de check-in/check-out à chaque réservation
+  // Ajouter les heures de check-in/check-out à chaque réservation + une photo
+  // de profil voyageur de démo (mock uniquement) — visage distinct par résa.
   return res.map((r, i) => ({
     ...r,
     checkInTime: checkInTimes[i % checkInTimes.length],
     checkOutTime: checkOutTimes[i % checkOutTimes.length],
+    guestAvatarUrl: r.guestAvatarUrl ?? `https://i.pravatar.cc/80?img=${((r.id - 1) % 70) + 1}`,
   }));
 }
 

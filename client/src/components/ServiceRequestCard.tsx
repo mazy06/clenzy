@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { getServiceTypeBannerUrl } from '../utils/serviceTypeBanner';
 import { useTranslation } from '../hooks/useTranslation';
 import { formatDuration } from '../utils/formatUtils';
+import { Money } from './Money';
 import { getDueMeta, dueToneColor } from '../utils/dueDateUtils';
 import {
   getServiceRequestStatusHex,
@@ -287,7 +288,9 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
   const kpiCells = [
     { value: dueMeta.label, color: dueToneColor(dueMeta.tone), label: t('interventions.kpi.due') },
     {
-      value: request.estimatedCost != null && request.estimatedCost > 0 ? `${request.estimatedCost}€` : '—',
+      value: request.estimatedCost != null && request.estimatedCost > 0
+        ? <Money value={request.estimatedCost} from="EUR" decimals={0} />
+        : '—',
       label: t('interventions.kpi.cost'),
     },
     { value: `~${formatDuration(request.estimatedDuration)}`, label: t('interventions.kpi.duration') },

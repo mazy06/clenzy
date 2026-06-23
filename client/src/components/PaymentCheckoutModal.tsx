@@ -17,7 +17,7 @@ import {
 } from '../icons';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-import { useCurrency } from '../hooks/useCurrency';
+import { Money } from './Money';
 import { paymentsApi } from '../services/api/paymentsApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
 
@@ -146,8 +146,6 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
     };
   }, [clientSecret, handleComplete]);
 
-  const { convertAndFormat } = useCurrency();
-
   return (
     <Dialog
       open={open}
@@ -207,7 +205,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                 maxWidth: 360,
               }}
             >
-              Le paiement de {convertAndFormat(amount, 'EUR')} pour{' '}
+              Le paiement de <Money value={amount} from="EUR" /> pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
             </Typography>
             <Button
@@ -257,7 +255,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                   color: 'var(--accent)',
                 }}
               >
-                {convertAndFormat(amount, 'EUR')}
+                <Money value={amount} from="EUR" />
               </Typography>
               {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
               <IconButton

@@ -52,7 +52,7 @@ import {
 } from '../../hooks/useInvoices';
 import { invoicesApi } from '../../services/api/invoicesApi';
 import type { InvoiceStatus, InvoiceType, Invoice } from '../../services/api/invoicesApi';
-import { formatCurrency } from '../../utils/currencyUtils';
+import { Money } from '../../components/Money';
 import { API_CONFIG } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
@@ -229,7 +229,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
         { label: t('invoices.stats.draft', 'Brouillons'), value: String(stats.draft), color: '#D4A574', icon: <DraftIcon /> },
         { label: t('invoices.stats.issued', 'Emises'), value: String(stats.issued), color: '#7BA3C2', icon: <SendIcon /> },
         { label: t('invoices.stats.paid', 'Payees'), value: String(stats.paid), color: '#4A9B8E', icon: <PaidIcon /> },
-        { label: t('invoices.stats.totalTtc', 'Total TTC'), value: formatCurrency(stats.totalTtc, stats.currency), color: '#6B8A9A', icon: <MoneyIcon /> },
+        { label: t('invoices.stats.totalTtc', 'Total TTC'), value: <Money value={stats.totalTtc} from={stats.currency} />, color: '#6B8A9A', icon: <MoneyIcon /> },
       ]
     : [];
 
@@ -489,9 +489,9 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     <TableCell sx={{ fontWeight: 600, color: 'var(--ink)' }}>{inv.buyerName}</TableCell>
 
                     {/* ─── Montants (display tabular-nums) ─── */}
-                    <TableCell align="right" sx={moneySx}>{formatCurrency(inv.totalHt, inv.currency)}</TableCell>
-                    <TableCell align="right" sx={moneySx}>{formatCurrency(inv.totalTax, inv.currency)}</TableCell>
-                    <TableCell align="right" sx={{ ...moneySx, fontWeight: 600, color: 'var(--ink)' }}>{formatCurrency(inv.totalTtc, inv.currency)}</TableCell>
+                    <TableCell align="right" sx={moneySx}><Money value={inv.totalHt} from={inv.currency} /></TableCell>
+                    <TableCell align="right" sx={moneySx}><Money value={inv.totalTax} from={inv.currency} /></TableCell>
+                    <TableCell align="right" sx={{ ...moneySx, fontWeight: 600, color: 'var(--ink)' }}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
 
                     {/* ─── Statut (chip -soft sémantique) ─── */}
                     <TableCell>

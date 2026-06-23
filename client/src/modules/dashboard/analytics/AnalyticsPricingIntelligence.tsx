@@ -8,6 +8,8 @@ import { PriceChange, TuneOutlined } from '../../../icons';
 import GridSection from './GridSection';
 import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useCurrency } from '../../../hooks/useCurrency';
+import { Money } from '../../../components/Money';
 import type { PricingMetrics } from '../../../hooks/useAnalyticsEngine';
 
 const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
@@ -44,6 +46,7 @@ interface Props {
 
 const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loading }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
 
   return (
     <GridSection
@@ -69,7 +72,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
                       <XAxis dataKey="month" tick={AXIS_TICK} />
                       <YAxis tick={AXIS_TICK} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${v} €`} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                       <Line type="monotone" dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} stroke="#6B8A9A" strokeWidth={1.5} dot={{ r: 2 }} />
                       <Line type="monotone" dataKey="revPAN" name="RevPAN" stroke="#4A9B8E" strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="5 3" />
                     </LineChart>
@@ -98,7 +101,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
                       <XAxis dataKey="type" tick={AXIS_TICK} />
                       <YAxis tick={AXIS_TICK} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => `${v} €`} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                       <Bar dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} fill="#D4A574" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -112,7 +115,8 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
         <Grid item xs={6} sm={4} md={3}>
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.optimalPrice')}
-            value={data ? `${data.optimalPrice} €` : '-'}
+            value={data ? <Money value={data.optimalPrice} from="EUR" decimals={0} /> : '-'}
+            valueText={data ? convertAndFormat(data.optimalPrice, 'EUR') : undefined}
             subtitle={t('dashboard.analytics.optimalPriceDesc')}
             icon={<PriceChange color="success" />}
             tooltip={t('dashboard.analytics.optimalPriceTooltip')}

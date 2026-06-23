@@ -12,7 +12,7 @@ import {
 } from '../../icons';
 import { organizationsApi, BillingSummaryDto } from '../../services/api/organizationsApi';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 import SettingsSection from '../settings/components/SettingsSection';
 
 interface Props {
@@ -30,11 +30,7 @@ const BILLING_PERIOD_LABELS: Record<string, string> = {
 
 export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 }: Props) {
   const { t } = useTranslation();
-  const { currencySymbol } = useCurrency();
 
-  const formatCents = (cents: number): string => {
-    return (cents / 100).toFixed(2).replace('.', ',') + ` ${currencySymbol}`;
-  };
   const [summary, setSummary] = useState<BillingSummaryDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,14 +103,14 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {formatCents(summary.basePriceCents)}
+          <Money value={summary.basePriceCents / 100} />
         </Typography>
       </Box>
 
       {/* Per-seat */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
         <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-          {t('billing.seats')} ({summary.billableSeats} × {formatCents(summary.perSeatPriceCents)})
+          {t('billing.seats')} ({summary.billableSeats} × <Money value={summary.perSeatPriceCents / 100} />)
         </Typography>
         <Typography
           sx={{
@@ -124,7 +120,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {formatCents(summary.seatsTotalCents)}
+          <Money value={summary.seatsTotalCents / 100} />
         </Typography>
       </Box>
 
@@ -157,7 +153,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
             ...(hasDiscount && { textDecoration: 'line-through' }),
           }}
         >
-          {formatCents(summary.totalMonthlyCents)}
+          <Money value={summary.totalMonthlyCents / 100} />
         </Typography>
       </Box>
 
@@ -190,7 +186,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
               letterSpacing: '-0.01em',
             }}
           >
-            {formatCents(summary.effectiveMonthlyCents)}
+            <Money value={summary.effectiveMonthlyCents / 100} />
           </Typography>
         </Box>
       )}

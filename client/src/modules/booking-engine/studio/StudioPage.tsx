@@ -3,17 +3,22 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Box } from '@mui/material';
 import {
   LayoutTemplate,
+  Palette,
   FileText,
   CalendarCheck,
   TrendingUp,
   Share2,
-  Rocket,
   Wand2,
   Newspaper,
+  Globe,
 } from 'lucide-react';
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
 import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
-import DesignBuilder from './builder/DesignBuilder';
+// Hard cutover (G0) : l'éditeur de PAGE du Studio est GrapesJS. L'ancien builder de blocs maison a
+// été retiré ; seuls subsistent du dossier `builder/` les panneaux réutilisés (ThemeInspector, etc.).
+import GrapesStudio from './grapes/GrapesStudio';
+import SiteEmbedPreview from './grapes/SiteEmbedPreview';
+import ThemeInspector from './builder/ThemeInspector';
 import DesignAnalysisModal from './DesignAnalysisModal';
 import BookingSettingsPanel from './settings/BookingSettingsPanel';
 import ContentSection from './settings/ContentSection';
@@ -30,6 +35,8 @@ import type { BookingEngineConfig, DesignTokens } from '../../../services/api/bo
 
 const SECTIONS: StudioSection[] = [
   { key: 'design', label: 'Design', icon: LayoutTemplate },
+  { key: 'embed', label: 'Aperçu site', icon: Globe },
+  { key: 'theme', label: 'Thème', icon: Palette },
   { key: 'content', label: 'Contenu', icon: FileText },
   { key: 'blog', label: 'Blog', icon: Newspaper },
   { key: 'booking', label: 'Réservation', icon: CalendarCheck },
@@ -81,9 +88,9 @@ export default function StudioPage() {
       icon: s.icon,
       run: () => setActiveSection(s.key),
     }));
+    // La publication est par page (badge + bouton Publier dans l'éditeur GrapesJS), pas une action globale.
     const actions: StudioCommand[] = [
       { id: 'design-analysis', label: 'Analyse du design', group: 'Actions', keywords: 'ia design site couleur typo url analyser', icon: Wand2, run: () => setDesignAnalysisOpen(true) },
-      { id: 'publish', label: 'Publier le booking engine', group: 'Actions', icon: Rocket, run: () => {/* F5 */} },
     ];
     return [...navCmds, ...actions];
   }, []);
@@ -107,7 +114,9 @@ export default function StudioPage() {
         onAnalyzeDesign={() => setDesignAnalysisOpen(true)}
         onBack={() => navigate('/booking-engine', { state: { tab: 2 } })}
       >
-        {active.key === 'design' && <DesignBuilder breakpoint={breakpoint} cfg={cfg} />}
+        {active.key === 'design' && <GrapesStudio cfg={cfg} breakpoint={breakpoint} />}
+        {active.key === 'embed' && <SiteEmbedPreview config={cfg.config} breakpoint={breakpoint} />}
+        {active.key === 'theme' && <ThemeInspector config={cfg.config} patch={cfg.patch} />}
         {active.key === 'content' && <ContentSection cfg={cfg} />}
         {active.key === 'blog' && <BlogPanel cfg={cfg} />}
         {active.key === 'booking' && (

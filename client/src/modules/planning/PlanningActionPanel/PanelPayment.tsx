@@ -34,6 +34,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { usePanelPayment } from './usePanelPayment';
 import PanelPaymentCart from './PanelPaymentCart';
 import { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
+import { Money } from '../../../components/Money';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -163,7 +164,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
             <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>Coût estimé</Typography>
           </Box>
           <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
-            {estimatedCost.toFixed(2)} €
+            <Money value={estimatedCost} from="EUR" />
           </Typography>
         </Box>
       </Box>
@@ -239,7 +240,7 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
                     {new Date(record.transactionDate).toLocaleDateString('fr-FR')}
                   </TableCell>
                   <TableCell sx={{ p: 0.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                    {record.amount.toFixed(2)} €
+                    <Money value={record.amount} from="EUR" />
                   </TableCell>
                   <TableCell sx={{ p: 0.5 }}>
                     {(() => { const t = STATUS_TOKENS[record.status] || NEUTRAL_TOKENS; return (

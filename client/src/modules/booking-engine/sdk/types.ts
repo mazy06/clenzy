@@ -32,7 +32,7 @@ export interface BaitlyBookingConfig {
   showPropertyFilter?: boolean;
   showAddons?: boolean;
   showReviews?: boolean;
-  /** Capture de lead par exit-intent (2.12). Défaut activé ; mettre `false` pour désactiver. */
+  /** Capture de lead par exit-intent (2.12). OPT-IN : mettre `true` pour activer (off par défaut). */
   leadCapture?: boolean;
   /** Id numérique de l'organisation (2.11) — requis pour le compte voyageur (login/wishlist). */
   organizationId?: number;
@@ -72,9 +72,15 @@ export interface WidgetState {
   checkOut: string | null;
   adults: number;
   children: number;
+  /** Bébés (0-3 ans) : saisis dans la recherche, NON comptés dans la capacité (gratuits). */
+  infants: number;
   calendarOpen: boolean;
   calendarBaseMonth: string; // YYYY-MM
   guestsOpen: boolean;
+  /** Id du multi-select actuellement ouvert (un seul popover ouvert à la fois), `null` = aucun. */
+  multiselectOpen: string | null;
+  /** Destination saisie dans la barre de recherche (ville) ; filtre la liste des logements. */
+  destination: string;
   // Property-first : liste + propriete selectionnee
   properties: WidgetProperty[];
   selectedPropertyId: number | null;
@@ -98,6 +104,39 @@ export interface WidgetState {
   selectedPropertyType: string | null;
   propertyTypes: PropertyTypeInfo[];
   addons: SelectedAddon[];
+  // Recherche multi-critères (widget « Filtre ») : `filters` pilote le refetch server-side ET le filtrage
+  // client de la liste ; `filterFacets` = options disponibles (types/équipements/bornes), cf. /search-filters.
+  filters: SearchFilters;
+  filterFacets: FilterFacets | null;
+}
+
+/** Critères de filtre de la recherche (envoyés au backend + appliqués côté client sur la liste). */
+export interface SearchFilters {
+  types: string[];
+  minPrice: number | null;
+  maxPrice: number | null;
+  minBedrooms: number | null;
+  minBathrooms: number | null;
+  minGuests: number | null;
+  amenities: string[];
+}
+
+/** Une option de filtre + le nombre de propriétés concernées (facette). */
+export interface FilterFacet {
+  code: string;
+  count: number;
+}
+
+/** Options disponibles pour construire l'UI du widget « Filtre » (cf. endpoint `/search-filters`). */
+export interface FilterFacets {
+  propertyTypes: FilterFacet[];
+  amenities: FilterFacet[];
+  priceMin: number | null;
+  priceMax: number | null;
+  maxBedrooms: number;
+  maxBathrooms: number;
+  maxGuests: number;
+  currency: string | null;
 }
 
 export interface CartStay {
@@ -224,6 +263,7 @@ export type StateEvent =
   | 'stateChange'
   | 'calendarToggle'
   | 'guestsToggle'
+  | 'msToggle'
   | 'dateSelected'
   | 'priceUpdated'
   | 'pageChange'
