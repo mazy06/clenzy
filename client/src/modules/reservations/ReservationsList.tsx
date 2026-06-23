@@ -39,7 +39,7 @@ import EmptyState from '../../components/EmptyState';
 import ListSkeleton from '../../components/ListSkeleton';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
 
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 
@@ -79,11 +79,9 @@ function formatDate(dateStr: string): string {
 const ReservationsList: React.FC = () => {
   const { t } = useTranslation();
   const { notify } = useNotification();
-  const { convertAndFormat } = useCurrency();
-
-  const formatPrice = (price: number | undefined, currency = 'EUR'): string => {
+  const formatPrice = (price: number | undefined, currency = 'EUR') => {
     if (price === undefined || price === null) return '-';
-    return convertAndFormat(price, currency);
+    return <Money value={price} from={currency} />;
   };
 
   const {

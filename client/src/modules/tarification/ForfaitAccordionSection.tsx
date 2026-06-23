@@ -28,6 +28,8 @@ import {
 import type { ForfaitConfig, SurfaceBasePrice, PrestationOption, SurchargeOption } from '../../services/api/pricingConfigApi';
 import type { Team } from '../../services/api/teamsApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
+import { CurrencySymbol } from '../../components/Money';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -81,6 +83,7 @@ interface ForfaitAccordionSectionProps {
 const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.memo(
   ({ forfait, teams, canEdit, onChange, availablePrestations, availableSurcharges, onAddPrestation, onAddSurcharge, currencySymbol }) => {
     const { t } = useTranslation();
+    const { currency } = useCurrency();
 
     // ─── Add prestation dialog ─────────────────────────────────────────
     const [addPrestationOpen, setAddPrestationOpen] = useState(false);
@@ -425,7 +428,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                         disabled={!canEdit}
                         inputProps={{ min: 0, style: { textAlign: 'right' } }}
                         sx={{ width: 100 }}
-                        InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+                        InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                       />
                     </TableCell>
                     {canEdit && (

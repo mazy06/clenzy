@@ -29,6 +29,7 @@ import {
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
 import EmptyState from '../../components/EmptyState';
+import { Money } from '../../components/Money';
 import type { PropertyIntervention } from '../../hooks/usePropertyDetails';
 
 // Statut intervention → tokens sémantiques (pattern chips « texte couleur + fond -soft »).
@@ -88,7 +89,7 @@ function statusIcon(status: string, size: number, color: string) {
 interface StatCardProps {
   icon: React.ReactNode;
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   /** Couple de tokens { fg, bg } (ex. var(--ok) / var(--ok-soft)). */
   fg: string;
   bg: string;
@@ -246,7 +247,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
         <StatCard
           icon={<Euro size={18} strokeWidth={1.75} />}
           label="Revenus"
-          value={`${stats.revenue}€`}
+          value={<Money value={stats.revenue} from="EUR" decimals={0} />}
           fg="var(--accent)" bg="var(--accent-soft)"
         />
       </Box>
@@ -545,7 +546,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                               <Euro size={12} strokeWidth={1.75} />
                             </Box>
                             <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
-                              {iv.cost}€
+                              <Money value={iv.cost} from="EUR" decimals={0} />
                             </Typography>
                           </Box>
                         ) : (
@@ -659,7 +660,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                           }}
                         />
                         <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'right', display: { xs: 'none', sm: 'block' }, fontVariantNumeric: 'tabular-nums' }}>
-                          {iv.cost != null && iv.cost > 0 ? `${iv.cost}€` : '—'}
+                          {iv.cost != null && iv.cost > 0 ? <Money value={iv.cost} from="EUR" decimals={0} /> : '—'}
                         </Typography>
                         <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: 'text.disabled' }}>
                           <ChevronRight size={16} strokeWidth={1.75} />

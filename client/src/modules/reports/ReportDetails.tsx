@@ -58,6 +58,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
@@ -74,6 +75,7 @@ import {
   AnalyticsBenchmark,
 } from '../dashboard/analytics';
 import AnalyticsWidgetCard from '../dashboard/analytics/AnalyticsWidgetCard';
+import { Money } from '../../components/Money';
 import type { DashboardPeriod, DateFilterOption } from '../dashboard/DashboardDateFilter';
 import {
   useInterventionReport,
@@ -709,6 +711,7 @@ interface PeriodControlProps {
 
 const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, onPeriodChange }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
   const ct = useChartTokens();
   const { data, loading, error, retry } = usePropertyReport();
   const [internalPeriod, setInternalPeriod] = useState<DashboardPeriod>('month');
@@ -763,11 +766,11 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                 },
                 {
                   key: 'cost', title: t('reports.kpi.totalCost', 'Cout total'),
-                  value: `${(kpis?.totalCost ?? 0).toLocaleString('fr-FR')} €`, icon: <AttachMoney />, iconColor: 'var(--warn)',
+                  value: convertAndFormat(kpis?.totalCost ?? 0, 'EUR'), icon: <AttachMoney />, iconColor: 'var(--warn)',
                 },
                 {
                   key: 'avgCost', title: t('reports.kpi.avgCostPerProperty', 'Cout moy. / bien'),
-                  value: `${(kpis?.avgCostPerProperty ?? 0).toLocaleString('fr-FR')} €`, icon: <EuroIcon />, iconColor: 'var(--ok)',
+                  value: convertAndFormat(kpis?.avgCostPerProperty ?? 0, 'EUR'), icon: <EuroIcon />, iconColor: 'var(--ok)',
                 },
               ] as KpiItem[]).map((kpi) => (
                 <Grid item xs={6} sm={3} key={kpi.key}>
@@ -808,7 +811,7 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                         <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
                         <XAxis dataKey="name" tick={axisTick(ct)} angle={-25} textAnchor="end" height={80} />
                         <YAxis yAxisId="left" allowDecimals={false} tick={axisTick(ct)} />
-                        <YAxis yAxisId="right" orientation="right" tick={axisTick(ct)} tickFormatter={(value: number) => `${value}\u00A0€`} />
+                        <YAxis yAxisId="right" orientation="right" tick={axisTick(ct)} tickFormatter={(value: number) => convertAndFormat(value, 'EUR')} />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend verticalAlign="bottom" height={36} iconType="square" iconSize={9} formatter={renderChartLegendText} />
                         <Bar yAxisId="left" dataKey="interventions" name={t('reports.charts.interventions')} fill={ct.accent} radius={[4, 4, 0, 0]} />
@@ -866,6 +869,7 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
 
 const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onPeriodChange }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
   const ct = useChartTokens();
   const { data, loading, error, retry } = useFinancialReport();
   const [internalPeriod, setInternalPeriod] = useState<DashboardPeriod>('month');
@@ -940,7 +944,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                             <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
                             <XAxis dataKey="month" tick={axisTick(ct)} />
                             <YAxis tick={axisTick(ct)} />
-                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => `${v} €`} />
+                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                             <Line type="monotone" dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} stroke={ct.accent} strokeWidth={1.5} dot={{ r: 2 }} />
                             <Line type="monotone" dataKey="revPAN" name="RevPAN" stroke={ct.info} strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="5 3" />
                           </LineChart>
@@ -967,7 +971,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                             <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
                             <XAxis dataKey="type" tick={axisTick(ct)} />
                             <YAxis tick={axisTick(ct)} />
-                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => `${v} €`} />
+                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                             <Bar dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} fill={ct.accent} radius={[3, 3, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
@@ -993,7 +997,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                             <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
                             <XAxis dataKey="month" tick={axisTick(ct)} />
                             <YAxis tick={axisTick(ct)} />
-                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => `${Number(v).toLocaleString('fr-FR')} €`} />
+                            <Tooltip contentStyle={CHART_TOOLTIP_CONTENT_STYLE} labelStyle={CHART_TOOLTIP_LABEL_STYLE} itemStyle={CHART_TOOLTIP_ITEM_STYLE} formatter={(v) => convertAndFormat(Number(v), 'EUR')} />
                             <Area type="monotone" dataKey="upper" stroke="none" fill={ct.info} fillOpacity={0.08} />
                             {/* Masque de la bande basse : surface carte (jamais de blanc pur — dark ok) */}
                             <Area type="monotone" dataKey="lower" stroke="none" fill={ct.card} fillOpacity={1} />
@@ -1027,7 +1031,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                               {s.label}
                             </Typography>
                             <Typography sx={{ fontSize: '10.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
-                              {s.revenue.toLocaleString('fr-FR')} € &bull; {s.occupancy}% occ.
+                              <Money value={s.revenue} from="EUR" /> &bull; {s.occupancy}% occ.
                             </Typography>
                           </Box>
                         </Box>
@@ -1045,7 +1049,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
               <Grid item xs={6}>
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast30d')}
-                  value={analytics?.forecast ? `${analytics.forecast.revenue30d.toLocaleString('fr-FR')} €` : '-'}
+                  value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue30d, 'EUR') : '-'}
                   subtitle={t('dashboard.analytics.next30days')}
                   icon={<Timeline color="primary" />}
                   loading={analyticsLoading}
@@ -1054,7 +1058,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
               <Grid item xs={6}>
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.optimalPrice')}
-                  value={analytics?.pricing ? `${analytics.pricing.optimalPrice} €` : '-'}
+                  value={analytics?.pricing ? convertAndFormat(analytics.pricing.optimalPrice, 'EUR') : '-'}
                   subtitle={t('dashboard.analytics.optimalPriceDesc')}
                   icon={<PriceChange color="success" />}
                   loading={analyticsLoading}
@@ -1063,7 +1067,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
               <Grid item xs={6}>
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast90d')}
-                  value={analytics?.forecast ? `${analytics.forecast.revenue90d.toLocaleString('fr-FR')} €` : '-'}
+                  value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue90d, 'EUR') : '-'}
                   subtitle={t('dashboard.analytics.next90days')}
                   icon={<Timeline color="info" />}
                   loading={analyticsLoading}
@@ -1081,7 +1085,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
               <Grid item xs={6}>
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast365d')}
-                  value={analytics?.forecast ? `${analytics.forecast.revenue365d.toLocaleString('fr-FR')} €` : '-'}
+                  value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue365d, 'EUR') : '-'}
                   subtitle={t('dashboard.analytics.next365days')}
                   icon={<Timeline color="success" />}
                   loading={analyticsLoading}
@@ -1132,7 +1136,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
                       <XAxis dataKey="month" tick={axisTick(ct)} />
-                      <YAxis tick={axisTick(ct)} tickFormatter={(value: number) => `${value}\u00A0€`} />
+                      <YAxis tick={axisTick(ct)} tickFormatter={(value: number) => convertAndFormat(value, 'EUR')} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend verticalAlign="bottom" height={36} iconType="square" iconSize={9} formatter={renderChartLegendText} />
                       <Area type="monotone" dataKey="revenue" name={t('reports.charts.revenue')} stroke={ct.ok} strokeWidth={2} fill="url(#gradRevenue)" dot={{ r: 3 }} activeDot={{ r: 5 }} />

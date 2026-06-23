@@ -13,6 +13,7 @@ import {
 } from '../../utils/statusUtils';
 import { stripPropertySuffix, formatDateShort } from './serviceRequestDisplayMapper';
 import { LIST_PAPER_SX, PAGINATION_SX, srStatusChipSx, srPriorityChipSx } from './serviceRequestsListConstants';
+import { Money } from '../../components/Money';
 
 interface ServiceRequestsTableViewProps {
   serviceRequests: ServiceRequest[];
@@ -21,7 +22,6 @@ interface ServiceRequestsTableViewProps {
   rowsPerPage: number;
   onPageChange: (page: number) => void;
   containerRef: React.Ref<HTMLDivElement>;
-  convertAndFormat: (amount: number | null | undefined, fromCurrency?: string) => string;
   onMenuOpen: (event: React.MouseEvent<HTMLElement>, request: ServiceRequest) => void;
   navigate: NavigateFunction;
 }
@@ -29,7 +29,7 @@ interface ServiceRequestsTableViewProps {
 /** Vue liste : tableau dense des demandes de service + pagination. */
 const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
   serviceRequests, totalCount, page, rowsPerPage, onPageChange,
-  containerRef, convertAndFormat, onMenuOpen, navigate,
+  containerRef, onMenuOpen, navigate,
 }) => {
   const { t } = useTranslation();
 
@@ -113,7 +113,7 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                 </TableCell>
                 <TableCell align="right">
                   <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
-                    {request.estimatedCost != null ? convertAndFormat(request.estimatedCost, 'EUR') : '—'}
+                    {request.estimatedCost != null ? <Money value={request.estimatedCost} from="EUR" /> : '—'}
                   </Typography>
                   {request.estimatedDuration > 0 && (
                     <Typography sx={{ fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>

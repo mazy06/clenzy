@@ -304,9 +304,10 @@ describe('PlanningRow', () => {
         loadedReservations: [hostReservation],
       });
       const bar = container.querySelector('[data-planning-bar]') as HTMLElement;
-      const pill = Array.from(bar.querySelectorAll('div')).find(
-        (el) => el.querySelector('svg') && window.getComputedStyle(el).cursor === 'pointer',
-      );
+      // La pastille d'intervention cliquable est un role="button" (icône seule
+      // → aria-label) ; localisation robuste au moteur d'icônes (Iconify ne rend
+      // pas de <svg> synchrone hors réseau).
+      const pill = bar.querySelector('[role="button"]') as HTMLElement | null;
       expect(pill).toBeTruthy();
       fireEvent.click(pill!);
       expect(mockOnEventClick).toHaveBeenCalledWith(

@@ -36,15 +36,18 @@ public class RateOverrideService {
     private final PropertyRepository propertyRepository;
     private final ReservationService reservationService;
     private final TenantContext tenantContext;
+    private final SearchCacheInvalidator searchCacheInvalidator;
 
     public RateOverrideService(RateOverrideRepository rateOverrideRepository,
                                PropertyRepository propertyRepository,
                                ReservationService reservationService,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               SearchCacheInvalidator searchCacheInvalidator) {
         this.rateOverrideRepository = rateOverrideRepository;
         this.propertyRepository = propertyRepository;
         this.reservationService = reservationService;
         this.tenantContext = tenantContext;
+        this.searchCacheInvalidator = searchCacheInvalidator;
     }
 
     /** Overrides d'une propriete sur la plage [from, to]. */
@@ -76,7 +79,9 @@ public class RateOverrideService {
                 : (property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR"));
         override.setCreatedBy(keycloakId);
 
-        return toDto(rateOverrideRepository.save(override));
+        RateOverrideDto saved = toDto(rateOverrideRepository.save(override));
+        searchCacheInvalidator.onAvailabilityOrPriceChanged(); // prix changé → invalide le calendrier agrégé
+        return saved;
     }
 
     /**
@@ -109,6 +114,7 @@ public class RateOverrideService {
             override.setCreatedBy(keycloakId);
             created.add(rateOverrideRepository.save(override));
         }
+        searchCacheInvalidator.onAvailabilityOrPriceChanged(); // prix changés → invalide le calendrier agrégé
 
         return Map.of(
                 "propertyId", propertyId,
@@ -130,6 +136,7 @@ public class RateOverrideService {
         reservationService.validatePropertyAccess(existing.getProperty().getId(), keycloakId);
 
         rateOverrideRepository.delete(existing);
+        searchCacheInvalidator.onAvailabilityOrPriceChanged(); // prix changé → invalide le calendrier agrégé
     }
 
     private RateOverrideDto toDto(RateOverride entity) {

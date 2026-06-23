@@ -765,10 +765,11 @@
 }
 
 /* ─── Property list (property-first) ─────────────────────────────────────── */
+/* Conteneur = simple bloc. La disposition des cartes (colonne / grille / défilement) est gérée
+   par `.cb-property-list__items` (styles inline selon les options du composeur). NE PAS remettre
+   `display:grid` ici : ça enfermerait le `__items` dans une cellule étroite → cartes tronquées. */
 .cb-property-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--cb-space-3);
+  display: block;
 }
 
 .cb-property-card {
@@ -845,6 +846,51 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ─── Dispositions de carte (cardStyle) ──────────────────────────────────── */
+/* Horizontale : image à gauche, contenu à droite. */
+.cb-property-card--horizontal {
+  flex-direction: row;
+  align-items: stretch;
+}
+.cb-property-card--horizontal .cb-property-card__img {
+  width: 104px;
+  height: auto;
+  align-self: stretch;
+  flex: 0 0 auto;
+}
+.cb-property-card--horizontal .cb-property-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+}
+
+/* Superposée : image plein cadre, texte en bas sur dégradé. */
+.cb-property-card--overlay {
+  min-height: 180px;
+}
+.cb-property-card--overlay .cb-property-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.cb-property-card--overlay .cb-property-card__body {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  padding-top: var(--cb-space-6, 24px);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0) 100%);
+}
+.cb-property-card--overlay .cb-property-card__name,
+.cb-property-card--overlay .cb-property-card__loc,
+.cb-property-card--overlay .cb-property-card__price {
+  color: #fff;
+}
+
+/* Minimaliste : sans image, contenu aéré. */
+.cb-property-card--minimal .cb-property-card__img { display: none; }
+.cb-property-card--minimal .cb-property-card__body { padding: var(--cb-space-4, 16px); }
+
 /* ─── Badges preuve sociale / urgence honnêtes (2.9) ─────────────────────── */
 .cb-property-card__badges {
   display: flex;
@@ -869,6 +915,25 @@
 .cb-badge--urgent {
   background: rgba(201, 122, 122, 0.14);
   color: #9A3E3E;
+}
+
+/* ─── Équipements (widget « booking-amenities ») ─────────────────────────── */
+.cb-amenities__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cb-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cb-amenity {
+  padding: 4px 10px;
+  border-radius: var(--cb-radius-full, 999px);
+  background: var(--cb-color-primary-soft, rgba(107, 138, 154, 0.12));
+  color: var(--cb-color-text, #1b2330);
+  font-size: var(--cb-font-size-sm);
+  font-weight: var(--cb-font-weight-medium);
+  line-height: 1.4;
 }
 
 /* ─── Capture de lead par exit-intent (2.12) ─────────────────────────────── */
@@ -1118,3 +1183,71 @@
   font-weight: var(--cb-font-weight-semibold);
   color: var(--cb-color-primary);
 }
+
+/* ─── Confirmation (retour Stripe, B3) ───────────────────────────────────── */
+
+.cb-confirmation__details {
+  margin-top: var(--cb-space-4);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--cb-space-2) var(--cb-space-4);
+  align-items: baseline;
+}
+
+.cb-confirmation__details dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Fiche détail du logement (étape `property`, B3) ────────────────────── */
+
+.cb-property-summary__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: var(--cb-space-3);
+  border-radius: var(--cb-radius-lg);
+  object-fit: cover;
+}
+
+/* ── Barre de recherche (primitive `search`) ─────────────────────────────── */
+.cb-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cb-space-3);
+}
+
+.cb-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 var(--cb-space-4);
+  border: 1.5px solid var(--cb-color-border, rgba(0, 0, 0, 0.14));
+  border-radius: var(--cb-radius-md);
+  background: var(--cb-color-surface, #fff);
+  color: var(--cb-color-text, inherit);
+  font-size: var(--cb-font-size-base);
+  font-family: inherit;
+  transition: border-color var(--cb-transition-base), box-shadow var(--cb-transition-base);
+}
+.cb-input::placeholder { color: var(--cb-color-text-secondary, #94a3b8); }
+.cb-input:focus {
+  outline: none;
+  border-color: var(--cb-color-primary);
+  box-shadow: var(--cb-shadow-focus);
+}
+
+.cb-search__filters-toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: var(--cb-space-1) 0;
+  color: var(--cb-color-primary);
+  font-size: var(--cb-font-size-sm, 14px);
+  font-weight: var(--cb-font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+}
+.cb-search__filters-toggle:hover { text-decoration: underline; }
+
+.cb-search__submit { cursor: pointer; }

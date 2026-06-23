@@ -218,12 +218,6 @@ export default function Login() {
               disabled={loading}
               autoComplete="username"
               autoFocus
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 1.5,
-                  bgcolor: 'background.paper',
-                },
-              }}
             />
           </Box>
 
@@ -282,12 +276,6 @@ export default function Login() {
                   </InputAdornment>
                 ),
               }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 1.5,
-                  bgcolor: 'background.paper',
-                },
-              }}
             />
           </Box>
 
@@ -321,15 +309,17 @@ export default function Login() {
               textTransform: 'none',
               borderRadius: 1.5,
               boxShadow: 'none',
+              // Hover identique aux champs : remplissage soft-indigo (var(--accent-soft)
+              // herite du theme containedPrimary), pas de fond indigo fonce qui
+              // rendait le texte indigo illisible.
               '&:hover': {
                 boxShadow: 'none',
-                bgcolor: 'primary.dark',
               },
               '&:disabled': {
                 bgcolor: 'action.disabledBackground',
                 color: 'action.disabled',
               },
-              transition: 'background-color 150ms ease',
+              transition: 'background-color 150ms ease, border-color 150ms ease',
             }}
           >
             {loading ? <CircularProgress size={22} color="inherit" /> : t('auth.login.submit', 'Se connecter')}

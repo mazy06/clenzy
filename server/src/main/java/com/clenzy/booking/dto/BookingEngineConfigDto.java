@@ -39,14 +39,25 @@ public record BookingEngineConfigDto(
     Integer directBookingDiscountPercent,
     // Tarif membre (2.8) — remise % voyageur connecté (le widget incite à se connecter / affiche l'éco).
     Integer memberDiscountPercent,
-    // Capture de leads activée au niveau org (2.12) — pilote l'affichage du form exit-intent du widget.
-    boolean leadCaptureEnabled
+    // Capture de leads activée au niveau org (2.12) — gate l'endpoint /leads (acceptation serveur).
+    boolean leadCaptureEnabled,
+    // Popup exit-intent activé au niveau org (opt-in) — pilote l'affichage du popup dans le widget.
+    boolean leadCapturePopupEnabled,
+    // Contenu publié de la page HOME du site rattaché à cette config (enveloppe GrapesJS ou blocs legacy).
+    // NULL = aucun site publié / pas de page HOME → la SPA publique retombe sur un état vide (page bookable
+    // via la section #reserver). Résolu côté service (PublicBookingService.getConfig), pas porté par la config.
+    String homePageBlocks
 ) {
     public static BookingEngineConfigDto from(BookingEngineConfig config) {
-        return from(config, true);
+        return from(config, true, false, null);
     }
 
-    public static BookingEngineConfigDto from(BookingEngineConfig config, boolean leadCaptureEnabled) {
+    public static BookingEngineConfigDto from(BookingEngineConfig config, boolean leadCaptureEnabled, boolean leadCapturePopupEnabled) {
+        return from(config, leadCaptureEnabled, leadCapturePopupEnabled, null);
+    }
+
+    public static BookingEngineConfigDto from(BookingEngineConfig config, boolean leadCaptureEnabled,
+                                              boolean leadCapturePopupEnabled, String homePageBlocks) {
         return new BookingEngineConfigDto(
             config.getPrimaryColor(),
             config.getAccentColor(),
@@ -72,7 +83,9 @@ public record BookingEngineConfigDto(
             config.getBalanceDueDays(),
             config.getDirectBookingDiscountPercent(),
             config.getMemberDiscountPercent(),
-            leadCaptureEnabled
+            leadCaptureEnabled,
+            leadCapturePopupEnabled,
+            homePageBlocks
         );
     }
 }

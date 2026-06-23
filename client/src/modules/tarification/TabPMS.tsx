@@ -10,6 +10,8 @@ import {
 import { Devices, Computer, People } from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
+import { CurrencySymbol } from '../../components/Money';
 
 interface TabPMSProps {
   config: PricingConfig;
@@ -20,6 +22,7 @@ interface TabPMSProps {
 
 export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: TabPMSProps) {
   const { t } = useTranslation();
+  const { currency } = useCurrency();
 
   return (
     <Box sx={{ pt: 2 }}>
@@ -48,7 +51,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             }}
             disabled={!canEdit}
             helperText={t('tarification.pms.monthlyHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}/mois</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
           />
         </Grid>
         <Grid item xs={6}>
@@ -64,7 +67,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             }}
             disabled={!canEdit}
             helperText={t('tarification.pms.syncHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}/mois</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
           />
         </Grid>
       </Grid>
@@ -96,7 +99,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             }}
             disabled={!canEdit}
             helperText={t('tarification.pms.perSeatHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}/mois/utilisateur</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois/utilisateur</InputAdornment> }}
           />
         </Grid>
         <Grid item xs={6}>
@@ -143,7 +146,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             }}
             disabled={!canEdit}
             helperText={t('tarification.automation.basicHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
           />
         </Grid>
         <Grid item xs={6}>
@@ -159,7 +162,7 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             }}
             disabled={!canEdit}
             helperText={t('tarification.automation.fullHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
           />
         </Grid>
       </Grid>

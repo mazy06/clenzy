@@ -22,7 +22,7 @@ import type { Property } from '../../services/api/propertiesApi';
 import { useOwnerDashboard, useOwnerStatement } from '../../hooks/useOwnerPortal';
 import type { OwnerDashboard, OwnerStatement } from '../../services/api/ownerPortalApi';
 import { useQuery } from '@tanstack/react-query';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -129,8 +129,7 @@ const OwnerPortalPage: React.FC = () => {
 
 const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
-  const fmtCurrency = (n: number, currency = 'EUR') => convertAndFormat(n, currency);
+  const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
   const { data: dashboard, isLoading, isError } = useOwnerDashboard(ownerId);
 
   if (isLoading) {
@@ -263,8 +262,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
 const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
-  const fmtCurrency = (n: number, currency = 'EUR') => convertAndFormat(n, currency);
+  const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [ownerName, setOwnerName] = useState('');

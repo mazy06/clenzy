@@ -64,6 +64,8 @@ public class CalendarEngine {
     private final RateOverrideRepository rateOverrideRepository;
     private final SyncMetrics syncMetrics;
     private final OrganizationAccessGuard organizationAccessGuard;
+    /** Invalide les caches de recherche booking (calendrier agrégé des prix) sur changement dispo/prix. */
+    private final SearchCacheInvalidator searchCacheInvalidator;
 
     public CalendarEngine(CalendarDayRepository calendarDayRepository,
                           CalendarCommandRepository calendarCommandRepository,
@@ -74,7 +76,8 @@ public class CalendarEngine {
                           PriceEngine priceEngine,
                           RateOverrideRepository rateOverrideRepository,
                           SyncMetrics syncMetrics,
-                          OrganizationAccessGuard organizationAccessGuard) {
+                          OrganizationAccessGuard organizationAccessGuard,
+                          SearchCacheInvalidator searchCacheInvalidator) {
         this.calendarDayRepository = calendarDayRepository;
         this.calendarCommandRepository = calendarCommandRepository;
         this.propertyRepository = propertyRepository;
@@ -85,6 +88,7 @@ public class CalendarEngine {
         this.rateOverrideRepository = rateOverrideRepository;
         this.syncMetrics = syncMetrics;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.searchCacheInvalidator = searchCacheInvalidator;
     }
 
     // ----------------------------------------------------------------
@@ -744,5 +748,9 @@ public class CalendarEngine {
         command.setPayload(payload);
         command.setStatus("EXECUTED");
         calendarCommandRepository.save(command);
+        // Point d'ancrage unique des mutations book/cancel/move/block/unblock/updatePrice : invalide les
+        // caches de recherche booking (calendrier agrégé des prix) → le widget reflète la dispo/prix sans
+        // attendre le TTL. Éviction idempotente ; un éventuel rollback ne fait que provoquer un recalcul.
+        searchCacheInvalidator.onAvailabilityOrPriceChanged();
     }
 }

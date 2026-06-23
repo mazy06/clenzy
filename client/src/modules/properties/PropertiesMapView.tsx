@@ -6,6 +6,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import MissingContractChip from './MissingContractChip';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
+import { Money } from '../../components/Money';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
@@ -154,7 +155,7 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
                         {property.nightlyPrice > 0 && (
                           <Typography variant="body2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13.5px', whiteSpace: 'nowrap', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
-                            {property.nightlyPrice}€
+                            <Money value={property.nightlyPrice} from="EUR" decimals={0} />
                             <Typography component="span" variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
                               /nuit
                             </Typography>

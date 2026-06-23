@@ -17,6 +17,7 @@ import {
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
+import { CurrencySymbol } from '../../components/Money';
 import MiniDateRangePicker from '../../components/MiniDateRangePicker';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 
@@ -54,7 +55,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 }) => {
   const { t, isFrench } = useTranslation();
 
-  const { currency: activeCurrency, currencySymbol } = useCurrency();
+  const { currency: activeCurrency } = useCurrency();
   const [name, setName] = useState('');
   const [type, setType] = useState<string>('BASE');
   const [nightlyPrice, setNightlyPrice] = useState<string>('');
@@ -171,7 +172,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             InputProps={{
               startAdornment: (
                 <Typography variant="body2" sx={{ mr: 0.5, fontWeight: 600, color: 'text.secondary' }}>
-                  {currencySymbol}
+                  <CurrencySymbol code={activeCurrency} />
                 </Typography>
               ),
             }}

@@ -51,14 +51,6 @@ function ScopeToggle({ scope, onChange }: { scope: BillingScope; onChange: (s: B
   );
 }
 
-function formatMoney(n: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
-  } catch {
-    return `${Math.round(n).toLocaleString('fr-FR')} €`;
-  }
-}
-
 /**
  * Widget dashboard « Revenus par canal » (réf. maquette billing). Remplace les
  * anciens widgets « Canaux de réservation » (ChannelHealth) et « Le saviez-vous »
@@ -101,11 +93,11 @@ export default function BillingOverviewWidget({ onReady }: BillingOverviewWidget
     );
   }
 
-  const { currency, channels } = data;
+  const { channels } = data;
   const cardChannels: CardChannel[] = channels.map((c) => ({
     name: c.label,
     pct: Math.round(c.pct),
-    amount: formatMoney(c.amount, currency),
+    amount: c.amount,
     color: CHANNEL_COLOR[c.source] ?? 'var(--muted)',
     comparePct: c.comparePct ?? undefined,
   }));

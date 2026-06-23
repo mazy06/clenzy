@@ -35,6 +35,7 @@
     "axios": "^1.7.2",
     "date-fns": "^4.1.0",
     "glob": "^11.0.3",
+    "grapesjs": "^0.23.2",
     "heic2any": "^0.0.4",
     "i18next": "^23.16.8",
     "i18next-browser-languagedetector": "^7.2.2",

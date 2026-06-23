@@ -65,6 +65,7 @@ import ExportPreviewDialog from './ExportPreviewDialog';
 import SepaTransferProcedureTooltip from './components/SepaTransferProcedureTooltip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -674,8 +675,7 @@ const CATEGORY_OPTIONS: ExpenseCategory[] = ['CLEANING', 'MAINTENANCE', 'LAUNDRY
 
 export const ExpensesTab: React.FC = () => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
-  const fmtCurrency = (n: number, currency = 'EUR') => convertAndFormat(n, currency);
+  const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
   const queryClient = useQueryClient();
 
   // Filters

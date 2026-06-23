@@ -481,7 +481,7 @@
       "MEMBER": "Membre"
     },
     "language": "Langue",
-    "languageAndCurrency": "Langue & Devise",
+    "languageAndCurrency": "Apparence, langue & devise",
     "languages": {
       "fr": "Français",
       "en": "Anglais",

@@ -2,7 +2,13 @@ package com.clenzy.booking.service;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.model.Site;
+import com.clenzy.booking.model.SitePage;
+import com.clenzy.booking.model.SitePageType;
+import com.clenzy.booking.model.SiteStatus;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
+import com.clenzy.booking.repository.SitePageRepository;
+import com.clenzy.booking.repository.SiteRepository;
 import com.clenzy.dto.TouristTaxCalculationDto;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.RestrictionViolationException;
@@ -25,6 +31,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -87,6 +96,10 @@ public class PublicBookingService {
     private final BookingConfirmationEmailService bookingConfirmationEmailService;
     private final BookingEngineDepositService depositService;
     private final GuestCreditService guestCreditService;
+    // Résolution de la page HOME publiée du site rattaché à la config (exposée dans le DTO de config).
+    private final SiteRepository siteRepository;
+    private final SitePageRepository sitePageRepository;
+    private final BookingDisplayCurrencyService displayCurrencyService;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -106,7 +119,10 @@ public class PublicBookingService {
             BookingServiceOptionsService serviceOptionsService,
             BookingConfirmationEmailService bookingConfirmationEmailService,
             BookingEngineDepositService depositService,
-            GuestCreditService guestCreditService) {
+            GuestCreditService guestCreditService,
+            SiteRepository siteRepository,
+            SitePageRepository sitePageRepository,
+            BookingDisplayCurrencyService displayCurrencyService) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -125,6 +141,9 @@ public class PublicBookingService {
         this.bookingConfirmationEmailService = bookingConfirmationEmailService;
         this.depositService = depositService;
         this.guestCreditService = guestCreditService;
+        this.siteRepository = siteRepository;
+        this.sitePageRepository = sitePageRepository;
+        this.displayCurrencyService = displayCurrencyService;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -166,19 +185,69 @@ public class PublicBookingService {
     // ─── Config ──────────────────────────────────────────────────────────────────
 
     public BookingEngineConfigDto getConfig(OrgContext ctx) {
-        return BookingEngineConfigDto.from(ctx.config(), ctx.org().isLeadCaptureEnabled());
+        return BookingEngineConfigDto.from(
+            ctx.config(),
+            ctx.org().isLeadCaptureEnabled(),
+            ctx.org().isLeadCapturePopupEnabled(),
+            resolveHomePageBlocks(ctx));
+    }
+
+    /**
+     * Résout le contenu publié de la page HOME du site rattaché à cette config, pour la SPA publique
+     * `/booking/:apiKey`. Lecture seule, tolérante : tout maillon manquant (site absent, non publié,
+     * aucune page HOME publiée) → {@code null} ; la SPA retombe alors sur un état vide (jamais d'erreur).
+     *
+     * <p>Le lookup est org-scopé via {@code findFirstByBookingEngineConfigIdAndOrganizationId}
+     * (respecte la règle ownership/tenant). On ne sert que le contenu d'un site PUBLISHED et d'une
+     * page de type HOME au statut PUBLISHED, avec le même repli Draft/Live que
+     * {@link SitePagePublicDto#from} (instantané publié, sinon brouillon).</p>
+     */
+    private String resolveHomePageBlocks(OrgContext ctx) {
+        Site site = siteRepository
+            .findFirstByBookingEngineConfigIdAndOrganizationId(ctx.config().getId(), ctx.orgId())
+            .orElse(null);
+        if (site == null || site.getStatus() != SiteStatus.PUBLISHED) {
+            return null;
+        }
+        SitePage home = sitePageRepository.findBySiteIdOrderBySortOrderAsc(site.getId())
+            .stream()
+            .filter(p -> p.getType() == SitePageType.HOME && p.getStatus() == SiteStatus.PUBLISHED)
+            .findFirst()
+            .orElse(null);
+        if (home == null) {
+            return null;
+        }
+        // Repli Draft/Live (cf. SitePagePublicDto.from) : instantané publié, sinon brouillon de travail.
+        return home.getPublishedBlocks() != null ? home.getPublishedBlocks() : home.getBlocks();
     }
 
     // ─── Properties ──────────────────────────────────────────────────────────────
 
     public List<PublicPropertyDto> getProperties(OrgContext ctx) {
+        return getProperties(ctx, PropertySearchFilters.NONE, null);
+    }
+
+    public List<PublicPropertyDto> getProperties(OrgContext ctx, PropertySearchFilters filters) {
+        return getProperties(ctx, filters, null);
+    }
+
+    /**
+     * Liste filtrée (recherche server-side) : applique les critères sur les propriétés visibles org-scopées.
+     * La conversion en devise d'affichage (`currency`) est faite AVANT le filtre prix → la fourchette
+     * minPrice/maxPrice (envoyée par le client en devise d'affichage) est comparée dans la même devise.
+     * `currency` null/blank → pas de conversion (devise de la propriété, comportement historique).
+     */
+    public List<PublicPropertyDto> getProperties(OrgContext ctx, PropertySearchFilters filters, String currency) {
         // Curation « propriétés affichées » : si le booking engine a une sélection, on s'y restreint
         // (vide/NULL = toutes les propriétés visibles). Curation d'affichage, pas de contrôle d'accès.
         java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
+        final LocalDate rateDate = LocalDate.now();
         List<PublicPropertyDto> base = propertyRepository.findBookingEngineVisible(ctx.orgId())
             .stream()
             .filter(p -> featured.isEmpty() || featured.contains(p.getId()))
             .map(PublicPropertyDto::from)
+            .map(dto -> currency == null || currency.isBlank() ? dto : displayCurrencyService.convertProperty(dto, currency, rateDate))
+            .filter(filters::matches)
             .toList();
         if (base.isEmpty()) {
             return base;
@@ -198,6 +267,53 @@ public class PublicBookingService {
             .toList();
     }
 
+    /**
+     * Facettes de recherche : options de filtres disponibles, calculées sur l'ensemble des propriétés
+     * VISIBLES (non filtrées) de l'org. Sert à peupler l'UI du widget « Filtre ».
+     */
+    public PublicSearchFiltersDto getSearchFilters(OrgContext ctx, String requestedCurrency) {
+        java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
+        final LocalDate rateDate = LocalDate.now();
+        // Prix convertis en devise d'affichage → les bornes priceMin/priceMax du widget « Filtre » (et donc
+        // la fourchette envoyée au filtrage) sont dans la même devise que les cartes/calendrier.
+        List<PublicPropertyDto> all = propertyRepository.findBookingEngineVisible(ctx.orgId())
+            .stream()
+            .filter(p -> featured.isEmpty() || featured.contains(p.getId()))
+            .map(PublicPropertyDto::from)
+            .map(dto -> requestedCurrency == null || requestedCurrency.isBlank() ? dto : displayCurrencyService.convertProperty(dto, requestedCurrency, rateDate))
+            .toList();
+
+        java.util.Map<String, Integer> typeCounts = new java.util.LinkedHashMap<>();
+        java.util.Map<String, Integer> amenityCounts = new java.util.LinkedHashMap<>();
+        java.math.BigDecimal priceMin = null;
+        java.math.BigDecimal priceMax = null;
+        int maxBedrooms = 0, maxBathrooms = 0, maxGuests = 0;
+        String currency = null;
+        for (PublicPropertyDto p : all) {
+            if (p.type() != null) typeCounts.merge(p.type(), 1, Integer::sum);
+            if (p.amenities() != null) {
+                for (String a : p.amenities()) amenityCounts.merge(a, 1, Integer::sum);
+            }
+            if (p.priceFrom() != null) {
+                priceMin = priceMin == null ? p.priceFrom() : priceMin.min(p.priceFrom());
+                priceMax = priceMax == null ? p.priceFrom() : priceMax.max(p.priceFrom());
+            }
+            if (p.bedroomCount() != null) maxBedrooms = Math.max(maxBedrooms, p.bedroomCount());
+            if (p.bathroomCount() != null) maxBathrooms = Math.max(maxBathrooms, p.bathroomCount());
+            if (p.maxGuests() != null) maxGuests = Math.max(maxGuests, p.maxGuests());
+            if (currency == null && p.currency() != null) currency = p.currency();
+        }
+        List<PublicSearchFiltersDto.Facet> types = typeCounts.entrySet().stream()
+            .map(e -> new PublicSearchFiltersDto.Facet(e.getKey(), e.getValue()))
+            .toList();
+        List<PublicSearchFiltersDto.Facet> amenities = amenityCounts.entrySet().stream()
+            .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue())) // plus fréquents d'abord
+            .map(e -> new PublicSearchFiltersDto.Facet(e.getKey(), e.getValue()))
+            .toList();
+        return new PublicSearchFiltersDto(types, amenities, priceMin, priceMax,
+            maxBedrooms, maxBathrooms, maxGuests, currency);
+    }
+
     /** Agrège un résultat group-by `(propertyId, count)` en map id→compte. */
     private static java.util.Map<Long, Integer> toCountMap(List<Object[]> rows) {
         java.util.Map<Long, Integer> map = new java.util.HashMap<>();
@@ -208,7 +324,7 @@ public class PublicBookingService {
     }
 
     /** Parse une liste d'IDs de propriétés en CSV de façon défensive (entrées non numériques ignorées). */
-    private static java.util.Set<Long> parseFeaturedPropertyIds(String csv) {
+    public static java.util.Set<Long> parseFeaturedPropertyIds(String csv) {
         if (csv == null || csv.isBlank()) {
             return java.util.Set.of();
         }
@@ -830,6 +946,11 @@ public class PublicBookingService {
             String guestEmail = reservation.getGuest() != null
                 ? reservation.getGuest().getEmail() : null;
 
+            // Retour Stripe template-driven (B3) : success_url = page confirmation du SITE de l'org,
+            // STRICTEMENT validee (HTTPS + host autorise) ; sinon null → success_url par defaut.
+            String successUrl = resolveCheckoutSuccessUrl(
+                ctx.config(), req.returnUrl(), reservation.getConfirmationCode());
+
             // expires_at ~35 min : la session devient inutilisable peu apres
             // l'expiration du hold de 30 min (reliquat revue A3).
             Session session = stripeService.createReservationCheckoutSession(
@@ -838,7 +959,8 @@ public class PublicBookingService {
                 guestEmail,
                 reservation.getGuestName(),
                 propertyName,
-                java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES)
+                java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES),
+                successUrl
             );
 
             reservation.setStripeSessionId(session.getId());
@@ -853,6 +975,79 @@ public class PublicBookingService {
                 reservation.getConfirmationCode(), e.getMessage(), e);
             throw new RuntimeException("Erreur lors de la creation du paiement", e);
         }
+    }
+
+    // ─── Retour Stripe template-driven : success_url valide (anti open-redirect, B3) ─────────────
+
+    /**
+     * Resout le {@code success_url} Stripe a partir du {@code returnUrl} fourni par le client (page
+     * confirmation du template), avec un GARDE-FOU OPEN-REDIRECT STRICT et OBLIGATOIRE :
+     * <ul>
+     *   <li>{@code returnUrl} null/blank → {@code null} (la factory utilise {@code stripe.success-url}) ;</li>
+     *   <li>l'URL DOIT etre absolue et en <b>HTTPS</b> ;</li>
+     *   <li>son <b>host</b> DOIT correspondre a l'un des hosts des {@code allowedOrigins} de l'org
+     *       (memes origines que celles autorisees pour les appels API, source de verite du domaine du site).</li>
+     * </ul>
+     * Toute valeur non conforme est IGNOREE (log d'avertissement) et la methode renvoie {@code null} →
+     * repli sur le {@code success_url} par defaut. JAMAIS de redirection vers un host arbitraire.
+     *
+     * <p>En cas de succes, le code de reservation est ajoute en query (`?reservation={code}` ou
+     * `&reservation={code}` selon l'URL) pour que la primitive `confirmation` puisse re-fetch le statut.</p>
+     */
+    private String resolveCheckoutSuccessUrl(BookingEngineConfig config, String returnUrl, String reservationCode) {
+        if (returnUrl == null || returnUrl.isBlank()) {
+            return null;
+        }
+        final URI uri;
+        try {
+            uri = URI.create(returnUrl.trim());
+        } catch (IllegalArgumentException e) {
+            log.warn("Booking Engine — returnUrl illisible ignore pour l'org {} (anti open-redirect)", config.getOrganizationId());
+            return null;
+        }
+        // HTTPS obligatoire + host present.
+        if (uri.getScheme() == null || !"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) {
+            log.warn("Booking Engine — returnUrl non-HTTPS ou sans host ignore pour l'org {} (anti open-redirect)", config.getOrganizationId());
+            return null;
+        }
+        if (!isHostAllowedForOrg(config, uri.getHost())) {
+            log.warn("Booking Engine — returnUrl host '{}' hors origines autorisees de l'org {} : ignore (anti open-redirect)",
+                uri.getHost(), config.getOrganizationId());
+            return null;
+        }
+        // URL validee : on y appose le code de reservation pour la page confirmation.
+        String separator = (uri.getRawQuery() == null || uri.getRawQuery().isEmpty()) ? "?" : "&";
+        return returnUrl.trim() + separator + "reservation="
+            + URLEncoder.encode(reservationCode, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Vrai si {@code host} correspond au host de l'une des origines autorisees de l'org
+     * ({@code allowedOrigins}, CSV de {@code scheme://host[:port]}). Comparaison de host insensible a la
+     * casse (pas de port). Si aucune origine n'est configuree, on refuse (fail-closed) : sans domaine de
+     * site connu, on ne peut garantir la cible → repli sur le success_url par defaut.
+     */
+    private boolean isHostAllowedForOrg(BookingEngineConfig config, String host) {
+        String allowedOrigins = config.getAllowedOrigins();
+        if (allowedOrigins == null || allowedOrigins.isBlank()) {
+            return false;
+        }
+        String target = host.toLowerCase(Locale.ROOT);
+        for (String origin : allowedOrigins.split(",")) {
+            String trimmed = origin.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                String allowedHost = URI.create(trimmed).getHost();
+                if (allowedHost != null && allowedHost.toLowerCase(Locale.ROOT).equals(target)) {
+                    return true;
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Origine mal formee en config : on l'ignore (ne doit pas relacher la garde).
+            }
+        }
+        return false;
     }
 
     // ─── Embedded Checkout : retenue des dates (Z4A-BUGS-03) ─────────────────────

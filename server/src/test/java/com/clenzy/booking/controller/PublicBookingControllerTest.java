@@ -70,7 +70,8 @@ class PublicBookingControllerTest {
             org.mockito.Mockito.mock(com.clenzy.booking.service.PublicReviewService.class),
             org.mockito.Mockito.mock(com.clenzy.booking.service.BookingBalanceService.class),
             org.mockito.Mockito.mock(com.clenzy.booking.service.BookingGuestAuthService.class),
-            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicConciergeService.class));
+            org.mockito.Mockito.mock(com.clenzy.booking.service.PublicConciergeService.class),
+            org.mockito.Mockito.mock(com.clenzy.booking.service.BookingInquiryService.class));
         lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
         lenient().when(rateLimiter.tryAcquireBatch(any())).thenReturn(true);
 
@@ -87,7 +88,7 @@ class PublicBookingControllerTest {
         when(bookingService.resolveFromFilter(filterConfig)).thenReturn(ctx);
 
         BookingEngineConfigDto dto = new BookingEngineConfigDto("#fff", "#000", null, null, "fr",
-                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true);
+                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true, false, null);
         when(bookingService.getConfig(ctx)).thenReturn(dto);
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
@@ -100,7 +101,7 @@ class PublicBookingControllerTest {
         when(bookingService.resolveOrg("slug")).thenReturn(ctx);
 
         BookingEngineConfigDto dto = new BookingEngineConfigDto("#fff", "#000", null, null, "fr",
-                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true);
+                "EUR", 0, 365, "Flex", null, null, true, true, true, null, null, null, null, null, null, null, null, null, null, true, false, null);
         when(bookingService.getConfig(ctx)).thenReturn(dto);
 
         ResponseEntity<BookingEngineConfigDto> response = controller.getConfig("slug", request);
@@ -111,10 +112,11 @@ class PublicBookingControllerTest {
     void getProperties_returnsList() {
         when(request.getAttribute("bookingConfig")).thenReturn(ctx.config());
         when(bookingService.resolveFromFilter(any())).thenReturn(ctx);
-        when(bookingService.getProperties(ctx)).thenReturn(List.of(
+        when(bookingService.getProperties(eq(ctx), any(), any())).thenReturn(List.of(
                 mock(PublicPropertyDto.class), mock(PublicPropertyDto.class)));
 
-        ResponseEntity<List<PublicPropertyDto>> response = controller.getProperties("slug", null, request);
+        ResponseEntity<List<PublicPropertyDto>> response = controller.getProperties(
+                "slug", null, null, null, null, null, null, null, null, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).hasSize(2);
     }
@@ -211,7 +213,7 @@ class PublicBookingControllerTest {
         when(request.getAttribute("bookingConfig")).thenReturn(ctx.config());
         when(bookingService.resolveFromFilter(any())).thenReturn(ctx);
 
-        BookingCheckoutRequestDto req = new BookingCheckoutRequestDto("code-1");
+        BookingCheckoutRequestDto req = new BookingCheckoutRequestDto("code-1", null);
         BookingCheckoutResponseDto resp = new BookingCheckoutResponseDto("https://stripe.test", "s_1");
         when(bookingService.checkout(ctx, req)).thenReturn(resp);
 

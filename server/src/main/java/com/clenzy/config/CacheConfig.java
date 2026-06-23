@@ -160,6 +160,13 @@ public class CacheConfig {
                 .entryTtl(Duration.ofMinutes(10))
                 .prefixCacheNameWith("clenzy:booking-engine-properties:"));
 
+        // Cache booking-engine calendrier agrégé des prix (10 minutes). L'agrégation est lourde
+        // (PriceEngine × N logements filtrés) et re-sollicitée à chaque changement de filtre/voyageurs ;
+        // un TTL court suffit pour un prix « à partir de » par jour côté recherche.
+        cacheConfigurations.put("booking-engine-price-calendar", defaultConfig
+                .entryTtl(Duration.ofMinutes(10))
+                .prefixCacheNameWith("clenzy:booking-engine-price-calendar:"));
+
         RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)

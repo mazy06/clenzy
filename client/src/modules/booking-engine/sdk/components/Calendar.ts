@@ -7,7 +7,7 @@ interface I18n {
   tArray: (key: string) => string[];
 }
 
-export function createCalendar(state: StateManager, i18n: I18n, currency: string): HTMLElement {
+export function createCalendar(state: StateManager, i18n: I18n, currency: string, monthCount: 1 | 2 = 2): HTMLElement {
   const wrapper = document.createElement('div');
   wrapper.className = 'cb-calendar-wrapper';
   wrapper.setAttribute('role', 'dialog');
@@ -17,8 +17,33 @@ export function createCalendar(state: StateManager, i18n: I18n, currency: string
   inner.className = 'cb-calendar';
   wrapper.appendChild(inner);
 
+  // Fermeture au clic EN DEHORS. La « zone » est le champ dates (qui contient le déclencheur + le
+  // calendrier) → cliquer le déclencheur n'ferme pas, cliquer ailleurs ferme. Listener attaché sur le
+  // bon document (host / iframe / app) seulement quand ouvert, retiré à la fermeture ou si détaché.
+  let outsideDoc: Document | null = null;
+  const onOutsidePointer = (e: Event): void => {
+    if (!wrapper.isConnected) { removeOutside(); return; }
+    if (!state.get().calendarOpen) return;
+    const boundary = wrapper.closest('.cb-field') || wrapper.closest('.cb-wdates') || wrapper.parentElement;
+    const target = e.target as Node | null;
+    if (boundary && target && !boundary.contains(target)) {
+      state.set({ calendarOpen: false }, 'calendarToggle');
+    }
+  };
+  const ensureOutside = (): void => {
+    const doc = wrapper.ownerDocument;
+    if (outsideDoc === doc) return;
+    if (outsideDoc) outsideDoc.removeEventListener('pointerdown', onOutsidePointer, true);
+    doc.addEventListener('pointerdown', onOutsidePointer, true);
+    outsideDoc = doc;
+  };
+  const removeOutside = (): void => {
+    if (outsideDoc) { outsideDoc.removeEventListener('pointerdown', onOutsidePointer, true); outsideDoc = null; }
+  };
+
   function render(s: WidgetState): void {
     wrapper.classList.toggle('cb-open', s.calendarOpen);
+    if (s.calendarOpen) ensureOutside(); else removeOutside();
     if (!s.calendarOpen) return;
 
     inner.textContent = '';
@@ -70,20 +95,42 @@ export function createCalendar(state: StateManager, i18n: I18n, currency: string
     header.appendChild(nextBtn);
     inner.appendChild(header);
 
-    // Months container
+    // Months container : 1 ou 2 mois selon `monthCount` (réglable via le trait Studio du widget).
     const monthsContainer = document.createElement('div');
     monthsContainer.className = 'cb-calendar-months';
 
-    const month1 = buildMonth(baseY, baseM - 1, s, i18n, currency, state);
-    const month2Date = new Date(baseY, baseM, 1);
-    const month2 = buildMonth(month2Date.getFullYear(), month2Date.getMonth(), s, i18n, currency, state);
-
     const months = i18n.tArray('months');
-    titleSpan.textContent = `${months[baseM - 1]} ${baseY}  —  ${months[month2Date.getMonth()]} ${month2Date.getFullYear()}`;
+    monthsContainer.appendChild(buildMonth(baseY, baseM - 1, s, i18n, currency, state));
 
-    monthsContainer.appendChild(month1);
-    monthsContainer.appendChild(month2);
+    if (monthCount === 2) {
+      const month2Date = new Date(baseY, baseM, 1);
+      monthsContainer.appendChild(buildMonth(month2Date.getFullYear(), month2Date.getMonth(), s, i18n, currency, state));
+      titleSpan.textContent = `${months[baseM - 1]} ${baseY}  —  ${months[month2Date.getMonth()]} ${month2Date.getFullYear()}`;
+    } else {
+      titleSpan.textContent = `${months[baseM - 1]} ${baseY}`;
+    }
+
     inner.appendChild(monthsContainer);
+
+    // Aperçu de plage AU SURVOL : après l'arrivée et avant le départ, surligne arrivée → jour survolé
+    // (toggle de classes en direct, sans re-render → pas de scintillement ni de boucle d'état).
+    const dayCells = Array.from(inner.querySelectorAll<HTMLElement>('.cb-calendar-day[data-date]'));
+    const applyHoverPreview = (end: string | null): void => {
+      const cur = state.get();
+      if (!cur.checkIn || cur.checkOut) return; // uniquement pendant le choix du départ
+      const ci = cur.checkIn;
+      for (const cell of dayCells) {
+        const d = cell.getAttribute('data-date');
+        if (!d || d === ci) continue; // l'arrivée conserve ses classes du rendu
+        cell.classList.toggle('cb-in-range', !!end && ((ci < d && d < end) || (end < d && d < ci)));
+        cell.classList.toggle('cb-range-end', !!end && d === end && end > ci);
+        cell.classList.toggle('cb-range-start', !!end && d === end && end < ci);
+      }
+    };
+    for (const cell of dayCells) {
+      cell.addEventListener('mouseenter', () => applyHoverPreview(cell.getAttribute('data-date')));
+    }
+    monthsContainer.addEventListener('mouseleave', () => applyHoverPreview(null));
   }
 
   state.on('*', render);
@@ -183,12 +230,22 @@ function buildMonth(
       cell.appendChild(priceEl);
     }
 
-    // Click handler
+    // Click handler (+ marqueur de date pour l'aperçu de plage au survol).
     if (!isDisabled) {
+      cell.setAttribute('data-date', dateStr);
       cell.addEventListener('click', () => handleDayClick(dateStr, mgr));
     }
 
     grid.appendChild(cell);
+  }
+
+  // Cellules vides de fin : on complète à 6 SEMAINES (42 cellules) pour une HAUTEUR CONSTANTE quel que
+  // soit le mois (un mois s'étale sur 4, 5 ou 6 semaines selon le jour de départ et le nombre de jours).
+  const filledCells = startDow + lastDay.getDate();
+  for (let i = filledCells; i < 42; i++) {
+    const empty = document.createElement('span');
+    empty.className = 'cb-calendar-day';
+    grid.appendChild(empty);
   }
 
   container.appendChild(grid);

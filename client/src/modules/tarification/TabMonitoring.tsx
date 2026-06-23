@@ -23,6 +23,8 @@ import {
 } from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
+import { Money, CurrencySymbol } from '../../components/Money';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -50,6 +52,7 @@ function FeatureItem({ text }: { text: string }) {
 
 export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbol }: TabMonitoringProps) {
   const { t } = useTranslation();
+  const { currency } = useCurrency();
 
   // ─── Baitly total calculation ─────────────────────────────────────────────
   const clenzyTotalCents =
@@ -132,7 +135,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   value={centsToEuros(config.monitoringMinutMonthlyPriceCents)}
                   onChange={(e) => onUpdate({ monitoringMinutMonthlyPriceCents: eurosToCents(e.target.value) })}
                   disabled={!canEdit}
-                  InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}/mois</InputAdornment> }}
+                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
                 />
               ) : (
                 <Box
@@ -243,7 +246,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   onChange={(e) => onUpdate({ monitoringClenzyDevicePriceCents: eurosToCents(e.target.value) })}
                   disabled={!canEdit}
                   helperText={t('tarification.monitoring.clenzy.devicePriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -256,7 +259,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   onChange={(e) => onUpdate({ monitoringClenzyInstallationPriceCents: eurosToCents(e.target.value) })}
                   disabled={!canEdit}
                   helperText={t('tarification.monitoring.clenzy.installationPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -269,7 +272,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   onChange={(e) => onUpdate({ monitoringClenzyConfigPriceCents: eurosToCents(e.target.value) })}
                   disabled={!canEdit}
                   helperText={t('tarification.monitoring.clenzy.configPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -282,7 +285,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   onChange={(e) => onUpdate({ monitoringClenzySupportPriceCents: eurosToCents(e.target.value) })}
                   disabled={!canEdit}
                   helperText={t('tarification.monitoring.clenzy.supportPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                 />
               </Grid>
             </Grid>
@@ -305,7 +308,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                 {t('tarification.monitoring.clenzy.total')}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, color: 'success.main', fontSize: '1.25rem' }}>
-                {clenzyTotalCents > 0 ? `${(clenzyTotalCents / 100).toLocaleString('fr-FR')} ${currencySymbol}` : `— ${currencySymbol}`}
+                {clenzyTotalCents > 0 ? <Money value={clenzyTotalCents / 100} decimals={0} /> : <>— <CurrencySymbol code={currency} /></>}
               </Typography>
             </Box>
 

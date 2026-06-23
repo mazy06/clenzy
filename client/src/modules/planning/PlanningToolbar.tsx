@@ -19,8 +19,8 @@ import {
   FullscreenExit,
   TuneOutlined,
   Public as GlobeIcon,
-  CleaningServices,
-  Build,
+  BroomFill,
+  WrenchFill,
 } from '../../icons';
 import type { ZoomLevel, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
@@ -435,10 +435,10 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             {/* Balai (ménage) + outil (maintenance) : la chip couvre les DEUX
                 types d'intervention, chacun à sa couleur token. */}
             <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
-              <CleaningServices size={15} strokeWidth={1.75} />
+              <BroomFill size={16} />
             </Box>
             <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
-              <Build size={15} strokeWidth={1.75} />
+              <WrenchFill size={15} />
             </Box>
             Interventions
           </Box>

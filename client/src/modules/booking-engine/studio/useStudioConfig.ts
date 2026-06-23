@@ -23,6 +23,9 @@ export interface StudioConfigState {
   saving: boolean;
   dirty: boolean;
   patch: (changes: Partial<BookingEngineConfig>) => void;
+  /** Patch local + persistance immédiate (PUT) du payload fusionné — pour les changements qui doivent être
+   *  sauvegardés tout de suite (ex. bibliothèque de composites), sans attendre un clic « Enregistrer ». */
+  patchPersist: (changes: Partial<BookingEngineConfig>) => Promise<void>;
   save: () => Promise<void>;
   /** Régénère la clé API (invalide l'ancienne immédiatement). */
   regenerateKey: () => Promise<void>;
@@ -52,6 +55,25 @@ export function useStudioConfig(id: number | undefined): StudioConfigState {
   const patch = useCallback((changes: Partial<BookingEngineConfig>) => {
     setConfig((prev) => (prev ? { ...prev, ...changes } : prev));
   }, []);
+
+  const patchPersist = useCallback(async (changes: Partial<BookingEngineConfig>) => {
+    if (!config || !id) { setConfig((prev) => (prev ? { ...prev, ...changes } : prev)); return; }
+    // Fusionne explicitement (≠ lire l'état après setConfig, qui serait obsolète) puis PUT le payload complet.
+    const merged = { ...config, ...changes };
+    setConfig(merged);
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await bookingEngineApi.updateConfig(id, toUpdatePayload(merged));
+      setConfig(updated);
+      setOriginal(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Enregistrement impossible');
+      throw e;
+    } finally {
+      setSaving(false);
+    }
+  }, [config, id]);
 
   const save = useCallback(async () => {
     if (!config || !id) return;
@@ -102,5 +124,5 @@ export function useStudioConfig(id: number | undefined): StudioConfigState {
 
   const dirty = config !== null && original !== null && JSON.stringify(config) !== JSON.stringify(original);
 
-  return { config, loading, error, saving, dirty, patch, save, regenerateKey, setEnabled };
+  return { config, loading, error, saving, dirty, patch, patchPersist, save, regenerateKey, setEnabled };
 }

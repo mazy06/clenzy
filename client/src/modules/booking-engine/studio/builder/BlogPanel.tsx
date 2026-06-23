@@ -83,7 +83,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
   }
 
   return (
-    <Box sx={{ maxWidth: 860, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
+    <Box sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, mb: 3 }}>
         <Box>
           <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-bold)' }}>Articles de blog</Box>
@@ -117,7 +117,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
       )}
 
       {posts && posts.length > 0 && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.5 }}>
           {posts.map((p) => {
             const meta = STATUS_META[p.status] ?? STATUS_META.DRAFT;
             const pending = p.status === 'PENDING_REVIEW';

@@ -3,28 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { Box, ButtonBase, Skeleton } from '@mui/material';
 import { Plus, LayoutTemplate, ArrowRight, AlertTriangle } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfig, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
-import { type DesignPreset } from '../constants';
-import { templateBlocksForPreset } from './siteTemplates';
-import TemplateGallery from './TemplateGallery';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
 
 /**
  * Accueil du Baitly Studio (F1) : « Mes booking engines » (liste réelle via l'API admin) +
- * création depuis la galerie de templates. Ouvrir un projet → éditeur (StudioPage).
+ * création d'un booking engine VIERGE. Ouvrir un projet → éditeur GrapesJS (StudioPage) sur une
+ * page vierge ; l'utilisateur compose librement (ou importe un template via le panneau d'import grapes).
  */
 
-const PRESET_LABELS: Record<string, string> = {
-  'safari-lodge': 'Safari Lodge', 'stripe-minimal': 'Stripe Minimal', 'ocean-breeze': 'Ocean Breeze',
-  'urban-chic': 'Urban Chic', 'provencal': 'Provençal', 'nordic': 'Nordic',
-};
-
-function buildConfigPayload(name: string, preset: DesignPreset | null): BookingEngineConfigUpdate {
+/**
+ * Payload de création d'un booking engine VIERGE. `pageLayout=null` → l'éditeur GrapesJS démarre
+ * sur une page blanche (la source legacy `config.pageLayout` n'est plus lue ; le design vit dans
+ * `SitePage.blocks`, résolu via useSitePages.ensureForConfig côté éditeur).
+ */
+function buildConfigPayload(name: string): BookingEngineConfigUpdate {
   return {
     name,
-    primaryColor: preset?.primaryColor ?? '#5453D6', // défaut indigo Baitly Signature
+    primaryColor: '#5453D6', // défaut indigo Baitly Signature
     accentColor: null,
     logoUrl: null,
-    fontFamily: preset?.fontFamily ?? 'Inter',
+    fontFamily: 'Inter',
     defaultLanguage: 'fr',
     defaultCurrency: 'EUR',
     minAdvanceDays: 1,
@@ -43,9 +41,11 @@ function buildConfigPayload(name: string, preset: DesignPreset | null): BookingE
     customCss: null,
     customJs: null,
     componentConfig: null,
-    pageLayout: preset ? (() => { const b = templateBlocksForPreset(preset.id); return b ? JSON.stringify(b) : null; })() : null,
+    pageLayout: null,
+    funnelPresets: null,
+    compositeWidgets: null,
     featuredPropertyIds: null,
-    designTokens: preset ? JSON.stringify(preset.tokens) : null,
+    designTokens: null,
     sourceWebsiteUrl: null,
     aiAnalysisAt: null,
     widgetPosition: 'bottom',
@@ -63,7 +63,6 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   const navigate = useNavigate();
   const [configs, setConfigs] = useState<BookingEngineConfig[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [galleryOpen, setGalleryOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -74,22 +73,21 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     return () => { alive = false; };
   }, []);
 
-  const handleSelectTemplate = async (preset: DesignPreset | null) => {
+  // Crée un booking engine vierge puis ouvre l'éditeur (page blanche dans GrapesJS).
+  const handleCreate = async () => {
     if (creating) return;
     setCreating(true);
     try {
-      const name = preset ? `Site ${PRESET_LABELS[preset.id] ?? preset.id}` : 'Nouveau booking engine';
-      const created = await bookingEngineApi.createConfig(buildConfigPayload(name, preset));
+      const created = await bookingEngineApi.createConfig(buildConfigPayload('Nouveau booking engine'));
       navigate(`/booking-engine/studio/${created.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Création impossible');
       setCreating(false);
-      setGalleryOpen(false);
     }
   };
 
   const createButton = (
-    <ButtonBase onClick={() => setGalleryOpen(true)} sx={primaryBtnSx}>
+    <ButtonBase onClick={handleCreate} disabled={creating} sx={primaryBtnSx}>
       <Plus size={16} strokeWidth={2.2} /> Créer un booking engine
     </ButtonBase>
   );
@@ -125,8 +123,8 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             <LayoutTemplate size={26} strokeWidth={1.85} />
           </Box>
           <Box sx={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', mb: 0.5 }}>Aucun booking engine pour l'instant</Box>
-          <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', mb: 2.5 }}>Pars d'un template ou d'une page vierge.</Box>
-          <ButtonBase onClick={() => setGalleryOpen(true)} sx={primaryBtnSx}>
+          <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', mb: 2.5 }}>Pars d'une page vierge et compose ton site.</Box>
+          <ButtonBase onClick={handleCreate} disabled={creating} sx={primaryBtnSx}>
             <Plus size={16} strokeWidth={2.2} /> Créer mon premier booking engine
           </ButtonBase>
         </Box>
@@ -192,8 +190,6 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           </Box>
         </Box>
       )}
-
-      <TemplateGallery open={galleryOpen} onClose={() => setGalleryOpen(false)} onSelect={handleSelectTemplate} creating={creating} />
     </>
   );
 }
