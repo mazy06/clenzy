@@ -21,6 +21,8 @@ import {
 import { Build, Add, Delete } from '../../icons';
 import type { PricingConfig, ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
+import { CurrencySymbol } from '../../components/Money';
 import CommissionSection from './CommissionSection';
 
 interface TabTravauxProps {
@@ -32,6 +34,7 @@ interface TabTravauxProps {
 
 export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }: TabTravauxProps) {
   const { t } = useTranslation();
+  const { currency } = useCurrency();
 
   const items = config.travauxConfig || [];
 
@@ -124,7 +127,7 @@ export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }
                     }}
                     disabled={!canEdit || !item.enabled}
                     inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+                    InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                     sx={{ width: 120 }}
                   />
                 </TableCell>
@@ -175,7 +178,7 @@ export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }
             onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
             size="small"
             fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
           />
         </DialogContent>
         <DialogActions>

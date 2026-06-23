@@ -111,6 +111,19 @@ export const BAR_MIN_WIDTH = 28;
 export const INTERVENTION_LANE_GAP = 1;
 export const INTERVENTION_BOTTOM_PAD = 2;
 
+// ─── Repli de la brique (priorité : nom > prix réservation > tarif > logos) ──
+// Seuils de largeur (px) pilotant, dans PlanningBar, la pilule prix .pl-price
+// et la pilule tarif prestation .pl-badge--fee. Ajustables ici (calibrés sur
+// les dayWidth : semaine 160, quinzaine 80, mois 38) :
+//   ≥ BAR_PRICE_AMOUNT_MIN : prix = pilule icône + montant
+//   ≥ BAR_PRICE_INLINE_MIN : prix = pilule icône seule (montant masqué) ;
+//                            sous ce seuil le prix se replie dans le « +N »
+//   ≥ BAR_FEE_PILL_MIN     : tarif prestation = pilule icône + montant
+//                            (sinon carré-icône d'origine)
+export const BAR_PRICE_AMOUNT_MIN = 150;
+export const BAR_PRICE_INLINE_MIN = 104;
+export const BAR_FEE_PILL_MIN = 184;
+
 // ─── Positionnement à l'heure (spec JS placeBar) ────────────────────────────
 //
 // Les briques de réservation sont posées à l'heure de check-in/check-out :

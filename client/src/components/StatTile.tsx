@@ -6,10 +6,12 @@ interface StatTileProps {
   icon: React.ReactNode;
   /** Libellé court (muted, sentence-case) sur la ligne de l'icône. */
   label: string;
-  /** Valeur principale — string ou number, affichée en display. */
-  value: string | number;
-  /** Unité affichée en petit + muted après la valeur (ex: "€", "%"). */
-  unit?: string;
+  /** Valeur principale — texte, nombre ou nœud (ex: <Money/> pour afficher le
+   *  glyphe de devise au lieu du code). */
+  value: React.ReactNode;
+  /** Unité affichée en petit + muted après la valeur (ex: "%", ou
+   *  <CurrencySymbol/>). */
+  unit?: React.ReactNode;
   /** Couleur de l'icône (hex/token). Défaut : accent. */
   color?: string;
   /** Ligne secondaire sous la valeur (delta/contexte). ReactNode → highlight possible

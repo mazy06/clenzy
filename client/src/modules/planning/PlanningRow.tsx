@@ -7,7 +7,7 @@ import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtil
 import { resolveAttachedReservationId, type AttachmentCandidate } from './utils/interventionAttachment';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 import { NightsStay } from '../../icons';
 
 // ─── Price formatter ────────────────────────────────────────────────────────
@@ -15,17 +15,6 @@ import { NightsStay } from '../../icons';
 function formatPrice(price: number, symbol: string): string {
   if (Number.isInteger(price)) return `${price}${symbol}`;
   return `${price.toFixed(1)}${symbol}`;
-}
-
-/** Post-traite le rendu de `convertAndFormat` :
- *  - supprime les decimales ("85,00 €" → "85 €")
- *  - remplace "≈" (conversion de devise) par "~" plus discret (matches
- *    l'exemple multi-canaux : "~340 €")
- */
-function compactPriceLabel(formatted: string): string {
-  return formatted
-    .replace(/[.,]\d+/g, '')
-    .replace(/^≈\s*/, '~');
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -90,7 +79,6 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   allEvents,
   loadedReservations,
 }) => {
-  const { convertAndFormat } = useCurrency();
   const config = ROW_CONFIG[density];
 
   // ── Interventions rattachées à une réservation (maquette) ────────────────
@@ -594,6 +582,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             onClick={onEventClick}
             onHide={onHideEvent}
             linkedInterventions={linkedInterventionsByBarId.get(layout.event.id)}
+            currency={property.currency ?? 'EUR'}
           />
         );
       })}
@@ -645,7 +634,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                {compactPriceLabel(convertAndFormat(price, property.currency ?? 'EUR'))}
+                <Money value={price} from={property.currency ?? 'EUR'} compact symbolSize={dayWidth < 60 ? 9 : 10} />
               </Box>
             )}
             {minNights != null && dayWidth >= 38 && (

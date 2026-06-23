@@ -6,7 +6,6 @@ import {
   Monitor,
   Tablet,
   Smartphone,
-  Rocket,
   Wand2,
   type LucideIcon,
 } from 'lucide-react';
@@ -41,8 +40,6 @@ export interface StudioShellProps {
   /** Ouvre la modale « Analyse du design » (analyse IA d'un site → thème du widget). */
   onAnalyzeDesign?: () => void;
   onBack?: () => void;
-  onPublish?: () => void;
-  publishing?: boolean;
   children: ReactNode;
 }
 
@@ -63,8 +60,6 @@ export default function StudioShell({
   onOpenCommand,
   onAnalyzeDesign,
   onBack,
-  onPublish,
-  publishing = false,
   children,
 }: StudioShellProps) {
   return (
@@ -140,32 +135,8 @@ export default function StudioShell({
         {/* Devise de preview */}
         <PreviewSelect value={previewCurrency} onChange={onPreviewCurrencyChange}
           options={['EUR', 'MAD', 'SAR']} ariaLabel="Devise de preview" />
-
-        {/* Publier */}
-        <ButtonBase
-          onClick={onPublish}
-          disabled={publishing}
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-            height: 34,
-            px: 1.75,
-            borderRadius: 'var(--radius-md)',
-            bgcolor: 'var(--accent)',
-            color: 'var(--on-accent)',
-            fontWeight: 'var(--fw-semibold)',
-            fontSize: 'var(--text-sm)',
-            cursor: 'pointer',
-            transition: 'background var(--duration-fast) var(--ease-out)',
-            '&:hover': { bgcolor: 'var(--accent-deep)' },
-            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-            '&.Mui-disabled': { opacity: 0.6, cursor: 'default' },
-          }}
-        >
-          <Rocket size={15} strokeWidth={2} />
-          {publishing ? 'Publication…' : 'Publier'}
-        </ButtonBase>
+        {/* La publication se fait par page dans l'éditeur GrapesJS (badge Brouillon/Publié + bouton
+            Publier), modèle draft/live multi-pages. Pas de bouton « Publier » global dans la topbar. */}
       </Box>
 
       {/* ── Body : rail + contenu ────────────────────────────────── */}
@@ -209,7 +180,7 @@ export default function StudioShell({
                     '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
                   }}
                 >
-                  <Icon size={20} strokeWidth={active ? 2.2 : 1.85} />
+                  <Icon size={17} strokeWidth={active ? 2 : 1.75} />
                   <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: active ? 'var(--fw-semibold)' : 'var(--fw-medium)' }}>
                     {s.label}
                   </Box>
@@ -219,7 +190,9 @@ export default function StudioShell({
           })}
         </Box>
 
-        <Box component="main" sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+        {/* overflowX hidden = la zone principale du Studio ne défile JAMAIS horizontalement
+            (le scroll horizontal appartient à un widget précis, jamais à « l'écran »). */}
+        <Box component="main" sx={{ flex: 1, minWidth: 0, overflowX: 'hidden', overflowY: 'auto' }}>
           {children}
         </Box>
       </Box>

@@ -7,6 +7,8 @@ import { Compare, EmojiEvents, BarChart as BarChartIcon } from '../../../icons';
 import GridSection from './GridSection';
 import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useCurrency } from '../../../hooks/useCurrency';
+import { Money } from '../../../components/Money';
 import type { BenchmarkMetrics } from '../../../hooks/useAnalyticsEngine';
 
 const LEGEND_STYLE = { fontSize: 10, letterSpacing: '0.02em' } as const;
@@ -41,6 +43,7 @@ interface Props {
 
 const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
 
   return (
     <GridSection
@@ -95,7 +98,8 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
         <Grid item xs={6} sm={4} md={2}>
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.portfolioAvg')}
-            value={data ? `${data.portfolioAvg.revPAN.toFixed(2)} €` : '-'}
+            value={data ? <Money value={data.portfolioAvg.revPAN} from="EUR" decimals={2} /> : '-'}
+            valueText={data ? convertAndFormat(data.portfolioAvg.revPAN, 'EUR') : undefined}
             subtitle={`${t('dashboard.analytics.occupancyRate')}: ${data?.portfolioAvg.occupancy ?? '-'}% • ${t('dashboard.analytics.netMargin')}: ${data?.portfolioAvg.margin ?? '-'}%`}
             icon={<Compare color="primary" />}
             loading={loading}
@@ -107,7 +111,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.bestProperty')}
             value={data ? data.bestProperty.name : '-'}
-            subtitle={data ? `RevPAN: ${data.bestProperty.revPAN.toFixed(2)} € • Occ: ${data.bestProperty.occupancy}%` : ''}
+            subtitle={data ? `RevPAN: ${convertAndFormat(data.bestProperty.revPAN, 'EUR')} • Occ: ${data.bestProperty.occupancy}%` : ''}
             icon={<EmojiEvents color="warning" />}
             loading={loading}
           />

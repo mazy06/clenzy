@@ -4,6 +4,8 @@ import { Calculate, Euro, Percent, ShowChart } from '../../../icons';
 import GridSection from './GridSection';
 import AnalyticsWidgetCard from './AnalyticsWidgetCard';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useCurrency } from '../../../hooks/useCurrency';
+import { Money } from '../../../components/Money';
 import type { AnalyticsData } from '../../../hooks/useAnalyticsEngine';
 
 const SECTION_LABEL_SX = {
@@ -22,6 +24,7 @@ interface Props {
 
 const AnalyticsSimulator: React.FC<Props> = React.memo(({ data }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
 
   // Simulation state
   const basePrice = data?.pricing.optimalPrice || 100;
@@ -94,7 +97,7 @@ const AnalyticsSimulator: React.FC<Props> = React.memo(({ data }) => {
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.5 }}>
                 <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.primary' }}>
-                  {simulation.price} € / {t('dashboard.analytics.night')}
+                  <Money value={simulation.price} from="EUR" decimals={0} /> / {t('dashboard.analytics.night')}
                 </Typography>
               </Box>
             </CardContent>
@@ -132,7 +135,7 @@ const AnalyticsSimulator: React.FC<Props> = React.memo(({ data }) => {
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.5 }}>
                 <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.primary' }}>
-                  {t('dashboard.analytics.requiredPrice')}: {simulation.requiredPrice} €
+                  {t('dashboard.analytics.requiredPrice')}: <Money value={simulation.requiredPrice} from="EUR" decimals={0} />
                 </Typography>
               </Box>
             </CardContent>
@@ -143,7 +146,8 @@ const AnalyticsSimulator: React.FC<Props> = React.memo(({ data }) => {
         <Grid item xs={6} sm={4}>
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.projectedRevenue')}
-            value={`${simulation.revenue.toLocaleString('fr-FR')} €`}
+            value={<Money value={simulation.revenue} from="EUR" decimals={0} />}
+            valueText={convertAndFormat(simulation.revenue, 'EUR')}
             icon={<Euro color="success" />}
           />
         </Grid>
@@ -157,7 +161,8 @@ const AnalyticsSimulator: React.FC<Props> = React.memo(({ data }) => {
         <Grid item xs={6} sm={4}>
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.projectedRevPAN')}
-            value={`${simulation.revPAN} €`}
+            value={<Money value={simulation.revPAN} from="EUR" decimals={2} />}
+            valueText={convertAndFormat(simulation.revPAN, 'EUR')}
             icon={<ShowChart color="info" />}
           />
         </Grid>

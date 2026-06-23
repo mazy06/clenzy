@@ -39,7 +39,7 @@ import {
   CalendarMonth,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 import { formatDateTime, formatDuration } from '../../utils/formatUtils';
 import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import type { ConsigneVariant } from '../../components/DescriptionNotesDisplay';
@@ -332,7 +332,6 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
   extraSection,
 }) => {
   const { t } = useTranslation();
-  const { convertAndFormat } = useCurrency();
 
   const statusProgress = getStatusProgress(vm.status);
   const statusProgressColor = getStatusProgressColor(vm.status);
@@ -426,7 +425,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             <Box sx={METRIC_CARD_SX}>
               <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 0.25 }}><Euro size={18} strokeWidth={1.75} /></Box>
               <Typography sx={METRIC_VALUE_SX}>
-                {convertAndFormat(vm.estimatedCost, 'EUR')}
+                <Money value={vm.estimatedCost} from="EUR" />
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.estimatedCost')}</Typography>
             </Box>
@@ -437,7 +436,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             <Box sx={METRIC_CARD_SX}>
               <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', mb: 0.25 }}><AttachMoney size={18} strokeWidth={1.75} /></Box>
               <Typography sx={{ ...METRIC_VALUE_SX, color: 'var(--ok)' }}>
-                {convertAndFormat(vm.actualCost, 'EUR')}
+                <Money value={vm.actualCost} from="EUR" />
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.actualCost')}</Typography>
             </Box>

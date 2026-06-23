@@ -35,6 +35,23 @@ function line(x1: string, y1: string, x2: string, y2: string): SVGLineElement {
   return el;
 }
 
+function circle(cx: string, cy: string, r: string): SVGCircleElement {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  el.setAttribute('cx', cx);
+  el.setAttribute('cy', cy);
+  el.setAttribute('r', r);
+  return el;
+}
+
+/** Icône « filtres » (curseurs/sliders) — déclencheur du widget Filtre. */
+export function sliders(): SVGSVGElement {
+  return svg(
+    '0 0 24 24',
+    line('4', '6', '20', '6'), line('4', '12', '20', '12'), line('4', '18', '20', '18'),
+    circle('9', '6', '2'), circle('15', '12', '2'), circle('7', '18', '2'),
+  );
+}
+
 export function chevronDown(): SVGSVGElement {
   return svg('0 0 24 24', polyline('6 9 12 15 18 9'));
 }

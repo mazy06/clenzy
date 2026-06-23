@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Card, CardContent, LinearProgress, Grid } from '@mui/material';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { Money } from '../../../components/Money';
 import type { PropertyPerformanceItem } from '../../../hooks/useAnalyticsEngine';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -133,7 +134,7 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ data, loadin
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.375 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={LABEL_SX}>RevPAN</Typography>
-                      <Typography sx={VALUE_SX}>{prop.revPAN.toFixed(2)} €</Typography>
+                      <Typography sx={VALUE_SX}><Money value={prop.revPAN} from="EUR" decimals={2} /></Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.occupancyRate')}</Typography>
@@ -141,7 +142,7 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ data, loadin
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.totalRevenue')}</Typography>
-                      <Typography sx={VALUE_SX}>{prop.revenue.toLocaleString('fr-FR')} €</Typography>
+                      <Typography sx={VALUE_SX}><Money value={prop.revenue} from="EUR" decimals={0} /></Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.netMargin')}</Typography>

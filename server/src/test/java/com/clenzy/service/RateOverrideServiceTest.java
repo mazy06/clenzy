@@ -45,6 +45,7 @@ class RateOverrideServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private ReservationService reservationService;
     @Mock private TenantContext tenantContext;
+    @Mock private SearchCacheInvalidator searchCacheInvalidator;
 
     @InjectMocks
     private RateOverrideService service;

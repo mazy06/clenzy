@@ -69,7 +69,10 @@ class PublicBookingServiceTest {
                 serviceOptionsService,
                 org.mockito.Mockito.mock(com.clenzy.service.email.BookingConfirmationEmailService.class),
                 org.mockito.Mockito.mock(com.clenzy.booking.service.BookingEngineDepositService.class),
-                org.mockito.Mockito.mock(com.clenzy.booking.service.GuestCreditService.class));
+                org.mockito.Mockito.mock(com.clenzy.booking.service.GuestCreditService.class),
+                org.mockito.Mockito.mock(com.clenzy.booking.repository.SiteRepository.class),
+                org.mockito.Mockito.mock(com.clenzy.booking.repository.SitePageRepository.class),
+                org.mockito.Mockito.mock(com.clenzy.booking.service.BookingDisplayCurrencyService.class));
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────
@@ -704,7 +707,7 @@ class PublicBookingServiceTest {
             cfg.setCollectPaymentOnBooking(false);
             PublicBookingService.OrgContext ctx = new PublicBookingService.OrgContext(buildOrg(), cfg);
 
-            assertThatThrownBy(() -> service.checkout(ctx, new BookingCheckoutRequestDto("CODE-1")))
+            assertThatThrownBy(() -> service.checkout(ctx, new BookingCheckoutRequestDto("CODE-1", null)))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("paiement en ligne");
         }
@@ -714,7 +717,7 @@ class PublicBookingServiceTest {
         void whenReservationMissing_thenThrows() {
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.empty());
-            assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE")))
+            assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("introuvable");
         }
@@ -727,7 +730,7 @@ class PublicBookingServiceTest {
             r.setOrganizationId(ORG_ID);
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.of(r));
-            assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE")))
+            assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
                     .isInstanceOf(IllegalStateException.class);
         }
 
@@ -741,7 +744,7 @@ class PublicBookingServiceTest {
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.of(r));
 
-            assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE")))
+            assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("deja payee");
         }
@@ -763,12 +766,13 @@ class PublicBookingServiceTest {
             Session session = mock(Session.class);
             when(session.getId()).thenReturn("cs_test");
             when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
-            // Reliquat A3 : le flux /reserve+/checkout pose une duree de vie (~35 min)
+            // Reliquat A3 : le flux /reserve+/checkout pose une duree de vie (~35 min). B3 : surcharge
+            // 7-arg avec success_url explicite (null ici car returnUrl absent → success_url par defaut).
             when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    eq(java.time.Duration.ofMinutes(35))))
+                    eq(java.time.Duration.ofMinutes(35)), isNull()))
                     .thenReturn(session);
 
-            BookingCheckoutResponseDto resp = service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE"));
+            BookingCheckoutResponseDto resp = service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null));
 
             assertThat(resp.sessionId()).isEqualTo("cs_test");
             assertThat(resp.checkoutUrl()).contains("cs_test");
@@ -787,11 +791,92 @@ class PublicBookingServiceTest {
             r.setProperty(buildProperty());
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.of(r));
-            when(stripeService.createReservationCheckoutSession(any(), any(), any(), any(), any(), any()))
+            when(stripeService.createReservationCheckoutSession(any(), any(), any(), any(), any(), any(), any()))
                     .thenThrow(new RuntimeException("boom"));
 
-            assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE")))
+            assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
                     .isInstanceOf(RuntimeException.class);
+        }
+
+        // ── returnUrl (B3) : garde-fou open-redirect ────────────────────────────
+
+        /** Réservation PENDING payable + stub de session ; renvoie le ctx avec `allowedOrigins` donné. */
+        private PublicBookingService.OrgContext stubPayableReservationWithOrigins(String allowedOrigins) throws StripeException {
+            Reservation r = new Reservation();
+            r.setId(50L);
+            r.setStatus("pending");
+            r.setOrganizationId(ORG_ID);
+            r.setConfirmationCode("CODE");
+            r.setTotalPrice(new BigDecimal("100.00"));
+            r.setGuestName("Jane");
+            r.setProperty(buildProperty());
+            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+                    .thenReturn(Optional.of(r));
+
+            Session session = mock(Session.class);
+            when(session.getId()).thenReturn("cs_test");
+            when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
+            when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    any(), any())).thenReturn(session);
+
+            BookingEngineConfig cfg = buildConfig(true);
+            cfg.setAllowedOrigins(allowedOrigins);
+            return new PublicBookingService.OrgContext(buildOrg(), cfg);
+        }
+
+        @Test
+        @DisplayName("returnUrl HTTPS au host de l'org → success_url = returnUrl + ?reservation=CODE")
+        void whenReturnUrlMatchesOrgHost_thenUsedAsSuccessUrl() throws StripeException {
+            PublicBookingService.OrgContext ctx = stubPayableReservationWithOrigins("https://book.acme.com");
+
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci"));
+
+            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    any(), eq("https://book.acme.com/merci?reservation=CODE"));
+        }
+
+        @Test
+        @DisplayName("returnUrl avec query existante → append &reservation=CODE")
+        void whenReturnUrlHasQuery_thenAppendsWithAmpersand() throws StripeException {
+            PublicBookingService.OrgContext ctx = stubPayableReservationWithOrigins("https://book.acme.com");
+
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci?lang=fr"));
+
+            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    any(), eq("https://book.acme.com/merci?lang=fr&reservation=CODE"));
+        }
+
+        @Test
+        @DisplayName("returnUrl host arbitraire (≠ org) → IGNORÉ, success_url par défaut (null)")
+        void whenReturnUrlHostNotAllowed_thenIgnored() throws StripeException {
+            PublicBookingService.OrgContext ctx = stubPayableReservationWithOrigins("https://book.acme.com");
+
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://evil.example.com/steal"));
+
+            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    any(), isNull());
+        }
+
+        @Test
+        @DisplayName("returnUrl en HTTP (non HTTPS) → IGNORÉ, success_url par défaut (null)")
+        void whenReturnUrlNotHttps_thenIgnored() throws StripeException {
+            PublicBookingService.OrgContext ctx = stubPayableReservationWithOrigins("https://book.acme.com");
+
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "http://book.acme.com/merci"));
+
+            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    any(), isNull());
+        }
+
+        @Test
+        @DisplayName("allowedOrigins vide → toute returnUrl IGNORÉE (fail-closed)")
+        void whenNoAllowedOrigins_thenReturnUrlIgnored() throws StripeException {
+            PublicBookingService.OrgContext ctx = stubPayableReservationWithOrigins(null);
+
+            service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci"));
+
+            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    any(), isNull());
         }
     }
 

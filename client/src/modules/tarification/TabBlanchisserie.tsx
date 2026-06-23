@@ -21,6 +21,8 @@ import {
 import { LocalLaundryService, Add, Delete } from '../../icons';
 import type { PricingConfig, BlanchisserieItem, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
+import { CurrencySymbol } from '../../components/Money';
 import CommissionSection from './CommissionSection';
 
 interface TabBlanchisserieProps {
@@ -32,6 +34,7 @@ interface TabBlanchisserieProps {
 
 export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySymbol }: TabBlanchisserieProps) {
   const { t } = useTranslation();
+  const { currency } = useCurrency();
 
   const items = config.blanchisserieConfig || [];
 
@@ -125,7 +128,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
                     }}
                     disabled={!canEdit || !item.enabled}
                     inputProps={{ step: 0.5, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+                    InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
                     sx={{ width: 120 }}
                   />
                 </TableCell>
@@ -176,7 +179,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
             onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
             size="small"
             fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
           />
         </DialogContent>
         <DialogActions>

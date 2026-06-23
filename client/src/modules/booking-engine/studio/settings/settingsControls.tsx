@@ -9,18 +9,35 @@ import { Check } from 'lucide-react';
 
 // ─── Mise en page ──────────────────────────────────────────────────────────────
 
-export function SettingsPage({ title, description, children, footer }: {
+export function SettingsPage({ title, description, children, footer, intro }: {
   title: string; description?: string; children: ReactNode; footer?: ReactNode;
+  /** Contenu pleine largeur affiché au-dessus de la grille de cartes (bandeau d'info…). */
+  intro?: ReactNode;
 }) {
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
-        <Box sx={{ maxWidth: 720, mx: 'auto', px: { xs: 2.5, md: 4 }, py: { xs: 3, md: 4 } }}>
+        {/* Conteneur élargi (vs 720 auparavant) : récupère les espaces vides
+            latéraux du Studio sur écran large. */}
+        <Box sx={{ maxWidth: 1120, mx: 'auto', px: { xs: 2.5, md: 4 }, py: { xs: 3, md: 4 } }}>
           <Box sx={{ mb: 3 }}>
             <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>{title}</Box>
             {description && <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', mt: 0.5 }}>{description}</Box>}
           </Box>
-          {children}
+          {intro}
+          {/* Cartes en masonry 2 colonnes au-delà de lg (1 colonne en dessous) :
+              remplit la largeur + divise ~par 2 le scroll vertical. break-inside
+              empêche de couper une carte entre deux colonnes. Titre / intro /
+              footer restent pleine largeur. */}
+          <Box
+            sx={{
+              columnCount: { xs: 1, lg: 2 },
+              columnGap: '20px',
+              '& > *': { breakInside: 'avoid' },
+            }}
+          >
+            {children}
+          </Box>
         </Box>
       </Box>
       {footer}

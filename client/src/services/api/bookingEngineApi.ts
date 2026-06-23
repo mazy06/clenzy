@@ -88,6 +88,10 @@ export interface BookingEngineConfig {
   componentConfig: string | null;
   // Site builder (page composée par blocs, JSON)
   pageLayout: string | null;
+  // Parcours de réservation custom (bibliothèque de funnels, JSON) — éditée dans le Studio.
+  funnelPresets: string | null;
+  // Widgets composites custom (bibliothèque, JSON) — éditée dans le Studio.
+  compositeWidgets: string | null;
   // Propriétés affichées (curation) : IDs en CSV ; null/vide = toutes
   featuredPropertyIds: string | null;
   // AI Design Analysis

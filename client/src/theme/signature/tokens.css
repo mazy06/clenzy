@@ -6,7 +6,8 @@
    baitly-theme.ts). Issu de la page login (charcoal + slate-blue).
    ============================================================ */
 
-:root {
+:root,
+[data-theme="light"] {
   /* ---- Surfaces & lignes ---- */
   --bg:        #F5F8F9;   /* fond application */
   --card:      #FFFFFF;   /* surface carte / panneau */
@@ -48,6 +49,11 @@
   --warn: #C28A52;  --warn-soft: rgba(194,138,82,.14);
   --err:  #C97A7A;  --err-soft:  rgba(201,122,122,.13);
   --info: #7BA3C2;  --info-soft: rgba(123,163,194,.14);
+
+  /* ---- Paiement réservation (brique planning .pl-price) ---- */
+  --paid:          #3E9C80;  /* payé — vert (= --st-confirmee) */
+  --unpaid:        #C9803F;  /* non réglé — ambre (icône carte) */
+  --unpaid-strong: #B25A2A;  /* non réglé — ambre foncé (montant, contraste sur blanc) */
 
   /* ---- Canaux de distribution ---- */
   --airbnb:  #E0735A;  --airbnb-soft:  rgba(224,115,90,.12);  --airbnb-ink:  #A24A33;
@@ -115,6 +121,10 @@
   --warn-soft: rgba(194,138,82,.22);
   --err-soft:  rgba(201,122,122,.22);
   --info-soft: rgba(123,163,194,.22);
+
+  /* Paiement — éclairci pour le contraste sur surfaces sombres */
+  --unpaid:        #D98E4A;
+  --unpaid-strong: #E6A765;
 
   --airbnb-soft:  rgba(224,115,90,.20);  --airbnb-ink:  #EC9580;
   --booking-soft: rgba(74,107,154,.26);  --booking-ink: #A6BCDB;
@@ -193,6 +203,9 @@
    device) ne doit pas teinter ces écrans. On fige la teinte de marque
    (indigo-violet #5453D6 — signature Baitly, cohérente avec le logo / le hero /
    les liens) sur tout le sous-arbre, quel que soit data-accent. Appliqué via
-   className="brand-accent" sur la racine AuthLayout. */
+   className="brand-accent" sur la racine AuthLayout.
+   NB : les écrans auth forcent AUSSI data-theme="light" sur ce même conteneur
+   (cf. AuthLayout) pour rester clairs même si le device est en mode sombre —
+   donc PAS de variante [data-theme="dark"] .brand-accent ici, qui réassombrirait
+   l'accent. */
 .brand-accent           { --accent:#5453D6; --accent-deep:#4341BE; --accent-soft:rgba(84,83,214,.10); }
-[data-theme="dark"] .brand-accent { --accent:#8584F0; --accent-deep:#6F6EE6; --accent-soft:rgba(133,132,240,.18); }

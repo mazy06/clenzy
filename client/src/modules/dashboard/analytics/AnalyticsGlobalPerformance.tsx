@@ -7,6 +7,7 @@ import {
   TrendingUp, TrendingDown, Remove,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { Money } from '../../../components/Money';
 import type { GlobalKPIs } from '../../../hooks/useAnalyticsEngine';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -19,7 +20,7 @@ interface Props {
 interface KpiItem {
   key: string;
   title: string;
-  value: string;
+  value: React.ReactNode;
   subtitle?: string;
   trend?: number;
   icon: React.ReactNode;
@@ -156,7 +157,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
     {
       key: 'revenue',
       title: t('dashboard.analytics.totalRevenue'),
-      value: data ? `${data.totalRevenue.value.toLocaleString('fr-FR')} €` : '-',
+      value: data ? <Money value={data.totalRevenue.value} from="EUR" /> : '-',
       trend: data?.totalRevenue.growth,
       icon: <TrendIcon />,
       iconColor: '#4A9B8E',
@@ -173,7 +174,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
     {
       key: 'adr',
       title: 'ADR',
-      value: data ? `${data.adr.value.toFixed(2)} €` : '-',
+      value: data ? <Money value={data.adr.value} from="EUR" decimals={2} /> : '-',
       subtitle: t('dashboard.analytics.avgDailyRate'),
       trend: data?.adr.growth,
       icon: <Hotel />,
@@ -183,7 +184,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
     {
       key: 'revpan',
       title: 'RevPAN',
-      value: data ? `${data.revPAN.value.toFixed(2)} €` : '-',
+      value: data ? <Money value={data.revPAN.value} from="EUR" decimals={2} /> : '-',
       subtitle: t('dashboard.analytics.revenuePerNight'),
       trend: data?.revPAN.growth,
       icon: <Euro />,

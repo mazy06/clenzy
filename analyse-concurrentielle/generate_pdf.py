@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Genere les 2 livrables PDF de l'analyse concurrentielle Clenzy depuis les CSV de data/."""
-import csv, os, re
+import csv, os, re, shutil, subprocess
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
@@ -406,6 +406,62 @@ def evolution_table(rows):
     t.setStyle(TableStyle(style))
     return t
 
+def tech_builder_table():
+    """Comparatif TECHNIQUE du builder de booking engine / site direct (source : benchmark B11)."""
+    cols = ["Acteur", "Mecanisme du builder", "Liberte exposee", "Import externe", "HTML/CSS libre", "IA site"]
+    rows = [
+        ("Mews", "Pas de builder - booking engine API / headless", "Totale (DIY)", "Non", "Site tiers", "Non", False),
+        ("Asterio (Septeo)", "Service gere - site cree par leurs experts (pas de self-service)", "Deleguee (agence)", "Non", "Non", "n.d.", False),
+        ("RoomRaccoon", "Template + drag-drop leger (polices + 3 couleurs)", "Faible", "Non", "Non", "Partiel", False),
+        ("Guesty", "Builder present mais peu personnalisable", "Faible", "Non", "Non", "Non", False),
+        ("Smoobu", "Templates personnalisables (inclus gratuit)", "Faible-moy.", "Non", "Non", "Non", False),
+        ("Cloudbeds", "Templates + echappatoire HTML/CSS", "Moy.-eleve", "Non", "Oui", "n.d.", False),
+        ("Lodgify", "Template + editeur visuel complet (typo/blocs)", "Eleve", "Non", "Non", "n.d.", False),
+        ("Hostaway", "Template + drag-drop complet + IA copy/SEO", "Eleve", "Non", "Non", "Oui", False),
+        ("Clenzy (cible)", "GrapesJS libre + import multi-standards", "Maximale", "Oui (diff.)", "Oui", "Partiel", True),
+    ]
+    OK = colors.HexColor("#DCEFE8")
+    NO = colors.HexColor("#F3E0DF")
+    NEU = colors.HexColor("#F4EEDC")
+    def boolbg(v):
+        v = v.lower()
+        if v.startswith("oui"):
+            return OK
+        if v == "non":
+            return NO
+        return NEU
+    th = ParagraphStyle("tbh", parent=CELLB, fontSize=7.4, textColor=colors.white, alignment=TA_CENTER)
+    thL = ParagraphStyle("tbhL", parent=th, alignment=TA_LEFT)
+    head = [Paragraph("<b>%s</b>" % cols[0], thL), Paragraph("<b>%s</b>" % cols[1], thL)] + \
+           [Paragraph("<b>%s</b>" % c, th) for c in cols[2:]]
+    data = [head]
+    style = [("BACKGROUND", (0, 0), (-1, 0), PRIMARY), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+             ("GRID", (0, 0), (-1, -1), 0.4, colors.white),
+             ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+             ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]
+    for i, r in enumerate(rows):
+        acteur, meca, lib, imp, html, ia, is_clz = r
+        ri = i + 1
+        ast = CELLB if is_clz else CELL
+        line = [Paragraph(("<b>%s</b>" % acteur) if is_clz else acteur, ParagraphStyle("a", parent=ast, fontSize=7.2)),
+                Paragraph(meca, ParagraphStyle("m", parent=CELL, fontSize=7.0, leading=8.4)),
+                Paragraph(lib, ParagraphStyle("l", parent=CELL, fontSize=7.0, alignment=TA_CENTER)),
+                Paragraph(imp, ParagraphStyle("i", parent=CELL, fontSize=7.0, alignment=TA_CENTER)),
+                Paragraph(html, ParagraphStyle("h", parent=CELL, fontSize=7.0, alignment=TA_CENTER)),
+                Paragraph(ia, ParagraphStyle(" z", parent=CELL, fontSize=7.0, alignment=TA_CENTER))]
+        data.append(line)
+        base_bg = LIGHT if i % 2 else colors.white
+        style.append(("BACKGROUND", (0, ri), (2, ri), base_bg))
+        style.append(("BACKGROUND", (3, ri), (3, ri), boolbg(imp)))
+        style.append(("BACKGROUND", (4, ri), (4, ri), boolbg(html)))
+        style.append(("BACKGROUND", (5, ri), (5, ri), boolbg(ia)))
+        if is_clz:
+            style.append(("BACKGROUND", (0, ri), (0, ri), colors.HexColor("#DCE7EC")))
+            style.append(("BOX", (0, ri), (-1, ri), 1.1, ACCENT))
+    t = Table(data, colWidths=[USABLE_W * x for x in (0.155, 0.345, 0.13, 0.13, 0.11, 0.13)], repeatRows=1)
+    t.setStyle(TableStyle(style))
+    return t
+
 def build_full():
     doc = make_doc(os.path.join(PDF, "analyse-concurrentielle.pdf"))
     S = [Spacer(1, 60), Paragraph("Analyse concurrentielle", TIT), Paragraph("du PMS <b>Clenzy</b>", TIT), Spacer(1, 14),
@@ -428,6 +484,7 @@ def build_full():
 
     S.append(Paragraph("Sommaire", H1))
     for it in ["1. Synthese executive", "2. Matrice de comparaison globale (heatmap) &amp; classement",
+               "2 bis. Comparatif technique - booking engine &amp; builder de site",
                "3. Carte de positionnement (double axe)", "4. SWOT consolidee",
                "5. Matrices detaillees par domaine (13)", "6. Axes strategiques",
                "7. Roadmap priorisee (RICE) - Now / Next / Later",
@@ -519,6 +576,30 @@ def build_full():
     S += [gt, Spacer(1, 4), LEGEND, Spacer(1, 12), Paragraph("Classement global (score pondere /3)", H3)]
     ranking = sorted([(rows[0][2 + i], float(rows[last][2 + i])) for i in range(8)], key=lambda x: x[1], reverse=True)
     S += [ranking_chart(ranking), PageBreak()]
+
+    S.append(Paragraph("2 bis. Comparatif technique - Booking engine &amp; builder de site", H1))
+    S.append(Paragraph("Au-dela du scoring fonctionnel global, focus sur la brique TECHNIQUE qui porte la "
+                       "refonte Baitly Studio : comment chaque acteur permet de construire et personnaliser le "
+                       "site + booking engine direct. C'est l'axe ou Clenzy se differencie (moteur GrapesJS + "
+                       "import multi-standards). Source : benchmark B11.", BODY))
+    S += [Spacer(1, 6), tech_builder_table(), Spacer(1, 5),
+          Paragraph('<font color="#5C6B73" size=7><i>Liberte exposee = niveau de personnalisation offert a '
+                    "l'utilisateur. Import externe = reprise de templates Elementor / Divi / Webflow / HTML : "
+                    'AUCUN concurrent ne le propose (differenciateur Clenzy). n.d. = non documente.</i></font>', SMALL),
+          Spacer(1, 10), Paragraph("Lecture", H3)]
+    for t in ["La <b>norme STR</b> = template + editeur visuel (Lodgify, Hostaway) : personnalisation "
+              "couleurs / typo / blocs, mais <b>dans des templates curates</b>, sans HTML libre ni import.",
+              "<b>Personne n'importe</b> de templates externes ; les plus ouverts = Cloudbeds (HTML/CSS) et "
+              "Mews (API headless). L'<b>import multi-standards GrapesJS</b> de Clenzy est un differenciateur "
+              "reel, surtout pour les conciergeries / agences qui reprennent des sites existants.",
+              "<b>Asterio (Septeo, FR)</b> : 2 choses distinctes - le SITE = <b>service fait-pour-vous</b> (agence "
+              "cree/heberge), et le BOOKING ENGINE = <b>widget embarquable</b> (panier) sur un site existant, stack "
+              "<b>jQuery</b> (legacy, <b>confirme</b> - retour first-hand). 2 angles Clenzy : option <b>setup assiste / "
+              "templates cle-en-main</b> + capitaliser sur un <b>widget moderne</b> (SDK composable / SSR) vs jQuery legacy.",
+              "Reco : GrapesJS en <b>2 niveaux</b> - defaut \"guide\" (templates curates, facon Lodgify) + mode "
+              "\"avance / import\" (le differenciateur) - <b>+ IA</b> en accelerateur (facon Hostaway)."]:
+        S.append(bullet(t))
+    S.append(PageBreak())
 
     S.append(Paragraph("3. Carte de positionnement (double axe)", H1))
     S.append(Paragraph("Couverture fonctionnelle (breadth) en abscisse . specialisation conciergerie / conformite FR en "
@@ -809,6 +890,27 @@ def build_summary():
     doc.build(S)
     print("OK synthese ->", os.path.join(PDF, "synthese-executive.pdf"))
 
+def normalize_pdf(path):
+    """Re-ecrit le PDF via pdftocairo (-> PDF 1.7) si dispo. Certains viewers (le
+    panneau PDF.js integre de l'app, par ex.) affichent un ECRAN NOIR sur le PDF
+    1.4 brut de reportlab ; la reecriture Cairo corrige ca. No-op si pdftocairo
+    (poppler) est absent -> le PDF reportlab reste lisible dans Preview/Chrome."""
+    exe = shutil.which("pdftocairo")
+    if not exe:
+        print("  (pdftocairo absent -> PDF non normalise, OK Preview/Chrome)")
+        return
+    tmp = path + ".norm.pdf"
+    try:
+        subprocess.run([exe, "-pdf", path, tmp], check=True, capture_output=True)
+        os.replace(tmp, path)
+        print("  normalise (pdftocairo) ->", path)
+    except Exception as e:
+        print("  normalisation echouee (%s) -> PDF reportlab conserve" % e)
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
 if __name__ == "__main__":
     build_full()
     build_summary()
+    normalize_pdf(os.path.join(PDF, "analyse-concurrentielle.pdf"))
+    normalize_pdf(os.path.join(PDF, "synthese-executive.pdf"))

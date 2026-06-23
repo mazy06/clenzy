@@ -41,6 +41,7 @@ class PublicBookingCalendarServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private CalendarDayRepository calendarDayRepository;
     @Mock private PriceEngine priceEngine;
+    @Mock private com.clenzy.service.CurrencyConverterService currencyConverter;
 
     private PublicBookingCalendarService service;
 
@@ -50,7 +51,7 @@ class PublicBookingCalendarServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PublicBookingCalendarService(propertyRepository, calendarDayRepository, priceEngine);
+        service = new PublicBookingCalendarService(propertyRepository, calendarDayRepository, priceEngine, currencyConverter);
     }
 
     private OrgContext ctx() {

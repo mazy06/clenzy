@@ -157,18 +157,25 @@ public class InscriptionService {
         BillingPeriod period = dto.getBillingPeriodEnum();
         SessionCreateParams.LineItem.PriceData.Recurring.Interval stripeInterval;
         long stripePriceAmount;
+        // Nombre de periodes Stripe par cycle de facturation : 1 an (annuel) ou
+        // 2 ans (bisannuel). Pilote setIntervalCount sur le Recurring.
+        long stripeIntervalCount = 1L;
         String billingDescription;
 
         switch (period) {
             case ANNUAL:
                 stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.YEAR;
-                stripePriceAmount = period.computeMonthlyPriceCents(priceInCents) * 12L;
+                // Total sur 12 mois au tarif annuel (computeTotalPriceCents = mensuel remise * mois).
+                stripePriceAmount = period.computeTotalPriceCents(priceInCents);
                 billingDescription = "Abonnement annuel (-20%)";
                 break;
             case BIENNIAL:
                 stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.YEAR;
-                stripePriceAmount = period.computeMonthlyPriceCents(priceInCents) * 12L;
-                billingDescription = "Abonnement bisannuel (-35%), facture annuellement";
+                // Facture pour 2 ANS d'un coup : total sur 24 mois (mensuel remise * 24)
+                // + cycle Stripe de 2 ans (intervalCount=2), pas un montant annuel.
+                stripePriceAmount = period.computeTotalPriceCents(priceInCents);
+                stripeIntervalCount = 2L;
+                billingDescription = "Abonnement 2 ans (-35%), facture pour 2 ans";
                 break;
             default: // MONTHLY
                 stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH;
@@ -197,6 +204,7 @@ public class InscriptionService {
                                                 .setRecurring(
                                                         SessionCreateParams.LineItem.PriceData.Recurring.builder()
                                                                 .setInterval(stripeInterval)
+                                                                .setIntervalCount(stripeIntervalCount)
                                                                 .build()
                                                 )
                                                 .setProductData(

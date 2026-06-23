@@ -297,9 +297,13 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
 
   return (
     <Box
-      // brand-accent : fige l'accent sur la teinte de marque par défaut
-      // (émeraude) — pas de couleur per-user avant connexion (cf. tokens.css).
+      // Écrans auth = toujours CLAIRS + accent de marque indigo, quel que soit
+      // le thème/teinte du device (résidu localStorage du dernier compte). On
+      // force data-theme="light" (le device peut être en data-theme="dark") pour
+      // que les vars CSS de surfaces/champs (--field, --card…) repassent en clair,
+      // et className="brand-accent" fige l'accent indigo #5453D6 (cf. tokens.css).
       className="brand-accent"
+      data-theme="light"
       sx={{
         minHeight: '100vh',
         display: 'flex',
@@ -625,6 +629,24 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
             maxWidth: maxFormWidth,
             display: 'flex',
             flexDirection: 'column',
+            // Champs auth uniformisés sur l'accent indigo (bordure + remplissage
+            // soft au survol/focus), alignés sur le bouton primary — cohérent sur
+            // TOUTES les pages auth (Login, Inscription…). L'état erreur (.Mui-error,
+            // specificité supérieure) garde sa bordure rouge.
+            '& .MuiOutlinedInput-root': {
+              transition: 'background-color .14s',
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'var(--accent)',
+                transition: 'border-color .14s',
+              },
+              '&:hover': { backgroundColor: 'var(--accent-soft)' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)' },
+              '&.Mui-focused': { backgroundColor: 'var(--accent-soft)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'var(--accent)',
+                borderWidth: '1px',
+              },
+            },
           }}
         >
           {/* Logo compact en haut sur mobile (le panneau brand est cache) */}

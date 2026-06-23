@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -62,6 +63,7 @@ public class PublicBookingController {
     private final com.clenzy.booking.service.BookingBalanceService balanceService;
     private final com.clenzy.booking.service.BookingGuestAuthService guestAuthService;
     private final com.clenzy.booking.service.PublicConciergeService conciergeService;
+    private final com.clenzy.booking.service.BookingInquiryService inquiryService;
 
     public PublicBookingController(PublicBookingService bookingService,
                                     BookingServiceOptionsService serviceOptionsService,
@@ -74,7 +76,8 @@ public class PublicBookingController {
                                     com.clenzy.booking.service.PublicReviewService reviewService,
                                     com.clenzy.booking.service.BookingBalanceService balanceService,
                                     com.clenzy.booking.service.BookingGuestAuthService guestAuthService,
-                                    com.clenzy.booking.service.PublicConciergeService conciergeService) {
+                                    com.clenzy.booking.service.PublicConciergeService conciergeService,
+                                    com.clenzy.booking.service.BookingInquiryService inquiryService) {
         this.bookingService = bookingService;
         this.serviceOptionsService = serviceOptionsService;
         this.photoService = photoService;
@@ -87,6 +90,7 @@ public class PublicBookingController {
         this.balanceService = balanceService;
         this.guestAuthService = guestAuthService;
         this.conciergeService = conciergeService;
+        this.inquiryService = inquiryService;
     }
 
     /**
@@ -127,10 +131,33 @@ public class PublicBookingController {
     public ResponseEntity<List<PublicPropertyDto>> getProperties(
             @PathVariable String slug,
             @RequestParam(required = false) String currency,
+            @RequestParam(required = false) List<String> types,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Integer minBedrooms,
+            @RequestParam(required = false) Integer minBathrooms,
+            @RequestParam(required = false) Integer minGuests,
+            @RequestParam(required = false) List<String> amenities,
             HttpServletRequest request) {
         OrgContext ctx = resolveContext(slug, request);
-        List<PublicPropertyDto> props = bookingService.getProperties(ctx);
-        return ResponseEntity.ok(displayCurrencyService.convertProperties(props, currency, java.time.LocalDate.now()));
+        PropertySearchFilters filters = PropertySearchFilters.of(
+            types, minPrice, maxPrice, minBedrooms, minBathrooms, minGuests, amenities);
+        // getProperties convertit DÉJÀ en devise d'affichage (avant le filtre prix) → pas de conversion ici.
+        return ResponseEntity.ok(bookingService.getProperties(ctx, filters, currency));
+    }
+
+    /**
+     * GET /{slug}/search-filters
+     * Facettes de recherche (options de filtres : types, équipements, bornes de prix/capacité) calculées
+     * sur l'ensemble des propriétés visibles de l'org. Sert à construire l'UI du widget « Filtre ».
+     */
+    @GetMapping("/search-filters")
+    public ResponseEntity<PublicSearchFiltersDto> getSearchFilters(
+            @PathVariable String slug,
+            @RequestParam(required = false) String currency,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        return ResponseEntity.ok(bookingService.getSearchFilters(ctx, currency));
     }
 
     /**
@@ -155,6 +182,24 @@ public class PublicBookingController {
         OrgContext ctx = resolveContext(slug, httpRequest);
         return ResponseEntity.ok(leadCaptureService.capture(
             ctx.orgId(), request.email(), request.name(), request.source(), request.locale(), request.consent()));
+    }
+
+    /**
+     * POST /{slug}/inquiry
+     * Demande de réservation (« devis ») — parcours « Demande de devis » SANS paiement immédiat. La
+     * demande est enregistrée et le host est notifié (in-app). Rate-limité par IP (anti-spam).
+     */
+    @PostMapping("/inquiry")
+    public ResponseEntity<?> submitInquiry(
+            @PathVariable String slug,
+            @RequestBody com.clenzy.booking.dto.BookingInquiryRequestDto request,
+            HttpServletRequest httpRequest) {
+        if (!rateLimiter.tryAcquirePreview(httpRequest)) {
+            return tooManyReservationAttempts();
+        }
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        inquiryService.create(ctx.orgId(), request);
+        return ResponseEntity.ok(java.util.Map.of("received", true));
     }
 
     /**
@@ -193,6 +238,40 @@ public class PublicBookingController {
         }
         PropertyCalendarDto calendar = calendarService.getCalendar(ctx, id, ym, months);
         return ResponseEntity.ok(displayCurrencyService.convertCalendar(calendar, currency, java.time.LocalDate.now()));
+    }
+
+    /**
+     * GET /{slug}/price-calendar?month=YYYY-MM&months=2&guests=N&currency=MAD&<filtres>
+     * Calendrier AGRÉGÉ (recherche) : par jour, le prix nuitée le plus bas parmi les logements qui matchent
+     * les filtres + la capacité voyageurs et disponibles ce jour-là. `propertyId=0` (agrégat).
+     */
+    @GetMapping("/price-calendar")
+    public ResponseEntity<PropertyCalendarDto> getPriceCalendar(
+            @PathVariable String slug,
+            @RequestParam(required = false) String month,
+            @RequestParam(defaultValue = "2") int months,
+            @RequestParam(required = false) Integer guests,
+            @RequestParam(required = false) String currency,
+            @RequestParam(required = false) List<String> types,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Integer minBedrooms,
+            @RequestParam(required = false) Integer minBathrooms,
+            @RequestParam(required = false) Integer minGuests,
+            @RequestParam(required = false) List<String> amenities,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        java.time.YearMonth ym;
+        try {
+            ym = (month != null && !month.isBlank()) ? java.time.YearMonth.parse(month) : java.time.YearMonth.now();
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("Parametre 'month' invalide (attendu YYYY-MM)");
+        }
+        PropertySearchFilters filters = PropertySearchFilters.of(
+            types, minPrice, maxPrice, minBedrooms, minBathrooms, minGuests, amenities);
+        // getPriceCalendar agrège DÉJÀ en devise d'affichage (conversion par logement avant le min) → pas
+        // de convertCalendar supplémentaire ici.
+        return ResponseEntity.ok(calendarService.getPriceCalendar(ctx, filters, guests, ym, months, currency));
     }
 
     /**

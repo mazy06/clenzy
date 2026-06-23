@@ -1,5 +1,6 @@
 import React from 'react';
 import { Paper, Box, Typography } from '@mui/material';
+import { Money } from './Money';
 
 /**
  * Carte « Revenus par canal » (réf. maquette Signature « .bl-chrow ») :
@@ -11,8 +12,8 @@ export interface ChannelRevenue {
   name: string;
   /** Part en % (0-100). */
   pct: number;
-  /** Montant déjà formaté dans la devise (ex: "4 280 €") — affiché à côté du canal. */
-  amount?: string;
+  /** Montant dans la devise d'affichage — rendu via <Money> (icône SAR/MAD). */
+  amount?: number;
   /** Couleur de la barre (token/hex de canal). */
   color: string;
   /** Part en % sur la période de comparaison → affiche le delta si fourni. */
@@ -71,11 +72,11 @@ export default function RevenueByChannelCard({
               <Box sx={{ flexShrink: 0, textAlign: 'right', minWidth: 66 }}>
                 {/* Montant (devise) en tête, % + delta en sous-ligne. */}
                 <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
-                  {c.amount ?? `${c.pct}%`}
+                  {c.amount != null ? <Money value={c.amount} decimals={0} /> : `${c.pct}%`}
                 </Typography>
-                {(c.amount || (delta != null && delta !== 0)) && (
+                {(c.amount != null || (delta != null && delta !== 0)) && (
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '5px', mt: '1px' }}>
-                    {c.amount && (
+                    {c.amount != null && (
                       <Typography component="span" sx={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
                         {c.pct}%
                       </Typography>

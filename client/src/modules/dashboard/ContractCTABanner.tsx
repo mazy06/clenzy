@@ -26,7 +26,7 @@ import {
 import { accountingApi, type OwnerPayout } from '../../services/api/accountingApi';
 import { propertiesApi, type Property } from '../../services/api/propertiesApi';
 import { STORAGE_KEYS, getItem, setItem } from '../../services/storageService';
-import { useCurrency } from '../../hooks/useCurrency';
+import { Money } from '../../components/Money';
 
 // ─── Couleurs (tokens Signature) ────────────────────────────────────────────
 const C = {
@@ -144,8 +144,7 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { convertAndFormat } = useCurrency();
-  const fmtCurrency = (v: number) => convertAndFormat(v, 'EUR');
+  const fmtCurrency = (v: number) => <Money value={v} from="EUR" />;
 
   const [dismissed, setDismissed] = useState(
     () => getItem(STORAGE_KEYS.CONTRACT_CTA_DISMISSED) === 'true',

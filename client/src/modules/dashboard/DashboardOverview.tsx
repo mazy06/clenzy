@@ -17,9 +17,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
 import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import { GridSection, AnalyticsWidgetCard } from './analytics';
+import { Money } from '../../components/Money';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import OnboardingChecklist from './OnboardingChecklist';
 import { useOnboarding } from '../../hooks/useOnboarding';
@@ -93,6 +95,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
   const { data: aiToggles } = useAiFeatureToggles();
   const hasAnyAiEnabled = useMemo(() => {
     if (!aiToggles) return true; // show by default while loading
@@ -365,7 +368,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                       <Box sx={hoverLift}>
                         <AnalyticsWidgetCard
                           title={t('dashboard.analytics.totalRevenue')}
-                          value={globalData ? `${globalData.totalRevenue.value.toLocaleString('fr-FR')} €` : '-'}
+                          value={globalData ? <Money value={globalData.totalRevenue.value} from="EUR" /> : '-'}
+                          valueText={globalData ? convertAndFormat(globalData.totalRevenue.value, 'EUR') : undefined}
                           subtitle={t('dashboard.analytics.totalRevenueSubtitle')}
                           trend={globalData ? { value: globalData.totalRevenue.growth } : undefined}
                           icon={<TrendIcon color="success" />}
@@ -377,7 +381,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                       <Box sx={hoverLift}>
                         <AnalyticsWidgetCard
                           title="ADR"
-                          value={globalData ? `${globalData.adr.value.toFixed(2)} €` : '-'}
+                          value={globalData ? <Money value={globalData.adr.value} from="EUR" /> : '-'}
+                          valueText={globalData ? convertAndFormat(globalData.adr.value, 'EUR') : undefined}
                           subtitle={t('dashboard.analytics.avgDailyRate')}
                           trend={globalData ? { value: globalData.adr.growth } : undefined}
                           icon={<Hotel color="info" />}
@@ -390,7 +395,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                       <Box sx={hoverLift}>
                         <AnalyticsWidgetCard
                           title="RevPAN"
-                          value={globalData ? `${globalData.revPAN.value.toFixed(2)} €` : '-'}
+                          value={globalData ? <Money value={globalData.revPAN.value} from="EUR" /> : '-'}
+                          valueText={globalData ? convertAndFormat(globalData.revPAN.value, 'EUR') : undefined}
                           subtitle={t('dashboard.analytics.revenuePerNight')}
                           trend={globalData ? { value: globalData.revPAN.growth } : undefined}
                           icon={<Euro color="primary" />}
@@ -464,7 +470,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                       <Box sx={hoverLift}>
                         <AnalyticsWidgetCard
                           title={t('dashboard.stats.totalEarnings')}
-                          value={stats ? `${stats.interventions.totalRevenue.toLocaleString('fr-FR')} €` : '-'}
+                          value={stats ? <Money value={stats.interventions.totalRevenue} from="EUR" /> : '-'}
+                          valueText={stats ? convertAndFormat(stats.interventions.totalRevenue, 'EUR') : undefined}
                           subtitle={t('dashboard.stats.allCompletedInterventions')}
                           icon={<AccountBalanceWallet color="success" />}
                           loading={isKpiLoading}
@@ -475,7 +482,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                       <Box sx={hoverLift}>
                         <AnalyticsWidgetCard
                           title={t('dashboard.stats.nextPayout')}
-                          value={myPayoutData ? `${(myPayoutData.totalPendingAmount ?? 0).toLocaleString('fr-FR')} €` : '-'}
+                          value={myPayoutData ? <Money value={myPayoutData.totalPendingAmount ?? 0} from="EUR" /> : '-'}
+                          valueText={myPayoutData ? convertAndFormat(myPayoutData.totalPendingAmount ?? 0, 'EUR') : undefined}
                           subtitle={myPayoutData && myPayoutData.pendingCount > 0
                             ? `${myPayoutData.pendingCount} ${t('dashboard.stats.pendingPayouts')}`
                             : t('dashboard.stats.noPayoutPending')}

@@ -28,7 +28,7 @@ import {
   Person as PersonIcon,
   Bed as BedIcon,
   Bathroom as BathroomIcon,
-  CleaningServices,
+  BroomFill,
   Close,
   SquareFoot,
   Build,
@@ -45,6 +45,7 @@ import {
   getCleaningFrequencyLabel,
 } from '../../utils/statusUtils';
 import { FIELD_CHIP_SX, propertyGradientCss } from './propertiesListConstants';
+import { Money } from '../../components/Money';
 import type { PropertyKpiSummary } from '../../services/api/propertyKpiApi';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import MissingContractChip from './MissingContractChip';
@@ -445,7 +446,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
   const cleaningPrice = useMemo(() => estimateCleaningPrice(property), [property]);
 
   // ── KPI opérationnels du mois courant (.pr-stats) ─────────────────────────
-  const fmtEuro = (v: number) => `${Math.round(v).toLocaleString('fr-FR')}€`;
+  const fmtEuro = (v: number) => <Money value={v} from="EUR" decimals={0} />;
   const kpiCells = [
     { value: kpi ? `${Math.round(kpi.occupancyRate * 100)}%` : '—', label: t('properties.kpi.occupancy') },
     { value: kpi && kpi.adr > 0 ? fmtEuro(kpi.adr) : '—', label: t('properties.kpi.adr') },
@@ -465,7 +466,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
   // Pied opérationnel : intervention en cours > check-out (si occupé) > disponible.
   const ops = kpi?.activeInterventionType === 'cleaning'
-    ? { icon: <CleaningServices size={13} strokeWidth={2} />, color: 'var(--accent)', strong: t('properties.ops.cleaning'), rest: t('properties.ops.inProgress') }
+    ? { icon: <BroomFill size={13} />, color: 'var(--accent)', strong: t('properties.ops.cleaning'), rest: t('properties.ops.inProgress') }
     : kpi?.activeInterventionType === 'maintenance'
       ? { icon: <Build size={13} strokeWidth={2} />, color: 'var(--warn)', strong: t('properties.ops.maintenance'), rest: t('properties.ops.inProgress') }
       : (kpi?.operationalStatus === 'occupied' && kpi.currentCheckOut)
@@ -573,7 +574,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             </Typography>
             {property.nightlyPrice > 0 && (
               <Chip
-                label={`${property.nightlyPrice}€/nuit`}
+                label={<><Money value={property.nightlyPrice} from="EUR" decimals={0} />/nuit</>}
                 size="small"
                 variant="outlined"
                 sx={{ ...styles.priceChip, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
@@ -733,14 +734,14 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               </Typography>
               {cleaningPrice != null ? (
                 <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em' }}>
-                  {cleaningPrice}€ <Typography component="span" variant="caption" color="text.secondary">{t('properties.priceEstimation.perIntervention')}</Typography>
+                  <Money value={cleaningPrice} from="EUR" decimals={0} /> <Typography component="span" variant="caption" color="text.secondary">{t('properties.priceEstimation.perIntervention')}</Typography>
                 </Typography>
               ) : (
                 <Typography variant="body2" color="text.secondary">—</Typography>
               )}
               {property.nightlyPrice > 0 && (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {property.nightlyPrice}€ / {t('properties.perNight')}
+                  <Money value={property.nightlyPrice} from="EUR" decimals={0} /> / {t('properties.perNight')}
                 </Typography>
               )}
             </Grid>
@@ -749,7 +750,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 Nettoyage
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={18} strokeWidth={1.75} /></Box>
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BroomFill size={18} /></Box>
                 <Typography variant="body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
               </Box>
             </Grid>

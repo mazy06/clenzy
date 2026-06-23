@@ -142,6 +142,14 @@ public class BookingEngineConfig {
     @Column(name = "page_layout", columnDefinition = "TEXT")
     private String pageLayout;
 
+    /** Parcours de réservation custom (bibliothèque de funnels, JSON) éditée dans le Studio. */
+    @Column(name = "funnel_presets", columnDefinition = "TEXT")
+    private String funnelPresets;
+
+    /** Widgets composites custom (bibliothèque, JSON) éditée dans le Studio. */
+    @Column(name = "composite_widgets", columnDefinition = "TEXT")
+    private String compositeWidgets;
+
     /** Propriétés affichées (curation) : IDs en CSV ; NULL/vide = toutes les propriétés visibles. */
     @Column(name = "featured_property_ids", columnDefinition = "TEXT")
     private String featuredPropertyIds;
@@ -275,6 +283,12 @@ public class BookingEngineConfig {
 
     public String getPageLayout() { return pageLayout; }
     public void setPageLayout(String pageLayout) { this.pageLayout = pageLayout; }
+
+    public String getFunnelPresets() { return funnelPresets; }
+    public void setFunnelPresets(String funnelPresets) { this.funnelPresets = funnelPresets; }
+
+    public String getCompositeWidgets() { return compositeWidgets; }
+    public void setCompositeWidgets(String compositeWidgets) { this.compositeWidgets = compositeWidgets; }
 
     public String getFeaturedPropertyIds() { return featuredPropertyIds; }
     public void setFeaturedPropertyIds(String featuredPropertyIds) { this.featuredPropertyIds = featuredPropertyIds; }

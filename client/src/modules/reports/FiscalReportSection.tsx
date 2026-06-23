@@ -14,7 +14,8 @@ import EmptyState from '../../components/EmptyState';
 import PeriodSegmented from './PeriodSegmented';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useMonthlyVatSummary, useQuarterlyVatSummary, useAnnualVatSummary } from '../../hooks/useFiscalReporting';
-import { formatCurrency, formatTaxRate } from '../../utils/currencyUtils';
+import { formatTaxRate } from '../../utils/currencyUtils';
+import { Money } from '../../components/Money';
 import type { VatSummary } from '../../services/api/fiscalReportingApi';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -171,9 +172,9 @@ const FiscalReportSection: React.FC = () => {
             {[
               { label: 'Periode', value: summary.period, isText: true },
               { label: 'Factures', value: String(summary.invoiceCount), isText: true },
-              { label: 'Total HT', value: formatCurrency(summary.totalHt, summary.currency) },
-              { label: 'Total TVA', value: formatCurrency(summary.totalTax, summary.currency) },
-              { label: 'Total TTC', value: formatCurrency(summary.totalTtc, summary.currency), primary: true },
+              { label: 'Total HT', value: <Money value={summary.totalHt} from={summary.currency} /> },
+              { label: 'Total TVA', value: <Money value={summary.totalTax} from={summary.currency} /> },
+              { label: 'Total TTC', value: <Money value={summary.totalTtc} from={summary.currency} />, primary: true },
             ].map(card => (
               <Paper
                 key={card.label}
@@ -226,8 +227,8 @@ const FiscalReportSection: React.FC = () => {
                       <TableCell sx={CELL_SX}>{row.taxCategory}</TableCell>
                       <TableCell sx={CELL_SX}>{row.taxName}</TableCell>
                       <TableCell sx={CELL_SX} align="right">{formatTaxRate(row.taxRate)}</TableCell>
-                      <TableCell sx={CELL_SX} align="right">{formatCurrency(row.baseAmount, summary.currency)}</TableCell>
-                      <TableCell sx={{ ...CELL_SX, fontWeight: 600 }} align="right">{formatCurrency(row.taxAmount, summary.currency)}</TableCell>
+                      <TableCell sx={CELL_SX} align="right"><Money value={row.baseAmount} from={summary.currency} /></TableCell>
+                      <TableCell sx={{ ...CELL_SX, fontWeight: 600 }} align="right"><Money value={row.taxAmount} from={summary.currency} /></TableCell>
                       <TableCell sx={CELL_SX} align="right">{row.lineCount}</TableCell>
                     </TableRow>
                   ))}

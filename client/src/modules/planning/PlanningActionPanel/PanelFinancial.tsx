@@ -53,6 +53,7 @@ import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import { RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { Money } from '../../../components/Money';
 import StatusChip, { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
 
 // ── Types for local financial state ────────────────────────────────────────
@@ -218,7 +219,7 @@ const DomainStatusChip: React.FC<{ status: string; map?: Record<string, string>;
 // ── Row helper ──────────────────────────────────────────────────────────────
 const FinRow: React.FC<{
   label: string;
-  value: string;
+  value: React.ReactNode;
   bold?: boolean;
   color?: string;
   secondary?: boolean;
@@ -558,8 +559,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPaymentMethod('card');
     setPaymentDate(today);
     setPaymentReference('');
-    showSnackbar(`Paiement de ${amount.toFixed(2)} EUR enregistre`);
-  }, [paymentAmount, paymentMethod, paymentDate, paymentReference, today]);
+    showSnackbar(`Paiement de ${convertAndFormat(amount, 'EUR')} enregistre`);
+  }, [paymentAmount, paymentMethod, paymentDate, paymentReference, today, convertAndFormat]);
 
   const handleGenerateInvoice = useCallback(async (refType: string, refId: number) => {
     if (!onGenerateInvoice) return;
@@ -603,8 +604,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setAddFeeOpen(false);
     setFeeDescription('');
     setFeeAmount('');
-    showSnackbar(`Frais "${newFee.description}" (+${amount.toFixed(2)} EUR) ajoute`);
-  }, [feeDescription, feeAmount, today]);
+    showSnackbar(`Frais "${newFee.description}" (+${convertAndFormat(amount, 'EUR')}) ajoute`);
+  }, [feeDescription, feeAmount, today, convertAndFormat]);
 
   const handleRefund = useCallback(async () => {
     if (totalPaid <= 0) return;
@@ -621,8 +622,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPayments((prev) => [...prev, newPayment]);
     setRefundLoading(false);
     setRefundDialogOpen(false);
-    showSnackbar(`Remboursement de ${totalPaid.toFixed(2)} EUR effectue`, 'info');
-  }, [totalPaid, today, reservation?.id]);
+    showSnackbar(`Remboursement de ${convertAndFormat(totalPaid, 'EUR')} effectue`, 'info');
+  }, [totalPaid, today, reservation?.id, convertAndFormat]);
 
   // ── Handler — Intervention payment (embedded) ──────────────────────────
   const unpaidInterventions = linkedInterventions.filter(
@@ -674,7 +675,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     } catch { return iso; }
   };
 
-  const fmtCurrency = (val: number) => `${val.toFixed(2)} EUR`;
+  // Nœud (glyphe de devise pour SAR/MAD). Pour un contexte chaîne pure, utiliser
+  // convertAndFormat directement (cf. snackbars).
+  const fmtCurrency = (val: number) => <Money value={val} from="EUR" />;
 
   const isICalImport = reservation && (reservation.source === 'airbnb' || reservation.source === 'booking' || reservation.source === 'other');
   const hasTotalPrice = totalPrice > 0;
@@ -790,7 +793,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           />
 
           {totalRefunded > 0 && (
-            <FinRow label="Rembourse" value={`-${fmtCurrency(totalRefunded)}`} color="var(--err)" />
+            <FinRow label="Rembourse" value={<>-{fmtCurrency(totalRefunded)}</>} color="var(--err)" />
           )}
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -807,7 +810,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   color: effectiveBalanceDue > 0 ? 'var(--warn)' : 'var(--ok)',
                 }}
               >
-                {Math.max(0, effectiveBalanceDue).toFixed(2)} EUR
+                <Money value={Math.max(0, effectiveBalanceDue)} from="EUR" />
               </Typography>
               <Chip
                 label={effectivePaymentStatus}
@@ -1038,7 +1041,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                       </Typography>
                     )}
                     <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      {cost > 0 ? `${cost.toFixed(0)} EUR` : '\u2014'}
+                      {cost > 0 ? <Money value={cost} from="EUR" decimals={0} /> : '\u2014'}
                     </Typography>
                     <Chip
                       label="A payer"
@@ -1093,7 +1096,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         </Typography>
                       )}
                       <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {cost > 0 ? convertAndFormat(cost, 'EUR') : '—'}
+                        {cost > 0 ? <Money value={cost} from="EUR" /> : '—'}
                       </Typography>
                       <DomainStatusChip
                         status={intv.paymentStatus || intv.status}
@@ -1363,7 +1366,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Reste a payer</Typography>
                 <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: balanceDue > 0 ? 'var(--warn)' : 'var(--ok)' }}>
-                  {Math.max(0, balanceDue).toFixed(2)} EUR
+                  <Money value={Math.max(0, balanceDue)} from="EUR" />
                 </Typography>
               </Box>
             </Box>
@@ -1383,7 +1386,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         <DialogContent>
           {reservation && (
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
-              Reservation : <strong>{reservation.guestName}</strong> — Reste a payer : <strong>{Math.max(0, balanceDue).toFixed(2)} EUR</strong>
+              Reservation : <strong>{reservation.guestName}</strong> — Reste a payer : <strong><Money value={Math.max(0, balanceDue)} from="EUR" /></strong>
             </Typography>
           )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1419,7 +1422,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           </Box>
           {grandTotal > 0 && (
             <Alert severity="info" sx={{ fontSize: '0.75rem', mt: 2, '& .MuiAlert-message': { py: 0.25 } }}>
-              Nouveau total : {(grandTotal + (parseFloat(feeAmount) || 0)).toFixed(2)} EUR
+              Nouveau total : <Money value={grandTotal + (parseFloat(feeAmount) || 0)} from="EUR" />
             </Alert>
           )}
         </DialogContent>
