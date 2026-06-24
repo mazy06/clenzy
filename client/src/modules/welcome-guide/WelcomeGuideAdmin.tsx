@@ -89,6 +89,7 @@ import {
   isGuideConflict,
 } from '../../services/api/welcomeGuideApi';
 import { POI_CATEGORIES, poiCategory, poiLabel } from './poiCatalog';
+import { useAiFeatureToggles } from '../../hooks/useAi';
 import { nominatimApi } from '../../services/nominatimApi';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
 import { upsellApi, type PublicUpsell } from '../../services/api/upsellApi';
@@ -200,6 +201,10 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [view, setView] = useState<View>('list');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  // Champ IA du livret (gated STUDIO_ASSIST). Optimiste : actif tant que les toggles ne sont pas chargés.
+  const [generating, setGenerating] = useState(false);
+  const { data: aiToggles } = useAiFeatureToggles();
+  const aiAssistOn = !aiToggles || (aiToggles.find((tg) => tg.feature === 'STUDIO_ASSIST')?.enabled ?? true);
   // Conflit 409 « un livret existe déjà pour cette réservation » : ouvre un modal de
   // confirmation d'écrasement (re-POST avec overwrite=true). null = fermé.
   const [overwriteConfirm, setOverwriteConfirm] = useState(false);
@@ -352,6 +357,27 @@ const WelcomeGuideAdmin: React.FC = () => {
     setCuratedActivities(buildTemplateActivities(tplLang));
     setStep(0);
     setView('form');
+  };
+
+  // Champ IA du livret (gated STUDIO_ASSIST) : génère un brouillon depuis la description/URL saisie, puis
+  // ouvre le formulaire pré-rempli (welcomeMessage + sections IA écrasent le modèle par défaut). Si le
+  // toggle IA est désactivé OU le champ vide, repli sur la création depuis le modèle (openCreate).
+  const handleGenerateGuide = async () => {
+    const value = livretPrompt.trim();
+    if (!value || !aiAssistOn) { openCreate(); return; }
+    setGenerating(true);
+    try {
+      const res = await welcomeGuideApi.generateGuide(value, currentLanguage);
+      openCreate();
+      if (res.welcomeMessage) setWelcomeMessage(res.welcomeMessage);
+      const secs = parseSections(res.sections);
+      if (secs.length) setSections(secs);
+    } catch {
+      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+      openCreate(); // repli : on ouvre quand même le formulaire (modèle par défaut)
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const openEdit = (g: WelcomeGuide) => {
@@ -668,27 +694,29 @@ const WelcomeGuideAdmin: React.FC = () => {
                 <h1>Quel livret d'accueil créons-nous&nbsp;?</h1>
               </div>
 
-              {/* Champ IA — TODO: import annonce / génération des sections par IA. */}
+              {/* Champ IA : génère un brouillon (welcomeMessage + sections) via IA (gated STUDIO_ASSIST). */}
               <div className="field">
                 <textarea
                   className="field__area"
                   value={livretPrompt}
                   onChange={(e) => setLivretPrompt(e.target.value)}
                   aria-label="Décrivez votre logement ou collez le lien de votre annonce"
-                  placeholder="Collez le lien de votre annonce Airbnb / Booking à importer, ou décrivez votre logement…"
-                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) openCreate(); }}
+                  placeholder={aiAssistOn
+                    ? "Collez le lien de votre annonce Airbnb / Booking à importer, ou décrivez votre logement…"
+                    : "Décrivez votre logement (l'assistant IA est désactivé — Paramètres › IA)…"}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerateGuide(); }}
                 />
                 <div className="field__bar">
                   <button className="chip chip--icon" type="button" aria-label="Importer une photo" disabled><Add size={16} strokeWidth={2} /></button>
                   <button className="chip" type="button" disabled><HomeIcon size={16} strokeWidth={2} /><span className="lbl-faint">Logement</span> Tous <ChevronDown size={14} strokeWidth={2} /></button>
                   <button className="chip" type="button" disabled><Globe size={16} strokeWidth={2} /><span className="lbl-faint">Langue</span> Français <ChevronDown size={14} strokeWidth={2} /></button>
                   <div className="field__spacer" />
-                  <button className="send" type="button" aria-label="Générer le livret" onClick={() => openCreate()}><ArrowUp size={19} strokeWidth={2.2} /></button>
+                  <button className="send" type="button" aria-label="Générer le livret" disabled={generating} onClick={handleGenerateGuide}><ArrowUp size={19} strokeWidth={2.2} /></button>
                 </div>
               </div>
               <div className="examples">
-                <button className="ex" type="button" onClick={() => openCreate()}><Download size={14} strokeWidth={2} /> Importer depuis Airbnb</button>
-                <button className="ex" type="button" onClick={() => openCreate()}><Sparkles size={14} strokeWidth={2} /> Générer les sections automatiquement</button>
+                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><Download size={14} strokeWidth={2} /> Importer depuis Airbnb</button>
+                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><Sparkles size={14} strokeWidth={2} /> Générer les sections automatiquement</button>
                 <button className="ex" type="button" onClick={() => openCreate()}><MapPin size={14} strokeWidth={2} /> Recommandations du quartier</button>
               </div>
 
@@ -758,12 +786,12 @@ const WelcomeGuideAdmin: React.FC = () => {
                 <input
                   value={livretPrompt}
                   onChange={(e) => setLivretPrompt(e.target.value)}
-                  placeholder="Coller un lien d'annonce ou décrire le logement…"
+                  placeholder={aiAssistOn ? "Coller un lien d'annonce ou décrire le logement…" : "Décrire le logement (IA désactivée — Paramètres › IA)…"}
                   aria-label="Décrire le logement ou coller un lien d'annonce"
-                  onKeyDown={(e) => { if (e.key === 'Enter') openCreate(); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleGenerateGuide(); }}
                 />
               </div>
-              <button className="lv-createbar__ghost" type="button" onClick={() => openCreate()}>
+              <button className="lv-createbar__ghost" type="button" disabled={generating} onClick={handleGenerateGuide}>
                 <Download size={15} strokeWidth={2} /> Importer
               </button>
               <button className="lv-createbar__new" type="button" onClick={() => openCreate()}>

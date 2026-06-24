@@ -68,6 +68,14 @@ public class UpsellOffer {
     @Column(name = "bundle_offer_ids", length = 500)
     private String bundleOfferIds;
 
+    /** Diffusion par canal : proposé dans le livret numérique (défaut TRUE). */
+    @Column(name = "diffuse_on_livret", nullable = false)
+    private boolean diffuseOnLivret = true;
+
+    /** Diffusion par canal : proposé dans le booking engine (défaut TRUE). */
+    @Column(name = "diffuse_on_booking", nullable = false)
+    private boolean diffuseOnBooking = true;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -104,6 +112,10 @@ public class UpsellOffer {
     public void setLeadTimeHours(Integer leadTimeHours) { this.leadTimeHours = leadTimeHours; }
     public String getBundleOfferIds() { return bundleOfferIds; }
     public void setBundleOfferIds(String bundleOfferIds) { this.bundleOfferIds = bundleOfferIds; }
+    public boolean isDiffuseOnLivret() { return diffuseOnLivret; }
+    public void setDiffuseOnLivret(boolean diffuseOnLivret) { this.diffuseOnLivret = diffuseOnLivret; }
+    public boolean isDiffuseOnBooking() { return diffuseOnBooking; }
+    public void setDiffuseOnBooking(boolean diffuseOnBooking) { this.diffuseOnBooking = diffuseOnBooking; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

@@ -11,6 +11,7 @@ import { GALLERY_TEMPLATES } from './grapes/import/galleryTemplates';
 import { DESIGN_PRESETS } from '../constants';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
 import { useAuth } from '../../../hooks/useAuth';
+import { useAiFeatureToggles } from '../../../hooks/useAi';
 import './studioHome.css';
 
 /**
@@ -105,17 +106,26 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     return src.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w: string) => w[0]?.toUpperCase() ?? '').join('') || 'AU';
   }, [user]);
 
-  /** Crée une config (avec overrides sûrs) puis ouvre l'éditeur, en transmettant l'intention
-   *  d'application fine via location.state (consommée côté éditeur — TODO ci-dessous). */
+  // Champ IA gated par le toggle STUDIO_ASSIST (Paramètres IA). Optimiste : actif tant que non chargé.
+  const { data: aiToggles } = useAiFeatureToggles();
+  const aiAssistOn = !aiToggles || (aiToggles.find((t) => t.feature === 'STUDIO_ASSIST')?.enabled ?? true);
+
+  /** Crée une config (avec overrides sûrs) puis ouvre l'éditeur. Si `analyzeUrl` est fourni (champ IA +
+   *  STUDIO_ASSIST actif), lance l'analyse de site → tokens design + CSS appliqués à la config (best-effort). */
   const createAndOpen = async (
     name: string,
     overrides: Partial<BookingEngineConfigUpdate>,
     navState?: Record<string, unknown>,
+    analyzeUrl?: string | null,
   ) => {
     if (creating) return;
     setCreating(true);
     try {
       const created = await bookingEngineApi.createConfig({ ...buildConfigPayload(name), ...overrides });
+      if (analyzeUrl) {
+        // Analyse IA du site avant d'ouvrir l'éditeur (non bloquant : un échec n'empêche pas l'édition).
+        try { await bookingEngineApi.analyzeWebsite(created.id, analyzeUrl); } catch { /* best-effort */ }
+      }
       navigate(`/booking-engine/studio/${created.id}`, navState ? { state: navState } : undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Création impossible');
@@ -130,16 +140,17 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     const isUrl = URL_RE.test(value);
     const style = styleId ? DESIGN_PRESETS.find((p) => p.id === styleId) : undefined;
     const name = value ? value.replace(/^https?:\/\//, '').split(/[\s/]+/)[0].slice(0, 40) : 'Nouveau booking engine';
+    // Analyse de site déclenchée ici (après création) si l'entrée est une URL ET le toggle IA est actif.
+    const analyzeUrl = isUrl && aiAssistOn ? value : null;
     createAndOpen(
       name,
       {
-        // Champs sûrs posés dès la création ; le reste (analyse IA, parcours) est appliqué en éditeur.
         sourceWebsiteUrl: isUrl ? value : null,
         ...(style ? { primaryColor: style.primaryColor, fontFamily: style.fontFamily } : {}),
       },
-      // TODO(éditeur) : StudioPage doit consommer ce state pour lancer
-      // bookingEngineApi.analyzeWebsite(id, analyzeUrl) si présent, et insérer le funnel choisi.
-      { aiPrompt: value, analyzeUrl: isUrl ? value : null, funnelId, styleId },
+      // navState : le funnel choisi reste consommé par l'éditeur (insertion des widgets au chargement).
+      { aiPrompt: value, funnelId, styleId },
+      analyzeUrl,
     );
   };
 
@@ -197,7 +208,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               aria-label="Décrivez votre activité ou collez l'URL de votre site"
-              placeholder="Collez l'URL de votre site actuel à analyser, ou décrivez votre conciergerie…"
+              placeholder={aiAssistOn
+                ? "Collez l'URL de votre site actuel à analyser, ou décrivez votre conciergerie…"
+                : "Décrivez votre conciergerie (l'analyse IA de site est désactivée — Paramètres › IA)…"}
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAiSubmit(); }}
             />
             <div className="field__bar">

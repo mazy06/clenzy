@@ -114,6 +114,8 @@ const MARKETPLACE_PARTNERS: MarketplacePartner[] = [
 
 type Segment = 'all' | 'internal' | 'partner';
 type CanalFilter = 'all' | 'livret' | 'booking';
+/** Données minimales d'aperçu guest d'un service (carte telle que vue par le voyageur). */
+interface PreviewData { title: string; description: string | null; price: number; currency: string; imageUrl: string | null; }
 // null = vue catalogue ; sinon = écran détaillé (service interne ou expérience partenaire).
 type Selected =
   | { kind: 'internal'; id: number }
@@ -208,9 +210,8 @@ const UpsellsAdmin: React.FC = () => {
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [canalAnchor, setCanalAnchor] = useState<HTMLElement | null>(null);
   const [catAnchor, setCatAnchor] = useState<HTMLElement | null>(null);
-  // Diffusion par canal : aperçu local (pas encore persisté côté back — voir TODO).
-  const [chanPreview, setChanPreview] = useState<{ livret: boolean; booking: boolean } | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [previewOffer, setPreviewOffer] = useState<PreviewData | null>(null);
 
   const [edit, setEdit] = useState<EditState>(emptyEdit);
   const [saving, setSaving] = useState(false);
@@ -303,9 +304,9 @@ const UpsellsAdmin: React.FC = () => {
     const q = search.trim().toLowerCase();
     return offers.filter((o) => {
       if (catFilter && o.type !== catFilter) return false;
-      // Canal : les services actifs sont diffusés sur les deux canaux (défaut) —
-      // un filtre canal spécifique masque donc les services inactifs.
-      if (canalFilter !== 'all' && !o.active) return false;
+      // Filtre par canal de diffusion (persisté : diffuseOnLivret / diffuseOnBooking).
+      if (canalFilter === 'livret' && !o.diffuseOnLivret) return false;
+      if (canalFilter === 'booking' && !o.diffuseOnBooking) return false;
       if (q && !o.title.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -320,11 +321,9 @@ const UpsellsAdmin: React.FC = () => {
 
   const openInternalDetail = (o: UpsellOffer) => {
     setSelected({ kind: 'internal', id: o.id });
-    setChanPreview({ livret: o.active, booking: o.active });
   };
   const openPartnerDetail = (partnerIdx: number, expIdx: number) => {
     setSelected({ kind: 'partner', partnerIdx, expIdx });
-    setChanPreview(null);
   };
 
   const openCreate = (prefill?: Partial<EditState>) => setEdit({ ...emptyEdit, open: true, ...prefill });
@@ -353,7 +352,9 @@ const UpsellsAdmin: React.FC = () => {
   };
 
   // Aperçu guest d'un service : à brancher (pas de route d'aperçu par service pour l'instant).
-  const handlePreview = () => notify(t('upsells.detail.previewSoon', "L'aperçu guest arrivera bientôt."), 'info');
+  // Aperçu guest d'un service : ouvre un modal rendant la carte telle que le voyageur la voit (livret /
+  // booking engine). Données minimales (titre/desc/prix/image) — pas d'achat (aperçu non interactif).
+  const handlePreview = (data: PreviewData) => setPreviewOffer(data);
 
   // Statut on/off — persisté via updateOffer (CAS simple : on renvoie l'offre, active inversé).
   const toggleActive = async (o: UpsellOffer) => {
@@ -372,6 +373,34 @@ const UpsellsAdmin: React.FC = () => {
         minNights: o.minNights,
         leadTimeHours: o.leadTimeHours,
         bundleOfferIds: o.bundleOfferIds,
+      });
+      await refetch();
+    } catch {
+      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  // Diffusion par canal (livret / booking engine) — persistée via updateOffer (colonnes back 0280).
+  const setChannel = async (o: UpsellOffer, channel: 'livret' | 'booking', value: boolean) => {
+    setTogglingId(o.id);
+    try {
+      await upsellApi.updateOffer(o.id, {
+        propertyId: o.propertyId,
+        type: o.type,
+        title: o.title,
+        description: o.description,
+        price: o.price,
+        currency: o.currency,
+        imageUrl: o.imageUrl,
+        active: o.active,
+        sortOrder: o.sortOrder,
+        minNights: o.minNights,
+        leadTimeHours: o.leadTimeHours,
+        bundleOfferIds: o.bundleOfferIds,
+        diffuseOnLivret: channel === 'livret' ? value : o.diffuseOnLivret,
+        diffuseOnBooking: channel === 'booking' ? value : o.diffuseOnBooking,
       });
       await refetch();
     } catch {
@@ -681,7 +710,8 @@ const UpsellsAdmin: React.FC = () => {
       if (!offer) return null;
       const Ic = typeIcon(offer.type);
       const perf = perfFor(offer.title);
-      const ch = chanPreview ?? { livret: offer.active, booking: offer.active };
+      const ch = { livret: offer.diffuseOnLivret, booking: offer.diffuseOnBooking };
+      const chanBusy = togglingId === offer.id;
       return (
         <div className="detail">
           {backBtn}
@@ -695,7 +725,7 @@ const UpsellsAdmin: React.FC = () => {
               </div>
             </div>
             <div className="dhead__act">
-              <button className="btn-ghost" onClick={handlePreview}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
+              <button className="btn-ghost" onClick={() => handlePreview({ title: offer.title, description: offer.description, price: offer.price, currency: offer.currency, imageUrl: offer.imageUrl })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
               <Button variant="contained" size="small" startIcon={<Edit size={16} strokeWidth={2} />} onClick={() => openEdit(offer)}>
                 {t('upsells.detail.edit', 'Modifier')}
               </Button>
@@ -736,17 +766,15 @@ const UpsellsAdmin: React.FC = () => {
                   <div className="dist__row">
                     <span className="ic l"><BookOpen size={18} strokeWidth={2} /></span>
                     <div className="t"><b>{t('upsells.detail.guideChannel', "Livret d'accueil")}</b><small>{t('upsells.detail.guideChannelHint', 'Affiché dans la marketplace du livret')}</small></div>
-                    <button className={`switch ${ch.livret ? '' : 'off'}`} aria-label={t('upsells.detail.guideChannel', "Livret d'accueil")} onClick={() => setChanPreview({ livret: !ch.livret, booking: ch.booking })} />
+                    <button className={`switch ${ch.livret ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.guideChannel', "Livret d'accueil")} onClick={() => setChannel(offer, 'livret', !ch.livret)} />
                   </div>
                   <div className="dist__row">
                     <span className="ic b"><Network size={18} strokeWidth={2} /></span>
                     <div className="t"><b>{t('upsells.detail.bookingChannel', 'Booking Engine')}</b><small>{t('upsells.detail.bookingChannelHint', 'Proposé en extra au paiement')}</small></div>
-                    <button className={`switch ${ch.booking ? '' : 'off'}`} aria-label={t('upsells.detail.bookingChannel', 'Booking Engine')} onClick={() => setChanPreview({ livret: ch.livret, booking: !ch.booking })} />
+                    <button className={`switch ${ch.booking ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.bookingChannel', 'Booking Engine')} onClick={() => setChannel(offer, 'booking', !ch.booking)} />
                   </div>
                 </div>
                 <div className="scope-line"><Home size={15} strokeWidth={2} /> {t('upsells.detail.scope', 'Appliqué à')} <strong style={{ marginLeft: 4 }}>{propertyName(offer.propertyId)}</strong></div>
-                {/* TODO: persister la diffusion par canal & par propriété (colonnes back sur upsell_offer). */}
-                <p className="dist-note">{t('upsells.detail.distNote', 'Aperçu — le pilotage par canal sera bientôt enregistré par service et par propriété.')}</p>
               </div>
 
               <div className="dcard">
@@ -791,7 +819,7 @@ const UpsellsAdmin: React.FC = () => {
             </div>
           </div>
           <div className="dhead__act">
-            <button className="btn-ghost" onClick={handlePreview}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
+            <button className="btn-ghost" onClick={() => handlePreview({ title: exp.name, description: exp.desc, price: exp.priceValue, currency: DEFAULT_CURRENCY, imageUrl: null })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
           </div>
         </div>
 
@@ -853,6 +881,35 @@ const UpsellsAdmin: React.FC = () => {
   return (
     <Box>
       {headerActions}
+
+      {/* Aperçu guest d'un service : carte telle que le voyageur la voit (livret / booking engine). */}
+      <Dialog open={!!previewOffer} onClose={() => setPreviewOffer(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
+        <DialogContent dividers>
+          {previewOffer && (
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', maxWidth: 320, mx: 'auto' }}>
+              <Box sx={{
+                height: 150, bgcolor: 'action.hover',
+                backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none',
+                backgroundSize: 'cover', backgroundPosition: 'center',
+              }} />
+              <Box sx={{ p: 2 }}>
+                <Box sx={{ fontWeight: 600 }}>{previewOffer.title}</Box>
+                {previewOffer.description ? (
+                  <Box sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>{previewOffer.description}</Box>
+                ) : null}
+                <Box sx={{ fontWeight: 700, mt: 1 }}><Money value={previewOffer.price} from={previewOffer.currency} /></Box>
+                <Button variant="contained" fullWidth sx={{ mt: 1.5 }} disabled>
+                  {t('upsells.preview.add', 'Ajouter')}
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPreviewOffer(null)}>{t('common.close', 'Fermer')}</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Commissions (résumé activités + ma part conciergerie) — dans un dialog pour libérer l'écran. */}
       <Dialog open={commissionsOpen} onClose={() => setCommissionsOpen(false)} maxWidth="sm" fullWidth>

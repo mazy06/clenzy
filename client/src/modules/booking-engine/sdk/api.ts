@@ -153,6 +153,24 @@ export interface ReserveGuestInfo {
   phone?: string;
 }
 
+/** Service additionnel diffusé sur le booking engine (GET /{slug}/upsells). */
+export interface ApiBookingUpsell {
+  offerId: number;
+  type: string;
+  title: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  imageUrl: string | null;
+  bundleItems: string[];
+}
+
+/** Résultat d'achat d'un upsell booking engine : URL Stripe hébergée (redirection) + id commande. */
+export interface ApiUpsellCheckout {
+  checkoutUrl: string | null;
+  orderId: number;
+}
+
 /** Réponse d'auth guest (Keycloak realm clenzy-guests) — token gardé EN MÉMOIRE (règle #7). */
 export interface GuestAuthResult {
   accessToken: string;
@@ -371,6 +389,23 @@ export class BookingApi {
   /** Confirmation d'une réservation par son code (re-fetch du statut au retour Stripe, B3). */
   getConfirmation(reservationCode: string): Promise<ApiConfirmation> {
     return this.request(`/booking/${encodeURIComponent(reservationCode)}`);
+  }
+
+  /** Services additionnels diffusés sur le booking engine (logement optionnel). */
+  listUpsells(propertyId?: number): Promise<ApiBookingUpsell[]> {
+    const qs = propertyId != null ? `?propertyId=${propertyId}` : '';
+    return this.request(`/upsells${qs}`);
+  }
+
+  /**
+   * Achat d'un upsell (session Stripe HÉBERGÉE → redirection). Nécessite le code d'une réservation
+   * existante. `returnUrl` optionnel (validé anti open-redirect côté serveur, comme le checkout).
+   */
+  upsellCheckout(offerId: number, reservationCode: string, returnUrl?: string): Promise<ApiUpsellCheckout> {
+    return this.request(`/upsells/${offerId}/checkout`, {
+      method: 'POST',
+      body: JSON.stringify(returnUrl ? { reservationCode, returnUrl } : { reservationCode }),
+    });
   }
 
   /** Panier multi-séjours : crée N réservations PENDING (paiement item par item ensuite). */
