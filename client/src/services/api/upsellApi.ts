@@ -29,6 +29,10 @@ export interface UpsellOffer {
   leadTimeHours: number | null;
   /** Bundle (2.10) : CSV des ids d'offres incluses ; non vide = bundle. */
   bundleOfferIds: string | null;
+  /** Diffusion par canal : proposé dans le livret numérique. */
+  diffuseOnLivret: boolean;
+  /** Diffusion par canal : proposé dans le booking engine. */
+  diffuseOnBooking: boolean;
 }
 
 /** Création / mise à jour d'une offre. */
@@ -48,6 +52,9 @@ export interface UpsellOfferRequest {
   leadTimeHours?: number | null;
   /** Bundle (2.10) : CSV des ids d'offres incluses ; vide = offre simple. */
   bundleOfferIds?: string | null;
+  /** Diffusion par canal (null/absent = inchangé en update, défaut true à la création). */
+  diffuseOnLivret?: boolean | null;
+  diffuseOnBooking?: boolean | null;
 }
 
 /** Commande d'upsell (vente). */

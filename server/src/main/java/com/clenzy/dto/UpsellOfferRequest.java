@@ -21,4 +21,7 @@ public record UpsellOfferRequest(
         Integer minNights,
         Integer leadTimeHours,
         // Bundle (2.10) : CSV des ids d'offres incluses (non vide = bundle)
-        String bundleOfferIds) {}
+        String bundleOfferIds,
+        // Diffusion par canal (null = défaut true à la création / inchangé en update)
+        Boolean diffuseOnLivret,
+        Boolean diffuseOnBooking) {}

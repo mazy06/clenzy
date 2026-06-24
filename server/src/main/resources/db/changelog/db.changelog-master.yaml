@@ -2726,3 +2726,11 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Diffusion par canal des upsells (livret numérique / booking engine), booléens défaut TRUE.
+  - changeSet:
+      id: "0280-add-upsell-channel-diffusion"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0280__add_upsell_channel_diffusion.sql
+        relativeToChangelogFile: true

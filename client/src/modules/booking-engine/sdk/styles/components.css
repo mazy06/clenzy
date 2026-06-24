@@ -1251,3 +1251,16 @@
 .cb-search__filters-toggle:hover { text-decoration: underline; }
 
 .cb-search__submit { cursor: pointer; }
+
+/* ── Services additionnels (primitive `upsells`, booking engine) ───────────── */
+.cb-upsells__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--cb-space-3); }
+.cb-upsell-card {
+  display: flex; flex-direction: column; gap: var(--cb-space-2);
+  border: 1px solid var(--cb-color-border, rgba(0, 0, 0, 0.14)); border-radius: var(--cb-radius-md);
+  background: var(--cb-color-surface, #fff); padding: var(--cb-space-3); overflow: hidden;
+}
+.cb-upsell-card__img { width: 100%; height: 120px; object-fit: cover; border-radius: var(--cb-radius-sm); }
+.cb-upsell-card__body { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.cb-upsell-card__price { margin-top: auto; }
+.cb-upsell-card__btn { width: 100%; cursor: pointer; }
+.cb-upsell-card__btn:disabled { opacity: 0.5; cursor: not-allowed; }

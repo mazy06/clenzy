@@ -159,6 +159,25 @@ public class StripeCheckoutSessionFactory {
     }
 
     /**
+     * Variante HOSTED (redirection) d'un upsell — pour le booking engine (SDK vanilla, pas de Stripe.js
+     * embedded). Même métadonnées que la version embedded → même confirmation webhook
+     * ({@code UpsellService.markPaidBySession}). {@code successUrl} déjà validé par l'appelant
+     * (anti open-redirect) ; null = {@code stripe.success-url} par défaut.
+     */
+    public Session createUpsellHostedCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
+                                                     String title, String customerEmail, String successUrl) throws StripeException {
+        String cur = (currencyCode != null && !currencyCode.isBlank()) ? currencyCode : currency;
+
+        SessionCreateParams params = baseCheckoutParams(
+                false, cur, StripeAmounts.toMinorUnits(amount), title, null, customerEmail, successUrl)
+            .putMetadata("type", "upsell")
+            .putMetadata("upsell_order_id", upsellOrderId.toString())
+            .build();
+
+        return stripeGateway.createSession(params);
+    }
+
+    /**
      * Variante unique HOSTED/EMBEDDED pour les demandes de service (T-SOLID-4).
      *
      * <p>La SR doit etre en AWAITING_PAYMENT (verifie par

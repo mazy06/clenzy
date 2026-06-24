@@ -220,6 +220,7 @@ const STEP_TO_DEF_ID: Record<string, string | null> = {
   property: null,
   checkout: null,
   confirmation: null,
+  upsells: null,
 };
 
 /** Libellés des steps sans micro-widget d'aperçu (rendu réel à la publication). */
@@ -227,6 +228,7 @@ const STEP_LABELS: Record<string, string> = {
   property: 'Détail du logement',
   checkout: 'Paiement',
   confirmation: 'Confirmation de réservation',
+  upsells: 'Services additionnels',
 };
 
 const DEF_BY_ID = new Map(BOOKING_WIDGET_DEFS.map((d) => [d.id, d]));

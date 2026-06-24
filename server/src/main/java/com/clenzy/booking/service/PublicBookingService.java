@@ -100,6 +100,7 @@ public class PublicBookingService {
     private final SiteRepository siteRepository;
     private final SitePageRepository sitePageRepository;
     private final BookingDisplayCurrencyService displayCurrencyService;
+    private final com.clenzy.service.UpsellService upsellService;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -122,7 +123,8 @@ public class PublicBookingService {
             GuestCreditService guestCreditService,
             SiteRepository siteRepository,
             SitePageRepository sitePageRepository,
-            BookingDisplayCurrencyService displayCurrencyService) {
+            BookingDisplayCurrencyService displayCurrencyService,
+            com.clenzy.service.UpsellService upsellService) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -144,6 +146,31 @@ public class PublicBookingService {
         this.siteRepository = siteRepository;
         this.sitePageRepository = sitePageRepository;
         this.displayCurrencyService = displayCurrencyService;
+        this.upsellService = upsellService;
+    }
+
+    // ─── Upsells (booking engine) ────────────────────────────────────────────────
+
+    /** Liste les upsells diffusés sur le booking engine (org du ctx + logement optionnel). */
+    @Transactional(readOnly = true)
+    public List<com.clenzy.dto.PublicUpsellDto> listUpsells(OrgContext ctx, Long propertyId) {
+        return upsellService.listForBooking(ctx.orgId(), propertyId);
+    }
+
+    /**
+     * Achat d'un upsell depuis le booking engine. Résout la réservation par code (scopée org), valide
+     * le {@code returnUrl} (anti open-redirect, même garde que le checkout réservation), puis délègue la
+     * création de la commande + session Stripe hébergée à {@link UpsellService#createBookingCheckout}.
+     */
+    @Transactional
+    public com.clenzy.dto.UpsellBookingCheckoutDto createUpsellCheckout(
+            OrgContext ctx, String reservationCode, Long offerId, String returnUrl) {
+        Long orgId = ctx.orgId();
+        Reservation reservation = reservationRepository
+            .findByConfirmationCodeAndOrganizationId(reservationCode, orgId)
+            .orElseThrow(() -> new IllegalArgumentException("Reservation introuvable : " + reservationCode));
+        String successUrl = resolveCheckoutSuccessUrl(ctx.config(), returnUrl, reservationCode);
+        return upsellService.createBookingCheckout(orgId, reservation, offerId, successUrl);
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────

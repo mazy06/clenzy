@@ -4242,6 +4242,11 @@
           "name": "Sentiment AI",
           "description": "Guest review sentiment analysis",
           "menu": "Reviews"
+        },
+        "studioAssist": {
+          "name": "Creation assistant (AI field)",
+          "description": "Website analysis, listing import and section generation (Studio & guide)",
+          "menu": "Studio"
         }
       }
     },

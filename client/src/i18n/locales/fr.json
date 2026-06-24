@@ -4300,6 +4300,11 @@
           "name": "Sentiment IA",
           "description": "Analyse de sentiment des avis guests",
           "menu": "Avis"
+        },
+        "studioAssist": {
+          "name": "Assistant de création (champ IA)",
+          "description": "Analyse de site, import d'annonce et génération de sections (Studio & livret)",
+          "menu": "Studio"
         }
       }
     },
