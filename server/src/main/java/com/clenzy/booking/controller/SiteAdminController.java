@@ -116,6 +116,14 @@ public class SiteAdminController {
         return ResponseEntity.ok(contentAiService.generatePageSeo(orgId(), id, pageId));
     }
 
+    /** Traduit (IA) le texte d'un fragment HTML de page vers une langue cible (multi-langue Studio, P2). */
+    @PostMapping("/{id}/translate-html")
+    public ResponseEntity<com.clenzy.booking.dto.SiteTranslateResultDto> translateHtml(
+            @PathVariable Long id, @Valid @RequestBody com.clenzy.booking.dto.SiteTranslateRequest req) {
+        String translated = contentAiService.translatePageHtml(orgId(), id, req.html(), req.targetLocale());
+        return ResponseEntity.ok(new com.clenzy.booking.dto.SiteTranslateResultDto(translated));
+    }
+
     // ─── Domaines ───────────────────────────────────────────────────────────
 
     @GetMapping("/{id}/domains")

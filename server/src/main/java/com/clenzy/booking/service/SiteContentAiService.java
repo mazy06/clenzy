@@ -14,9 +14,17 @@ import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.service.AiTokenBudgetService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
+import org.jsoup.select.NodeVisitor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -32,9 +40,14 @@ public class SiteContentAiService {
     private static final String PROVIDER = "anthropic";
     private static final int MAX_TOKENS_SEO = 300;
     private static final int MAX_TOKENS_ARTICLE = 1600;
+    private static final int MAX_TOKENS_TRANSLATE = 4000;
     private static final Set<String> SUPPORTED_LANGS = Set.of("fr", "en", "ar");
     /** Clés de props à ignorer (URLs, couleurs…) — pas du contenu rédactionnel. */
     private static final Set<String> SKIP_KEY_HINTS = Set.of("url", "image", "color", "bg", "icon");
+    /** Attributs HTML traduisibles (texte visible / a11y). */
+    private static final Set<String> TRANSLATABLE_ATTRS = Set.of("alt", "title", "placeholder", "aria-label");
+    /** Parents dont le texte ne se traduit pas (code/style). */
+    private static final Set<String> SKIP_TEXT_PARENTS = Set.of("script", "style", "code", "pre");
 
     private final SiteRepository siteRepository;
     private final SitePageRepository pageRepository;
@@ -95,6 +108,104 @@ public class SiteContentAiService {
             user.append("\nSite: ").append(site.getName());
         }
         return parseArticle(run(orgId, system, user.toString(), MAX_TOKENS_ARTICLE), topic.trim());
+    }
+
+    /**
+     * Traduit le TEXTE visible d'un fragment HTML de page vers {@code targetLocale}, en préservant la
+     * structure (balises/attributs/classes/marqueurs {@code data-clenzy-widget} intacts). Multi-langue
+     * Studio (P2) : le client envoie le HTML de la page source (langue par défaut) ; on parse via jsoup,
+     * on collecte les nœuds texte + attributs traduisibles (alt/title/placeholder/aria-label), on les fait
+     * traduire en UN appel (tableau JSON, ordre préservé), puis on réinjecte. Repli SÛR : tout écart
+     * (longueur de tableau ≠, JSON illisible) renvoie le HTML d'origine inchangé.
+     *
+     * @param siteId site cible (ownership org) ; le HTML lui-même vient du client.
+     */
+    @Transactional(readOnly = true)
+    public String translatePageHtml(Long orgId, Long siteId, String html, String targetLocale) {
+        siteRepository.findByIdAndOrganizationId(siteId, orgId)
+            .orElseThrow(() -> new NotFoundException("Site introuvable: " + siteId));
+        if (html == null || html.isBlank()) return html == null ? "" : html;
+        final String lang = normalizeLang(targetLocale);
+
+        Document doc = Jsoup.parseBodyFragment(html);
+        doc.outputSettings().prettyPrint(false); // préserve la structure (pas de reformatage)
+
+        final List<TextNode> textNodes = new ArrayList<>();
+        final List<String> textWhole = new ArrayList<>();
+        final List<Element> attrEls = new ArrayList<>();
+        final List<String> attrNames = new ArrayList<>();
+        final List<String> strings = new ArrayList<>();
+
+        doc.body().traverse(new NodeVisitor() {
+            @Override public void head(Node node, int depth) {
+                if (node instanceof TextNode tn) {
+                    String parent = tn.parent() instanceof Element el ? el.tagName().toLowerCase(Locale.ROOT) : "";
+                    String whole = tn.getWholeText();
+                    if (!SKIP_TEXT_PARENTS.contains(parent) && !whole.strip().isEmpty()) {
+                        textNodes.add(tn);
+                        textWhole.add(whole);
+                        strings.add(whole.strip());
+                    }
+                } else if (node instanceof Element el) {
+                    for (String attr : TRANSLATABLE_ATTRS) {
+                        String v = el.attr(attr);
+                        if (!v.isBlank()) { attrEls.add(el); attrNames.add(attr); strings.add(v.strip()); }
+                    }
+                }
+            }
+            @Override public void tail(Node node, int depth) { /* no-op */ }
+        });
+
+        if (strings.isEmpty()) return html;
+
+        List<String> translated = translateStrings(orgId, strings, lang);
+        if (translated == null || translated.size() != strings.size()) {
+            return html; // repli sûr : on ne casse jamais la page
+        }
+
+        int i = 0;
+        for (int k = 0; k < textNodes.size(); k++) {
+            textNodes.get(k).replaceWith(new TextNode(reSpace(textWhole.get(k), translated.get(i++))));
+        }
+        for (int k = 0; k < attrEls.size(); k++) {
+            attrEls.get(k).attr(attrNames.get(k), translated.get(i++));
+        }
+        return doc.body().html();
+    }
+
+    /** Traduit une liste ordonnée de chaînes via UN appel IA (tableau JSON in/out). `null` si échec. */
+    private List<String> translateStrings(Long orgId, List<String> strings, String lang) {
+        String system = "Tu es un traducteur professionnel. Traduis CHAQUE chaîne du tableau JSON fourni en "
+            + langName(lang) + ". Conserve le sens, le ton et la ponctuation ; NE traduis PAS les URLs ni les "
+            + "noms de marque évidents. Réponds STRICTEMENT par un tableau JSON de chaînes de MÊME longueur et "
+            + "MÊME ordre que l'entrée, sans aucun texte autour.";
+        String user;
+        try {
+            user = objectMapper.writeValueAsString(strings);
+        } catch (Exception e) {
+            return null;
+        }
+        String raw = run(orgId, system, user, MAX_TOKENS_TRANSLATE);
+        try {
+            JsonNode arr = objectMapper.readTree(stripFences(raw));
+            if (arr.isArray()) {
+                List<String> out = new ArrayList<>(arr.size());
+                for (JsonNode n : arr) out.add(n.asText());
+                return out;
+            }
+        } catch (Exception ignored) {
+            // JSON inattendu → repli
+        }
+        return null;
+    }
+
+    /** Réapplique les espaces de tête/fin de la chaîne d'origine autour de la traduction (texte inline). */
+    private static String reSpace(String original, String replacement) {
+        int lead = 0;
+        while (lead < original.length() && Character.isWhitespace(original.charAt(lead))) lead++;
+        int trail = original.length();
+        while (trail > lead && Character.isWhitespace(original.charAt(trail - 1))) trail--;
+        return original.substring(0, lead) + replacement + original.substring(trail);
     }
 
     private GeneratedArticleDto parseArticle(String raw, String fallbackTitle) {
