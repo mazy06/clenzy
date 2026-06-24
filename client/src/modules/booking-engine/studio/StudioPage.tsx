@@ -51,7 +51,6 @@ export default function StudioPage() {
   const projectName = cfg.config?.name ?? 'Mon booking engine';
   const [activeSection, setActiveSection] = useState('design');
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
-  const [previewLang, setPreviewLang] = useState('fr');
   const [previewCurrency, setPreviewCurrency] = useState('EUR');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [designAnalysisOpen, setDesignAnalysisOpen] = useState(false);
@@ -104,8 +103,6 @@ export default function StudioPage() {
         sections={SECTIONS}
         activeSection={activeSection}
         onSectionChange={setActiveSection}
-        previewLang={previewLang}
-        onPreviewLangChange={setPreviewLang}
         previewCurrency={previewCurrency}
         onPreviewCurrencyChange={setPreviewCurrency}
         breakpoint={breakpoint}
