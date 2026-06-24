@@ -126,6 +126,9 @@ function parseOfferIdSelection(json: string | null | undefined): number[] | null
 
 const SECTION_LAYOUT_OPTIONS: GuideSectionLayout[] = ['text', 'steps', 'rules', 'list'];
 
+/** Catégories de POI géocodées automatiquement (lieux PUBLICS à noms réels) — cf. géocodage IA. */
+const GEOCODABLE_POI_CATS = new Set(['ATTRACTION', 'TRANSPORT', 'ACTIVITY']);
+
 const newSection = (): GuideSection => ({
   id: `s-${Date.now()}`,
   icon: 'file-text',
@@ -359,9 +362,9 @@ const WelcomeGuideAdmin: React.FC = () => {
     setView('form');
   };
 
-  // Champ IA du livret (gated STUDIO_ASSIST) : génère un brouillon depuis la description/URL saisie, puis
-  // ouvre le formulaire pré-rempli (welcomeMessage + sections IA écrasent le modèle par défaut). Si le
-  // toggle IA est désactivé OU le champ vide, repli sur la création depuis le modèle (openCreate).
+  // Champ IA du livret (gated STUDIO_ASSIST) : génère un brouillon complet (message d'accueil + sections
+  // + recommandations du quartier) depuis la description/URL saisie, puis ouvre le formulaire pré-rempli
+  // (le contenu IA écrase le modèle par défaut). Toggle off OU champ vide → repli création depuis modèle.
   const handleGenerateGuide = async () => {
     const value = livretPrompt.trim();
     if (!value || !aiAssistOn) { openCreate(); return; }
@@ -372,11 +375,38 @@ const WelcomeGuideAdmin: React.FC = () => {
       if (res.welcomeMessage) setWelcomeMessage(res.welcomeMessage);
       const secs = parseSections(res.sections);
       if (secs.length) setSections(secs);
+      const generatedPois = parsePois(res.pois);
+      if (generatedPois.length) {
+        setPois(generatedPois);
+        // Géocodage auto best-effort des POI publics (attractions/transport/activités) → pins carte.
+        // En arrière-plan (séquentiel, rate-limit Nominatim) : la liste est déjà affichée, les coords
+        // arrivent au fil de l'eau. Les commerces génériques restent sans coords (liste seule).
+        void geocodeGeneratedPois(generatedPois, res.area);
+      }
     } catch {
       notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
       openCreate(); // repli : on ouvre quand même le formulaire (modèle par défaut)
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // Géocode best-effort les POI générés des catégories PUBLIQUES (noms réels géocodables). Séquentiel
+  // (Nominatim ~1 req/s). Met à jour les coords par index+nom (sans écraser celles posées par l'hôte).
+  // Les commerces privés (noms génériques) sont ignorés → ils restent en liste, sans pin carte.
+  const geocodeGeneratedPois = async (generated: GuidePoi[], area: string | null) => {
+    for (let i = 0; i < generated.length; i++) {
+      const p = generated[i];
+      if (!GEOCODABLE_POI_CATS.has(p.category) || !p.name?.trim()) continue;
+      const query = area && area.trim() ? `${p.name}, ${area}` : p.name;
+      const results = await nominatimApi.search(query, [], 1);
+      if (results.length) {
+        const { latitude, longitude } = results[0];
+        setPois((prev) => prev.map((q, idx) =>
+          idx === i && q.name === p.name && q.lat == null ? { ...q, lat: latitude, lng: longitude } : q));
+      }
+      // Respect de la politique Nominatim (1 req/s) entre deux géocodages.
+      await new Promise((resolve) => setTimeout(resolve, 1100));
     }
   };
 
@@ -717,7 +747,7 @@ const WelcomeGuideAdmin: React.FC = () => {
               <div className="examples">
                 <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><Download size={14} strokeWidth={2} /> Importer depuis Airbnb</button>
                 <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><Sparkles size={14} strokeWidth={2} /> Générer les sections automatiquement</button>
-                <button className="ex" type="button" onClick={() => openCreate()}><MapPin size={14} strokeWidth={2} /> Recommandations du quartier</button>
+                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><MapPin size={14} strokeWidth={2} /> Recommandations du quartier</button>
               </div>
 
               {/* Structures (éventail) — TODO: préréglage de sections par structure. */}
