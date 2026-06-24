@@ -62,9 +62,16 @@ public class WelcomeGuideContentAiService {
             + "wifi, key-round, map-pin, utensils, scroll-text, sparkles, coffee, tv), \"title\": string, "
             + "\"subtitle\": string court, \"layout\": \"text\"|\"steps\"|\"rules\"|\"list\", \"items\": [ {\"icon\": "
             + "string, \"label\": string, \"detail\": string (optionnel), \"steps\": [string] (optionnel, pour "
-            + "layout steps)} ] } ] }. Génère 3 à 5 sections utiles (logement & équipements, wifi & accès, "
-            + "règlement intérieur, recommandations du quartier). N'invente AUCUN fait chiffré précis (codes "
-            + "d'accès, adresse, mot de passe wifi) : laisse des placeholders explicites entre crochets.";
+            + "layout steps)} ] } ], \"area\": string (ville et/ou quartier déduit de la description, ex. "
+            + "\"Marrakech, médina\" — sert au géocodage), \"pois\": [ {\"category\": string (code MAJUSCULE parmi "
+            + "RESTAURANT, CAFE, BAR, GROCERY, ATTRACTION, PHARMACY, TRANSPORT, ACTIVITY, SHOP), \"name\": string, "
+            + "\"type\": string court (libellé), \"note\": string (conseil utile)} ] }. Génère 3 à 5 sections "
+            + "utiles (logement & équipements, wifi & accès, règlement intérieur) ET 4 à 6 recommandations du "
+            + "quartier (pois) adaptées au lieu décrit. Pour les lieux PUBLICS (ATTRACTION, TRANSPORT, ACTIVITY), "
+            + "utilise des noms RÉELS et bien connus de la zone (géocodables, ex. « Jardin Majorelle », « Gare de "
+            + "Marrakech ») ; pour les commerces PRIVÉS (RESTAURANT, CAFE, BAR, GROCERY, PHARMACY, SHOP), utilise "
+            + "des noms génériques descriptifs (ex. « Restaurant marocain traditionnel ») que l'hôte précisera. "
+            + "N'invente AUCUN fait chiffré précis (codes d'accès, mot de passe wifi) : placeholders entre crochets.";
     }
 
     private GeneratedGuideDto parse(String raw) {
@@ -75,12 +82,16 @@ public class WelcomeGuideContentAiService {
                 String welcomeMessage = wm != null && wm.isTextual() && !wm.asText().isBlank() ? wm.asText().trim() : null;
                 JsonNode sec = n.get("sections");
                 String sections = sec != null && sec.isArray() ? objectMapper.writeValueAsString(sec) : "[]";
-                return new GeneratedGuideDto(welcomeMessage, sections);
+                JsonNode poisNode = n.get("pois");
+                String pois = poisNode != null && poisNode.isArray() ? objectMapper.writeValueAsString(poisNode) : "[]";
+                JsonNode areaNode = n.get("area");
+                String area = areaNode != null && areaNode.isTextual() ? areaNode.asText().trim() : null;
+                return new GeneratedGuideDto(welcomeMessage, sections, pois, area);
             }
         } catch (Exception ignored) {
             // JSON inattendu → brouillon vide (le front garde le formulaire en l'état)
         }
-        return new GeneratedGuideDto(null, "[]");
+        return new GeneratedGuideDto(null, "[]", "[]", null);
     }
 
     /** Retire d'éventuelles balises de bloc de code ```json … ``` autour de la réponse. */

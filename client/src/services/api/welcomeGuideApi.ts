@@ -329,10 +329,14 @@ function asGuideConflict(err: unknown): GuideAlreadyExistsBody | null {
     : null;
 }
 
-/** Brouillon de livret généré par l'IA (champ IA — STUDIO_ASSIST). `sections` = JSON (cf. WelcomeGuide.sections). */
+/** Brouillon de livret généré par l'IA (champ IA — STUDIO_ASSIST). `sections`/`pois` = JSON (cf. WelcomeGuide). */
 export interface GeneratedGuide {
   welcomeMessage: string | null;
   sections: string;
+  /** Recommandations du quartier générées (JSON, cf. WelcomeGuide.pois). */
+  pois: string;
+  /** Ville/quartier inféré — contexte de géocodage des POI générés (best-effort). */
+  area: string | null;
 }
 
 export const welcomeGuideApi = {
