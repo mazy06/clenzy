@@ -33,14 +33,17 @@ const GuestExperiencePage: React.FC = () => {
   // Slot DOM partagé : chaque onglet porte ses propres actions dans le PageHeader.
   const { slot, portalContainer } = usePageHeaderActionsSlot();
 
+  // Ordre d'affichage : Booking Engine, puis Livret d'accueil, puis Services payants.
+  // Les `value` restent stables (0 = Livret, 1 = Services, 2 = Booking) → le contenu,
+  // le sous-titre et `initialTab` ne bougent pas, seul l'ordre des pilules change.
   const tabs = [
-    { value: 0, label: t('guestExperience.tabs.welcomeGuide', "Livret d'accueil") },
-    { value: 1, label: t('guestExperience.tabs.upsells', 'Services payants') },
     {
       value: 2,
       label: t('guestExperience.tabs.bookingEngine', 'Booking Engine'),
       hidden: !isPlatformStaff,
     },
+    { value: 0, label: t('guestExperience.tabs.welcomeGuide', "Livret d'accueil") },
+    { value: 1, label: t('guestExperience.tabs.upsells', 'Services payants') },
   ];
 
   const subtitle =
