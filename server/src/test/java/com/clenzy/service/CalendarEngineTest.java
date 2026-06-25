@@ -29,6 +29,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -298,6 +299,76 @@ class CalendarEngineTest {
         assertEquals(2, result);
         assertEquals(CalendarDayStatus.AVAILABLE, day1.getStatus());
         assertEquals(CalendarDayStatus.AVAILABLE, day2.getStatus());
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_UNBLOCKED"), eq(propertyId), eq(orgId), anyString());
+    }
+
+    @Test
+    void reconcileImportedBlocks_blocksAvailableDays() {
+        LocalDate from = LocalDate.of(2099, 8, 1);
+        LocalDate to = LocalDate.of(2099, 8, 3); // [1, 3) → jours 1 et 2
+        Set<LocalDate> blocked = Set.of(LocalDate.of(2099, 8, 1), LocalDate.of(2099, 8, 2));
+
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, from, to.minusDays(1), orgId))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = calendarEngine.reconcileImportedBlocks(
+                propertyId, from, to, blocked, orgId, "ICAL:50", "ical-sync");
+
+        assertEquals(2, result.blocked());
+        assertEquals(0, result.released());
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_BLOCKED"), eq(propertyId), eq(orgId), anyString());
+    }
+
+    @Test
+    void reconcileImportedBlocks_skipsBookedDays() {
+        LocalDate d1 = LocalDate.of(2099, 8, 1);
+        LocalDate d2 = LocalDate.of(2099, 8, 2);
+        LocalDate to = LocalDate.of(2099, 8, 3);
+        CalendarDay booked = new CalendarDay(property, d1, CalendarDayStatus.BOOKED, orgId);
+
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, d1, to.minusDays(1), orgId))
+                .thenReturn(List.of(booked));
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = calendarEngine.reconcileImportedBlocks(
+                propertyId, d1, to, Set.of(d1, d2), orgId, "ICAL:50", "ical-sync");
+
+        // Le jour deja BOOKED (vraie reservation) est preserve ; seul le jour libre est bloque.
+        assertEquals(1, result.blocked());
+        assertEquals(CalendarDayStatus.BOOKED, booked.getStatus());
+    }
+
+    @Test
+    void reconcileImportedBlocks_releasesStaleBlocksOfSameFeedOnly() {
+        LocalDate kept = LocalDate.of(2099, 8, 1);
+        LocalDate stale = LocalDate.of(2099, 8, 2);
+        LocalDate manual = LocalDate.of(2099, 8, 3);
+        LocalDate to = LocalDate.of(2099, 8, 4); // [1, 4) → jours 1, 2, 3
+
+        CalendarDay icalStale = new CalendarDay(property, stale, CalendarDayStatus.BLOCKED, orgId);
+        icalStale.setSource("ICAL:50");
+        CalendarDay manualBlock = new CalendarDay(property, manual, CalendarDayStatus.BLOCKED, orgId);
+        manualBlock.setSource("MANUAL");
+
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(propertyId, kept, to.minusDays(1), orgId))
+                .thenReturn(List.of(icalStale, manualBlock));
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Le feed ne declare plus que "kept" : "stale" (de CE feed) disparait, "manual" est etranger.
+        var result = calendarEngine.reconcileImportedBlocks(
+                propertyId, kept, to, Set.of(kept), orgId, "ICAL:50", "ical-sync");
+
+        assertEquals(1, result.blocked());  // kept (cree)
+        assertEquals(1, result.released()); // stale libere
+        assertEquals(CalendarDayStatus.AVAILABLE, icalStale.getStatus());
+        assertEquals(CalendarDayStatus.BLOCKED, manualBlock.getStatus()); // blocage manuel preserve
         verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_UNBLOCKED"), eq(propertyId), eq(orgId), anyString());
     }
 

@@ -1,6 +1,8 @@
 import type { SitePageType } from '../../../../../services/api/sitesApi';
 import { conciergerieMarrakech } from './templates/conciergerieMarrakech';
 import { rechercheCataloguePremium } from './templates/rechercheCataloguePremium';
+import { villaBordDeMer } from './templates/villaBordDeMer';
+import { GENERATED_TEMPLATES } from './templates/generatedTemplates';
 
 /**
  * Galerie de templates NATIFS prêts à charger dans le Studio GrapesJS.
@@ -52,4 +54,9 @@ export interface GalleryTemplate {
 }
 
 /** Catalogue des templates de galerie. Peuplé par les templates natifs (cf. `templates/`). */
-export const GALLERY_TEMPLATES: GalleryTemplate[] = [conciergerieMarrakech, rechercheCataloguePremium];
+export const GALLERY_TEMPLATES: GalleryTemplate[] = [
+  conciergerieMarrakech,
+  villaBordDeMer,
+  rechercheCataloguePremium,
+  ...GENERATED_TEMPLATES,
+];

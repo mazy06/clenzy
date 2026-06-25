@@ -713,12 +713,13 @@ const WelcomeGuideAdmin: React.FC = () => {
       : guides;
     return (
       <Box className="be-home" data-accent="indigo" sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
-        <div className="canvas">
+        <div className="canvas" style={{ maxWidth: 1180 }}>
           {/* Bloc création (studio) — réservé au staff plateforme (cf. POST /welcome-guides).
-              Affiché en plein UNIQUEMENT en onboarding (aucun livret) ; dès qu'un livret
-              existe, on bascule sur un bandeau compact + la liste (cf. ci-dessous). */}
-          {isStaff && !isLoading && guides.length === 0 && (
-            <>
+              Même écran que le Booking Engine : TOUJOURS affiché (pas d'écran différent selon
+              qu'on ait ou non un livret). Studio à gauche, thèmes en rail vertical à droite. */}
+          {isStaff && (
+            <div className="studio-split">
+              <div className="studio-split__main">
               <div className="hero">
                 <p className="eyebrow">Livret d'accueil · Studio</p>
                 <h1>Quel livret d'accueil créons-nous&nbsp;?</h1>
@@ -772,12 +773,15 @@ const WelcomeGuideAdmin: React.FC = () => {
                 </div>
               </div>
 
-              {/* Thèmes — présélectionnent le thème du livret à la création. */}
-              <section className="templates">
+              </div>{/* /studio-split__main */}
+
+              <aside className="studio-split__rail">
+              {/* Thèmes — présélectionnent le thème du livret à la création (rail vertical). */}
+              <section className="templates templates--rail templates--scroll">
                 <div className="tpl-head">
                   <div><p className="eyebrow2">Thèmes</p><h2 className="tpl-title">Des thèmes de livret prêts à l'emploi</h2></div>
                 </div>
-                <div className="tpl-grid tpl-grid--quad">
+                <div className="tpl-grid">
                   {WELCOME_BOOK_THEMES.map((th) => (
                     <article
                       key={th.id} className="tpl-card" role="button" tabIndex={0}
@@ -804,35 +808,12 @@ const WelcomeGuideAdmin: React.FC = () => {
                   ))}
                 </div>
               </section>
-            </>
-          )}
-
-          {/* Bandeau de création compact — affiché dès qu'un livret existe (le studio
-              complet ci-dessus n'apparaît qu'en onboarding). Réservé au staff. */}
-          {isStaff && !isLoading && guides.length > 0 && (
-            <div className="lv-createbar">
-              <div className="lv-createbar__field">
-                <Sparkles size={16} strokeWidth={2} />
-                <input
-                  value={livretPrompt}
-                  onChange={(e) => setLivretPrompt(e.target.value)}
-                  placeholder={aiAssistOn ? "Coller un lien d'annonce ou décrire le logement…" : "Décrire le logement (IA désactivée — Paramètres › IA)…"}
-                  aria-label="Décrire le logement ou coller un lien d'annonce"
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleGenerateGuide(); }}
-                />
-              </div>
-              <button className="lv-createbar__ghost" type="button" disabled={generating} onClick={handleGenerateGuide}>
-                <Download size={15} strokeWidth={2} /> Importer
-              </button>
-              <button className="lv-createbar__new" type="button" onClick={() => openCreate()}>
-                <Add size={16} strokeWidth={2} /> Nouveau livret
-              </button>
+              </aside>
             </div>
           )}
 
-          {/* Mes livrets — masqué en onboarding staff (le studio complet fait office d'accueil). */}
-          {!(isStaff && !isLoading && guides.length === 0) && (
-          <section className="list lv-list" style={{ marginTop: 0 }}>
+          {/* Mes livrets — TOUJOURS affiché (même écran avec ou sans livret, comme le Booking Engine). */}
+          <section className="list lv-list" style={isStaff ? undefined : { marginTop: 0 }}>
             <div className="list__head">
               <h2>Mes livrets d'accueil</h2>
               <span className="count">{guides.length}</span>
@@ -900,7 +881,6 @@ const WelcomeGuideAdmin: React.FC = () => {
               </div>
             )}
           </section>
-          )}
         </div>
       </Box>
     );

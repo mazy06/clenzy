@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import PlanningBar from './PlanningBar';
+import PlanningBlockedBand from './PlanningBlockedBand';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, PlanningDragState } from './types';
 import { ROW_CONFIG, BAR_BORDER_RADIUS, WEEKEND_CELL_BG } from './constants';
 import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
@@ -96,7 +97,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   // rendues en pastille icône seule par PlanningBar. Chaque layout suit UN
   // seul chemin (absorbé, ignoré ou standalone) : une intervention ne peut
   // pas être rendue 2 fois.
-  const { visibleLayouts, linkedInterventionsByBarId } = useMemo(() => {
+  const { visibleLayouts, linkedInterventionsByBarId, blockedLayouts } = useMemo(() => {
     const reservationLayoutsById = new Map<number, BarLayout>();
     for (const l of barLayouts) {
       if (l.event.type === 'reservation' && l.event.reservation) {
@@ -105,11 +106,18 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
     }
     const linked = new Map<string, PlanningEvent[]>();
     const visible: BarLayout[] = [];
+    const blocked: BarLayout[] = [];
     for (const l of barLayouts) {
+      // Plage bloquée : rendue en bande de cellules grisées (PlanningBlockedBand),
+      // jamais en brique d'événement — un blocage n'est pas un séjour.
+      if (l.event.type === 'blocked') {
+        blocked.push(l);
+        continue;
+      }
       // Un ménage/maintenance rattachable provient soit d'une INTERVENTION
       // (linkedReservationId), soit d'une SERVICE REQUEST « A payer »
       // (reservationId) — les deux doivent s'afficher DANS la brique de leur
-      // réservation. Les plages bloquées (ni l'un ni l'autre) restent telles quelles.
+      // réservation.
       const isInterventionType = l.event.type === 'cleaning' || l.event.type === 'maintenance';
       const attachable = l.event.intervention || l.event.serviceRequest;
       if (isInterventionType && attachable) {
@@ -139,7 +147,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       }
       visible.push(l);
     }
-    return { visibleLayouts: visible, linkedInterventionsByBarId: linked };
+    return { visibleLayouts: visible, linkedInterventionsByBarId: linked, blockedLayouts: blocked };
   }, [barLayouts, loadedReservations]);
   const propertyPricing = showPrices ? pricingMap.get(property.id) : undefined;
   const propertyMinNights = showPrices ? minNightsMap?.get(property.id) : undefined;
@@ -271,9 +279,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
     if (isDragging) return;
     if (e.button !== 0) return; // Left button only
 
-    // Skip if the user clicked on a planning bar — let @dnd-kit handle drag
+    // Skip if the user clicked on a planning bar — let @dnd-kit handle drag.
+    // Skip aussi les plages bloquées : le clic ouvre leur tooltip, pas une sélection.
     const target = e.target as HTMLElement;
-    if (target.closest('[data-planning-bar]')) return;
+    if (target.closest('[data-planning-bar]') || target.closest('[data-blocked-range]')) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
 
@@ -558,6 +567,18 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
           </Box>
         );
       })()}
+
+      {/* Plages bloquées : cellules grisées + tooltip au clic (pas de brique) */}
+      {blockedLayouts.map((layout) => (
+        <PlanningBlockedBand
+          key={layout.event.id}
+          left={layout.left}
+          width={layout.width}
+          height={activeRowHeight}
+          notes={layout.event.label && layout.event.label !== 'Bloqué' ? layout.event.label : undefined}
+          source={layout.event.sublabel}
+        />
+      ))}
 
       {/* Event bars */}
       {visibleLayouts.map((layout) => {

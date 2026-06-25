@@ -110,6 +110,7 @@ const ReviewsPage = lazy(() => import('./channels/ReviewsPage'));
 const GuestExperiencePage = lazy(() => import('./guest-experience/GuestExperiencePage'));
 const StudioHome = lazy(() => import('./booking-engine/studio/StudioHome'));
 const StudioPage = lazy(() => import('./booking-engine/studio/StudioPage'));
+const TemplateGalleryPage = lazy(() => import('./booking-engine/studio/TemplateGalleryPage'));
 
 // Messaging — pages now merged into Documents module (redirected via Navigate)
 // import MessageTemplatesPage from './messaging/MessageTemplatesPage';
@@ -495,6 +496,13 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="properties:view">
             <ErrorBoundary>
               <StudioHome />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+        <Route path="/booking-engine/templates" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <TemplateGalleryPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

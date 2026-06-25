@@ -22,7 +22,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import type { AlertColor } from '@mui/material';
+import type { AlertColor, SxProps, Theme } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
   Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus,
@@ -36,7 +36,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { useCurrency } from '../../hooks/useCurrency';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
-import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
+import { usePageHeaderActions, usePageHeaderFilters } from '../../components/PageHeaderActionsContext';
 import { Money } from '../../components/Money';
 import { EmptyHint, SectionHeading } from './formPrimitives';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -58,6 +58,38 @@ const TYPE_FALLBACK: Record<string, string> = {
 const TYPES = Object.keys(TYPE_FALLBACK);
 const DEFAULT_CURRENCY = 'EUR';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Actions d'en-tête uniformes (même hauteur / rayon / typo). Deux secondaires
+// « ghost » (Commissions, Ventes) + une primaire pleine (Nouveau service).
+const HEADER_ACTION_BASE = {
+  height: 34, textTransform: 'none', fontWeight: 600, fontSize: 13,
+  borderRadius: '10px', px: 1.75, whiteSpace: 'nowrap',
+  '& .MuiButton-startIcon': { mr: 0.625 },
+} satisfies SxProps<Theme>;
+const headerSecondarySx: SxProps<Theme> = {
+  ...HEADER_ACTION_BASE,
+  color: 'var(--body)', borderColor: 'var(--line-2)', bgcolor: 'transparent',
+  '&:hover': { borderColor: 'var(--faint)', bgcolor: 'var(--hover)' },
+};
+const headerPrimarySx: SxProps<Theme> = {
+  ...HEADER_ACTION_BASE,
+  boxShadow: 'none',
+  '&:hover': { boxShadow: 'none' },
+};
+// Filtres dans le PageHeader (Canal / Catégorie) : boutons étiquetés (icône en
+// enfant, PAS startIcon → non repliés en icon-only par PageHeaderActions).
+const headerFilterSx = {
+  height: 34, textTransform: 'none', fontWeight: 600, fontSize: 13,
+  borderRadius: '10px', px: 1.5, gap: 0.75, whiteSpace: 'nowrap',
+  color: 'var(--body)', borderColor: 'var(--line-2)', bgcolor: 'transparent',
+  '& svg': { color: 'var(--muted)' },
+  '&:hover': { borderColor: 'var(--faint)', bgcolor: 'var(--hover)' },
+} satisfies SxProps<Theme>;
+const headerFilterActiveSx: SxProps<Theme> = {
+  ...headerFilterSx,
+  color: 'var(--accent)', borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)',
+  '& svg': { color: 'var(--accent)' },
+};
 
 // Icône lucide par type de service.
 const TYPE_ICON: Record<string, typeof Tag> = {
@@ -512,44 +544,65 @@ const UpsellsAdmin: React.FC = () => {
   // Actions portées dans le PageHeader (slot multi-tabs partagé) — comme l'onglet Livret.
   const headerActions = usePageHeaderActions(
     <>
-      <Button variant="outlined" size="small" startIcon={<Percent size={14} strokeWidth={1.75} />} onClick={() => setCommissionsOpen(true)}>
+      <Button variant="outlined" sx={headerSecondarySx} startIcon={<Percent size={15} strokeWidth={2} />} onClick={() => setCommissionsOpen(true)}>
         {t('upsells.actions.commissions', 'Commissions')}
       </Button>
-      <Button variant="outlined" size="small" startIcon={<Receipt size={14} strokeWidth={1.75} />} onClick={() => setOrdersOpen(true)}>
+      <Button variant="outlined" sx={headerSecondarySx} startIcon={<Receipt size={15} strokeWidth={2} />} onClick={() => setOrdersOpen(true)}>
         {t('upsells.actions.orders', 'Ventes')}
       </Button>
-      <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => openCreate()}>
+      <Button variant="contained" disableElevation sx={headerPrimarySx} startIcon={<Add size={15} strokeWidth={2} />} onClick={() => openCreate()}>
         {t('upsells.actions.new', 'Nouveau service')}
       </Button>
     </>,
   );
 
+  // Filtres portés dans le PageHeader (recherche + Canal + Catégorie). Uniquement
+  // en vue catalogue (masqués sur l'écran détaillé d'un service).
+  const headerFilters = usePageHeaderFilters(
+    selected ? null : (
+      <>
+        <Button variant="outlined" size="small" sx={canalFilter !== 'all' ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCanalAnchor(e.currentTarget)}>
+          <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
+        </Button>
+        <Button variant="outlined" size="small" sx={catFilter ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCatAnchor(e.currentTarget)}>
+          <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
+        </Button>
+        <TextField
+          size="small"
+          placeholder={t('upsells.search.placeholder', 'Rechercher un service…')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+                  <Search size={'1.05rem'} strokeWidth={2} />
+                </Box>
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: { xs: 150, sm: 230 }, '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.8125rem', height: 34 } }}
+        />
+      </>
+    ),
+  );
+
   // ── Catalogue (vue liste) ──────────────────────────────────────────────────
   const renderList = () => (
     <>
-      <div className="kpis">
-        <div className="kpi"><b>{activeCount}</b><span>{t('upsells.kpi.active', 'Services actifs')}</span></div>
-        <div className="kpi"><b>{bookings30}</b><span>{t('upsells.kpi.bookings', 'Réservations · 30 j')}</span></div>
-        <div className="kpi"><b><Money value={revenue30} decimals={0} /></b><span>{t('upsells.kpi.revenue', 'Revenu · 30 j')}</span></div>
-      </div>
-
-      <div className="toolbar">
+      {/* KPIs + segment de vue sur une MÊME ligne (recherche + filtres Canal/Catégorie
+          sont dans le PageHeader). */}
+      <div className="svc-band">
+        <div className="kpis">
+          <div className="kpi"><b>{activeCount}</b><span>{t('upsells.kpi.active', 'Services actifs')}</span></div>
+          <div className="kpi"><b>{bookings30}</b><span>{t('upsells.kpi.bookings', 'Réservations · 30 j')}</span></div>
+          <div className="kpi"><b><Money value={revenue30} decimals={0} /></b><span>{t('upsells.kpi.revenue', 'Revenu · 30 j')}</span></div>
+        </div>
         <div className="filters">
           <button className={seg === 'all' ? 'on' : ''} onClick={() => setSeg('all')}>{t('upsells.seg.all', 'Tous')} <span className="n">{totalCount}</span></button>
           <button className={seg === 'internal' ? 'on' : ''} onClick={() => setSeg('internal')}>{t('upsells.seg.internal', 'Internes')} <span className="n">{offers.length}</span></button>
           <button className={seg === 'partner' ? 'on' : ''} onClick={() => setSeg('partner')}>{t('upsells.seg.partner', 'Partenaires')} <span className="n">{partnerTotal}</span></button>
         </div>
-        <div className="tb-sp" />
-        <button className={`chip-btn ${canalFilter !== 'all' ? 'on' : ''}`} onClick={(e) => setCanalAnchor(e.currentTarget)}>
-          <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
-        </button>
-        <button className={`chip-btn ${catFilter ? 'on' : ''}`} onClick={(e) => setCatAnchor(e.currentTarget)}>
-          <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
-        </button>
-        <label className="search">
-          <Search size={15} strokeWidth={2} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('upsells.search.placeholder', 'Rechercher un service…')} />
-        </label>
       </div>
 
       {seg !== 'partner' && (
@@ -881,6 +934,7 @@ const UpsellsAdmin: React.FC = () => {
   return (
     <Box>
       {headerActions}
+      {headerFilters}
 
       {/* Aperçu guest d'un service : carte telle que le voyageur la voit (livret / booking engine). */}
       <Dialog open={!!previewOffer} onClose={() => setPreviewOffer(null)} maxWidth="xs" fullWidth>

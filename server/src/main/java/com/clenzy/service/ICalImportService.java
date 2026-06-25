@@ -8,6 +8,7 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.ical.FeedUrlMasker;
+import com.clenzy.service.ical.ICalBlockImporter;
 import com.clenzy.service.ical.ICalCleaningScheduler;
 import com.clenzy.service.ical.ICalFeedDownloader;
 import com.clenzy.service.ical.ICalImportSession;
@@ -65,6 +66,7 @@ public class ICalImportService {
     private final OtaReservationInvoicingService otaInvoicingService;
     private final ICalFeedDownloader feedDownloader;
     private final ICalReservationImporter reservationImporter;
+    private final ICalBlockImporter blockImporter;
     private final ICalOrphanDetector orphanDetector;
     private final ICalCleaningScheduler cleaningScheduler;
     /** Proxy Spring de ce bean : permet a syncFeeds d'invoquer importICalFeed AVEC sa
@@ -83,6 +85,7 @@ public class ICalImportService {
                              OtaReservationInvoicingService otaInvoicingService,
                              ICalFeedDownloader feedDownloader,
                              ICalReservationImporter reservationImporter,
+                             ICalBlockImporter blockImporter,
                              ICalOrphanDetector orphanDetector,
                              ICalCleaningScheduler cleaningScheduler,
                              ObjectProvider<ICalImportService> self) {
@@ -98,6 +101,7 @@ public class ICalImportService {
         this.otaInvoicingService = otaInvoicingService;
         this.feedDownloader = feedDownloader;
         this.reservationImporter = reservationImporter;
+        this.blockImporter = blockImporter;
         this.orphanDetector = orphanDetector;
         this.cleaningScheduler = cleaningScheduler;
         this.self = self;
@@ -161,6 +165,7 @@ public class ICalImportService {
 
         ICalEventParser.ParseResult parseResult = fetchAndParseICalFeedDetailed(request.getUrl(), resolvePropertyZone(property));
         List<ICalEventPreview> reservationEvents = filterReservationEvents(parseResult.events());
+        List<ICalEventPreview> blockedEvents = filterBlockedEvents(parseResult.events());
 
         ICalFeed feed = upsertFeed(property, request);
         ICalImportSession session = new ICalImportSession(request, property, feed, orgId,
@@ -173,6 +178,8 @@ public class ICalImportService {
         }
 
         orphanDetector.detectAndCancelOrphans(session, reservationEvents);
+        // Blocages OTA ("Not available", "Blocked") -> CalendarDay BLOCKED (planning + booking engine).
+        blockImporter.importBlocks(session, blockedEvents);
         persistFeedSyncResult(session);
         auditAndLogResult(session);
 
@@ -222,14 +229,19 @@ public class ICalImportService {
      * seules les vraies reservations sont retournees.
      */
     private static List<ICalEventPreview> filterReservationEvents(List<ICalEventPreview> events) {
-        List<ICalEventPreview> reservations = events.stream()
+        return events.stream()
                 .filter(e -> !"blocked".equals(e.getType()))
                 .collect(Collectors.toList());
-        int blocksIgnored = events.size() - reservations.size();
-        if (blocksIgnored > 0) {
-            log.info("iCal import: {} bloc(s) ignore(s) (Not available / Blocked)", blocksIgnored);
-        }
-        return reservations;
+    }
+
+    /**
+     * Isole les blocages de calendrier ("Not available", "Blocked", ...) : reconcilies
+     * en CalendarDay BLOCKED par {@link ICalBlockImporter}, separement des reservations.
+     */
+    private static List<ICalEventPreview> filterBlockedEvents(List<ICalEventPreview> events) {
+        return events.stream()
+                .filter(e -> "blocked".equals(e.getType()))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -294,13 +306,17 @@ public class ICalImportService {
     }
 
     private void auditAndLogResult(ICalImportSession session) {
-        String auditMsg = String.format("Import iCal: %d importees, %d doublons, %d annulees, %d erreurs",
-                session.imported, session.skipped, session.cancelled, session.errors.size());
+        String auditMsg = String.format(
+                "Import iCal: %d importees, %d doublons, %d annulees, %d jours bloques, %d jours liberes, %d erreurs",
+                session.imported, session.skipped, session.cancelled,
+                session.blocksApplied, session.blocksReleased, session.errors.size());
         auditLogService.logSync("ICalImport", session.feed.getId().toString(), auditMsg);
 
-        log.info("Import iCal termine pour propriete {} ({}): {} importees, {} doublons, {} annulees, {} erreurs",
+        log.info("Import iCal termine pour propriete {} ({}): {} importees, {} doublons, {} annulees, "
+                        + "{} jours bloques, {} jours liberes, {} erreurs",
                 session.property.getName(), session.request.getSourceName(),
-                session.imported, session.skipped, session.cancelled, session.errors.size());
+                session.imported, session.skipped, session.cancelled,
+                session.blocksApplied, session.blocksReleased, session.errors.size());
     }
 
     private ImportResponse buildResponse(ICalImportSession session) {
@@ -308,6 +324,8 @@ public class ICalImportService {
         response.setImported(session.imported);
         response.setSkipped(session.skipped);
         response.setCancelled(session.cancelled);
+        response.setDaysBlocked(session.blocksApplied);
+        response.setDaysReleased(session.blocksReleased);
         response.setErrors(session.errors);
         response.setFeedId(session.feed.getId());
         return response;
