@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -42,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -112,6 +114,7 @@ class ICalImportServiceImportFlowTest {
             serviceRequestService, otaInvoicingService, feedDownloader,
             new com.clenzy.service.ical.ICalReservationImporter(
                 reservationRepository2, priceEngine, guestService, tenantContext, canceller),
+            new com.clenzy.service.ical.ICalBlockImporter(calendarEngine),
             new com.clenzy.service.ical.ICalOrphanDetector(reservationRepository2, canceller),
             new com.clenzy.service.ical.ICalCleaningScheduler(
                 serviceRequestRepository, pricingConfigService, tenantContext),
@@ -245,6 +248,71 @@ class ICalImportServiceImportFlowTest {
         assertThat(response.getFeedId()).isEqualTo(50L);
         verify(reservationRepository2, atLeastOnce()).save(any(Reservation.class));
         verify(auditLogService).logSync(eq("ICalImport"), eq("50"), anyString());
+    }
+
+    // ─── Test blocage : VEVENT "Not available" → reconciliation CalendarDay BLOCKED ──
+
+    @Test
+    @DisplayName("blocage Airbnb ('Not available') → reconciliation CalendarDay BLOCKED, pas de Reservation")
+    void importIcalFeed_blockedRange_reconcilesCalendarBlocks() {
+        // Arrange
+        User owner = host(10L, "kc", "premium");
+        Property prop = property(20L, owner);
+        when(userRepository.findByKeycloakId("kc")).thenReturn(Optional.of(owner));
+        when(propertyRepository.findById(20L)).thenReturn(Optional.of(prop));
+        when(icalFeedRepository.findByUrlAndDifferentProperty(eq(FEED_URL), eq(20L), eq(ORG_ID)))
+            .thenReturn(List.of());
+        when(icalFeedRepository.findByPropertyIdAndUrl(eq(20L), eq(FEED_URL), eq(ORG_ID)))
+            .thenReturn(null);
+        when(icalFeedRepository.save(any(ICalFeed.class))).thenAnswer(inv -> {
+            ICalFeed f = inv.getArgument(0);
+            if (f.getId() == null) f.setId(50L);
+            return f;
+        });
+        when(reservationRepository2.findByPropertyId(eq(20L), eq(ORG_ID))).thenReturn(List.of());
+        when(reservationRepository2.findActiveByICalFeedId(50L, ORG_ID)).thenReturn(List.of());
+        when(calendarEngine.reconcileImportedBlocks(
+                eq(20L), any(), any(), any(), eq(ORG_ID), eq("ICAL:50"), eq("ical-sync")))
+            .thenReturn(new CalendarEngine.BlockReconcileResult(31, 0));
+
+        // Blocage du mois d'aout 2099 (date lointaine → toujours future a l'execution).
+        // DTEND exclusif (01/09) → 31 jours bloques (01→31 aout).
+        String ics = """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//TestProvider//iCalImport//EN
+            BEGIN:VEVENT
+            UID:block-aout@example.com
+            DTSTART;VALUE=DATE:20990801
+            DTEND;VALUE=DATE:20990901
+            SUMMARY:Airbnb (Not available)
+            END:VEVENT
+            END:VCALENDAR
+            """;
+        injectHttpClientReturning(ics, 200);
+
+        ImportRequest req = new ImportRequest();
+        req.setUrl(FEED_URL);
+        req.setPropertyId(20L);
+        req.setSourceName("Airbnb");
+        req.setAutoCreateInterventions(false);
+
+        // Act
+        ImportResponse response = service.importICalFeed(req, "kc");
+
+        // Assert : aucune Reservation creee (un blocage n'est pas une reservation),
+        // mais une reconciliation calendrier portant les 31 jours bloques.
+        assertThat(response.getImported()).isZero();
+        assertThat(response.getErrors()).isEmpty();
+        verify(reservationRepository2, never()).save(any(Reservation.class));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Set<LocalDate>> datesCaptor = ArgumentCaptor.forClass(Set.class);
+        verify(calendarEngine).reconcileImportedBlocks(
+                eq(20L), any(), any(), datesCaptor.capture(), eq(ORG_ID), eq("ICAL:50"), eq("ical-sync"));
+        assertThat(datesCaptor.getValue()).hasSize(31)
+                .contains(LocalDate.of(2099, 8, 1), LocalDate.of(2099, 8, 31))
+                .doesNotContain(LocalDate.of(2099, 9, 1));
     }
 
     @Test

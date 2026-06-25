@@ -36,6 +36,10 @@ export interface ICalPreviewResponse {
 export interface ICalImportResponse {
   imported: number;
   skipped: number;
+  /** Jours bloqués depuis les périodes "Not available" / "Blocked" du calendrier OTA. */
+  daysBlocked?: number;
+  /** Jours libérés : blocages de ce flux disparus côté OTA. */
+  daysReleased?: number;
   errors: string[];
   feedId: number;
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
 import {
   Rocket, PanelLeftClose, PanelLeftOpen,
@@ -26,7 +27,7 @@ import {
   parseSavedComposites, serializeSavedComposites, type CompositeWidget,
 } from './compositeWidgets';
 import { validateComposition } from './funnelRules';
-import type { GalleryTemplate } from './import/galleryTemplates';
+import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 import { sanitizeHtml, sanitizeCss } from './import/sanitizeHtml';
 import PagesBar from '../builder/PagesBar';
 import { useSitePages } from '../useSitePages';
@@ -601,6 +602,11 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
   // Miroir d'état de l'éditeur : permet à la modale d'import (React) de se (re)rendre une fois l'éditeur
   // monté, sans relire la ref (les refs ne déclenchent pas de rendu).
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
+  // Template choisi depuis la galerie StudioHome (« Utiliser ce template ») : transmis via le state de
+  // navigation, consommé une fois l'éditeur + les pages prêts (cf. effet d'auto-import plus bas).
+  const location = useLocation();
+  const navigate = useNavigate();
+  const autoImportedRef = useRef(false);
   // Ouverture de la modale d'import (pilotée par le bouton de panneau via la commande GrapesJS).
   const [importOpen, setImportOpen] = useState(false);
   const [funnelPickerOpen, setFunnelPickerOpen] = useState(false);
@@ -1145,6 +1151,24 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       if (home) loadPageInto(editor, envelopeOf(home));
     }
   }, [pages, cfg]);
+
+  // ── Auto-import du template de galerie ─────────────────────────────────────────
+  // « Utiliser ce template » (StudioHome) crée le booking engine puis navigue ici avec `templateId` en
+  // state. Une fois l'éditeur monté ET les pages résolues (ou en repli mono-page), on importe une seule
+  // fois, puis on consomme le state (replace) pour éviter un ré-import au rechargement.
+  useEffect(() => {
+    if (autoImportedRef.current) return;
+    const templateId = (location.state as { templateId?: string } | null)?.templateId;
+    if (!templateId) return;
+    if (!editorInstance || cfg.loading) return;
+    // Attendre que les SitePages soient résolues (ready) ou définitivement en erreur (repli mono-page).
+    if (cfg.config != null && !pages.ready && pages.error == null) return;
+    autoImportedRef.current = true;
+    const template = GALLERY_TEMPLATES.find((t) => t.id === templateId);
+    if (template) void handleImportTemplate(template);
+    // Consomme le state : un rechargement ne doit pas ré-importer par-dessus les modifications de l'hôte.
+    navigate(location.pathname, { replace: true, state: null });
+  }, [editorInstance, cfg.loading, cfg.config, pages.ready, pages.error, location, navigate, handleImportTemplate]);
 
   // Publication (B4) : enregistre le brouillon courant puis fige l'instantané publié (servi au public).
   const handlePublish = useCallback(async () => {

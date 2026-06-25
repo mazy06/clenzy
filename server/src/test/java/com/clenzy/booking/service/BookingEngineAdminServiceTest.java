@@ -39,13 +39,14 @@ class BookingEngineAdminServiceTest {
 
     @Mock private BookingEngineConfigRepository configRepository;
     @Mock private OrganizationRepository organizationRepository;
+    @Mock private com.clenzy.booking.repository.SiteRepository siteRepository;
     @Mock private TenantContext tenantContext;
 
     private BookingEngineAdminService service;
 
     @BeforeEach
     void setUp() {
-        service = new BookingEngineAdminService(configRepository, organizationRepository, tenantContext);
+        service = new BookingEngineAdminService(configRepository, organizationRepository, siteRepository, tenantContext);
     }
 
     // ─── helpers ─────────────────────────────────────────────────────────

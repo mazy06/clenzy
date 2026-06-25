@@ -39,6 +39,10 @@ public final class ICalImportSession {
     public int imported;
     public int skipped;
     public int cancelled;
+    /** Jours nouvellement bloques en calendrier depuis les blocages OTA du feed. */
+    public int blocksApplied;
+    /** Jours liberes : blocages de CE feed disparus du flux iCal. */
+    public int blocksReleased;
     public final List<String> errors = new ArrayList<>();
     /** SR dont l'auto-assignation est differee jusqu'apres le commit. */
     public final List<Long> srsToAutoAssign = new ArrayList<>();

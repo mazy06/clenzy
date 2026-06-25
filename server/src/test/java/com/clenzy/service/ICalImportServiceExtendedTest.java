@@ -98,6 +98,7 @@ class ICalImportServiceExtendedTest {
             new com.clenzy.service.ical.ICalFeedDownloader(),
             new com.clenzy.service.ical.ICalReservationImporter(
                 reservationRepository2, priceEngine, guestService, tenantContext, canceller),
+            new com.clenzy.service.ical.ICalBlockImporter(calendarEngine),
             new com.clenzy.service.ical.ICalOrphanDetector(reservationRepository2, canceller),
             new com.clenzy.service.ical.ICalCleaningScheduler(
                 serviceRequestRepository, pricingConfigService, tenantContext),

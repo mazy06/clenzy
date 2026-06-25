@@ -94,6 +94,10 @@ public class ICalImportDto {
         private int imported;
         private int skipped;
         private int cancelled;
+        /** Jours nouvellement bloques depuis les blocages OTA du feed (ex: "Not available"). */
+        private int daysBlocked;
+        /** Jours liberes : blocages de ce feed disparus du flux iCal. */
+        private int daysReleased;
         private List<String> errors;
         private Long feedId;
 
@@ -103,6 +107,10 @@ public class ICalImportDto {
         public void setSkipped(int skipped) { this.skipped = skipped; }
         public int getCancelled() { return cancelled; }
         public void setCancelled(int cancelled) { this.cancelled = cancelled; }
+        public int getDaysBlocked() { return daysBlocked; }
+        public void setDaysBlocked(int daysBlocked) { this.daysBlocked = daysBlocked; }
+        public int getDaysReleased() { return daysReleased; }
+        public void setDaysReleased(int daysReleased) { this.daysReleased = daysReleased; }
         public List<String> getErrors() { return errors; }
         public void setErrors(List<String> errors) { this.errors = errors; }
         public Long getFeedId() { return feedId; }

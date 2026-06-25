@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Menu, MenuItem, Skeleton } from '@mui/material';
+import { Box, Menu, MenuItem, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import {
   Plus, LayoutDashboard, Sparkles, ArrowUp, Search, Home, Layers, FileText,
-  ShoppingBag, Zap, ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown,
+  ShoppingBag, Zap, ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
 } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfig, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { BUILTIN_FUNNEL_PRESETS } from './grapes/funnelPresets';
@@ -28,7 +28,7 @@ import './studioHome.css';
  */
 
 /** Payload de création d'un booking engine vierge (éditeur démarre sur page blanche). */
-function buildConfigPayload(name: string): BookingEngineConfigUpdate {
+export function buildConfigPayload(name: string): BookingEngineConfigUpdate {
   return {
     name,
     primaryColor: '#5453D6', accentColor: null, logoUrl: null, fontFamily: 'Inter',
@@ -56,6 +56,7 @@ const FAN_FUNNELS = ['catalogue', 'single', 'inquiry', 'extras', 'express']
 /** Funnel associé à un template (pour le badge de la carte). */
 const TEMPLATE_FUNNEL_LABEL: Record<string, string> = {
   'conciergerie-marrakech': 'Recherche Catalogue',
+  'villa-bord-de-mer': 'Recherche Catalogue',
   'recherche-catalogue-premium': 'Recherche Catalogue',
 };
 
@@ -90,6 +91,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   // Liste
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'list' | 'grid'>('list');
+  // Suppression d'un booking engine (depuis « Mes booking engines ») : confirmation puis DELETE org-scopé.
+  const [confirmDelete, setConfirmDelete] = useState<BookingEngineConfig | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -163,9 +167,24 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     createAndOpen(
       tpl?.name ?? 'Nouveau booking engine',
       { ...(tpl?.theme?.primaryColor ? { primaryColor: tpl.theme.primaryColor } : {}), ...(tpl?.theme?.fontFamily ? { fontFamily: tpl.theme.fontFamily } : {}) },
-      // TODO(éditeur) : importer les pages du template (useSitePages.importPages) au chargement via ce state.
+      // `templateId` consommé par GrapesStudio (effet d'auto-import) une fois l'éditeur + les pages prêts.
       { templateId: tplId },
     );
+  };
+
+  // Supprime le booking engine confirmé (DELETE org-scopé côté serveur) puis retire la ligne localement.
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await bookingEngineApi.deleteConfig(confirmDelete.id);
+      setConfigs((prev) => (prev ? prev.filter((c) => c.id !== confirmDelete.id) : prev));
+      setConfirmDelete(null);
+    } catch {
+      setError('La suppression du booking engine a échoué.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const filtered = useMemo(
@@ -184,12 +203,16 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
   const content = (
     <Box className="be-home" data-accent="indigo">
-      <div className="canvas">
+      <div className="canvas" style={{ maxWidth: 1180 }}>
         {error && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 13 }}>
             <AlertTriangle size={16} strokeWidth={2} /> {error}
           </Box>
         )}
+
+        {/* Studio à 2 colonnes : création (gauche) + rail templates vertical (droite). */}
+        <div className="studio-split">
+          <div className="studio-split__main">
 
         {/* 1 · Hero */}
         <div className="hero">
@@ -292,20 +315,23 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           </div>
         </div>
 
-        {/* 4 · Templates prêts à l'emploi */}
-        <section className="templates">
+          </div>{/* /studio-split__main */}
+
+          <aside className="studio-split__rail">
+        {/* 4 · Templates prêts à l'emploi (rail vertical) */}
+        <section className="templates templates--rail">
           <div className="tpl-head">
             <div>
               <p className="eyebrow2">Templates</p>
               <h2 className="tpl-title">Des sites prêts à l'emploi</h2>
             </div>
-            {/* TODO : page « tous les templates » (galerie complète). */}
-            <button className="tpl-all" type="button" onClick={handleCreateBlank}>
+            {/* Aperçu = 3 premiers ; la galerie complète (paginée) vit sur /booking-engine/templates. */}
+            <button className="tpl-all" type="button" onClick={() => navigate('/booking-engine/templates')}>
               Voir tous les templates <ArrowRight size={15} strokeWidth={2} />
             </button>
           </div>
           <div className="tpl-grid">
-            {GALLERY_TEMPLATES.map((tpl) => {
+            {GALLERY_TEMPLATES.slice(0, 3).map((tpl) => {
               const c1 = tpl.theme?.primaryColor || 'var(--accent)';
               return (
                 <article
@@ -338,6 +364,8 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             })}
           </div>
         </section>
+          </aside>{/* /studio-split__rail */}
+        </div>{/* /studio-split */}
 
         {/* 5 · Mes booking engines */}
         <section className="list">
@@ -367,20 +395,23 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             <div className="tbl">
               <div className="tbl__h"><span>Nom</span><span>Statut</span><span>Dernière modif.</span><span>Accès</span></div>
               {filtered.map((c) => (
-                <button key={c.id} className="row" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
-                  <div className="row__name">
-                    <div className="row__ic" style={{ background: c.primaryColor || 'var(--accent)' }}><LayoutDashboard size={19} strokeWidth={2} /></div>
-                    <div>
-                      <p className="row__t">{c.name}</p>
-                      {/* TODO : vraie URL publique (la config n'expose pas de slug). */}
-                      <p className="row__u">{c.enabled ? 'Publié' : 'Brouillon · non publié'}</p>
+                <div key={c.id} className="row-wrap">
+                  <button className="row" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
+                    <div className="row__name">
+                      <div className="row__ic" style={{ background: c.primaryColor || 'var(--accent)' }}><LayoutDashboard size={19} strokeWidth={2} /></div>
+                      <div>
+                        <p className="row__t">{c.name}</p>
+                        {/* TODO : vraie URL publique (la config n'expose pas de slug). */}
+                        <p className="row__u">{c.enabled ? 'Publié' : 'Brouillon · non publié'}</p>
+                      </div>
                     </div>
-                  </div>
-                  <span className={`status ${c.enabled ? 'active' : 'off'}`}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
-                  {/* TODO : « dernière modif » (la config n'expose pas updatedAt). */}
-                  <span className="row__meta">—</span>
-                  <div className="row__acc"><span className="av-sm">{initials}</span><span className="row__go"><ArrowRight size={17} strokeWidth={2} /></span></div>
-                </button>
+                    <span className={`status ${c.enabled ? 'active' : 'off'}`}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
+                    {/* TODO : « dernière modif » (la config n'expose pas updatedAt). */}
+                    <span className="row__meta">—</span>
+                    <div className="row__acc"><span className="av-sm">{initials}</span><span className="row__go"><ArrowRight size={17} strokeWidth={2} /></span></div>
+                  </button>
+                  <button className="row__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={16} strokeWidth={2} /></button>
+                </div>
               ))}
             </div>
           )}
@@ -388,23 +419,41 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           {configs && configs.length > 0 && view === 'grid' && (
             <div className="grid">
               {filtered.map((c) => (
-                <button key={c.id} className="gcard" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
-                    <Box sx={{ width: 36, height: 36, borderRadius: '10px', flexShrink: 0, bgcolor: c.primaryColor || 'var(--accent)' }} />
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Box sx={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--ink)' }}>{c.name}</Box>
-                      <span className={`status ${c.enabled ? 'active' : 'off'}`} style={{ fontSize: 12 }}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
+                <div key={c.id} className="gcard-wrap">
+                  <button className="gcard" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+                      <Box sx={{ width: 36, height: 36, borderRadius: '10px', flexShrink: 0, bgcolor: c.primaryColor || 'var(--accent)' }} />
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Box sx={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--ink)' }}>{c.name}</Box>
+                        <span className={`status ${c.enabled ? 'active' : 'off'}`} style={{ fontSize: 12 }}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
+                      </Box>
                     </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
-                    Ouvrir <ArrowRight size={14} strokeWidth={2} />
-                  </Box>
-                </button>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
+                      Ouvrir <ArrowRight size={14} strokeWidth={2} />
+                    </Box>
+                  </button>
+                  <button className="gcard__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={15} strokeWidth={2} /></button>
+                </div>
               ))}
             </div>
           )}
         </section>
       </div>
+
+      <Dialog open={!!confirmDelete} onClose={() => !deleting && setConfirmDelete(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Supprimer ce booking engine ?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'var(--muted)' }}>
+            « {confirmDelete?.name} » sera définitivement supprimé, avec ses pages et son contenu. Cette action est irréversible.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setConfirmDelete(null)} disabled={deleting} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
+          <Button onClick={handleDelete} disabled={deleting} color="error" variant="contained" disableElevation startIcon={<Trash2 size={16} strokeWidth={2} />} sx={{ textTransform: 'none' }}>
+            {deleting ? 'Suppression…' : 'Supprimer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 
