@@ -57,6 +57,9 @@ jobs:
       - name: Build production bundle
         working-directory: client
         env:
+          # Heap Node augmente : le bundle (SDK + app + module supervision) depassait
+          # la limite par defaut → "JavaScript heap out of memory" (exit 134) au vite build.
+          NODE_OPTIONS: --max-old-space-size=4096
           VITE_API_BASE_URL: https://app.clenzy.fr
           VITE_API_BASE_PATH: /api
           VITE_KEYCLOAK_URL: https://auth.clenzy.fr
