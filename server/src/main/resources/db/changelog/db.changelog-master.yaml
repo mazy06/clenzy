@@ -2742,3 +2742,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0281__add_ai_model_availability.sql
         relativeToChangelogFile: true
+
+  # Fiche de police / déclaration voyageur (entité dédiée, distincte du check-in online).
+  # PII chiffrées AES, org-scopé, cible de purge 6 mois (CESEDA R814-3).
+  - changeSet:
+      id: "0282-create-guest-declarations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0282__create_guest_declarations.sql
+        relativeToChangelogFile: true
