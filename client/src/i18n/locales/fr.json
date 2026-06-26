@@ -1974,6 +1974,18 @@
     }
   },
   "reservations": {
+    "compliance": {
+      "title": "Fiche de police",
+      "primaryTraveler": "Voyageur principal",
+      "companion": "Accompagnant {{n}}",
+      "transmitted": "Transmise",
+      "toTransmit": "À transmettre",
+      "resubmit": "Resoumettre",
+      "success": "Transmise au téléservice",
+      "notSubmitted": "Non transmise",
+      "providerPending": "Intégration provider en attente",
+      "error": "Échec de la transmission"
+    },
     "title": "Réservations",
     "subtitle": "Consultez et gérez les réservations de vos propriétés",
     "create": "Nouvelle réservation",

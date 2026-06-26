@@ -2,24 +2,32 @@ package com.clenzy.integration.compliance.controller;
 
 import com.clenzy.integration.compliance.submission.ComplianceProviderPendingException;
 import com.clenzy.integration.compliance.submission.ComplianceSubmissionService;
+import com.clenzy.integration.compliance.submission.DeclarationSummaryDto;
 import com.clenzy.integration.compliance.submission.SubmissionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
- * Controller de retry manuel de la soumission d'une fiche de police au provider de conformité.
+ * Controller de consultation du statut + retry manuel de la soumission d'une fiche de police
+ * au provider de conformité.
  *
- * <p>Endpoint d'administration : {@code POST /api/compliance/declarations/{id}/submit}. Controller
- * <b>mince</b> — délègue à {@link ComplianceSubmissionService} (ownership org validé côté service).
- * Restreint à HOST / SUPER_ADMIN / SUPER_MANAGER.</p>
+ * <ul>
+ *   <li>{@code GET  /api/compliance/declarations/by-reservation/{reservationId}} — statut (sans PII).</li>
+ *   <li>{@code POST /api/compliance/declarations/{id}/submit} — (re)soumission.</li>
+ * </ul>
+ *
+ * <p>Controller <b>mince</b> — délègue à {@link ComplianceSubmissionService} (ownership org validé
+ * côté service). Restreint à HOST / SUPER_ADMIN / SUPER_MANAGER.</p>
  */
 @RestController
 @RequestMapping("/api/compliance/declarations")
@@ -32,6 +40,11 @@ public class ComplianceSubmissionController {
 
     public ComplianceSubmissionController(ComplianceSubmissionService submissionService) {
         this.submissionService = submissionService;
+    }
+
+    @GetMapping("/by-reservation/{reservationId}")
+    public ResponseEntity<List<DeclarationSummaryDto>> byReservation(@PathVariable Long reservationId) {
+        return ResponseEntity.ok(submissionService.listForReservation(reservationId));
     }
 
     @PostMapping("/{id}/submit")

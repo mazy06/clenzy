@@ -85,6 +85,37 @@ public class ComplianceSubmissionService {
     }
 
     /**
+     * Liste (sans PII) les fiches de police d'une réservation, pour l'affichage du
+     * statut de soumission côté host. <b>Valide l'ownership org</b> de chaque déclaration
+     * ({@code findByReservationId...} ne traverse pas le filtre Hibernate via le retour
+     * lazy {@code reservation}, donc on garde la garde explicite par déclaration).
+     *
+     * <p>Aucun champ d'identité n'est exposé : seul un {@link DeclarationSummaryDto} générique.</p>
+     *
+     * @param reservationId réservation cible
+     * @return déclarations (principal d'abord) mappées sans PII ; liste vide si aucune
+     */
+    @Transactional(readOnly = true)
+    public List<DeclarationSummaryDto> listForReservation(Long reservationId) {
+        List<GuestDeclaration> declarations = declarationRepository.findByReservationIdOrderByIdAsc(reservationId);
+        return declarations.stream()
+                .peek(d -> accessGuard.requireSameOrganization(
+                        d.getOrganizationId(), "Déclaration hors de votre organisation"))
+                .map(this::toSummary)
+                .toList();
+    }
+
+    private DeclarationSummaryDto toSummary(GuestDeclaration d) {
+        return new DeclarationSummaryDto(
+                d.getId(),
+                d.isPrimary(),
+                d.getStatus() == null ? null : d.getStatus().name(),
+                d.getProviderType(),
+                d.getSubmittedAt() == null ? null : d.getSubmittedAt().toString(),
+                d.isSubmittedToProvider());
+    }
+
+    /**
      * Retry manuel d'une déclaration unique (endpoint admin). Valide l'ownership org puis soumet.
      *
      * @param declarationId déclaration à (re)soumettre
