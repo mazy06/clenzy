@@ -8,9 +8,9 @@ import com.fasterxml.jackson.annotation.JsonValue;
  * <ul>
  *   <li>{@code PENDING} : declaration creee/demandee, donnees encore incompletes.</li>
  *   <li>{@code COMPLETED} : tous les champs requis sont renseignes ; prete a etre transmise.</li>
- *   <li>{@code SUBMITTED} : transmise au teleservice de declaration (Chekin / DGSN / Absher).
- *       La soumission au provider n'est PAS implementee dans cette phase — ce statut est porte
- *       par le modele pour la future integration.</li>
+ *   <li>{@code SUBMITTED} : transmise au teleservice de declaration (Chekin / DGSN / Absher)
+ *       par {@code ComplianceSubmissionService}. Chekin = integration HTTP reelle ; DGSN/Absher
+ *       = stub honnete (en attente de specs/credentials officiels, cf. {@code ComplianceProviderPendingException}).</li>
  * </ul>
  */
 public enum DeclarationStatus {

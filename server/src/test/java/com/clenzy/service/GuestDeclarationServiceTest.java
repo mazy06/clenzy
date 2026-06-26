@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.GuestDeclarationRequest;
 import com.clenzy.dto.WelcomeGuidePublicDto.DataCollectionInfo;
+import com.clenzy.integration.compliance.submission.ComplianceSubmissionService;
 import com.clenzy.model.DeclarationStatus;
 import com.clenzy.model.GuestDeclaration;
 import com.clenzy.model.Property;
@@ -39,10 +40,12 @@ class GuestDeclarationServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private RegulatoryConfigRepository regulatoryConfigRepository;
     @Mock private OnlineCheckInService onlineCheckInService;
+    @Mock private ComplianceSubmissionService complianceSubmissionService;
 
     private GuestDeclarationService service() {
         return new GuestDeclarationService(
-            declarationRepository, reservationRepository, regulatoryConfigRepository, onlineCheckInService);
+            declarationRepository, reservationRepository, regulatoryConfigRepository,
+            onlineCheckInService, complianceSubmissionService);
     }
 
     private Reservation reservation() {
@@ -185,6 +188,27 @@ class GuestDeclarationServiceTest {
         assertFalse(companionSaved.isPrimary());
         // L'accompagnant complet (sans adresse, non exigée pour un accompagnant) est COMPLETED.
         assertEquals(DeclarationStatus.COMPLETED, companionSaved.getStatus());
+
+        // Déclaration COMPLETED → soumission compliance déclenchée (hors tx en test → immédiat).
+        verify(complianceSubmissionService).submitForReservation(RESERVATION_ID, ORG_ID);
+    }
+
+    @Test
+    void submitDeclaration_noCompletedDeclaration_noComplianceTrigger() {
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation()));
+        when(declarationRepository.findByReservationIdOrderByIdAsc(RESERVATION_ID)).thenReturn(List.of());
+        when(regulatoryConfigRepository.findByPropertyAndType(PROPERTY_ID, RegulatoryType.POLICE_FORM, ORG_ID))
+            .thenReturn(Optional.of(policeForm(true)));
+        lenient().when(onlineCheckInService.getByReservation(RESERVATION_ID, ORG_ID)).thenReturn(Optional.empty());
+
+        // Déclarant incomplet (manque date de naissance, lieu, document…) → PENDING, pas de trigger.
+        GuestDeclarationRequest.Declarant incomplete = new GuestDeclarationRequest.Declarant(
+            "Jean", "Dupont", null, null, null, "FR", null, "FR", null, null);
+        GuestDeclarationRequest request = new GuestDeclarationRequest(List.of(incomplete));
+
+        service().submitDeclaration(RESERVATION_ID, request);
+
+        verify(complianceSubmissionService, never()).submitForReservation(anyLong(), anyLong());
     }
 
     @Test

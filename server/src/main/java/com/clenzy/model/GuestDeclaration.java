@@ -99,7 +99,7 @@ public class GuestDeclaration {
     @Column(name = "country_code", length = 2)
     private String countryCode;
 
-    // --- Soumission au teleservice (NON implementee dans cette phase) ---
+    // --- Soumission au teleservice (cf. ComplianceSubmissionService) ---
 
     /** true une fois transmise au provider de declaration (Chekin / DGSN / Absher). */
     @Column(name = "submitted_to_provider", nullable = false)

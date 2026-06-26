@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.GuestDeclarationRequest;
 import com.clenzy.dto.WelcomeGuidePublicDto.DataCollectionInfo;
+import com.clenzy.integration.compliance.submission.ComplianceSubmissionService;
 import com.clenzy.model.DeclarationStatus;
 import com.clenzy.model.Guest;
 import com.clenzy.model.GuestDeclaration;
@@ -15,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,15 +56,18 @@ public class GuestDeclarationService {
     private final ReservationRepository reservationRepository;
     private final RegulatoryConfigRepository regulatoryConfigRepository;
     private final OnlineCheckInService onlineCheckInService;
+    private final ComplianceSubmissionService complianceSubmissionService;
 
     public GuestDeclarationService(GuestDeclarationRepository declarationRepository,
                                    ReservationRepository reservationRepository,
                                    RegulatoryConfigRepository regulatoryConfigRepository,
-                                   OnlineCheckInService onlineCheckInService) {
+                                   OnlineCheckInService onlineCheckInService,
+                                   ComplianceSubmissionService complianceSubmissionService) {
         this.declarationRepository = declarationRepository;
         this.reservationRepository = reservationRepository;
         this.regulatoryConfigRepository = regulatoryConfigRepository;
         this.onlineCheckInService = onlineCheckInService;
+        this.complianceSubmissionService = complianceSubmissionService;
     }
 
     /**
@@ -101,9 +107,11 @@ public class GuestDeclarationService {
      * payload public, recalcule le statut, et renvoie l'état recalculé.
      *
      * <p>Org et réservation résolus serveur depuis {@code reservationId} (issu du token). Le premier
-     * déclarant est le voyageur principal. <b>Aucun appel externe</b> (la soumission au provider
-     * n'est pas implémentée). Stratégie de mise à jour idempotente : on remplace les déclarations
-     * existantes de la réservation par celles du payload (une déclaration par voyageur).</p>
+     * déclarant est le voyageur principal. Stratégie de mise à jour idempotente : on remplace les
+     * déclarations existantes de la réservation par celles du payload (une déclaration par voyageur).
+     * Si au moins une déclaration devient {@code COMPLETED}, la transmission au provider de conformité
+     * est déclenchée <b>après le commit</b> (effet externe hors transaction, cf.
+     * {@link ComplianceSubmissionService}).</p>
      */
     @Transactional
     public DataCollectionInfo submitDeclaration(Long reservationId, GuestDeclarationRequest request) {
@@ -139,7 +147,33 @@ public class GuestDeclarationService {
         log.info("Déclaration voyageur soumise pour réservation {} ({} déclarant(s)).",
             reservationId, toSave.size());
 
+        // Transmission au provider de conformité : effet externe POST-COMMIT (jamais dans la tx,
+        // audit règle #2). Déclenché seulement si au moins une déclaration est COMPLETED.
+        boolean anyCompleted = toSave.stream().anyMatch(d -> d.getStatus() == DeclarationStatus.COMPLETED);
+        if (anyCompleted) {
+            triggerComplianceSubmissionAfterCommit(reservationId, orgId);
+        }
+
         return computeRequirements(reservationId);
+    }
+
+    /**
+     * Planifie la soumission au provider de conformité APRES le commit de la transaction courante
+     * (effet externe hors transaction DB). Hors contexte transactionnel (tests), exécute
+     * immédiatement. L'org est résolue serveur depuis la réservation.
+     */
+    private void triggerComplianceSubmissionAfterCommit(Long reservationId, Long orgId) {
+        Runnable action = () -> complianceSubmissionService.submitForReservation(reservationId, orgId);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
     }
 
     // --- Helpers privés ---
