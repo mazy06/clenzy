@@ -67,7 +67,8 @@ class ArchivalServiceTest {
     }
 
     private ArchivalProperties.Target target() {
-        return new ArchivalProperties.Target(TARGET, "Reservations cloturees anciennes");
+        return new ArchivalProperties.Target(TARGET, "Reservations cloturees anciennes", 10,
+                "C. conso. D213-2 (FR) ; CGI 211 (MA) ; Law of Commercial Books art. 8 (KSA)");
     }
 
     @Nested
