@@ -1,0 +1,20 @@
+# Runtime CopilotKit (Node) — image DEV.
+# Installe les deps puis lance le serveur. Rebuild via start-dev.sh quand la source change.
+FROM node:20-alpine
+WORKDIR /app
+
+# Couche deps (cache tant que package.json ne change pas)
+COPY package.json ./
+# npm resilient aux hoquets reseau (ECONNRESET) : retries internes npm + 3 tentatives
+# avec backoff. La derniere tentative determine le code de sortie (echec si les 3 echouent).
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && (npm install || (sleep 10 && npm install) || (sleep 20 && npm install))
+
+# Source
+COPY . .
+
+ENV PORT=8080
+EXPOSE 8080
+CMD ["node", "server.mjs"]

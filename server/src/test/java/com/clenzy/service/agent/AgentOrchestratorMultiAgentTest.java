@@ -118,7 +118,7 @@ class AgentOrchestratorMultiAgentTest {
         } catch (Exception ignored) {
             // Acceptable : pas de stub chatProvider pour le mono-agent
         }
-        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -126,7 +126,7 @@ class AgentOrchestratorMultiAgentTest {
         when(specialistRegistry.size()).thenReturn(3);
         // Le mock simule le streaming : il pousse le texte final fragment par
         // fragment dans le sink (5eme arg), puis retourne le resultat agrege.
-        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any())).thenAnswer(inv -> {
+        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any(), any())).thenAnswer(inv -> {
             Consumer<String> textSink = inv.getArgument(4);
             textSink.accept("Tu as 5 ");
             textSink.accept("proprietes.");
@@ -148,7 +148,7 @@ class AgentOrchestratorMultiAgentTest {
         // Fix #2 : verifier que l'historique (List<ChatMessage>) est bien transmis
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<ChatMessage>> historyCaptor = ArgumentCaptor.forClass(List.class);
-        verify(multiAgent).orchestrate(historyCaptor.capture(), any(), any(), any(), any());
+        verify(multiAgent).orchestrate(historyCaptor.capture(), any(), any(), any(), any(), any());
         assertThat(historyCaptor.getValue()).isNotEmpty();
         // chatProvider doit NE PAS etre appele (mono-agent skip)
         verify(chatProvider, never()).streamChat(any(), any());
@@ -201,13 +201,13 @@ class AgentOrchestratorMultiAgentTest {
             // Acceptable
         }
         // Multi-agent SKIP car size==0
-        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any(), any());
     }
 
     @Test
     void multi_agent_throws_falls_back_to_mono_agent() {
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any())).thenThrow(new RuntimeException("BOOM"));
+        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any(), any())).thenThrow(new RuntimeException("BOOM"));
         AgentOrchestrator agent = build(true);
         List<AgentSseEvent> events = new ArrayList<>();
 
@@ -217,7 +217,7 @@ class AgentOrchestratorMultiAgentTest {
             // Le fallback mono-agent va aussi failler (pas de chatProvider stub),
             // mais l'important : multi-agent a ete appele puis on a fallback
         }
-        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any());
+        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any(), any());
         // Le fallback essaie d'appeler chatProvider (mono-agent)
         verify(chatProvider).streamChat(any(), any());
     }
@@ -225,7 +225,7 @@ class AgentOrchestratorMultiAgentTest {
     @Test
     void multi_agent_returns_error_falls_back_to_mono_agent() {
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any())).thenReturn(
+        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any(), any())).thenReturn(
                 OrchestratorAgent.OrchestrationResult.error("LLM unavailable")
         );
         AgentOrchestrator agent = build(true);
@@ -235,7 +235,7 @@ class AgentOrchestratorMultiAgentTest {
             agent.handleMessage(null, "test", AgentContext.minimal(1L, "user-multi"), events::add);
         } catch (Exception ignored) {
         }
-        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any());
+        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any(), any());
         verify(chatProvider).streamChat(any(), any());
     }
 
@@ -254,7 +254,7 @@ class AgentOrchestratorMultiAgentTest {
         } catch (Exception ignored) {
         }
         // Multi-agent skip car vision pas supportee
-        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -265,7 +265,7 @@ class AgentOrchestratorMultiAgentTest {
         // intercepter specifiquement (log info, pas warn) et basculer mono-agent
         // qui exposera la confirmation au user via SSE.
         when(specialistRegistry.size()).thenReturn(3);
-        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any()))
+        when(multiAgent.orchestrate(anyList(), any(), any(), any(), any(), any()))
                 .thenThrow(new ConfirmationRequiredException("cancel_reservation"));
         AgentOrchestrator agent = build(true);
         List<AgentSseEvent> events = new ArrayList<>();
@@ -277,7 +277,7 @@ class AgentOrchestratorMultiAgentTest {
             // Mono-agent fallback essaie chatProvider sans stub → OK d'ignorer
         }
         // Multi-agent a bien ete invoque (et a throw)
-        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any());
+        verify(multiAgent).orchestrate(anyList(), any(), any(), any(), any(), any());
         // Mono-agent (chatProvider) prend le relai → preuve du fallback
         verify(chatProvider).streamChat(any(), any());
     }
@@ -301,7 +301,7 @@ class AgentOrchestratorMultiAgentTest {
             // Acceptable : pas de stub chatProvider pour le mono-agent
         }
         // Multi-agent SKIP car modelOverride force le mono-agent (briefings preserves)
-        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any());
+        verify(multiAgent, never()).orchestrate(anyList(), any(), any(), any(), any(), any());
         // Le mono-agent est bien sollicite (chatProvider appelle streamChat)
         verify(chatProvider).streamChat(any(), any());
     }

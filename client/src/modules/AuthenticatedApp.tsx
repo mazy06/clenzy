@@ -86,6 +86,8 @@ const ReservationsList = lazy(() => import('./reservations/ReservationsList'));
 
 // Planning
 const PlanningPage = lazy(() => import('./planning/PlanningPage'));
+// Spike Phase 0 : Superviseur via CopilotKit ↔ AG-UI ↔ moteur multi-agent (réel)
+const SupervisionAgUiSpike = lazy(() => import('./supervision/agui/SupervisionAgUiSpike'));
 
 // Guests (main list is inside DirectoryPage)
 
@@ -285,6 +287,15 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="reservations:view">
             <ErrorBoundary>
               <PlanningPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Spike Phase 0 — Superviseur d'agents (CopilotKit ↔ AG-UI ↔ moteur multi-agent réel) */}
+        <Route path="/agui-spike" element={
+          <ProtectedRoute requiredPermission="reservations:view">
+            <ErrorBoundary>
+              <SupervisionAgUiSpike />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

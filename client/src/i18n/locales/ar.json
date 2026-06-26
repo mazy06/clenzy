@@ -1,4 +1,118 @@
 {
+  "supervision": {
+    "title": "مركز الإشراف",
+    "subtitle": "وكلاء الذكاء الاصطناعي يعملون على هذا العقار",
+    "agents": {
+      "com": {
+        "name": "التواصل",
+        "role": "رسائل الضيوف"
+      },
+      "rev": {
+        "name": "الإيرادات",
+        "role": "التسعير الديناميكي"
+      },
+      "ops": {
+        "name": "العمليات",
+        "role": "التنظيف والتدخلات"
+      },
+      "fin": {
+        "name": "المالية",
+        "role": "المدفوعات والكشوف"
+      },
+      "rep": {
+        "name": "التقييمات والسمعة",
+        "role": "التقييمات والتقدير"
+      }
+    },
+    "status": {
+      "veille": "في وضع الانتظار",
+      "think": "يفكّر",
+      "act": "ينفّذ",
+      "wait": "بانتظار موافقتك",
+      "esc": "تمت إحالته",
+      "err": "خطأ"
+    },
+    "autonomy": {
+      "suggest": "اقتراح",
+      "notify": "التنفيذ ثم الإشعار",
+      "full": "تلقائي",
+      "suggestHint": "يقترح الوكلاء وأنت تقرّر",
+      "notifyHint": "ينفّذون ويبقونك على اطّلاع",
+      "fullHint": "يديرون الأمر باستقلالية كاملة"
+    },
+    "autonomyShort": {
+      "suggest": "اقتراح",
+      "notify": "إشعار",
+      "full": "تلقائي"
+    },
+    "scope": {
+      "byProperty": "حسب العقار",
+      "portfolio": "نظرة عامة"
+    },
+    "states": {
+      "loading": "جارٍ الاتصال بالوكلاء…",
+      "live": "مباشر",
+      "offline": "غير متصل",
+      "reconnecting": "جارٍ إعادة الاتصال…",
+      "retry": "إعادة المحاولة"
+    },
+    "hitl": {
+      "validate": "موافقة",
+      "edit": "تعديل",
+      "why": "لماذا؟",
+      "expiresIn": "تنتهي خلال {{time}}",
+      "alreadyHandled": "تمت معالجتها",
+      "alreadyHandledBy": "عولجت من قبل {{name}}",
+      "expired": "منتهية",
+      "empty": "لا شيء بانتظار الموافقة",
+      "toValidate": "بانتظار الموافقة",
+      "validated": "تمت الموافقة",
+      "lessThanMin": "< دقيقة",
+      "unitHour": "س",
+      "unitMin": "د"
+    },
+    "approval": {
+      "title": "مطلوب موافقة",
+      "reject": "رفض",
+      "validate": "موافقة",
+      "submitting": "جارٍ الإرسال…"
+    },
+    "hud": {
+      "orchestrator": "المنسّق",
+      "active": "نشط",
+      "agents": "وكلاء",
+      "acting": "ينفّذون",
+      "awaiting": "بالانتظار",
+      "focusHint": "مرّر فوق وكيل لعرض التفاصيل"
+    },
+    "legend": {
+      "acting": "ينفّذ",
+      "awaiting": "بانتظار موافقتك",
+      "thinking": "يفكّر",
+      "idle": "في وضع الانتظار"
+    },
+    "queue": {
+      "title": "بانتظار موافقتك"
+    },
+    "feed": {
+      "title": "مباشر"
+    },
+    "drawer": {
+      "ventilation": "تفاصيل حسب العقار",
+      "noActivity": "لا يوجد نشاط"
+    },
+    "portfolio": {
+      "title": "نظرة عامة"
+    },
+    "attention": "{{count}} إجراء بانتظار موافقتك",
+    "attention_other": "{{count}} إجراءات بانتظار موافقتك",
+    "chat": {
+      "placeholder": "اطلب شيئًا من الوكلاء…",
+      "inputLabel": "رسالة إلى الوكلاء",
+      "send": "إرسال",
+      "thinking": "الوكلاء يعملون…"
+    }
+  },
   "channexGuided": {
     "title": "وزّع عقاراتك",
     "subtitle": "اعرض عقاراتك على Airbnb وBooking وVrbo… وزامن كل شيء من Baitly.",

@@ -5,6 +5,9 @@ import com.clenzy.config.ai.ChatLLMProvider;
 import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.config.ai.ToolDescriptor;
+import com.clenzy.service.agent.AgentActionAuditService;
+import com.clenzy.service.agent.AgentContext;
+import com.clenzy.service.agent.AgentToolMetrics;
 import com.clenzy.service.agent.ToolHandler;
 import com.clenzy.service.agent.ToolRegistry;
 import com.clenzy.service.agent.ToolResult;
@@ -15,6 +18,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +57,22 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
     protected final ObjectMapper objectMapper;
     protected final MeterRegistry meterRegistry;
     private final Timer handleTimer;
+
+    // Instrumentation audit + observabilite des executions d'outils. Injectee par
+    // setter (optionnelle) pour ne PAS imposer un changement de signature aux 8
+    // constructeurs de specialistes ; null-safe en test (construction hors Spring).
+    private AgentActionAuditService actionAuditService;
+    private AgentToolMetrics toolMetrics;
+
+    @Autowired(required = false)
+    public void setActionAuditService(AgentActionAuditService actionAuditService) {
+        this.actionAuditService = actionAuditService;
+    }
+
+    @Autowired(required = false)
+    public void setToolMetrics(AgentToolMetrics toolMetrics) {
+        this.toolMetrics = toolMetrics;
+    }
 
     protected AbstractAgentSpecialist(ChatLLMProvider chatProvider,
                                         ToolRegistry toolRegistry,
@@ -222,10 +242,13 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
         try {
             return doHandle(request);
         } catch (ConfirmationRequiredException e) {
-            // Tool sensible (write/destructive) intercepte : on PROPAGE pour que
-            // l'orchestrator + AgentOrchestrator fallbackent sur le mono-agent
-            // qui gere la pause-confirmation. Ne PAS wrapper en error : le caller
-            // doit pouvoir distinguer ce cas (info) d'une vraie erreur LLM/tool.
+            // Tool sensible (write/destructif) intercepte. Deux issues selon le
+            // mode (cf. ConfirmationRequiredException) :
+            //   - resume context present → HITL natif multi-agent : l'orchestrator
+            //     persiste le contexte et expose la confirmation, PAS de fallback.
+            //   - sinon → fallback mono-agent legacy.
+            // Dans les deux cas on PROPAGE (info, pas error) pour que le caller
+            // distingue ce cas d'une vraie erreur LLM/tool.
             meterRegistry.counter("assistant.specialist.confirmation_required",
                     "specialist", name(), "tool", e.toolName()).increment();
             throw e;
@@ -239,7 +262,84 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
     }
 
     private SpecialistResult doHandle(SpecialistRequest request) {
-        // Resoudre les ToolDescriptors restreints au sub-set du specialiste
+        // Boucle LLM ↔ tools (bornee). buildSystemPrompt(request) injecte
+        // user_context + memory + RAG depuis SpecialistRequest (Fix bloquant #5).
+        ChatRequest chatRequest = new ChatRequest(
+                buildSystemPrompt(request),
+                List.of(ChatMessage.user(request.query())),
+                resolveTools(),
+                request.context().modelOverride(),   // modele resolu (Settings/BYOK) ou null = defaut provider
+                TEMPERATURE,
+                MAX_TOKENS,
+                null,                                 // system mono-bloc (pas de suffixe volatil)
+                request.context().aiProvider(),       // provider effectif (routage multi-provider)
+                request.context().aiBaseUrl()
+        );
+        return runLoop(chatRequest, request, new ArrayList<>(), new ArrayList<>());
+    }
+
+    /**
+     * Reprise d'une boucle specialist suspendue sur une confirmation user (HITL
+     * natif multi-agent).
+     *
+     * <p>Reconstruit le {@link ChatRequest} a partir de {@code specialistHistory}
+     * (l'historique jusqu'au tour de pause inclus, dernier element = assistant
+     * tool_calls) + le {@code toolResult} du tool confirme/refuse, puis relance
+     * la boucle normale. Le tool sensible a DEJA ete execute (ou refuse) par le
+     * caller — on injecte juste son resultat ; il n'est PAS re-execute ici.</p>
+     *
+     * <p><b>Securite</b> : un eventuel SECOND tool de confirmation rencontre
+     * pendant la reprise re-leve {@link ConfirmationRequiredException} (chainage
+     * de confirmations supporte par le caller).</p>
+     *
+     * @param request    SpecialistRequest reconstruit au resume (identite + cible LLM)
+     * @param history    historique du specialist jusqu'au tour de pause inclus
+     * @param toolCallId id du tool call confirme (pour appairer le tool result)
+     * @param toolResult resultat du tool (execution reelle OU "annule par user")
+     */
+    public final SpecialistResult resumeWithToolResult(SpecialistRequest request,
+                                                       List<ChatMessage> history,
+                                                       String toolCallId,
+                                                       ToolResult toolResult) {
+        long startNanos = System.nanoTime();
+        try {
+            // Reconstruire la requete : system prompt courant + historique capture
+            // + le tool result du tool confirme/refuse en derniere position.
+            List<ChatMessage> resumed = new ArrayList<>(history);
+            resumed.add(ChatMessage.tool(toolCallId, toolResult.content()));
+
+            ChatRequest chatRequest = new ChatRequest(
+                    buildSystemPrompt(request),
+                    resumed,
+                    resolveTools(),
+                    request.context().modelOverride(),
+                    TEMPERATURE,
+                    MAX_TOKENS,
+                    null,
+                    request.context().aiProvider(),
+                    request.context().aiBaseUrl()
+            );
+
+            // Pas de seed de snapshot pour le tool confirme : l'AgentOrchestrator
+            // emet deja son event tool_call_executed (parite avec le flux mono).
+            // On part de logs/snapshots vides ; runLoop accumulera les eventuels
+            // tools read-only que le specialist invoque encore apres reprise.
+            return runLoop(chatRequest, request, new ArrayList<>(), new ArrayList<>());
+        } catch (ConfirmationRequiredException e) {
+            meterRegistry.counter("assistant.specialist.confirmation_required",
+                    "specialist", name(), "tool", e.toolName()).increment();
+            throw e;
+        } catch (Exception e) {
+            log.warn("Specialist '{}' resume threw : {}", name(), e.getMessage(), e);
+            meterRegistry.counter("assistant.specialist.errors", "specialist", name()).increment();
+            return SpecialistResult.error(e.getMessage());
+        } finally {
+            handleTimer.record(System.nanoTime() - startNanos, java.util.concurrent.TimeUnit.NANOSECONDS);
+        }
+    }
+
+    /** Resout les ToolDescriptors restreints au sub-set du specialiste. */
+    private List<ToolDescriptor> resolveTools() {
         Set<String> allowedTools = toolNames();
         List<ToolDescriptor> tools = toolRegistry.listDescriptors().stream()
                 .filter(td -> allowedTools.contains(td.name()))
@@ -248,24 +348,32 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
             log.warn("Specialist '{}' declares {} tools but only {} resolved from registry",
                     name(), allowedTools.size(), tools.size());
         }
+        return tools;
+    }
 
-        // Boucle LLM ↔ tools (bornee). buildSystemPrompt(request) injecte
-        // user_context + memory + RAG depuis SpecialistRequest (Fix bloquant #5).
-        ChatRequest chatRequest = new ChatRequest(
-                buildSystemPrompt(request),
-                List.of(ChatMessage.user(request.query())),
-                tools,
-                request.context().modelOverride(),   // modele resolu (Settings/BYOK) ou null = defaut provider
-                TEMPERATURE,
-                MAX_TOKENS,
-                null,                                 // system mono-bloc (pas de suffixe volatil)
-                request.context().aiProvider(),       // provider effectif (routage multi-provider)
-                request.context().aiBaseUrl()
-        );
-        List<String> toolCallsLog = new ArrayList<>();
-        List<ToolInvocationSnapshot> toolInvocations = new ArrayList<>();
+    /**
+     * Boucle LLM ↔ tools bornee, partagee entre {@link #doHandle} (depart a froid)
+     * et {@link #resumeWithToolResult} (reprise apres confirmation).
+     *
+     * <p>Quand un tool {@code requiresConfirmation} est rencontre, leve
+     * {@link ConfirmationRequiredException} <b>enrichie</b> : elle porte
+     * l'historique conversationnel ACCUMULE jusqu'au tour de pause inclus (le
+     * dernier message etant l'assistant tool_calls), permettant la reprise
+     * EN MULTI-AGENT.</p>
+     */
+    private SpecialistResult runLoop(ChatRequest chatRequest,
+                                     SpecialistRequest request,
+                                     List<String> toolCallsLog,
+                                     List<ToolInvocationSnapshot> toolInvocations) {
         AtomicInteger promptTokens = new AtomicInteger();
         AtomicInteger completionTokens = new AtomicInteger();
+        // Cache anti-boucle : signature (nom+args) -> resultat. Un modele peut
+        // re-demander un tool deja execute ; on reutilise le resultat (le protocole
+        // exige un tool_result par tool_call_id) SANS re-executer ni re-emettre le widget.
+        java.util.Map<String, ToolResult> executedTools = new java.util.HashMap<>();
+        // Dernier texte non-vide vu (pour un repli exploitable si la boucle est
+        // bornee sans reponse finale plutot qu'un marqueur technique brut).
+        String lastNonEmptyText = "";
 
         for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
             AtomicReference<String> textOut = new AtomicReference<>("");
@@ -296,6 +404,10 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 return SpecialistResult.error(errorMsg.get());
             }
 
+            if (!textOut.get().isBlank()) {
+                lastNonEmptyText = textOut.get().strip();
+            }
+
             List<ChatMessage.ToolCall> toolCalls = toolCallsRef.get();
             if (toolCalls.isEmpty()) {
                 // Texte final = synthese a remonter (avec snapshots des widgets)
@@ -308,25 +420,65 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 );
             }
 
-            // Append message assistant avec tool_calls + executer tools
-            chatRequest = chatRequest.withAppendedMessage(
+            // Append message assistant avec tool_calls AVANT l'execution : si un
+            // des tools requiert confirmation, l'historique a capturer doit inclure
+            // ce tour assistant (les tool_results suivront a la reprise).
+            ChatRequest withAssistantTurn = chatRequest.withAppendedMessage(
                     ChatMessage.assistantToolCalls(toolCalls)
             );
+
+            // Garde-fou critique : detecter un tool a confirmation AVANT toute
+            // execution. On suspend la boucle complete (pas d'execution partielle).
             for (ChatMessage.ToolCall tc : toolCalls) {
-                ToolResult tr = executeTool(tc, request);
-                toolCallsLog.add(tc.name());
-                toolInvocations.add(new ToolInvocationSnapshot(
-                        tc.name(), tr.content(), tr.displayHint(), tr.isError()
-                ));
+                ToolHandler handler = toolRegistry.find(tc.name()).orElse(null);
+                if (handler != null && handler.descriptor() != null
+                        && handler.descriptor().requiresConfirmation()) {
+                    log.info("Specialist '{}' pausing on '{}' (requires user confirmation) — "
+                            + "signaling resumable multi-agent pause", name(), tc.name());
+                    // Historique a capturer = tout jusqu'au tour assistant inclus.
+                    // Le caller (orchestrator) y appendra le tool_result au resume.
+                    throw new ConfirmationRequiredException(tc, withAssistantTurn.messages());
+                }
+            }
+
+            chatRequest = withAssistantTurn;
+            boolean anyNewTool = false;
+            for (ChatMessage.ToolCall tc : toolCalls) {
+                String sig = tc.name() + "::" + (tc.arguments() == null ? "" : tc.arguments());
+                ToolResult tr = executedTools.get(sig);
+                if (tr == null) {
+                    tr = executeTool(tc, request);
+                    executedTools.put(sig, tr);
+                    toolCallsLog.add(tc.name());
+                    toolInvocations.add(new ToolInvocationSnapshot(
+                            tc.name(), tr.content(), tr.displayHint(), tr.isError()
+                    ));
+                    anyNewTool = true;
+                }
                 chatRequest = chatRequest.withAppendedMessage(
                         ChatMessage.tool(tc.id(), tr.content())
                 );
             }
+            if (!anyNewTool) {
+                // Le modele ne re-demande que des tools deja executes -> boucle sterile.
+                // On arrete et on remonte ce qu'on a (widgets + texte courant) ;
+                // l'orchestrateur produira la reponse finale.
+                log.info("Specialist '{}' breaking sterile tool loop (only duplicate calls)", name());
+                return SpecialistResult.success(
+                        textOut.get().strip(), toolCallsLog, toolInvocations,
+                        promptTokens.get(), completionTokens.get());
+            }
         }
 
-        // Iterations atteintes — partial (avec snapshots quand meme)
+        // Iterations atteintes — partial. La synthese alimente l'orchestrateur
+        // (qui la reformule) ; on fournit un texte exploitable comme repli plutot
+        // qu'un marqueur technique brut (au cas ou il remonterait tel quel a l'user) :
+        // le dernier texte vu, sinon une formulation honnete.
+        String partial = !lastNonEmptyText.isBlank()
+                ? lastNonEmptyText
+                : "Je n'ai pas pu finaliser l'analyse de cette demande.";
         return new SpecialistResult(
-                "(reponse partielle apres " + MAX_ITERATIONS + " iterations)",
+                partial,
                 toolCallsLog,
                 toolInvocations,
                 promptTokens.get(),
@@ -340,31 +492,54 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
         // Defense en profondeur : verifier que le tool est bien dans le sub-set autorise
         if (!toolNames().contains(tc.name())) {
             log.warn("Specialist '{}' tried to invoke unauthorized tool '{}'", name(), tc.name());
+            recordMetric(tc.name(), false);
             return ToolResult.error("Tool '" + tc.name() + "' not in specialist scope");
         }
         ToolHandler handler = toolRegistry.find(tc.name()).orElse(null);
         if (handler == null) {
+            recordMetric(tc.name(), false);
             return ToolResult.error("Unknown tool : " + tc.name());
         }
-        // Garde-fou critique : si le tool requiert une confirmation user (write
-        // destructif), on NE l'execute PAS — on signale a l'orchestrator via
-        // une exception sentinel → fallback mono-agent qui a le flow pause-confirm.
+        // Garde-fou critique (defense en profondeur) : un tool requiresConfirmation
+        // ne doit JAMAIS atteindre execute() ici — runLoop l'intercepte AVANT. Si
+        // on y arrive, c'est un bug : on re-leve (mode fallback legacy, sans contexte).
         if (handler.descriptor() != null && handler.descriptor().requiresConfirmation()) {
-            log.info("Specialist '{}' tried to invoke '{}' which requires user confirmation — "
-                    + "throwing ConfirmationRequiredException to trigger mono-agent fallback",
-                    name(), tc.name());
+            log.warn("Specialist '{}' reached executeTool for confirmation tool '{}' — "
+                    + "should have been intercepted by runLoop", name(), tc.name());
             throw new ConfirmationRequiredException(tc.name());
         }
+        boolean isWrite = handler.descriptor() != null && handler.descriptor().requiresConfirmation();
         try {
             JsonNode args = objectMapper.readTree(tc.arguments());
-            return handler.execute(args, request.context());
+            ToolResult result = handler.execute(args, request.context());
+            boolean success = !result.isError();
+            recordMetric(tc.name(), success);
+            recordAudit(tc.name(), tc.arguments(), isWrite, success, request.context());
+            return result;
         } catch (ConfirmationRequiredException e) {
             // Propage (au cas ou une future implementation throw depuis execute)
             throw e;
         } catch (Exception e) {
             log.warn("Tool '{}' execution failed in specialist '{}' : {}",
                     tc.name(), name(), e.getMessage());
+            recordMetric(tc.name(), false);
+            recordAudit(tc.name(), tc.arguments(), isWrite, false, request.context());
             return ToolResult.error(e.getMessage());
+        }
+    }
+
+    /** Compteur Micrometer d'execution d'outil (null-safe hors contexte Spring). */
+    private void recordMetric(String toolName, boolean success) {
+        if (toolMetrics != null) {
+            toolMetrics.recordExecution(toolName, success);
+        }
+    }
+
+    /** Audit-logging d'une action d'outil (null-safe hors contexte Spring). */
+    private void recordAudit(String toolName, String argsJson, boolean isWrite,
+                             boolean success, AgentContext context) {
+        if (actionAuditService != null) {
+            actionAuditService.recordToolExecution(toolName, argsJson, isWrite, success, context);
         }
     }
 }

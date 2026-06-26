@@ -22,6 +22,7 @@ import PublicKeyVerification from '../pages/PublicKeyVerification';
 import PublicGuide from './welcome-guide/PublicGuide';
 import ContractSignPage from './contracts/public/ContractSignPage';
 import PublicBookingPage from './booking-engine/public/PublicBookingPage';
+import { SupervisionDemo } from './supervision';
 import CancelBookingPage from './booking-engine/public/CancelBookingPage';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
@@ -75,7 +76,7 @@ function HardRedirectToLogin(): null {
 }
 
 // Routes publiques accessibles sans authentification
-const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation'];
+const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation', '/supervision-demo'];
 
 // Routes publiques avec paramètres (prefix match)
 const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/'];
@@ -347,6 +348,9 @@ const App: React.FC = () => {
           {/* Route publique hebergee du booking engine (page composee dans le Studio) */}
           <Route path="/booking/:apiKey/cancel" element={<CancelBookingPage />} />
           <Route path="/booking/:apiKey" element={<PublicBookingPage />} />
+
+          {/* Route publique de démo du Superviseur d'agents (front-first sur mock) */}
+          <Route path="/supervision-demo" element={<SupervisionDemo />} />
         
         {/* Routes protégées */}
         <Route

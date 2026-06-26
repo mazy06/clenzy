@@ -9,13 +9,20 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests unitaires de {@link OpenAiChatProvider} — focalises sur les deux pieces
@@ -197,6 +204,115 @@ class OpenAiChatProviderTest {
 
             ChatEvent.Done done = (ChatEvent.Done) events.get(events.size() - 1);
             assertEquals("tool_calls", done.finishReason());
+        }
+    }
+
+    // ─── Backoff rate-limit (429 / 503 / timeout) ────────────────────────────
+
+    @Nested
+    @DisplayName("transient-retry backoff")
+    class BackoffRetry {
+
+        private ChatRequest simpleRequest() {
+            return new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), "gpt-4o", 0.3, 100, null, "openai", "https://api.test/v1");
+        }
+
+        @SuppressWarnings("unchecked")
+        private HttpResponse<Stream<String>> response(int status, Stream<String> body) {
+            HttpResponse<Stream<String>> resp = mock(HttpResponse.class);
+            when(resp.statusCode()).thenReturn(status);
+            when(resp.body()).thenReturn(body);
+            return resp;
+        }
+
+        @Test
+        void retriesOn429_thenSucceeds() throws Exception {
+            HttpClient httpClient = mock(HttpClient.class);
+            AtomicInteger call = new AtomicInteger();
+            when(httpClient.send(any(), any())).thenAnswer(inv -> {
+                if (call.getAndIncrement() == 0) {
+                    return response(429, Stream.of("rate limited"));
+                }
+                return response(200, Stream.of(
+                        "data: {\"choices\":[{\"delta\":{\"content\":\"OK\"},\"finish_reason\":\"stop\"}]}",
+                        "data: [DONE]"));
+            });
+
+            OpenAiChatProvider p = new OpenAiChatProvider(aiProperties, objectMapper,
+                    mock(ApplicationEventPublisher.class), httpClient);
+
+            List<ChatEvent> events = new ArrayList<>();
+            p.streamChat(simpleRequest(), events::add);
+
+            // 1 retry (2 appels send) puis succes -> pas d'Error, un Done.
+            verify(httpClient, times(2)).send(any(), any());
+            assertTrue(events.stream().noneMatch(e -> e instanceof ChatEvent.Error),
+                    "aucun Error apres retry reussi");
+            assertTrue(events.stream().anyMatch(e -> e instanceof ChatEvent.Done));
+            assertTrue(events.stream().anyMatch(e -> e instanceof ChatEvent.TextDelta));
+        }
+
+        @Test
+        void retriesExhaustedOn429_emitsError() throws Exception {
+            HttpClient httpClient = mock(HttpClient.class);
+            // Toujours 429 -> 1 essai initial + 2 retries = 3 appels, puis Error.
+            when(httpClient.send(any(), any()))
+                    .thenAnswer(inv -> response(429, Stream.of("rate limited")));
+
+            OpenAiChatProvider p = new OpenAiChatProvider(aiProperties, objectMapper,
+                    mock(ApplicationEventPublisher.class), httpClient);
+
+            List<ChatEvent> events = new ArrayList<>();
+            p.streamChat(simpleRequest(), events::add);
+
+            verify(httpClient, times(3)).send(any(), any());
+            ChatEvent.Error err = (ChatEvent.Error) events.stream()
+                    .filter(e -> e instanceof ChatEvent.Error).findFirst().orElseThrow();
+            assertTrue(err.message().contains("429"));
+        }
+
+        @Test
+        void doesNotRetryOn401_emitsErrorImmediately() throws Exception {
+            HttpClient httpClient = mock(HttpClient.class);
+            when(httpClient.send(any(), any()))
+                    .thenAnswer(inv -> response(401, Stream.of("invalid key")));
+
+            OpenAiChatProvider p = new OpenAiChatProvider(aiProperties, objectMapper,
+                    mock(ApplicationEventPublisher.class), httpClient);
+
+            List<ChatEvent> events = new ArrayList<>();
+            p.streamChat(simpleRequest(), events::add);
+
+            // 4xx non-429 = definitif : un seul appel, pas de retry.
+            verify(httpClient, times(1)).send(any(), any());
+            ChatEvent.Error err = (ChatEvent.Error) events.stream()
+                    .filter(e -> e instanceof ChatEvent.Error).findFirst().orElseThrow();
+            assertTrue(err.message().contains("401"));
+        }
+
+        @Test
+        void retriesOnTimeout_thenSucceeds() throws Exception {
+            HttpClient httpClient = mock(HttpClient.class);
+            AtomicInteger call = new AtomicInteger();
+            when(httpClient.send(any(), any())).thenAnswer(inv -> {
+                if (call.getAndIncrement() == 0) {
+                    throw new java.net.http.HttpTimeoutException("timeout");
+                }
+                return response(200, Stream.of(
+                        "data: {\"choices\":[{\"delta\":{\"content\":\"OK\"},\"finish_reason\":\"stop\"}]}",
+                        "data: [DONE]"));
+            });
+
+            OpenAiChatProvider p = new OpenAiChatProvider(aiProperties, objectMapper,
+                    mock(ApplicationEventPublisher.class), httpClient);
+
+            List<ChatEvent> events = new ArrayList<>();
+            p.streamChat(simpleRequest(), events::add);
+
+            verify(httpClient, times(2)).send(any(), any());
+            assertTrue(events.stream().noneMatch(e -> e instanceof ChatEvent.Error));
+            assertTrue(events.stream().anyMatch(e -> e instanceof ChatEvent.Done));
         }
     }
 }

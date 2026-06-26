@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Box, Paper } from '@mui/material';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import PlanningDateHeaders from './PlanningDateHeaders';
@@ -16,9 +16,12 @@ import type { UsePlanningDragReturn } from './hooks/usePlanningDrag';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
 import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
-import { ROW_CONFIG } from './constants';
+import { ROW_CONFIG, DATE_HEADER_HEIGHT } from './constants';
 import { detectConflicts } from './utils/conflictUtils';
 import { toDateStr } from './utils/dateUtils';
+
+/** Hauteur de l'accordéon Superviseur (panneau constellation 560px + marge). */
+const SUPERVISION_ACCORDION_HEIGHT = 600;
 
 interface PlanningTimelineProps {
   properties: PlanningProperty[];
@@ -47,6 +50,12 @@ interface PlanningTimelineProps {
   minNightsMap?: MinNightsMap;
   channelSyncMap?: ChannelSyncMap;
   pageSize?: number;
+  /** Superviseur d'agents : logement déployé en accordéon (null = aucun). */
+  expandedPropertyId?: number | null;
+  /** Toggle du chevron d'accordéon (gated par le rôle côté parent). */
+  onToggleExpanded?: (propertyId: number) => void;
+  /** Rendu du panneau de supervision pour un logement déployé. */
+  renderExpanded?: (property: PlanningProperty) => React.ReactNode;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
@@ -75,8 +84,27 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   minNightsMap,
   channelSyncMap,
   pageSize,
+  expandedPropertyId = null,
+  onToggleExpanded,
+  renderExpanded,
 }) => {
   const config = ROW_CONFIG[density];
+
+  // Dimensions du viewport (zone visible). La largeur cale le panneau
+  // d'accordéon (sticky-left) ; la hauteur dimensionne ce panneau pour qu'il
+  // remplisse EXACTEMENT l'espace restant → aucun débordement vertical, donc
+  // pas de scroll vertical en conflit avec le scroll horizontal de la grille.
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const measure = () => setViewport({ width: el.clientWidth, height: el.clientHeight });
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [scrollRef]);
   // Plus de price line dediee : les prix sont desormais affiches dans
   // chaque cellule de jour, centres et masques sous les bars.
   // Hauteur de ligne CONSTANTE (maquette) : les interventions partagent la
@@ -84,8 +112,21 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   // les interventions ne change donc plus la hauteur (le filtre des events
   // est fait dans usePlanningFilters).
   const effectiveRowHeight = config.rowHeight;
-  // Fill remaining space with empty rows
-  const emptyRowCount = pageSize ? Math.max(0, pageSize - properties.length) : 0;
+  // Fill remaining space with empty rows. En mode accordéon déployé, le panneau
+  // remplit la hauteur sous l'unique logement → pas de lignes vides parasites.
+  const emptyRowCount =
+    expandedPropertyId != null
+      ? 0
+      : pageSize
+        ? Math.max(0, pageSize - properties.length)
+        : 0;
+  // Hauteur de l'accordéon = espace vertical restant (viewport − header dates − 1
+  // ligne logement). Ainsi le contenu tient pile dans la zone visible : pas de
+  // débordement → pas de scroll vertical (seul le scroll horizontal subsiste).
+  const accordionHeight =
+    viewport.height > 0
+      ? Math.max(420, viewport.height - DATE_HEADER_HEIGHT - effectiveRowHeight - 2)
+      : SUPERVISION_ACCORDION_HEIGHT;
   const totalDisplayRows = properties.length + emptyRowCount;
   const totalRowsHeight = totalDisplayRows * effectiveRowHeight;
   // Hauteur du today line : limitee aux lignes "vraies" (sans les empty
@@ -146,6 +187,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
           sx={{
             flex: 1,
             overflowX: 'auto',
+            // Jamais de scroll vertical : la grille paginée et l'accordéon (dont la
+            // hauteur est calculée pour tenir dans le viewport) ne débordent pas.
             overflowY: 'hidden',
             position: 'relative',
             WebkitOverflowScrolling: 'touch',
@@ -178,6 +221,9 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 emptyRowCount={emptyRowCount}
                 reservationCountByProperty={reservationCountByProperty}
                 channelSyncMap={channelSyncMap}
+                expandedPropertyId={expandedPropertyId}
+                onToggleExpanded={onToggleExpanded}
+                accordionHeight={accordionHeight}
               />
 
               {/* Grid rows */}
@@ -189,34 +235,73 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                   totalHeight={todayLineHeight}
                 />
 
-                {/* Property rows */}
+                {/* Property rows (+ accordéon Superviseur déployé sous la ligne) */}
                 {properties.map((property, idx) => (
-                  <PlanningRow
-                    key={property.id}
-                    property={property}
-                    barLayouts={getBarLayouts(property.id)}
-                    days={days}
-                    dayWidth={dayWidth}
-                    density={density}
-                    zoom={zoom}
-                    totalGridWidth={totalGridWidth}
-                    rowIndex={idx}
-                    selectedEventId={selectedEventId}
-                    conflictEventIds={conflictEventIds}
-                    isDragging={drag.state.isDragging}
-                    dragState={drag.state}
-                    onEventClick={onEventClick}
-                    onHideEvent={onHideEvent}
-                    onEmptyClick={onEmptyClick}
-                    quickCreateOpen={quickCreateOpen}
-                    showPrices={showPrices}
-                    showInterventions={showInterventions}
-                    pricingMap={pricingMap}
-                    minNightsMap={minNightsMap}
-                    effectiveRowHeight={effectiveRowHeight}
-                    allEvents={events}
-                    loadedReservations={loadedReservations}
-                  />
+                  <React.Fragment key={property.id}>
+                    <PlanningRow
+                      property={property}
+                      barLayouts={getBarLayouts(property.id)}
+                      days={days}
+                      dayWidth={dayWidth}
+                      density={density}
+                      zoom={zoom}
+                      totalGridWidth={totalGridWidth}
+                      rowIndex={idx}
+                      selectedEventId={selectedEventId}
+                      conflictEventIds={conflictEventIds}
+                      isDragging={drag.state.isDragging}
+                      dragState={drag.state}
+                      onEventClick={onEventClick}
+                      onHideEvent={onHideEvent}
+                      onEmptyClick={onEmptyClick}
+                      quickCreateOpen={quickCreateOpen}
+                      showPrices={showPrices}
+                      showInterventions={showInterventions}
+                      pricingMap={pricingMap}
+                      minNightsMap={minNightsMap}
+                      effectiveRowHeight={effectiveRowHeight}
+                      allEvents={events}
+                      loadedReservations={loadedReservations}
+                    />
+                    {expandedPropertyId === property.id && renderExpanded && (
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          width: totalGridWidth,
+                          height: accordionHeight,
+                          borderBottom: '1px solid var(--line)',
+                          backgroundColor: 'var(--bg)',
+                          // Effet « déploiement » en OPACITÉ uniquement : surtout pas de
+                          // `overflow:hidden` ni de `transform` ici — le panneau interne est
+                          // `position:sticky` (calé viewport) et ces deux propriétés sur son
+                          // ancêtre cassent le sticky / le clippent (→ panneau invisible).
+                          '@keyframes supDeploy': {
+                            from: { opacity: 0 },
+                            to: { opacity: 1 },
+                          },
+                          animation: 'supDeploy 260ms ease-out',
+                          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+                        }}
+                      >
+                        {/* Panneau calé sur le viewport (sticky-left) + tiré sous la
+                            colonne sticky (ml négatif) → plein largeur, ne défile pas. */}
+                        <Box
+                          sx={{
+                            position: 'sticky',
+                            left: 0,
+                            ml: `-${propertyColWidth}px`,
+                            width: viewport.width || '100%',
+                            height: '100%',
+                            zIndex: 11,
+                            p: 2,
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          {renderExpanded(property)}
+                        </Box>
+                      </Box>
+                    )}
+                  </React.Fragment>
                 ))}
 
                 {/* Empty filler rows to fill remaining space — fond plat

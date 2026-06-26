@@ -494,6 +494,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     <Box
       ref={setNodeRef}
       data-planning-bar
+      data-reservation-id={isReservation && event.reservation ? String(event.reservation.id) : undefined}
       className={urgencyClass}
       style={isUrgent ? ({ '--bc': barColor } as React.CSSProperties) : undefined}
       {...(!isDragDisabled ? listeners : {})}

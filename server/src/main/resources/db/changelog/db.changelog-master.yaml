@@ -2734,3 +2734,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0280__add_upsell_channel_diffusion.sql
         relativeToChangelogFile: true
+
+  # Disponibilité des modèles IA (probe proactif) : statut + dernier check + erreur.
+  - changeSet:
+      id: "0281-add-ai-model-availability"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0281__add_ai_model_availability.sql
+        relativeToChangelogFile: true

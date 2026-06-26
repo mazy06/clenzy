@@ -15,6 +15,12 @@ interface UsePlanningPaginationConfig {
   density: DensityMode;
   isFullscreen: boolean;
   showPrices: boolean;
+  /**
+   * Mode « accordéon Superviseur » : la 1ʳᵉ page n'affiche QUE le premier
+   * logement (son panneau plein écran remplit la hauteur) ; tous les autres
+   * logements glissent dans les pages suivantes (pageSize normal).
+   */
+  firstItemAlone?: boolean;
 }
 
 export interface UsePlanningPaginationReturn {
@@ -59,6 +65,7 @@ export function usePlanningPagination({
   density,
   isFullscreen,
   showPrices,
+  firstItemAlone = false,
 }: UsePlanningPaginationConfig): UsePlanningPaginationReturn {
   const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
   const [currentPage, setCurrentPage] = useState(0);
@@ -71,7 +78,12 @@ export function usePlanningPagination({
   }, []);
 
   const pageSize = computePageSize(viewportHeight, density, isFullscreen, showPrices);
-  const totalPages = Math.max(1, Math.ceil(totalProperties.length / pageSize));
+  const itemCount = totalProperties.length;
+  const totalPages = firstItemAlone
+    ? itemCount <= 1
+      ? 1
+      : 1 + Math.ceil((itemCount - 1) / pageSize)
+    : Math.max(1, Math.ceil(itemCount / pageSize));
 
   // Clamp currentPage when totalPages shrinks (filters, resize, density change)
   useEffect(() => {
@@ -85,13 +97,38 @@ export function usePlanningPagination({
     setCurrentPage(0);
   }, [totalProperties.length]);
 
+  // Accordéon Superviseur : revenir page 0 à l'ouverture / fermeture, ou si le
+  // logement déployé change (sa propre page doit toujours être la page 1).
+  const accordionResetKey = firstItemAlone ? `exp:${totalProperties[0]?.id ?? ''}` : 'off';
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [accordionResetKey]);
+
   const paginatedProperties = useMemo(() => {
+    if (firstItemAlone) {
+      if (currentPage === 0) return totalProperties.slice(0, 1);
+      const start = 1 + (currentPage - 1) * pageSize;
+      return totalProperties.slice(start, start + pageSize);
+    }
     const start = currentPage * pageSize;
     return totalProperties.slice(start, start + pageSize);
-  }, [totalProperties, currentPage, pageSize]);
+  }, [totalProperties, currentPage, pageSize, firstItemAlone]);
 
-  const rangeStart = currentPage * pageSize + 1;
-  const rangeEnd = Math.min((currentPage + 1) * pageSize, totalProperties.length);
+  let rangeStart: number;
+  let rangeEnd: number;
+  if (firstItemAlone) {
+    if (currentPage === 0) {
+      rangeStart = itemCount === 0 ? 0 : 1;
+      rangeEnd = itemCount === 0 ? 0 : 1;
+    } else {
+      const start0 = 1 + (currentPage - 1) * pageSize;
+      rangeStart = start0 + 1;
+      rangeEnd = Math.min(start0 + pageSize, itemCount);
+    }
+  } else {
+    rangeStart = currentPage * pageSize + 1;
+    rangeEnd = Math.min((currentPage + 1) * pageSize, itemCount);
+  }
 
   const goToPage = useCallback(
     (page: number) => {

@@ -1,9 +1,12 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.AiCatalogModelDto;
 import com.clenzy.dto.PlatformAiModelDto;
+import com.clenzy.dto.ProviderCatalogRequest;
 import com.clenzy.dto.SavePlatformModelRequest;
 import com.clenzy.dto.TestPlatformModelRequest;
 import com.clenzy.service.PlatformAiConfigService;
+import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,9 +31,12 @@ public class PlatformAiConfigController {
     private static final Logger log = LoggerFactory.getLogger(PlatformAiConfigController.class);
 
     private final PlatformAiConfigService configService;
+    private final TenantContext tenantContext;
 
-    public PlatformAiConfigController(PlatformAiConfigService configService) {
+    public PlatformAiConfigController(PlatformAiConfigService configService,
+                                      TenantContext tenantContext) {
         this.configService = configService;
+        this.tenantContext = tenantContext;
     }
 
     // ─── Models CRUD ────────────────────────────────────────────────────
@@ -45,7 +51,7 @@ public class PlatformAiConfigController {
             @Valid @RequestBody SavePlatformModelRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String updatedBy = jwt.getClaimAsString("preferred_username");
-        PlatformAiModelDto result = configService.saveModel(request, updatedBy);
+        PlatformAiModelDto result = configService.saveModel(request, updatedBy, tenantContext.getOrganizationId());
         return ResponseEntity.ok(result);
     }
 
@@ -59,7 +65,7 @@ public class PlatformAiConfigController {
         SavePlatformModelRequest withId = new SavePlatformModelRequest(
                 id, request.name(), request.provider(), request.modelId(),
                 request.apiKey(), request.baseUrl());
-        PlatformAiModelDto result = configService.saveModel(withId, updatedBy);
+        PlatformAiModelDto result = configService.saveModel(withId, updatedBy, tenantContext.getOrganizationId());
         return ResponseEntity.ok(result);
     }
 
@@ -78,6 +84,28 @@ public class PlatformAiConfigController {
                 "provider", request.provider(),
                 "modelId", request.modelId()
         ));
+    }
+
+    // ─── Disponibilité (probe proactif) ─────────────────────────────────
+
+    /** Re-vérifie la disponibilité d'un modèle à la demande (bouton « Revérifier »). */
+    @PostMapping("/models/{id}/recheck")
+    public ResponseEntity<PlatformAiModelDto> recheckModel(@PathVariable Long id) {
+        return ResponseEntity.ok(configService.recheckAvailability(id));
+    }
+
+    /** Re-vérifie TOUS les modèles à la demande → liste à jour. */
+    @PostMapping("/models/recheck-all")
+    public ResponseEntity<List<PlatformAiModelDto>> recheckAllModels() {
+        configService.recheckAllAvailability();
+        return ResponseEntity.ok(configService.getModels());
+    }
+
+    /** Catalogue LIVE d'un provider (GET /models) → liste d'IDs réels pour « Add a model ». */
+    @PostMapping("/models/catalog")
+    public ResponseEntity<List<AiCatalogModelDto>> providerCatalog(@RequestBody ProviderCatalogRequest request) {
+        return ResponseEntity.ok(configService.listProviderModels(
+                request.provider(), request.apiKey(), request.baseUrl()));
     }
 
     // ─── Feature Assignments ────────────────────────────────────────────

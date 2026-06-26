@@ -36,13 +36,16 @@ public class CommunicationSpecialist extends AbstractAgentSpecialist {
     public String description() {
         return """
                 Specialiste pour les interactions avec les guests :
+                - "Liste mes voyageurs", "infos sur le client X", "mes meilleurs clients" (read)
                 - "Envoie le message de bienvenue au guest de la resa 123"
-                - "Annule la reservation 456 (motif: ...)"
+                - "Annule la reservation 456 (motif: ...)", "Change le statut de la resa 789"
+                - "Reponds a l'avis 12 : merci pour votre sejour..."
                 Write tools avec confirmation user (irreversibles).""";
     }
 
     @Override
     public Set<String> toolNames() {
-        return Set.of("send_guest_message", "cancel_reservation");
+        return Set.of("list_guests", "send_guest_message", "cancel_reservation",
+                "update_reservation_status", "reply_to_review");
     }
 }
