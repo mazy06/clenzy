@@ -1,0 +1,10 @@
+# node_modules : réinstallés dans l'image via `npm ci` (binaires Linux).
+# Empêche les node_modules locaux (macOS) de polluer/alourdir le contexte de build.
+node_modules
+npm-debug.log*
+Dockerfile
+Dockerfile.dev
+.dockerignore
+.git
+.gitignore
+*.log

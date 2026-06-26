@@ -43,19 +43,25 @@ public class AgentToolLoopRunner {
     private final PendingToolStore pendingToolStore;
     private final ObjectMapper objectMapper;
     private final AiTokenBudgetService aiTokenBudgetService;
+    private final AgentActionAuditService actionAuditService;
+    private final AgentToolMetrics toolMetrics;
 
     public AgentToolLoopRunner(ChatLLMProvider chatProvider,
                                 ToolRegistry toolRegistry,
                                 AssistantMessageRepository messageRepository,
                                 PendingToolStore pendingToolStore,
                                 ObjectMapper objectMapper,
-                                AiTokenBudgetService aiTokenBudgetService) {
+                                AiTokenBudgetService aiTokenBudgetService,
+                                AgentActionAuditService actionAuditService,
+                                AgentToolMetrics toolMetrics) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.messageRepository = messageRepository;
         this.pendingToolStore = pendingToolStore;
         this.objectMapper = objectMapper;
         this.aiTokenBudgetService = aiTokenBudgetService;
+        this.actionAuditService = actionAuditService;
+        this.toolMetrics = toolMetrics;
     }
 
     public void runToolLoop(ChatRequest initialRequest,
@@ -114,6 +120,7 @@ public class AgentToolLoopRunner {
                     List<ChatMessage> futureHistory = new ArrayList<>(request.messages());
                     futureHistory.add(ChatMessage.assistantToolCalls(outcome.toolCalls));
 
+                    String description = handler.get().descriptor().description();
                     pendingToolStore.put(
                             call.id(),
                             conversation.getId(),
@@ -121,10 +128,11 @@ public class AgentToolLoopRunner {
                             context.keycloakId(),
                             call.name(),
                             call.arguments(),
-                            futureHistory
+                            futureHistory,
+                            null,
+                            description
                     );
 
-                    String description = handler.get().descriptor().description();
                     consumer.accept(AgentSseEvent.toolConfirmationRequest(
                             call.name(), call.id(), call.arguments(), description));
                     // Si plusieurs tools sont en confirmation, on les annonce tous —
@@ -183,16 +191,29 @@ public class AgentToolLoopRunner {
     public ToolResult executeConfirmed(PendingToolStore.PendingTool pending, AgentContext context) {
         Optional<ToolHandler> handler = toolRegistry.find(pending.toolName());
         if (handler.isEmpty()) {
+            recordMetric(pending.toolName(), false);
             return ToolResult.error("Tool '" + pending.toolName() + "' n'est plus disponible");
         }
+        // Un tool confirme est par construction un WRITE tool (requiresConfirmation) :
+        // on l'audite systematiquement (priorite absolue — modification de donnees).
+        boolean isWrite = handler.get().descriptor() == null
+                || handler.get().descriptor().requiresConfirmation();
         try {
             JsonNode args = parseArgsSafe(pending.argsJson());
-            return handler.get().execute(args, context);
+            ToolResult result = handler.get().execute(args, context);
+            boolean success = !result.isError();
+            recordMetric(pending.toolName(), success);
+            recordAudit(pending.toolName(), pending.argsJson(), isWrite, success, context);
+            return result;
         } catch (ToolExecutionException e) {
             log.info("Tool '{}' a echoue apres confirmation : {}", pending.toolName(), e.getMessage());
+            recordMetric(pending.toolName(), false);
+            recordAudit(pending.toolName(), pending.argsJson(), isWrite, false, context);
             return ToolResult.error(e.getMessage());
         } catch (Exception e) {
             log.error("Tool '{}' exception inattendue apres confirmation", pending.toolName(), e);
+            recordMetric(pending.toolName(), false);
+            recordAudit(pending.toolName(), pending.argsJson(), isWrite, false, context);
             return ToolResult.error("Erreur interne lors de l'execution de " + pending.toolName());
         }
     }
@@ -231,6 +252,10 @@ public class AgentToolLoopRunner {
                     providerName != null ? providerName : "anthropic",
                     resp
             );
+            // Exposition Grafana du cout (metrique seulement, pas de persistance).
+            if (toolMetrics != null) {
+                toolMetrics.recordTokens(providerName, model, promptTokens, completionTokens);
+            }
             log.info("[USAGE] Recorded ASSISTANT_CHAT : org={} provider={} model='{}' "
                     + "tokens={}/{}", organizationId, providerName, model,
                     promptTokens, completionTokens);
@@ -271,20 +296,55 @@ public class AgentToolLoopRunner {
     }
 
     private ToolResult executeTool(ChatMessage.ToolCall call, AgentContext context) {
+        // RBAC least-privilege : un role operationnel (technicien/menage/supervisor...)
+        // ne peut executer QUE les outils d'intervention (scopes a ses interventions au
+        // niveau service). Defense-in-depth : meme si le LLM invoque un outil non expose
+        // (hallucination), on le bloque ici.
+        if (!RoleToolPolicy.isToolAllowed(call.name(), context)) {
+            log.warn("Tool '{}' refuse pour le role courant (RBAC operationnel)", call.name());
+            recordMetric(call.name(), false);
+            return ToolResult.error("Cet outil n'est pas disponible pour votre role.");
+        }
         Optional<ToolHandler> handler = toolRegistry.find(call.name());
         if (handler.isEmpty()) {
             log.warn("Tool '{}' inconnu (demande par le LLM)", call.name());
+            recordMetric(call.name(), false);
             return ToolResult.error("Tool '" + call.name() + "' non disponible");
         }
+        boolean isWrite = handler.get().descriptor() != null
+                && handler.get().descriptor().requiresConfirmation();
         try {
             JsonNode args = parseArgsSafe(call.arguments());
-            return handler.get().execute(args, context);
+            ToolResult result = handler.get().execute(args, context);
+            boolean success = !result.isError();
+            recordMetric(call.name(), success);
+            recordAudit(call.name(), call.arguments(), isWrite, success, context);
+            return result;
         } catch (ToolExecutionException e) {
             log.info("Tool '{}' a echoue (previsible) : {}", call.name(), e.getMessage());
+            recordMetric(call.name(), false);
+            recordAudit(call.name(), call.arguments(), isWrite, false, context);
             return ToolResult.error(e.getMessage());
         } catch (Exception e) {
             log.error("Tool '{}' a leve une exception inattendue", call.name(), e);
+            recordMetric(call.name(), false);
+            recordAudit(call.name(), call.arguments(), isWrite, false, context);
             return ToolResult.error("Erreur interne lors de l'execution de " + call.name());
+        }
+    }
+
+    /** Compteur Micrometer d'execution d'outil (null-safe : instrumentation optionnelle). */
+    private void recordMetric(String toolName, boolean success) {
+        if (toolMetrics != null) {
+            toolMetrics.recordExecution(toolName, success);
+        }
+    }
+
+    /** Audit-logging d'une action d'outil (null-safe : instrumentation optionnelle). */
+    private void recordAudit(String toolName, String argsJson, boolean isWrite,
+                             boolean success, AgentContext context) {
+        if (actionAuditService != null) {
+            actionAuditService.recordToolExecution(toolName, argsJson, isWrite, success, context);
         }
     }
 

@@ -1,0 +1,15 @@
+{
+  "name": "clenzy-copilot-runtime",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Runtime CopilotKit (Node) mince : routeur AG-UI + frontière de sécurité devant le backend Java Clenzy (POST /api/agui/run). Expose /api/copilotkit au front.",
+  "scripts": {
+    "dev": "node server.mjs"
+  },
+  "dependencies": {
+    "@ag-ui/client": "^0.0.57",
+    "@copilotkit/runtime": "^1.61.2",
+    "express": "^4.21.2"
+  }
+}

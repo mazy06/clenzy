@@ -38,6 +38,8 @@ public class OperationsSpecialist extends AbstractAgentSpecialist {
                 - "Liste les menages a faire", "Cree une intervention maintenance"
                 - "Assigne cette intervention a Marie", "Bloque ces dates"
                 - "Mets cette propriete en MAINTENANCE"
+                - Statut de synchro des canaux, alertes de bruit, changement de statut d'une intervention, tarif override
+                - Creation d'une reservation directe (le prix est calcule serveur), generation d'une facture de sejour
                 Write tools avec confirmation user requise.""";
     }
 
@@ -49,7 +51,13 @@ public class OperationsSpecialist extends AbstractAgentSpecialist {
                 "create_intervention",
                 "assign_intervention",
                 "block_calendar_day",
-                "update_property_status"
+                "update_property_status",
+                "get_channel_sync_status",
+                "get_noise_alerts",
+                "update_intervention_status",
+                "set_rate_override",
+                "create_reservation",
+                "create_invoice"
         );
     }
 }

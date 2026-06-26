@@ -177,6 +177,16 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      // Runtime CopilotKit (service Docker `copilot-runtime`) servi en MÊME
+      // ORIGINE que le front : le cookie HttpOnly `clenzy_auth` est alors
+      // envoyé automatiquement (pas de cross-origin / CORS), puis relayé au
+      // backend Java par le runtime. Cible = alias réseau Docker du service.
+      '/api/copilotkit': {
+        target: 'http://copilot-runtime:8080',
+        changeOrigin: true,
+      },
+    },
   },
   test: {
     globals: true,

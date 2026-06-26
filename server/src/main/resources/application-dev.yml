@@ -194,6 +194,11 @@ clenzy:
     enabled: true
     token-budget:
       default-monthly-tokens: 500000
+    # Override DEV : le défaut application.yml (claude-sonnet-4-20250514, snapshot
+    # 2025-05) est RETIRÉ chez Anthropic → 404. On force le Sonnet courant en dev.
+    # Migration prod = chantier séparé (application.yml + PlatformAiConfigService + tests).
+    anthropic:
+      model: claude-sonnet-4-6
   assistant:
     # Multi-agent (orchestrator + 8 specialists ≤10 tools chacun) au lieu du
     # mono-agent (27 tools en bloc). Activé en dev pour validation manuelle

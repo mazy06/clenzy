@@ -23,5 +23,11 @@ public enum AuditAction {
     DOCUMENT_VERIFY,
     DOCUMENT_CORRECT,
     COMPLIANCE_CHECK,
-    RECONCILIATION
+    RECONCILIATION,
+    /**
+     * Execution d'un outil par l'assistant IA (mono-agent ou specialiste multi-agent).
+     * Le detail (nom de l'outil, args tronques/PII-safe, resultat) est porte par les
+     * champs entityType / details / newValue de l'AuditLog.
+     */
+    ASSISTANT_TOOL
 }

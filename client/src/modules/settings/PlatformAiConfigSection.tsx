@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Autocomplete,
   Box,
   Paper,
   Typography,
@@ -36,6 +37,7 @@ import {
   AutoAwesome,
   CheckCircle,
   OpenInNew,
+  Refresh,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -44,6 +46,8 @@ import {
   useTestPlatformModel,
   useSavePlatformModel,
   useDeletePlatformModel,
+  useRecheckPlatformModel,
+  useProviderCatalog,
   useFeatureAssignments,
   useAssignModelToFeature,
   useUnassignFeature,
@@ -57,7 +61,7 @@ import {
   useFeatureProviderAssignments,
   useAssignProviderToFeature,
 } from '../../hooks/useAi';
-import type { AiModelUsage, PlatformAiModel, SavePlatformModelRequest, TestPlatformModelRequest } from '../../services/api/aiApi';
+import type { AiCatalogModel, AiModelUsage, PlatformAiModel, SavePlatformModelRequest, TestPlatformModelRequest } from '../../services/api/aiApi';
 
 /** Provider connecte (BYOK/partagee) propose dans le selecteur de modele d'une feature. */
 interface ConnectedProviderOption {
@@ -84,6 +88,18 @@ const PROVIDER_LABELS: Record<string, string> = {
   nvidia: 'NVIDIA Build',
   openai: 'OpenAI',
   anthropic: 'Anthropic',
+};
+
+// Catégorie de modèle du catalogue live (dérivée de l'ID côté backend) → label + couleur.
+const CATALOG_CATEGORY_LABELS: Record<string, string> = {
+  chat: 'Chat', reasoning: 'Raisonnement', code: 'Code', vision: 'Vision',
+  ocr: 'OCR', embedding: 'Embeddings', rerank: 'Rerank', audio: 'Audio',
+  image: 'Image', safety: 'Sécurité', other: 'Autre',
+};
+const CATALOG_CATEGORY_COLORS: Record<string, string> = {
+  chat: '#4A9B8E', reasoning: '#7BA3C2', code: '#6B8A9A', vision: '#9D82F0',
+  ocr: '#C28A52', embedding: '#8A8F9E', rerank: '#8A8F9E', audio: '#D6457E',
+  image: '#D4A574', safety: '#C97A7A', other: '#9AA1B0',
 };
 
 const PROVIDER_BASE_URLS: Record<string, string> = {
@@ -180,9 +196,14 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   const [baseUrl, setBaseUrl] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [testResult, setTestResult] = useState<null | 'success' | 'error'>(null);
+  const [catalog, setCatalog] = useState<AiCatalogModel[]>([]);
+  const [nameTouched, setNameTouched] = useState(false);
 
   const testMutation = useTestPlatformModel();
   const saveMutation = useSavePlatformModel();
+  const catalogMutation = useProviderCatalog();
+  const { data: keyStatus } = useAiKeyStatus();
+  const { data: platformModels } = usePlatformModels();
 
   // Reset form when dialog opens/closes or editModel changes
   useEffect(() => {
@@ -192,15 +213,18 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
         setProvider(editModel.provider);
         setModelId(editModel.modelId);
         setBaseUrl(editModel.baseUrl || PROVIDER_BASE_URLS[editModel.provider] || '');
+        setNameTouched(true);
       } else {
         setName('');
         setProvider('');
         setModelId('');
         setBaseUrl('');
+        setNameTouched(false);
       }
       setApiKey('');
       setShowKey(false);
       setTestResult(null);
+      setCatalog([]);
       testMutation.reset();
       saveMutation.reset();
     }
@@ -212,6 +236,8 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
     setBaseUrl(PROVIDER_BASE_URLS[newProvider] || '');
     setModelId('');
     setTestResult(null);
+    setCatalog([]);
+    if (!nameTouched) setName('');
   };
 
   const handleTest = () => {
@@ -244,7 +270,50 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
 
   const models = MODELS_BY_PROVIDER[provider] || [];
   const accent = PROVIDER_COLORS[provider] || '#9A7FA3';
-  const canSave = name.trim() && provider && modelId && apiKey.trim();
+
+  // Clé réutilisable pour ce provider : connexion org BYOK (onglet Connection)
+  // ou modèle plateforme déjà configuré. Si dispo, on ne redemande pas la clé —
+  // le serveur la réutilise (le secret ne transite jamais vers le client, on
+  // n'affiche qu'un aperçu masqué).
+  const orgConnKey = keyStatus?.find(
+    (k) => k.provider === provider && k.configured && k.source === 'ORGANIZATION' && !!k.maskedApiKey,
+  );
+  const existingPlatformKey = (platformModels || []).find(
+    (m) => m.provider === provider && m.id !== editModel?.id && !!m.maskedApiKey,
+  );
+  const reusableMasked = orgConnKey?.maskedApiKey ?? existingPlatformKey?.maskedApiKey ?? null;
+  const keyOptional = !!reusableMasked || !!editModel;
+
+  const canSave = name.trim() && provider && modelId && (apiKey.trim() || keyOptional);
+
+  // Nom auto depuis le modèle choisi : label du preset, sinon ID humanisé.
+  const autoNameFromModel = (mid: string): string => {
+    if (!mid) return '';
+    const preset = models.find((m) => m.id === mid);
+    if (preset) return preset.label;
+    const seg = mid.includes('/') ? mid.split('/').slice(-1)[0] : mid;
+    return seg
+      .replace(/[-_.]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+      .join(' ');
+  };
+  // Sélection d'un modèle (preset ou catalogue) : pré-remplit le nom si non édité.
+  const applyModelSelection = (mid: string) => {
+    setModelId(mid);
+    if (!nameTouched && mid) setName(autoNameFromModel(mid));
+  };
+
+  // "Où trouver ma clé" : page du modèle NVIDIA (panneau Get API Key) si un modèle
+  // est sélectionné, sinon la page clés générique du provider.
+  const keyHelpUrl = (): string => {
+    if (provider === 'nvidia' && modelId) {
+      return `https://build.nvidia.com/${modelId.replace(/\./g, '_')}`;
+    }
+    return PROVIDER_API_KEY_URLS[provider]?.url || '';
+  };
 
   return (
     <Dialog
@@ -267,7 +336,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           <TextField
             label={t('settings.ai.platform.name')}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); setNameTouched(true); }}
             fullWidth
             size="small"
             placeholder="ex: Design - Qwen Coder"
@@ -304,7 +373,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           <TextField
             label={t('settings.ai.platform.model')}
             value={modelId}
-            onChange={(e) => setModelId(e.target.value)}
+            onChange={(e) => applyModelSelection(e.target.value)}
             fullWidth
             size="small"
             select={models.length > 0}
@@ -328,6 +397,74 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
             ))}
           </TextField>
 
+          {/* Catalogue LIVE du provider (GET /models) — IDs réellement servis */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={!provider || catalogMutation.isPending}
+              startIcon={catalogMutation.isPending
+                ? <CircularProgress size={14} />
+                : <Refresh size={16} strokeWidth={1.75} />}
+              onClick={() => catalogMutation.mutate(
+                { provider, apiKey: apiKey.trim() || undefined, baseUrl: baseUrl.trim() || undefined },
+                { onSuccess: (ids) => setCatalog(ids) },
+              )}
+              sx={{ alignSelf: 'flex-start', textTransform: 'none', borderColor: accent, color: accent }}
+            >
+              {t('settings.ai.platform.loadCatalog', 'Charger le catalogue du provider')}
+            </Button>
+            {catalogMutation.isError && (
+              <Typography variant="caption" color="error">
+                {(catalogMutation.error as Error)?.message
+                  || t('settings.ai.platform.catalogError', 'Échec du chargement du catalogue.')}
+              </Typography>
+            )}
+            {catalog.length > 0 && (
+              <Autocomplete
+                options={
+                  modelId && !catalog.some((m) => m.id === modelId)
+                    ? [{ id: modelId, category: 'other' }, ...catalog]
+                    : catalog
+                }
+                value={catalog.find((m) => m.id === modelId) ?? (modelId ? { id: modelId, category: 'other' } : null)}
+                onChange={(_, v) => applyModelSelection(v?.id ?? '')}
+                getOptionLabel={(o) => o.id}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                size="small"
+                fullWidth
+                renderOption={(props, option) => {
+                  const { key, ...rest } = props as { key?: React.Key } & React.HTMLAttributes<HTMLLIElement>;
+                  const color = CATALOG_CATEGORY_COLORS[option.category] || '#9AA1B0';
+                  return (
+                    <li key={key} {...rest} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {option.id}
+                      </span>
+                      <Chip
+                        size="small"
+                        label={CATALOG_CATEGORY_LABELS[option.category] || option.category}
+                        sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, flexShrink: 0, bgcolor: alpha(color, 0.14), color }}
+                      />
+                    </li>
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={`${t('settings.ai.platform.catalogPick', 'Catalogue live')} (${catalog.length})`}
+                  />
+                )}
+              />
+            )}
+            {catalog.length > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.45 }}>
+                {t('settings.ai.platform.catalogLegend',
+                  'Chat / Raisonnement → Assistant, Messagerie, Tarification, Analytics · Code → Design, Studio · Audio, OCR, Embeddings, Image, Rerank ne conviennent pas aux agents conversationnels.')}
+              </Typography>
+            )}
+          </Box>
+
           {/* API Key */}
           <TextField
             label={t('settings.ai.platform.apiKey')}
@@ -336,7 +473,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
             onChange={(e) => setApiKey(e.target.value)}
             fullWidth
             size="small"
-            placeholder={editModel?.maskedApiKey || 'sk-...'}
+            placeholder={editModel?.maskedApiKey || reusableMasked || 'sk-...'}
             InputProps={{
               endAdornment: (
                 <IconButton onClick={() => setShowKey(!showKey)} edge="end" size="small">
@@ -350,12 +487,20 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
             }}
           />
 
+          {keyOptional && !apiKey.trim() && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: -1.25, mb: -0.5 }}>
+              {reusableMasked
+                ? t('settings.ai.platform.keyReuse', 'Laisse vide pour réutiliser la clé déjà configurée pour ce provider.')
+                : t('settings.ai.platform.keyKeep', 'Laisse vide pour conserver la clé actuelle.')}
+            </Typography>
+          )}
+
           {/* Lien contextuel "Ou trouver ma cle ?" — adapte au provider selectionne */}
           {provider && PROVIDER_API_KEY_URLS[provider] && (
             <Box sx={{ mt: -1, mb: -0.5 }}>
               <Button
                 component="a"
-                href={PROVIDER_API_KEY_URLS[provider].url}
+                href={keyHelpUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 size="small"
@@ -372,7 +517,9 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                   '&:hover': { color: accent, backgroundColor: alpha(accent, 0.06) },
                 }}
               >
-                Où trouver ma clé ? — {PROVIDER_API_KEY_URLS[provider].label}
+                {provider === 'nvidia' && modelId
+                  ? 'Où trouver ma clé ? — Page du modèle : Get API Key'
+                  : `Où trouver ma clé ? — ${PROVIDER_API_KEY_URLS[provider].label}`}
               </Button>
             </Box>
           )}
@@ -447,9 +594,25 @@ interface ModelRowProps {
 }
 
 function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const providerColor = PROVIDER_COLORS[model.provider] || '#888';
+  const recheck = useRecheckPlatformModel();
+
+  // Disponibilité live (probe proactif) — distincte du checkmark "lastValidatedAt" (test manuel).
+  const av = model.availabilityStatus;
+  const avColor = av === 'AVAILABLE' ? '#4A9B8E' : av === 'UNAVAILABLE' ? '#C97A7A' : '#9AA1B0';
+  const avLabel = av === 'AVAILABLE'
+    ? t('settings.ai.platform.availabilityAvailable', 'Disponible')
+    : av === 'UNAVAILABLE'
+      ? t('settings.ai.platform.availabilityUnavailable', 'Indisponible')
+      : t('settings.ai.platform.availabilityUnknown', 'Non vérifié');
+  const avCheckedAt = model.lastAvailabilityCheckAt
+    ? new Date(model.lastAvailabilityCheckAt).toLocaleString()
+    : '—';
+  const avTip = `${avLabel} · ${t('settings.ai.platform.lastCheck', 'Dernier contrôle')} : ${avCheckedAt}`
+    + (model.availabilityError ? `\n${model.availabilityError}` : '');
 
   return (
     <Box
@@ -515,6 +678,22 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
         })}
       </Box>
 
+      {/* Availability (live) — vert / rouge / gris + tooltip (dernier contrôle + erreur) */}
+      <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{avTip}</span>}>
+        <Chip
+          size="small"
+          label={avLabel}
+          sx={{
+            height: 22,
+            fontSize: '0.65rem',
+            fontWeight: 600,
+            flexShrink: 0,
+            bgcolor: alpha(avColor, isDark ? 0.18 : 0.12),
+            color: avColor,
+          }}
+        />
+      </Tooltip>
+
       {/* Validated indicator */}
       {model.lastValidatedAt && (
         <Tooltip title={`Valide le ${new Date(model.lastValidatedAt).toLocaleDateString()}`}>
@@ -524,6 +703,13 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
 
       {/* Actions */}
       <Box sx={{ display: 'flex', gap: 0.25, flexShrink: 0 }}>
+        <Tooltip title={t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}>
+          <span>
+            <IconButton size="small" onClick={() => recheck.mutate(model.id)} disabled={recheck.isPending}>
+              {recheck.isPending ? <CircularProgress size={14} /> : <Refresh size={16} strokeWidth={1.75} />}
+            </IconButton>
+          </span>
+        </Tooltip>
         <IconButton size="small" onClick={() => onEdit(model)}>
           <Edit size={16} strokeWidth={1.75} />
         </IconButton>
@@ -863,6 +1049,7 @@ export default function PlatformAiConfigSection() {
   const [canManage, setCanManage] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editModel, setEditModel] = useState<PlatformAiModel | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const { data: models, isLoading: modelsLoading, error: modelsError } = usePlatformModels();
   const { data: assignments, isLoading: assignmentsLoading } = useFeatureAssignments();
@@ -931,7 +1118,15 @@ export default function PlatformAiConfigSection() {
   };
 
   const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
+    deleteMutation.reset();
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDeleteModel = () => {
+    if (confirmDeleteId == null) return;
+    deleteMutation.mutate(confirmDeleteId, {
+      onSuccess: () => setConfirmDeleteId(null),
+    });
   };
 
   const handleAssign = (feature: string, modelId: number) => {
@@ -1065,6 +1260,46 @@ export default function PlatformAiConfigSection() {
         onClose={handleCloseDialog}
         editModel={editModel}
       />
+
+      {/* Confirmation de suppression — action destructive, affiche aussi l'erreur */}
+      <Dialog open={confirmDeleteId != null} onClose={() => setConfirmDeleteId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
+            {t('settings.ai.platform.deleteConfirmTitle', 'Supprimer ce modèle ?')}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {t('settings.ai.platform.deleteConfirmBody', {
+              defaultValue: 'Le modèle « {{name}} » sera supprimé. Les features qui l’utilisent repasseront au modèle par défaut.',
+              name: modelList.find((m) => m.id === confirmDeleteId)?.name ?? '',
+            })}
+          </Typography>
+          {deleteMutation.isError && (
+            <Alert severity="error" sx={{ mt: 1.5, py: 0.5 }}>
+              {(deleteMutation.error as Error)?.message
+                || t('settings.ai.platform.deleteError', 'Échec de la suppression.')}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setConfirmDeleteId(null)} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={confirmDeleteModel}
+            variant="contained"
+            color="error"
+            disabled={deleteMutation.isPending}
+            startIcon={deleteMutation.isPending
+              ? <CircularProgress size={14} color="inherit" />
+              : <Delete size={16} strokeWidth={1.75} />}
+            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
+          >
+            {t('settings.ai.platform.delete', 'Supprimer')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AiSettingsCard>
   );
 }

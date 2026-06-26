@@ -15,5 +15,9 @@ public record PlatformAiModelDto(
         String baseUrl,
         List<String> assignedFeatures,
         LocalDateTime lastValidatedAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        // Disponibilité (probe proactif) : "AVAILABLE" | "UNAVAILABLE" | "UNKNOWN"
+        String availabilityStatus,
+        LocalDateTime lastAvailabilityCheckAt,
+        String availabilityError
 ) {}

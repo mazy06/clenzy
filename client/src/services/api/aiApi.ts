@@ -189,6 +189,17 @@ export const aiApi = {
   testPlatformModel: (data: TestPlatformModelRequest): Promise<{ success: boolean; provider: string; modelId: string }> =>
     apiClient.post('/admin/ai/platform-config/models/test', data),
 
+  // Revérifie la disponibilité d'un modèle (probe à la demande) → modèle à jour.
+  recheckPlatformModel: (id: number): Promise<PlatformAiModel> =>
+    apiClient.post(`/admin/ai/platform-config/models/${id}/recheck`),
+
+  recheckAllPlatformModels: (): Promise<PlatformAiModel[]> =>
+    apiClient.post('/admin/ai/platform-config/models/recheck-all'),
+
+  // Catalogue live d'un provider (GET /models) → IDs + catégorie dérivée.
+  getProviderCatalog: (data: { provider: string; apiKey?: string; baseUrl?: string | null }): Promise<AiCatalogModel[]> =>
+    apiClient.post('/admin/ai/platform-config/models/catalog', data),
+
   // ── Platform Feature Assignments (SUPER_ADMIN) ──
   getFeatureAssignments: (): Promise<Record<string, PlatformAiModel>> =>
     apiClient.get('/admin/ai/platform-config/features'),
@@ -227,6 +238,16 @@ export interface PlatformAiModel {
   assignedFeatures: string[];
   lastValidatedAt: string | null;
   updatedAt: string | null;
+  // Disponibilité (probe proactif quotidien + bouton « Revérifier »)
+  availabilityStatus: 'AVAILABLE' | 'UNAVAILABLE' | 'UNKNOWN';
+  lastAvailabilityCheckAt: string | null;
+  availabilityError: string | null;
+}
+
+/** Entrée du catalogue live d'un provider : ID + catégorie dérivée (chat, code, vision…). */
+export interface AiCatalogModel {
+  id: string;
+  category: string;
 }
 
 export interface SavePlatformModelRequest {

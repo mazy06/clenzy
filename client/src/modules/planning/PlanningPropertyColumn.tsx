@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Box, Typography, Tooltip } from '@mui/material';
 import PropertyPopover from './PropertyPopover';
 import type { PlanningProperty, DensityMode } from './types';
-import { Label as TagIcon, Wifi as ChannelIcon } from '../../icons';
+import { Label as TagIcon, Wifi as ChannelIcon, ChevronDown } from '../../icons';
 import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
 
 // ─── Colonne logements (gauche, sticky) ──────────────────────────────────────
@@ -23,6 +23,12 @@ interface PlanningPropertyColumnProps {
   emptyRowCount?: number;
   reservationCountByProperty?: Map<number, number>;
   channelSyncMap?: ChannelSyncMap;
+  /** Superviseur d'agents : logement déployé (accordéon). */
+  expandedPropertyId?: number | null;
+  /** Si fourni, affiche un chevron d'accordéon par ligne. */
+  onToggleExpanded?: (propertyId: number) => void;
+  /** Hauteur du spacer inséré sous une ligne déployée (= hauteur accordéon). */
+  accordionHeight?: number;
 }
 
 const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo(({
@@ -35,6 +41,9 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   emptyRowCount = 0,
   reservationCountByProperty,
   channelSyncMap,
+  expandedPropertyId = null,
+  onToggleExpanded,
+  accordionHeight = 600,
 }) => {
   // ── Popover logement (maquette) : ouvert au clic sur le nom ──────────────
   const [popover, setPopover] = useState<{ anchorEl: HTMLElement; propertyId: number } | null>(null);
@@ -136,8 +145,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             : sync.synced > 0 ? 'var(--warn)' : 'var(--err)'
           : 'var(--faint)';
         return (
+          <React.Fragment key={property.id}>
           <Box
-            key={property.id}
             onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })}
             sx={{
               position: 'relative',
@@ -239,6 +248,35 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 </Box>
               )}
             </Box>
+            {/* Chevron d'accordéon Superviseur (gated par le rôle côté parent) */}
+            {onToggleExpanded && (
+              <Box
+                role="button"
+                aria-label="Superviseur d'agents"
+                aria-expanded={expandedPropertyId === property.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleExpanded(property.id);
+                }}
+                sx={{
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 26,
+                  height: 26,
+                  mr: '8px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  color: expandedPropertyId === property.id ? 'var(--accent)' : 'var(--muted)',
+                  transform: expandedPropertyId === property.id ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s ease, color 0.15s, background-color 0.15s',
+                  '&:hover': { backgroundColor: 'var(--hover)', color: 'var(--accent)' },
+                }}
+              >
+                <ChevronDown size={16} strokeWidth={2} />
+              </Box>
+            )}
             {/* Indicateur en bas-droite : sync canaux (wifi) */}
             {sync && sync.total > 0 && (
               <Box
@@ -284,6 +322,11 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               </Box>
             )}
           </Box>
+          {/* Spacer d'alignement : compense la hauteur de l'accordéon côté grille */}
+          {expandedPropertyId === property.id && (
+            <Box sx={{ height: accordionHeight, borderBottom: '1px solid var(--line)', backgroundColor: 'var(--bg)' }} />
+          )}
+          </React.Fragment>
         );
       })}
       {/* Empty filler rows — fond plat (spec : pas de zebra) */}
