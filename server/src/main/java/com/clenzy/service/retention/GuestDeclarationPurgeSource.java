@@ -1,6 +1,7 @@
 package com.clenzy.service.retention;
 
 import com.clenzy.repository.GuestDeclarationRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -38,6 +39,7 @@ public class GuestDeclarationPurgeSource implements PurgeSource {
     private final GuestDeclarationRepository repository;
     private final ZoneId zoneId;
 
+    @Autowired
     public GuestDeclarationPurgeSource(GuestDeclarationRepository repository) {
         this(repository, ZoneId.systemDefault());
     }
