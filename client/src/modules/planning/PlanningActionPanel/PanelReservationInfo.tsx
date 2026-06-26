@@ -29,6 +29,7 @@ import { getSourceLogo } from '../utils/sourceLogos';
 import { toDate } from '../utils/dateUtils';
 import { toneTokensSx } from '../../../components/StatusChip';
 import GuestAvatar from '../../../components/GuestAvatar';
+import PanelReservationCompliance from './PanelReservationCompliance';
 
 // ─── Onglet Infos (maquette Signature) ───────────────────────────────────────
 //
@@ -238,6 +239,9 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
 
       {/* ─── NOTES ─────────────────────────────────────────────────────── */}
       <NotesSection reservation={reservation} onSave={onUpdateNotes} />
+
+      {/* ─── FICHE DE POLICE / CONFORMITÉ (rendu seulement si ≥1 déclaration) ─── */}
+      <PanelReservationCompliance reservationId={reservation.id} />
     </Box>
   );
 };

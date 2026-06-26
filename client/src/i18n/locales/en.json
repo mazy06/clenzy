@@ -235,6 +235,39 @@
     }
   },
   "welcomeGuide": {
+    "declaration": {
+      "eyebrow": "Before you discover your guide",
+      "title": "A few details to confirm your arrival",
+      "intro": "To finalise your check-in and meet the legal declaration requirement (police form), please complete the information below. It only takes a minute.",
+      "mainTraveller": "Main traveller",
+      "companion": "Additional guest",
+      "addCompanion": "Add a guest",
+      "remove": "Remove",
+      "submit": "Confirm and open the guide",
+      "submitting": "Confirming…",
+      "errorSubmit": "Submission failed. Please check your details and try again.",
+      "errorRequired": "Please complete all required fields.",
+      "stillMissing": "Some information is still missing.",
+      "privacy": "Your data is securely sent to your host and kept only for the legally required period.",
+      "selectPlaceholder": "Select…",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "maidenName": "Name at birth",
+        "birthDate": "Date of birth",
+        "birthPlace": "Place of birth",
+        "nationality": "Nationality",
+        "residenceAddress": "Home address",
+        "residenceCountry": "Country of residence",
+        "idDocumentType": "ID document type",
+        "idDocumentNumber": "Document number"
+      },
+      "docTypes": {
+        "passport": "Passport",
+        "idCard": "National ID card",
+        "residencePermit": "Residence permit"
+      }
+    },
     "themes": {
       "sectionTitle": "Guide theme",
       "atelier": {
@@ -1917,6 +1950,18 @@
     }
   },
   "reservations": {
+    "compliance": {
+      "title": "Police record",
+      "primaryTraveler": "Primary traveler",
+      "companion": "Companion {{n}}",
+      "transmitted": "Submitted",
+      "toTransmit": "To submit",
+      "resubmit": "Resubmit",
+      "success": "Submitted to the service",
+      "notSubmitted": "Not submitted",
+      "providerPending": "Provider integration pending",
+      "error": "Submission failed"
+    },
     "title": "Reservations",
     "subtitle": "View and manage your property reservations",
     "create": "New reservation",

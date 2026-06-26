@@ -3,6 +3,8 @@ package com.clenzy.service;
 import com.clenzy.model.PropertyPhoto;
 import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.service.access.OrganizationAccessGuard;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -12,12 +14,22 @@ import org.springframework.stereotype.Service;
  * The storage key is the property_photos.id as a String.
  * Binary data is stored in the 'data' column.
  *
- * To migrate to S3 later, create S3PhotoStorageService implementing
- * PhotoStorageService and activate it via @Profile("s3") or config flag.
+ * <p><b>Activation (defaut)</b> : impl par defaut du {@link PhotoStorageService},
+ * active tant que le flag {@code clenzy.storage.photos} est absent ou vaut
+ * {@code bytea} ({@code matchIfMissing = true}). Le flag {@code clenzy.storage.type}
+ * (legacy) reste pris en compte : positionner {@code clenzy.storage.type=s3}
+ * desactive cet impl au profit de {@code S3PhotoStorageService} (chemin AWS legacy).</p>
+ *
+ * <p>Pour basculer sur le stockage objet OVH (MinIO, vendor-neutral) :
+ * {@code clenzy.storage.photos=object} → {@link ObjectStoragePhotoService} devient
+ * l'impl {@code @Primary}. Les deux conditions etant mutuellement exclusives sur
+ * {@code clenzy.storage.photos}, il n'y a JAMAIS deux {@code @Primary} actifs
+ * simultanement.</p>
  */
 @Service
-@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
-        name = "clenzy.storage.type", havingValue = "local", matchIfMissing = true)
+@Primary
+@ConditionalOnProperty(name = "clenzy.storage.type", havingValue = "local", matchIfMissing = true)
+@ConditionalOnProperty(name = "clenzy.storage.photos", havingValue = "bytea", matchIfMissing = true)
 public class LocalPhotoStorageService implements PhotoStorageService {
 
     private final PropertyPhotoRepository photoRepository;

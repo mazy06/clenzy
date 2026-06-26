@@ -17,6 +17,11 @@ import java.nio.file.Paths;
  *
  * @deprecated Les nouveaux templates sont stockes en DB (BYTEA).
  * Cette classe est conservee pour le fallback legacy (templates uploades avant la migration 0074).
+ *
+ * <p><b>Reste disque-only</b> (objet non supporte) : {@link #getAbsolutePath(String)} expose
+ * un {@code Path} filesystem reel requis par XDocReport, sans equivalent en stockage objet.
+ * On passe donc explicitement {@code null} comme strategie objet — le flag
+ * {@code clenzy.storage.documents=object} n'affecte pas ce service legacy.</p>
  */
 @Deprecated
 @Service
@@ -26,7 +31,7 @@ public class DocumentTemplateStorageService extends AbstractFileStorageService {
             @Value("${clenzy.uploads.templates-dir:/app/uploads/templates}") String templatesDir,
             MeterRegistry meterRegistry
     ) {
-        super(Paths.get(templatesDir), meterRegistry, "clenzy.storage.templates");
+        super(Paths.get(templatesDir), meterRegistry, "clenzy.storage.templates", null);
     }
 
     /**

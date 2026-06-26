@@ -1,7 +1,9 @@
 package com.clenzy.service;
 
 import com.clenzy.exception.DocumentStorageException;
+import com.clenzy.service.storage.DocumentBinaryStore;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -24,16 +26,26 @@ public class DocumentStorageService extends AbstractFileStorageService {
 
     public DocumentStorageService(
             @Value("${clenzy.uploads.documents-dir:/app/uploads/documents}") String documentsDir,
-            MeterRegistry meterRegistry
+            MeterRegistry meterRegistry,
+            ObjectProvider<DocumentBinaryStore> objectStoreProvider
     ) {
-        super(Paths.get(documentsDir), meterRegistry, "clenzy.storage.documents");
+        super(Paths.get(documentsDir), meterRegistry, "clenzy.storage.documents",
+                objectStoreProvider.getIfAvailable());
     }
 
     /**
      * Stocke un document PDF genere.
-     * Structure : {type}/{YYYY-MM}/{uuid}_{filename}.pdf
+     * Structure (disque) : {type}/{YYYY-MM}/{uuid}_{filename}.pdf
+     * Structure (objet)  : org/{orgId}/documents/{type}/{YYYY-MM}/{uuid}_{filename}.pdf
+     *
+     * @return reference de stockage (chemin relatif disque, ou cle objet org-scopee)
      */
     public String store(String documentType, String filename, byte[] pdfContent) {
+        if (isObjectStoreActive()) {
+            String monthDir = LocalDate.now().format(MONTH_FMT);
+            String logicalKey = documentType + "/" + monthDir + "/" + generateDiskFilename(filename);
+            return storeViaObject(logicalKey, pdfContent, "application/pdf");
+        }
         try {
             String monthDir = LocalDate.now().format(MONTH_FMT);
             Path targetDir = baseDir.resolve(documentType).resolve(monthDir);

@@ -32,6 +32,11 @@ public record WelcomeGuidePublicDto(
     PracticalInfo practical,
     StayInfo stay,
     CheckInInfo checkIn,
+    /**
+     * Collecte de données réglementaire (fiche de police) : indique au voyageur si une déclaration
+     * est requise et incomplète. {@code null} si aucune réservation liée (rien à demander).
+     */
+    DataCollectionInfo dataCollection,
     boolean chatbotEnabled,
     boolean guestbookEnabled,
     boolean activitiesEnabled,
@@ -49,7 +54,17 @@ public record WelcomeGuidePublicDto(
         return new WelcomeGuidePublicDto(
             title, language, brandingColor, theme, heroImageUrls, welcomeMessage, hostNames,
             logoUrl, sections, pois, newCuratedActivities, property, practical, stay, checkIn,
-            chatbotEnabled, guestbookEnabled, activitiesEnabled, upsellsEnabled, available, unavailableReason);
+            dataCollection, chatbotEnabled, guestbookEnabled, activitiesEnabled, upsellsEnabled,
+            available, unavailableReason);
+    }
+
+    /** Copie avec la collecte de données réglementaire renseignée ; tous les autres champs inchangés. */
+    public WelcomeGuidePublicDto withDataCollection(DataCollectionInfo newDataCollection) {
+        return new WelcomeGuidePublicDto(
+            title, language, brandingColor, theme, heroImageUrls, welcomeMessage, hostNames,
+            logoUrl, sections, pois, curatedActivities, property, practical, stay, checkIn,
+            newDataCollection, chatbotEnabled, guestbookEnabled, activitiesEnabled, upsellsEnabled,
+            available, unavailableReason);
     }
 
     /**
@@ -62,7 +77,7 @@ public record WelcomeGuidePublicDto(
             g.getTitle(), g.getLanguage(), g.getBrandingColor(),
             g.getTheme() != null ? g.getTheme() : "atelier", java.util.List.of(),
             null, null, g.getLogoUrl(), "[]", "[]", "[]",
-            null, null, null, null,
+            null, null, null, null, null,
             false, false, false, false, false, reason);
     }
 
@@ -104,6 +119,16 @@ public record WelcomeGuidePublicDto(
 
     /** Check-in en ligne lie au sejour (nullable si non configure pour ce sejour). */
     public record CheckInInfo(String link, String status) {}
+
+    /**
+     * Collecte de donnees reglementaire (fiche de police / declaration voyageur).
+     *
+     * @param required      true si une declaration est exigee pour ce sejour (service active +
+     *                      donnees manquantes) ; false sinon (service inactif OU tout deja connu)
+     * @param complete      true si rien n'est requis OU si la declaration est complete
+     * @param missingFields champs encore manquants a renseigner (vide si {@code complete})
+     */
+    public record DataCollectionInfo(boolean required, boolean complete, List<String> missingFields) {}
 
     /** Contexte du sejour courant (nullable si token sans reservation). */
     public record StayInfo(
@@ -181,7 +206,7 @@ public record WelcomeGuidePublicDto(
             g.getWelcomeMessage(), g.getHostNames(),
             g.getLogoUrl(), g.getSections(), g.getPois(),
             g.getCuratedActivities(),
-            propertyInfo, practicalInfo, stayInfo, checkIn,
+            propertyInfo, practicalInfo, stayInfo, checkIn, null,
             g.isChatbotEnabled(), g.isGuestbookEnabled(), g.isActivitiesEnabled(),
             g.isUpsellsEnabled(), true, null
         );

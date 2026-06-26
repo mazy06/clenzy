@@ -153,35 +153,19 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- AWS SDK -->
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>s3</artifactId>
-            <version>${aws.sdk.version}</version>
-        </dependency>
+        <!-- AWS SDK retire (2026-06) : le stockage objet passe par MinIO (io.minio),
+             client S3-compatible vendor-neutral pour OVH Object Storage. Aucune autre
+             utilisation du SDK AWS dans le code (s3/lambda/dynamodb/ses/cognito non importes). -->
 
+        <!--
+            MinIO Java SDK — client de stockage objet vendor-neutral (S3-compatible).
+            Utilise pour OVH Object Storage (et tout backend S3-compatible) SANS
+            dependre du SDK AWS. Active uniquement quand clenzy.storage.photos=object.
+        -->
         <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>lambda</artifactId>
-            <version>${aws.sdk.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>dynamodb</artifactId>
-            <version>${aws.sdk.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>ses</artifactId>
-            <version>${aws.sdk.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>cognitoidentityprovider</artifactId>
-            <version>${aws.sdk.version}</version>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.17</version>
         </dependency>
 
         <!-- OpenAPI Documentation -->

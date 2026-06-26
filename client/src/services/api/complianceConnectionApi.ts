@@ -7,6 +7,8 @@
  *   - POST   /api/integrations/compliance/{provider}/connect
  *   - GET    /api/integrations/compliance/{provider}/status
  *   - POST   /api/integrations/compliance/{provider}/disconnect
+ *   - GET    /api/compliance/declarations/by-reservation/{reservationId}
+ *   - POST   /api/compliance/declarations/{id}/submit
  */
 import { API_CONFIG } from '../../config/api';
 import { getAccessToken } from '../../keycloak';
@@ -27,6 +29,32 @@ export interface ComplianceConnectionStatus {
   status?: string | null;
   lastTestedAt?: string | null;
   connectedAt?: string | null;
+}
+
+/** Statut du cycle de vie d'une fiche de police (mirror DeclarationStatus côté serveur). */
+export type DeclarationStatus = 'PENDING' | 'COMPLETED' | 'SUBMITTED';
+
+/**
+ * Vue SANS PII d'une fiche de police d'une réservation (statut de soumission).
+ * Mirror du record serveur {@code DeclarationSummaryDto} — aucun champ d'identité.
+ */
+export interface DeclarationSummary {
+  id: number;
+  primary: boolean;
+  status: DeclarationStatus;
+  providerType?: string | null;
+  submittedAt?: string | null;
+  submittedToProvider: boolean;
+}
+
+/** Résultat d'une (re)soumission. {@code pending} = provider non intégrable (501). */
+export interface DeclarationSubmitResult {
+  accepted: boolean;
+  message: string;
+  externalReference?: string;
+  skipped?: boolean;
+  pending?: boolean;
+  provider?: string;
 }
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -68,6 +96,34 @@ export const complianceConnectionApi = {
 
   async disconnect(provider: ComplianceProvider): Promise<{ disconnected: boolean; provider: ComplianceProvider }> {
     return fetchJson(`/integrations/compliance/${provider}/disconnect`, { method: 'POST' });
+  },
+
+  /** Statut (sans PII) des fiches de police d'une réservation. */
+  async listReservationDeclarations(reservationId: number): Promise<DeclarationSummary[]> {
+    return fetchJson(`/compliance/declarations/by-reservation/${reservationId}`);
+  },
+
+  /**
+   * (Re)soumet une fiche de police au provider de conformité.
+   *
+   * <p>Un provider gouvernemental non intégrable répond 501 : le serveur renvoie alors
+   * un corps {@code { pending: true, provider, message }} que l'on remonte tel quel
+   * (intégration en attente) plutôt qu'une erreur brute.</p>
+   */
+  async retryDeclarationSubmission(declarationId: number): Promise<DeclarationSubmitResult> {
+    try {
+      return await fetchJson<DeclarationSubmitResult>(
+        `/compliance/declarations/${declarationId}/submit`,
+        { method: 'POST' },
+      );
+    } catch (err) {
+      const e = err as { status?: number; body?: unknown };
+      // 501 = provider non intégrable (DGSN/Absher) → corps « pending » exploitable, pas une erreur.
+      if (e.status === 501 && e.body && typeof e.body === 'object') {
+        return e.body as DeclarationSubmitResult;
+      }
+      throw err;
+    }
   },
 };
 

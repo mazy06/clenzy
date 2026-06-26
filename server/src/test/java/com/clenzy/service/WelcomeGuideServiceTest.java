@@ -49,6 +49,7 @@ class WelcomeGuideServiceTest {
     @Mock private com.clenzy.repository.ActivityAffiliateConfigRepository activityAffiliateConfigRepository;
     @Mock private com.clenzy.service.access.GuestUnlockService guestUnlockService;
     @Mock private MessageTemplateService messageTemplateService;
+    @Mock private GuestDeclarationService guestDeclarationService;
 
     private WelcomeGuideService service;
 
@@ -57,7 +58,7 @@ class WelcomeGuideServiceTest {
         service = new WelcomeGuideService(guideRepository, tokenRepository, entryRepository, eventRepository,
             propertyRepository, reservationRepository, checkInInstructionsRepository, guideConfig, accessCodeResolverService,
             onlineCheckInService, photoStorageService, propertyPhotoRepository, activityAffiliateConfigRepository,
-            guestUnlockService, messageTemplateService, java.util.List.of());
+            guestUnlockService, messageTemplateService, guestDeclarationService, java.util.List.of());
     }
 
     @Test

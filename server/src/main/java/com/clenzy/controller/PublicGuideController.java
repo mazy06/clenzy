@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.ActivityDto;
 import com.clenzy.dto.GuestChatRequest;
+import com.clenzy.dto.GuestDeclarationRequest;
 import com.clenzy.dto.GuestbookEntryDto;
 import com.clenzy.dto.GuestbookEntryRequest;
 import com.clenzy.dto.PublicUpsellDto;
@@ -11,6 +12,7 @@ import com.clenzy.dto.WelcomeGuidePublicDto;
 import com.clenzy.model.WelcomeGuideEventType;
 import com.clenzy.service.ActivityService;
 import com.clenzy.service.GuestChatService;
+import com.clenzy.service.GuestDeclarationService;
 import com.clenzy.service.UpsellService;
 import com.clenzy.service.WelcomeGuideAnalyticsService;
 import com.clenzy.service.WelcomeGuideEntryService;
@@ -38,6 +40,7 @@ public class PublicGuideController {
     private final WelcomeGuideAnalyticsService analyticsService;
     private final UpsellService upsellService;
     private final com.clenzy.service.access.GuestUnlockService guestUnlockService;
+    private final GuestDeclarationService guestDeclarationService;
 
     public PublicGuideController(WelcomeGuideService guideService,
                                  WelcomeGuideEntryService entryService,
@@ -45,7 +48,8 @@ public class PublicGuideController {
                                  GuestChatService guestChatService,
                                  WelcomeGuideAnalyticsService analyticsService,
                                  UpsellService upsellService,
-                                 com.clenzy.service.access.GuestUnlockService guestUnlockService) {
+                                 com.clenzy.service.access.GuestUnlockService guestUnlockService,
+                                 GuestDeclarationService guestDeclarationService) {
         this.guideService = guideService;
         this.entryService = entryService;
         this.activityService = activityService;
@@ -53,6 +57,7 @@ public class PublicGuideController {
         this.analyticsService = analyticsService;
         this.upsellService = upsellService;
         this.guestUnlockService = guestUnlockService;
+        this.guestDeclarationService = guestDeclarationService;
     }
 
     @GetMapping("/{token}")
@@ -75,6 +80,22 @@ public class PublicGuideController {
                 analyticsService.record(token, WelcomeGuideEventType.GUESTBOOK_SUBMIT.name(), null);
                 return ResponseEntity.ok(dto);
             })
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Soumission de la fiche de police / déclaration voyageur depuis le livret. La réservation
+     * (et son organisation) est résolue SERVEUR à partir du token — aucun id n'est accepté du body.
+     * Renvoie l'état recalculé de la collecte ({@link WelcomeGuidePublicDto.DataCollectionInfo}),
+     * ou 404 si le token est invalide.
+     */
+    @PostMapping("/{token}/declaration")
+    public ResponseEntity<WelcomeGuidePublicDto.DataCollectionInfo> submitDeclaration(
+            @PathVariable UUID token,
+            @Valid @RequestBody GuestDeclarationRequest request) {
+        return guideService.resolveReservationId(token)
+            .map(reservationId -> ResponseEntity.ok(
+                guestDeclarationService.submitDeclaration(reservationId, request)))
             .orElse(ResponseEntity.notFound().build());
     }
 
