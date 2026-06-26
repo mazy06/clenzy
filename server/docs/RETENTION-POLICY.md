@@ -124,8 +124,10 @@ refunds), aux **litiges** (chargebacks, RGPD 17.3.e) et à la **fiscalité** (fa
 par `ArchivalProperties.Target.retentionYears` + `legalBasis` (auditable en config).
 
 **Purge** (suppression obligatoire, **distincte** de l'archivage) : fiche de police (6 mois),
-preuve paiement (13–15 mois), PII non probante. Ces purges restent **à implémenter** (scheduler
-dédié) une fois l'entité de fiche de police modélisée et la politique validée juridiquement.
+preuve paiement (13–15 mois), PII non probante. Le **framework de purge** générique et inerte par
+défaut est en place (`clenzy.retention.purge.*`, cf. [RETENTION-PURGE.md](RETENTION-PURGE.md)) ;
+les `PurgeSource` concrètes restent **à implémenter** une fois l'entité de fiche de police modélisée
+et la politique validée juridiquement (cf. §7 « Purges en attente d'une entité » de RETENTION-PURGE.md).
 
 ---
 
