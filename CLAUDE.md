@@ -1,5 +1,26 @@
 @primer.md
 
+## Rebranding progressif Clenzy → Baitly
+
+> Le produit est renommé **Clenzy → Baitly**. Rebranding **progressif et opportuniste** : à CHAQUE fois qu'on **modifie un fichier existant** OU qu'on **crée un nouveau fichier**, remplacer « Clenzy » par « Baitly » — mais **uniquement là où c'est sûr** (pas de big-bang, jamais de casse). On ne fait PAS de passe de renommage globale ; on rebrande au fil de l'eau, sur les fichiers qu'on touche de toute façon.
+
+### À renommer (sûr — le faire systématiquement)
+- **Texte visible utilisateur** : libellés UI, copies marketing, titres, **valeurs** i18n affichées, emails, PDF.
+- **Commentaires** et Javadoc/JSDoc.
+- **Documentation** : fichiers `.md`, PDF, READMEs, handoffs, diagrammes.
+- **Messages de log** orientés humain, descriptions, descriptions de tools, etc.
+- **Nouveaux** fichiers/identifiants créés à partir de maintenant : nommer directement en **Baitly**.
+
+### À NE JAMAIS renommer à la volée (identifiants FONCTIONNELS — casseraient prod / CI / données)
+- Package Java `com.clenzy.*` et classes existantes (`ClenzyApplication`…).
+- Noms de conteneurs / réseaux / volumes Docker (`clenzy-server-prod`, `clenzy-network`, `*-prod`…).
+- Realms & clients Keycloak (`clenzy`, `clenzy-guests`).
+- Images GHCR (`ghcr.io/mazy06/clenzy-*`), noms de repos GitHub (`clenzy`, `clenzy-infra`, `clenzy-sites`).
+- Domaines (`app.clenzy.fr`, `auth.clenzy.fr`, `monitoring.clenzy.fr`…), bases/schémas SQL, **clés** d'env var.
+- **Clés** i18n et autres clés/identifiants référencés ailleurs : renommer la **valeur** affichée, **jamais la clé**.
+
+> Ces identifiants fonctionnels seront migrés **séparément et de façon coordonnée** (infra + DNS + CI + Keycloak), pas opportunistement. **En cas de doute → garder l'identifiant, ne renommer que le texte visible.** Une modification de rebranding ne doit JAMAIS introduire de régression de compilation, de test, ou de référence cassée.
+
 ## Database Migration Rules
 
 - **Liquibase** est utilisé pour les migrations de base de données (PAS Flyway).
