@@ -270,6 +270,31 @@ clenzy:
     contact-dir: ${CONTACT_UPLOADS_DIR:/app/uploads/contact}
     templates-dir: ${TEMPLATES_DIR:/app/uploads/templates}
     documents-dir: ${DOCUMENTS_DIR:/app/uploads/documents}
+  # Offload du stockage objet (S3-compatible OVH Object Storage via client MinIO).
+  # Defauts conservateurs → AUCUN changement de comportement :
+  #   - photos    : bytea  (BYTEA Postgres)        | object  → OVH
+  #   - documents : disk   (filesystem /app/uploads)| object  → OVH
+  # Les secrets/buckets sont injectes par env (defauts vides ; fail-fast a l'usage si object sans config).
+  storage:
+    photos: ${STORAGE_PHOTOS:bytea}
+    documents: ${STORAGE_DOCUMENTS:disk}
+    object:
+      endpoint: ${STORAGE_OBJECT_ENDPOINT:}
+      region: ${STORAGE_OBJECT_REGION:}
+      access-key: ${STORAGE_OBJECT_ACCESS_KEY:}
+      secret-key: ${STORAGE_OBJECT_SECRET_KEY:}
+      bucket-media: ${STORAGE_OBJECT_BUCKET_MEDIA:}
+      bucket-documents: ${STORAGE_OBJECT_BUCKET_DOCUMENTS:}
+      # Bucket d'archivage froid (OVH Cold Archive + Object Lock/WORM). Defaut vide => archivage inerte.
+      bucket-archive: ${STORAGE_OBJECT_BUCKET_ARCHIVE:}
+  # Archivage froid configurable — DESACTIVE PAR DEFAUT. Ne JAMAIS passer enabled a true sans avoir
+  # tranche : (a) quelles donnees archiver, (b) les durees de retention legales, (c) Object Lock OVH.
+  # Voir docs/COLD_ARCHIVE.md. Tant qu'aucune ArchivalSource n'est fournie en code, l'archivage reste
+  # inerte meme si enabled=true.
+  archival:
+    enabled: ${ARCHIVAL_ENABLED:false}
+    batch-size: ${ARCHIVAL_BATCH_SIZE:500}
+    targets: []
   backup:
     dir: ${BACKUP_DIR:/app/backups}
   libreoffice:

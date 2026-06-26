@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionPhoto;
 import com.clenzy.repository.InterventionPhotoRepository;
+import com.clenzy.service.storage.InterventionPhotoBinaryStore;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,11 +30,14 @@ public class InterventionPhotoService {
 
     private final InterventionPhotoRepository interventionPhotoRepository;
     private final TenantContext tenantContext;
+    private final InterventionPhotoBinaryStore binaryStore;
 
     public InterventionPhotoService(InterventionPhotoRepository interventionPhotoRepository,
-                                    TenantContext tenantContext) {
+                                    TenantContext tenantContext,
+                                    InterventionPhotoBinaryStore binaryStore) {
         this.interventionPhotoRepository = interventionPhotoRepository;
         this.tenantContext = tenantContext;
+        this.binaryStore = binaryStore;
     }
 
     /**
@@ -195,7 +199,7 @@ public class InterventionPhotoService {
     private String toBase64JsonArray(List<InterventionPhoto> photos) {
         List<String> base64Urls = new ArrayList<>();
         for (InterventionPhoto photo : photos) {
-            byte[] photoData = photo.getData();
+            byte[] photoData = resolvePhotoBytes(photo);
             if (photoData == null) {
                 log.warn("Skipping photo with null data: id={}", photo.getId());
                 continue;
@@ -209,5 +213,18 @@ public class InterventionPhotoService {
         return "[" + base64Urls.stream()
                 .map(url -> "\"" + url.replace("\"", "\\\"") + "\"")
                 .collect(Collectors.joining(",")) + "]";
+    }
+
+    /**
+     * Resout les octets d'une photo selon la strategie de stockage active. Modele identique a
+     * {@code PropertyPhotoService.getPhotoData} : si la photo a ete migree ({@code storageKey}
+     * non-null), on delegue au {@link InterventionPhotoBinaryStore} (BYTEA ou objet selon le
+     * flag {@code clenzy.storage.intervention-photos}) ; sinon on lit directement le BYTEA.
+     */
+    private byte[] resolvePhotoBytes(InterventionPhoto photo) {
+        if (photo.getStorageKey() != null) {
+            return binaryStore.resolveBytes(photo);
+        }
+        return photo.getData();
     }
 }
