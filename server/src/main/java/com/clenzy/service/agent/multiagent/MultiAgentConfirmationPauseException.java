@@ -15,7 +15,7 @@ package com.clenzy.service.agent.multiagent;
  *       + id du {@code delegate_to}).</li>
  * </ul>
  *
- * <p>Capturée par {@code AgentOrchestrator.tryMultiAgentFlow} qui persiste le
+ * <p>Capturée par {@code MultiAgentFlowRunner.tryFlow} qui persiste le
  * contexte dans {@code PendingToolStore} et expose la confirmation au user
  * (events SSE), SANS fallback mono-agent.</p>
  */
