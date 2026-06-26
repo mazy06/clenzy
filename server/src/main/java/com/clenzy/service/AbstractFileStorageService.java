@@ -1,12 +1,14 @@
 package com.clenzy.service;
 
 import com.clenzy.exception.DocumentStorageException;
+import com.clenzy.service.storage.DocumentBinaryStore;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import jakarta.annotation.PostConstruct;
@@ -27,13 +29,24 @@ public abstract class AbstractFileStorageService {
 
     protected final Path baseDir;
 
+    /**
+     * Strategie de stockage objet, injectee uniquement quand {@code clenzy.storage.documents=object}
+     * (sinon {@code null} → stockage disque historique). Voir {@link DocumentBinaryStore}.
+     */
+    @Nullable
+    private final DocumentBinaryStore objectStore;
+
     private final AtomicLong totalBytes = new AtomicLong(0);
     private final AtomicLong fileCount = new AtomicLong(0);
     private final AtomicLong diskFreeBytes = new AtomicLong(0);
     private final AtomicLong diskTotalBytes = new AtomicLong(0);
 
-    protected AbstractFileStorageService(Path baseDir, MeterRegistry meterRegistry, String metricsPrefix) {
+    protected AbstractFileStorageService(Path baseDir,
+                                         MeterRegistry meterRegistry,
+                                         String metricsPrefix,
+                                         @Nullable DocumentBinaryStore objectStore) {
         this.baseDir = baseDir.toAbsolutePath().normalize();
+        this.objectStore = objectStore;
 
         Gauge.builder(metricsPrefix + ".total_bytes", totalBytes, AtomicLong::doubleValue)
                 .description("Taille totale des fichiers stockes (bytes)")
@@ -128,9 +141,13 @@ public abstract class AbstractFileStorageService {
     }
 
     /**
-     * Charge un fichier en streaming.
+     * Charge un fichier en streaming. Route vers le stockage objet quand actif
+     * ({@code clenzy.storage.documents=object}), sinon lecture disque historique.
      */
     public Resource load(String storagePath) {
+        if (objectStore != null) {
+            return objectStore.load(storagePath);
+        }
         try {
             Path filePath = resolveAndValidate(storagePath);
             if (!Files.exists(filePath)) {
@@ -144,9 +161,12 @@ public abstract class AbstractFileStorageService {
     }
 
     /**
-     * Charge un fichier en bytes.
+     * Charge un fichier en bytes. Route vers le stockage objet quand actif, sinon disque.
      */
     public byte[] loadAsBytes(String storagePath) {
+        if (objectStore != null) {
+            return objectStore.loadAsBytes(storagePath);
+        }
         try {
             Path filePath = resolveAndValidate(storagePath);
             if (!Files.exists(filePath)) {
@@ -159,11 +179,45 @@ public abstract class AbstractFileStorageService {
     }
 
     /**
-     * Verifie l'existence d'un fichier.
+     * Verifie l'existence d'un fichier. Route vers le stockage objet quand actif, sinon disque.
      */
     public boolean exists(String storagePath) {
         if (storagePath == null || storagePath.isBlank()) return false;
+        if (objectStore != null) {
+            return objectStore.exists(storagePath);
+        }
         Path filePath = baseDir.resolve(storagePath).normalize();
         return filePath.startsWith(baseDir) && Files.exists(filePath);
+    }
+
+    // ── Seam stockage objet vs disque ────────────────────────────────────────
+
+    /**
+     * Indique si le stockage objet est actif ({@code clenzy.storage.documents=object}).
+     * Les sous-classes branchent leur {@code store(...)}/{@code delete(...)} sur ce drapeau :
+     * {@code true} → {@link #storeViaObject}/{@link #deleteRef} ; {@code false} → ecriture disque.
+     */
+    protected boolean isObjectStoreActive() {
+        return objectStore != null;
+    }
+
+    /**
+     * Persiste des octets via le stockage objet sous la cle logique fournie et retourne la
+     * reference org-scopee a persister en base. A n'appeler que si {@link #isObjectStoreActive()}.
+     *
+     * @param logicalKey  cle logique relative (ex : {@code FACTURE/2026-06/<uuid>_nom.pdf})
+     * @param data        octets a stocker
+     * @param contentType type MIME (peut etre {@code null})
+     */
+    protected String storeViaObject(String logicalKey, byte[] data, String contentType) {
+        return objectStore.write(logicalKey, data, contentType);
+    }
+
+    /**
+     * Supprime une reference de stockage objet (idempotent). A n'appeler que si
+     * {@link #isObjectStoreActive()}.
+     */
+    protected void deleteRef(String storageRef) {
+        objectStore.delete(storageRef);
     }
 }
