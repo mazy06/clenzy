@@ -1,0 +1,149 @@
+# ===========================================
+# Clenzy — CI/CD Copilot Runtime (Node — routeur AG-UI CopilotKit)
+# ===========================================
+# Service Node mince qui relaie le front CopilotKit (/api/copilotkit) vers le
+# backend Java AG-UI (POST /api/agui/run). Sans ce service deploye en prod, la
+# page /agui-spike casse (le runtime n'existe qu'en dev aujourd'hui).
+#
+# Flux (miroir de ci-frontend.yml / ci-backend.yml) :
+#   - push main/develop  -> CI (install + smoke) + push image GHCR
+#   - push production    -> CI + push image GHCR (:latest) + declenchement deploiement via clenzy-infra
+#   - PR main/develop/production -> CI obligatoire (gate de validation)
+#
+# IMPORTANT : Les merges vers production ne sont autorises que via Pull Request.
+
+name: CI Copilot Runtime
+
+on:
+  push:
+    branches: [main, develop, production]
+    paths:
+      - 'copilot-runtime/**'
+      - '.github/workflows/ci-copilot-runtime.yml'
+  pull_request:
+    branches: [main, develop, production]
+    paths:
+      - 'copilot-runtime/**'
+      - '.github/workflows/ci-copilot-runtime.yml'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/clenzy-copilot-runtime
+
+jobs:
+  install-and-check:
+    name: Install & Smoke Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: copilot-runtime/package-lock.json
+
+      - name: Install dependencies (deterministic)
+        working-directory: copilot-runtime
+        run: npm ci
+
+      # Pas de TypeScript (server.mjs en JS pur) : on verifie au minimum que le
+      # module se parse sans erreur de syntaxe.
+      - name: Syntax check (node --check)
+        working-directory: copilot-runtime
+        run: node --check server.mjs
+
+  docker-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: install-and-check
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/production')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Mirror GCR d'abord (registry-1.docker.io timeout par intermittence), repli Docker Hub.
+      - name: Set up Docker Buildx (mirror GCR)
+        id: buildx-mirror
+        continue-on-error: true
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=mirror.gcr.io/moby/buildkit:buildx-stable-1
+
+      - name: Set up Docker Buildx (fallback Docker Hub)
+        if: steps.buildx-mirror.outcome == 'failure'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/production' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: copilot-runtime
+          file: copilot-runtime/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Trigger deploy via clenzy-infra
+    runs-on: ubuntu-latest
+    needs: docker-push
+    if: github.ref == 'refs/heads/production'
+    env:
+      INFRA_REPOSITORY: ${{ vars.INFRA_REPOSITORY || format('{0}/clenzy-infra', github.repository_owner) }}
+
+    steps:
+      - name: Validate dispatch configuration
+        env:
+          DISPATCH_TOKEN: ${{ secrets.INFRA_REPO_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$DISPATCH_TOKEN" ]; then
+            echo "::error::Missing INFRA_REPO_DISPATCH_TOKEN secret. Add a token that can trigger workflows on ${INFRA_REPOSITORY}."
+            exit 1
+          fi
+          if [ -z "${INFRA_REPOSITORY}" ]; then
+            echo "::error::Missing INFRA_REPOSITORY variable."
+            exit 1
+          fi
+
+      - name: Trigger infra deployment
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INFRA_REPO_DISPATCH_TOKEN }}
+          repository: ${{ env.INFRA_REPOSITORY }}
+          event-type: deploy-service
+          client-payload: >-
+            {
+              "service": "copilot-runtime",
+              "environment": "production",
+              "image": "ghcr.io/${{ env.IMAGE_NAME }}:latest",
+              "source_repo": "${{ github.repository }}",
+              "source_ref": "${{ github.ref }}",
+              "source_sha": "${{ github.sha }}"
+            }

@@ -138,13 +138,9 @@ export const NAVIGATION_HUBS: HubDef[] = [
     translationKey: 'navigation.distribution',
     fallbackLabel: 'Distribution',
     group: 'management',
+    // Ordre d'affichage : Réservation & accueil, puis Boutique, puis Channels.
+    // tabs[0] est aussi la cible par défaut de l'entrée sidebar du hub (useNavigationMenu).
     tabs: [
-      {
-        path: '/channels',
-        translationKey: 'navigation.channels',
-        fallbackLabel: 'Channels',
-        isAccessible: (a) => has(a, 'properties:view'),
-      },
       {
         path: '/booking-engine',
         translationKey: 'guestExperience.navLabel',
@@ -157,6 +153,12 @@ export const NAVIGATION_HUBS: HubDef[] = [
         fallbackLabel: 'Boutique',
         // Historique : /shop n'a jamais été gaté par permission dans hasMenuAccess.
         isAccessible: () => true,
+      },
+      {
+        path: '/channels',
+        translationKey: 'navigation.channels',
+        fallbackLabel: 'Channels',
+        isAccessible: (a) => has(a, 'properties:view'),
       },
     ],
   },

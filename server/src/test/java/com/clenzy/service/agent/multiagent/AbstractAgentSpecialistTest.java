@@ -344,11 +344,14 @@ class AbstractAgentSpecialistTest {
         when(toolRegistry.listDescriptors()).thenReturn(List.of(td));
         when(toolRegistry.find("loop_tool")).thenReturn(java.util.Optional.of(handler));
 
-        // Always return a tool call → loop until MAX_ITERATIONS hit
+        // Renvoie un tool call DISTINCT a chaque iteration (args differents) → l'anti-boucle
+        // ne court-circuite pas (chaque appel est "nouveau") → la boucle atteint MAX_ITERATIONS.
+        java.util.concurrent.atomic.AtomicInteger loopN = new java.util.concurrent.atomic.AtomicInteger();
         doAnswer(inv -> {
             Consumer<ChatEvent> cons = inv.getArgument(1);
+            int i = loopN.getAndIncrement();
             cons.accept(new ChatEvent.ToolCallRequest(List.of(
-                    new ChatMessage.ToolCall("toolu_x", "loop_tool", "{}"))));
+                    new ChatMessage.ToolCall("toolu_" + i, "loop_tool", "{\"i\":" + i + "}"))));
             cons.accept(new ChatEvent.Done(1, 1, "m", "tool_use", ""));
             return null;
         }).when(chatProvider).streamChat(any(ChatRequest.class), any(Consumer.class));
@@ -358,9 +361,42 @@ class AbstractAgentSpecialistTest {
 
         SpecialistResult result = newSpecialist(Set.of("loop_tool")).handle(req);
         assertThat(result.truncated()).isTrue();
-        assertThat(result.synthesis()).contains("partielle");
+        // Repli exploitable (plus le marqueur technique brut) : dernier texte vu,
+        // sinon formulation honnete "...pas pu finaliser...".
+        assertThat(result.synthesis()).contains("finaliser");
         // Tool invoked MAX_ITERATIONS times (4)
         verify(handler, org.mockito.Mockito.times(4)).execute(any(), any());
+    }
+
+    @Test
+    void handle_repeatedIdenticalToolCall_breaksLoopAndExecutesOnce() {
+        // Anti-boucle : un modele qui re-demande le MEME tool (memes args) en boucle
+        // ne doit pas l'executer N fois ni produire N widgets — la boucle court-circuite.
+        ToolDescriptor td = ToolDescriptor.readOnly("loop_tool", "x",
+                objectMapper.createObjectNode());
+        ToolHandler handler = mock(ToolHandler.class);
+        when(handler.descriptor()).thenReturn(td);
+        when(handler.execute(any(), any())).thenReturn(ToolResult.success("{}"));
+        when(toolRegistry.listDescriptors()).thenReturn(List.of(td));
+        when(toolRegistry.find("loop_tool")).thenReturn(java.util.Optional.of(handler));
+
+        // Toujours le MEME tool call (memes args).
+        doAnswer(inv -> {
+            Consumer<ChatEvent> cons = inv.getArgument(1);
+            cons.accept(new ChatEvent.ToolCallRequest(List.of(
+                    new ChatMessage.ToolCall("toolu_x", "loop_tool", "{}"))));
+            cons.accept(new ChatEvent.Done(1, 1, "m", "tool_use", ""));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any(Consumer.class));
+
+        AgentContext ctx = new AgentContext(1L, "kc-1", null, "fr", null, null);
+        SpecialistResult result = newSpecialist(Set.of("loop_tool"))
+                .handle(SpecialistRequest.of("loop", ctx));
+
+        // Exécuté UNE seule fois (pas N), boucle court-circuitee → pas de troncature.
+        verify(handler, org.mockito.Mockito.times(1)).execute(any(), any());
+        assertThat(result.truncated()).isFalse();
+        assertThat(result.toolInvocations()).hasSize(1);
     }
 
     @Test

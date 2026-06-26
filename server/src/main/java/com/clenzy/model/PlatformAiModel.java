@@ -43,6 +43,17 @@ public class PlatformAiModel {
     @Column(name = "last_validated_at")
     private LocalDateTime lastValidatedAt;
 
+    // ─── Disponibilité (probe proactif) ──────────────────────────────────
+    @Enumerated(EnumType.STRING)
+    @Column(name = "availability_status", length = 20, nullable = false)
+    private AiModelAvailability availabilityStatus = AiModelAvailability.UNKNOWN;
+
+    @Column(name = "last_availability_check_at")
+    private LocalDateTime lastAvailabilityCheckAt;
+
+    @Column(name = "availability_error", columnDefinition = "TEXT")
+    private String availabilityError;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -95,6 +106,15 @@ public class PlatformAiModel {
 
     public LocalDateTime getLastValidatedAt() { return lastValidatedAt; }
     public void setLastValidatedAt(LocalDateTime lastValidatedAt) { this.lastValidatedAt = lastValidatedAt; }
+
+    public AiModelAvailability getAvailabilityStatus() { return availabilityStatus; }
+    public void setAvailabilityStatus(AiModelAvailability availabilityStatus) { this.availabilityStatus = availabilityStatus; }
+
+    public LocalDateTime getLastAvailabilityCheckAt() { return lastAvailabilityCheckAt; }
+    public void setLastAvailabilityCheckAt(LocalDateTime lastAvailabilityCheckAt) { this.lastAvailabilityCheckAt = lastAvailabilityCheckAt; }
+
+    public String getAvailabilityError() { return availabilityError; }
+    public void setAvailabilityError(String availabilityError) { this.availabilityError = availabilityError; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 

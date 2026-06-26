@@ -320,6 +320,15 @@ const CONFIRMATION = `<div class="cm-root">
       </div>
     </div>
   </section>
+  <section class="cm-section cm-section--tint">
+    <div class="cm-wrap">
+      <div class="cm-section__head cm-section__head--center">
+        <p class="cm-eyebrow">Sublimez votre séjour</p>
+        <h2>Services à la carte</h2>
+      </div>
+      <div data-clenzy-widget="upsells"></div>
+    </div>
+  </section>
   ${FOOTER}
 </div>`;
 

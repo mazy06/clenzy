@@ -18,12 +18,15 @@ public record UpsellOfferDto(
         int sortOrder,
         Integer minNights,
         Integer leadTimeHours,
-        String bundleOfferIds) {
+        String bundleOfferIds,
+        boolean diffuseOnLivret,
+        boolean diffuseOnBooking) {
 
     public static UpsellOfferDto from(UpsellOffer o) {
         return new UpsellOfferDto(
                 o.getId(), o.getPropertyId(), o.getType().name(), o.getTitle(), o.getDescription(),
                 o.getPrice(), o.getCurrency(), o.getImageUrl(), o.isActive(), o.getSortOrder(),
-                o.getMinNights(), o.getLeadTimeHours(), o.getBundleOfferIds());
+                o.getMinNights(), o.getLeadTimeHours(), o.getBundleOfferIds(),
+                o.isDiffuseOnLivret(), o.isDiffuseOnBooking());
     }
 }

@@ -351,6 +351,27 @@ public class PublicBookingController {
         return ResponseEntity.ok(bookingService.checkout(ctx, request));
     }
 
+    /** GET /{slug}/upsells — services additionnels diffusés sur le booking engine (logement optionnel). */
+    @GetMapping("/upsells")
+    public ResponseEntity<List<com.clenzy.dto.PublicUpsellDto>> getUpsells(
+            @PathVariable String slug,
+            @RequestParam(required = false) Long propertyId,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        return ResponseEntity.ok(bookingService.listUpsells(ctx, propertyId));
+    }
+
+    /** POST /{slug}/upsells/{offerId}/checkout — session Stripe hébergée pour un upsell (réservation par code). */
+    @PostMapping("/upsells/{offerId}/checkout")
+    public ResponseEntity<com.clenzy.dto.UpsellBookingCheckoutDto> upsellCheckout(
+            @PathVariable String slug,
+            @PathVariable Long offerId,
+            @Valid @RequestBody com.clenzy.booking.dto.BookingUpsellCheckoutRequest request,
+            HttpServletRequest httpRequest) {
+        OrgContext ctx = resolveContext(slug, httpRequest);
+        return ResponseEntity.ok(bookingService.createUpsellCheckout(ctx, request.reservationCode(), offerId, request.returnUrl()));
+    }
+
     /**
      * GET /{slug}/booking/{code}
      * Page de confirmation post-paiement.

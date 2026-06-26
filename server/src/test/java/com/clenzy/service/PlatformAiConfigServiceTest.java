@@ -14,6 +14,7 @@ import com.clenzy.model.PlatformAiFeatureModel;
 import com.clenzy.model.PlatformAiFeatureProvider;
 import com.clenzy.model.PlatformAiModel;
 import com.clenzy.repository.AiTokenBudgetRepository;
+import com.clenzy.repository.OrgAiApiKeyRepository;
 import com.clenzy.repository.PlatformAiFeatureModelRepository;
 import com.clenzy.repository.PlatformAiFeatureProviderRepository;
 import com.clenzy.repository.PlatformAiModelRepository;
@@ -46,6 +47,8 @@ class PlatformAiConfigServiceTest {
     @Mock private PlatformAiFeatureProviderRepository featureProviderRepository;
     @Mock private AiTokenBudgetRepository budgetRepository;
     @Mock private AnthropicProvider anthropicProvider;
+    @Mock private NotificationService notificationService;
+    @Mock private OrgAiApiKeyRepository orgAiApiKeyRepository;
 
     private AiProperties aiProperties;
     private PlatformAiConfigService service;
@@ -56,7 +59,8 @@ class PlatformAiConfigServiceTest {
         aiProperties.getTokenBudget().setDefaultMonthlyTokens(100_000L);
         service = new PlatformAiConfigService(
                 modelRepository, featureModelRepository, featureProviderRepository,
-                budgetRepository, aiProperties, anthropicProvider);
+                budgetRepository, aiProperties, anthropicProvider,
+                notificationService, java.time.Clock.systemUTC(), orgAiApiKeyRepository);
     }
 
     private PlatformAiModel buildModel(Long id, String name, String provider, String modelId, String apiKey) {
@@ -241,7 +245,7 @@ class PlatformAiConfigServiceTest {
             SavePlatformModelRequest req = new SavePlatformModelRequest(
                     null, "Claude", "anthropic", "claude-sonnet-4-20250514", "sk-ant-abcd", null);
 
-            PlatformAiModelDto result = service.saveModel(req, "admin@example.com");
+            PlatformAiModelDto result = service.saveModel(req, "admin@example.com", null);
 
             assertThat(result.id()).isEqualTo(10L);
             assertThat(result.name()).isEqualTo("Claude");
@@ -261,7 +265,7 @@ class PlatformAiConfigServiceTest {
             SavePlatformModelRequest req = new SavePlatformModelRequest(
                     5L, "NewName", "openai", "gpt-4o", "sk-new-1234", "https://api.openai.com/v1");
 
-            PlatformAiModelDto result = service.saveModel(req, "admin");
+            PlatformAiModelDto result = service.saveModel(req, "admin", null);
 
             assertThat(result.name()).isEqualTo("NewName");
             assertThat(result.modelId()).isEqualTo("gpt-4o");
@@ -277,7 +281,7 @@ class PlatformAiConfigServiceTest {
             SavePlatformModelRequest req = new SavePlatformModelRequest(
                     99L, "x", "anthropic", "m", "k", null);
 
-            assertThatThrownBy(() -> service.saveModel(req, "admin"))
+            assertThatThrownBy(() -> service.saveModel(req, "admin", null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("not found");
         }
@@ -287,7 +291,7 @@ class PlatformAiConfigServiceTest {
             SavePlatformModelRequest req = new SavePlatformModelRequest(
                     null, "x", "unknown", "m", "k", null);
 
-            assertThatThrownBy(() -> service.saveModel(req, "admin"))
+            assertThatThrownBy(() -> service.saveModel(req, "admin", null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Unsupported");
         }
@@ -297,7 +301,7 @@ class PlatformAiConfigServiceTest {
             SavePlatformModelRequest req = new SavePlatformModelRequest(
                     null, "x", "anthropic", "m", "k", "http://insecure");
 
-            assertThatThrownBy(() -> service.saveModel(req, "admin"))
+            assertThatThrownBy(() -> service.saveModel(req, "admin", null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("HTTPS");
         }
@@ -313,7 +317,7 @@ class PlatformAiConfigServiceTest {
             SavePlatformModelRequest req = new SavePlatformModelRequest(
                     null, "n", "anthropic", "m", "k", null);
 
-            PlatformAiModelDto result = service.saveModel(req, "admin");
+            PlatformAiModelDto result = service.saveModel(req, "admin", null);
 
             assertThat(result.assignedFeatures()).contains("DESIGN");
         }

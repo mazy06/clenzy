@@ -7,12 +7,17 @@ import com.clenzy.config.ai.AiResponse;
 import com.clenzy.config.ai.AnthropicProvider;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.AiTokenBudget;
+import com.clenzy.model.OrgAiApiKey;
 import com.clenzy.repository.AiTokenBudgetRepository;
+import com.clenzy.repository.OrgAiApiKeyRepository;
+import com.clenzy.dto.AiCatalogModelDto;
 import com.clenzy.dto.PlatformAiModelDto;
 import com.clenzy.dto.SavePlatformModelRequest;
 import com.clenzy.dto.TestPlatformModelRequest;
 import com.clenzy.model.PlatformAiFeatureModel;
 import com.clenzy.model.PlatformAiFeatureProvider;
+import com.clenzy.model.AiModelAvailability;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.model.PlatformAiModel;
 import com.clenzy.repository.PlatformAiFeatureModelRepository;
 import com.clenzy.repository.PlatformAiFeatureProviderRepository;
@@ -22,8 +27,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,19 +68,28 @@ public class PlatformAiConfigService {
     private final AiTokenBudgetRepository budgetRepository;
     private final AiProperties aiProperties;
     private final AnthropicProvider anthropicProvider;
+    private final NotificationService notificationService;
+    private final Clock clock;
+    private final OrgAiApiKeyRepository orgAiApiKeyRepository;
 
     public PlatformAiConfigService(PlatformAiModelRepository modelRepository,
                                     PlatformAiFeatureModelRepository featureModelRepository,
                                     PlatformAiFeatureProviderRepository featureProviderRepository,
                                     AiTokenBudgetRepository budgetRepository,
                                     AiProperties aiProperties,
-                                    AnthropicProvider anthropicProvider) {
+                                    AnthropicProvider anthropicProvider,
+                                    NotificationService notificationService,
+                                    Clock clock,
+                                    OrgAiApiKeyRepository orgAiApiKeyRepository) {
         this.modelRepository = modelRepository;
         this.featureModelRepository = featureModelRepository;
         this.featureProviderRepository = featureProviderRepository;
         this.budgetRepository = budgetRepository;
         this.aiProperties = aiProperties;
         this.anthropicProvider = anthropicProvider;
+        this.notificationService = notificationService;
+        this.clock = clock;
+        this.orgAiApiKeyRepository = orgAiApiKeyRepository;
     }
 
     /**
@@ -92,18 +108,18 @@ public class PlatformAiConfigService {
                 ));
 
         return models.stream()
-                .map(m -> new PlatformAiModelDto(
-                        m.getId(),
-                        m.getName(),
-                        m.getProvider(),
-                        m.getModelId(),
-                        m.getMaskedApiKey(),
-                        m.getBaseUrl(),
-                        featuresByModel.getOrDefault(m.getId(), List.of()),
-                        m.getLastValidatedAt(),
-                        m.getUpdatedAt()
-                ))
+                .map(m -> toDto(m, featuresByModel.getOrDefault(m.getId(), List.of())))
                 .toList();
+    }
+
+    /** Mappe une entité + ses features assignées vers le DTO (inclut le statut de disponibilité). */
+    private PlatformAiModelDto toDto(PlatformAiModel m, List<String> features) {
+        return new PlatformAiModelDto(
+                m.getId(), m.getName(), m.getProvider(), m.getModelId(),
+                m.getMaskedApiKey(), m.getBaseUrl(), features,
+                m.getLastValidatedAt(), m.getUpdatedAt(),
+                m.getAvailabilityStatus() != null ? m.getAvailabilityStatus().name() : "UNKNOWN",
+                m.getLastAvailabilityCheckAt(), m.getAvailabilityError());
     }
 
     /**
@@ -113,6 +129,23 @@ public class PlatformAiConfigService {
     public Optional<PlatformAiModel> getActiveModelForFeature(String feature) {
         return featureModelRepository.findByFeature(feature)
                 .map(PlatformAiFeatureModel::getModel);
+    }
+
+    /**
+     * Premier modele plateforme configure pour un {@code provider} donne, avec une cle
+     * utilisable (non vide). Sert au <b>failover</b> ({@code AssistantTargetResolver}) :
+     * recuperer une cible Anthropic/OpenAI de repli meme si elle n'est PAS assignee a
+     * ASSISTANT_CHAT (un modele simplement configure dans le catalogue suffit).
+     */
+    @Transactional(readOnly = true)
+    public Optional<PlatformAiModel> findUsableModelByProvider(String provider) {
+        if (provider == null || provider.isBlank()) {
+            return Optional.empty();
+        }
+        return modelRepository.findAll().stream()
+                .filter(m -> provider.equalsIgnoreCase(m.getProvider()))
+                .filter(m -> m.getApiKey() != null && !m.getApiKey().isBlank())
+                .findFirst();
     }
 
     /**
@@ -140,7 +173,7 @@ public class PlatformAiConfigService {
      * Sauvegarde (cree ou met a jour) un modele IA plateforme.
      */
     @Transactional
-    public PlatformAiModelDto saveModel(SavePlatformModelRequest request, String updatedBy) {
+    public PlatformAiModelDto saveModel(SavePlatformModelRequest request, String updatedBy, Long requesterOrgId) {
         String provider = request.provider();
         validateProvider(provider);
         validateBaseUrl(request.baseUrl());
@@ -158,7 +191,19 @@ public class PlatformAiConfigService {
         model.setName(request.name());
         model.setProvider(provider);
         model.setModelId(request.modelId());
-        model.setApiKey(request.apiKey());
+        // Clé : si fournie on l'utilise ; sinon on réutilise une clé existante
+        // (modèle plateforme du même provider, ou connexion org du demandeur).
+        // En édition, on conserve la clé du modèle. Aucun secret n'est renvoyé
+        // au client : la réutilisation se fait ici, côté serveur.
+        String apiKey = request.apiKey();
+        if (apiKey == null || apiKey.isBlank()) {
+            apiKey = (request.id() != null) ? model.getApiKey() : resolveReusableKey(provider, requesterOrgId);
+        }
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Clé API requise : aucune clé réutilisable trouvée pour le provider " + provider + ".");
+        }
+        model.setApiKey(apiKey);
         model.setBaseUrl(baseUrl);
         model.setLastValidatedAt(LocalDateTime.now());
         model.setUpdatedBy(updatedBy);
@@ -172,17 +217,7 @@ public class PlatformAiConfigService {
                 .map(PlatformAiFeatureModel::getFeature)
                 .toList();
 
-        return new PlatformAiModelDto(
-                savedModel.getId(),
-                savedModel.getName(),
-                savedModel.getProvider(),
-                savedModel.getModelId(),
-                savedModel.getMaskedApiKey(),
-                savedModel.getBaseUrl(),
-                assignedFeatures,
-                savedModel.getLastValidatedAt(),
-                savedModel.getUpdatedAt()
-        );
+        return toDto(savedModel, assignedFeatures);
     }
 
     /**
@@ -193,6 +228,11 @@ public class PlatformAiConfigService {
         if (!modelRepository.existsById(modelId)) {
             throw new IllegalArgumentException("Model not found: " + modelId);
         }
+        // Purge d'abord les assignations de features pointant vers ce modèle :
+        // ne pas dépendre du ON DELETE CASCADE de la FK (absent si le schéma est
+        // géré par Hibernate ddl-auto plutôt que par Liquibase). Sinon, la
+        // suppression viole la contrainte et échoue silencieusement côté UI.
+        featureModelRepository.deleteByModelId(modelId);
         modelRepository.deleteById(modelId);
         log.info("Platform AI model deleted: id={}", modelId);
     }
@@ -299,17 +339,7 @@ public class PlatformAiConfigService {
         Map<String, PlatformAiModelDto> result = new LinkedHashMap<>();
         for (PlatformAiFeatureModel fm : all) {
             PlatformAiModel m = fm.getModel();
-            result.put(fm.getFeature(), new PlatformAiModelDto(
-                    m.getId(),
-                    m.getName(),
-                    m.getProvider(),
-                    m.getModelId(),
-                    m.getMaskedApiKey(),
-                    m.getBaseUrl(),
-                    featuresByModel.getOrDefault(m.getId(), List.of()),
-                    m.getLastValidatedAt(),
-                    m.getUpdatedAt()
-            ));
+            result.put(fm.getFeature(), toDto(m, featuresByModel.getOrDefault(m.getId(), List.of())));
         }
         return result;
     }
@@ -371,6 +401,232 @@ public class PlatformAiConfigService {
             return false;
         }
     }
+
+    // ─── Disponibilité des modèles (probe proactif) ──────────────────────
+
+    /** Re-vérifie TOUS les modèles configurés (appelé par le scheduler quotidien). */
+    @Transactional
+    public void recheckAllAvailability() {
+        List<PlatformAiModel> models = modelRepository.findAll();
+        log.info("AI model availability: re-checking {} model(s)", models.size());
+        for (PlatformAiModel m : models) {
+            applyAvailabilityProbe(m);
+        }
+    }
+
+    /** Re-vérifie UN modèle à la demande (bouton « Revérifier ») → DTO à jour. */
+    @Transactional
+    public PlatformAiModelDto recheckAvailability(Long id) {
+        PlatformAiModel m = modelRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Model not found: " + id));
+        applyAvailabilityProbe(m);
+        List<String> features = featureModelRepository.findAll().stream()
+                .filter(fm -> fm.getModel().getId().equals(m.getId()))
+                .map(PlatformAiFeatureModel::getFeature)
+                .toList();
+        return toDto(m, features);
+    }
+
+    /** Probe + persistance du statut + notification admin sur passage en indisponible. */
+    private void applyAvailabilityProbe(PlatformAiModel m) {
+        AiModelAvailability previous = m.getAvailabilityStatus();
+        ProbeOutcome outcome = probeModel(m);
+        m.setAvailabilityStatus(outcome.available()
+                ? AiModelAvailability.AVAILABLE : AiModelAvailability.UNAVAILABLE);
+        m.setLastAvailabilityCheckAt(LocalDateTime.now(clock));
+        m.setAvailabilityError(outcome.available() ? null : outcome.error());
+        modelRepository.save(m);
+        // Notifie UNE FOIS par épisode d'indisponibilité (transition vers UNAVAILABLE).
+        if (!outcome.available() && previous != AiModelAvailability.UNAVAILABLE) {
+            notifyModelUnavailable(m);
+        }
+    }
+
+    private void notifyModelUnavailable(PlatformAiModel m) {
+        notificationService.notifyAllPlatformStaff(
+                NotificationKey.AI_MODEL_EOL,
+                "Modèle IA indisponible : " + m.getName(),
+                "Le modèle « " + m.getName() + " » (" + m.getProvider() + " / " + m.getModelId()
+                        + ") n'est plus joignable chez le provider. Vérifie-le ou remplace-le dans "
+                        + "Paramètres > IA. Détail : "
+                        + (m.getAvailabilityError() != null ? m.getAvailabilityError() : "—"),
+                "/settings?tab=ai");
+        log.warn("AI model '{}' ({}/{}) UNAVAILABLE: {}",
+                m.getName(), m.getProvider(), m.getModelId(), m.getAvailabilityError());
+    }
+
+    /** Teste la callabilité réelle du modèle (sur son modelId exact) en capturant l'erreur HTTP. */
+    public ProbeOutcome probeModel(PlatformAiModel m) {
+        String provider = m.getProvider();
+        String baseUrl = resolveBaseUrl(provider, m.getBaseUrl());
+        try {
+            boolean ok = "anthropic".equals(provider)
+                    ? probeAnthropicModel(baseUrl, m.getApiKey(), m.getModelId())
+                    : testOpenAiCompatibleProvider(baseUrl, m.getApiKey(), m.getModelId());
+            return ok ? ProbeOutcome.ok()
+                      : ProbeOutcome.failed("Réponse inattendue du provider.");
+        } catch (HttpClientErrorException e) {
+            return ProbeOutcome.failed(
+                    "HTTP " + e.getStatusCode().value() + " — " + truncate(e.getResponseBodyAsString()));
+        } catch (Exception e) {
+            return ProbeOutcome.failed(e.getClass().getSimpleName()
+                    + (e.getMessage() != null ? " : " + e.getMessage() : ""));
+        }
+    }
+
+    /** Probe Anthropic minimal sur le modelId exact (POST /messages, max_tokens=1). */
+    private boolean probeAnthropicModel(String baseUrl, String apiKey, String modelId) {
+        RestClient client = RestClient.builder()
+                .baseUrl(baseUrl)
+                .defaultHeader("x-api-key", apiKey)
+                .defaultHeader("anthropic-version", "2023-06-01")
+                .defaultHeader("Content-Type", "application/json")
+                .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory() {{
+                    setConnectTimeout(10_000);
+                    setReadTimeout(30_000);
+                }})
+                .build();
+        Map<String, Object> body = Map.of(
+                "model", modelId,
+                "max_tokens", 1,
+                "messages", List.of(Map.of("role", "user", "content", "ping"))
+        );
+        String response = client.post()
+                .uri("/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(String.class);
+        return response != null && response.contains("content");
+    }
+
+    private static String truncate(String s) {
+        if (s == null) return null;
+        return s.length() <= 300 ? s : s.substring(0, 300) + "…";
+    }
+
+    /** Résultat d'un probe de disponibilité. */
+    public record ProbeOutcome(boolean available, String error) {
+        public static ProbeOutcome ok() { return new ProbeOutcome(true, null); }
+        public static ProbeOutcome failed(String error) { return new ProbeOutcome(false, error); }
+    }
+
+    // ─── Catalogue live d'un provider (GET /models) ──────────────────────
+
+    /**
+     * Liste les modèles actuellement SERVIS par un provider (catalogue live),
+     * pour que « Add a model » propose des IDs réels au lieu d'un champ libre.
+     * Clé : celle fournie, sinon celle d'un modèle déjà configuré pour ce provider.
+     */
+    public List<AiCatalogModelDto> listProviderModels(String provider, String apiKey, String baseUrl) {
+        validateProvider(provider);
+        validateBaseUrl(baseUrl);
+        String resolvedBase = resolveBaseUrl(provider, baseUrl);
+        String key = (apiKey != null && !apiKey.isBlank()) ? apiKey : resolveExistingKey(provider);
+        if (key == null || key.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Aucune clé API pour " + provider + " — renseigne la clé pour charger le catalogue.");
+        }
+        RestClient.Builder builder = RestClient.builder()
+                .baseUrl(resolvedBase)
+                .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory() {{
+                    setConnectTimeout(10_000);
+                    setReadTimeout(30_000);
+                }});
+        if ("anthropic".equals(provider)) {
+            builder.defaultHeader("x-api-key", key).defaultHeader("anthropic-version", "2023-06-01");
+        } else {
+            builder.defaultHeader("Authorization", "Bearer " + key);
+        }
+        RestClient client = builder.build();
+        org.springframework.web.client.ResourceAccessException ioErr = null;
+        // 2 tentatives : une erreur I/O (DNS/connexion) est souvent transitoire.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                ModelsListResponse resp = client.get().uri("/models").retrieve().body(ModelsListResponse.class);
+                if (resp == null || resp.data() == null) return List.of();
+                return resp.data().stream()
+                        .map(ModelEntry::id)
+                        .filter(id -> id != null && !id.isBlank())
+                        .distinct()
+                        .sorted()
+                        .map(id -> new AiCatalogModelDto(id, categorize(id)))
+                        .toList();
+            } catch (HttpClientErrorException e) {
+                throw new IllegalArgumentException("Catalogue " + provider + " indisponible : HTTP "
+                        + e.getStatusCode().value() + " (clé invalide ou endpoint /models absent ?)");
+            } catch (org.springframework.web.client.ResourceAccessException e) {
+                ioErr = e;
+            }
+        }
+        String detail = ioErr.getMostSpecificCause() != null
+                ? ioErr.getMostSpecificCause().getMessage() : ioErr.getMessage();
+        throw new IllegalArgumentException("Provider " + provider
+                + " injoignable depuis le serveur (réseau/DNS) : " + detail
+                + ". Réessaie ; si ça persiste, vérifie l'accès Internet/DNS du conteneur pms-server "
+                + "(tu peux aussi saisir l'ID du modèle à la main).");
+    }
+
+    /**
+     * Clé réutilisable pour un provider, sans la redemander à l'utilisateur :
+     * d'abord un modèle plateforme déjà configuré, sinon la connexion BYOK de
+     * l'org du demandeur. Retourne null si rien n'est réutilisable.
+     */
+    private String resolveReusableKey(String provider, Long orgId) {
+        String platformKey = resolveExistingKey(provider);
+        if (platformKey != null && !platformKey.isBlank()) {
+            return platformKey;
+        }
+        if (orgId != null) {
+            return orgAiApiKeyRepository.findByOrganizationIdAndProvider(orgId, provider)
+                    .filter(OrgAiApiKey::isValid)
+                    .map(OrgAiApiKey::getApiKey)
+                    .filter(k -> k != null && !k.isBlank())
+                    .orElse(null);
+        }
+        return null;
+    }
+
+    private String resolveExistingKey(String provider) {
+        return modelRepository.findAll().stream()
+                .filter(m -> provider.equals(m.getProvider()))
+                .map(PlatformAiModel::getApiKey)
+                .filter(k -> k != null && !k.isBlank())
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Catégorie heuristique d'un modèle d'après son ID (les endpoints /models ne
+     * donnent pas de tags). Guide le choix « quel modèle pour quel agent ».
+     */
+    static String categorize(String id) {
+        String s = id.toLowerCase();
+        if (s.contains("coder") || s.contains("-code") || s.contains("code-")) return "code";
+        if (s.contains("ocr")) return "ocr";
+        if (s.contains("rerank")) return "rerank";
+        if (s.contains("embed")) return "embedding";
+        if (s.contains("tts") || s.contains("speech") || s.contains("voice") || s.contains("audio")
+                || s.contains("parakeet") || s.contains("riva") || s.contains("canary")
+                || s.contains("whisper")) return "audio";
+        if (s.contains("diffusion") || s.contains("sdxl") || s.contains("stable-diffusion")
+                || s.contains("flux") || s.contains("sana")) return "image";
+        if (s.contains("guard") || s.contains("safety") || s.contains("shield")) return "safety";
+        if (s.contains("vila") || s.contains("vision") || s.contains("nvclip") || s.contains("-vl-")
+                || s.endsWith("-vl") || s.contains("maverick")) return "vision";
+        if (s.contains("reason") || s.contains("-r1") || s.contains("qwq") || s.contains("think")
+                || s.contains("deepseek-r")) return "reasoning";
+        if (s.contains("instruct") || s.contains("chat") || s.contains("llama") || s.contains("nemotron")
+                || s.contains("mistral") || s.contains("mixtral") || s.contains("qwen") || s.contains("gemma")
+                || s.contains("phi") || s.contains("minimax") || s.contains("kimi") || s.contains("glm")) return "chat";
+        return "other";
+    }
+
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    record ModelsListResponse(List<ModelEntry> data) {}
+
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
+    record ModelEntry(String id) {}
 
     // ─── Token Budget per feature ────────────────────────────────────────
 

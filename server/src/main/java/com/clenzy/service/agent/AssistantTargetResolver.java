@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -111,6 +113,73 @@ public class AssistantTargetResolver {
 
         // 4. Defaut Anthropic plateforme : cle null => AnthropicChatProvider utilise sa cle env.
         return new ChatTarget("anthropic", ctxModel, null, null);
+    }
+
+    /**
+     * Resout la CHAINE de basculement (failover) : la cible primaire (cf. {@link #resolve})
+     * suivie des replis canoniques disponibles (Anthropic puis OpenAI, hors provider
+     * primaire), uniquement ceux qui ont une cle utilisable (BYOK org &gt; cle plateforme).
+     *
+     * <p>Permet a {@code FailoverChatLLMProvider} de basculer NVIDIA → Anthropic → OpenAI
+     * quand un service est indisponible (429/5xx). Si aucun repli n'a de cle, la chaine ne
+     * contient que la cible primaire (comportement actuel : message gracieux sur echec).</p>
+     */
+    public List<ChatTarget> resolveFailoverChain(Long organizationId, String contextModelOverride) {
+        List<ChatTarget> chain = new ArrayList<>(3);
+        ChatTarget primary = resolve(organizationId, contextModelOverride);
+        chain.add(primary);
+        String primaryProvider = canonical(primary.provider());
+        // Replis canoniques dans un ordre fixe. On n'ajoute QUE les providers avec une
+        // cle utilisable (sinon le repli echouerait aussi) et jamais le provider primaire.
+        for (String provider : List.of("anthropic", "openai")) {
+            if (provider.equals(primaryProvider)) continue;
+            ChatTarget alt = resolveProviderTarget(organizationId, provider);
+            if (alt != null) chain.add(alt);
+        }
+        return chain;
+    }
+
+    /**
+     * Cible pour un provider canonique donne, par ordre de preference :
+     * <ol>
+     *   <li>cle BYOK de l'org (Settings &gt; IA)</li>
+     *   <li>modele plateforme configure pour ce provider (clé en base — cas du catalogue)</li>
+     *   <li>cle plateforme (env var)</li>
+     * </ol>
+     * Retourne {@code null} si aucune cle utilisable (pas de repli possible sur ce provider).
+     */
+    private ChatTarget resolveProviderTarget(Long organizationId, String provider) {
+        try {
+            Optional<OrgAiApiKey> byok = orgAiApiKeyRepository
+                    .findByOrganizationIdAndProvider(organizationId, provider)
+                    .filter(k -> k.isValid() && k.getApiKey() != null && !k.getApiKey().isBlank());
+            if (byok.isPresent()) {
+                OrgAiApiKey k = byok.get();
+                return new ChatTarget(provider, k.getModelOverride(), k.getApiKey(), defaultBaseUrl(provider));
+            }
+        } catch (Exception e) {
+            log.debug("resolveFailoverChain: lookup BYOK {} echoue : {}", provider, e.getMessage());
+        }
+        try {
+            Optional<PlatformAiModel> model = platformAiConfigService.findUsableModelByProvider(provider);
+            if (model.isPresent()) {
+                PlatformAiModel m = model.get();
+                return new ChatTarget(provider, m.getModelId(), m.getApiKey(), m.getBaseUrl());
+            }
+        } catch (Exception e) {
+            log.debug("resolveFailoverChain: lookup modele plateforme {} echoue : {}", provider, e.getMessage());
+        }
+        String envKey = platformEnvKey(provider);
+        if (envKey != null && !envKey.isBlank()) {
+            return new ChatTarget(provider, null, envKey, defaultBaseUrl(provider));
+        }
+        return null;
+    }
+
+    /** Nom de provider canonique : null/blank/anthropic → "anthropic", sinon minuscule. */
+    private static String canonical(String provider) {
+        if (provider == null || provider.isBlank()) return "anthropic";
+        return provider.toLowerCase();
     }
 
     /** Base URL par defaut d'un provider connecte (les modeles plateforme portent la leur). */

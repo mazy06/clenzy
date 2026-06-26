@@ -192,6 +192,11 @@ public class SecurityConfigProd {
                         // Preferences UI personnelles : accessible a tout user authentifie,
                         // independamment du role (un BOOKING_GUEST n'a pas de role PMS).
                         .requestMatchers("/api/me/ui-preferences/**").authenticated()
+                        // Superviseur multi-agent : RBAC explicite au niveau URL (defense-in-depth,
+                        // aligne sur le @PreAuthorize de AgUiController). DOIT precéder /api/** (1er
+                        // match gagne). Les roles operationnels (TECHNICIAN/HOUSEKEEPER/LAUNDRY/
+                        // EXTERIOR_TECH) n'ont PAS acces au panneau Superviseur.
+                        .requestMatchers("/api/agui/**").hasAnyRole("SUPER_ADMIN","SUPER_MANAGER","HOST","SUPERVISOR")
                         .requestMatchers("/api/**").hasAnyRole("SUPER_ADMIN","SUPER_MANAGER","HOST","TECHNICIAN","HOUSEKEEPER","SUPERVISOR","LAUNDRY","EXTERIOR_TECH")
                         .anyRequest().denyAll()
                 )

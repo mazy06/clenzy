@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material';
 
 // ─── Mock @dnd-kit ──────────────────────────────────────────────────────────
@@ -205,6 +205,54 @@ describe('PlanningRow', () => {
       const { container } = renderRow();
       const bar = container.querySelector('[data-planning-bar]') as HTMLElement;
       expect(window.getComputedStyle(bar).position).toBe('absolute');
+    });
+  });
+
+  describe('Blocked range rendering', () => {
+    const blockedEvent: PlanningEvent = {
+      id: 'block-1',
+      type: 'blocked',
+      propertyId: 1,
+      startDate: '2026-03-02',
+      endDate: '2026-03-05',
+      label: 'Bloqué',
+      sublabel: 'ICAL:50',
+      status: 'blocked',
+      color: '#9aa',
+    };
+    const blockedLayout: BarLayout = {
+      event: blockedEvent,
+      left: 80,
+      width: 240,
+      top: 4,
+      height: 34,
+      layer: 'primary',
+    };
+
+    it('renders a greyed band (data-blocked-range), not an event bar', () => {
+      const { container } = renderRow({ barLayouts: [blockedLayout], allEvents: [blockedEvent] });
+      expect(container.querySelector('[data-blocked-range]')).not.toBeNull();
+      // Un blocage n'est jamais rendu comme brique d'événement.
+      expect(container.querySelector('[data-planning-bar]')).toBeNull();
+    });
+
+    it('does NOT trigger range selection when clicking the blocked band', () => {
+      const { container } = renderRow({ barLayouts: [blockedLayout], allEvents: [blockedEvent] });
+      const band = container.querySelector('[data-blocked-range]') as HTMLElement;
+
+      fireEvent.mouseDown(band, { button: 0 });
+      fireEvent.mouseUp(document);
+
+      expect(mockOnEmptyClick).not.toHaveBeenCalled();
+    });
+
+    it('shows an explanatory tooltip on click', async () => {
+      const { container } = renderRow({ barLayouts: [blockedLayout], allEvents: [blockedEvent] });
+      const band = container.querySelector('[data-blocked-range]') as HTMLElement;
+
+      fireEvent.click(band);
+
+      expect(await screen.findByText('Période bloquée')).toBeInTheDocument();
     });
   });
 

@@ -23,6 +23,7 @@ const fr: Dict = {
   'search.propertyType': 'Type de logement',
   'search.filters': 'Filtres avancés',
   'search.submit': 'Rechercher',
+  'upsells.add': 'Ajouter',
   'filters.title': 'Filtres',
   'filters.any': 'Tous',
   'filters.activeCount': '{n} actif·s',
@@ -215,7 +216,7 @@ const fr: Dict = {
 const en: Dict = {
   'searchBar.travelers': 'Travelers', 'searchBar.accommodations': 'Accommodations', 'searchBar.dates': 'Dates',
   'searchBar.select': 'Select...', 'searchBar.stayDates': 'Stay dates', 'searchBar.allTypes': 'All',
-  'search.destination': 'Where are you going?', 'search.destinationLabel': 'Destination', 'search.datesLabel': 'Check-in → Check-out', 'search.propertyType': 'Property type', 'search.filters': 'Advanced filters', 'search.submit': 'Search',
+  'search.destination': 'Where are you going?', 'search.destinationLabel': 'Destination', 'search.datesLabel': 'Check-in → Check-out', 'search.propertyType': 'Property type', 'search.filters': 'Advanced filters', 'search.submit': 'Search', 'upsells.add': 'Add',
   'filters.title': 'Filters', 'filters.any': 'All', 'filters.activeCount': '{n} active', 'filters.type': 'Property type', 'filters.price': 'Price / night', 'filters.priceMin': 'Min', 'filters.priceMax': 'Max', 'filters.bedrooms': 'Bedrooms', 'filters.bathrooms': 'Bathrooms', 'filters.guests': 'Guests', 'filters.amenities': 'Amenities', 'filters.apply': 'Apply', 'filters.reset': 'Reset',
   'guests.adults': 'Adults', 'guests.adultsAge': '12 and over', 'guests.children': 'Children',
   'guests.childrenAge': '3 to 11 years', 'guests.babies': 'Babies', 'guests.babiesAge': '0 to 3 years',
@@ -309,7 +310,7 @@ const en: Dict = {
 const ar: Dict = {
   'searchBar.travelers': 'المسافرون', 'searchBar.accommodations': 'أماكن الإقامة', 'searchBar.dates': 'التواريخ',
   'searchBar.select': 'اختر...', 'searchBar.stayDates': 'تواريخ الإقامة', 'searchBar.allTypes': 'الكل',
-  'search.destination': 'إلى أين تذهب؟', 'search.destinationLabel': 'الوجهة', 'search.datesLabel': 'الوصول → المغادرة', 'search.propertyType': 'نوع الإقامة', 'search.filters': 'تصفية متقدمة', 'search.submit': 'بحث',
+  'search.destination': 'إلى أين تذهب؟', 'search.destinationLabel': 'الوجهة', 'search.datesLabel': 'الوصول → المغادرة', 'search.propertyType': 'نوع الإقامة', 'search.filters': 'تصفية متقدمة', 'search.submit': 'بحث', 'upsells.add': 'إضافة',
   'filters.title': 'الفلاتر', 'filters.any': 'الكل', 'filters.activeCount': '{n} مفعّل', 'filters.type': 'نوع الإقامة', 'filters.price': 'السعر / ليلة', 'filters.priceMin': 'الأدنى', 'filters.priceMax': 'الأقصى', 'filters.bedrooms': 'غرف النوم', 'filters.bathrooms': 'الحمامات', 'filters.guests': 'الضيوف', 'filters.amenities': 'المرافق', 'filters.apply': 'تطبيق', 'filters.reset': 'إعادة',
   'guests.adults': 'بالغون', 'guests.adultsAge': '12 سنة وأكثر', 'guests.children': 'أطفال',
   'guests.childrenAge': '3 إلى 11 سنة', 'guests.babies': 'رضع', 'guests.babiesAge': '0 إلى 3 سنوات',

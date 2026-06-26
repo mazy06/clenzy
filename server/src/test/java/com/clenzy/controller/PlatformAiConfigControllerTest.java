@@ -4,6 +4,7 @@ import com.clenzy.dto.PlatformAiModelDto;
 import com.clenzy.dto.SavePlatformModelRequest;
 import com.clenzy.dto.TestPlatformModelRequest;
 import com.clenzy.service.PlatformAiConfigService;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,18 +51,22 @@ class PlatformAiConfigControllerTest {
     @Mock
     private Jwt jwt;
 
+    @Mock
+    private TenantContext tenantContext;
+
     private PlatformAiConfigController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new PlatformAiConfigController(configService);
+        controller = new PlatformAiConfigController(configService, tenantContext);
         lenient().when(jwt.getClaimAsString("preferred_username")).thenReturn("admin@clenzy.com");
     }
 
     private PlatformAiModelDto model(Long id, String name, String provider) {
         return new PlatformAiModelDto(id, name, provider, "model-id",
                 "sk-****1234", "https://api.example.com",
-                List.of(), LocalDateTime.now(), LocalDateTime.now());
+                List.of(), LocalDateTime.now(), LocalDateTime.now(),
+                "AVAILABLE", LocalDateTime.now(), null);
     }
 
     // ─── GET /models ─────────────────────────────────────────────────────
@@ -98,13 +104,13 @@ class PlatformAiConfigControllerTest {
         SavePlatformModelRequest req = new SavePlatformModelRequest(
                 null, "My Model", "openai", "gpt-4o", "sk-xxx", null);
         PlatformAiModelDto savedDto = model(99L, "My Model", "openai");
-        when(configService.saveModel(eq(req), eq("admin@clenzy.com"))).thenReturn(savedDto);
+        when(configService.saveModel(eq(req), eq("admin@clenzy.com"), any())).thenReturn(savedDto);
 
         ResponseEntity<PlatformAiModelDto> response = controller.saveModel(req, jwt);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().id()).isEqualTo(99L);
-        verify(configService).saveModel(req, "admin@clenzy.com");
+        verify(configService).saveModel(eq(req), eq("admin@clenzy.com"), any());
     }
 
     @Test
@@ -113,11 +119,11 @@ class PlatformAiConfigControllerTest {
         when(jwt.getClaimAsString("preferred_username")).thenReturn(null);
         SavePlatformModelRequest req = new SavePlatformModelRequest(
                 null, "Model X", "openai", "gpt", "key", null);
-        when(configService.saveModel(any(), any())).thenReturn(model(1L, "Model X", "openai"));
+        when(configService.saveModel(any(), any(), any())).thenReturn(model(1L, "Model X", "openai"));
 
         controller.saveModel(req, jwt);
 
-        verify(configService).saveModel(req, null);
+        verify(configService).saveModel(eq(req), isNull(), any());
     }
 
     // ─── PUT /models/{id} ────────────────────────────────────────────────
@@ -128,13 +134,13 @@ class PlatformAiConfigControllerTest {
         SavePlatformModelRequest reqWithDifferentId = new SavePlatformModelRequest(
                 999L, "Edit Model", "anthropic", "claude-x", "sk-y", "https://api.x.com");
         PlatformAiModelDto savedDto = model(42L, "Edit Model", "anthropic");
-        when(configService.saveModel(any(SavePlatformModelRequest.class), eq("admin@clenzy.com")))
+        when(configService.saveModel(any(SavePlatformModelRequest.class), eq("admin@clenzy.com"), any()))
                 .thenReturn(savedDto);
 
         controller.updateModel(42L, reqWithDifferentId, jwt);
 
         ArgumentCaptor<SavePlatformModelRequest> captor = ArgumentCaptor.forClass(SavePlatformModelRequest.class);
-        verify(configService).saveModel(captor.capture(), eq("admin@clenzy.com"));
+        verify(configService).saveModel(captor.capture(), eq("admin@clenzy.com"), any());
         assertThat(captor.getValue().id()).isEqualTo(42L);
         assertThat(captor.getValue().name()).isEqualTo("Edit Model");
         assertThat(captor.getValue().provider()).isEqualTo("anthropic");

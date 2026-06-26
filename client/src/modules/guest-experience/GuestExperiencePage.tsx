@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Box } from '@mui/material';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
-import { PageHeaderActionsProvider, usePageHeaderActionsSlot } from '../../components/PageHeaderActionsContext';
+import { PageHeaderActionsProvider, usePageHeaderActionsSlot, usePageHeaderFiltersSlot } from '../../components/PageHeaderActionsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { Public } from '../../icons';
@@ -25,22 +25,33 @@ const GuestExperiencePage: React.FC = () => {
   const isPlatformStaff =
     user?.platformRole === 'SUPER_ADMIN' || user?.platformRole === 'SUPER_MANAGER';
 
-  // Retour depuis l'éditeur Studio : on revient sur l'onglet « Booking Engine » (index 2).
-  // Repli sur 0 si l'onglet est masqué pour ce rôle (non-staff).
+  // Onglet initial. Par défaut, la route /booking-engine ouvre l'onglet « Booking
+  // Engine » (value 2) — sauf pour les HOST, pour qui il est masqué → repli sur
+  // « Livret d'accueil » (0). Un `state.tab` explicite (retour éditeur Studio,
+  // deep-link) reste prioritaire, lui aussi replié sur 0 si non accessible.
   const requestedTab = (location.state as { tab?: number } | null)?.tab;
-  const initialTab = requestedTab === 2 && !isPlatformStaff ? 0 : (typeof requestedTab === 'number' ? requestedTab : 0);
+  const defaultTab = isPlatformStaff ? 2 : 0;
+  const initialTab =
+    typeof requestedTab === 'number'
+      ? (requestedTab === 2 && !isPlatformStaff ? 0 : requestedTab)
+      : defaultTab;
   const [tab, setTab] = useState(initialTab);
   // Slot DOM partagé : chaque onglet porte ses propres actions dans le PageHeader.
   const { slot, portalContainer } = usePageHeaderActionsSlot();
+  // Slot filtres (recherche + filtres) — utilisé par l'onglet « Services payants ».
+  const { filtersSlot, filtersContainer } = usePageHeaderFiltersSlot();
 
+  // Ordre d'affichage : Booking Engine, puis Livret d'accueil, puis Services payants.
+  // Les `value` restent stables (0 = Livret, 1 = Services, 2 = Booking) → le contenu,
+  // le sous-titre et `initialTab` ne bougent pas, seul l'ordre des pilules change.
   const tabs = [
-    { value: 0, label: t('guestExperience.tabs.welcomeGuide', "Livret d'accueil") },
-    { value: 1, label: t('guestExperience.tabs.upsells', 'Services payants') },
     {
       value: 2,
       label: t('guestExperience.tabs.bookingEngine', 'Booking Engine'),
       hidden: !isPlatformStaff,
     },
+    { value: 0, label: t('guestExperience.tabs.welcomeGuide', "Livret d'accueil") },
+    { value: 1, label: t('guestExperience.tabs.upsells', 'Services payants') },
   ];
 
   const subtitle =
@@ -51,7 +62,7 @@ const GuestExperiencePage: React.FC = () => {
         : t('guestExperience.subtitleWelcomeGuide', "Le livret d'accueil numérique de vos voyageurs");
 
   return (
-    <PageHeaderActionsProvider slot={slot}>
+    <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}>
       {/* En-tête + tabs FIXES ; seul le contenu sous les tabs défile (scroll interne,
           comme les pages à scroll propre du soft) → le PageHeader ne scrolle plus. */}
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -60,6 +71,7 @@ const GuestExperiencePage: React.FC = () => {
           subtitle={subtitle}
           iconBadge={<Public />}
           actions={portalContainer}
+          filters={filtersContainer}
           showBackButton={false}
         />
         <PageTabs options={tabs} value={tab} onChange={setTab} />

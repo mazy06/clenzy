@@ -55,6 +55,10 @@ export const sitesApi = {
   ensureForConfig: (configId: number) =>
     apiClient.post<Site>(`/sites/ensure-for-config/${configId}`),
 
+  /** Met à jour les réglages du site (langues, thème, SEO…). Le corps doit inclure `slug` (NotBlank). */
+  updateSite: (siteId: number, body: Partial<Site>) =>
+    apiClient.put<Site>(`/sites/${siteId}`, body),
+
   listPages: (siteId: number) =>
     apiClient.get<SitePage[]>(`/sites/${siteId}/pages`),
 
@@ -99,6 +103,10 @@ export const sitesApi = {
   /** Génère un brouillon d'article de blog (IA) à partir d'un sujet libre (2.13). */
   generateArticle: (siteId: number, topic: string, locale?: string) =>
     apiClient.post<GeneratedArticle>(`/sites/${siteId}/blog/ai`, { topic, locale }),
+
+  /** Traduit (IA) le texte d'un fragment HTML de page vers une langue cible (multi-langue, P2). */
+  translateHtml: (siteId: number, body: { html: string; targetLocale: string }) =>
+    apiClient.post<{ html: string }>(`/sites/${siteId}/translate-html`, body),
 };
 
 export interface GeneratedSeo {

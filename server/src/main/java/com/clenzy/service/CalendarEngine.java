@@ -450,6 +450,123 @@ public class CalendarEngine {
     }
 
     // ----------------------------------------------------------------
+    // RECONCILE_BLOCKS : synchroniser les blocages d'un feed importe (iCal)
+    // ----------------------------------------------------------------
+
+    /** Bilan d'une reconciliation de blocages importes : jours bloques / liberes. */
+    public record BlockReconcileResult(int blocked, int released) {}
+
+    /**
+     * Reconcilie les blocages d'un feed importe (iCal) sur la fenetre [from, to).
+     *
+     * <p>Contrairement a {@link #block}, cette methode est concue pour une synchro
+     * repetee (scheduler toutes les 3h) et reste tolerante :</p>
+     * <ul>
+     *   <li>elle ne LEVE PAS sur un jour deja BOOKED — un jour occupe par une vraie
+     *       reservation est ignore (le blocage OTA y serait redondant) ;</li>
+     *   <li>elle est idempotente : un jour deja BLOCKED n'est ni reecrit ni re-notifie ;</li>
+     *   <li>elle ne bloque QUE les jours AVAILABLE et ne libere QUE les jours BLOCKED
+     *       portant exactement {@code source} — les blocages MANUEL ou issus d'un autre
+     *       feed sont preserves ;</li>
+     *   <li>elle ne logue la commande, ne publie l'event outbox et n'invalide le cache
+     *       de recherche QUE si au moins un jour a change (pas de spam a chaque sync).</li>
+     * </ul>
+     *
+     * <p>La protection anti-purge (feed transitoirement vide) est assuree en amont par
+     * l'appelant ({@code ICalBlockImporter}), qui n'appelle pas cette methode quand le
+     * feed ne declare aucun blocage.</p>
+     *
+     * @param blockedDates dates actuellement bloquees par le feed (hors fenetre ignorees)
+     * @param source       source attribuee aux jours bloques (ex: {@code "ICAL:42"}),
+     *                     cle de liberation des blocages disparus de CE feed
+     * @return nombre de jours nouvellement bloques et liberes
+     */
+    public BlockReconcileResult reconcileImportedBlocks(Long propertyId, LocalDate from, LocalDate to,
+                                                        Set<LocalDate> blockedDates, Long orgId,
+                                                        String source, String actorId) {
+        Timer.Sample sample = syncMetrics.startTimer();
+        MDC.put("propertyId", String.valueOf(propertyId));
+        try {
+            acquireLock(propertyId);
+
+            Property property = propertyRepository.findById(propertyId)
+                    .orElseThrow(() -> new RuntimeException("Propriete introuvable: " + propertyId));
+            // Ownership (regle audit 2026-06 #3) : findById contourne le filtre Hibernate.
+            organizationAccessGuard.requireSameOrganization(property.getOrganizationId(), orgId,
+                    "Propriete " + propertyId + " hors de l'organisation " + orgId);
+
+            LocalDate lastDay = to.minusDays(1);
+            Map<LocalDate, CalendarDay> byDate = calendarDayRepository
+                    .findByPropertyAndDateRange(propertyId, from, lastDay, orgId).stream()
+                    .collect(Collectors.toMap(CalendarDay::getDate, d -> d));
+
+            List<CalendarDay> changed = new ArrayList<>();
+
+            // 1. Bloquer les jours declares indisponibles par le feed et actuellement libres.
+            int blocked = 0;
+            for (LocalDate date : blockedDates) {
+                if (date.isBefore(from) || !date.isBefore(to)) {
+                    continue; // hors fenetre de reconciliation
+                }
+                CalendarDay day = byDate.get(date);
+                if (day == null) {
+                    day = new CalendarDay(property, date, CalendarDayStatus.BLOCKED, orgId);
+                    day.setSource(source);
+                    byDate.put(date, day);
+                    changed.add(day);
+                    blocked++;
+                } else if (day.getStatus() == CalendarDayStatus.AVAILABLE) {
+                    day.setStatus(CalendarDayStatus.BLOCKED);
+                    day.setSource(source);
+                    changed.add(day);
+                    blocked++;
+                }
+                // BOOKED / MAINTENANCE / deja BLOCKED : non modifie.
+            }
+
+            // 2. Liberer les jours que CE feed avait bloques et qui ont disparu du feed.
+            int released = 0;
+            for (CalendarDay day : byDate.values()) {
+                if (day.getStatus() == CalendarDayStatus.BLOCKED
+                        && source.equals(day.getSource())
+                        && !blockedDates.contains(day.getDate())) {
+                    day.setStatus(CalendarDayStatus.AVAILABLE);
+                    day.setSource(MANUAL_OVERRIDE_SOURCE);
+                    day.setNotes(null);
+                    changed.add(day);
+                    released++;
+                }
+            }
+
+            if (changed.isEmpty()) {
+                return new BlockReconcileResult(0, 0);
+            }
+            calendarDayRepository.saveAll(changed);
+
+            if (blocked > 0) {
+                logCommand(orgId, propertyId, CalendarCommandType.BLOCK, from, to, source, null, actorId, null);
+                outboxPublisher.publishCalendarEvent("CALENDAR_BLOCKED", propertyId, orgId,
+                        buildPayload("BLOCKED", propertyId, orgId, from, to, source, null));
+            }
+            if (released > 0) {
+                logCommand(orgId, propertyId, CalendarCommandType.UNBLOCK, from, to, source, null, actorId, null);
+                outboxPublisher.publishCalendarEvent("CALENDAR_UNBLOCKED", propertyId, orgId,
+                        buildPayload("UNBLOCKED", propertyId, orgId, from, to, source, null));
+            }
+
+            log.info("CalendarEngine.reconcileImportedBlocks: propriete {} [{}, {}) source={} : {} bloque(s), {} libere(s)",
+                    propertyId, from, to, source, blocked, released);
+            return new BlockReconcileResult(blocked, released);
+        } catch (CalendarLockException e) {
+            syncMetrics.incrementLockContention();
+            throw e;
+        } finally {
+            syncMetrics.recordCalendarOperation("reconcileImportedBlocks", sample);
+            MDC.remove("propertyId");
+        }
+    }
+
+    // ----------------------------------------------------------------
     // UPDATE_PRICE : mettre a jour le prix par nuit [from, to)
     // ----------------------------------------------------------------
 

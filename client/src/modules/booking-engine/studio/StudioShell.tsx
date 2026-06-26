@@ -29,9 +29,6 @@ export interface StudioShellProps {
   sections: StudioSection[];
   activeSection: string;
   onSectionChange: (key: string) => void;
-  /** Langue de preview (fr/en/ar) — affichage seulement en F0. */
-  previewLang: string;
-  onPreviewLangChange: (lang: string) => void;
   previewCurrency: string;
   onPreviewCurrencyChange: (currency: string) => void;
   breakpoint: Breakpoint;
@@ -51,8 +48,6 @@ export default function StudioShell({
   sections,
   activeSection,
   onSectionChange,
-  previewLang,
-  onPreviewLangChange,
   previewCurrency,
   onPreviewCurrencyChange,
   breakpoint,
@@ -128,9 +123,7 @@ export default function StudioShell({
         {/* Breakpoint switcher */}
         <SegmentedBreakpoint value={breakpoint} onChange={onBreakpointChange} />
 
-        {/* Langue de preview */}
-        <PreviewSelect value={previewLang}
-          onChange={onPreviewLangChange} options={['fr', 'en', 'ar']} ariaLabel="Langue de preview" />
+        {/* La langue d'ÉDITION se choisit dans la barre de langues de l'éditeur (Design), pas ici. */}
 
         {/* Devise de preview */}
         <PreviewSelect value={previewCurrency} onChange={onPreviewCurrencyChange}

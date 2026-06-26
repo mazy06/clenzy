@@ -19,6 +19,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *   <li>{@code error} : erreur (le stream se termine apres)</li>
  *   <li>{@code paused_awaiting_confirmation} : terminal — le stream est suspendu,
  *       le frontend doit attendre la reponse user. Pas de Done apres.</li>
+ *   <li>{@code agent_activity} : activite d'un agent du moteur multi-agent
+ *       (specialist demarre / reflechit / agit / termine). Purement informatif :
+ *       alimente la constellation « Superviseur d'agents » cote front. N'altere
+ *       PAS le flux texte/tools. Champs portes : {@link #toolName} = nom du
+ *       specialist (snake_case reel : data_analyst, communication, ...),
+ *       {@link #finishReason} = phase (started | thinking | acting | done),
+ *       {@link #displayHint} = nom de l'outil concerne quand phase=acting (sinon
+ *       null), {@link #toolResult} = libelle metier court de la tache (optionnel).</li>
  * </ul>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -75,6 +83,21 @@ public record AgentSseEvent(
     public static AgentSseEvent pausedAwaitingConfirmation() {
         return new AgentSseEvent("paused_awaiting_confirmation", null, null, null, null,
                 null, null, null, null, null, null, null);
+    }
+
+    /**
+     * Activite d'un agent du moteur multi-agent (constellation Superviseur).
+     *
+     * @param specialist nom reel du specialist (snake_case : data_analyst, communication, ...)
+     *                   ou {@code "orchestrator"} pour l'orchestrateur lui-meme
+     * @param phase      cycle de vie : {@code started}, {@code thinking}, {@code acting}, {@code done}
+     * @param toolName   nom de l'outil concerne quand phase={@code acting} (sinon null)
+     * @param task       libelle metier court de la tache en cours (optionnel, sans jargon LLM)
+     */
+    public static AgentSseEvent agentActivity(String specialist, String phase,
+                                              String toolName, String task) {
+        return new AgentSseEvent("agent_activity", null, null, specialist, null,
+                null, toolName, phase, null, null, null, task);
     }
 
     public static AgentSseEvent done(String finishReason) {

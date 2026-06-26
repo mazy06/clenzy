@@ -12,4 +12,7 @@ public interface PlatformAiFeatureModelRepository extends JpaRepository<Platform
     Optional<PlatformAiFeatureModel> findByFeature(String feature);
 
     void deleteByFeature(String feature);
+
+    /** Supprime toute assignation de feature pointant vers ce modèle (avant suppression du modèle). */
+    void deleteByModelId(Long modelId);
 }

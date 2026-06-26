@@ -1,7 +1,7 @@
 import type { BaitlyBookingConfig, WidgetState } from '../types';
 import type { StateManager } from '../state';
 import type { BaitlyBookingCore } from '../core/BaitlyBookingCore';
-import type { ApiConfirmation } from '../api';
+import type { ApiConfirmation, ApiBookingUpsell } from '../api';
 import type { BookingI18n } from '../i18n';
 import type { BaitlyTheme } from '../types';
 import { generateThemeCSS } from '../theme';
@@ -51,7 +51,8 @@ export type PrimitiveStep =
   | 'guest-form'
   | 'checkout'
   | 'account'
-  | 'confirmation';
+  | 'confirmation'
+  | 'upsells';
 
 /** Contexte d'hydratation partagé par tous les marqueurs d'une page. */
 export interface MountContext {
@@ -230,6 +231,8 @@ function renderStep(step: PrimitiveStep, ctx: MountContext, el: HTMLElement): HT
       return buildCheckoutButton(ctx, el);
     case 'property':
       return buildPropertySummary(ctx);
+    case 'upsells':
+      return buildUpsells(ctx);
     case 'confirmation':
       return buildConfirmation(ctx);
     case 'account':
@@ -508,6 +511,88 @@ function formatPrice(amount: number, currency: string): string {
   } catch {
     return `${Math.round(amount)} ${currency}`;
   }
+}
+
+/**
+ * Services additionnels (upsells) du booking engine (étape `upsells`, typiquement la page confirmation).
+ * Liste les offres `diffuseOnBooking` ; « Ajouter » lance un paiement Stripe HÉBERGÉ (redirection)
+ * rattaché à la réservation (code lu sur l'URL `?reservation=`). Sans réservation → boutons désactivés.
+ */
+function buildUpsells(ctx: MountContext): HTMLElement {
+  const { core, config } = ctx;
+  const baseUrl = config.baseUrl || window.location.origin;
+  const reservationCode = readReturnParams().reservationCode;
+  const propertyId = core.state.get().selectedPropertyId ?? undefined;
+
+  const container = document.createElement('div');
+  container.className = 'cb-section cb-upsells';
+  const list = document.createElement('div');
+  list.className = 'cb-upsells__list';
+  container.appendChild(list);
+
+  core.api.listUpsells(propertyId)
+    .then((items) => {
+      if (!items.length) { container.hidden = true; return; }
+      container.hidden = false;
+      list.textContent = '';
+      for (const u of items) list.appendChild(upsellCard(u, reservationCode, baseUrl, ctx));
+    })
+    .catch(() => { container.hidden = true; });
+
+  return container;
+}
+
+/** Carte d'un upsell booking engine (image/titre/prix + bouton « Ajouter » → checkout Stripe hébergé). */
+function upsellCard(u: ApiBookingUpsell, reservationCode: string | null, baseUrl: string, ctx: MountContext): HTMLElement {
+  const { i18n } = ctx;
+  const card = document.createElement('div');
+  card.className = 'cb-upsell-card';
+
+  if (u.imageUrl) {
+    const img = document.createElement('img');
+    img.className = 'cb-upsell-card__img';
+    // URL image absolue : telle quelle si http(s) ou data:, sinon préfixée par la base API.
+    img.src = /^(https?:|data:)/i.test(u.imageUrl)
+      ? u.imageUrl
+      : `${baseUrl.replace(/\/$/, '')}${u.imageUrl.startsWith('/') ? '' : '/'}${u.imageUrl}`;
+    img.alt = u.title;
+    img.loading = 'lazy';
+    card.appendChild(img);
+  }
+
+  const body = document.createElement('div');
+  body.className = 'cb-upsell-card__body';
+  const title = document.createElement('div');
+  title.className = 'cb-text-semibold';
+  title.textContent = u.title;
+  body.appendChild(title);
+  if (u.description) {
+    const d = document.createElement('p');
+    d.className = 'cb-text-sm cb-text-secondary';
+    d.textContent = u.description;
+    body.appendChild(d);
+  }
+  const price = document.createElement('div');
+  price.className = 'cb-text-semibold cb-upsell-card__price';
+  price.textContent = formatPrice(u.price, u.currency);
+  body.appendChild(price);
+  card.appendChild(body);
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'cb-cta cb-upsell-card__btn';
+  btn.textContent = i18n.t('upsells.add');
+  // Achat impossible sans réservation (la commande lie une réservation existante).
+  btn.disabled = !reservationCode;
+  btn.addEventListener('click', () => {
+    if (!reservationCode) return;
+    btn.disabled = true;
+    ctx.core.api.upsellCheckout(u.offerId, reservationCode, window.location.href)
+      .then((r) => { if (r.checkoutUrl) { window.location.href = r.checkoutUrl; } else { btn.disabled = false; } })
+      .catch(() => { btn.disabled = false; });
+  });
+  card.appendChild(btn);
+  return card;
 }
 
 /**

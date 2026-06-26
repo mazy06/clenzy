@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
@@ -13,27 +13,33 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
-  IconButton,
   InputAdornment,
+  Menu,
   MenuItem,
   Snackbar,
   Stack,
   Switch,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material';
-import type { AlertColor } from '@mui/material';
+import type { AlertColor, SxProps, Theme } from '@mui/material';
 import { Add, Save, Edit, Delete } from '../../icons';
-import { Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus } from 'lucide-react';
+import {
+  Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus,
+  LogIn, Clock, Coffee, Car, SquareParking,
+  SlidersHorizontal, Search, BookOpen, Network, ChevronRight, ArrowLeft, Eye, Home,
+  Sailboat, UtensilsCrossed, Compass, Tent, Flower2,
+} from 'lucide-react';
+// Feuille de style « studio accueil » partagée (scopée .be-home, accent indigo).
+import '../booking-engine/studio/studioHome.css';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
+import { useCurrency } from '../../hooks/useCurrency';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
-import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
-import { SectionHeading, EmptyHint } from './formPrimitives';
-import { guideIcon } from './guideIcons';
+import { usePageHeaderActions, usePageHeaderFilters } from '../../components/PageHeaderActionsContext';
+import { Money } from '../../components/Money';
+import { EmptyHint, SectionHeading } from './formPrimitives';
 import ConfirmationModal from '../../components/ConfirmationModal';
-import { upsellSuggestions, type UpsellSuggestion } from './upsellTemplate';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
 import { monetizationConfigApi } from '../../services/api/monetizationConfigApi';
@@ -51,6 +57,101 @@ const TYPE_FALLBACK: Record<string, string> = {
 };
 const TYPES = Object.keys(TYPE_FALLBACK);
 const DEFAULT_CURRENCY = 'EUR';
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Actions d'en-tête uniformes (même hauteur / rayon / typo). Deux secondaires
+// « ghost » (Commissions, Ventes) + une primaire pleine (Nouveau service).
+const HEADER_ACTION_BASE = {
+  height: 34, textTransform: 'none', fontWeight: 600, fontSize: 13,
+  borderRadius: '10px', px: 1.75, whiteSpace: 'nowrap',
+  '& .MuiButton-startIcon': { mr: 0.625 },
+} satisfies SxProps<Theme>;
+const headerSecondarySx: SxProps<Theme> = {
+  ...HEADER_ACTION_BASE,
+  color: 'var(--body)', borderColor: 'var(--line-2)', bgcolor: 'transparent',
+  '&:hover': { borderColor: 'var(--faint)', bgcolor: 'var(--hover)' },
+};
+const headerPrimarySx: SxProps<Theme> = {
+  ...HEADER_ACTION_BASE,
+  boxShadow: 'none',
+  '&:hover': { boxShadow: 'none' },
+};
+// Filtres dans le PageHeader (Canal / Catégorie) : boutons étiquetés (icône en
+// enfant, PAS startIcon → non repliés en icon-only par PageHeaderActions).
+const headerFilterSx = {
+  height: 34, textTransform: 'none', fontWeight: 600, fontSize: 13,
+  borderRadius: '10px', px: 1.5, gap: 0.75, whiteSpace: 'nowrap',
+  color: 'var(--body)', borderColor: 'var(--line-2)', bgcolor: 'transparent',
+  '& svg': { color: 'var(--muted)' },
+  '&:hover': { borderColor: 'var(--faint)', bgcolor: 'var(--hover)' },
+} satisfies SxProps<Theme>;
+const headerFilterActiveSx: SxProps<Theme> = {
+  ...headerFilterSx,
+  color: 'var(--accent)', borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)',
+  '& svg': { color: 'var(--accent)' },
+};
+
+// Icône lucide par type de service.
+const TYPE_ICON: Record<string, typeof Tag> = {
+  EARLY_CHECKIN: LogIn, LATE_CHECKOUT: Clock, CLEANING: Sparkles,
+  TRANSFER: Car, BREAKFAST: Coffee, PARKING: SquareParking,
+};
+const typeIcon = (type: string): typeof Tag => TYPE_ICON[type] ?? Tag;
+
+// Marketplace partenaire — STUB de démonstration, organisé PAR marketplace.
+// Aucun connecteur back pour l'instant (pas de browse/import GetYourGuide/Viator/
+// Klook). TODO : brancher les connecteurs + commission réelle. « Ajouter » pré-remplit
+// le formulaire de création (le service devient un service interne lié au partenaire).
+interface MarketplaceExperience {
+  icon: typeof Tag;
+  gradient: string;
+  name: string;
+  desc: string;
+  category: string;
+  /** Prix en EUR (devise des marketplaces stub) → converti à l'affichage. */
+  priceValue: number;
+  unit: string;
+  commission: number;
+}
+interface MarketplacePartner { partner: string; color: string; experiences: MarketplaceExperience[]; }
+const MARKETPLACE_PARTNERS: MarketplacePartner[] = [
+  {
+    partner: 'GetYourGuide', color: '#FF5533',
+    experiences: [
+      { icon: Sailboat, gradient: 'linear-gradient(150deg,#e08a6f,#c96a4e)', name: 'Croisière au coucher du soleil', desc: "Une vue imprenable depuis l'eau, en fin de journée.", category: 'Expérience', priceValue: 39, unit: '/ pers.', commission: 12 },
+      { icon: Sparkles, gradient: 'linear-gradient(150deg,#d97f63,#b85c40)', name: "Montgolfière à l'aube", desc: 'Survol panoramique au lever du soleil.', category: 'Expérience', priceValue: 120, unit: '/ pers.', commission: 14 },
+    ],
+  },
+  {
+    partner: 'Viator', color: '#3DA35D',
+    experiences: [
+      { icon: UtensilsCrossed, gradient: 'linear-gradient(150deg,#6f9e7e,#4e8060)', name: 'Dégustation de spécialités locales', desc: 'Vins, fromages et produits du terroir, commentés.', category: 'Gastronomie', priceValue: 45, unit: '/ pers.', commission: 15 },
+      { icon: Sparkles, gradient: 'linear-gradient(150deg,#5e9070,#477352)', name: 'Atelier cuisine du marché', desc: 'Marché puis cuisine avec un chef local.', category: 'Gastronomie', priceValue: 65, unit: '/ pers.', commission: 15 },
+    ],
+  },
+  {
+    partner: 'Klook', color: '#FF5722',
+    experiences: [
+      { icon: Compass, gradient: 'linear-gradient(150deg,#d98a5a,#b86f3e)', name: 'Visite guidée de la médina', desc: 'Les incontournables avec un guide local.', category: 'Découverte', priceValue: 29, unit: '/ pers.', commission: 10 },
+      { icon: Tent, gradient: 'linear-gradient(150deg,#d07c4e,#ab6235)', name: 'Excursion désert & dunes', desc: 'Journée 4×4, déjeuner inclus.', category: 'Aventure', priceValue: 95, unit: '/ pers.', commission: 11 },
+    ],
+  },
+  {
+    partner: 'Partenaire local', color: '#5453D6',
+    experiences: [
+      { icon: Flower2, gradient: 'linear-gradient(150deg,#8a86c8,#6a66b0)', name: 'Spa & hammam à domicile', desc: 'Praticien diplômé, matériel fourni.', category: 'Bien-être', priceValue: 80, unit: '/ séance', commission: 20 },
+    ],
+  },
+];
+
+type Segment = 'all' | 'internal' | 'partner';
+type CanalFilter = 'all' | 'livret' | 'booking';
+/** Données minimales d'aperçu guest d'un service (carte telle que vue par le voyageur). */
+interface PreviewData { title: string; description: string | null; price: number; currency: string; imageUrl: string | null; }
+// null = vue catalogue ; sinon = écran détaillé (service interne ou expérience partenaire).
+type Selected =
+  | { kind: 'internal'; id: number }
+  | { kind: 'partner'; partnerIdx: number; expIdx: number };
 
 interface EditState {
   open: boolean;
@@ -118,19 +219,36 @@ function compressImageToDataUrl(file: File, maxSize: number, quality: number): P
 }
 
 const UpsellsAdmin: React.FC = () => {
-  const { t, currentLanguage } = useTranslation();
+  const { t } = useTranslation();
   const { properties } = usePropertiesList();
+  const { convert } = useCurrency();
 
   const { data: offers = [], isLoading, refetch } = useQuery({
     queryKey: ['upsell-offers'],
     queryFn: () => upsellApi.listOffers(),
   });
 
+  // Ventes : chargées dès le montage (KPIs + perf par service + dialog Ventes).
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['upsell-orders'],
+    queryFn: () => upsellApi.listOrders(),
+  });
+
+  // ── Vue catalogue ↔ détail + filtres ──────────────────────────────────────
+  const [selected, setSelected] = useState<Selected | null>(null);
+  const [seg, setSeg] = useState<Segment>('all');
+  const [search, setSearch] = useState('');
+  const [canalFilter, setCanalFilter] = useState<CanalFilter>('all');
+  const [catFilter, setCatFilter] = useState<string | null>(null);
+  const [canalAnchor, setCanalAnchor] = useState<HTMLElement | null>(null);
+  const [catAnchor, setCatAnchor] = useState<HTMLElement | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [previewOffer, setPreviewOffer] = useState<PreviewData | null>(null);
+
   const [edit, setEdit] = useState<EditState>(emptyEdit);
   const [saving, setSaving] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [commissionsOpen, setCommissionsOpen] = useState(false);
-  // Suppression : cible du modal de confirmation (null = fermé) + état en cours.
   const [deleteTarget, setDeleteTarget] = useState<UpsellOffer | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
@@ -140,12 +258,6 @@ const UpsellsAdmin: React.FC = () => {
   });
   const notify = (message: string, severity: AlertColor = 'success') =>
     setSnackbar({ open: true, message, severity });
-
-  const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['upsell-orders'],
-    queryFn: () => upsellApi.listOrders(),
-    enabled: ordersOpen,
-  });
 
   const { data: commissionSummary } = useQuery({
     queryKey: ['activity-commission-summary'],
@@ -183,33 +295,70 @@ const UpsellsAdmin: React.FC = () => {
   };
 
   const typeLabel = (id: string) => t(`upsells.types.${id}`, TYPE_FALLBACK[id] ?? id);
-  const fmtMoney = (amount: number | null, currency: string) =>
-    amount == null ? '—' : `${amount.toFixed(2)} ${currency}`;
 
-  const openCreate = () => setEdit({ ...emptyEdit, open: true });
-  // Crée directement un service depuis une suggestion (1 clic), actif et pour toute l'org.
-  // Modifiable ensuite via la liste. Évite les doublons par titre.
-  const addSuggestion = async (s: UpsellSuggestion) => {
-    if (offers.some((o) => o.title.trim().toLowerCase() === s.title.trim().toLowerCase())) {
-      notify(t('upsells.messages.alreadyAdded', 'Ce service est déjà dans votre liste.'), 'info');
-      return;
+  // ── KPIs + performance (30 j), branchés sur les ventes réelles ─────────────
+  const paidLast30 = useMemo(() => {
+    const now = Date.now();
+    return orders.filter((o) => {
+      if (o.status !== 'PAID' && !o.paidAt) return false;
+      if (!o.createdAt) return false;
+      return now - new Date(o.createdAt).getTime() <= THIRTY_DAYS_MS;
+    });
+  }, [orders]);
+  const activeCount = useMemo(() => offers.filter((o) => o.active).length, [offers]);
+  const bookings30 = paidLast30.length;
+  // Revenu agrégé converti dans la devise d'affichage (somme correcte multi-devise).
+  const revenue30 = useMemo(
+    () => paidLast30.reduce((sum, o) => sum + convert(o.amount, o.currency), 0),
+    [paidLast30, convert],
+  );
+  // Perf par service, matché par titre (les ventes ne portent pas l'id d'offre).
+  const perfByTitle = useMemo(() => {
+    const map = new Map<string, { count: number; revenue: number }>();
+    for (const o of paidLast30) {
+      const cur = map.get(o.title) ?? { count: 0, revenue: 0 };
+      cur.count += 1;
+      cur.revenue += convert(o.amount, o.currency);
+      map.set(o.title, cur);
     }
-    try {
-      await upsellApi.createOffer({
-        type: s.type,
-        title: s.title,
-        description: s.description,
-        price: s.price,
-        currency: s.currency,
-        propertyId: null,
-        active: true,
-      });
-      notify(t('upsells.messages.added', 'Service ajouté'));
-      await refetch();
-    } catch {
-      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+    return map;
+  }, [paidLast30, convert]);
+  const perfFor = (title: string) => perfByTitle.get(title) ?? { count: 0, revenue: 0 };
+
+  const presentTypes = useMemo(() => Array.from(new Set(offers.map((o) => o.type))), [offers]);
+  const partnerTotal = useMemo(
+    () => MARKETPLACE_PARTNERS.reduce((s, p) => s + p.experiences.length, 0),
+    [],
+  );
+  const totalCount = offers.length + partnerTotal;
+
+  const filteredOffers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return offers.filter((o) => {
+      if (catFilter && o.type !== catFilter) return false;
+      // Filtre par canal de diffusion (persisté : diffuseOnLivret / diffuseOnBooking).
+      if (canalFilter === 'livret' && !o.diffuseOnLivret) return false;
+      if (canalFilter === 'booking' && !o.diffuseOnBooking) return false;
+      if (q && !o.title.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [offers, catFilter, canalFilter, search]);
+
+  // Refermer le détail si le service affiché a été supprimé.
+  useEffect(() => {
+    if (selected?.kind === 'internal' && !isLoading && !offers.some((o) => o.id === selected.id)) {
+      setSelected(null);
     }
+  }, [selected, offers, isLoading]);
+
+  const openInternalDetail = (o: UpsellOffer) => {
+    setSelected({ kind: 'internal', id: o.id });
   };
+  const openPartnerDetail = (partnerIdx: number, expIdx: number) => {
+    setSelected({ kind: 'partner', partnerIdx, expIdx });
+  };
+
+  const openCreate = (prefill?: Partial<EditState>) => setEdit({ ...emptyEdit, open: true, ...prefill });
   const openEdit = (o: UpsellOffer) =>
     setEdit({
       open: true,
@@ -226,6 +375,72 @@ const UpsellsAdmin: React.FC = () => {
       leadTimeHours: o.leadTimeHours != null ? String(o.leadTimeHours) : '',
       bundleOfferIds: o.bundleOfferIds ? o.bundleOfferIds.split(',').map((x) => x.trim()).filter(Boolean) : [],
     });
+
+  // « Ajouter » depuis la marketplace : pré-remplit le formulaire de création
+  // (l'hôte revoit puis enregistre → devient un service interne).
+  const addFromPartner = (m: MarketplaceExperience) => {
+    openCreate({ type: 'EXPERIENCE', title: m.name, description: m.desc, price: String(m.priceValue), currency: DEFAULT_CURRENCY });
+    notify(t('upsells.market.prefilled', 'Pré-rempli depuis le partenaire — vérifiez puis enregistrez.'), 'info');
+  };
+
+  // Aperçu guest d'un service : à brancher (pas de route d'aperçu par service pour l'instant).
+  // Aperçu guest d'un service : ouvre un modal rendant la carte telle que le voyageur la voit (livret /
+  // booking engine). Données minimales (titre/desc/prix/image) — pas d'achat (aperçu non interactif).
+  const handlePreview = (data: PreviewData) => setPreviewOffer(data);
+
+  // Statut on/off — persisté via updateOffer (CAS simple : on renvoie l'offre, active inversé).
+  const toggleActive = async (o: UpsellOffer) => {
+    setTogglingId(o.id);
+    try {
+      await upsellApi.updateOffer(o.id, {
+        propertyId: o.propertyId,
+        type: o.type,
+        title: o.title,
+        description: o.description,
+        price: o.price,
+        currency: o.currency,
+        imageUrl: o.imageUrl,
+        active: !o.active,
+        sortOrder: o.sortOrder,
+        minNights: o.minNights,
+        leadTimeHours: o.leadTimeHours,
+        bundleOfferIds: o.bundleOfferIds,
+      });
+      await refetch();
+    } catch {
+      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  // Diffusion par canal (livret / booking engine) — persistée via updateOffer (colonnes back 0280).
+  const setChannel = async (o: UpsellOffer, channel: 'livret' | 'booking', value: boolean) => {
+    setTogglingId(o.id);
+    try {
+      await upsellApi.updateOffer(o.id, {
+        propertyId: o.propertyId,
+        type: o.type,
+        title: o.title,
+        description: o.description,
+        price: o.price,
+        currency: o.currency,
+        imageUrl: o.imageUrl,
+        active: o.active,
+        sortOrder: o.sortOrder,
+        minNights: o.minNights,
+        leadTimeHours: o.leadTimeHours,
+        bundleOfferIds: o.bundleOfferIds,
+        diffuseOnLivret: channel === 'livret' ? value : o.diffuseOnLivret,
+        diffuseOnBooking: channel === 'booking' ? value : o.diffuseOnBooking,
+      });
+      await refetch();
+    } catch {
+      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   // Upload d'une image → compressée en data URL base64, stockée en base (pas d'URL externe).
   const onImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -313,24 +528,442 @@ const UpsellsAdmin: React.FC = () => {
 
   const orderStatusLabel = (status: string) => t(`upsells.status.${status}`, status);
 
+  // Active un handler au clavier (Enter / Espace) — lignes & cartes cliquables.
+  // Garde-fou : ne déclenche que si l'élément lui-même a le focus (et non un
+  // bouton interne : statut, « Ajouter »), pour éviter une double action.
+  const onActivate = (fn: () => void) => (e: React.KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fn();
+    }
+  };
+
+  const editingOffer = edit.id != null ? offers.find((o) => o.id === edit.id) ?? null : null;
+
   // Actions portées dans le PageHeader (slot multi-tabs partagé) — comme l'onglet Livret.
   const headerActions = usePageHeaderActions(
     <>
-      <Button variant="outlined" size="small" startIcon={<Percent size={14} strokeWidth={1.75} />} onClick={() => setCommissionsOpen(true)}>
+      <Button variant="outlined" sx={headerSecondarySx} startIcon={<Percent size={15} strokeWidth={2} />} onClick={() => setCommissionsOpen(true)}>
         {t('upsells.actions.commissions', 'Commissions')}
       </Button>
-      <Button variant="outlined" size="small" startIcon={<Receipt size={14} strokeWidth={1.75} />} onClick={() => setOrdersOpen(true)}>
+      <Button variant="outlined" sx={headerSecondarySx} startIcon={<Receipt size={15} strokeWidth={2} />} onClick={() => setOrdersOpen(true)}>
         {t('upsells.actions.orders', 'Ventes')}
       </Button>
-      <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
+      <Button variant="contained" disableElevation sx={headerPrimarySx} startIcon={<Add size={15} strokeWidth={2} />} onClick={() => openCreate()}>
         {t('upsells.actions.new', 'Nouveau service')}
       </Button>
     </>,
   );
 
+  // Filtres portés dans le PageHeader (recherche + Canal + Catégorie). Uniquement
+  // en vue catalogue (masqués sur l'écran détaillé d'un service).
+  const headerFilters = usePageHeaderFilters(
+    selected ? null : (
+      <>
+        <Button variant="outlined" size="small" sx={canalFilter !== 'all' ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCanalAnchor(e.currentTarget)}>
+          <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
+        </Button>
+        <Button variant="outlined" size="small" sx={catFilter ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCatAnchor(e.currentTarget)}>
+          <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
+        </Button>
+        <TextField
+          size="small"
+          placeholder={t('upsells.search.placeholder', 'Rechercher un service…')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+                  <Search size={'1.05rem'} strokeWidth={2} />
+                </Box>
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: { xs: 150, sm: 230 }, '& .MuiOutlinedInput-root': { borderRadius: '10px', fontSize: '0.8125rem', height: 34 } }}
+        />
+      </>
+    ),
+  );
+
+  // ── Catalogue (vue liste) ──────────────────────────────────────────────────
+  const renderList = () => (
+    <>
+      {/* KPIs + segment de vue sur une MÊME ligne (recherche + filtres Canal/Catégorie
+          sont dans le PageHeader). */}
+      <div className="svc-band">
+        <div className="kpis">
+          <div className="kpi"><b>{activeCount}</b><span>{t('upsells.kpi.active', 'Services actifs')}</span></div>
+          <div className="kpi"><b>{bookings30}</b><span>{t('upsells.kpi.bookings', 'Réservations · 30 j')}</span></div>
+          <div className="kpi"><b><Money value={revenue30} decimals={0} /></b><span>{t('upsells.kpi.revenue', 'Revenu · 30 j')}</span></div>
+        </div>
+        <div className="filters">
+          <button className={seg === 'all' ? 'on' : ''} onClick={() => setSeg('all')}>{t('upsells.seg.all', 'Tous')} <span className="n">{totalCount}</span></button>
+          <button className={seg === 'internal' ? 'on' : ''} onClick={() => setSeg('internal')}>{t('upsells.seg.internal', 'Internes')} <span className="n">{offers.length}</span></button>
+          <button className={seg === 'partner' ? 'on' : ''} onClick={() => setSeg('partner')}>{t('upsells.seg.partner', 'Partenaires')} <span className="n">{partnerTotal}</span></button>
+        </div>
+      </div>
+
+      {seg !== 'partner' && (
+        <>
+          <div className="slabel">
+            <h2>{t('upsells.section.title', 'Mes services')}</h2>
+            <span className="src internal">{t('upsells.source.internal', 'Source interne')}</span>
+            <div className="sp" />
+          </div>
+          {isLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+          ) : filteredOffers.length === 0 ? (
+            <EmptyHint
+              icon={<Tag size={18} strokeWidth={1.75} />}
+              text={offers.length === 0
+                ? t('upsells.empty.description', 'Créez votre premier service additionnel à proposer aux voyageurs.')
+                : t('upsells.empty.filtered', 'Aucun service ne correspond à votre recherche.')}
+            />
+          ) : (
+            <div className="tbl">
+              <div className="cat-h">
+                <span>{t('upsells.col.service', 'Service')}</span>
+                <span className="col-src">{t('upsells.col.source', 'Source')}</span>
+                <span className="col-chan">{t('upsells.col.channels', 'Canaux')}</span>
+                <span>{t('upsells.col.price', 'Prix')}</span>
+                <span className="col-resa">{t('upsells.col.resa', 'Résa · 30j')}</span>
+                <span className="col-stat">{t('upsells.col.status', 'Statut')}</span>
+                <span />
+              </div>
+              {filteredOffers.map((o) => {
+                const Ic = typeIcon(o.type);
+                const perf = perfFor(o.title);
+                return (
+                  <div
+                    key={o.id}
+                    className="trow"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openInternalDetail(o)}
+                    onKeyDown={onActivate(() => openInternalDetail(o))}
+                  >
+                    <span className="svc-cell">
+                      <span className="svc-ic"><Ic size={20} strokeWidth={2} /></span>
+                      <span style={{ minWidth: 0 }}><b>{o.title}</b><small>{typeLabel(o.type)}</small></span>
+                    </span>
+                    <span className="col-src">
+                      <span className="src-tag int"><span className="pdot" style={{ background: 'var(--accent)' }} />{t('upsells.detail.internalShort', 'Interne')}</span>
+                    </span>
+                    <span className="col-chan chans">
+                      <span className={`ch ${o.active ? 'on-l' : 'off'}`}><BookOpen size={12} strokeWidth={2} />{t('upsells.channel.guide', 'Livret')}</span>
+                      <span className={`ch ${o.active ? 'on-b' : 'off'}`}><Network size={12} strokeWidth={2} />{t('upsells.channel.booking', 'Booking')}</span>
+                    </span>
+                    <span className="price"><Money value={o.price} from={o.currency} /></span>
+                    <span className="col-resa resa"><b>{perf.count}</b></span>
+                    <span className="col-stat">
+                      <button
+                        className={`switch ${o.active ? '' : 'off'}`}
+                        disabled={togglingId === o.id}
+                        aria-label={o.active ? t('upsells.active', 'Actif') : t('upsells.inactive', 'Inactif')}
+                        onClick={(e) => { e.stopPropagation(); toggleActive(o); }}
+                      />
+                    </span>
+                    <span className="go r"><ChevronRight size={17} strokeWidth={2} /></span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {seg !== 'internal' && (
+        <>
+          <div className="slabel" style={{ marginTop: 40 }}>
+            <h2>{t('upsells.market.title', 'Marketplace partenaire')}</h2>
+            <span className="src partner">{t('upsells.source.partner', 'Source partenaire')}</span>
+            <div className="sp" />
+          </div>
+          {MARKETPLACE_PARTNERS.map((p, pi) => {
+            const q = search.trim().toLowerCase();
+            const visible = p.experiences
+              .map((m, ei) => ({ m, ei }))
+              .filter(({ m }) => !q || m.name.toLowerCase().includes(q));
+            if (!visible.length) return null;
+            return (
+              <div className="mk-group" key={p.partner}>
+                <div className="mk-group__head">
+                  {/* TODO: logo officiel du partenaire (brand kit) au lieu de la pastille couleur. */}
+                  <span className="mk-group__name"><span className="mk__pdot" style={{ background: p.color }} /> {p.partner}</span>
+                  <span className="mk-group__count">{visible.length} {visible.length > 1 ? t('upsells.market.experiences', 'expériences') : t('upsells.market.experience', 'expérience')}</span>
+                </div>
+                <div className="mk-row">
+                  {visible.map(({ m, ei }) => (
+                    <div
+                      className="mk"
+                      role="button"
+                      tabIndex={0}
+                      key={ei}
+                      onClick={() => openPartnerDetail(pi, ei)}
+                      onKeyDown={onActivate(() => openPartnerDetail(pi, ei))}
+                    >
+                      <div className="mk__img" style={{ background: m.gradient }}>
+                        <span className="mk__partner"><span className="mk__pdot" style={{ background: p.color }} />{p.partner}</span>
+                      </div>
+                      <div className="mk__body">
+                        <p className="mk__name">{m.name}</p>
+                        <p className="mk__desc">{m.desc}</p>
+                        <div className="mk__foot">
+                          <div>
+                            <p className="mk__price"><Money value={m.priceValue} from={DEFAULT_CURRENCY} decimals={0} /> <small>{m.unit}</small></p>
+                            <p className="mk__comm">{m.commission}% {t('upsells.market.commission', 'de commission')}</p>
+                          </div>
+                          <button className="mk__add" type="button" onClick={(e) => { e.stopPropagation(); addFromPartner(m); }}>
+                            <Add size={15} strokeWidth={2} /> {t('upsells.market.add', 'Ajouter')}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      <Menu anchorEl={canalAnchor} open={!!canalAnchor} onClose={() => setCanalAnchor(null)}>
+        {(['all', 'livret', 'booking'] as CanalFilter[]).map((v) => (
+          <MenuItem key={v} selected={canalFilter === v} onClick={() => { setCanalFilter(v); setCanalAnchor(null); }}>
+            {v === 'all' ? t('upsells.filters.allChannels', 'Tous les canaux') : v === 'livret' ? t('upsells.channel.guide', 'Livret') : t('upsells.channel.booking', 'Booking')}
+          </MenuItem>
+        ))}
+      </Menu>
+      <Menu anchorEl={catAnchor} open={!!catAnchor} onClose={() => setCatAnchor(null)}>
+        <MenuItem selected={!catFilter} onClick={() => { setCatFilter(null); setCatAnchor(null); }}>
+          {t('upsells.filters.allCategories', 'Toutes les catégories')}
+        </MenuItem>
+        {presentTypes.map((tp) => (
+          <MenuItem key={tp} selected={catFilter === tp} onClick={() => { setCatFilter(tp); setCatAnchor(null); }}>
+            {typeLabel(tp)}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+
+  // ── Écran détaillé ──────────────────────────────────────────────────────────
+  const renderDetail = () => {
+    if (!selected) return null;
+    const backBtn = (
+      <button className="back" onClick={() => setSelected(null)}>
+        <ArrowLeft size={16} strokeWidth={2} /> {t('upsells.detail.back', 'Services payants')}
+      </button>
+    );
+
+    if (selected.kind === 'internal') {
+      const offer = offers.find((o) => o.id === selected.id);
+      if (!offer) return null;
+      const Ic = typeIcon(offer.type);
+      const perf = perfFor(offer.title);
+      const ch = { livret: offer.diffuseOnLivret, booking: offer.diffuseOnBooking };
+      const chanBusy = togglingId === offer.id;
+      return (
+        <div className="detail">
+          {backBtn}
+          <div className="dhead">
+            <div className="dhead__ic"><Ic size={28} strokeWidth={2} /></div>
+            <div className="dhead__t">
+              <h1>{offer.title}</h1>
+              <div className="dhead__meta">
+                <span>{typeLabel(offer.type)}</span><span>·</span>
+                <span className="src-tag int"><span className="pdot" style={{ background: 'var(--accent)' }} />{t('upsells.detail.internal', 'Service interne')}</span>
+              </div>
+            </div>
+            <div className="dhead__act">
+              <button className="btn-ghost" onClick={() => handlePreview({ title: offer.title, description: offer.description, price: offer.price, currency: offer.currency, imageUrl: offer.imageUrl })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
+              <Button variant="contained" size="small" startIcon={<Edit size={16} strokeWidth={2} />} onClick={() => openEdit(offer)}>
+                {t('upsells.detail.edit', 'Modifier')}
+              </Button>
+            </div>
+          </div>
+
+          <div className="dgrid">
+            <div>
+              <div className="dcard">
+                <h3>{t('upsells.detail.description', 'Description')}</h3>
+                <p className="lead">{offer.description || t('upsells.detail.noDescription', 'Aucune description.')}</p>
+                <div className="gallery">
+                  {offer.imageUrl
+                    ? [0, 1, 2].map((i) => (
+                        <Box key={i} component="i" sx={{ backgroundImage: `url(${offer.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: i === 0 ? 1 : 0.55 }} />
+                      ))
+                    : [0, 1, 2].map((i) => (
+                        <i key={i} style={{ background: 'linear-gradient(150deg,#c7c6ee,#a9a8e0)', opacity: 0.85 }} />
+                      ))}
+                </div>
+              </div>
+              <div className="dcard">
+                <h3>{t('upsells.detail.pricing', 'Tarification')}</h3>
+                <div className="price-row"><b><Money value={offer.price} from={offer.currency} /></b><span>{t('upsells.detail.perReservationUnit', 'par réservation')}</span></div>
+                <div className="deflist">
+                  <div className="d"><span>{t('upsells.detail.billing', 'Facturation')}</span><b>{t('upsells.detail.perReservation', 'Par réservation')}</b></div>
+                  <div className="d"><span>{t('upsells.detail.availability', 'Disponibilité')}</span><b>{propertyName(offer.propertyId)}</b></div>
+                  <div className="d"><span>{t('upsells.fields.minNights', 'Séjour min.')}</span><b>{offer.minNights ? `${offer.minNights} ${t('upsells.detail.nights', 'nuits')}` : t('upsells.detail.none', 'Aucun')}</b></div>
+                  <div className="d"><span>{t('upsells.detail.leadTime', 'Délai de commande')}</span><b>{offer.leadTimeHours ? `${offer.leadTimeHours} h` : t('upsells.detail.none', 'Aucun')}</b></div>
+                </div>
+              </div>
+            </div>
+
+            <aside>
+              <div className="dcard">
+                <h3>{t('upsells.detail.distribution', 'Distribution')}</h3>
+                <div className="dist">
+                  <div className="dist__row">
+                    <span className="ic l"><BookOpen size={18} strokeWidth={2} /></span>
+                    <div className="t"><b>{t('upsells.detail.guideChannel', "Livret d'accueil")}</b><small>{t('upsells.detail.guideChannelHint', 'Affiché dans la marketplace du livret')}</small></div>
+                    <button className={`switch ${ch.livret ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.guideChannel', "Livret d'accueil")} onClick={() => setChannel(offer, 'livret', !ch.livret)} />
+                  </div>
+                  <div className="dist__row">
+                    <span className="ic b"><Network size={18} strokeWidth={2} /></span>
+                    <div className="t"><b>{t('upsells.detail.bookingChannel', 'Booking Engine')}</b><small>{t('upsells.detail.bookingChannelHint', 'Proposé en extra au paiement')}</small></div>
+                    <button className={`switch ${ch.booking ? '' : 'off'}`} disabled={chanBusy} aria-label={t('upsells.detail.bookingChannel', 'Booking Engine')} onClick={() => setChannel(offer, 'booking', !ch.booking)} />
+                  </div>
+                </div>
+                <div className="scope-line"><Home size={15} strokeWidth={2} /> {t('upsells.detail.scope', 'Appliqué à')} <strong style={{ marginLeft: 4 }}>{propertyName(offer.propertyId)}</strong></div>
+              </div>
+
+              <div className="dcard">
+                <h3>{t('upsells.detail.perf', 'Performance · 30 jours')}</h3>
+                <div className="perf">
+                  <div className="p"><b>{perf.count}</b><span>{t('upsells.detail.bookings', 'Réservations')}</span></div>
+                  <div className="p"><b><Money value={perf.revenue} decimals={0} /></b><span>{t('upsells.detail.revenue', 'Revenu généré')}</span></div>
+                  <div className="p full"><b>{perf.count ? <Money value={perf.revenue / perf.count} decimals={0} /> : '—'}</b><span>{t('upsells.detail.aov', 'Panier moyen')}</span></div>
+                </div>
+              </div>
+
+              <div className="dcard">
+                <h3>{t('upsells.detail.details', 'Détails')}</h3>
+                <div className="deflist">
+                  <div className="d"><span>{t('upsells.fields.type', 'Catégorie')}</span><b>{typeLabel(offer.type)}</b></div>
+                  <div className="d"><span>{t('upsells.detail.source', 'Source')}</span><b>{t('upsells.detail.internalShort', 'Interne')}</b></div>
+                  <div className="d"><span>{t('upsells.fields.currency', 'Devise')}</span><b>{offer.currency}</b></div>
+                  <div className="d"><span>{t('upsells.detail.statusLabel', 'Statut')}</span><b style={{ color: offer.active ? 'var(--ok)' : 'var(--muted)' }}>{offer.active ? t('upsells.active', 'Actif') : t('upsells.inactive', 'Inactif')}</b></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      );
+    }
+
+    // Expérience partenaire (aperçu — pas encore ajoutée au catalogue).
+    const partner = MARKETPLACE_PARTNERS[selected.partnerIdx];
+    const exp = partner?.experiences[selected.expIdx];
+    if (!partner || !exp) return null;
+    const Ic = exp.icon;
+    return (
+      <div className="detail">
+        {backBtn}
+        <div className="dhead">
+          <div className="dhead__ic partner"><Ic size={28} strokeWidth={2} /></div>
+          <div className="dhead__t">
+            <h1>{exp.name}</h1>
+            <div className="dhead__meta">
+              <span>{exp.category}</span><span>·</span>
+              <span className="src-tag"><span className="pdot" style={{ background: partner.color }} />{partner.partner}</span>
+            </div>
+          </div>
+          <div className="dhead__act">
+            <button className="btn-ghost" onClick={() => handlePreview({ title: exp.name, description: exp.desc, price: exp.priceValue, currency: DEFAULT_CURRENCY, imageUrl: null })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
+          </div>
+        </div>
+
+        <div className="dgrid">
+          <div>
+            <div className="dcard">
+              <h3>{t('upsells.detail.description', 'Description')}</h3>
+              <p className="lead">{exp.desc}</p>
+              <div className="gallery">{[0, 1, 2].map((i) => <i key={i} style={{ background: exp.gradient, opacity: 0.85 }} />)}</div>
+            </div>
+            <div className="dcard">
+              <h3>{t('upsells.detail.pricing', 'Tarification')}</h3>
+              <div className="price-row"><b><Money value={exp.priceValue} from={DEFAULT_CURRENCY} decimals={0} /></b><span>{exp.unit}</span></div>
+              <div className="deflist">
+                <div className="d"><span>{t('upsells.detail.billing', 'Facturation')}</span><b>{t('upsells.detail.partnerBilling', 'Réservation partenaire')}</b></div>
+                <div className="d"><span>{t('upsells.detail.marketplace', 'Marketplace')}</span><b>{partner.partner}</b></div>
+                <div className="d"><span>{t('upsells.detail.commission', 'Commission')}</span><b style={{ color: 'var(--warn)' }}>{exp.commission}%</b></div>
+                <div className="d"><span>{t('upsells.fields.type', 'Catégorie')}</span><b>{exp.category}</b></div>
+              </div>
+            </div>
+          </div>
+
+          <aside>
+            <div className="dcard">
+              <h3>{t('upsells.detail.distribution', 'Distribution')}</h3>
+              <div className="dist">
+                <div className="dist__row">
+                  <span className="ic l"><BookOpen size={18} strokeWidth={2} /></span>
+                  <div className="t"><b>{t('upsells.detail.guideChannel', "Livret d'accueil")}</b><small>{t('upsells.detail.notAdded', 'Ajoutez-le à votre catalogue pour le diffuser')}</small></div>
+                  <button className="switch off" aria-label={t('upsells.detail.guideChannel', "Livret d'accueil")} disabled />
+                </div>
+                <div className="dist__row">
+                  <span className="ic b"><Network size={18} strokeWidth={2} /></span>
+                  <div className="t"><b>{t('upsells.detail.bookingChannel', 'Booking Engine')}</b><small>{t('upsells.detail.notAdded', 'Ajoutez-le à votre catalogue pour le diffuser')}</small></div>
+                  <button className="switch off" aria-label={t('upsells.detail.bookingChannel', 'Booking Engine')} disabled />
+                </div>
+              </div>
+            </div>
+
+            <div className="dcard">
+              <h3>{t('upsells.detail.partner', 'Partenaire')}</h3>
+              <div className="deflist">
+                <div className="d"><span>{t('upsells.detail.marketplace', 'Marketplace')}</span><b>{partner.partner}</b></div>
+                <div className="d"><span>{t('upsells.detail.commission', 'Commission')}</span><b style={{ color: 'var(--warn)' }}>{exp.commission}%</b></div>
+                <div className="d"><span>{t('upsells.fields.type', 'Catégorie')}</span><b>{exp.category}</b></div>
+                <div className="d"><span>{t('upsells.detail.statusLabel', 'Statut')}</span><b style={{ color: 'var(--muted)' }}>{t('upsells.detail.notAddedShort', 'Non ajouté')}</b></div>
+              </div>
+              {/* TODO: connecteur réel — créer le service lié au partenaire (commission incluse). */}
+              <Button fullWidth variant="contained" sx={{ mt: 2 }} startIcon={<Add size={16} strokeWidth={2} />} onClick={() => addFromPartner(exp)}>
+                {t('upsells.market.addToCatalog', 'Ajouter à mon catalogue')}
+              </Button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Box>
       {headerActions}
+      {headerFilters}
+
+      {/* Aperçu guest d'un service : carte telle que le voyageur la voit (livret / booking engine). */}
+      <Dialog open={!!previewOffer} onClose={() => setPreviewOffer(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
+        <DialogContent dividers>
+          {previewOffer && (
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', maxWidth: 320, mx: 'auto' }}>
+              <Box sx={{
+                height: 150, bgcolor: 'action.hover',
+                backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none',
+                backgroundSize: 'cover', backgroundPosition: 'center',
+              }} />
+              <Box sx={{ p: 2 }}>
+                <Box sx={{ fontWeight: 600 }}>{previewOffer.title}</Box>
+                {previewOffer.description ? (
+                  <Box sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>{previewOffer.description}</Box>
+                ) : null}
+                <Box sx={{ fontWeight: 700, mt: 1 }}><Money value={previewOffer.price} from={previewOffer.currency} /></Box>
+                <Button variant="contained" fullWidth sx={{ mt: 1.5 }} disabled>
+                  {t('upsells.preview.add', 'Ajouter')}
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPreviewOffer(null)}>{t('common.close', 'Fermer')}</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Commissions (résumé activités + ma part conciergerie) — dans un dialog pour libérer l'écran. */}
       <Dialog open={commissionsOpen} onClose={() => setCommissionsOpen(false)} maxWidth="sm" fullWidth>
@@ -345,7 +978,7 @@ const UpsellsAdmin: React.FC = () => {
               actions={
                 <Box sx={{ textAlign: 'right' }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--ok)', lineHeight: 1.15 }}>
-                    {commissionSummary.totalHostShare.toFixed(2)} {commissionSummary.currency}
+                    <Money value={commissionSummary.totalHostShare} from={commissionSummary.currency} />
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                     {commissionSummary.count} {t('upsells.commissions.bookings', 'réservation(s)')}
@@ -413,95 +1046,11 @@ const UpsellsAdmin: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <SectionHeading
-        icon={<Tag size={17} strokeWidth={1.75} />}
-        title={t('upsells.section.title', 'Services proposés')}
-      />
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : offers.length === 0 ? (
-        <EmptyHint
-          icon={<Tag size={18} strokeWidth={1.75} />}
-          text={t('upsells.empty.description', 'Créez votre premier service additionnel à proposer aux voyageurs.')}
-        />
-      ) : (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' }, gap: 1.25 }}>
-          {offers.map((o) => (
-            <Card key={o.id} variant="outlined">
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                {o.imageUrl ? (
-                  <Box component="img" src={o.imageUrl} alt="" sx={{ width: 40, height: 40, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }} />
-                ) : (
-                  <Box sx={{ width: 40, height: 40, borderRadius: 1.5, bgcolor: 'var(--accent-soft)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Tag size={18} strokeWidth={1.75} />
-                  </Box>
-                )}
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }} title={o.title}>
-                    {o.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
-                    {typeLabel(o.type)} · {propertyName(o.propertyId)}
-                  </Typography>
-                </Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                  {o.price.toFixed(2)} {o.currency}
-                </Typography>
-                <Chip
-                  size="small"
-                  label={o.active ? t('upsells.active', 'Actif') : t('upsells.inactive', 'Inactif')}
-                  sx={{ ...softChipSx(semanticToHex(o.active ? 'success' : 'default')), flexShrink: 0 }}
-                />
-                <Box sx={{ display: 'flex', flexShrink: 0 }}>
-                  <Tooltip title={t('upsells.actions.edit', 'Modifier')}>
-                    <IconButton size="small" onClick={() => openEdit(o)}>
-                      <Edit size={15} strokeWidth={1.75} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={t('upsells.actions.delete', 'Supprimer')}>
-                    <IconButton size="small" color="error" onClick={() => handleDelete(o)}>
-                      <Delete size={15} strokeWidth={1.75} />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-      )}
-
-      {/* Services suggérés : catalogue de base, un clic pré-remplit l'éditeur */}
-      <Box sx={{ mt: 2.5 }}>
-        <SectionHeading
-          icon={<Sparkles size={17} strokeWidth={1.75} />}
-          title={t('upsells.suggestions.title', 'Services suggérés')}
-        />
-        <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1 }}>
-          {upsellSuggestions(currentLanguage).map((s, i) => {
-            const Icon = guideIcon(s.icon);
-            return (
-              <Card key={i} variant="outlined" sx={{ flexShrink: 0, width: 224 }}>
-                <CardContent sx={{ '&:last-child': { pb: 1.5 }, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                    <Box sx={{ flexShrink: 0, width: 34, height: 34, borderRadius: 1.5, bgcolor: 'var(--accent-soft)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon size={18} strokeWidth={1.75} />
-                    </Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>{s.title}</Typography>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ minHeight: 32 }}>{s.description}</Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{s.price.toFixed(0)} {s.currency}</Typography>
-                    <Button size="small" variant="outlined" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => addSuggestion(s)}>
-                      {t('upsells.actions.add', 'Ajouter')}
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Box>
+      {/* ── Catalogue des services distribués aux canaux (liste ↔ détail) ──── */}
+      <Box className="be-home" data-accent="indigo">
+        <div className="canvas" style={{ paddingTop: 8, maxWidth: 1160 }}>
+          {selected ? renderDetail() : renderList()}
+        </div>
       </Box>
 
       {/* Éditeur d'offre */}
@@ -647,16 +1196,23 @@ const UpsellsAdmin: React.FC = () => {
             />
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
-          <Button
-            variant="contained"
-            startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {t('upsells.actions.save', 'Enregistrer')}
-          </Button>
+        <DialogActions sx={{ justifyContent: 'space-between' }}>
+          {editingOffer ? (
+            <Button color="error" startIcon={<Delete size={15} strokeWidth={1.75} />} onClick={() => { const o = editingOffer; setEdit(emptyEdit); handleDelete(o); }}>
+              {t('upsells.actions.delete', 'Supprimer')}
+            </Button>
+          ) : <span />}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
+            <Button
+              variant="contained"
+              startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {t('upsells.actions.save', 'Enregistrer')}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
 
@@ -692,10 +1248,13 @@ const UpsellsAdmin: React.FC = () => {
                       {order.guestEmail ? ` · ${order.guestEmail}` : ''}
                     </Typography>
                     <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {fmtMoney(order.amount, order.currency)}
-                      {order.hostAmount != null
-                        ? ` · ${t('upsells.orders.yourShare', 'votre part')} ${fmtMoney(order.hostAmount, order.currency)}`
-                        : ''}
+                      <Money value={order.amount} from={order.currency} />
+                      {order.hostAmount != null ? (
+                        <>
+                          {' · '}{t('upsells.orders.yourShare', 'votre part')}{' '}
+                          <Money value={order.hostAmount} from={order.currency} />
+                        </>
+                      ) : null}
                     </Typography>
                   </Box>
                 </Box>

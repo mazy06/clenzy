@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
 import {
   Rocket, PanelLeftClose, PanelLeftOpen,
@@ -11,6 +12,7 @@ import 'grapesjs/dist/css/grapes.min.css';
 import type { StudioConfigState } from '../useStudioConfig';
 import type { BookingEngineConfig, DesignTokens } from '../../../../services/api/bookingEngineApi';
 import { mediaApi } from '../../../../services/api/mediaApi';
+import { sitesApi } from '../../../../services/api/sitesApi';
 import { API_CONFIG } from '../../../../config/api';
 import { registerBookingComponents, blockLabelHtml, resolveBlockId } from './bookingComponents';
 import { BOOKING_WIDGET_DEFS, BOOKING_WIDGET_ATTR } from './bookingWidgetDefs';
@@ -25,7 +27,7 @@ import {
   parseSavedComposites, serializeSavedComposites, type CompositeWidget,
 } from './compositeWidgets';
 import { validateComposition } from './funnelRules';
-import type { GalleryTemplate } from './import/galleryTemplates';
+import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 import { sanitizeHtml, sanitizeCss } from './import/sanitizeHtml';
 import PagesBar from '../builder/PagesBar';
 import { useSitePages } from '../useSitePages';
@@ -165,6 +167,42 @@ function loadPageInto(editor: Editor, source: string | null | undefined): void {
     return;
   }
   editor.loadProjectData(BLANK_PROJECT);
+}
+
+/**
+ * Langues supportées de bout en bout (contenu des pages + widget SDK + SSR). Le widget de réservation
+ * n'est traduit que pour ces codes (cf. `sdk/i18n`) → on n'autorise à ajouter QUE celles-ci, pour que
+ * contenu et widget restent cohérents dans chaque langue.
+ */
+const SUPPORTED_LOCALES = ['fr', 'en', 'ar'] as const;
+
+/** Libellé court affiché dans la barre de langues. */
+const LOCALE_LABEL: Record<string, string> = { fr: 'FR', en: 'EN', ar: 'AR' };
+
+/**
+ * Balises de texte rendues éditables (double-clic → RTE) dans le canvas. GrapesJS ne détecte « texte »
+ * que les éléments dont TOUS les enfants sont du texte : un titre à contenu mixte (`<h1>… <em>…</em></h1>`)
+ * échappe à l'heuristique et reste non éditable. On élargit donc la détection à ces balises.
+ */
+const EDITABLE_TEXT_TAGS = new Set([
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote', 'cite', 'figcaption', 'li', 'label', 'small',
+]);
+
+/**
+ * Enregistre un type `cm-text` (extension du type `text` natif → éditable + RTE) qui revendique les
+ * balises de `EDITABLE_TEXT_TAGS` quel que soit leur contenu inline → le texte importé devient éditable
+ * au double-clic. DOIT être enregistré AVANT tout parse HTML (`setComponents`) pour s'appliquer. Les
+ * marqueurs widget (`<div data-clenzy-widget>`) ne sont pas des balises de texte → aucun conflit.
+ */
+function registerTextEditing(editor: Editor): void {
+  editor.DomComponents.addType('cm-text', {
+    extend: 'text',
+    isComponent: (el) => {
+      const tag = (el as HTMLElement).tagName?.toLowerCase();
+      return tag && EDITABLE_TEXT_TAGS.has(tag) ? { type: 'cm-text' } : undefined;
+    },
+    model: { defaults: { editable: true } },
+  });
 }
 
 /**
@@ -564,6 +602,11 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
   // Miroir d'état de l'éditeur : permet à la modale d'import (React) de se (re)rendre une fois l'éditeur
   // monté, sans relire la ref (les refs ne déclenchent pas de rendu).
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
+  // Template choisi depuis la galerie StudioHome (« Utiliser ce template ») : transmis via le state de
+  // navigation, consommé une fois l'éditeur + les pages prêts (cf. effet d'auto-import plus bas).
+  const location = useLocation();
+  const navigate = useNavigate();
+  const autoImportedRef = useRef(false);
   // Ouverture de la modale d'import (pilotée par le bouton de panneau via la commande GrapesJS).
   const [importOpen, setImportOpen] = useState(false);
   const [funnelPickerOpen, setFunnelPickerOpen] = useState(false);
@@ -599,10 +642,13 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
   const configRef = useRef(cfg.config);
   configRef.current = cfg.config;
 
-  // ─── Multi-page (B4) ──────────────────────────────────────────────────────────
+  // ─── Multi-page + multi-langue ────────────────────────────────────────────────
   // L'état des pages est résolu via `useSitePages` (find-or-create du site + chargement des pages). En
   // mode page, l'éditeur édite la SitePage active ; sinon (API sites indisponible) repli mono-page.
-  const pages = useSitePages(cfg.config?.id ?? undefined);
+  // `editLocale` = langue d'ÉDITION (undefined = langue par défaut du site). `useSitePages` filtre les
+  // pages par langue et estampille le CRUD ; un changement de langue re-sélectionne l'accueil de la langue.
+  const [editLocale, setEditLocale] = useState<string | undefined>(undefined);
+  const pages = useSitePages(cfg.config?.id ?? undefined, editLocale);
   const pageMode = pages.ready && pages.selectedPage != null;
 
   // Persistance par page : référencée par le listener `update` (qui ne change pas d'identité avec le
@@ -647,9 +693,6 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     const traitsEl = traitsRef.current;
     if (!container || !blocksEl || !stylesEl || !layersEl || !traitsEl || cfg.loading || !cfg.config) return;
 
-    // projectData ré-éditable de la page initiale (undefined si page vierge OU enveloppe html+css seule).
-    const initialProject = parseInitialProject(initialBlocksRef.current);
-
     // R5 — médiathèque : l'Asset Manager GrapesJS uploade vers la médiathèque Clenzy (org-scopée) et
     // sert l'URL publique keyless. `editorRef.current` est résolu à l'upload (éditeur déjà monté).
     const handleAssetUpload = async (e: DragEvent): Promise<void> => {
@@ -691,7 +734,9 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       // Thème initial de l'iframe du canvas. Les changements ultérieurs passent par l'effet réactif
       // (`applyCanvasThemeCss`), qui met à jour un `<style>` dédié sans réinitialiser l'éditeur.
       canvasCss: buildCanvasThemeCss(cfg.config),
-      projectData: initialProject,
+      // PAS de `projectData` ici : le contenu est chargé APRÈS l'enregistrement des types (texte +
+      // widgets), pour que la détection s'applique au parse HTML (texte importé → éditable, marqueurs
+      // booking → composants), au lieu d'être parsé en composants neutres non éditables.
     });
     editorRef.current = editor;
     setEditorInstance(editor);
@@ -699,30 +744,23 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     mediaApi.list()
       .then((assets) => { editor.AssetManager.add(assets.map((a) => resolveMediaUrl(a.url))); })
       .catch(() => { /* médiathèque indisponible : aucun asset pré-chargé */ });
-    // Le contenu initial vient d'être chargé via `projectData` : l'effet d'hydratation par page ne doit
-    // pas le ré-écraser. On marque la page initiale comme déjà hydratée (clé = id, ou 'legacy').
-    lastHydratedRef.current = persistTargetRef.current.pageMode ? persistTargetRef.current.pageId : 'legacy';
-    // Page initiale en enveloppe HTML+CSS seule (template natif importé, pas encore re-sérialisé avec
-    // projectData) : `projectData` était undefined → on charge via setComponents+setStyle. Persistance
-    // suspendue (l'auto-conversion en projectData se fera au 1er edit).
-    if (!initialProject) {
-      const hc = parseHtmlCssEnvelope(initialBlocksRef.current);
-      if (hc) {
-        hydratingRef.current = true;
-        try {
-          editor.setComponents(sanitizeHtml(hc.html));
-          if (hc.css.trim()) editor.setStyle(sanitizeCss(hc.css));
-        } finally {
-          setTimeout(() => { hydratingRef.current = false; }, 0);
-        }
-      }
-    }
 
     // Contexte des coutures : accesseur de config courante (lu au (re)mount des vues live SDK).
     const ctx = { getConfig: () => configRef.current };
 
     registerBaseBlocks(editor);
     registerBookingComponents(editor, ctx);
+    registerTextEditing(editor);
+
+    // Contenu initial chargé APRÈS les types → le parse HTML applique la détection texte/widget (texte
+    // éditable au double-clic, marqueurs hydratés en aperçu). Persistance suspendue le temps du chargement.
+    lastHydratedRef.current = persistTargetRef.current.pageMode ? persistTargetRef.current.pageId : 'legacy';
+    hydratingRef.current = true;
+    try {
+      loadPageInto(editor, initialBlocksRef.current);
+    } finally {
+      setTimeout(() => { hydratingRef.current = false; }, 0);
+    }
 
     // Persistance débouncée : `update` se déclenche à toute mutation du projet. On sérialise l'enveloppe
     // grapes (html + css + projectData) ; l'écriture est routée vers la page active (multi-page) ou
@@ -962,6 +1000,80 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     await pages.addPage();
   }, [pages, flushActivePage]);
 
+  // Changement de LANGUE d'édition : flush la page courante, puis bascule (undefined = langue par défaut).
+  // `useSitePages` re-sélectionne alors l'accueil de la langue → l'effet d'hydratation recharge le canvas.
+  const handleSelectLocale = useCallback(async (code: string) => {
+    if (code === pages.activeLocale) return;
+    if (!(await flushActivePage())) return;
+    setEditLocale(code === pages.defaultLocale ? undefined : code);
+  }, [pages.activeLocale, pages.defaultLocale, flushActivePage]);
+
+  // Ajoute une langue au site (déclare + bootstrappe ses pages) puis bascule dessus en édition.
+  const handleAddLanguage = useCallback(async (code: string) => {
+    if (!(await flushActivePage())) return;
+    await pages.addLanguage(code);
+    setEditLocale(code);
+  }, [pages, flushActivePage]);
+
+  // Traduit (IA) la page active depuis la langue par défaut. Source = page `locale=null` de même path
+  // (sinon repli sur la page courante) → traduit le texte → écrase la page active + recharge le canvas.
+  const [translating, setTranslating] = useState(false);
+  const handleTranslatePage = useCallback(async () => {
+    const editor = editorRef.current;
+    const site = pages.site;
+    const current = pages.selectedPage;
+    if (!editor || !site || !current || pages.activeLocale === pages.defaultLocale || translating) return;
+    const source = pages.defaultPageByPath(current.path) ?? current;
+    const hc = parseHtmlCssEnvelope(source.blocks);
+    if (!hc) return;
+    setTranslating(true);
+    try {
+      const { html } = await sitesApi.translateHtml(site.id, { html: hc.html, targetLocale: pages.activeLocale });
+      const env = JSON.stringify({ format: GRAPES_FORMAT, html, css: hc.css });
+      await pages.savePageBlocks(current.id, env);
+      // Recharge le canvas avec la traduction (page active inchangée → l'effet d'hydratation ne se redéclenche pas).
+      hydratingRef.current = true;
+      try { loadPageInto(editor, env); } finally { setTimeout(() => { hydratingRef.current = false; }, 0); }
+      lastHydratedRef.current = current.id;
+    } catch {
+      /* échec traduction : la page reste inchangée (erreur réseau/IA) */
+    } finally {
+      setTranslating(false);
+    }
+  }, [pages, translating]);
+
+  // Traduit TOUTES les pages de la langue active (depuis leurs sources par défaut), best-effort séquentiel.
+  const handleTranslateAll = useCallback(async () => {
+    const editor = editorRef.current;
+    const site = pages.site;
+    if (!editor || !site || pages.activeLocale === pages.defaultLocale || translating) return;
+    const targets = pages.pages;
+    if (targets.length === 0) return;
+    setTranslating(true);
+    try {
+      let activeEnv: string | null = null;
+      for (const pg of targets) {
+        const source = pages.defaultPageByPath(pg.path) ?? pg;
+        const hc = parseHtmlCssEnvelope(source.blocks);
+        if (!hc) continue;
+        const { html } = await sitesApi.translateHtml(site.id, { html: hc.html, targetLocale: pages.activeLocale });
+        const env = JSON.stringify({ format: GRAPES_FORMAT, html, css: hc.css });
+        await pages.savePageBlocks(pg.id, env);
+        if (pg.id === pages.selectedPageId) activeEnv = env;
+      }
+      // Recharge la page active avec sa traduction (les autres sont déjà persistées).
+      if (activeEnv) {
+        hydratingRef.current = true;
+        try { loadPageInto(editor, activeEnv); } finally { setTimeout(() => { hydratingRef.current = false; }, 0); }
+        lastHydratedRef.current = pages.selectedPageId;
+      }
+    } catch {
+      /* échec : certaines pages peuvent rester non traduites (best-effort) */
+    } finally {
+      setTranslating(false);
+    }
+  }, [pages, translating]);
+
   // Repartir de zéro (B4) : supprime toutes les pages sauf l'accueil, vide l'accueil, et blanchit le canvas.
   const handleReset = useCallback(async () => {
     const homeId = pages.pages.find((p) => p.type === 'HOME')?.id ?? null;
@@ -1039,6 +1151,24 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       if (home) loadPageInto(editor, envelopeOf(home));
     }
   }, [pages, cfg]);
+
+  // ── Auto-import du template de galerie ─────────────────────────────────────────
+  // « Utiliser ce template » (StudioHome) crée le booking engine puis navigue ici avec `templateId` en
+  // state. Une fois l'éditeur monté ET les pages résolues (ou en repli mono-page), on importe une seule
+  // fois, puis on consomme le state (replace) pour éviter un ré-import au rechargement.
+  useEffect(() => {
+    if (autoImportedRef.current) return;
+    const templateId = (location.state as { templateId?: string } | null)?.templateId;
+    if (!templateId) return;
+    if (!editorInstance || cfg.loading) return;
+    // Attendre que les SitePages soient résolues (ready) ou définitivement en erreur (repli mono-page).
+    if (cfg.config != null && !pages.ready && pages.error == null) return;
+    autoImportedRef.current = true;
+    const template = GALLERY_TEMPLATES.find((t) => t.id === templateId);
+    if (template) void handleImportTemplate(template);
+    // Consomme le state : un rechargement ne doit pas ré-importer par-dessus les modifications de l'hôte.
+    navigate(location.pathname, { replace: true, state: null });
+  }, [editorInstance, cfg.loading, cfg.config, pages.ready, pages.error, location, navigate, handleImportTemplate]);
 
   // Publication (B4) : enregistre le brouillon courant puis fige l'instantané publié (servi au public).
   const handlePublish = useCallback(async () => {
@@ -1189,6 +1319,80 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
               onReset={handleReset}
               busy={pages.loading}
             />
+          </Box>
+          {/* Barre de LANGUES : bascule la langue d'édition (chips) + ajoute une langue supportée. La
+              langue par défaut édite les pages `locale=null` ; les autres leurs variantes traduites. */}
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1, flexShrink: 0, borderLeft: '1px solid var(--line)' }}>
+            {pages.availableLocales.map((loc) => {
+              const active = loc === pages.activeLocale;
+              return (
+                <ButtonBase
+                  key={loc}
+                  onClick={() => { void handleSelectLocale(loc); }}
+                  aria-pressed={active}
+                  sx={{
+                    height: 24, px: 1, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)',
+                    fontWeight: 'var(--fw-semibold)', letterSpacing: '.04em', cursor: 'pointer',
+                    color: active ? 'var(--on-accent)' : 'var(--muted)',
+                    bgcolor: active ? 'var(--accent)' : 'transparent',
+                    '&:hover': { bgcolor: active ? 'var(--accent)' : 'var(--hover)', color: active ? 'var(--on-accent)' : 'var(--ink)' },
+                  }}
+                >
+                  {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
+                </ButtonBase>
+              );
+            })}
+            {SUPPORTED_LOCALES.filter((l) => !pages.availableLocales.includes(l)).map((loc) => (
+              <Tooltip key={loc} title={`Ajouter la langue ${LOCALE_LABEL[loc] ?? loc.toUpperCase()} (copie de la langue par défaut, à traduire)`}>
+                <ButtonBase
+                  onClick={() => { void handleAddLanguage(loc); }}
+                  disabled={pages.loading}
+                  sx={{
+                    height: 24, px: 0.75, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)',
+                    fontWeight: 'var(--fw-medium)', color: 'var(--muted)', border: '1px dashed var(--line)',
+                    cursor: 'pointer', '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
+                    '&.Mui-disabled': { opacity: 0.4 },
+                  }}
+                >
+                  + {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
+                </ButtonBase>
+              </Tooltip>
+            ))}
+            {/* Traduction IA : visible seulement hors langue par défaut. Traduit la page active. */}
+            {pages.activeLocale !== pages.defaultLocale && (
+              <Tooltip title="Traduire cette page depuis la langue par défaut (IA)">
+                <ButtonBase
+                  onClick={() => { void handleTranslatePage(); }}
+                  disabled={translating || pages.loading}
+                  sx={{
+                    height: 24, px: 1, ml: 0.5, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)',
+                    fontWeight: 'var(--fw-semibold)', color: 'var(--accent)', border: '1px solid var(--accent)',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    '&:hover': { bgcolor: 'var(--accent)', color: 'var(--on-accent)' },
+                    '&.Mui-disabled': { opacity: 0.5 },
+                  }}
+                >
+                  {translating ? 'Traduction…' : 'Traduire (IA)'}
+                </ButtonBase>
+              </Tooltip>
+            )}
+            {pages.activeLocale !== pages.defaultLocale && (
+              <Tooltip title="Traduire TOUTES les pages de cette langue (IA)">
+                <ButtonBase
+                  onClick={() => { void handleTranslateAll(); }}
+                  disabled={translating || pages.loading}
+                  sx={{
+                    height: 24, px: 0.75, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)',
+                    fontWeight: 'var(--fw-medium)', color: 'var(--muted)', border: '1px solid var(--line)',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
+                    '&.Mui-disabled': { opacity: 0.5 },
+                  }}
+                >
+                  Tout
+                </ButtonBase>
+              </Tooltip>
+            )}
           </Box>
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, px: 1, flexShrink: 0 }}>
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: needsPublish ? 'var(--warn, #B26B00)' : 'var(--ok)' }}>

@@ -51,20 +51,45 @@ public class OpenAiChatProvider implements ChatLLMProvider {
     private static final Duration REQUEST_TIMEOUT = Duration.ofMinutes(2);
     private static final String DONE_SENTINEL = "[DONE]";
 
+    /**
+     * Robustesse rate-limit : sur une erreur transitoire (HTTP 429/503 ou timeout
+     * reseau), on retente l'appel avec un backoff court AVANT de remonter l'erreur
+     * au caller. Les 4xx non-429 (cle invalide, modele retiré...) ne sont PAS
+     * retentés — l'erreur est definitive et doit remonter immediatement.
+     */
+    private static final int MAX_TRANSIENT_RETRIES = 2;
+    /** Delais de backoff (ms) avant la N-ieme retentative (500ms puis 1s). */
+    private static final long[] RETRY_BACKOFF_MILLIS = {500L, 1000L};
+
     private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final HttpClient httpClient;
 
+    // @Autowired explicite : 2 constructeurs existent (3-arg Spring + 4-arg test
+    // avec HttpClient injecte) → sans annotation Spring cherche un no-arg et
+    // echoue au boot ("No default constructor found").
+    @org.springframework.beans.factory.annotation.Autowired
     public OpenAiChatProvider(AiProperties aiProperties,
                                ObjectMapper objectMapper,
                                ApplicationEventPublisher eventPublisher) {
+        this(aiProperties, objectMapper, eventPublisher, HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build());
+    }
+
+    /**
+     * Visible for testing — permet d'injecter un {@link HttpClient} mocke pour
+     * tester la logique de retry/backoff sans appel reseau reel.
+     */
+    OpenAiChatProvider(AiProperties aiProperties,
+                       ObjectMapper objectMapper,
+                       ApplicationEventPublisher eventPublisher,
+                       HttpClient httpClient) {
         this.aiProperties = aiProperties;
         this.objectMapper = objectMapper;
         this.eventPublisher = eventPublisher;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+        this.httpClient = httpClient;
     }
 
     @Override
@@ -126,35 +151,99 @@ public class OpenAiChatProvider implements ChatLLMProvider {
         log.debug("openai.streamChat provider={} model={} messages={} tools={}",
                 providerLabel, model, request.messages().size(), request.tools().size());
 
-        try {
-            HttpResponse<Stream<String>> response = httpClient.send(
-                    httpRequest, HttpResponse.BodyHandlers.ofLines());
+        // Boucle de retentative sur erreurs transitoires (429/503/timeout). Une
+        // erreur definitive (410 modele retire, 4xx non-429, parsing) sort
+        // immediatement via emit + return ; un succes consomme le stream et sort.
+        Exception lastTransientException = null;
+        for (int attempt = 0; attempt <= MAX_TRANSIENT_RETRIES; attempt++) {
+            try {
+                HttpResponse<Stream<String>> response = httpClient.send(
+                        httpRequest, HttpResponse.BodyHandlers.ofLines());
 
-            if (response.statusCode() == 410) {
-                String responseBody = response.body().reduce("", (a, b) -> a + b);
-                log.warn("{} API: modele '{}' obsolete (410 Gone). Reponse: {}", providerLabel, model, responseBody);
-                if (eventPublisher != null) {
-                    eventPublisher.publishEvent(new AiModelDeprecatedEvent(providerLabel, model, responseBody));
+                int status = response.statusCode();
+
+                if (status == 410) {
+                    String responseBody = response.body().reduce("", (a, b) -> a + b);
+                    log.warn("{} API: modele '{}' obsolete (410 Gone). Reponse: {}", providerLabel, model, responseBody);
+                    if (eventPublisher != null) {
+                        eventPublisher.publishEvent(new AiModelDeprecatedEvent(providerLabel, model, responseBody));
+                    }
+                    consumer.accept(new ChatEvent.Error(
+                            "Le modele '" + model + "' n'est plus disponible chez " + providerLabel + ". "
+                                    + "Selectionnez un nouveau modele dans Parametres > IA et sauvegardez.",
+                            null));
+                    return;
                 }
-                consumer.accept(new ChatEvent.Error(
-                        "Le modele '" + model + "' n'est plus disponible chez " + providerLabel + ". "
-                                + "Selectionnez un nouveau modele dans Parametres > IA et sauvegardez.",
-                        null));
+
+                // Erreurs transitoires : rate-limit (429) ou indisponibilite (503).
+                // On retente avec backoff tant qu'il reste des tentatives.
+                if (status == 429 || status == 503) {
+                    String responseBody = response.body().reduce("", (a, b) -> a + b);
+                    if (attempt < MAX_TRANSIENT_RETRIES) {
+                        log.warn("{} API transient {} (rate-limit/unavailable), retry {}/{} after backoff",
+                                providerLabel, status, attempt + 1, MAX_TRANSIENT_RETRIES);
+                        if (sleepBackoff(attempt)) {
+                            continue;  // nouvelle tentative
+                        }
+                        // Interruption pendant le backoff : on abandonne proprement.
+                    }
+                    log.error("{} API call failed (transient exhausted): status={} body={}",
+                            providerLabel, status, responseBody);
+                    consumer.accept(new ChatEvent.Error(
+                            providerLabel + " API returned status " + status, null));
+                    return;
+                }
+
+                // Autres 4xx/5xx (cle invalide, modele inconnu...) : definitif, pas de retry.
+                if (status >= 400) {
+                    String responseBody = response.body().reduce("", (a, b) -> a + b);
+                    log.error("{} API call failed: status={} body={}", providerLabel, status, responseBody);
+                    consumer.accept(new ChatEvent.Error(
+                            providerLabel + " API returned status " + status, null));
+                    return;
+                }
+
+                parseStream(response.body(), model, consumer);
+                return;  // succes : stream consomme
+            } catch (java.io.IOException e) {
+                // Erreur reseau / timeout transitoire (HttpTimeoutException est une
+                // IOException) : retente avec backoff.
+                lastTransientException = e;
+                if (attempt < MAX_TRANSIENT_RETRIES) {
+                    log.warn("{} streamChat transient network error, retry {}/{} after backoff: {}",
+                            providerLabel, attempt + 1, MAX_TRANSIENT_RETRIES, e.getMessage());
+                    if (sleepBackoff(attempt)) {
+                        continue;
+                    }
+                }
+                break;  // retries epuises ou interruption pendant backoff
+            } catch (Exception e) {
+                // Erreur non transitoire (serialisation reponse, runtime...) : pas de retry.
+                log.error("{} streamChat failed: {}", providerLabel, e.getMessage());
+                consumer.accept(new ChatEvent.Error(providerLabel + " streamChat failed: " + e.getMessage(), e));
                 return;
             }
+        }
 
-            if (response.statusCode() >= 400) {
-                String responseBody = response.body().reduce("", (a, b) -> a + b);
-                log.error("{} API call failed: status={} body={}", providerLabel, response.statusCode(), responseBody);
-                consumer.accept(new ChatEvent.Error(
-                        providerLabel + " API returned status " + response.statusCode(), null));
-                return;
-            }
+        // Retries transitoires reseau epuises.
+        String detail = lastTransientException != null ? lastTransientException.getMessage() : "transient error";
+        log.error("{} streamChat failed after {} retries: {}", providerLabel, MAX_TRANSIENT_RETRIES, detail);
+        consumer.accept(new ChatEvent.Error(providerLabel + " streamChat failed: " + detail, lastTransientException));
+    }
 
-            parseStream(response.body(), model, consumer);
-        } catch (Exception e) {
-            log.error("{} streamChat failed: {}", providerLabel, e.getMessage());
-            consumer.accept(new ChatEvent.Error(providerLabel + " streamChat failed: " + e.getMessage(), e));
+    /**
+     * Dort le backoff de la tentative {@code attempt} (0-indexé). Retourne
+     * {@code false} si le thread a ete interrompu pendant l'attente (le caller
+     * doit alors abandonner la retentative et remonter l'erreur).
+     */
+    private boolean sleepBackoff(int attempt) {
+        long millis = RETRY_BACKOFF_MILLIS[Math.min(attempt, RETRY_BACKOFF_MILLIS.length - 1)];
+        try {
+            Thread.sleep(millis);
+            return true;
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return false;
         }
     }
 

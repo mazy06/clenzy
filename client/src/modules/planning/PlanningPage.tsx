@@ -31,8 +31,19 @@ import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
 import { ACTION_PANEL_WIDTH, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
 import { formatMonthYear, toDateStr, addDays } from './utils/dateUtils';
 import type { PlanningChannelKey } from './constants';
-import type { PlanningEvent } from './types';
+import type { PlanningEvent, PlanningProperty } from './types';
 import type { ReservationStatus } from '../../services/api';
+import {
+  ScopeSwitch,
+  PortfolioPanel,
+  SupervisionPanel,
+  MockPortfolioProvider,
+  MockSupervisionProvider,
+  AgUiSupervisionProvider,
+  isSupervisionLiveEnabled,
+  useCanSuperviseAgents,
+  type SupervisionScope,
+} from '../supervision';
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -45,6 +56,17 @@ const PlanningPage: React.FC = () => {
 
   // Navigation (dates, zoom, density)
   const nav = usePlanningNavigation();
+
+  // Superviseur d'agents : portée (par logement / vue d'ensemble) + gate RBAC.
+  const { canView: canSupervise } = useCanSuperviseAgents();
+  const [supervisionScope, setSupervisionScope] = useState<SupervisionScope>('property');
+  const [expandedPropertyId, setExpandedPropertyId] = useState<number | null>(null);
+  const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
+  const handleToggleExpanded = useCallback((propertyId: number) => {
+    setExpandedPropertyId((prev) => (prev === propertyId ? null : propertyId));
+  }, []);
+  // Mode « Vue d'ensemble » : masque la grille + les contrôles propres au planning.
+  const isOverview = canSupervise && supervisionScope === 'portfolio';
 
   // Largeur de la colonne logements : breakpoint-based + redimensionnable
   // par l'utilisateur (persiste dans localStorage).
@@ -131,12 +153,28 @@ const PlanningPage: React.FC = () => {
     });
   }, [filteredEvents, activeChannels, activeStatuses]);
 
+  // Superviseur : à l'ouverture d'un accordéon, on remonte le logement déployé
+  // en 1ʳᵉ position ; la pagination (firstItemAlone) l'isole alors sur sa propre
+  // page (panneau plein écran) et fait glisser les autres logements en pages 2+.
+  const supervisorExpanded = canSupervise && expandedPropertyId != null;
+  const orderedProperties = useMemo(() => {
+    if (!supervisorExpanded) return filteredProperties;
+    const idx = filteredProperties.findIndex((p) => p.id === expandedPropertyId);
+    if (idx <= 0) return filteredProperties; // introuvable ou déjà en tête
+    return [
+      filteredProperties[idx],
+      ...filteredProperties.slice(0, idx),
+      ...filteredProperties.slice(idx + 1),
+    ];
+  }, [filteredProperties, supervisorExpanded, expandedPropertyId]);
+
   // Pagination (dynamic page size based on viewport height)
   const pagination = usePlanningPagination({
-    totalProperties: filteredProperties,
+    totalProperties: orderedProperties,
     density: nav.density,
     isFullscreen: nav.isFullscreen,
     showPrices: filters.showPrices,
+    firstItemAlone: supervisorExpanded,
   });
 
   // Pricing data (fetched only when toggle is ON)
@@ -461,13 +499,21 @@ const PlanningPage: React.FC = () => {
             subtitle={headerSubtitle}
             showBackButton={false}
             filters={
-              <HeaderSearchField
-                value={filters.searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Rechercher..."
-              />
+              <>
+                {canSupervise && (
+                  <ScopeSwitch value={supervisionScope} onChange={setSupervisionScope} />
+                )}
+                {!isOverview && (
+                  <HeaderSearchField
+                    value={filters.searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Rechercher..."
+                  />
+                )}
+              </>
             }
             actions={
+              isOverview ? undefined : (
               <>
                 <PlanningFilterButton
                   filters={filters}
@@ -518,31 +564,34 @@ const PlanningPage: React.FC = () => {
                   </span>
                 </Tooltip>
               </>
+              )
             }
           />
         </Box>
       )}
 
-      {/* Toolbar */}
-      <Box sx={{ flexShrink: 0, mb: 1 }}>
-        <PlanningToolbar
-          currentDate={visibleMonthDate}
-          zoom={nav.zoom}
-          isFullscreen={nav.isFullscreen}
-          filters={filters}
-          hasActiveFilters={hasActiveFilters}
-          onGoPrev={nav.goPrev}
-          onGoToday={handleGoToday}
-          onGoNext={nav.goNext}
-          onZoomChange={nav.setZoom}
-          onToggleFullscreen={nav.toggleFullscreen}
-          onShowInterventionsChange={setShowInterventions}
-          activeChannels={activeChannels}
-          onToggleChannel={toggleChannel}
-          activeStatuses={activeStatuses}
-          onToggleStatus={toggleStatus}
-        />
-      </Box>
+      {/* Toolbar — navigation/zoom/légendes du planning : masqué en Vue d'ensemble */}
+      {!isOverview && (
+        <Box sx={{ flexShrink: 0, mb: 1 }}>
+          <PlanningToolbar
+            currentDate={visibleMonthDate}
+            zoom={nav.zoom}
+            isFullscreen={nav.isFullscreen}
+            filters={filters}
+            hasActiveFilters={hasActiveFilters}
+            onGoPrev={nav.goPrev}
+            onGoToday={handleGoToday}
+            onGoNext={nav.goNext}
+            onZoomChange={nav.setZoom}
+            onToggleFullscreen={nav.toggleFullscreen}
+            onShowInterventionsChange={setShowInterventions}
+            activeChannels={activeChannels}
+            onToggleChannel={toggleChannel}
+            activeStatuses={activeStatuses}
+            onToggleStatus={toggleStatus}
+          />
+        </Box>
+      )}
 
       {/* Error */}
       {error && (
@@ -551,8 +600,12 @@ const PlanningPage: React.FC = () => {
         </Alert>
       )}
 
-      {/* Loading */}
-      {loading ? (
+      {/* Vue d'ensemble (portefeuille) — plein largeur, masque la grille */}
+      {isOverview ? (
+        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 1.5 }}>
+          <PortfolioPanel createProvider={createPortfolioProvider} deps={['portfolio']} />
+        </Box>
+      ) : loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, gap: 1.5 }}>
           <CircularProgress size={28} />
           <Typography variant="body2" color="text.secondary">
@@ -607,6 +660,33 @@ const PlanningPage: React.FC = () => {
             minNightsMap={minNightsMap}
             channelSyncMap={channelSyncMap}
             pageSize={pagination.pageSize}
+            expandedPropertyId={canSupervise ? expandedPropertyId : null}
+            onToggleExpanded={canSupervise ? handleToggleExpanded : undefined}
+            renderExpanded={
+              canSupervise
+                ? (property: PlanningProperty) => {
+                    const firstResa = visibleEvents.find(
+                      (e) => e.type === 'reservation' && e.propertyId === property.id && e.reservation,
+                    );
+                    const cometReservationId = firstResa?.reservation
+                      ? String(firstResa.reservation.id)
+                      : undefined;
+                    return (
+                      <SupervisionPanel
+                        createProvider={() =>
+                          isSupervisionLiveEnabled()
+                            ? new AgUiSupervisionProvider(String(property.id), {
+                                selectedPropertyId: Number(property.id),
+                                currentPage: '/planning',
+                              })
+                            : new MockSupervisionProvider(String(property.id), { cometReservationId })
+                        }
+                        deps={[property.id, cometReservationId]}
+                      />
+                    );
+                  }
+                : undefined
+            }
           />
 
           {/* Pagination — pinned to bottom, full width (compensate parent px) */}
