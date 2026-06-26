@@ -7,6 +7,7 @@ import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.config.ai.ToolDescriptor;
 import com.clenzy.model.AssistantMemory;
 import com.clenzy.service.agent.AgentContext;
+import com.clenzy.service.agent.AgentSseEvent;
 import com.clenzy.service.agent.kb.KbSearchService.KbSearchHit;
 import com.clenzy.service.agent.prompt.PromptSecurityGuidance;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -63,18 +64,49 @@ public class OrchestratorAgent {
     private final MeterRegistry meterRegistry;
     private final Timer orchestrateTimer;
 
+    /**
+     * Feature flag : HITL natif multi-agent. Si {@code true} (defaut), un tool
+     * a confirmation rencontre par un specialist met le flow EN PAUSE (le
+     * multi-agent gere lui-meme la confirmation, le pont AG-UI traduit en
+     * interrupt). Si {@code false}, comportement legacy : on re-leve
+     * {@link ConfirmationRequiredException} simple → fallback mono-agent.
+     *
+     * <p>Override : {@code clenzy.assistant.multi-agent.hitl.enabled=false}</p>
+     */
+    private final boolean hitlEnabled;
+
+    // @Autowired explicite : 2 constructeurs publics existent (5-arg Spring +
+    // 4-arg retro-compat tests) → sans cette annotation Spring cherche un
+    // constructeur no-arg et echoue au boot ("No default constructor found").
+    @org.springframework.beans.factory.annotation.Autowired
     public OrchestratorAgent(ChatLLMProvider chatProvider,
                                SpecialistRegistry registry,
                                ObjectMapper objectMapper,
-                               MeterRegistry meterRegistry) {
+                               MeterRegistry meterRegistry,
+                               @org.springframework.beans.factory.annotation.Value(
+                                       "${clenzy.assistant.multi-agent.hitl.enabled:true}")
+                               boolean hitlEnabled) {
         this.chatProvider = chatProvider;
         this.registry = registry;
         this.objectMapper = objectMapper;
         this.meterRegistry = meterRegistry;
+        this.hitlEnabled = hitlEnabled;
         this.orchestrateTimer = Timer.builder("assistant.orchestrator.handle")
                 .description("Latence d'une orchestration complete (orchestrator + N specialists)")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(meterRegistry);
+    }
+
+    /**
+     * Constructeur retro-compatible (sans flag HITL) — HITL natif active par
+     * defaut. Conserve pour les tests existants qui instancient l'orchestrateur
+     * a 4 arguments.
+     */
+    public OrchestratorAgent(ChatLLMProvider chatProvider,
+                               SpecialistRegistry registry,
+                               ObjectMapper objectMapper,
+                               MeterRegistry meterRegistry) {
+        this(chatProvider, registry, objectMapper, meterRegistry, true);
     }
 
     /**
@@ -161,11 +193,28 @@ public class OrchestratorAgent {
                                              OrchestrationContext orchestrationCtx,
                                              String apiKey,
                                              Consumer<String> textDeltaSink) {
+        return orchestrate(messages, context, orchestrationCtx, apiKey, textDeltaSink, null);
+    }
+
+    /**
+     * Variante avec un {@code activitySink} (nullable) qui recoit l'activite des
+     * agents au fil de l'orchestration (specialist demarre / agit / termine +
+     * etat orchestrateur), pour alimenter la constellation « Superviseur d'agents »
+     * cote front (via le pont AG-UI {@code STATE_SNAPSHOT}).
+     *
+     * <p>Purement observationnel : n'altere NI le flux texte, NI le routing, NI
+     * les tools. Si {@code null} : comportement inchange (aucun event d'activite).</p>
+     */
+    public OrchestrationResult orchestrate(List<ChatMessage> messages, AgentContext context,
+                                             OrchestrationContext orchestrationCtx,
+                                             String apiKey,
+                                             Consumer<String> textDeltaSink,
+                                             Consumer<AgentSseEvent> activitySink) {
         long startNanos = System.nanoTime();
         try {
             return doOrchestrate(messages, context,
                     orchestrationCtx == null ? OrchestrationContext.empty() : orchestrationCtx,
-                    apiKey, textDeltaSink);
+                    apiKey, textDeltaSink, activitySink);
         } finally {
             orchestrateTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
         }
@@ -174,7 +223,8 @@ public class OrchestratorAgent {
     private OrchestrationResult doOrchestrate(List<ChatMessage> messages, AgentContext context,
                                                  OrchestrationContext orchestrationCtx,
                                                  String apiKey,
-                                                 Consumer<String> textDeltaSink) {
+                                                 Consumer<String> textDeltaSink,
+                                                 Consumer<AgentSseEvent> activitySink) {
         // Pas de specialistes -> impossible d'orchestrer
         if (registry.size() == 0) {
             return OrchestrationResult.error("Aucun specialiste enregistre, orchestration impossible");
@@ -202,6 +252,14 @@ public class OrchestratorAgent {
         AtomicInteger totalPromptTokens = new AtomicInteger();
         AtomicInteger totalCompletionTokens = new AtomicInteger();
         StringBuilder finalText = new StringBuilder();
+        // Garde-boucle orchestrateur (parallele du cache specialist) : signature
+        // (specialist::query) -> synthese deja obtenue. Un modele peut re-deleguer
+        // une delegation IDENTIQUE ; on reutilise la synthese SANS re-deleguer (pas
+        // de re-execution des tools du specialist, pas de cout LLM supplementaire).
+        java.util.Map<String, String> delegationCache = new java.util.HashMap<>();
+        // Derniere synthese de specialist exploitable comme repli si l'orchestrateur
+        // n'arrive pas a produire un texte final (cf. terminaison forcee).
+        String lastSpecialistSynthesis = null;
 
         for (int iter = 0; iter < MAX_DELEGATIONS; iter++) {
             AtomicReference<String> textOut = new AtomicReference<>("");
@@ -242,9 +300,12 @@ public class OrchestratorAgent {
 
             List<ChatMessage.ToolCall> toolCalls = toolCallsRef.get();
             if (toolCalls.isEmpty()) {
-                // Pas de delegation : l'orchestrator a tranche directement
+                // Pas de delegation : l'orchestrator a tranche directement.
+                // Terminaison forcee : si le texte est vide APRES >=1 delegation,
+                // on retombe sur un repli non-vide (jamais de reponse vide au user).
                 return OrchestrationResult.success(
-                        finalText.toString().strip(),
+                        ensureFinalText(finalText.toString().strip(), lastSpecialistSynthesis,
+                                aggregatedToolInvocations, !delegationsLog.isEmpty()),
                         delegationsLog,
                         aggregatedToolInvocations,
                         totalPromptTokens.get(),
@@ -255,6 +316,10 @@ public class OrchestratorAgent {
 
             // Append message assistant + executer chaque delegation
             req = req.withAppendedMessage(ChatMessage.assistantToolCalls(toolCalls));
+            // Detecte une boucle sterile : si l'orchestrateur ne fait que re-deleguer
+            // des delegations DEJA satisfaites (toutes en cache), on arrete apres ce
+            // tour (le modele tourne en rond) et on synthetise un repli.
+            boolean anyNewDelegation = false;
             for (ChatMessage.ToolCall tc : toolCalls) {
                 if (!DELEGATE_TOOL_NAME.equals(tc.name())) {
                     log.warn("Orchestrator emitted unknown tool '{}'", tc.name());
@@ -268,22 +333,92 @@ public class OrchestratorAgent {
                             "Arguments invalides pour delegate_to (besoin de specialist + query)"));
                     continue;
                 }
-                SpecialistResult result = invokeSpecialist(args, context, orchestrationCtx, apiKey);
+                // Garde-boucle : delegation identique deja resolue -> reutiliser la
+                // synthese cachee SANS re-deleguer (parallele du cache specialist).
+                String cacheKey = args.specialist() + "::" + args.query();
+                String cached = delegationCache.get(cacheKey);
+                if (cached != null) {
+                    log.info("Orchestrator reusing cached delegation '{}' (no re-delegation)",
+                            args.specialist());
+                    req = req.withAppendedMessage(ChatMessage.tool(tc.id(), cached));
+                    continue;
+                }
+                anyNewDelegation = true;
+                // Constellation : le specialist demarre puis reflechit (le LLM
+                // call #2 du specialist tourne). `query` = libelle metier court.
+                emitActivity(activitySink, args.specialist(), "started", null, args.query());
+                emitActivity(activitySink, args.specialist(), "thinking", null, args.query());
+                SpecialistResult result;
+                try {
+                    result = invokeSpecialist(args, context, orchestrationCtx, apiKey);
+                } catch (ConfirmationRequiredException e) {
+                    // Le specialist a rencontre un tool a confirmation.
+                    if (hitlEnabled && e.hasResumeContext()) {
+                        // HITL natif : capturer l'etat d'orchestration et signaler
+                        // une pause resumable (PAS de fallback mono-agent). `req`
+                        // contient deja le tour assistant delegate_to (appended
+                        // ci-dessus) → on capture cet historique + l'id du call.
+                        // Constellation : le specialist attend une validation humaine.
+                        emitActivity(activitySink, args.specialist(), "acting", e.toolName(), args.query());
+                        MultiAgentPendingContext pending = new MultiAgentPendingContext(
+                                args.specialist(),
+                                e.specialistHistory(),
+                                e.toolCall(),
+                                req.messages(),
+                                tc.id(),
+                                context
+                        );
+                        meterRegistry.counter("assistant.orchestrator.confirmation_pause",
+                                "specialist", args.specialist(),
+                                "tool", e.toolName()).increment();
+                        throw new MultiAgentConfirmationPauseException(pending);
+                    }
+                    // Legacy : re-leve tel quel → AgentOrchestrator fallback mono.
+                    throw e;
+                }
+                // Constellation : le specialist a agi (un event par outil reel
+                // qu'il a invoque), puis a termine.
+                emitToolActivity(activitySink, args.specialist(), result);
+                emitActivity(activitySink, args.specialist(), "done", null, args.query());
                 delegationsLog.add(args.specialist() + " → " + (result.isSuccess() ? "OK" : "ERR"));
                 // Aggregation des widgets : permet au frontend de continuer a afficher
                 // les visualisations (KPI cards, charts) en mode multi-agent.
                 aggregatedToolInvocations.addAll(result.toolInvocations());
                 totalPromptTokens.addAndGet(result.promptTokens());
                 totalCompletionTokens.addAndGet(result.completionTokens());
-                req = req.withAppendedMessage(ChatMessage.tool(tc.id(), result.synthesis()));
+                // Degradation gracieuse : si le specialist a echoue, on injecte un
+                // message clair (PAS la stacktrace/erreur brute) pour que
+                // l'orchestrateur puisse quand meme formuler une reponse utile.
+                String toolResultContent = toolResultFor(result, args.specialist());
+                if (result.isSuccess()) {
+                    lastSpecialistSynthesis = result.synthesis();
+                }
+                delegationCache.put(args.specialist() + "::" + args.query(), toolResultContent);
+                req = req.withAppendedMessage(ChatMessage.tool(tc.id(), toolResultContent));
                 meterRegistry.counter("assistant.orchestrator.delegations",
                         "specialist", args.specialist()).increment();
             }
+
+            // Boucle sterile : le tour n'a fait que re-deleguer des delegations
+            // deja resolues (cache). Le modele tourne en rond -> on arrete et on
+            // synthetise le repli, sans gaspiller le quota de delegations restant.
+            if (!anyNewDelegation) {
+                log.info("Orchestrator breaking sterile delegation loop (only duplicate delegations)");
+                meterRegistry.counter("assistant.orchestrator.sterile_loop_break").increment();
+                return OrchestrationResult.success(
+                        ensureFinalText(finalText.toString().strip(), lastSpecialistSynthesis,
+                                aggregatedToolInvocations, true),
+                        delegationsLog, aggregatedToolInvocations,
+                        totalPromptTokens.get(), totalCompletionTokens.get(), iter);
+            }
         }
 
-        // Iterations atteintes — retourner ce qu'on a accumule
+        // Iterations atteintes — terminaison forcee : TOUJOURS un texte non-vide
+        // (repli sur la derniere synthese / les widgets), jamais un finalText brut vide.
+        meterRegistry.counter("assistant.orchestrator.max_delegations_reached").increment();
         return OrchestrationResult.truncated(
-                finalText.toString().strip(),
+                ensureFinalText(finalText.toString().strip(), lastSpecialistSynthesis,
+                        aggregatedToolInvocations, !delegationsLog.isEmpty()),
                 delegationsLog,
                 aggregatedToolInvocations,
                 totalPromptTokens.get(),
@@ -291,12 +426,68 @@ public class OrchestratorAgent {
         );
     }
 
+    /**
+     * Terminaison forcee : garantit un texte final NON VIDE pour l'utilisateur.
+     *
+     * <p>Si l'orchestrateur a produit un texte, on le garde. Sinon (LLM muet apres
+     * une delegation, ou max delegations atteint) :</p>
+     * <ul>
+     *   <li>repli sur la derniere synthese de specialist exploitable ;</li>
+     *   <li>sinon un message generique qui s'appuie sur les widgets deja emis
+     *       (KPI/tableaux) s'il y en a ;</li>
+     *   <li>en dernier recours, un message d'excuse honnete.</li>
+     * </ul>
+     *
+     * @param produced            texte produit par l'orchestrateur (peut etre vide)
+     * @param lastSynthesis       derniere synthese de specialist (nullable)
+     * @param widgets             widgets agreges (pour adapter le message de repli)
+     * @param hadDelegation       true si au moins une delegation a eu lieu
+     */
+    private static String ensureFinalText(String produced, String lastSynthesis,
+                                          List<ToolInvocationSnapshot> widgets,
+                                          boolean hadDelegation) {
+        if (produced != null && !produced.isBlank()) {
+            return produced;
+        }
+        if (!hadDelegation) {
+            // Aucune delegation et texte vide : l'orchestrateur n'a rien produit.
+            return "Je n'ai pas pu traiter votre demande pour le moment. "
+                    + "Pouvez-vous reformuler ?";
+        }
+        if (lastSynthesis != null && !lastSynthesis.isBlank()) {
+            return lastSynthesis.strip();
+        }
+        boolean hasWidgets = widgets != null
+                && widgets.stream().anyMatch(w -> !w.isError());
+        if (hasWidgets) {
+            return "Voici ce que j'ai trouve.";
+        }
+        return "Je n'ai pas reussi a recuperer les informations demandees. "
+                + "Reessayez dans un instant.";
+    }
+
+    /**
+     * Degradation gracieuse : transforme un {@link SpecialistResult} en contenu de
+     * tool_result a reinjecter a l'orchestrateur. En cas d'echec, on remonte un
+     * message clair et borne (PAS de stacktrace ni de detail technique brut), pour
+     * que l'orchestrateur formule un repli utile sans fuite d'information.
+     */
+    private static String toolResultFor(SpecialistResult result, String specialist) {
+        if (result.isSuccess()) {
+            return result.synthesis();
+        }
+        return "Le specialiste '" + specialist + "' n'a pas pu repondre a cette demande. "
+                + "Indique a l'utilisateur que cette information n'a pas pu etre recuperee, "
+                + "sans detailler l'erreur technique.";
+    }
+
     private SpecialistResult invokeSpecialist(DelegateArgs args, AgentContext context,
                                                  OrchestrationContext orchestrationCtx,
                                                  String apiKey) {
         // ConfirmationRequiredException remonte intacte (re-throw automatique du
-        // .map(...).orElseGet(...)) : le caller AgentOrchestrator l'intercepte
-        // pour bascule sur le mono-agent qui gere la pause-confirmation.
+        // .map(...).orElseGet(...)) : le caller (doOrchestrate) l'intercepte pour
+        // soit signaler une pause HITL native (MultiAgentConfirmationPauseException),
+        // soit la re-lever pour fallback mono-agent (mode legacy).
         // OrchestrationContext propage memoire + RAG aux specialists ;
         // apiKey assure que les specialists consomment sur la meme cle BYOK
         // que l'orchestrator (Fix bloquant #4).
@@ -307,6 +498,265 @@ public class OrchestratorAgent {
                         "Specialiste inconnu : '" + args.specialist() + "'. "
                                 + "Specialistes disponibles : " + registry.all().keySet()
                 ));
+    }
+
+    /**
+     * Reprend un flow multi-agent suspendu sur une confirmation user (HITL natif).
+     *
+     * <p><b>État machine — phase RESUME</b> :</p>
+     * <ol>
+     *   <li>Le specialist reprend sa boucle depuis l'historique capturé +
+     *       le {@code toolResult} (execution reelle si confirmé, "annulé" sinon),
+     *       et produit sa {@code synthesis}.</li>
+     *   <li>Cette synthesis est réinjectée comme tool_result du {@code delegate_to}
+     *       dans l'historique de l'orchestrateur ({@code orchestratorMessages}).</li>
+     *   <li>La boucle d'orchestration reprend (delegations restantes possibles)
+     *       jusqu'à la réponse texte finale.</li>
+     * </ol>
+     *
+     * <p>Le {@code toolResult} est fourni par le caller (AgentOrchestrator), qui
+     * a déjà exécuté ou refusé le tool — ce tool n'est PAS ré-exécuté ici (pas de
+     * double-exécution).</p>
+     *
+     * @param pending      contexte de reprise capturé à la pause
+     * @param resumeContext AgentContext courant (identité/JWT du resume). La cible
+     *                      LLM (modèle/provider/baseUrl) est reprise de
+     *                      {@code pending.effectiveContext()}.
+     * @param orchestrationCtx mémoire + RAG (rechargés par AgentOrchestrator)
+     * @param apiKey       clé BYOK résolue (peut différer si re-résolue au resume)
+     * @param toolResult   résultat du tool confirmé/refusé
+     * @param textDeltaSink relai SSE progressif (nullable)
+     */
+    public OrchestrationResult resumeOrchestration(MultiAgentPendingContext pending,
+                                                    AgentContext resumeContext,
+                                                    OrchestrationContext orchestrationCtx,
+                                                    String apiKey,
+                                                    com.clenzy.service.agent.ToolResult toolResult,
+                                                    Consumer<String> textDeltaSink) {
+        return resumeOrchestration(pending, resumeContext, orchestrationCtx, apiKey,
+                toolResult, textDeltaSink, null);
+    }
+
+    /**
+     * Variante resume avec {@code activitySink} (nullable) — emet l'activite des
+     * agents repris vers la constellation (cf. {@link #orchestrate}).
+     */
+    public OrchestrationResult resumeOrchestration(MultiAgentPendingContext pending,
+                                                    AgentContext resumeContext,
+                                                    OrchestrationContext orchestrationCtx,
+                                                    String apiKey,
+                                                    com.clenzy.service.agent.ToolResult toolResult,
+                                                    Consumer<String> textDeltaSink,
+                                                    Consumer<AgentSseEvent> activitySink) {
+        long startNanos = System.nanoTime();
+        try {
+            return doResumeOrchestration(pending,
+                    resumeContext == null ? pending.effectiveContext() : resumeContext,
+                    orchestrationCtx == null ? OrchestrationContext.empty() : orchestrationCtx,
+                    apiKey, toolResult, textDeltaSink, activitySink);
+        } finally {
+            orchestrateTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
+        }
+    }
+
+    private OrchestrationResult doResumeOrchestration(MultiAgentPendingContext pending,
+                                                       AgentContext context,
+                                                       OrchestrationContext orchestrationCtx,
+                                                       String apiKey,
+                                                       com.clenzy.service.agent.ToolResult toolResult,
+                                                       Consumer<String> textDeltaSink,
+                                                       Consumer<AgentSseEvent> activitySink) {
+        // Constellation : le specialist en pause reprend (l'humain a tranche).
+        emitActivity(activitySink, pending.specialistName(), "thinking", null, null);
+
+        // 1) Reprendre le specialist depuis son historique capturé + le tool result.
+        AgentSpecialist specialist = registry.find(pending.specialistName()).orElse(null);
+        if (specialist == null || !(specialist instanceof AbstractAgentSpecialist resumable)) {
+            // Specialist disparu (hot reload) ou non-resumable : on degrade en
+            // injectant directement le tool result comme synthese minimale, pour
+            // que l'orchestrateur puisse quand meme conclure.
+            log.warn("Resume: specialist '{}' introuvable ou non-resumable — synthese degradee",
+                    pending.specialistName());
+            emitActivity(activitySink, pending.specialistName(), "done", null, null);
+            return continueOrchestratorAfterDelegation(pending, context, apiKey,
+                    toolResult.isError()
+                            ? "Action non effectuee : " + toolResult.content()
+                            : "Action effectuee. Resultat : " + toolResult.content(),
+                    new java.util.ArrayList<>(), textDeltaSink, activitySink);
+        }
+
+        SpecialistRequest specialistRequest = SpecialistRequest.of(
+                "(reprise apres confirmation)", context, orchestrationCtx, apiKey);
+        SpecialistResult specResult = resumable.resumeWithToolResult(
+                specialistRequest, pending.specialistHistory(),
+                pending.pendingToolCall().id(), toolResult);
+
+        // Constellation : action confirmee appliquee + tout outil read-only
+        // supplementaire, puis le specialist termine.
+        if (!toolResult.isError()) {
+            emitActivity(activitySink, pending.specialistName(), "acting",
+                    pending.pendingToolCall().name(), null);
+        }
+        emitToolActivity(activitySink, pending.specialistName(), specResult);
+        emitActivity(activitySink, pending.specialistName(), "done", null, null);
+
+        // 2/3) Réinjecter la synthesis comme tool_result du delegate_to et
+        //       continuer la boucle d'orchestration.
+        return continueOrchestratorAfterDelegation(pending, context, apiKey,
+                specResult.synthesis(),
+                new java.util.ArrayList<>(specResult.toolInvocations()), textDeltaSink, activitySink);
+    }
+
+    /**
+     * Continue la boucle d'orchestration apres qu'une delegation (le specialist
+     * en pause) a produit sa synthese — réinjectée comme tool_result du
+     * {@code delegate_to} dans l'historique capturé de l'orchestrateur.
+     */
+    private OrchestrationResult continueOrchestratorAfterDelegation(
+            MultiAgentPendingContext pending,
+            AgentContext context,
+            String apiKey,
+            String delegateSynthesis,
+            List<ToolInvocationSnapshot> seedInvocations,
+            Consumer<String> textDeltaSink,
+            Consumer<AgentSseEvent> activitySink) {
+
+        String systemPrompt = buildOrchestratorSystemPrompt(OrchestrationContext.empty(), context);
+        List<ToolDescriptor> tools = List.of(buildDelegateToolDescriptor());
+
+        // Historique = messages orchestrateur capturés (jusqu'au delegate_to inclus)
+        // + le tool_result du delegate_to (= synthese du specialist repris).
+        List<ChatMessage> resumed = new ArrayList<>(pending.orchestratorMessages());
+        resumed.add(ChatMessage.tool(pending.delegateToolCallId(), delegateSynthesis));
+
+        ChatRequest req = new ChatRequest(
+                systemPrompt, resumed, tools,
+                context.modelOverride(), TEMPERATURE, MAX_TOKENS, null,
+                context.aiProvider(), context.aiBaseUrl());
+
+        List<String> delegationsLog = new ArrayList<>();
+        delegationsLog.add(pending.specialistName() + " → RESUMED");
+        List<ToolInvocationSnapshot> aggregatedToolInvocations = new ArrayList<>(seedInvocations);
+        AtomicInteger totalPromptTokens = new AtomicInteger();
+        AtomicInteger totalCompletionTokens = new AtomicInteger();
+        StringBuilder finalText = new StringBuilder();
+        // Memes gardes de robustesse que doOrchestrate : cache anti-boucle +
+        // repli sur la derniere synthese (ici seedee par le specialist repris).
+        java.util.Map<String, String> delegationCache = new java.util.HashMap<>();
+        String lastSpecialistSynthesis = (delegateSynthesis != null && !delegateSynthesis.isBlank())
+                ? delegateSynthesis : null;
+
+        for (int iter = 0; iter < MAX_DELEGATIONS; iter++) {
+            AtomicReference<String> textOut = new AtomicReference<>("");
+            AtomicReference<List<ChatMessage.ToolCall>> toolCallsRef = new AtomicReference<>(List.of());
+            AtomicReference<String> errorMsg = new AtomicReference<>();
+
+            Consumer<ChatEvent> eventConsumer = event -> {
+                if (event instanceof ChatEvent.TextDelta td) {
+                    textOut.set(textOut.get() + td.delta());
+                    if (textDeltaSink != null) {
+                        textDeltaSink.accept(td.delta());
+                    }
+                } else if (event instanceof ChatEvent.ToolCallRequest tcr) {
+                    toolCallsRef.set(tcr.calls());
+                } else if (event instanceof ChatEvent.Done done) {
+                    totalPromptTokens.addAndGet(done.promptTokens());
+                    totalCompletionTokens.addAndGet(done.completionTokens());
+                } else if (event instanceof ChatEvent.Error err) {
+                    errorMsg.set(err.message());
+                }
+            };
+            if (apiKey != null) {
+                chatProvider.streamChat(req, eventConsumer, apiKey);
+            } else {
+                chatProvider.streamChat(req, eventConsumer);
+            }
+
+            if (errorMsg.get() != null) {
+                return OrchestrationResult.error("Orchestrator LLM error : " + errorMsg.get());
+            }
+
+            finalText.append(textOut.get());
+
+            List<ChatMessage.ToolCall> toolCalls = toolCallsRef.get();
+            if (toolCalls.isEmpty()) {
+                return OrchestrationResult.success(
+                        ensureFinalText(finalText.toString().strip(), lastSpecialistSynthesis,
+                                aggregatedToolInvocations, true),
+                        delegationsLog, aggregatedToolInvocations,
+                        totalPromptTokens.get(), totalCompletionTokens.get(), iter);
+            }
+
+            // Délégations supplémentaires après reprise : exécutées normalement.
+            // Un specialist qui re-demande une confirmation re-pause (chainage).
+            req = req.withAppendedMessage(ChatMessage.assistantToolCalls(toolCalls));
+            boolean anyNewDelegation = false;
+            for (ChatMessage.ToolCall tc : toolCalls) {
+                if (!DELEGATE_TOOL_NAME.equals(tc.name())) {
+                    req = req.withAppendedMessage(ChatMessage.tool(tc.id(),
+                            "Tool inconnu, seul '" + DELEGATE_TOOL_NAME + "' est autorise"));
+                    continue;
+                }
+                DelegateArgs args = parseDelegateArgs(tc.arguments());
+                if (args == null) {
+                    req = req.withAppendedMessage(ChatMessage.tool(tc.id(),
+                            "Arguments invalides pour delegate_to (besoin de specialist + query)"));
+                    continue;
+                }
+                String cacheKey = args.specialist() + "::" + args.query();
+                String cached = delegationCache.get(cacheKey);
+                if (cached != null) {
+                    log.info("Orchestrator (resume) reusing cached delegation '{}'", args.specialist());
+                    req = req.withAppendedMessage(ChatMessage.tool(tc.id(), cached));
+                    continue;
+                }
+                anyNewDelegation = true;
+                emitActivity(activitySink, args.specialist(), "started", null, args.query());
+                emitActivity(activitySink, args.specialist(), "thinking", null, args.query());
+                SpecialistResult result;
+                try {
+                    result = invokeSpecialist(args, context, OrchestrationContext.empty(), apiKey);
+                } catch (ConfirmationRequiredException e) {
+                    if (hitlEnabled && e.hasResumeContext()) {
+                        emitActivity(activitySink, args.specialist(), "acting", e.toolName(), args.query());
+                        MultiAgentPendingContext nextPending = new MultiAgentPendingContext(
+                                args.specialist(), e.specialistHistory(), e.toolCall(),
+                                req.messages(), tc.id(), context);
+                        throw new MultiAgentConfirmationPauseException(nextPending);
+                    }
+                    throw e;
+                }
+                emitToolActivity(activitySink, args.specialist(), result);
+                emitActivity(activitySink, args.specialist(), "done", null, args.query());
+                delegationsLog.add(args.specialist() + " → " + (result.isSuccess() ? "OK" : "ERR"));
+                aggregatedToolInvocations.addAll(result.toolInvocations());
+                totalPromptTokens.addAndGet(result.promptTokens());
+                totalCompletionTokens.addAndGet(result.completionTokens());
+                String toolResultContent = toolResultFor(result, args.specialist());
+                if (result.isSuccess()) {
+                    lastSpecialistSynthesis = result.synthesis();
+                }
+                delegationCache.put(cacheKey, toolResultContent);
+                req = req.withAppendedMessage(ChatMessage.tool(tc.id(), toolResultContent));
+            }
+
+            if (!anyNewDelegation) {
+                log.info("Orchestrator (resume) breaking sterile delegation loop");
+                meterRegistry.counter("assistant.orchestrator.sterile_loop_break").increment();
+                return OrchestrationResult.success(
+                        ensureFinalText(finalText.toString().strip(), lastSpecialistSynthesis,
+                                aggregatedToolInvocations, true),
+                        delegationsLog, aggregatedToolInvocations,
+                        totalPromptTokens.get(), totalCompletionTokens.get(), iter);
+            }
+        }
+
+        meterRegistry.counter("assistant.orchestrator.max_delegations_reached").increment();
+        return OrchestrationResult.truncated(
+                ensureFinalText(finalText.toString().strip(), lastSpecialistSynthesis,
+                        aggregatedToolInvocations, true),
+                delegationsLog, aggregatedToolInvocations,
+                totalPromptTokens.get(), totalCompletionTokens.get());
     }
 
     private DelegateArgs parseDelegateArgs(String json) {
@@ -405,10 +855,23 @@ public class OrchestratorAgent {
                 .append("</workflow>\n\n");
 
         sb.append("<output_format>\n")
-                .append("- Reponse finale : courte (2-4 phrases), francais conversationnel.\n")
-                .append("- Pas de meta-commentaires (\"j'ai delegue a...\", \"le specialiste m'a dit...\")\n")
-                .append("- Cite la source si l'info vient de la doc (Selon [titre](path)).\n")
-                .append("</output_format>");
+                .append("- Reponse finale : courte (2-4 phrases), ton conversationnel professionnel.\n")
+                .append("- Pas de meta-commentaires (\"j'ai delegue a...\", \"le specialiste m'a dit...\").\n")
+                .append("- N'ECRIS JAMAIS la description d'un appel de fonction ni de delegation : ")
+                .append("interdit d'ecrire \"The function call...\", \"delegate_to\", \"{name:...}\" ou ")
+                .append("tout JSON d'outil. Reponds DIRECTEMENT a l'utilisateur, en langage naturel.\n")
+                .append("- Cite la source si l'info vient de la doc (Selon [titre](path)).\n");
+        // Directive de langue placee EN DERNIER (poids de recence maximal pour le LLM).
+        String lang = (agentContext != null && agentContext.language() != null
+                && !agentContext.language().isBlank()) ? agentContext.language() : "fr";
+        String langLabel = switch (lang) {
+            case "en" -> "English";
+            case "ar" -> "Arabic";
+            default -> "francais";
+        };
+        sb.append("- REPONDS IMPERATIVEMENT EN ").append(langLabel.toUpperCase())
+                .append(" (la langue de l'utilisateur), quelle que soit la langue des donnees internes.\n");
+        sb.append("</output_format>");
 
         return sb.toString();
     }
@@ -528,6 +991,37 @@ public class OrchestratorAgent {
             );
         } catch (Exception e) {
             throw new IllegalStateException("Failed to build delegate_to descriptor", e);
+        }
+    }
+
+    /**
+     * Emet (best-effort) un event d'activite agent vers la constellation. Un
+     * echec du sink ne doit JAMAIS casser l'orchestration → on avale et on logge
+     * en debug (l'activite est purement informative).
+     */
+    private void emitActivity(Consumer<AgentSseEvent> sink, String specialist, String phase,
+                              String toolName, String task) {
+        if (sink == null) return;
+        try {
+            sink.accept(AgentSseEvent.agentActivity(specialist, phase, toolName, task));
+        } catch (Exception e) {
+            log.debug("activitySink emit failed ({} {}): {}", specialist, phase, e.getMessage());
+        }
+    }
+
+    /**
+     * Emet un event {@code acting} par outil reel invoque par le specialist
+     * (lus depuis {@link SpecialistResult#toolInvocations()}). Permet a la
+     * constellation d'afficher l'agent « en train d'agir » avec le nom de l'outil.
+     * Les outils en erreur sont ignores (pas d'action visible).
+     */
+    private void emitToolActivity(Consumer<AgentSseEvent> sink, String specialist,
+                                  SpecialistResult result) {
+        if (sink == null || result == null) return;
+        for (ToolInvocationSnapshot snap : result.toolInvocations()) {
+            if (!snap.isError()) {
+                emitActivity(sink, specialist, "acting", snap.toolName(), null);
+            }
         }
     }
 

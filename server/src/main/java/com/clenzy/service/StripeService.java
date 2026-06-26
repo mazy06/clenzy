@@ -145,6 +145,14 @@ public class StripeService {
             title, customerEmail);
     }
 
+    /** Upsell HOSTED (redirection) — booking engine (cf. factory). */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createUpsellHostedCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
+                                                     String title, String customerEmail, String successUrl) throws StripeException {
+        return checkoutSessionFactory.createUpsellHostedCheckoutSession(upsellOrderId, amount, currencyCode,
+            title, customerEmail, successUrl);
+    }
+
     /**
      * Cree une session de paiement Stripe pour une demande de service assignee.
      * Le demandeur paie le montant estimatedCost de la SR.

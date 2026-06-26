@@ -10,5 +10,7 @@ public enum AuditSource {
     AIRBNB_SYNC,
     SYSTEM,
     WEBHOOK,
-    CRON
+    CRON,
+    /** Action declenchee via l'assistant IA (tool calling). */
+    ASSISTANT
 }

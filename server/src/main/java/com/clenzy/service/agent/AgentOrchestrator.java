@@ -170,8 +170,11 @@ public class AgentOrchestrator {
                 pendingToolStore, multiAgentOrchestrator, specialistRegistry,
                 new AgentPromptComposer(memoryService, kbSearchService, promptBuilder, promptV2Enabled),
                 new AssistantTargetResolver(platformAiConfigService, orgAiApiKeyRepository, aiProperties),
+                // Instrumentation audit/metrics = null sur ce chemin legacy test-only
+                // (AgentToolLoopRunner est null-safe). Le chemin Spring @Primary injecte
+                // les vrais beans AgentActionAuditService + AgentToolMetrics.
                 new AgentToolLoopRunner(chatProvider, toolRegistry, messageRepository,
-                        pendingToolStore, objectMapper, aiTokenBudgetService),
+                        pendingToolStore, objectMapper, aiTokenBudgetService, null, null),
                 new ConversationHistoryMapper(objectMapper, photoStorageService),
                 multiAgentEnabled);
     }
@@ -295,7 +298,8 @@ public class AgentOrchestrator {
         //      1. context.modelOverride() : forcage explicite (briefings = Haiku)
         //      2. Modele assigne a la feature ASSISTANT_CHAT dans Settings > IA
         //      3. null → defaut provider (Anthropic Sonnet)
-        List<ToolDescriptor> tools = toolRegistry.listDescriptors();
+        // RBAC least-privilege : un role operationnel ne voit que ses outils d'intervention.
+        List<ToolDescriptor> tools = RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context);
         ComposedSystemPrompt systemPrompt =
                 promptComposer.buildSegmentedSystemPrompt(context, effectiveMessage, memories, kbHits);
         ChatRequest request = new ChatRequest(
@@ -338,13 +342,16 @@ public class AgentOrchestrator {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Tool en attente " + toolCallId + " introuvable / expire / non autorise"));
 
-        // Recharger la conv pour update updatedAt en fin de boucle
+        // Recharger la conv pour update updatedAt en fin de boucle. La validation
+        // d'ownership est double : consume() (keycloakId du pending) + findByIdAndUser
+        // (conversation scopee au user).
         AssistantConversation conversation = conversationRepository
                 .findByIdAndUser(pending.conversationId(), context.keycloakId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Conversation " + pending.conversationId() + " introuvable"));
 
-        // Construire le tool result : execution reelle OU "annule par user"
+        // Construire le tool result : execution reelle OU "annule par user".
+        // Partage entre les deux flux (mono + multi-agent).
         ToolResult result = confirmed
                 ? toolLoopRunner.executeConfirmed(pending, context)
                 : ToolResult.error("L'utilisateur a refuse l'execution de cette action.");
@@ -360,6 +367,15 @@ public class AgentOrchestrator {
                 pending.toolCallId(), result.content());
         messageRepository.save(toolMsg);
 
+        // ─── Branche HITL multi-agent : re-entrer dans le flow multi-agent ───
+        if (pending.isMultiAgent()) {
+            resumeMultiAgentAfterConfirmation(pending, result, context, conversation, consumer);
+            conversation.setUpdatedAt(LocalDateTime.now());
+            conversationRepository.save(conversation);
+            return conversation.getId();
+        }
+
+        // ─── Branche mono-agent (inchangée) ───
         // Construire le ChatRequest a partir de l'historique stocke + tool result
         List<ChatMessage> messages = new ArrayList<>(pending.pendingHistory());
         messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
@@ -368,7 +384,8 @@ public class AgentOrchestrator {
         AssistantTargetResolver.ChatTarget target =
                 targetResolver.resolve(context.organizationId(), context.modelOverride());
         ChatRequest request = new ChatRequest(
-                resumeSystem.cacheablePrefix(), messages, toolRegistry.listDescriptors(),
+                resumeSystem.cacheablePrefix(), messages,
+                RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context),
                 target.model() != null ? target.model() : conversation.getModel(),
                 DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN, resumeSystem.volatileSuffix(),
                 target.provider(), target.baseUrl());
@@ -378,6 +395,126 @@ public class AgentOrchestrator {
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
         return conversation.getId();
+    }
+
+    /**
+     * Reprise du flow multi-agent apres confirmation/refus (HITL natif).
+     *
+     * <p>Re-entre dans le moteur multi-agent : le specialist en pause finit sa
+     * boucle avec le tool result injecte (cf.
+     * {@link com.clenzy.service.agent.multiagent.OrchestratorAgent#resumeOrchestration}),
+     * puis l'orchestrateur continue jusqu'a la reponse finale. Emet les widgets +
+     * texte + done, et persiste le message assistant — parite avec
+     * {@link #tryMultiAgentFlow}.</p>
+     *
+     * <p>Re-pause (chainage) : si le specialist re-demande une confirmation, on
+     * re-persiste le nouveau contexte et on emet une nouvelle pause.</p>
+     */
+    private void resumeMultiAgentAfterConfirmation(
+            PendingToolStore.PendingTool pending,
+            ToolResult confirmedToolResult,
+            AgentContext context,
+            AssistantConversation conversation,
+            Consumer<AgentSseEvent> consumer) {
+
+        com.clenzy.service.agent.multiagent.MultiAgentPendingContext maCtx =
+                pending.multiAgentContext();
+
+        // Re-charger memoires + RAG (le dernier message user est en BDD) pour que
+        // le specialist repris + l'orchestrateur disposent du meme contexte.
+        // Best-effort : si la conv n'a pas de dernier message user (cas limite),
+        // contexte vide → degradation gracieuse.
+        com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
+                com.clenzy.service.agent.multiagent.OrchestrationContext.empty();
+
+        // Cible LLM : reprise depuis le contexte effectif capture a la pause
+        // (modele/provider/baseUrl resolus). Re-resoudre la cle BYOK au resume.
+        AgentContext effective = context.withAiTarget(
+                maCtx.effectiveContext().modelOverride(),
+                maCtx.effectiveContext().aiProvider(),
+                maCtx.effectiveContext().aiBaseUrl());
+        AssistantTargetResolver.ChatTarget target =
+                targetResolver.resolve(context.organizationId(), effective.modelOverride());
+        String apiKey = target.apiKey();
+
+        com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result;
+        try {
+            result = multiAgentOrchestrator.resumeOrchestration(
+                    maCtx, effective, orchestrationCtx, apiKey, confirmedToolResult,
+                    delta -> consumer.accept(AgentSseEvent.textDelta(delta)),
+                    consumer);
+        } catch (com.clenzy.service.agent.multiagent.MultiAgentConfirmationPauseException pause) {
+            // Chainage : une nouvelle confirmation est requise. On re-pause.
+            pauseMultiAgentForConfirmation(pause.pendingContext(),
+                    new ArrayList<>(pending.pendingHistory()), context, conversation, consumer);
+            return;
+        }
+
+        if (!result.isSuccess()) {
+            // Pas de fallback possible ici (le tool a deja ete execute). On remonte
+            // l'erreur au user proprement.
+            consumer.accept(AgentSseEvent.error(
+                    "Reprise multi-agent en erreur : " + result.error()));
+            return;
+        }
+
+        // Emission widgets + persistance + usage + 'done' : logique partagee avec
+        // tryMultiAgentFlow (cf. finalizeMultiAgentTurn).
+        finalizeMultiAgentTurn(result, conversation, context, consumer);
+    }
+
+    /**
+     * Finalise un tour multi-agent : emet les widgets (dedup anti-boucle), persiste le
+     * message assistant + tokens, track l'usage (badge cout), puis emet {@code done}.
+     *
+     * <p>Logique unique partagee entre le flux nominal ({@link #tryMultiAgentFlow}) et la
+     * reprise apres confirmation ({@link #resumeMultiAgentAfterConfirmation}) — auparavant
+     * dupliquee a l'identique (consolidation #4).</p>
+     *
+     * <p>Le {@code toolCallId} "ma-"+UUID ("ma" = multi-agent prefix) evite la collision
+     * de React key cote front ; les widgets sont serialises dans la meme shape que le SSE
+     * pour se re-hydrater a l'identique au reload de la conversation.</p>
+     */
+    private void finalizeMultiAgentTurn(
+            com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result,
+            AssistantConversation conversation,
+            AgentContext context,
+            Consumer<AgentSseEvent> consumer) {
+        List<PersistedToolCall> widgets = new ArrayList<>();
+        java.util.Set<String> seenWidgets = new java.util.HashSet<>();
+        for (com.clenzy.service.agent.multiagent.ToolInvocationSnapshot snap : result.toolInvocations()) {
+            // Dedup anti-boucle : un modele qui re-appelle le meme tool (memes args
+            // -> meme contenu) ne doit produire qu'UN widget (sinon N cartes identiques).
+            String wsig = snap.toolName() + "::" + (snap.content() == null ? "" : snap.content());
+            if (!seenWidgets.add(wsig)) continue;
+            String widgetId = "ma-" + java.util.UUID.randomUUID();
+            String toolResult = snap.isError() ? null : snap.content();
+            consumer.accept(AgentSseEvent.toolCallExecuted(
+                    snap.toolName(), widgetId, snap.isError(), snap.displayHint(), toolResult));
+            widgets.add(new PersistedToolCall(
+                    snap.toolName(), widgetId, snap.isError(), snap.displayHint(), toolResult));
+        }
+
+        String finalText = result.finalText() == null ? "" : result.finalText();
+        AssistantMessage assistantMsg = AssistantMessage.assistant(
+                conversation.getId(), context.organizationId(),
+                finalText, serializeWidgetsSafe(widgets));
+        assistantMsg.setPromptTokens(result.totalPromptTokens());
+        assistantMsg.setCompletionTokens(result.totalCompletionTokens());
+        assistantMsg.setFinishReason(result.truncated() ? "length" : "end_turn");
+        messageRepository.save(assistantMsg);
+
+        // Track usage : 1 record aggregate par tour multi-agent (orchestrator + somme des
+        // specialists). Le modele de reference est le modele primaire stocke sur la conv
+        // (estimation conservative du cout si plusieurs modeles).
+        String multiAgentModel = conversation.getModel() != null
+                ? conversation.getModel() : "claude-sonnet-4";
+        toolLoopRunner.recordUsageSafe(context.organizationId(),
+                context.aiProvider() != null ? context.aiProvider() : "anthropic",
+                result.totalPromptTokens(), result.totalCompletionTokens(),
+                multiAgentModel, result.truncated() ? "length" : "end_turn");
+
+        consumer.accept(AgentSseEvent.done(result.truncated() ? "length" : "end_turn"));
     }
 
     // ─── Multi-agent flow (helpers) ────────────────────────────────────────
@@ -399,11 +536,28 @@ public class AgentOrchestrator {
     private boolean canUseMultiAgent(AgentContext context, boolean hasAttachments) {
         if (!multiAgentEnabled) return false;
         if (hasAttachments) return false;
+        // Roles operationnels (technicien/menage/supervisor...) : on force le mono-agent,
+        // ou le sous-ensemble d'outils restreint (RoleToolPolicy) s'applique. Les
+        // specialists multi-agent portent des outils trop larges pour ces roles.
+        if (RoleToolPolicy.isOperational(context)) return false;
         // Briefings (BriefingComposer) forcent un modelOverride Haiku — skip multi-agent
         // pour preserver leur flow specifique (prompts structures DAILY/WEEKLY/ALERTS).
         if (context.modelOverride() != null) return false;
         if (multiAgentOrchestrator == null) return false;
         return specialistRegistry != null && specialistRegistry.size() > 0;
+    }
+
+    /**
+     * Detecte un echec de type rate-limit (HTTP 429 / "Too Many Requests") dans
+     * le message d'erreur d'une orchestration. Sur ce cas, retenter en mono-agent
+     * sur le meme provider est inutile (re-429 immediat) → on rend l'erreur
+     * gracieuse directement.
+     */
+    private static boolean isRateLimitError(String error) {
+        if (error == null) return false;
+        String e = error.toLowerCase();
+        return e.contains("429") || e.contains("too many requests") || e.contains("rate-limit")
+                || e.contains("rate limit");
     }
 
     /**
@@ -431,11 +585,34 @@ public class AgentOrchestrator {
         // Streaming progressif : l'orchestrateur relaie chaque fragment du texte
         // final via ce sink des qu'il arrive (parite UX avec le mono-agent), au
         // lieu d'un unique delta apres coup. Seul le tour final produit du texte.
-        com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result =
-                multiAgentOrchestrator.orchestrate(chatHistory, context, orchestrationCtx, apiKey,
-                        delta -> consumer.accept(AgentSseEvent.textDelta(delta)));
+        com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result;
+        try {
+            // activitySink : relaie l'activite des agents (constellation Superviseur)
+            // sur le MEME consumer SSE. Purement informatif (le pont AG-UI le
+            // traduit en STATE_SNAPSHOT) — n'altere pas le flux texte/tools.
+            result = multiAgentOrchestrator.orchestrate(chatHistory, context, orchestrationCtx, apiKey,
+                    delta -> consumer.accept(AgentSseEvent.textDelta(delta)),
+                    consumer);
+        } catch (com.clenzy.service.agent.multiagent.MultiAgentConfirmationPauseException pause) {
+            // HITL natif : un specialist a rencontre un tool a confirmation. On
+            // met le flow EN PAUSE (sans fallback mono) et on expose la
+            // confirmation au user via SSE. Le pont AG-UI traduit en interrupt.
+            pauseMultiAgentForConfirmation(pause.pendingContext(), chatHistory,
+                    context, conversation, consumer);
+            return true;  // "handled" : surtout PAS de fallback mono-agent.
+        }
 
         if (!result.isSuccess()) {
+            // Sur un rate-limit (429), le fallback mono-agent est CONTRE-PRODUCTIF :
+            // c'est le MEME provider/quota → il re-429 immediatement (double la charge
+            // sur le quota free-tier + ~3s de latence inutile). On rend l'erreur
+            // gracieuse directement (le pont AG-UI la traduit en message user lisible).
+            if (isRateLimitError(result.error())) {
+                log.warn("Multi-agent rate-limited ({}) — pas de fallback mono (meme provider)",
+                        result.error());
+                consumer.accept(AgentSseEvent.error(result.error()));
+                return true;  // "handled" : surtout PAS de fallback mono-agent.
+            }
             log.warn("Multi-agent returned error : {} — fallback mono-agent", result.error());
             return false;
         }
@@ -453,50 +630,55 @@ public class AgentOrchestrator {
         //    Le frontend range les widgets dans draft.toolCalls[] (slot distinct du
         //    texte) : l'ordre vis-a-vis des text_delta deja streames est sans effet
         //    sur le rendu final.
-        List<PersistedToolCall> widgets = new ArrayList<>();
-        for (com.clenzy.service.agent.multiagent.ToolInvocationSnapshot snap : result.toolInvocations()) {
-            String toolCallId = "ma-" + java.util.UUID.randomUUID();
-            String toolResult = snap.isError() ? null : snap.content();
-            consumer.accept(AgentSseEvent.toolCallExecuted(
-                    snap.toolName(), toolCallId, snap.isError(), snap.displayHint(), toolResult));
-            widgets.add(new PersistedToolCall(
-                    snap.toolName(), toolCallId, snap.isError(), snap.displayHint(), toolResult));
-        }
+        // Emission widgets + persistance + usage + 'done' : logique partagee avec la
+        // reprise apres confirmation (cf. finalizeMultiAgentTurn, consolidation #4).
+        finalizeMultiAgentTurn(result, conversation, context, consumer);
+        return true;
+    }
 
-        // Persister le message assistant (avec tokens + finish reason). finalText
-        //    == la concatenation des fragments deja streames via le sink. Les widgets
-        //    sont serialises dans la meme forme que le shape SSE (cf. PersistedToolCall)
-        //    pour que parseToolCallsJsonSafe les re-hydrate au reload.
-        String finalText = result.finalText() == null ? "" : result.finalText();
-        AssistantMessage assistantMsg = AssistantMessage.assistant(
+    /**
+     * Met le flow multi-agent EN PAUSE sur un tool a confirmation : persiste le
+     * contexte de reprise dans {@link PendingToolStore} (clé = id du tool call,
+     * comme le mono-agent) et emet les events SSE de pause.
+     *
+     * <p>Le {@code pendingHistory} BDD (chatHistory) est conservé pour parité
+     * avec le mono — la reprise multi-agent s'appuie sur le
+     * {@link com.clenzy.service.agent.multiagent.MultiAgentPendingContext}.</p>
+     */
+    private void pauseMultiAgentForConfirmation(
+            com.clenzy.service.agent.multiagent.MultiAgentPendingContext pending,
+            List<ChatMessage> chatHistory,
+            AgentContext context,
+            AssistantConversation conversation,
+            Consumer<AgentSseEvent> consumer) {
+
+        ChatMessage.ToolCall toolCall = pending.pendingToolCall();
+
+        String description = toolRegistry.find(toolCall.name())
+                .map(h -> h.descriptor() != null ? h.descriptor().description() : null)
+                .orElse(null);
+
+        // Persistance : meme cle (toolCallId) + memes garanties (TTL, ownership
+        // keycloakId, index Redis "en attente") que le mono-agent. Le
+        // multiAgentContext distingue la reprise multi-agent de la reprise mono.
+        pendingToolStore.put(
+                toolCall.id(),
                 conversation.getId(),
                 context.organizationId(),
-                finalText,
-                serializeWidgetsSafe(widgets)
+                context.keycloakId(),
+                toolCall.name(),
+                toolCall.arguments(),
+                chatHistory,
+                pending,
+                description
         );
-        assistantMsg.setPromptTokens(result.totalPromptTokens());
-        assistantMsg.setCompletionTokens(result.totalCompletionTokens());
-        assistantMsg.setFinishReason(result.truncated() ? "length" : "end_turn");
-        messageRepository.save(assistantMsg);
 
-        // Track usage : 1 record aggregate par tour multi-agent (orchestrator +
-        // somme des specialists). Granularite acceptable pour le badge frontend ;
-        // la granularite par specialist viendra en v2 du multi-agent quand on
-        // streamera les events specialist par specialist.
-        // Modele de reference : la conv stocke le modele primaire (Sonnet) — on
-        // l'utilise pour le pricing. Si plusieurs modeles utilises (Sonnet
-        // orchestrator + Haiku specialists), le cout sera approximatif vers le
-        // haut (Sonnet est plus cher), donc estimation conservative — OK.
-        String multiAgentModel = conversation.getModel() != null
-                ? conversation.getModel() : "claude-sonnet-4";
-        toolLoopRunner.recordUsageSafe(context.organizationId(),
-                context.aiProvider() != null ? context.aiProvider() : "anthropic",
-                result.totalPromptTokens(), result.totalCompletionTokens(),
-                multiAgentModel, result.truncated() ? "length" : "end_turn");
+        consumer.accept(AgentSseEvent.toolConfirmationRequest(
+                toolCall.name(), toolCall.id(), toolCall.arguments(), description));
+        consumer.accept(AgentSseEvent.pausedAwaitingConfirmation());
 
-        // Emettre done
-        consumer.accept(AgentSseEvent.done(result.truncated() ? "length" : "end_turn"));
-        return true;
+        log.info("Multi-agent paused for confirmation (tool '{}', specialist '{}', conv {})",
+                toolCall.name(), pending.specialistName(), conversation.getId());
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────

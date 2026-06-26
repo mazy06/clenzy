@@ -1,69 +1,99 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, ButtonBase, Skeleton } from '@mui/material';
-import { Plus, LayoutTemplate, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Box, Menu, MenuItem, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
+import {
+  Plus, LayoutDashboard, Sparkles, ArrowUp, Search, Home, Layers, FileText,
+  ShoppingBag, Zap, ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
+} from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfig, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
+import { BUILTIN_FUNNEL_PRESETS } from './grapes/funnelPresets';
+import { GALLERY_TEMPLATES } from './grapes/import/galleryTemplates';
+import { DESIGN_PRESETS } from '../constants';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
+import { useAuth } from '../../../hooks/useAuth';
+import { useAiFeatureToggles } from '../../../hooks/useAi';
+import './studioHome.css';
 
 /**
- * Accueil du Baitly Studio (F1) : « Mes booking engines » (liste réelle via l'API admin) +
- * création d'un booking engine VIERGE. Ouvrir un projet → éditeur GrapesJS (StudioPage) sur une
- * page vierge ; l'utilisateur compose librement (ou importe un template via le panneau d'import grapes).
+ * Accueil « studio » du Booking Engine (refonte handoff design_handoff_booking_accueil) :
+ * hero + champ IA + éventail de funnels + galerie de templates + liste « Mes booking engines ».
+ * Zone de CONTENU uniquement — le chrome (sidebar, top bar segmentée, sous-onglets) est fourni
+ * par le parent. Accent module = indigo via le wrapper `data-accent="indigo"`.
+ *
+ * Câblage : la liste, la création (vierge / depuis funnel / depuis template / depuis le champ IA)
+ * sont réelles (bookingEngineApi). Les champs sûrs (couleur/police d'un style ou d'un template,
+ * URL source) sont posés sur la config à la création. L'APPLICATION fine en éditeur (analyse IA
+ * du site, insertion des widgets du funnel, import des pages d'un template) vit dans l'éditeur
+ * GrapesJS et est transmise via `location.state` — cf. les TODO marqués ci-dessous.
  */
 
-/**
- * Payload de création d'un booking engine VIERGE. `pageLayout=null` → l'éditeur GrapesJS démarre
- * sur une page blanche (la source legacy `config.pageLayout` n'est plus lue ; le design vit dans
- * `SitePage.blocks`, résolu via useSitePages.ensureForConfig côté éditeur).
- */
-function buildConfigPayload(name: string): BookingEngineConfigUpdate {
+/** Payload de création d'un booking engine vierge (éditeur démarre sur page blanche). */
+export function buildConfigPayload(name: string): BookingEngineConfigUpdate {
   return {
     name,
-    primaryColor: '#5453D6', // défaut indigo Baitly Signature
-    accentColor: null,
-    logoUrl: null,
-    fontFamily: 'Inter',
-    defaultLanguage: 'fr',
-    defaultCurrency: 'EUR',
-    minAdvanceDays: 1,
-    maxAdvanceDays: 365,
-    cancellationPolicy: null,
-    termsUrl: null,
-    privacyUrl: null,
-    allowedOrigins: null,
-    collectPaymentOnBooking: true,
-    autoConfirm: true,
-    showCleaningFee: true,
-    showTouristTax: true,
-    directBookingDiscountPercent: null,
-    memberDiscountPercent: null,
-    pendingHoldMinutes: null,
-    customCss: null,
-    customJs: null,
-    componentConfig: null,
-    pageLayout: null,
-    funnelPresets: null,
-    compositeWidgets: null,
-    featuredPropertyIds: null,
-    designTokens: null,
-    sourceWebsiteUrl: null,
-    aiAnalysisAt: null,
-    widgetPosition: 'bottom',
-    inlineTargetId: null,
+    primaryColor: '#5453D6', accentColor: null, logoUrl: null, fontFamily: 'Inter',
+    defaultLanguage: 'fr', defaultCurrency: 'EUR', minAdvanceDays: 1, maxAdvanceDays: 365,
+    cancellationPolicy: null, termsUrl: null, privacyUrl: null, allowedOrigins: null,
+    collectPaymentOnBooking: true, autoConfirm: true, showCleaningFee: true, showTouristTax: true,
+    directBookingDiscountPercent: null, memberDiscountPercent: null, pendingHoldMinutes: null,
+    customCss: null, customJs: null, componentConfig: null, pageLayout: null,
+    funnelPresets: null, compositeWidgets: null, featuredPropertyIds: null, designTokens: null,
+    sourceWebsiteUrl: null, aiAnalysisAt: null, widgetPosition: 'bottom', inlineTargetId: null,
     inlinePlacement: 'after',
   };
 }
 
-/**
- * @param embedded rendu DANS l'onglet « Booking Engine » de « Réservation & accueil »
- * (pas de chrome pleine page : header dans le PageHeader partagé du parent). `false` = route
- * autonome `/booking-engine/studio`.
- */
+// ── Données d'affichage ──────────────────────────────────────────────────────
+
+/** Funnels mis en avant dans l'éventail (5 parmi les presets intégrés) + icône lucide. */
+const FAN_FUNNEL_ICONS: Record<string, typeof LayoutDashboard> = {
+  catalogue: LayoutDashboard, single: Home, inquiry: FileText, extras: ShoppingBag, express: Zap,
+};
+const FAN_FUNNELS = ['catalogue', 'single', 'inquiry', 'extras', 'express']
+  .map((id) => BUILTIN_FUNNEL_PRESETS.find((f) => f.id === id))
+  .filter((f): f is NonNullable<typeof f> => !!f);
+
+/** Funnel associé à un template (pour le badge de la carte). */
+const TEMPLATE_FUNNEL_LABEL: Record<string, string> = {
+  'conciergerie-marrakech': 'Recherche Catalogue',
+  'villa-bord-de-mer': 'Recherche Catalogue',
+  'recherche-catalogue-premium': 'Recherche Catalogue',
+};
+
+/** Libellé lisible d'un style preset (à défaut d'i18n ici). */
+function styleLabel(id: string): string {
+  return id.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+const EXAMPLES = [
+  { icon: Search, text: 'Analyser premium-conciergerie.com', prompt: 'https://premium-conciergerie.com' },
+  { icon: Home, text: 'Conciergerie de riads à Marrakech', prompt: 'Conciergerie de riads de luxe à Marrakech, réservation directe multi-logements.' },
+  { icon: Layers, text: 'Importer mes annonces Airbnb', prompt: 'Importer mes annonces Airbnb pour créer un site de réservation directe.' },
+];
+
+const URL_RE = /^(https?:\/\/|www\.)|\.[a-z]{2,}(\/|$)/i;
+
 export default function StudioHome({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [configs, setConfigs] = useState<BookingEngineConfig[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+
+  // Champ IA
+  const [prompt, setPrompt] = useState('');
+  const [funnelId, setFunnelId] = useState<string>('catalogue');
+  const [styleId, setStyleId] = useState<string | null>(null); // null = automatique
+  const [funnelAnchor, setFunnelAnchor] = useState<HTMLElement | null>(null);
+  const [styleAnchor, setStyleAnchor] = useState<HTMLElement | null>(null);
+  const areaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Liste
+  const [query, setQuery] = useState('');
+  const [view, setView] = useState<'list' | 'grid'>('list');
+  // Suppression d'un booking engine (depuis « Mes booking engines ») : confirmation puis DELETE org-scopé.
+  const [confirmDelete, setConfirmDelete] = useState<BookingEngineConfig | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -73,147 +103,382 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     return () => { alive = false; };
   }, []);
 
-  // Crée un booking engine vierge puis ouvre l'éditeur (page blanche dans GrapesJS).
-  const handleCreate = async () => {
+  const initials = useMemo(() => {
+    const fromName = ((user?.firstName?.[0] ?? '') + (user?.lastName?.[0] ?? '')).toUpperCase();
+    if (fromName) return fromName;
+    const src = (user?.fullName || user?.email || 'AU').trim();
+    return src.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w: string) => w[0]?.toUpperCase() ?? '').join('') || 'AU';
+  }, [user]);
+
+  // Champ IA gated par le toggle STUDIO_ASSIST (Paramètres IA). Optimiste : actif tant que non chargé.
+  const { data: aiToggles } = useAiFeatureToggles();
+  const aiAssistOn = !aiToggles || (aiToggles.find((t) => t.feature === 'STUDIO_ASSIST')?.enabled ?? true);
+
+  /** Crée une config (avec overrides sûrs) puis ouvre l'éditeur. Si `analyzeUrl` est fourni (champ IA +
+   *  STUDIO_ASSIST actif), lance l'analyse de site → tokens design + CSS appliqués à la config (best-effort). */
+  const createAndOpen = async (
+    name: string,
+    overrides: Partial<BookingEngineConfigUpdate>,
+    navState?: Record<string, unknown>,
+    analyzeUrl?: string | null,
+  ) => {
     if (creating) return;
     setCreating(true);
     try {
-      const created = await bookingEngineApi.createConfig(buildConfigPayload('Nouveau booking engine'));
-      navigate(`/booking-engine/studio/${created.id}`);
+      const created = await bookingEngineApi.createConfig({ ...buildConfigPayload(name), ...overrides });
+      if (analyzeUrl) {
+        // Analyse IA du site avant d'ouvrir l'éditeur (non bloquant : un échec n'empêche pas l'édition).
+        try { await bookingEngineApi.analyzeWebsite(created.id, analyzeUrl); } catch { /* best-effort */ }
+      }
+      navigate(`/booking-engine/studio/${created.id}`, navState ? { state: navState } : undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Création impossible');
       setCreating(false);
     }
   };
 
-  const createButton = (
-    <ButtonBase onClick={handleCreate} disabled={creating} sx={primaryBtnSx}>
-      <Plus size={16} strokeWidth={2.2} /> Créer un booking engine
-    </ButtonBase>
+  const handleCreateBlank = () => createAndOpen('Nouveau booking engine', {});
+
+  const handleAiSubmit = () => {
+    const value = prompt.trim();
+    const isUrl = URL_RE.test(value);
+    const style = styleId ? DESIGN_PRESETS.find((p) => p.id === styleId) : undefined;
+    const name = value ? value.replace(/^https?:\/\//, '').split(/[\s/]+/)[0].slice(0, 40) : 'Nouveau booking engine';
+    // Analyse de site déclenchée ici (après création) si l'entrée est une URL ET le toggle IA est actif.
+    const analyzeUrl = isUrl && aiAssistOn ? value : null;
+    createAndOpen(
+      name,
+      {
+        sourceWebsiteUrl: isUrl ? value : null,
+        ...(style ? { primaryColor: style.primaryColor, fontFamily: style.fontFamily } : {}),
+      },
+      // navState : le funnel choisi reste consommé par l'éditeur (insertion des widgets au chargement).
+      { aiPrompt: value, funnelId, styleId },
+      analyzeUrl,
+    );
+  };
+
+  const handleFunnel = (id: string, label: string) =>
+    // TODO(éditeur) : insérer les widgets du funnel (FunnelPicker.onInsert) au chargement via ce state.
+    createAndOpen(label, {}, { funnelId: id });
+
+  const handleTemplate = (tplId: string) => {
+    const tpl = GALLERY_TEMPLATES.find((t) => t.id === tplId);
+    createAndOpen(
+      tpl?.name ?? 'Nouveau booking engine',
+      { ...(tpl?.theme?.primaryColor ? { primaryColor: tpl.theme.primaryColor } : {}), ...(tpl?.theme?.fontFamily ? { fontFamily: tpl.theme.fontFamily } : {}) },
+      // `templateId` consommé par GrapesStudio (effet d'auto-import) une fois l'éditeur + les pages prêts.
+      { templateId: tplId },
+    );
+  };
+
+  // Supprime le booking engine confirmé (DELETE org-scopé côté serveur) puis retire la ligne localement.
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await bookingEngineApi.deleteConfig(confirmDelete.id);
+      setConfigs((prev) => (prev ? prev.filter((c) => c.id !== confirmDelete.id) : prev));
+      setConfirmDelete(null);
+    } catch {
+      setError('La suppression du booking engine a échoué.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const filtered = useMemo(
+    () => (configs ?? []).filter((c) => c.name.toLowerCase().includes(query.trim().toLowerCase())),
+    [configs, query],
   );
 
-  // Mode embarqué : l'action « Créer » vit dans le PageHeader PARTAGÉ du parent (slot via
-  // PageHeaderActionsContext), comme les onglets Livret & Services. Hook appelé inconditionnellement
-  // (Rules of Hooks) ; hors provider (route autonome) il ne porte rien.
-  const headerPortal = usePageHeaderActions(embedded ? createButton : null);
+  // Action « Créer » portée dans le PageHeader partagé du parent (mode embarqué).
+  const headerPortal = usePageHeaderActions(
+    embedded ? (
+      <Box component="button" onClick={handleCreateBlank} disabled={creating} sx={primaryBtnSx}>
+        <Plus size={16} strokeWidth={2.2} /> Créer un booking engine
+      </Box>
+    ) : null,
+  );
 
   const content = (
-    <>
-      {error && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.5, borderRadius: 'var(--radius-md)',
-          bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
-          <AlertTriangle size={16} strokeWidth={2} /> {error}
-        </Box>
-      )}
-
-      {/* Loading */}
-      {configs === null && !error && (
-        <Box sx={gridSx}>
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />
-          ))}
-        </Box>
-      )}
-
-      {/* Empty state (enseigne) */}
-      {configs?.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Box sx={{ width: 56, height: 56, mx: 'auto', mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 'var(--radius-lg)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)' }}>
-            <LayoutTemplate size={26} strokeWidth={1.85} />
+    <Box className="be-home" data-accent="indigo">
+      <div className="canvas" style={{ maxWidth: 1180 }}>
+        {error && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 13 }}>
+            <AlertTriangle size={16} strokeWidth={2} /> {error}
           </Box>
-          <Box sx={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', mb: 0.5 }}>Aucun booking engine pour l'instant</Box>
-          <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', mb: 2.5 }}>Pars d'une page vierge et compose ton site.</Box>
-          <ButtonBase onClick={handleCreate} disabled={creating} sx={primaryBtnSx}>
-            <Plus size={16} strokeWidth={2.2} /> Créer mon premier booking engine
-          </ButtonBase>
-        </Box>
-      )}
+        )}
 
-      {/* Liste */}
-      {configs && configs.length > 0 && (
-        <Box sx={gridSx}>
-          {configs.map((c) => (
-            <ButtonBase
-              key={c.id}
-              onClick={() => navigate(`/booking-engine/studio/${c.id}`)}
-              sx={{
-                display: 'flex', flexDirection: 'column', alignItems: 'stretch', textAlign: 'left',
-                p: 2, borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', bgcolor: 'var(--card)',
-                cursor: 'pointer', transition: 'border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)',
-                '&:hover': { borderColor: 'var(--accent)', boxShadow: 'var(--shadow-card)' },
-                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
-                <Box sx={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', flexShrink: 0,
-                  bgcolor: c.primaryColor || 'var(--accent)' }} />
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</Box>
-                  <StatusBadge enabled={c.enabled} />
-                </Box>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', color: 'var(--accent)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)' }}>
-                Ouvrir <ArrowRight size={14} strokeWidth={2} />
-              </Box>
-            </ButtonBase>
+        {/* Studio à 2 colonnes : création (gauche) + rail templates vertical (droite). */}
+        <div className="studio-split">
+          <div className="studio-split__main">
+
+        {/* 1 · Hero */}
+        <div className="hero">
+          <p className="eyebrow">Booking Engine · Studio</p>
+          <h1>Quel booking engine créons-nous&nbsp;?</h1>
+        </div>
+
+        {/* 2 · Champ IA */}
+        {creating ? (
+          <Skeleton variant="rounded" height={170} sx={{ borderRadius: '20px', bgcolor: 'var(--hover)' }} />
+        ) : (
+          <div className="field">
+            <textarea
+              ref={areaRef}
+              className="field__area"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              aria-label="Décrivez votre activité ou collez l'URL de votre site"
+              placeholder={aiAssistOn
+                ? "Collez l'URL de votre site actuel à analyser, ou décrivez votre conciergerie…"
+                : "Décrivez votre conciergerie (l'analyse IA de site est désactivée — Paramètres › IA)…"}
+              onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAiSubmit(); }}
+            />
+            <div className="field__bar">
+              <button className="chip chip--icon" aria-label="Importer un fichier" type="button" title="Importer (bientôt)">
+                <Plus size={16} strokeWidth={2} />
+              </button>
+              <button className="chip" type="button" onClick={(e) => setFunnelAnchor(e.currentTarget)}>
+                <LayoutDashboard size={16} strokeWidth={2} />
+                <span className="lbl-faint">Funnel</span>
+                {BUILTIN_FUNNEL_PRESETS.find((f) => f.id === funnelId)?.label ?? 'Funnel'}
+                <ChevronDown size={14} strokeWidth={2} />
+              </button>
+              <button className="chip" type="button" onClick={(e) => setStyleAnchor(e.currentTarget)}>
+                <Sparkles size={16} strokeWidth={2} />
+                <span className="lbl-faint">Style</span>
+                {styleId ? styleLabel(styleId) : 'Automatique'}
+                <ChevronDown size={14} strokeWidth={2} />
+              </button>
+              <div className="field__spacer" />
+              <button className="send" type="button" aria-label="Générer" disabled={creating} onClick={handleAiSubmit}>
+                <ArrowUp size={19} strokeWidth={2.2} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <Menu anchorEl={funnelAnchor} open={!!funnelAnchor} onClose={() => setFunnelAnchor(null)}>
+          {BUILTIN_FUNNEL_PRESETS.map((f) => (
+            <MenuItem key={f.id} selected={f.id === funnelId} onClick={() => { setFunnelId(f.id); setFunnelAnchor(null); }} sx={{ fontSize: 13 }}>
+              {f.label}
+            </MenuItem>
           ))}
-        </Box>
-      )}
-    </>
+        </Menu>
+        <Menu anchorEl={styleAnchor} open={!!styleAnchor} onClose={() => setStyleAnchor(null)}>
+          <MenuItem selected={!styleId} onClick={() => { setStyleId(null); setStyleAnchor(null); }} sx={{ fontSize: 13 }}>Automatique</MenuItem>
+          {DESIGN_PRESETS.map((p) => (
+            <MenuItem key={p.id} selected={p.id === styleId} onClick={() => { setStyleId(p.id); setStyleAnchor(null); }} sx={{ fontSize: 13, gap: 1 }}>
+              <Box component="span" sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: p.primaryColor, flexShrink: 0 }} />
+              {styleLabel(p.id)}
+            </MenuItem>
+          ))}
+        </Menu>
+
+        {/* Exemples */}
+        {!creating && (
+          <div className="examples">
+            {EXAMPLES.map((ex) => (
+              <button key={ex.text} className="ex" type="button" onClick={() => { setPrompt(ex.prompt); areaRef.current?.focus(); }}>
+                <ex.icon size={14} strokeWidth={2} /> {ex.text}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 3 · Éventail de funnels */}
+        <div className="fan-wrap">
+          <p className="fan-lead">Ou partez d'un funnel prêt à l'emploi…</p>
+          <div className="fan">
+            {FAN_FUNNELS.map((f) => {
+              const Icon = FAN_FUNNEL_ICONS[f.id] ?? LayoutDashboard;
+              return (
+                <article
+                  key={f.id} className="fan__card" role="button" tabIndex={0}
+                  onClick={() => handleFunnel(f.id, f.label)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFunnel(f.id, f.label); } }}
+                >
+                  <div className="fan__vig"><Icon size={30} strokeWidth={1.6} /></div>
+                  {f.badge && <span className="fan__badge">{f.badge}</span>}
+                  <p className="fan__name">{f.label}</p>
+                  <p className="fan__desc">{f.description}</p>
+                </article>
+              );
+            })}
+          </div>
+          <div className="blank-row">
+            <button className="blank" type="button" onClick={handleCreateBlank} disabled={creating}>
+              Partir d'une page vierge <ArrowRight size={16} strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+
+          </div>{/* /studio-split__main */}
+
+          <aside className="studio-split__rail">
+        {/* 4 · Templates prêts à l'emploi (rail vertical) */}
+        <section className="templates templates--rail">
+          <div className="tpl-head">
+            <div>
+              <p className="eyebrow2">Templates</p>
+              <h2 className="tpl-title">Des sites prêts à l'emploi</h2>
+            </div>
+            {/* Aperçu = 3 premiers ; la galerie complète (paginée) vit sur /booking-engine/templates. */}
+            <button className="tpl-all" type="button" onClick={() => navigate('/booking-engine/templates')}>
+              Voir tous les templates <ArrowRight size={15} strokeWidth={2} />
+            </button>
+          </div>
+          <div className="tpl-grid">
+            {GALLERY_TEMPLATES.slice(0, 3).map((tpl) => {
+              const c1 = tpl.theme?.primaryColor || 'var(--accent)';
+              return (
+                <article
+                  key={tpl.id} className="tpl-card" role="button" tabIndex={0}
+                  onClick={() => handleTemplate(tpl.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTemplate(tpl.id); } }}
+                >
+                  <div className="tpl-thumb">
+                    {tpl.thumbnail ? (
+                      <img src={tpl.thumbnail} alt="" />
+                    ) : (
+                      // Repli mini-aperçu CSS aux couleurs du template (TODO : vrai screenshot).
+                      <div className="mini" style={{ ['--t1' as string]: c1, ['--t2' as string]: c1, ['--t3' as string]: 'var(--surface-2)' }}>
+                        <div className="mini__bar"><span className="mini__logo" /><span className="mini__nav" /><span className="mini__nav" /><span className="mini__nav sp" /></div>
+                        <div className="mini__hero"><span className="mini__h1" /><span className="mini__h2" /><span className="mini__search" /></div>
+                        <div className="mini__cards"><span /><span /><span /></div>
+                      </div>
+                    )}
+                    <div className="tpl-use"><span><Plus size={15} strokeWidth={2} /> Utiliser ce template</span></div>
+                  </div>
+                  <div className="tpl-body">
+                    <p className="tpl-name">{tpl.name}</p>
+                    <div className="tpl-meta">
+                      <span className="tpl-tag">{TEMPLATE_FUNNEL_LABEL[tpl.id] ?? 'Recherche Catalogue'}</span>
+                      {tpl.description && <span className="tpl-style">{tpl.description}</span>}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+          </aside>{/* /studio-split__rail */}
+        </div>{/* /studio-split */}
+
+        {/* 5 · Mes booking engines */}
+        <section className="list">
+          <div className="list__head">
+            <h2>Mes booking engines</h2>
+            <span className="count">{configs?.length ?? 0}</span>
+            <div className="sp" />
+            <label className="search">
+              <Search size={15} strokeWidth={2} />
+              <input placeholder="Rechercher…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </label>
+            <div className="view">
+              <button className={view === 'list' ? 'on' : ''} aria-label="Liste" type="button" onClick={() => setView('list')}><ListIcon size={16} strokeWidth={2} /></button>
+              <button className={view === 'grid' ? 'on' : ''} aria-label="Grille" type="button" onClick={() => setView('grid')}><LayoutGrid size={16} strokeWidth={2} /></button>
+            </div>
+          </div>
+
+          {configs === null && !error && <Skeleton variant="rounded" height={132} sx={{ borderRadius: '14px', bgcolor: 'var(--hover)' }} />}
+
+          {configs && configs.length === 0 && (
+            <Box sx={{ textAlign: 'center', py: 6, color: 'var(--muted)', fontSize: 14 }}>
+              Aucun booking engine pour l'instant — partez d'un funnel, d'un template, ou décrivez votre activité ci-dessus.
+            </Box>
+          )}
+
+          {configs && configs.length > 0 && view === 'list' && (
+            <div className="tbl">
+              <div className="tbl__h"><span>Nom</span><span>Statut</span><span>Dernière modif.</span><span>Accès</span></div>
+              {filtered.map((c) => (
+                <div key={c.id} className="row-wrap">
+                  <button className="row" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
+                    <div className="row__name">
+                      <div className="row__ic" style={{ background: c.primaryColor || 'var(--accent)' }}><LayoutDashboard size={19} strokeWidth={2} /></div>
+                      <div>
+                        <p className="row__t">{c.name}</p>
+                        {/* TODO : vraie URL publique (la config n'expose pas de slug). */}
+                        <p className="row__u">{c.enabled ? 'Publié' : 'Brouillon · non publié'}</p>
+                      </div>
+                    </div>
+                    <span className={`status ${c.enabled ? 'active' : 'off'}`}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
+                    {/* TODO : « dernière modif » (la config n'expose pas updatedAt). */}
+                    <span className="row__meta">—</span>
+                    <div className="row__acc"><span className="av-sm">{initials}</span><span className="row__go"><ArrowRight size={17} strokeWidth={2} /></span></div>
+                  </button>
+                  <button className="row__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={16} strokeWidth={2} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {configs && configs.length > 0 && view === 'grid' && (
+            <div className="grid">
+              {filtered.map((c) => (
+                <div key={c.id} className="gcard-wrap">
+                  <button className="gcard" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+                      <Box sx={{ width: 36, height: 36, borderRadius: '10px', flexShrink: 0, bgcolor: c.primaryColor || 'var(--accent)' }} />
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Box sx={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--ink)' }}>{c.name}</Box>
+                        <span className={`status ${c.enabled ? 'active' : 'off'}`} style={{ fontSize: 12 }}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
+                      Ouvrir <ArrowRight size={14} strokeWidth={2} />
+                    </Box>
+                  </button>
+                  <button className="gcard__del" type="button" aria-label={`Supprimer ${c.name}`} title="Supprimer" onClick={() => setConfirmDelete(c)}><Trash2 size={15} strokeWidth={2} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <Dialog open={!!confirmDelete} onClose={() => !deleting && setConfirmDelete(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Supprimer ce booking engine ?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'var(--muted)' }}>
+            « {confirmDelete?.name} » sera définitivement supprimé, avec ses pages et son contenu. Cette action est irréversible.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setConfirmDelete(null)} disabled={deleting} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
+          <Button onClick={handleDelete} disabled={deleting} color="error" variant="contained" disableElevation startIcon={<Trash2 size={16} strokeWidth={2} />} sx={{ textTransform: 'none' }}>
+            {deleting ? 'Suppression…' : 'Supprimer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 
   return (
     <>
       {embedded ? (
-        <Box sx={{ color: 'var(--ink)', px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
+        <Box sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
           {headerPortal}
           {content}
         </Box>
       ) : (
-        <Box sx={{ minHeight: '100vh', bgcolor: 'var(--bg)', color: 'var(--ink)' }}>
-          <Box sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>
-            {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, mb: 4 }}>
-              <Box>
-                <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', mb: 0.5 }}>
-                  Mes booking engines
-                </Box>
-                <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)' }}>
-                  Conçois et diffuse tes sites de réservation directe.
-                </Box>
-              </Box>
-              <Box sx={{ flex: 1 }} />
-              {createButton}
-            </Box>
-            {content}
-          </Box>
+        <Box sx={{ minHeight: '100vh', bgcolor: 'var(--bg)' }}>
+          <Box sx={{ px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>{content}</Box>
         </Box>
       )}
     </>
   );
 }
 
-function StatusBadge({ enabled }: { enabled: boolean }) {
-  return (
-    <Box component="span" sx={{
-      display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.25,
-      fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)',
-      color: enabled ? 'var(--ok)' : 'var(--muted)',
-    }}>
-      <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: enabled ? 'var(--ok)' : 'var(--faint)' }} />
-      {enabled ? 'Actif' : 'Désactivé'}
-    </Box>
-  );
-}
-
-const gridSx = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 2 } as const;
-
 const primaryBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 38, px: 2,
+  display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 38, px: 2, border: 0,
   borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-  fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer', flexShrink: 0,
+  fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13.5, cursor: 'pointer', flexShrink: 0,
   transition: 'background var(--duration-fast) var(--ease-out)',
   '&:hover': { bgcolor: 'var(--accent-deep)' },
+  '&:disabled': { opacity: 0.6, cursor: 'not-allowed' },
   '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
 } as const;

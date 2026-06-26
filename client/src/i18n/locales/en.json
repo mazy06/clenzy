@@ -1,4 +1,118 @@
 {
+  "supervision": {
+    "title": "Supervision center",
+    "subtitle": "Your AI agents are working on this property",
+    "agents": {
+      "com": {
+        "name": "Communication",
+        "role": "Guest messages"
+      },
+      "rev": {
+        "name": "Revenue",
+        "role": "Dynamic pricing"
+      },
+      "ops": {
+        "name": "Operations",
+        "role": "Cleaning & interventions"
+      },
+      "fin": {
+        "name": "Finance",
+        "role": "Payments & statements"
+      },
+      "rep": {
+        "name": "Reviews & Reputation",
+        "role": "Reviews & rating"
+      }
+    },
+    "status": {
+      "veille": "Idle",
+      "think": "Thinking",
+      "act": "Acting",
+      "wait": "Awaiting your approval",
+      "esc": "Escalated",
+      "err": "Error"
+    },
+    "autonomy": {
+      "suggest": "Suggest",
+      "notify": "Act then notify",
+      "full": "Auto",
+      "suggestHint": "Agents propose, you decide",
+      "notifyHint": "They act and keep you informed",
+      "fullHint": "They handle it fully autonomously"
+    },
+    "autonomyShort": {
+      "suggest": "Suggest",
+      "notify": "Notify",
+      "full": "Auto"
+    },
+    "scope": {
+      "byProperty": "By property",
+      "portfolio": "Overview"
+    },
+    "states": {
+      "loading": "Connecting to agents…",
+      "live": "Live",
+      "offline": "Offline",
+      "reconnecting": "Reconnecting…",
+      "retry": "Retry"
+    },
+    "hitl": {
+      "validate": "Approve",
+      "edit": "Edit",
+      "why": "Why?",
+      "expiresIn": "expires in {{time}}",
+      "alreadyHandled": "Already handled",
+      "alreadyHandledBy": "Already handled by {{name}}",
+      "expired": "Expired",
+      "empty": "Nothing to approve",
+      "toValidate": "to approve",
+      "validated": "Approved",
+      "lessThanMin": "< 1 min",
+      "unitHour": "h",
+      "unitMin": "min"
+    },
+    "approval": {
+      "title": "Approval required",
+      "reject": "Reject",
+      "validate": "Approve",
+      "submitting": "Sending…"
+    },
+    "hud": {
+      "orchestrator": "Orchestrator",
+      "active": "active",
+      "agents": "agents",
+      "acting": "acting",
+      "awaiting": "awaiting",
+      "focusHint": "Hover an agent for details"
+    },
+    "legend": {
+      "acting": "Acting",
+      "awaiting": "Awaiting your approval",
+      "thinking": "Thinking",
+      "idle": "Idle"
+    },
+    "queue": {
+      "title": "Awaiting your approval"
+    },
+    "feed": {
+      "title": "Live"
+    },
+    "drawer": {
+      "ventilation": "Breakdown by property",
+      "noActivity": "No activity"
+    },
+    "portfolio": {
+      "title": "Overview"
+    },
+    "attention": "{{count}} action awaiting your approval",
+    "attention_other": "{{count}} actions awaiting your approval",
+    "chat": {
+      "placeholder": "Ask the agents something…",
+      "inputLabel": "Message to the agents",
+      "send": "Send",
+      "thinking": "The agents are working…"
+    }
+  },
   "channexGuided": {
     "title": "Distribute your properties",
     "subtitle": "List your properties on Airbnb, Booking, Vrbo… and sync everything from Baitly.",
@@ -4242,6 +4356,11 @@
           "name": "Sentiment AI",
           "description": "Guest review sentiment analysis",
           "menu": "Reviews"
+        },
+        "studioAssist": {
+          "name": "Creation assistant (AI field)",
+          "description": "Website analysis, listing import and section generation (Studio & guide)",
+          "menu": "Studio"
         }
       }
     },

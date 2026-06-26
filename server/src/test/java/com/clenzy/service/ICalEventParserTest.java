@@ -141,15 +141,19 @@ class ICalEventParserTest {
         }
 
         @Test
-        void whenSummaryIsBlank_thenEventIsFilteredOut() {
-            // Blank summary is treated as a blocked/non-reservation event
+        void whenSummaryIsBlank_thenEmittedAsBlockedEvent() {
+            // Un SUMMARY vide est traite comme un blocage de calendrier : emis avec
+            // type="blocked" + ses dates (reconcilie en CalendarDay BLOCKED a l'import).
             String ical = buildIcal(
                     buildVEvent("uid-1", "", "20260301", "20260305")
             );
 
             List<ICalEventPreview> events = ICalEventParser.parseEvents(toStream(ical));
 
-            assertThat(events).isEmpty();
+            assertThat(events).hasSize(1);
+            assertThat(events.get(0).getType()).isEqualTo("blocked");
+            assertThat(events.get(0).getDtStart()).isEqualTo(LocalDate.of(2026, 3, 1));
+            assertThat(events.get(0).getDtEnd()).isEqualTo(LocalDate.of(2026, 3, 5));
         }
     }
 
@@ -300,13 +304,15 @@ class ICalEventParserTest {
         }
 
         @Test
-        void whenBlockedEvent_thenNotCountedAsUnparsable() {
+        void whenBlockedEvent_thenEmittedAsBlockedNotUnparsable() {
             String ical = buildIcal(buildVEvent("uid-block", "Not available", "20260301", "20260305"));
 
             ICalEventParser.ParseResult result = ICalEventParser.parse(toStream(ical));
 
-            // Blocage calendrier = ignore volontairement, pas une anomalie de parsing
-            assertThat(result.events()).isEmpty();
+            // Blocage calendrier = evenement de type "blocked" (reconcilie a l'import),
+            // pas une anomalie de parsing.
+            assertThat(result.events()).hasSize(1);
+            assertThat(result.events().get(0).getType()).isEqualTo("blocked");
             assertThat(result.unparsableEvents()).isZero();
             assertThat(result.unparsableUids()).isEmpty();
         }

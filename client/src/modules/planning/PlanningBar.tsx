@@ -142,6 +142,15 @@ const RadarPastille: React.FC<{
 // (paiement, info manquante) ou logo canal.
 // Tooltip au survol. Variante "combo" : repli « +N ».
 const BAR_BADGE_SIZE = 21;
+
+// Couleurs FIXES (indépendantes du thème) pour le texte/icônes posés sur les
+// pastilles TOUJOURS blanches du langage Signature (badges, prix, tarif, « +N »).
+// En thème sombre, var(--ink) / var(--unpaid*) s'éclaircissent → texte clair sur
+// blanc = illisible. On fige donc les valeurs claires (contraste garanti sur blanc).
+const PILL_INK = '#15242D';         // texte neutre (montant prestation, « +N »)
+const PILL_UNPAID = '#B25A2A';      // montant non réglé (ambre foncé)
+const PILL_UNPAID_ICON = '#C9803F'; // icône carte (non réglé)
+
 const BAR_BADGE_SX = {
   width: BAR_BADGE_SIZE,
   height: BAR_BADGE_SIZE,
@@ -485,6 +494,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     <Box
       ref={setNodeRef}
       data-planning-bar
+      data-reservation-id={isReservation && event.reservation ? String(event.reservation.id) : undefined}
       className={urgencyClass}
       style={isUrgent ? ({ '--bc': barColor } as React.CSSProperties) : undefined}
       {...(!isDragDisabled ? listeners : {})}
@@ -701,7 +711,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                   ...(priceUnpaid
                     ? {
                         backgroundColor: '#fff',
-                        color: 'var(--unpaid-strong)',
+                        color: PILL_UNPAID,
                         boxShadow: '0 1px 2px rgba(0,0,0,.14)',
                       }
                     : isCancelled
@@ -711,14 +721,18 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                           boxShadow: 'inset 0 0 0 1px var(--line-2)',
                         }
                       : {
-                          backgroundColor: 'rgba(255,255,255,.22)',
+                          // Verre SOMBRE (et non clair) : un check / montant blanc
+                          // reste lisible sur TOUTES les couleurs de brique, y
+                          // compris les plus claires (ambre, vert) où le verre clair
+                          // d'origine se confondait avec le fond.
+                          backgroundColor: 'rgba(0,0,0,.20)',
                           color: '#fff',
-                          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.3)',
+                          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.22)',
                         }),
                   '& > .pl-price-ic': {
                     display: 'inline-flex',
                     alignItems: 'center',
-                    color: priceUnpaid ? 'var(--unpaid)' : 'inherit',
+                    color: priceUnpaid ? PILL_UNPAID_ICON : 'inherit',
                   },
                 }}
               >
@@ -784,7 +798,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                             fontWeight: 700,
                             fontVariantNumeric: 'tabular-nums',
                             letterSpacing: '-.01em',
-                            color: 'var(--ink)',
+                            color: PILL_INK,
                           }}
                         >
                           <Money value={it.feeRaw} from={srcCurrency} compact symbolSize={10} />
@@ -864,7 +878,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
                       fontFamily: 'var(--font-display)',
                       fontSize: '10px',
                       fontWeight: 700,
-                      color: 'var(--ink)',
+                      color: PILL_INK,
                       cursor: 'pointer',
                       '&:focus-visible': {
                         outline: '2px solid var(--accent)',

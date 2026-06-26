@@ -130,6 +130,9 @@ public class UpsellService {
         offer.setMinNights(req.minNights());
         offer.setLeadTimeHours(req.leadTimeHours());
         offer.setBundleOfferIds(req.bundleOfferIds());
+        // Diffusion par canal : null = inchangé (update) ou défaut true (création, via la valeur d'entité).
+        if (req.diffuseOnLivret() != null) offer.setDiffuseOnLivret(req.diffuseOnLivret());
+        if (req.diffuseOnBooking() != null) offer.setDiffuseOnBooking(req.diffuseOnBooking());
     }
 
     /**
@@ -218,9 +221,29 @@ public class UpsellService {
             titlesById.put(o.getId(), o.getTitle());
         }
         return all.stream()
+            .filter(UpsellOffer::isDiffuseOnLivret) // canal livret (diffusion par canal)
             .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
             .filter(o -> selected == null || selected.contains(o.getId()))
             .filter(o -> matchesStayConditions(o, reservation))
+            .map(o -> PublicUpsellDto.from(o, resolveBundleItems(o, titlesById)))
+            .toList();
+    }
+
+    /**
+     * Offres applicables au BOOKING ENGINE (diffusion canal `diffuseOnBooking`) : org-wide ou du
+     * logement donné. Pas de conditions de séjour (contexte pré-réservation). Org résolue en amont
+     * par le contexte public (slug/clé API).
+     */
+    @Transactional(readOnly = true)
+    public List<PublicUpsellDto> listForBooking(Long orgId, Long propertyId) {
+        List<UpsellOffer> all = offerRepository.findByOrganizationIdAndActiveTrueOrderBySortOrderAscIdAsc(orgId);
+        java.util.Map<Long, String> titlesById = new java.util.HashMap<>();
+        for (UpsellOffer o : all) {
+            titlesById.put(o.getId(), o.getTitle());
+        }
+        return all.stream()
+            .filter(UpsellOffer::isDiffuseOnBooking)
+            .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
             .map(o -> PublicUpsellDto.from(o, resolveBundleItems(o, titlesById)))
             .toList();
     }
@@ -283,6 +306,45 @@ public class UpsellService {
             return new UpsellCheckoutDto(session.getClientSecret(), order.getId());
         } catch (Exception e) {
             log.error("Echec creation session Stripe upsell (order={}): {}", order.getId(), e.getMessage());
+            throw new RuntimeException("Paiement indisponible pour le moment", e);
+        }
+    }
+
+    /**
+     * Achat d'un upsell depuis le BOOKING ENGINE : crée une commande PENDING + une session Stripe
+     * HÉBERGÉE (redirection, comme le checkout réservation — le SDK n'a pas de Stripe.js embedded).
+     * La réservation (résolue par code + org en amont) lie la commande ; {@code successUrl} est déjà
+     * validé (anti open-redirect) par l'appelant. Confirmation/répartition via le webhook habituel.
+     */
+    @Transactional
+    public com.clenzy.dto.UpsellBookingCheckoutDto createBookingCheckout(
+            Long orgId, Reservation reservation, Long offerId, String successUrl) {
+        Long propertyId = reservation.getProperty() != null ? reservation.getProperty().getId() : null;
+        UpsellOffer offer = offerRepository.findByIdAndOrganizationId(offerId, orgId)
+            .filter(UpsellOffer::isActive)
+            .filter(UpsellOffer::isDiffuseOnBooking)
+            .filter(o -> o.getPropertyId() == null || o.getPropertyId().equals(propertyId))
+            .orElseThrow(() -> new IllegalArgumentException("Offre indisponible: " + offerId));
+
+        UpsellOrder order = new UpsellOrder();
+        order.setOrganizationId(orgId);
+        order.setReservationId(reservation.getId());
+        order.setOfferId(offer.getId());
+        order.setTitle(offer.getTitle());
+        order.setAmount(offer.getPrice());
+        order.setCurrency(offer.getCurrency());
+        order.setGuestEmail(guestEmail(reservation));
+        order.setStatus(UpsellOrderStatus.PENDING);
+        order = orderRepository.save(order);
+
+        try {
+            Session session = stripeService.createUpsellHostedCheckoutSession(
+                order.getId(), offer.getPrice(), offer.getCurrency(), offer.getTitle(), order.getGuestEmail(), successUrl);
+            order.setStripeSessionId(session.getId());
+            orderRepository.save(order);
+            return new com.clenzy.dto.UpsellBookingCheckoutDto(session.getUrl(), order.getId());
+        } catch (Exception e) {
+            log.error("Echec session Stripe upsell booking (order={}): {}", order.getId(), e.getMessage());
             throw new RuntimeException("Paiement indisponible pour le moment", e);
         }
     }

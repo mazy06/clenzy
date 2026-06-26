@@ -190,6 +190,36 @@ export function useTestPlatformModel() {
   });
 }
 
+/** Revérifie la disponibilité d'UN modèle (bouton « Revérifier »). */
+export function useRecheckPlatformModel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => aiApi.recheckPlatformModel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
+    },
+  });
+}
+
+/** Revérifie la disponibilité de TOUS les modèles. */
+export function useRecheckAllPlatformModels() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => aiApi.recheckAllPlatformModels(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
+    },
+  });
+}
+
+/** Charge le catalogue LIVE d'un provider (GET /models) pour « Add a model ». */
+export function useProviderCatalog() {
+  return useMutation({
+    mutationFn: (data: { provider: string; apiKey?: string; baseUrl?: string | null }) =>
+      aiApi.getProviderCatalog(data),
+  });
+}
+
 export function useSavePlatformModel() {
   const queryClient = useQueryClient();
   return useMutation({

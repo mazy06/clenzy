@@ -566,6 +566,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
     const allEvents = preview.events;
     const totalCount = allEvents.length;
+    const reservationCount = allEvents.filter((e) => e.type !== 'blocked').length;
+    const blockedCount = allEvents.filter((e) => e.type === 'blocked').length;
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -575,7 +577,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           </Typography>
           <Chip
             icon={<EventIcon size={14} strokeWidth={1.75} />}
-            label={`${totalCount} réservation${totalCount > 1 ? 's' : ''}`}
+            label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`}
             size="small"
             sx={{
               backgroundColor: 'var(--accent-soft)',
@@ -589,11 +591,27 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               '& .MuiChip-label': { px: 0.75 },
             }}
           />
+          {blockedCount > 0 && (
+            <Chip
+              label={`${blockedCount} période${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`}
+              size="small"
+              sx={{
+                backgroundColor: 'var(--field-bg)',
+                color: 'var(--muted)',
+                border: '1px solid var(--field-line)',
+                borderRadius: '6px',
+                fontWeight: 600,
+                fontSize: '0.6875rem',
+                height: 24,
+                '& .MuiChip-label': { px: 0.75 },
+              }}
+            />
+          )}
         </Box>
 
         {totalCount === 0 && (
           <Alert severity="info" sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}>
-            Aucune réservation trouvée dans ce calendrier.
+            Aucune réservation ni période bloquée trouvée dans ce calendrier.
           </Alert>
         )}
 
@@ -629,13 +647,37 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                     />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>
-                      {event.guestName || event.summary || 'Réservation'}
-                    </Typography>
-                    {event.confirmationCode && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-                        {event.confirmationCode}
-                      </Typography>
+                    {event.type === 'blocked' ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Chip
+                          label="Bloqué"
+                          size="small"
+                          sx={{
+                            backgroundColor: 'var(--field-bg)',
+                            color: 'var(--muted)',
+                            border: '1px solid var(--field-line)',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.625rem',
+                            height: 20,
+                            '& .MuiChip-label': { px: 0.5 },
+                          }}
+                        />
+                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                          Période bloquée
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <>
+                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                          {event.guestName || event.summary || 'Réservation'}
+                        </Typography>
+                        {event.confirmationCode && (
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                            {event.confirmationCode}
+                          </Typography>
+                        )}
+                      </>
                     )}
                   </TableCell>
                 </TableRow>
@@ -725,6 +767,14 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             size="small"
             sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, borderColor: 'divider', color: 'text.secondary' }}
           />
+          {!!importResult.daysBlocked && importResult.daysBlocked > 0 && (
+            <Chip
+              label={`${importResult.daysBlocked} jour${importResult.daysBlocked > 1 ? 's' : ''} bloqué${importResult.daysBlocked > 1 ? 's' : ''}`}
+              variant="outlined"
+              size="small"
+              sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, borderColor: 'divider', color: 'text.secondary' }}
+            />
+          )}
           {hasErrors && (
             <Chip
               icon={<ErrorIcon size={14} strokeWidth={1.75} />}
@@ -776,6 +826,14 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   // ─── Render ────────────────────────────────────────────────────────────
 
   const totalPreviewEvents = preview?.events.length || 0;
+  const previewReservations = preview?.events.filter((e) => e.type !== 'blocked').length || 0;
+  const previewBlocked = preview?.events.filter((e) => e.type === 'blocked').length || 0;
+  const importButtonLabel =
+    previewBlocked === 0
+      ? `Importer ${previewReservations} réservation${previewReservations > 1 ? 's' : ''}`
+      : previewReservations === 0
+        ? `Importer ${previewBlocked} blocage${previewBlocked > 1 ? 's' : ''}`
+        : `Importer ${previewReservations} résa. + ${previewBlocked} blocage${previewBlocked > 1 ? 's' : ''}`;
 
   return (
     <Dialog
@@ -897,9 +955,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               startIcon={loading ? <CircularProgress size={16} /> : <ImportIcon size={16} strokeWidth={1.75} />}
               sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
-              {loading
-                ? 'Import en cours...'
-                : `Importer ${totalPreviewEvents} réservation${totalPreviewEvents > 1 ? 's' : ''}`}
+              {loading ? 'Import en cours...' : importButtonLabel}
             </Button>
           </>
         )}

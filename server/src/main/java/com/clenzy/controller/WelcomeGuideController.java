@@ -33,17 +33,20 @@ public class WelcomeGuideController {
     private final WelcomeGuideEntryService entryService;
     private final WelcomeGuideAnalyticsService analyticsService;
     private final PoiSuggestionService poiSuggestionService;
+    private final com.clenzy.service.WelcomeGuideContentAiService guideAiService;
     private final TenantContext tenantContext;
 
     public WelcomeGuideController(WelcomeGuideService guideService,
                                   WelcomeGuideEntryService entryService,
                                   WelcomeGuideAnalyticsService analyticsService,
                                   PoiSuggestionService poiSuggestionService,
+                                  com.clenzy.service.WelcomeGuideContentAiService guideAiService,
                                   TenantContext tenantContext) {
         this.guideService = guideService;
         this.entryService = entryService;
         this.analyticsService = analyticsService;
         this.poiSuggestionService = poiSuggestionService;
+        this.guideAiService = guideAiService;
         this.tenantContext = tenantContext;
     }
 
@@ -56,6 +59,14 @@ public class WelcomeGuideController {
      */
     private Long scopeOrgId() {
         return tenantContext.isSuperAdmin() ? null : tenantContext.getOrganizationId();
+    }
+
+    /** Champ IA du Studio livret : génère un brouillon (welcomeMessage + sections) depuis une description. */
+    @PostMapping("/ai/generate")
+    public ResponseEntity<com.clenzy.dto.GeneratedGuideDto> generateAi(
+            @jakarta.validation.Valid @org.springframework.web.bind.annotation.RequestBody com.clenzy.dto.WelcomeGuideAiRequest req) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(guideAiService.generate(orgId, req.prompt(), req.language()));
     }
 
     @GetMapping

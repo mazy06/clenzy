@@ -329,9 +329,22 @@ function asGuideConflict(err: unknown): GuideAlreadyExistsBody | null {
     : null;
 }
 
+/** Brouillon de livret généré par l'IA (champ IA — STUDIO_ASSIST). `sections`/`pois` = JSON (cf. WelcomeGuide). */
+export interface GeneratedGuide {
+  welcomeMessage: string | null;
+  sections: string;
+  /** Recommandations du quartier générées (JSON, cf. WelcomeGuide.pois). */
+  pois: string;
+  /** Ville/quartier inféré — contexte de géocodage des POI générés (best-effort). */
+  area: string | null;
+}
+
 export const welcomeGuideApi = {
   list: () => apiClient.get<WelcomeGuide[]>('/welcome-guides'),
   getById: (id: number) => apiClient.get<WelcomeGuide>(`/welcome-guides/${id}`),
+  /** Génère un brouillon de livret (welcomeMessage + sections) depuis une description/URL (IA). */
+  generateGuide: (prompt: string, language?: string) =>
+    apiClient.post<GeneratedGuide>('/welcome-guides/ai/generate', { prompt, language }),
   /**
    * Crée un livret (staff uniquement). Si un livret existe déjà pour la réservation résolue,
    * le backend répond 409 → on relance une {@link GuideAlreadyExistsError} typée (le formulaire

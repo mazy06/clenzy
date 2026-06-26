@@ -1,4 +1,118 @@
 {
+  "supervision": {
+    "title": "Centre de supervision",
+    "subtitle": "Tes agents IA travaillent sur ce logement",
+    "agents": {
+      "com": {
+        "name": "Communication",
+        "role": "Messages voyageurs"
+      },
+      "rev": {
+        "name": "Revenue",
+        "role": "Tarification dynamique"
+      },
+      "ops": {
+        "name": "Opérations",
+        "role": "Ménage & interventions"
+      },
+      "fin": {
+        "name": "Finance",
+        "role": "Paiements & relevés"
+      },
+      "rep": {
+        "name": "Avis & Réputation",
+        "role": "Avis & note"
+      }
+    },
+    "status": {
+      "veille": "En veille",
+      "think": "Réfléchit",
+      "act": "Agit",
+      "wait": "Attend ta validation",
+      "esc": "Escaladé",
+      "err": "Erreur"
+    },
+    "autonomy": {
+      "suggest": "Suggérer",
+      "notify": "Agir puis notifier",
+      "full": "Auto",
+      "suggestHint": "Les agents proposent, tu décides",
+      "notifyHint": "Ils agissent et te tiennent informé",
+      "fullHint": "Ils gèrent en pleine autonomie"
+    },
+    "autonomyShort": {
+      "suggest": "Suggère",
+      "notify": "Notifie",
+      "full": "Auto"
+    },
+    "scope": {
+      "byProperty": "Par logement",
+      "portfolio": "Vue d'ensemble"
+    },
+    "states": {
+      "loading": "Connexion aux agents…",
+      "live": "En direct",
+      "offline": "Hors-ligne",
+      "reconnecting": "Reconnexion en cours…",
+      "retry": "Réessayer"
+    },
+    "hitl": {
+      "validate": "Valider",
+      "edit": "Modifier",
+      "why": "Pourquoi ?",
+      "expiresIn": "expire dans {{time}}",
+      "alreadyHandled": "Déjà traitée",
+      "alreadyHandledBy": "Déjà traitée par {{name}}",
+      "expired": "Expirée",
+      "empty": "Rien à valider",
+      "toValidate": "à valider",
+      "validated": "Validée",
+      "lessThanMin": "< 1 min",
+      "unitHour": "h",
+      "unitMin": "min"
+    },
+    "approval": {
+      "title": "Validation requise",
+      "reject": "Refuser",
+      "validate": "Valider",
+      "submitting": "Transmission…"
+    },
+    "hud": {
+      "orchestrator": "Orchestrateur",
+      "active": "actif",
+      "agents": "agents",
+      "acting": "agissent",
+      "awaiting": "en attente",
+      "focusHint": "Survole un agent pour le détail"
+    },
+    "legend": {
+      "acting": "Agit",
+      "awaiting": "Attend ta validation",
+      "thinking": "Réfléchit",
+      "idle": "En veille"
+    },
+    "queue": {
+      "title": "Attend ta validation"
+    },
+    "feed": {
+      "title": "En direct"
+    },
+    "drawer": {
+      "ventilation": "Détail par logement",
+      "noActivity": "Aucune activité"
+    },
+    "portfolio": {
+      "title": "Vue d'ensemble"
+    },
+    "attention": "{{count}} action attend ta validation",
+    "attention_other": "{{count}} actions attendent ta validation",
+    "chat": {
+      "placeholder": "Demandez quelque chose aux agents…",
+      "inputLabel": "Message aux agents",
+      "send": "Envoyer",
+      "thinking": "Les agents travaillent…"
+    }
+  },
   "channexGuided": {
     "title": "Distribuez vos logements",
     "subtitle": "Mettez vos annonces sur Airbnb, Booking, Vrbo… et synchronisez tout depuis Baitly.",
@@ -4300,6 +4414,11 @@
           "name": "Sentiment IA",
           "description": "Analyse de sentiment des avis guests",
           "menu": "Avis"
+        },
+        "studioAssist": {
+          "name": "Assistant de création (champ IA)",
+          "description": "Analyse de site, import d'annonce et génération de sections (Studio & livret)",
+          "menu": "Studio"
         }
       }
     },

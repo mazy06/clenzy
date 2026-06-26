@@ -47,7 +47,19 @@ import {
   Unlink,
   Lock,
   Tag,
+  ArrowUp,
+  ArrowRight,
+  Zap,
+  LayoutGrid,
+  Download,
+  Search,
+  List as ListIcon,
+  Home as HomeIcon,
+  ChevronDown,
 } from 'lucide-react';
+// Feuille de style « studio accueil » partagée (scopée .be-home, accent indigo)
+// avec l'onglet Booking Engine — hero, champ IA, éventail, thèmes, cartes.
+import '../booking-engine/studio/studioHome.css';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -77,6 +89,7 @@ import {
   isGuideConflict,
 } from '../../services/api/welcomeGuideApi';
 import { POI_CATEGORIES, poiCategory, poiLabel } from './poiCatalog';
+import { useAiFeatureToggles } from '../../hooks/useAi';
 import { nominatimApi } from '../../services/nominatimApi';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
 import { upsellApi, type PublicUpsell } from '../../services/api/upsellApi';
@@ -112,6 +125,9 @@ function parseOfferIdSelection(json: string | null | undefined): number[] | null
 }
 
 const SECTION_LAYOUT_OPTIONS: GuideSectionLayout[] = ['text', 'steps', 'rules', 'list'];
+
+/** Catégories de POI géocodées automatiquement (lieux PUBLICS à noms réels) — cf. géocodage IA. */
+const GEOCODABLE_POI_CATS = new Set(['ATTRACTION', 'TRANSPORT', 'ACTIVITY']);
 
 const newSection = (): GuideSection => ({
   id: `s-${Date.now()}`,
@@ -188,6 +204,10 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [view, setView] = useState<View>('list');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  // Champ IA du livret (gated STUDIO_ASSIST). Optimiste : actif tant que les toggles ne sont pas chargés.
+  const [generating, setGenerating] = useState(false);
+  const { data: aiToggles } = useAiFeatureToggles();
+  const aiAssistOn = !aiToggles || (aiToggles.find((tg) => tg.feature === 'STUDIO_ASSIST')?.enabled ?? true);
   // Conflit 409 « un livret existe déjà pour cette réservation » : ouvre un modal de
   // confirmation d'écrasement (re-POST avec overwrite=true). null = fermé.
   const [overwriteConfirm, setOverwriteConfirm] = useState(false);
@@ -200,6 +220,9 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   // Publication/dépublication depuis la liste : id du livret en cours de bascule (désactive le toggle).
   const [togglingPublishId, setTogglingPublishId] = useState<number | null>(null);
+  // Accueil « studio » : saisie du champ IA + recherche dans la liste des livrets.
+  const [livretPrompt, setLivretPrompt] = useState('');
+  const [livretQuery, setLivretQuery] = useState('');
 
   // Form state
   const [propertyId, setPropertyId] = useState<string>('');
@@ -310,16 +333,17 @@ const WelcomeGuideAdmin: React.FC = () => {
   const notify = (message: string, severity: AlertColor = 'success') =>
     setSnackbar({ open: true, message, severity });
 
-  const openCreate = () => {
+  const openCreate = (opts?: { theme?: string }) => {
     // Nouveau livret pré-rempli avec un modèle riche (template Baitly) que l'hôte
     // personnalise, complète ou supprime ensuite. Langue par défaut = fr.
+    // `opts.theme` : présélection depuis une carte de thème de l'accueil.
     const tplLang = 'fr';
     setEditingId(null);
     setPropertyId('');
     setTitle('');
     setLanguage(tplLang);
     setBrandingColor(DEFAULT_COLOR);
-    setTheme(DEFAULT_THEME);
+    setTheme(opts?.theme ?? DEFAULT_THEME);
     setHeroPhotoIds([]);
     setHeroTouched(false);
     setWelcomeMessage(templateWelcomeMessage(tplLang));
@@ -336,6 +360,54 @@ const WelcomeGuideAdmin: React.FC = () => {
     setCuratedActivities(buildTemplateActivities(tplLang));
     setStep(0);
     setView('form');
+  };
+
+  // Champ IA du livret (gated STUDIO_ASSIST) : génère un brouillon complet (message d'accueil + sections
+  // + recommandations du quartier) depuis la description/URL saisie, puis ouvre le formulaire pré-rempli
+  // (le contenu IA écrase le modèle par défaut). Toggle off OU champ vide → repli création depuis modèle.
+  const handleGenerateGuide = async () => {
+    const value = livretPrompt.trim();
+    if (!value || !aiAssistOn) { openCreate(); return; }
+    setGenerating(true);
+    try {
+      const res = await welcomeGuideApi.generateGuide(value, currentLanguage);
+      openCreate();
+      if (res.welcomeMessage) setWelcomeMessage(res.welcomeMessage);
+      const secs = parseSections(res.sections);
+      if (secs.length) setSections(secs);
+      const generatedPois = parsePois(res.pois);
+      if (generatedPois.length) {
+        setPois(generatedPois);
+        // Géocodage auto best-effort des POI publics (attractions/transport/activités) → pins carte.
+        // En arrière-plan (séquentiel, rate-limit Nominatim) : la liste est déjà affichée, les coords
+        // arrivent au fil de l'eau. Les commerces génériques restent sans coords (liste seule).
+        void geocodeGeneratedPois(generatedPois, res.area);
+      }
+    } catch {
+      notify(t('welcomeGuide.messages.error', 'Une erreur est survenue'), 'error');
+      openCreate(); // repli : on ouvre quand même le formulaire (modèle par défaut)
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // Géocode best-effort les POI générés des catégories PUBLIQUES (noms réels géocodables). Séquentiel
+  // (Nominatim ~1 req/s). Met à jour les coords par index+nom (sans écraser celles posées par l'hôte).
+  // Les commerces privés (noms génériques) sont ignorés → ils restent en liste, sans pin carte.
+  const geocodeGeneratedPois = async (generated: GuidePoi[], area: string | null) => {
+    for (let i = 0; i < generated.length; i++) {
+      const p = generated[i];
+      if (!GEOCODABLE_POI_CATS.has(p.category) || !p.name?.trim()) continue;
+      const query = area && area.trim() ? `${p.name}, ${area}` : p.name;
+      const results = await nominatimApi.search(query, [], 1);
+      if (results.length) {
+        const { latitude, longitude } = results[0];
+        setPois((prev) => prev.map((q, idx) =>
+          idx === i && q.name === p.name && q.lat == null ? { ...q, lat: latitude, lng: longitude } : q));
+      }
+      // Respect de la politique Nominatim (1 req/s) entre deux géocodages.
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+    }
   };
 
   const openEdit = (g: WelcomeGuide) => {
@@ -613,7 +685,7 @@ const WelcomeGuideAdmin: React.FC = () => {
   const headerActions = usePageHeaderActions(
     view === 'list' ? (
       isStaff ? (
-        <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={openCreate}>
+        <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => openCreate()}>
           {t('welcomeGuide.actions.new', 'Nouveau livret')}
         </Button>
       ) : null
@@ -625,189 +697,192 @@ const WelcomeGuideAdmin: React.FC = () => {
   );
 
   // ─── Render: list ──────────────────────────────────────────────────────────
+  // Structures de contenu (éventail) — préréglages de sections du livret.
+  const LIVRET_STRUCTURES: { id: string; name: string; desc: string; icon: typeof Zap; badge?: string }[] = [
+    { id: 'essentiel', name: "L'Essentiel", desc: 'Wifi, arrivée & départ', icon: Zap, badge: 'Rapide' },
+    { id: 'complet', name: 'Complet', desc: 'Toutes les sections pré-remplies', icon: LayoutGrid },
+    { id: 'cityguide', name: 'City Guide', desc: 'Quartier & recommandations', icon: MapPin },
+    { id: 'longue', name: 'Longue durée', desc: 'Infos pratiques étendues', icon: CalendarDays },
+    { id: 'conciergerie', name: 'Conciergerie', desc: 'Expériences & services payants', icon: ConciergeBell },
+  ];
+
   const renderList = () => {
-    if (isLoading) {
-      return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-    if (guides.length === 0) {
-      return (
-        <EmptyState
-          icon={<LinkIcon />}
-          title={t('welcomeGuide.list.emptyTitle', 'Aucun livret pour le moment')}
-          description={t(
-            'welcomeGuide.list.emptyDescription',
-            "Créez un livret d'accueil pour partager le wifi, le digicode et vos bons plans avec vos voyageurs.",
-          )}
-          action={
-            isStaff ? (
-              <Button variant="contained" startIcon={<Add size={16} strokeWidth={1.75} />} onClick={openCreate}>
-                {t('welcomeGuide.actions.new', 'Nouveau livret')}
-              </Button>
-            ) : undefined
-          }
-        />
-      );
-    }
+    const q = livretQuery.trim().toLowerCase();
+    const filtered = q
+      ? guides.filter((g) => g.title.toLowerCase().includes(q) || (g.propertyName ?? '').toLowerCase().includes(q))
+      : guides;
     return (
-      <Stack spacing={1.5}>
-        {guides.map((g) => {
-          const prop = properties.find((p) => p.id === String(g.propertyId));
-          const heroIds = parseHeroPhotoIds(g.heroPhotoIds);
-          const statusLabel = g.published
-            ? t('welcomeGuide.status.published', 'Publié')
-            : t('welcomeGuide.status.draft', 'Brouillon');
-          return (
-            <Card
-              key={g.id}
-              variant="outlined"
-              sx={{
-                overflow: 'hidden',
-                transition: 'border-color .2s ease, box-shadow .2s ease',
-                // Carte cliquable « Signature » : hover hairline renforcée + ombre teintée.
-                '&:hover': {
-                  borderColor: 'var(--line-2)',
-                  boxShadow: 'var(--shadow-card)',
-                },
-              }}
-            >
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
-                {/* Zone cliquable : ouvre l'éditeur du livret */}
-                <Box
-                  role="button"
-                  tabIndex={0}
-                  aria-label={t('welcomeGuide.actions.edit', 'Modifier') + ' — ' + g.title}
-                  onClick={() => openEdit(g)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openEdit(g);
-                    }
-                  }}
-                  sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    gap: { xs: 1.5, sm: 2 },
-                    alignItems: { sm: 'center' },
-                    p: 1.5,
-                    flex: 1,
-                    minWidth: 0,
-                    cursor: 'pointer',
-                    '&:focus-visible': {
-                      outline: '2px solid var(--accent)',
-                      outlineOffset: '-2px',
-                    },
-                  }}
-                >
-                  <Box sx={{ width: { xs: '100%', sm: 188 }, flexShrink: 0 }}>
-                    <GuidePhotoCarousel
-                      propertyId={g.propertyId}
-                      theme={g.theme}
-                      alt={g.propertyName || g.title}
-                      priorityIds={heroIds}
-                    />
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 9,
-                          height: 9,
-                          borderRadius: '50%',
-                          bgcolor: themeAccent(g.theme),
-                          flexShrink: 0,
-                        }}
-                      />
-                      <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600, minWidth: 0 }}>
-                        {g.title}
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" noWrap sx={{ mt: 0.25 }}>
-                      {g.propertyName || '—'}
-                      {prop?.city ? ` · ${prop.city}` : ''}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1, flexWrap: 'wrap' }}>
-                      <Chip
-                        size="small"
-                        label={statusLabel}
-                        sx={softChipSx(semanticToHex(g.published ? 'success' : 'default'))}
-                      />
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        icon={<Globe size={13} strokeWidth={1.75} />}
-                        label={g.language.toUpperCase()}
-                        sx={{ height: 24, '& .MuiChip-label': { px: 0.75, fontSize: 12, letterSpacing: 0.3 } }}
-                      />
-                    </Box>
-                  </Box>
-                </Box>
-                {/* Actions du livret */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    gap: 0.25,
-                    px: 1,
-                    py: { xs: 0.5, sm: 1.5 },
-                    borderTop: { xs: '1px solid', sm: 'none' },
-                    borderLeft: { sm: '1px solid' },
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Tooltip
-                    title={
-                      g.published
-                        ? t('welcomeGuide.actions.unpublish', 'Dépublier')
-                        : t('welcomeGuide.actions.publish', 'Publier')
-                    }
-                  >
-                    <Switch
-                      size="small"
-                      checked={g.published}
-                      onChange={() => handleTogglePublish(g)}
-                      disabled={togglingPublishId === g.id}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('welcomeGuide.actions.generateLink', 'Générer le lien')}>
-                    <span>
-                      <IconButton size="small" onClick={() => handleGenerateLink(g)} disabled={!g.published}>
-                        <LinkIcon size={16} strokeWidth={1.75} />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                  <Tooltip title={t('welcomeGuide.actions.guestbook', "Livre d'or")}>
-                    <IconButton size="small" onClick={() => handleOpenGuestbook(g)}>
-                      <MessageSquare size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={t('welcomeGuide.actions.stats', 'Statistiques')}>
-                    <IconButton size="small" onClick={() => handleOpenStats(g)}>
-                      <BarChart3 size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={t('welcomeGuide.actions.edit', 'Modifier')}>
-                    <IconButton size="small" onClick={() => openEdit(g)}>
-                      <Edit size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  </Tooltip>
-                  {isStaff && (
-                    <Tooltip title={t('welcomeGuide.actions.delete', 'Supprimer')}>
-                      <IconButton size="small" color="error" onClick={() => handleDelete(g)}>
-                        <Delete size={16} strokeWidth={1.75} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </Box>
-              </Box>
-            </Card>
-          );
-        })}
-      </Stack>
+      <Box className="be-home" data-accent="indigo" sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
+        <div className="canvas" style={{ maxWidth: 1180 }}>
+          {/* Bloc création (studio) — réservé au staff plateforme (cf. POST /welcome-guides).
+              Même écran que le Booking Engine : TOUJOURS affiché (pas d'écran différent selon
+              qu'on ait ou non un livret). Studio à gauche, thèmes en rail vertical à droite. */}
+          {isStaff && (
+            <div className="studio-split">
+              <div className="studio-split__main">
+              <div className="hero">
+                <p className="eyebrow">Livret d'accueil · Studio</p>
+                <h1>Quel livret d'accueil créons-nous&nbsp;?</h1>
+              </div>
+
+              {/* Champ IA : génère un brouillon (welcomeMessage + sections) via IA (gated STUDIO_ASSIST). */}
+              <div className="field">
+                <textarea
+                  className="field__area"
+                  value={livretPrompt}
+                  onChange={(e) => setLivretPrompt(e.target.value)}
+                  aria-label="Décrivez votre logement ou collez le lien de votre annonce"
+                  placeholder={aiAssistOn
+                    ? "Collez le lien de votre annonce Airbnb / Booking à importer, ou décrivez votre logement…"
+                    : "Décrivez votre logement (l'assistant IA est désactivé — Paramètres › IA)…"}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerateGuide(); }}
+                />
+                <div className="field__bar">
+                  <button className="chip chip--icon" type="button" aria-label="Importer une photo" disabled><Add size={16} strokeWidth={2} /></button>
+                  <button className="chip" type="button" disabled><HomeIcon size={16} strokeWidth={2} /><span className="lbl-faint">Logement</span> Tous <ChevronDown size={14} strokeWidth={2} /></button>
+                  <button className="chip" type="button" disabled><Globe size={16} strokeWidth={2} /><span className="lbl-faint">Langue</span> Français <ChevronDown size={14} strokeWidth={2} /></button>
+                  <div className="field__spacer" />
+                  <button className="send" type="button" aria-label="Générer le livret" disabled={generating} onClick={handleGenerateGuide}><ArrowUp size={19} strokeWidth={2.2} /></button>
+                </div>
+              </div>
+              <div className="examples">
+                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><Download size={14} strokeWidth={2} /> Importer depuis Airbnb</button>
+                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><Sparkles size={14} strokeWidth={2} /> Générer les sections automatiquement</button>
+                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><MapPin size={14} strokeWidth={2} /> Recommandations du quartier</button>
+              </div>
+
+              {/* Structures (éventail) — TODO: préréglage de sections par structure. */}
+              <div className="fan-wrap">
+                <p className="fan-lead">Ou commencez avec une structure prête à remplir…</p>
+                <div className="fan">
+                  {LIVRET_STRUCTURES.map((s) => (
+                    <article
+                      key={s.id} className="fan__card" role="button" tabIndex={0}
+                      onClick={() => openCreate()}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCreate(); } }}
+                    >
+                      <div className="fan__vig"><s.icon size={30} strokeWidth={1.6} /></div>
+                      {s.badge && <span className="fan__badge">{s.badge}</span>}
+                      <p className="fan__name">{s.name}</p>
+                      <p className="fan__desc">{s.desc}</p>
+                    </article>
+                  ))}
+                </div>
+                <div className="blank-row">
+                  <button className="blank" type="button" onClick={() => openCreate()}>Créer un livret vierge <ArrowRight size={16} strokeWidth={2} /></button>
+                </div>
+              </div>
+
+              </div>{/* /studio-split__main */}
+
+              <aside className="studio-split__rail">
+              {/* Thèmes — présélectionnent le thème du livret à la création (rail vertical). */}
+              <section className="templates templates--rail templates--scroll">
+                <div className="tpl-head">
+                  <div><p className="eyebrow2">Thèmes</p><h2 className="tpl-title">Des thèmes de livret prêts à l'emploi</h2></div>
+                </div>
+                <div className="tpl-grid">
+                  {WELCOME_BOOK_THEMES.map((th) => (
+                    <article
+                      key={th.id} className="tpl-card" role="button" tabIndex={0}
+                      style={{ ['--t1']: th.swatch.accent, ['--t2']: th.swatch.surface, ['--t3']: th.swatch.bg, ['--t-on']: 'rgba(255,255,255,.94)' } as React.CSSProperties}
+                      onClick={() => openCreate({ theme: th.id })}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCreate({ theme: th.id }); } }}
+                    >
+                      <div className="tpl-thumb">
+                        <div className="lv-themeprev">
+                          {/* TODO: remplacer l'aperçu mock par un screenshot réel du livret. */}
+                          <div className="phone">
+                            <div className="phone__hero"><span className="phone__eyebrow" /><span className="phone__title" /><span className="phone__title s" /></div>
+                            <div className="phone__body">
+                              <div className="phone__card"><span className="phone__dot" /><span className="phone__line" /></div>
+                              <div className="phone__card"><span className="phone__dot" /><span className="phone__line" /></div>
+                              <div className="phone__card"><span className="phone__dot" /><span className="phone__line" /></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="tpl-use"><span><Add size={15} strokeWidth={2} /> Utiliser ce thème</span></div>
+                      </div>
+                      <div className="tpl-body"><p className="tpl-name">{th.name}</p><div className="tpl-meta"><span className="tpl-tag">Thème</span><span className="tpl-style">{th.desc}</span></div></div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+              </aside>
+            </div>
+          )}
+
+          {/* Mes livrets — TOUJOURS affiché (même écran avec ou sans livret, comme le Booking Engine). */}
+          <section className="list lv-list" style={isStaff ? undefined : { marginTop: 0 }}>
+            <div className="list__head">
+              <h2>Mes livrets d'accueil</h2>
+              <span className="count">{guides.length}</span>
+              <div className="sp" />
+              <label className="search">
+                <Search size={15} strokeWidth={2} />
+                <input placeholder="Rechercher…" value={livretQuery} onChange={(e) => setLivretQuery(e.target.value)} />
+              </label>
+            </div>
+
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+            ) : guides.length === 0 ? (
+              <EmptyState
+                icon={<LinkIcon />}
+                title={t('welcomeGuide.list.emptyTitle', 'Aucun livret pour le moment')}
+                description={t('welcomeGuide.list.emptyDescription', "Créez un livret d'accueil pour partager le wifi, le digicode et vos bons plans avec vos voyageurs.")}
+                action={isStaff ? (
+                  <Button variant="contained" startIcon={<Add size={16} strokeWidth={1.75} />} onClick={() => openCreate()}>
+                    {t('welcomeGuide.actions.new', 'Nouveau livret')}
+                  </Button>
+                ) : undefined}
+              />
+            ) : (
+              <div className="lv-stack">
+                {filtered.map((g) => {
+                  const prop = properties.find((p) => p.id === String(g.propertyId));
+                  const heroIds = parseHeroPhotoIds(g.heroPhotoIds);
+                  return (
+                    <article className="lv-card" key={g.id}>
+                      <div
+                        className="lv-thumb" role="button" tabIndex={0}
+                        aria-label={t('welcomeGuide.actions.edit', 'Modifier') + ' — ' + g.title}
+                        onClick={() => openEdit(g)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(g); } }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <GuidePhotoCarousel propertyId={g.propertyId} theme={g.theme} alt={g.propertyName || g.title} priorityIds={heroIds} />
+                      </div>
+                      <div className="lv-main">
+                        <div className="lv-info">
+                          <p className="lv-title"><span className="pd" style={{ background: themeAccent(g.theme) }} /> {g.title}</p>
+                          <p className="lv-sub">{g.propertyName || '—'}{prop?.city ? ` · ${prop.city}` : ''}</p>
+                          <div className="lv-badges">
+                            {g.published ? <span className="b-pub">Publié</span> : <span className="b-draft">Brouillon</span>}
+                            <span className="b-lang"><Globe size={13} strokeWidth={2} /> {g.language.toUpperCase()}</span>
+                          </div>
+                        </div>
+                        <div className="lv-actions">
+                          <button
+                            className={`switch ${g.published ? '' : 'off'}`} role="switch" aria-checked={g.published}
+                            aria-label={g.published ? t('welcomeGuide.actions.unpublish', 'Dépublier') : t('welcomeGuide.actions.publish', 'Publier')}
+                            disabled={togglingPublishId === g.id} onClick={() => handleTogglePublish(g)}
+                          />
+                          <button className="act" aria-label={t('welcomeGuide.actions.generateLink', 'Générer le lien')} disabled={!g.published} onClick={() => handleGenerateLink(g)}><Link2 size={18} strokeWidth={2} /></button>
+                          <button className="act" aria-label={t('welcomeGuide.actions.guestbook', "Livre d'or")} onClick={() => handleOpenGuestbook(g)}><MessageSquare size={18} strokeWidth={2} /></button>
+                          <button className="act" aria-label={t('welcomeGuide.actions.stats', 'Statistiques')} onClick={() => handleOpenStats(g)}><BarChart3 size={18} strokeWidth={2} /></button>
+                          <button className="act" aria-label={t('welcomeGuide.actions.edit', 'Modifier')} onClick={() => openEdit(g)}><Edit size={18} strokeWidth={2} /></button>
+                          {isStaff && <button className="act danger" aria-label={t('welcomeGuide.actions.delete', 'Supprimer')} onClick={() => handleDelete(g)}><Delete size={18} strokeWidth={2} /></button>}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      </Box>
     );
   };
 

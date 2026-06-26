@@ -35,6 +35,7 @@ import {
   Chat,
   BarChart,
   StarRate,
+  AutoAwesome,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -523,6 +524,7 @@ const AI_FEATURES: FeatureConfig[] = [
   { key: 'messaging', feature: 'MESSAGING', icon: <Chat />, color: '#2563EB' },
   { key: 'analytics', feature: 'ANALYTICS', icon: <BarChart />, color: '#D97706' },
   { key: 'sentiment', feature: 'SENTIMENT', icon: <StarRate />, color: '#DC2626' },
+  { key: 'studioAssist', feature: 'STUDIO_ASSIST', icon: <AutoAwesome />, color: '#6B8A9A' },
 ];
 
 // ─── Feature Toggles Section ─────────────────────────────────────────────────

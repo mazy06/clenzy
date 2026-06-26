@@ -40,6 +40,7 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
                 - "Analyse mon portfolio globalement"
                 - "Que se passe-t-il si je baisse de 10% en juillet ?"
                 - "Combien je perds si je bloque ces dates ?"
+                - "Quels sont mes derniers avis voyageurs ?"
                 Read-only avec modeles d'elasticite et patterns AI.""";
     }
 
@@ -49,7 +50,8 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
                 "get_business_insights",
                 "analyze_portfolio",
                 "simulate_pricing_change",
-                "simulate_calendar_block"
+                "simulate_calendar_block",
+                "list_reviews"
         );
     }
 }

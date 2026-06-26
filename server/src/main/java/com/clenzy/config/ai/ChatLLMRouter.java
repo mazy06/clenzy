@@ -1,6 +1,5 @@
 package com.clenzy.config.ai;
 
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.function.Consumer;
@@ -9,9 +8,11 @@ import java.util.function.Consumer;
  * Routeur {@link ChatLLMProvider} : choisit l'implementation concrete selon
  * {@link ChatRequest#provider()}.
  *
- * <p>Bean {@code @Primary} : tous les points d'injection existants (AgentOrchestrator,
- * OrchestratorAgent, specialists) injectent {@link ChatLLMProvider} et recoivent ce
- * routeur, sans changer leur constructeur. Le routeur delegue ensuite a :</p>
+ * <p>Le bean {@code @Primary} de l'interface est {@code FailoverChatLLMProvider}
+ * (service.agent), qui ENVELOPPE ce routeur pour ajouter le basculement
+ * multi-provider (NVIDIA → Anthropic → OpenAI) sur indisponibilite. Ce routeur
+ * reste un {@code @Component} simple, injecte par type concret dans le wrapper,
+ * et delegue a :</p>
  * <ul>
  *   <li><b>anthropic</b> (ou provider null/par defaut) → {@link AnthropicChatProvider}</li>
  *   <li><b>openai / nvidia / bedrock / ...</b> (tout endpoint OpenAI-compatible) →
@@ -22,7 +23,6 @@ import java.util.function.Consumer;
  * feature) et le pose sur le {@link ChatRequest} via {@link ChatRequest#withTarget}. Le
  * routeur n'a donc aucune logique de credentials — uniquement le choix d'implementation.</p>
  */
-@Primary
 @Component
 public class ChatLLMRouter implements ChatLLMProvider {
 

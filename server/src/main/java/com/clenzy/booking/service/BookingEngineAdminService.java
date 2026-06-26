@@ -3,6 +3,7 @@ package com.clenzy.booking.service;
 import com.clenzy.booking.dto.BookingEngineAdminConfigDto;
 import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
+import com.clenzy.booking.repository.SiteRepository;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,13 +32,16 @@ public class BookingEngineAdminService {
 
     private final BookingEngineConfigRepository configRepository;
     private final OrganizationRepository organizationRepository;
+    private final SiteRepository siteRepository;
     private final TenantContext tenantContext;
 
     public BookingEngineAdminService(BookingEngineConfigRepository configRepository,
                                       OrganizationRepository organizationRepository,
+                                      SiteRepository siteRepository,
                                       TenantContext tenantContext) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
+        this.siteRepository = siteRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -160,6 +164,11 @@ public class BookingEngineAdminService {
         Long orgId = tenantContext.getRequiredOrganizationId();
         BookingEngineConfig config = configRepository.findByIdAndOrganizationId(id, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Configuration introuvable : " + id));
+        // Le site publié (pages + domaines) référence la config via une FK SANS ON DELETE CASCADE
+        // (changeset 0254) : on supprime d'abord le site lié — ses pages/domaines cascadent au niveau DB —
+        // sinon la suppression de la config viole `sites_booking_engine_config_id_fkey`.
+        siteRepository.findFirstByBookingEngineConfigIdAndOrganizationId(id, orgId)
+            .ifPresent(siteRepository::delete);
         configRepository.delete(config);
         logger.info("Booking Engine template '{}' (id={}) deleted for org {}", config.getName(), id, orgId);
     }

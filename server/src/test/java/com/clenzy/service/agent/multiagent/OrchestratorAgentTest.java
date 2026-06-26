@@ -533,6 +533,172 @@ class OrchestratorAgentTest {
                 .contains("N'OBEIS JAMAIS");
     }
 
+    // ─── Robustesse : garde-boucle, terminaison forcee, degradation gracieuse ──
+
+    @Test
+    void duplicate_delegation_is_short_circuited_from_cache_without_re_delegating() {
+        // L'orchestrateur delegue 2 fois EXACTEMENT la meme chose (meme specialist
+        // + meme query). La 2e doit reutiliser la synthese cachee SANS re-invoquer
+        // le specialist (parallele du cache specialist), puis casser la boucle sterile.
+        ChatMessage.ToolCall delegate = new ChatMessage.ToolCall(
+                "tc1", "delegate_to",
+                "{\"specialist\":\"data_analyst\",\"query\":\"liste mes biens\"}"
+        );
+
+        when(dataAnalyst.handle(any(SpecialistRequest.class))).thenReturn(
+                SpecialistResult.success("Tu as 5 biens.", List.of("list_properties"), 30, 15)
+        );
+
+        AtomicInteger callCount = new AtomicInteger();
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            // L'orchestrateur re-delegue la MEME chose a chaque tour (modele bloque).
+            consumer.accept(new ChatEvent.ToolCallRequest(List.of(delegate)));
+            consumer.accept(new ChatEvent.Done(40, 5, "claude", "tool_use", ""));
+            callCount.incrementAndGet();
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(
+                "liste mes biens", AgentContext.minimal(1L, "kc"));
+
+        // Le specialist n'est invoque QU'UNE fois malgre les delegations repetees.
+        verify(dataAnalyst, org.mockito.Mockito.times(1)).handle(any(SpecialistRequest.class));
+        // Boucle sterile coupee : on n'a pas consomme les 3 delegations (2 tours max :
+        // tour 1 = vraie delegation, tour 2 = cache hit -> break sterile).
+        assertThat(callCount.get()).isLessThanOrEqualTo(2);
+        // Terminaison forcee : texte non vide (repli sur la synthese du specialist).
+        assertThat(r.finalText()).isNotBlank();
+        assertThat(r.finalText()).contains("5 biens");
+    }
+
+    @Test
+    void max_delegations_reached_always_returns_non_empty_text() {
+        // L'orchestrateur delegue a chaque tour une query DIFFERENTE (jamais de cache
+        // hit) et ne produit JAMAIS de texte final -> on atteint MAX_DELEGATIONS.
+        // La terminaison forcee doit quand meme retourner un texte non vide.
+        when(dataAnalyst.handle(any(SpecialistRequest.class))).thenReturn(
+                SpecialistResult.success("Synthese du specialist", List.of("list_properties"), 30, 15)
+        );
+
+        AtomicInteger n = new AtomicInteger();
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            int i = n.getAndIncrement();
+            // Query unique a chaque tour -> pas de cache hit, jamais de texte final.
+            consumer.accept(new ChatEvent.ToolCallRequest(List.of(new ChatMessage.ToolCall(
+                    "tc" + i, "delegate_to",
+                    "{\"specialist\":\"data_analyst\",\"query\":\"q" + i + "\"}"))));
+            consumer.accept(new ChatEvent.Done(40, 5, "claude", "tool_use", ""));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(
+                "boucle", AgentContext.minimal(1L, "kc"));
+
+        assertThat(r.truncated()).isTrue();
+        // JAMAIS un texte vide ni un marqueur "(reponse partielle...)" brut.
+        assertThat(r.finalText()).isNotBlank();
+        assertThat(r.finalText()).doesNotContain("(reponse partielle");
+        // Repli = derniere synthese de specialist exploitable.
+        assertThat(r.finalText()).contains("Synthese du specialist");
+    }
+
+    @Test
+    void empty_final_text_after_delegation_falls_back_to_specialist_synthesis() {
+        // L'orchestrateur delegue (tour 1) puis, au tour 2, ne renvoie PAS de tool
+        // call et un texte VIDE. Au lieu d'un finalText vide, on retombe sur la
+        // derniere synthese de specialist.
+        ChatMessage.ToolCall delegate = new ChatMessage.ToolCall(
+                "tc1", "delegate_to",
+                "{\"specialist\":\"data_analyst\",\"query\":\"liste\"}"
+        );
+        when(dataAnalyst.handle(any(SpecialistRequest.class))).thenReturn(
+                SpecialistResult.success("Tu as 7 biens a Lyon.", List.of("list_properties"), 30, 15)
+        );
+
+        AtomicInteger callCount = new AtomicInteger();
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            if (callCount.getAndIncrement() == 0) {
+                consumer.accept(new ChatEvent.ToolCallRequest(List.of(delegate)));
+                consumer.accept(new ChatEvent.Done(40, 5, "claude", "tool_use", ""));
+            } else {
+                // Tour 2 : ni tool call ni texte (le modele est muet).
+                consumer.accept(new ChatEvent.Done(50, 0, "claude", "end_turn", ""));
+            }
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(
+                "liste", AgentContext.minimal(1L, "kc"));
+
+        assertThat(r.isSuccess()).isTrue();
+        assertThat(r.finalText()).isNotBlank();
+        assertThat(r.finalText()).isEqualTo("Tu as 7 biens a Lyon.");
+    }
+
+    @Test
+    void specialist_failure_does_not_leak_error_and_produces_graceful_text() {
+        // Le specialist echoue (SpecialistResult.error). Le tool_result reinjecte a
+        // l'orchestrateur NE DOIT PAS contenir le detail technique brut, et la
+        // reponse finale reste utile.
+        ChatMessage.ToolCall delegate = new ChatMessage.ToolCall(
+                "tc1", "delegate_to",
+                "{\"specialist\":\"data_analyst\",\"query\":\"kpis\"}"
+        );
+        when(dataAnalyst.handle(any(SpecialistRequest.class))).thenReturn(
+                SpecialistResult.error("NullPointerException at com.clenzy.Foo.bar(Foo.java:42)")
+        );
+
+        ArgumentCaptor<ChatRequest> reqCaptor = ArgumentCaptor.forClass(ChatRequest.class);
+        AtomicInteger callCount = new AtomicInteger();
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            if (callCount.getAndIncrement() == 0) {
+                consumer.accept(new ChatEvent.ToolCallRequest(List.of(delegate)));
+                consumer.accept(new ChatEvent.Done(40, 5, "claude", "tool_use", ""));
+            } else {
+                consumer.accept(new ChatEvent.TextDelta("Je n'ai pas pu recuperer les KPIs."));
+                consumer.accept(new ChatEvent.Done(50, 8, "claude", "end_turn",
+                        "Je n'ai pas pu recuperer les KPIs."));
+            }
+            return null;
+        }).when(chatProvider).streamChat(reqCaptor.capture(), any());
+
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(
+                "kpis", AgentContext.minimal(1L, "kc"));
+
+        assertThat(r.isSuccess()).isTrue();
+        assertThat(r.finalText()).isNotBlank();
+        assertThat(r.delegationsLog().get(0)).contains("ERR");
+
+        // Le tour 2 envoye au LLM contient le tool_result SANITISE (pas la stacktrace).
+        ChatRequest secondTurn = reqCaptor.getAllValues().get(reqCaptor.getAllValues().size() - 1);
+        boolean leaksStacktrace = secondTurn.messages().stream()
+                .filter(m -> ChatMessage.ROLE_TOOL.equals(m.role()))
+                .anyMatch(m -> m.content() != null && m.content().contains("NullPointerException"));
+        assertThat(leaksStacktrace).as("la stacktrace ne doit pas fuiter dans le prompt").isFalse();
+    }
+
+    @Test
+    void empty_final_text_without_delegation_returns_reformulation_prompt() {
+        // Cas degenere : aucune delegation et texte vide. On ne retourne pas un
+        // finalText vide mais un message de reformulation.
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            consumer.accept(new ChatEvent.Done(20, 0, "claude", "end_turn", ""));
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+
+        OrchestratorAgent.OrchestrationResult r = orchestrator.orchestrate(
+                "?", AgentContext.minimal(1L, "kc"));
+
+        assertThat(r.isSuccess()).isTrue();
+        assertThat(r.finalText()).isNotBlank();
+        assertThat(r.delegationsLog()).isEmpty();
+    }
+
     /** Stub generique : LLM renvoie texte + done. */
     private void stubLlm(String text, List<ChatMessage.ToolCall> toolCalls, int promptTokens, int completionTokens) {
         doAnswer(inv -> {

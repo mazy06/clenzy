@@ -208,8 +208,10 @@ class AiTokenBudgetServiceTest {
             assertEquals(0L, stats.usageByFeature().get("ASSISTANT_CHAT"));
             // CONTENT ajoute (BE-L0-2, generation de contenu) — meme defaut 100k
             assertEquals(0L, stats.usageByFeature().get("CONTENT"));
+            // STUDIO_ASSIST ajoute (champ IA du Studio booking engine / livret) — meme defaut 100k
+            assertEquals(0L, stats.usageByFeature().get("STUDIO_ASSIST"));
             assertEquals(11_000L, stats.totalUsed());
-            assertEquals(700_000L, stats.totalBudget()); // 7 features * 100k default
+            assertEquals(800_000L, stats.totalBudget()); // 8 features * 100k default
             assertEquals("2026-03", stats.monthYear());
         }
     }

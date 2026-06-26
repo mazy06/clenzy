@@ -86,6 +86,8 @@ const ReservationsList = lazy(() => import('./reservations/ReservationsList'));
 
 // Planning
 const PlanningPage = lazy(() => import('./planning/PlanningPage'));
+// Spike Phase 0 : Superviseur via CopilotKit ↔ AG-UI ↔ moteur multi-agent (réel)
+const SupervisionAgUiSpike = lazy(() => import('./supervision/agui/SupervisionAgUiSpike'));
 
 // Guests (main list is inside DirectoryPage)
 
@@ -110,6 +112,7 @@ const ReviewsPage = lazy(() => import('./channels/ReviewsPage'));
 const GuestExperiencePage = lazy(() => import('./guest-experience/GuestExperiencePage'));
 const StudioHome = lazy(() => import('./booking-engine/studio/StudioHome'));
 const StudioPage = lazy(() => import('./booking-engine/studio/StudioPage'));
+const TemplateGalleryPage = lazy(() => import('./booking-engine/studio/TemplateGalleryPage'));
 
 // Messaging — pages now merged into Documents module (redirected via Navigate)
 // import MessageTemplatesPage from './messaging/MessageTemplatesPage';
@@ -284,6 +287,15 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="reservations:view">
             <ErrorBoundary>
               <PlanningPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Spike Phase 0 — Superviseur d'agents (CopilotKit ↔ AG-UI ↔ moteur multi-agent réel) */}
+        <Route path="/agui-spike" element={
+          <ProtectedRoute requiredPermission="reservations:view">
+            <ErrorBoundary>
+              <SupervisionAgUiSpike />
             </ErrorBoundary>
           </ProtectedRoute>
         } />
@@ -495,6 +507,13 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="properties:view">
             <ErrorBoundary>
               <StudioHome />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+        <Route path="/booking-engine/templates" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <TemplateGalleryPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

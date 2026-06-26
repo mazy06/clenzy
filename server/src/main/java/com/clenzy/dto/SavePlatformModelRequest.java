@@ -17,7 +17,8 @@ public record SavePlatformModelRequest(
         @NotBlank(message = "Model ID is required")
         String modelId,
 
-        @NotBlank(message = "API key is required")
+        // Optionnel : si vide, le serveur réutilise une clé existante pour le
+        // provider (modèle plateforme déjà configuré, ou connexion BYOK de l'org).
         String apiKey,
 
         String baseUrl
