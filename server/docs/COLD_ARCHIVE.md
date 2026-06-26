@@ -19,7 +19,7 @@
 | # | Decision | Detail |
 |---|----------|--------|
 | a | **Quelles donnees archiver** | Ex : reservations cloturees au-dela de la periode courante, factures NF anciennes, logs/justificatifs. Materialise par une `ArchivalSource` (voir §4). |
-| b | **Durees de retention legales** | Ex (France, **a confirmer avec un conseil juridique/comptable**) : factures ~10 ans (art. L123-22 C. com. / L102 B LPF). **Le code ne fixe aucune duree** — la borne « ce qui est froid » est decidee dans la `ArchivalSource`. |
+| b | **Durees de retention legales** | **DEFINIES** dans [RETENTION-POLICY.md](RETENTION-POLICY.md) (FR + MA + KSA + exigences OTA) : comptable/fiscal **10 ans** (15 ans si bien immobilier KSA), portees par `Target.retentionYears` + `legalBasis`. **A faire valider par un avocat/DPO** (points ouverts au §7 de la politique). |
 | c | **Immuabilite cote OVH** | Bucket en classe **Cold Archive** + **Object Lock / WORM** (mode COMPLIANCE recommande) pour garantir l'immuabilite fiscale/OTA des exports. Ce verrou est **cote bucket**, hors application. |
 
 > Conformite OTA/fiscale : l'immuabilite repose **entierement** sur l'Object Lock du bucket OVH.
@@ -38,14 +38,24 @@ clenzy:
   archival:
     enabled: false        # DESACTIVE PAR DEFAUT — ne passer a true qu'apres avoir tranche 2a/2b/2c
     batch-size: 500       # taille de page (borne memoire / taille des objets), defaut 500, max 5000
-    targets:              # cibles d'archivage (vide par defaut)
-      - name: reservations-cold
-        description: "Reservations cloturees au-dela de la retention courante"
-      - name: invoices-nf-archive
-        description: "Factures NF anciennes (retention legale a definir)"
+    targets:              # cibles d'archivage (vide par defaut ; politique : RETENTION-POLICY.md)
+      - name: invoices-archive
+        description: "Factures NF anciennes hors periode courante"
+        retention-years: 10        # 15 si rattachement a un bien immobilier (KSA ZATCA)
+        legal-basis: "C. com. L123-22 (FR) ; CGI 211 (MA) ; ZATCA VAT Reg. (KSA)"
+      - name: reservations-archive
+        description: "Reservations cloturees au-dela de la periode courante"
+        retention-years: 10
+        legal-basis: "C. conso. D213-2 (FR) ; CGI 211 (MA) ; Law of Commercial Books art. 8 (KSA)"
+      - name: payment-transactions-archive
+        description: "Transactions de paiement (preuve de litige / reconciliation)"
+        retention-years: 10
+        legal-basis: "obligation comptable ; CNIL 2018-303 (CB non stockee)"
 ```
-- Une `Target` est volontairement **minimale** : juste `name` (identifiant stable) + `description`
-  libre. **Aucune duree/table** n'y figure — ces choix appartiennent a la `ArchivalSource`.
+- Une `Target` porte `name` (identifiant stable, doit matcher une `ArchivalSource`), `description`,
+  et la politique `retention-years` + `legal-basis` (cf. [RETENTION-POLICY.md](RETENTION-POLICY.md) ;
+  champs documentaires/auditables, destines a la future purge — l'export ne les lit pas). La **table**
+  archivee reste decidee par la `ArchivalSource`.
 
 ## 4. Fournir une `ArchivalSource` (le « quoi archiver »)
 

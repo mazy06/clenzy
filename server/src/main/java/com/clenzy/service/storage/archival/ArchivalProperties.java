@@ -33,10 +33,14 @@ import java.util.Optional;
  *     enabled: false            # ne JAMAIS passer a true sans avoir tranche les points ci-dessus
  *     batch-size: 500
  *     targets:
- *       - name: reservations-cold
- *         description: "Reservations cloturees au-dela de la retention courante"
- *       - name: invoices-nf-archive
- *         description: "Factures NF anciennes (retention legale a definir)"
+ *       - name: reservations-archive
+ *         description: "Reservations cloturees au-dela de la periode courante"
+ *         retention-years: 10       # voir docs/RETENTION-POLICY.md
+ *         legal-basis: "C. conso. D213-2 (FR) ; CGI 211 (MA) ; Law of Commercial Books art. 8 (KSA)"
+ *       - name: invoices-archive
+ *         description: "Factures NF anciennes hors periode courante"
+ *         retention-years: 10       # 15 si rattachement a un bien immobilier (KSA ZATCA)
+ *         legal-basis: "C. com. L123-22 (FR) ; CGI 211 (MA) ; ZATCA VAT Reg. (KSA)"
  * </pre>
  */
 @ConfigurationProperties(prefix = "clenzy.archival")
@@ -73,15 +77,21 @@ public record ArchivalProperties(
     }
 
     /**
-     * Une cible d'archivage. Volontairement MINIMALE et extensible : juste un identifiant
-     * stable ({@code name}, qui doit matcher une {@link ArchivalSource}) et une description
-     * libre. On n'y met PAS de duree/table : ces choix appartiennent a la {@link ArchivalSource}
-     * et a la decision de l'exploitant, pas a un champ de config fige.
+     * Une cible d'archivage. {@code name} = identifiant stable (doit matcher une
+     * {@link ArchivalSource}) ; {@code description} = libre.
+     *
+     * <p>{@code retentionYears} + {@code legalBasis} portent la <b>politique de retention</b>
+     * decidee par l'exploitant (cf. {@code server/docs/RETENTION-POLICY.md}) : duree minimale de
+     * conservation et base legale. Ces champs sont <b>documentaires/auditables</b> a ce stade —
+     * ils servent de source de verite a la future purge (non implementee) et a l'Object Lock OVH ;
+     * le moteur d'export ne les lit pas. Ils restent optionnels ({@code null} accepte) pour ne pas
+     * casser une cible historique.</p>
      */
-    public record Target(String name, String description) {
+    public record Target(String name, String description, Integer retentionYears, String legalBasis) {
         public Target {
             name = name != null ? name.trim() : "";
             description = description != null ? description : "";
+            legalBasis = legalBasis != null ? legalBasis.trim() : "";
         }
     }
 }
