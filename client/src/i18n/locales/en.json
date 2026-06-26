@@ -1950,6 +1950,18 @@
     }
   },
   "reservations": {
+    "compliance": {
+      "title": "Police record",
+      "primaryTraveler": "Primary traveler",
+      "companion": "Companion {{n}}",
+      "transmitted": "Submitted",
+      "toTransmit": "To submit",
+      "resubmit": "Resubmit",
+      "success": "Submitted to the service",
+      "notSubmitted": "Not submitted",
+      "providerPending": "Provider integration pending",
+      "error": "Submission failed"
+    },
     "title": "Reservations",
     "subtitle": "View and manage your property reservations",
     "create": "New reservation",

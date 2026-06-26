@@ -1949,6 +1949,18 @@
     }
   },
   "reservations": {
+    "compliance": {
+      "title": "بطاقة الشرطة",
+      "primaryTraveler": "المسافر الرئيسي",
+      "companion": "المرافق {{n}}",
+      "transmitted": "تم الإرسال",
+      "toTransmit": "بانتظار الإرسال",
+      "resubmit": "إعادة الإرسال",
+      "success": "تم الإرسال إلى الخدمة",
+      "notSubmitted": "لم يتم الإرسال",
+      "providerPending": "تكامل المزود قيد الانتظار",
+      "error": "فشل الإرسال"
+    },
     "title": "الحجوزات",
     "subtitle": "استعرض وأدر حجوزات عقاراتك",
     "create": "حجز جديد",
