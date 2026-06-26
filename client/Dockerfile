@@ -49,6 +49,9 @@ RUN npm config set fetch-retries 5 \
     fi
 
 COPY . .
+# Heap Node augmente : le bundle (SDK + app + module supervision) depasse la limite
+# par defaut → "JavaScript heap out of memory" au vite build (aligne sur la CI).
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build
 
 # Run stage
