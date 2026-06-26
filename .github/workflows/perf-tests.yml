@@ -42,7 +42,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15-alpine
+        # pgvector requis : l'app boote en ddl-auto et cree assistant_memory (embedding vector(1024)).
+        # Aligne l'env perf sur dev/prod (pgvector/pgvector:pg15) — postgres:15-alpine n'a pas le type "vector".
+        image: pgvector/pgvector:pg15
         env:
           POSTGRES_DB: clenzy_perf
           POSTGRES_USER: clenzy_perf
@@ -83,6 +85,13 @@ jobs:
 
       - name: Create upload directories
         run: mkdir -p /tmp/clenzy-ci/uploads/{contact,templates,documents,user-avatars}
+
+      # L'extension est disponible dans l'image pgvector mais doit etre creee dans la base
+      # avant le boot (Hibernate ddl-auto cree assistant_memory.embedding vector(1024)).
+      - name: Enable pgvector extension
+        env:
+          PGPASSWORD: clenzy_perf_ci
+        run: psql -h localhost -p 5432 -U clenzy_perf -d clenzy_perf -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
       - name: Start backend
         working-directory: server
