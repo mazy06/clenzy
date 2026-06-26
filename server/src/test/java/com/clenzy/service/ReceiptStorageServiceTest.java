@@ -1,8 +1,10 @@
 package com.clenzy.service;
 
 import com.clenzy.exception.DocumentStorageException;
+import com.clenzy.service.storage.DocumentBinaryStore;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.springframework.beans.factory.ObjectProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,7 +35,11 @@ class ReceiptStorageServiceTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        service = new ReceiptStorageService(tempDir.toString(), meterRegistry);
+        // Flag absent → strategie objet indisponible : comportement disque historique.
+        @SuppressWarnings("unchecked")
+        ObjectProvider<DocumentBinaryStore> noObjectStore = mock(ObjectProvider.class);
+        when(noObjectStore.getIfAvailable()).thenReturn(null);
+        service = new ReceiptStorageService(tempDir.toString(), meterRegistry, noObjectStore);
         service.init();
     }
 

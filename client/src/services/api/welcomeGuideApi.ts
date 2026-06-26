@@ -249,6 +249,42 @@ export interface PublicGuideCheckIn {
   status: string;
 }
 
+/**
+ * État de la collecte de données réglementaire (fiche de police / déclaration voyageur).
+ * Miroir TS de `WelcomeGuidePublicDto.DataCollectionInfo` côté serveur.
+ *
+ * - `required` : true si une déclaration est exigée pour ce séjour ET incomplète.
+ * - `complete` : true si rien n'est requis OU si la déclaration est complète.
+ * - `missingFields` : clés des champs encore manquants (vide si `complete`). Valeurs possibles :
+ *   `firstName`, `lastName`, `birthDate`, `birthPlace`, `nationality`, `residenceAddress`,
+ *   `idDocumentType`, `idDocumentNumber` (cf. `GuestDeclarationService`).
+ */
+export interface DataCollectionInfo {
+  required: boolean;
+  complete: boolean;
+  missingFields: string[];
+}
+
+/** Identité d'un voyageur à déclarer (principal ou accompagnant). Miroir de `GuestDeclarationRequest.Declarant`. */
+export interface GuestDeclarant {
+  firstName: string;
+  lastName: string;
+  maidenName?: string | null;
+  /** Date de naissance ISO `yyyy-MM-dd`. */
+  birthDate: string;
+  birthPlace: string;
+  nationality: string;
+  residenceAddress?: string | null;
+  residenceCountry?: string | null;
+  idDocumentType: string;
+  idDocumentNumber: string;
+}
+
+/** Corps de soumission de la fiche de police (principal en premier, puis accompagnants). */
+export interface GuestDeclarationRequest {
+  declarants: GuestDeclarant[];
+}
+
 /** Données auto-remplies d'un logement pour l'aperçu live de la config (sans token). */
 export interface GuidePreviewData {
   property: PublicGuideProperty | null;
@@ -278,6 +314,12 @@ export interface PublicGuide {
   practical: PublicGuidePractical | null;
   stay: PublicGuideStay | null;
   checkIn: PublicGuideCheckIn | null;
+  /**
+   * Collecte de données réglementaire (fiche de police). `null` si aucune réservation liée
+   * (rien à demander). Si `required && !complete`, la page guest gate le livret derrière le
+   * formulaire de complétion.
+   */
+  dataCollection: DataCollectionInfo | null;
   chatbotEnabled: boolean;
   guestbookEnabled: boolean;
   activitiesEnabled: boolean;
@@ -389,6 +431,30 @@ export const welcomeGuideApi = {
   propertyPreview: (propertyId: number) =>
     apiClient.get<GuidePreviewData>(`/welcome-guides/property-preview/${propertyId}`),
 };
+
+// ─── API publique (page guest /guide/:token) ─────────────────────────────────
+
+/**
+ * Soumet la fiche de police / déclaration voyageur depuis le livret guest (endpoint PUBLIC :
+ * le token EST la clé d'autorisation — org et réservation résolues serveur). Renvoie l'état
+ * `DataCollectionInfo` recalculé : `complete=true` révèle le contenu du livret.
+ *
+ * @param apiBase origine de l'API SANS le préfixe `/api` (cf. `API_CONFIG.BASE_URL`).
+ * @throws Error si la requête échoue (le formulaire affiche `declErrorSubmit`).
+ */
+export async function submitGuideDeclaration(
+  apiBase: string,
+  token: string,
+  payload: GuestDeclarationRequest,
+): Promise<DataCollectionInfo> {
+  const response = await fetch(`${apiBase}/api/public/guide/${token}/declaration`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error('declaration_submit_failed');
+  return response.json();
+}
 
 // ─── Helpers serialisation des sections editoriales ───────────────────────────
 

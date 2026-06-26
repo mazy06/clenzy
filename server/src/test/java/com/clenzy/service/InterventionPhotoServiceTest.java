@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionPhoto;
 import com.clenzy.repository.InterventionPhotoRepository;
+import com.clenzy.service.storage.InterventionPhotoBinaryStore;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.*;
 class InterventionPhotoServiceTest {
 
     @Mock private InterventionPhotoRepository interventionPhotoRepository;
+    @Mock private InterventionPhotoBinaryStore binaryStore;
 
     private TenantContext tenantContext;
     private InterventionPhotoService service;
@@ -37,7 +39,7 @@ class InterventionPhotoServiceTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        service = new InterventionPhotoService(interventionPhotoRepository, tenantContext);
+        service = new InterventionPhotoService(interventionPhotoRepository, tenantContext, binaryStore);
     }
 
     private Intervention buildIntervention(Long id) {

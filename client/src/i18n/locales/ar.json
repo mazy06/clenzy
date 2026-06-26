@@ -235,6 +235,39 @@
     }
   },
   "welcomeGuide": {
+    "declaration": {
+      "eyebrow": "قبل أن تكتشف دليلك",
+      "title": "بعض المعلومات لتأكيد وصولك",
+      "intro": "لإتمام تسجيل وصولك وتلبية متطلب الإقرار القانوني (استمارة الشرطة)، يرجى استكمال المعلومات أدناه. لن يستغرق ذلك سوى دقيقة.",
+      "mainTraveller": "النزيل الرئيسي",
+      "companion": "مرافق",
+      "addCompanion": "إضافة مرافق",
+      "remove": "إزالة",
+      "submit": "تأكيد وفتح الدليل",
+      "submitting": "جارٍ التأكيد…",
+      "errorSubmit": "فشل الإرسال. يرجى التحقق من بياناتك والمحاولة مرة أخرى.",
+      "errorRequired": "يرجى استكمال جميع الحقول المطلوبة.",
+      "stillMissing": "لا تزال بعض المعلومات ناقصة.",
+      "privacy": "تُرسَل بياناتك بشكل آمن إلى مضيفك وتُحفَظ للمدة القانونية فقط.",
+      "selectPlaceholder": "اختر…",
+      "fields": {
+        "firstName": "الاسم الأول",
+        "lastName": "اسم العائلة",
+        "maidenName": "اسم الميلاد",
+        "birthDate": "تاريخ الميلاد",
+        "birthPlace": "مكان الميلاد",
+        "nationality": "الجنسية",
+        "residenceAddress": "عنوان الإقامة",
+        "residenceCountry": "بلد الإقامة",
+        "idDocumentType": "نوع وثيقة الهوية",
+        "idDocumentNumber": "رقم الوثيقة"
+      },
+      "docTypes": {
+        "passport": "جواز السفر",
+        "idCard": "بطاقة الهوية الوطنية",
+        "residencePermit": "تصريح الإقامة"
+      }
+    },
     "themes": {
       "sectionTitle": "سمة الدليل",
       "atelier": {
@@ -1916,6 +1949,18 @@
     }
   },
   "reservations": {
+    "compliance": {
+      "title": "بطاقة الشرطة",
+      "primaryTraveler": "المسافر الرئيسي",
+      "companion": "المرافق {{n}}",
+      "transmitted": "تم الإرسال",
+      "toTransmit": "بانتظار الإرسال",
+      "resubmit": "إعادة الإرسال",
+      "success": "تم الإرسال إلى الخدمة",
+      "notSubmitted": "لم يتم الإرسال",
+      "providerPending": "تكامل المزود قيد الانتظار",
+      "error": "فشل الإرسال"
+    },
     "title": "الحجوزات",
     "subtitle": "استعرض وأدر حجوزات عقاراتك",
     "create": "حجز جديد",
