@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -63,6 +64,7 @@ public class WelcomeGuideService {
     private final ActivityAffiliateConfigRepository activityAffiliateConfigRepository;
     private final com.clenzy.service.access.GuestUnlockService guestUnlockService;
     private final MessageTemplateService messageTemplateService;
+    private final GuestDeclarationService guestDeclarationService;
     private final Map<ActivityProvider, AffiliateLinkDecorator> linkDecorators;
 
     public WelcomeGuideService(WelcomeGuideRepository guideRepository,
@@ -80,6 +82,7 @@ public class WelcomeGuideService {
                                 ActivityAffiliateConfigRepository activityAffiliateConfigRepository,
                                 com.clenzy.service.access.GuestUnlockService guestUnlockService,
                                 MessageTemplateService messageTemplateService,
+                                GuestDeclarationService guestDeclarationService,
                                 List<AffiliateLinkDecorator> linkDecorators) {
         this.guideRepository = guideRepository;
         this.tokenRepository = tokenRepository;
@@ -96,6 +99,7 @@ public class WelcomeGuideService {
         this.activityAffiliateConfigRepository = activityAffiliateConfigRepository;
         this.guestUnlockService = guestUnlockService;
         this.messageTemplateService = messageTemplateService;
+        this.guestDeclarationService = guestDeclarationService;
         this.linkDecorators = new EnumMap<>(ActivityProvider.class);
         for (AffiliateLinkDecorator decorator : linkDecorators) {
             this.linkDecorators.put(decorator.provider(), decorator);
@@ -439,6 +443,27 @@ public class WelcomeGuideService {
     }
 
     /**
+     * Résout, à partir d'un token de livret valide (non révoqué, dans sa fenêtre, livret publié),
+     * l'id de la réservation effective bornée par ce token (réservation du token, sinon celle du
+     * livret). Le token EST la clé d'autorisation : aucun id de réservation n'est accepté du client.
+     * Vide si token invalide / livret non publié / réservation absente.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Long> resolveReservationId(UUID token) {
+        return tokenRepository.findByToken(token)
+            .filter(WelcomeGuideToken::isCurrentlyValid)
+            .map(t -> {
+                WelcomeGuide guide = t.getGuide();
+                if (guide == null || !guide.isPublished()) {
+                    return null;
+                }
+                Reservation reservation = t.getReservation() != null ? t.getReservation() : guide.getReservation();
+                return reservation != null ? reservation.getId() : null;
+            })
+            .filter(Objects::nonNull);
+    }
+
+    /**
      * Sert une photo d'indication d'acces pour un token guest valide. Verifie que la cle
      * appartient bien aux {@code arrivalPhotos} des instructions du logement du livret
      * (token-scope), puis recupere le binaire via {@link PhotoStorageService}. Vide si token
@@ -577,6 +602,9 @@ public class WelcomeGuideService {
         WelcomeGuidePublicDto dto =
             WelcomeGuidePublicDto.from(guide, property, ci, reservation, dynamicAccessCode, checkIn,
                 heroImageUrls, accessCodeUnlocked, guestUnlockAvailable);
+        // Collecte réglementaire (fiche de police) : gating uniquement si le service est activé pour
+        // la propriété ET que des données manquent. Résolu serveur depuis la réservation du token.
+        dto = dto.withDataCollection(guestDeclarationService.computeRequirements(reservation.getId()));
         if (!accessCodeUnlocked) {
             dto = maskArrivalAccessDetails(dto);
         }
@@ -615,7 +643,7 @@ public class WelcomeGuideService {
             dto.title(), dto.language(), dto.brandingColor(), dto.theme(), dto.heroImageUrls(),
             dto.welcomeMessage(), dto.hostNames(), dto.logoUrl(), dto.sections(), dto.pois(),
             dto.curatedActivities(), dto.property(), masked, dto.stay(), dto.checkIn(),
-            dto.chatbotEnabled(), dto.guestbookEnabled(), dto.activitiesEnabled(),
+            dto.dataCollection(), dto.chatbotEnabled(), dto.guestbookEnabled(), dto.activitiesEnabled(),
             dto.upsellsEnabled(), dto.available(), dto.unavailableReason());
     }
 
