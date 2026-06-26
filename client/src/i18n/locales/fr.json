@@ -235,6 +235,39 @@
     }
   },
   "welcomeGuide": {
+    "declaration": {
+      "eyebrow": "Avant de découvrir votre livret",
+      "title": "Quelques informations pour valider votre arrivée",
+      "intro": "Pour finaliser votre check-in et répondre à l'obligation légale de déclaration (fiche de police), merci de compléter les informations ci-dessous. Cela ne prend qu'une minute.",
+      "mainTraveller": "Voyageur principal",
+      "companion": "Accompagnant",
+      "addCompanion": "Ajouter un accompagnant",
+      "remove": "Retirer",
+      "submit": "Valider et accéder au livret",
+      "submitting": "Validation…",
+      "errorSubmit": "La validation a échoué. Vérifiez vos informations et réessayez.",
+      "errorRequired": "Merci de compléter tous les champs requis.",
+      "stillMissing": "Il reste des informations à compléter.",
+      "privacy": "Vos données sont transmises de façon sécurisée à votre hôte et conservées le temps légal.",
+      "selectPlaceholder": "Sélectionner…",
+      "fields": {
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "maidenName": "Nom de naissance",
+        "birthDate": "Date de naissance",
+        "birthPlace": "Lieu de naissance",
+        "nationality": "Nationalité",
+        "residenceAddress": "Adresse de résidence",
+        "residenceCountry": "Pays de résidence",
+        "idDocumentType": "Type de pièce d'identité",
+        "idDocumentNumber": "Numéro de la pièce"
+      },
+      "docTypes": {
+        "passport": "Passeport",
+        "idCard": "Carte nationale d'identité",
+        "residencePermit": "Titre de séjour"
+      }
+    },
     "themes": {
       "sectionTitle": "Thème du livret",
       "atelier": {

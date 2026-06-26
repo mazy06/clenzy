@@ -9,13 +9,16 @@ import {
   parseSections,
   parsePois,
   parseActivities,
+  submitGuideDeclaration,
   type GuideActivity,
   type GuestbookEntry,
   type GuideEventType,
+  type GuestDeclarant,
   type PublicGuide as PublicGuideData,
 } from '../../services/api/welcomeGuideApi';
 import { type Activity } from '../../services/api/activitiesApi';
 import WelcomeBookView, { type Lang, type WelcomeBookModel } from './WelcomeBookView';
+import GuideDeclarationForm from './GuideDeclarationForm';
 import { WELCOME_BOOK_THEMES, normalizeTheme, injectWelcomeBookCss } from './welcomeBookThemes';
 import { GUIDE_LABELS as LABELS } from './guideLabels';
 import { API_CONFIG } from '../../config/api';
@@ -362,6 +365,40 @@ const PublicGuide: React.FC = () => {
   const heroImages = (guide.heroImageUrls || []).map((u) =>
     u.startsWith('http') ? u : `${API_BASE}${u}`,
   );
+
+  // ── Gating réglementaire (fiche de police + check-in) ──
+  // Si une déclaration est exigée et incomplète, on présente le formulaire de complétion AVANT le
+  // livret. Une fois la collecte complète (réponse serveur), on met à jour le state → le livret apparaît
+  // sans friction. Si rien n'est requis (dataCollection null ou complete), accès direct.
+  const dc = guide.dataCollection;
+  if (dc && dc.required && !dc.complete) {
+    const handleDeclarationSubmit = async (declarants: GuestDeclarant[]): Promise<boolean> => {
+      if (!token) return false;
+      const result = await submitGuideDeclaration(API_BASE, token, { declarants });
+      setGuide((prev) => (prev ? { ...prev, dataCollection: result } : prev));
+      return result.complete;
+    };
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', bgcolor: swatch?.bg || '#F2E9D9' }}>
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: 480,
+            minHeight: '100vh',
+            boxShadow: { xs: 'none', sm: '0 0 80px -20px rgba(35,24,14,0.45)' },
+          }}
+        >
+          <GuideDeclarationForm
+            lang={lang}
+            labels={L}
+            theme={theme}
+            missingFields={dc.missingFields}
+            onSubmit={handleDeclarationSubmit}
+          />
+        </Box>
+      </Box>
+    );
+  }
 
   const model: WelcomeBookModel = {
     title: guide.title,
