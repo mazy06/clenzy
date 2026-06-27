@@ -32,15 +32,18 @@ public class SiteAdminController {
     private final SiteAdminService service;
     private final com.clenzy.booking.service.SiteContentAiService contentAiService;
     private final com.clenzy.booking.service.ContentTranslationService translationService;
+    private final com.clenzy.booking.service.SiteGenerationService siteGenerationService;
     private final TenantContext tenantContext;
 
     public SiteAdminController(SiteAdminService service,
                               com.clenzy.booking.service.SiteContentAiService contentAiService,
                               com.clenzy.booking.service.ContentTranslationService translationService,
+                              com.clenzy.booking.service.SiteGenerationService siteGenerationService,
                               TenantContext tenantContext) {
         this.service = service;
         this.contentAiService = contentAiService;
         this.translationService = translationService;
+        this.siteGenerationService = siteGenerationService;
         this.tenantContext = tenantContext;
     }
 
@@ -136,6 +139,19 @@ public class SiteAdminController {
             @PathVariable Long id, @Valid @RequestBody com.clenzy.booking.dto.SiteTranslateRequest req) {
         String translated = contentAiService.translatePageHtml(orgId(), id, req.html(), req.targetLocale());
         return ResponseEntity.ok(new com.clenzy.booking.dto.SiteTranslateResultDto(translated));
+    }
+
+    /**
+     * Génère un SITE COMPLET par IA (P2.a) à partir d'un brief : dérive un thème + crée un set de pages
+     * (HOME / liste / à propos / contact) en BROUILLON ({@code DRAFT}, {@code aiGenerated}) — jamais
+     * publiées automatiquement (relecture humaine). Réservé aux rôles habilités + ownership org (service).
+     */
+    @PostMapping("/{id}/ai-generate")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<com.clenzy.booking.dto.SiteGenerationResultDto> aiGenerate(
+            @PathVariable Long id,
+            @Valid @RequestBody com.clenzy.booking.dto.SiteGenerationBrief brief) {
+        return ResponseEntity.ok(siteGenerationService.generateSite(orgId(), id, brief));
     }
 
     // ─── Domaines ───────────────────────────────────────────────────────────

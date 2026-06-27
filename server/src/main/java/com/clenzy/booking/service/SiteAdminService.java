@@ -209,6 +209,22 @@ public class SiteAdminService {
         return SitePageDto.from(pageRepository.save(page));
     }
 
+    /**
+     * Crée une page générée par IA (P2.a) : forcée en {@code DRAFT} + {@code aiGenerated=true} pour
+     * relecture humaine (jamais auto-publiée — même garde-fou que l'auto-traduction et le blog IA, 2.13).
+     * Le statut demandé dans le DTO est ignoré : seul DRAFT est autorisé pour du contenu IA.
+     */
+    @Transactional
+    public SitePageDto createAiGeneratedPage(Long orgId, Long siteId, SitePageDto req) {
+        requireOwnedSite(orgId, siteId);
+        SitePage page = new SitePage();
+        page.setSiteId(siteId);
+        applyPage(page, req);
+        page.setStatus(SiteStatus.DRAFT);
+        page.setAiGenerated(true);
+        return SitePageDto.from(pageRepository.save(page));
+    }
+
     @Transactional
     public SitePageDto updatePage(Long orgId, Long siteId, Long pageId, SitePageDto req) {
         requireOwnedSite(orgId, siteId);
