@@ -2751,3 +2751,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0282__create_guest_declarations.sql
         relativeToChangelogFile: true
+
+  # Auto-traduction IA + relecture manuelle des pages de site (mêmes colonnes que blog_posts).
+  - changeSet:
+      id: "0283-add-site-page-review"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0283__add_site_page_review.sql
+        relativeToChangelogFile: true
