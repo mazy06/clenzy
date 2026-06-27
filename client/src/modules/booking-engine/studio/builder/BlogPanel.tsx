@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, ButtonBase, InputBase, Skeleton } from '@mui/material';
-import { Plus, Wand2, Trash2, ArrowLeft, Check, AlertTriangle, FileText } from 'lucide-react';
+import { Plus, Wand2, Trash2, ArrowLeft, Check, AlertTriangle, FileText, Languages } from 'lucide-react';
 import { sitesApi, type BlogPost, type BlogPostUpsert } from '../../../../services/api/sitesApi';
+import { useNotification } from '../../../../hooks/useNotification';
+import TranslateModal from '../TranslateModal';
 import type { StudioConfigState } from '../useStudioConfig';
 
 /**
@@ -40,12 +43,19 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   PUBLISHED: { label: 'Publié', color: 'var(--ok)' },
 };
 
+/** Locales supportées par le Studio (alignées sur GrapesStudio). */
+const SUPPORTED_LOCALES = ['fr', 'en', 'ar'] as const;
+
 export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
+  const { t } = useTranslation();
+  const { notify } = useNotification();
   const configId = cfg.config?.id;
   const [siteId, setSiteId] = useState<number | null>(null);
   const [posts, setPosts] = useState<BlogPost[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<BlogPost | 'new' | null>(null);
+  // Auto-traduction IA d'un article (crée des variantes en brouillon, relecture humaine).
+  const [translatingPost, setTranslatingPost] = useState<BlogPost | null>(null);
 
   useEffect(() => {
     if (!configId) return;
@@ -62,6 +72,30 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
     if (siteId == null) return;
     setPosts(await sitesApi.listPosts(siteId));
   };
+
+  // Auto-traduit (IA) un article vers les langues choisies : variantes en brouillon (relecture humaine).
+  const handleAutoTranslatePost = async (targets: string[]) => {
+    if (siteId == null || !translatingPost) {
+      throw new Error(t('bookingEngine.studio.ai.translate.noPost', 'Aucun article sélectionné.'));
+    }
+    const result = await sitesApi.autoTranslatePost(siteId, translatingPost.id, targets);
+    const created = result.createdPosts.length;
+    const skipped = result.skippedLocales.length;
+    setTranslatingPost(null);
+    if (created > 0) {
+      notify.success(t('bookingEngine.studio.ai.translate.success', '{{count}} variante(s) créée(s) en brouillon — à relire avant publication.', { count: created }));
+    } else {
+      notify.info(t('bookingEngine.studio.ai.translate.noneCreated', 'Aucune variante créée (langues déjà traduites).'));
+    }
+    if (skipped > 0) {
+      notify.info(t('bookingEngine.studio.ai.translate.skipped', '{{count}} langue(s) ignorée(s) (déjà traduite(s)).', { count: skipped }));
+    }
+    await reload();
+    return result;
+  };
+
+  /** Langues cibles d'un article = locales supportées hors langue de l'article (vide = langue par défaut). */
+  const postTargets = (p: BlogPost) => SUPPORTED_LOCALES.filter((l) => l !== (p.locale ?? 'fr'));
 
   if (error) {
     return (
@@ -141,6 +175,14 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
                     <ButtonBase onClick={async () => { if (siteId != null) { await sitesApi.rejectPost(siteId, p.id); reload(); } }} sx={ghostBtnSx}>Brouillon</ButtonBase>
                   </>
                 )}
+                <ButtonBase
+                  onClick={() => setTranslatingPost(p)}
+                  disabled={postTargets(p).length === 0}
+                  aria-label={t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
+                  title={t('bookingEngine.studio.ai.translate.postTooltip', 'Traduire cet article (IA) — crée des variantes en brouillon')}
+                  sx={{ ...ghostBtnSx, gap: 0.5, color: 'var(--accent)', borderColor: 'var(--accent)' }}>
+                  <Languages size={14} strokeWidth={2.2} /> {t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
+                </ButtonBase>
                 <ButtonBase onClick={() => setEditing(p)} sx={ghostBtnSx}>Éditer</ButtonBase>
                 <ButtonBase
                   onClick={async () => { if (siteId != null) { await sitesApi.deletePost(siteId, p.id); reload(); } }}
@@ -152,6 +194,14 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
           })}
         </Box>
       )}
+
+      <TranslateModal
+        open={translatingPost != null}
+        onClose={() => setTranslatingPost(null)}
+        targetName={translatingPost?.title ?? null}
+        availableTargets={translatingPost ? postTargets(translatingPost) : []}
+        onTranslate={handleAutoTranslatePost}
+      />
     </Box>
   );
 }

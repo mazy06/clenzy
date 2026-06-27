@@ -132,6 +132,19 @@
 .be-home .studio-split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 34px; align-items: start; }
 .be-home .studio-split__main { min-width: 0; }
 .be-home .studio-split__rail { min-width: 0; }
+
+/* Carte d'entrée « Générer mon site par IA » (au-dessus des templates dans le rail). */
+.be-home .ai-generate-card { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin-bottom: 22px; padding: 14px 14px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent-soft); cursor: pointer; transition: box-shadow .25s var(--be-ease), transform .2s var(--be-ease); }
+.be-home .ai-generate-card:hover { box-shadow: var(--sh-lg); transform: translateY(-2px); }
+.be-home .ai-generate-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.be-home .ai-generate-card:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+.be-home .ai-generate-card__ic { width: 40px; height: 40px; flex: none; border-radius: 11px; background: var(--accent); color: #fff; display: grid; place-items: center; }
+.be-home .ai-generate-card__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.be-home .ai-generate-card__title { font-size: 14px; font-weight: 700; color: var(--ink); }
+.be-home .ai-generate-card__desc { font-size: 12px; line-height: 1.4; color: var(--muted); }
+.be-home .ai-generate-card__go { flex: none; color: var(--accent); transition: transform .2s var(--be-ease); }
+.be-home .ai-generate-card:hover .ai-generate-card__go { transform: translateX(3px); }
+
 .be-home .templates--rail { margin-top: 0; }
 .be-home .templates--rail .tpl-head { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 16px; }
 .be-home .templates--rail .tpl-grid { grid-template-columns: 1fr; gap: 14px; }

@@ -54,6 +54,8 @@ export interface SitePagesState {
   savePageBlocks: (id: number, blocks: string) => Promise<void>;
   /** Draft/Live : fige le brouillon courant dans la version publiée (servie au public). */
   publishPage: (id: number) => Promise<void>;
+  /** Recharge le site + toutes ses pages depuis le serveur (ex. après une auto-traduction IA). */
+  reload: () => Promise<void>;
   /**
    * Import d'un template multi-page (dans la langue PAR DÉFAUT) : met à jour la page existante de même
    * `path` (l'accueil inclus) ou crée les nouvelles ; pages existantes hors-template conservées.
@@ -116,6 +118,17 @@ export function useSitePages(configId: number | undefined, editLocale?: string):
       .catch((e) => { if (alive) setError(e instanceof Error ? e.message : 'Pages indisponibles'); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
+  }, [configId]);
+
+  // Recharge le site (langues à jour) + toutes ses pages. Utilisé après une auto-traduction IA, qui crée
+  // des variantes côté serveur sans passer par le state local du hook. `ensureForConfig` est idempotent
+  // (find-or-create) et renvoie le site à jour (dont `locales`).
+  const reload = useCallback(async () => {
+    if (!configId) return;
+    const fresh = await sitesApi.ensureForConfig(configId);
+    const list = await sitesApi.listPages(fresh.id);
+    setSite(fresh);
+    setAllPages(sortPages(list));
   }, [configId]);
 
   // (Re)sélectionne l'accueil de la langue d'édition quand elle change (ou au 1er chargement).
@@ -313,6 +326,6 @@ export function useSitePages(configId: number | undefined, editLocale?: string):
   return {
     ready, loading, error, site, pages, selectedPageId, selectedPage,
     defaultLocale, activeLocale, availableLocales, addLanguage, defaultPageByPath,
-    selectPage, addPage, renamePage, deletePage, resetSite, movePage, updatePageMeta, savePageBlocks, publishPage, importPages,
+    selectPage, addPage, renamePage, deletePage, resetSite, movePage, updatePageMeta, savePageBlocks, publishPage, reload, importPages,
   };
 }

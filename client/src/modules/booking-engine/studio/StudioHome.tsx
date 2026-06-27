@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Menu, MenuItem, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import {
   Plus, LayoutDashboard, Sparkles, ArrowUp, Search, Home, Layers, FileText,
   ShoppingBag, Zap, ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
 } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfig, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
+import { sitesApi, type SiteGenerationBrief } from '../../../services/api/sitesApi';
 import { BUILTIN_FUNNEL_PRESETS } from './grapes/funnelPresets';
 import { GALLERY_TEMPLATES } from './grapes/import/galleryTemplates';
 import { DESIGN_PRESETS } from '../constants';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAiFeatureToggles } from '../../../hooks/useAi';
+import { useNotification } from '../../../hooks/useNotification';
+import SiteGenerationModal from './SiteGenerationModal';
 import './studioHome.css';
 
 /**
@@ -75,10 +79,15 @@ const URL_RE = /^(https?:\/\/|www\.)|\.[a-z]{2,}(\/|$)/i;
 
 export default function StudioHome({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { notify } = useNotification();
   const { user } = useAuth();
   const [configs, setConfigs] = useState<BookingEngineConfig[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+
+  // Génération de site par IA : modale de brief → création config + site → ai-generate → ouverture.
+  const [genOpen, setGenOpen] = useState(false);
 
   // Champ IA
   const [prompt, setPrompt] = useState('');
@@ -170,6 +179,28 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       // `templateId` consommé par GrapesStudio (effet d'auto-import) une fois l'éditeur + les pages prêts.
       { templateId: tplId },
     );
+  };
+
+  /**
+   * Génère un site complet par IA : crée un booking engine vierge, résout son site (`ensureForConfig`),
+   * lance la génération (`ai-generate`) puis ouvre l'éditeur sur le site généré (pages en BROUILLON).
+   * Rejette en cas d'échec (message remonté + affiché par la modale ; l'échec 502 reste lisible).
+   */
+  const handleGenerateSite = async (brief: SiteGenerationBrief) => {
+    const name = (brief.brandName?.trim() || brief.propertyType.trim()).slice(0, 40) || 'Nouveau booking engine';
+    const overrides: Partial<BookingEngineConfigUpdate> = {};
+    if (brief.primaryColorHint && /^#[0-9a-fA-F]{6}$/.test(brief.primaryColorHint)) {
+      overrides.primaryColor = brief.primaryColorHint;
+    }
+    const created = await bookingEngineApi.createConfig({ ...buildConfigPayload(name), ...overrides });
+    const site = await sitesApi.ensureForConfig(created.id);
+    const result = await sitesApi.generateSite(site.id, brief);
+    const count = result.pagesCreated.length;
+    setGenOpen(false);
+    notify.success(
+      t('bookingEngine.studio.ai.generate.success', '{{count}} pages créées en brouillon — à relire avant publication.', { count }),
+    );
+    navigate(`/booking-engine/studio/${created.id}`);
   };
 
   // Supprime le booking engine confirmé (DELETE org-scopé côté serveur) puis retire la ligne localement.
@@ -318,7 +349,17 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           </div>{/* /studio-split__main */}
 
           <aside className="studio-split__rail">
-        {/* 4 · Templates prêts à l'emploi (rail vertical) */}
+        {/* 4a · Génération de site par IA (carte d'entrée, au-dessus des templates) */}
+        <button className="ai-generate-card" type="button" onClick={() => setGenOpen(true)} disabled={creating}>
+          <span className="ai-generate-card__ic"><Sparkles size={20} strokeWidth={2} /></span>
+          <span className="ai-generate-card__body">
+            <span className="ai-generate-card__title">{t('bookingEngine.studio.ai.generate.cardTitle', 'Générer mon site par IA')}</span>
+            <span className="ai-generate-card__desc">{t('bookingEngine.studio.ai.generate.cardDesc', 'Décrivez votre activité, l’IA rédige un site complet en brouillon.')}</span>
+          </span>
+          <ArrowRight size={16} strokeWidth={2} className="ai-generate-card__go" />
+        </button>
+
+        {/* 4b · Templates prêts à l'emploi (rail vertical) */}
         <section className="templates templates--rail">
           <div className="tpl-head">
             <div>
@@ -439,6 +480,8 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           )}
         </section>
       </div>
+
+      <SiteGenerationModal open={genOpen} onClose={() => setGenOpen(false)} onGenerate={handleGenerateSite} />
 
       <Dialog open={!!confirmDelete} onClose={() => !deleting && setConfirmDelete(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Supprimer ce booking engine ?</DialogTitle>
