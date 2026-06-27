@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
 import {
   Rocket, PanelLeftClose, PanelLeftOpen,
   Undo2, Redo2, Eye, Maximize, Code, SquareDashed, FolderInput, Workflow, PaintBucket, Boxes, Trash2, Plus,
-  Paintbrush, Layers, SlidersHorizontal, LayoutGrid, Pencil,
+  Paintbrush, Layers, SlidersHorizontal, LayoutGrid, Pencil, Languages,
   type LucideIcon,
 } from 'lucide-react';
 import grapesjs, { type Editor, type ProjectData } from 'grapesjs';
@@ -30,7 +31,9 @@ import { validateComposition } from './funnelRules';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 import { sanitizeHtml, sanitizeCss } from './import/sanitizeHtml';
 import PagesBar from '../builder/PagesBar';
+import TranslateModal from '../TranslateModal';
 import { useSitePages } from '../useSitePages';
+import { useNotification } from '../../../../hooks/useNotification';
 import type { Breakpoint } from '../StudioShell';
 import { GUIDED_VIEWS, type StudioMode } from '../studioMode';
 import './grapesStudio.css';
@@ -600,6 +603,8 @@ export interface GrapesStudioProps {
 }
 
 export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProps) {
+  const { t } = useTranslation();
+  const { notify } = useNotification();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
   // Miroir d'état de l'éditeur : permet à la modale d'import (React) de se (re)rendre une fois l'éditeur
@@ -1086,6 +1091,44 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     }
   }, [pages, translating]);
 
+  // Auto-traduction IA (P1) de la page ACTIVE vers des langues cibles choisies : crée les variantes
+  // localisées EN BROUILLON via l'endpoint dédié (relecture humaine), puis recharge les pages du site.
+  // Distinct du « Traduire (IA) » in-place ci-dessus : ici on génère des variantes à relire, sans écraser.
+  const [autoTranslateOpen, setAutoTranslateOpen] = useState(false);
+  // Cibles proposées = langues supportées hors langue de la page active (sa propre langue).
+  const autoTranslateTargets = SUPPORTED_LOCALES.filter((l) => l !== pages.activeLocale);
+
+  const handleAutoTranslatePage = useCallback(async (targets: string[]) => {
+    const site = pages.site;
+    const current = pages.selectedPage;
+    if (!site || !current) {
+      throw new Error(t('bookingEngine.studio.ai.translate.noPage', 'Aucune page sélectionnée.'));
+    }
+    // S'assure que le brouillon courant est persisté avant de traduire (la source doit être à jour).
+    await flushActivePage();
+    const result = await sitesApi.autoTranslatePage(site.id, current.id, targets);
+    const created = result.createdPages.length;
+    const skipped = result.skippedLocales.length;
+    setAutoTranslateOpen(false);
+    if (created > 0) {
+      notify.success(
+        t('bookingEngine.studio.ai.translate.success', '{{count}} variante(s) créée(s) en brouillon — à relire avant publication.', { count: created }),
+      );
+    } else {
+      notify.info(
+        t('bookingEngine.studio.ai.translate.noneCreated', 'Aucune variante créée (langues déjà traduites).'),
+      );
+    }
+    if (skipped > 0) {
+      notify.info(
+        t('bookingEngine.studio.ai.translate.skipped', '{{count}} langue(s) ignorée(s) (déjà traduite(s)).', { count: skipped }),
+      );
+    }
+    // Recharge site + pages pour faire apparaître les nouvelles variantes (barre de langues + pages).
+    try { await pages.reload(); } catch { /* best-effort : les variantes existent côté serveur */ }
+    return result;
+  }, [pages, flushActivePage, notify, t]);
+
   // Repartir de zéro (B4) : supprime toutes les pages sauf l'accueil, vide l'accueil, et blanchit le canvas.
   const handleReset = useCallback(async () => {
     const homeId = pages.pages.find((p) => p.type === 'HOME')?.id ?? null;
@@ -1370,7 +1413,29 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                 </ButtonBase>
               </Tooltip>
             ))}
-            {/* Traduction IA : visible seulement hors langue par défaut. Traduit la page active. */}
+            {/* Auto-traduction IA (P1) : crée des VARIANTES en brouillon de la page active vers les
+                langues choisies (relecture humaine), via l'endpoint dédié — distinct du « Traduire »
+                in-place ci-dessous. Toujours disponible dès qu'une page est sélectionnée. */}
+            {pages.selectedPage && autoTranslateTargets.length > 0 && (
+              <Tooltip title={t('bookingEngine.studio.ai.translate.pageTooltip', 'Traduire cette page (IA) — crée des variantes en brouillon')}>
+                <ButtonBase
+                  onClick={() => setAutoTranslateOpen(true)}
+                  disabled={pages.loading}
+                  aria-label={t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
+                  sx={{
+                    height: 24, px: 1, ml: 0.5, borderRadius: 'var(--radius-sm)', display: 'inline-flex',
+                    alignItems: 'center', gap: 0.5, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)',
+                    color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', whiteSpace: 'nowrap',
+                    '&:hover': { bgcolor: 'var(--accent)', color: 'var(--on-accent)' },
+                    '&.Mui-disabled': { opacity: 0.5 },
+                  }}
+                >
+                  <Languages size={13} strokeWidth={2.2} />
+                  {t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
+                </ButtonBase>
+              </Tooltip>
+            )}
+            {/* Traduction in-place : visible seulement hors langue par défaut. Traduit la page active. */}
             {pages.activeLocale !== pages.defaultLocale && (
               <Tooltip title="Traduire cette page depuis la langue par défaut (IA)">
                 <ButtonBase
@@ -1575,6 +1640,13 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         savedPresets={savedFunnelPresets}
         onSave={handleSaveFunnelPreset}
         onDelete={handleDeleteFunnelPreset}
+      />
+      <TranslateModal
+        open={autoTranslateOpen}
+        onClose={() => setAutoTranslateOpen(false)}
+        targetName={pages.selectedPage?.title ?? null}
+        availableTargets={autoTranslateTargets}
+        onTranslate={handleAutoTranslatePage}
       />
     </Box>
   );

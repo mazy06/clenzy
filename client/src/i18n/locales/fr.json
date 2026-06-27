@@ -4057,6 +4057,52 @@
         "advanced": "Avancé",
         "guidedTip": "Édition simplifiée : blocs essentiels, couleurs et typo. Idéal pour démarrer vite.",
         "advancedTip": "Éditeur complet : tous les blocs, calques, réglages et import de design."
+      },
+      "ai": {
+        "generate": {
+          "cardTitle": "Générer mon site par IA",
+          "cardDesc": "Décrivez votre activité, l’IA rédige un site complet en brouillon.",
+          "title": "Générer mon site par IA",
+          "intro": "Décrivez votre activité : l'IA rédige et structure un site complet (accueil, liste de logements, à propos, contact) et dérive un thème. Les pages sont créées en brouillon — à relire avant publication.",
+          "propertyTypeLabel": "Type de biens",
+          "propertyTypePlaceholder": "Ex. riads de luxe à Marrakech, appartements urbains…",
+          "toneLabel": "Ton souhaité",
+          "tonePlaceholder": "Ex. chaleureux et authentique, épuré et moderne…",
+          "brandLabel": "Nom de marque",
+          "brandPlaceholder": "Optionnel",
+          "colorLabel": "Couleur principale",
+          "colorPickerLabel": "Choisir une couleur",
+          "colorPlaceholder": "Auto",
+          "languagesLabel": "Langues à générer",
+          "languagesHint": "La première langue sélectionnée est rédigée par l’IA ; les autres sont produites par auto-traduction (à relire).",
+          "submit": "Générer le site",
+          "generating": "Génération…",
+          "success": "{{count}} pages créées en brouillon — à relire avant publication.",
+          "error": "La génération a échoué. Réessayez dans un instant."
+        },
+        "translate": {
+          "title": "Traduire par IA",
+          "intro": "Choisissez les langues cibles. Les variantes sont créées en brouillon, à relire avant publication.",
+          "introNamed": "Choisissez les langues vers lesquelles traduire « {{name}} ». Les variantes sont créées en brouillon, à relire avant publication.",
+          "noTargets": "Aucune autre langue disponible à traduire.",
+          "submit": "Traduire",
+          "translating": "Traduction…",
+          "pageAction": "Traduire (IA)",
+          "pageTooltip": "Traduire cette page (IA) — crée des variantes en brouillon",
+          "postAction": "Traduire (IA)",
+          "postTooltip": "Traduire cet article (IA) — crée des variantes en brouillon",
+          "success": "{{count}} variante(s) créée(s) en brouillon — à relire avant publication.",
+          "noneCreated": "Aucune variante créée (langues déjà traduites).",
+          "skipped": "{{count}} langue(s) ignorée(s) (déjà traduite(s)).",
+          "error": "La traduction a échoué. Réessayez dans un instant.",
+          "noPage": "Aucune page sélectionnée.",
+          "noPost": "Aucun article sélectionné."
+        },
+        "locales": {
+          "french": "Français",
+          "english": "Anglais",
+          "arabic": "Arabe"
+        }
       }
     },
     "sections": {
