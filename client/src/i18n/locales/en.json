@@ -3994,6 +3994,15 @@
     "design": {
       "modalTitle": "Customize design"
     },
+    "studio": {
+      "mode": {
+        "label": "Editing mode",
+        "guided": "Guided",
+        "advanced": "Advanced",
+        "guidedTip": "Simplified editing: essential blocks, colors and fonts. Great to get started fast.",
+        "advancedTip": "Full editor: all blocks, layers, settings and design import."
+      }
+    },
     "sections": {
       "statusApiKey": "Status & API Key",
       "theming": "Appearance",
