@@ -35,6 +35,12 @@ export interface ImportedHtml {
  * Adaptateur d'un format externe (Open/Closed : ajouter un format = +1 fichier + 1 entrée registry).
  * `detect` reconnaît le format rapidement (heuristique, sans tout parser). `toHtml` convertit vers
  * `{ html, css, report }` et NE LANCE JAMAIS sur du contenu inattendu (au pire : HTML vide + warning).
+ *
+ * LIMITATION CONNUE (résolution des URLs relatives) : `toHtml(input)` ne prend pas de `baseUrl`. Les
+ * images/liens en chemin relatif (`src="images/x.jpg"`) issus d'un template externe restent relatifs et
+ * pointeront vers le domaine du Studio (souvent cassés). Le câblage d'un `baseUrl?` traverserait
+ * l'interface ET les 9 adaptateurs (changement non chirurgical) : différé. À traiter conjointement avec
+ * l'import URL (qui connaît l'origine) — réécrire les URLs relatives en absolues à ce moment-là.
  */
 export interface TemplateImporter {
   /** Identifiant stable du format (= `ImportReport.source`). En anglais. */

@@ -82,6 +82,29 @@
 }
 .clenzy-grapes .gjs-block-category.gjs-open .gjs-title { color: var(--ink); }
 
+/* ── Mode GUIDÉ : palette de blocs bridée ────────────────────────────────────
+   Quand le conteneur de blocs porte `data-guided`, on masque tous les blocs puis on ré-affiche le
+   set CURÉ (blocs de base, widgets booking `booking-*`, composites `composite-*`). Hidden en CSS (≠
+   suppression destructive de bloc) → survit aux `bm.render()` (changement de composites) et au
+   retour au mode Avancé sans réinitialiser l'éditeur. Les catégories vidées sont repliées via :has(). */
+.clenzy-grapes [data-guided] .gjs-block { display: none; }
+.clenzy-grapes [data-guided] .gjs-block[data-cz-block="section"],
+.clenzy-grapes [data-guided] .gjs-block[data-cz-block="text"],
+.clenzy-grapes [data-guided] .gjs-block[data-cz-block="image"],
+.clenzy-grapes [data-guided] .gjs-block[data-cz-block="columns"],
+.clenzy-grapes [data-guided] .gjs-block[data-cz-block^="booking-"],
+.clenzy-grapes [data-guided] .gjs-block[data-cz-block^="composite-"] { display: grid; }
+/* Catégorie sans AUCUN bloc curé → masquée (sinon en-tête orpheline). On teste la présence d'au
+   moins un bloc autorisé parmi les descendants ; à défaut, la catégorie entière disparaît. */
+.clenzy-grapes [data-guided] .gjs-block-category:not(:has(
+  .gjs-block[data-cz-block="section"],
+  .gjs-block[data-cz-block="text"],
+  .gjs-block[data-cz-block="image"],
+  .gjs-block[data-cz-block="columns"],
+  .gjs-block[data-cz-block^="booking-"],
+  .gjs-block[data-cz-block^="composite-"]
+)) { display: none; }
+
 /* ── Gestionnaire de styles (secteurs / propriétés) ─────────────────────────── */
 .clenzy-grapes .gjs-sm-sectors,
 .clenzy-grapes .gjs-clm-tags,

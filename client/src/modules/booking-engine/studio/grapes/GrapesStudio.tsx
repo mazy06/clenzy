@@ -32,6 +32,7 @@ import { sanitizeHtml, sanitizeCss } from './import/sanitizeHtml';
 import PagesBar from '../builder/PagesBar';
 import { useSitePages } from '../useSitePages';
 import type { Breakpoint } from '../StudioShell';
+import { GUIDED_VIEWS, type StudioMode } from '../studioMode';
 import './grapesStudio.css';
 
 /**
@@ -594,9 +595,11 @@ export interface GrapesStudioProps {
   cfg: StudioConfigState;
   /** Breakpoint d'aperçu, piloté par le toggle du page header (le sélecteur device natif GrapesJS est masqué). */
   breakpoint: Breakpoint;
+  /** Mode d'édition. `guided` bride l'UI (onglets Blocs+Style, blocs curés, pas d'import) ; `advanced` = complet. */
+  mode: StudioMode;
 }
 
-export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
+export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
   // Miroir d'état de l'éditeur : permet à la modale d'import (React) de se (re)rendre une fois l'éditeur
@@ -628,6 +631,15 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
   // Skin widgets activé (session) → réinjecté dans l'iframe à chaque (re)chargement de page.
   const widgetSkinOnRef = useRef(false);
   const [activeView, setActiveView] = useState<EditorView>('blocks');
+  // Mode GUIDÉ : onglets restreints (Blocs + Style). Les blocs sont curés via CSS (`data-guided`),
+  // l'import est masqué (cf. barre d'outils). Le mode Avancé garde TOUS les onglets/blocs/l'import.
+  const guided = mode === 'guided';
+  const visibleTabs = guided ? VIEW_TABS.filter((t) => GUIDED_VIEWS.has(t.key)) : VIEW_TABS;
+  // Si l'onglet actif n'est plus visible (passage en Guidé alors qu'on était sur Calques/Réglages/Composites),
+  // on retombe sur « Blocs ». Effet (≠ rendu) → ne perturbe pas le rendu en cours.
+  useEffect(() => {
+    if (guided && !GUIDED_VIEWS.has(activeView)) setActiveView('blocks');
+  }, [guided, activeView]);
   // États des actions toggle de la barre d'outils.
   const [previewOn, setPreviewOn] = useState(false);
   const [fullscreenOn, setFullscreenOn] = useState(false);
@@ -1433,7 +1445,8 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
           <ToolBtn icon={Undo2} title="Annuler" onClick={doUndo} />
           <ToolBtn icon={Redo2} title="Rétablir" onClick={doRedo} />
           <Box sx={{ width: '1px', height: 20, bgcolor: 'var(--line)', mx: 0.5 }} />
-          <ToolBtn icon={FolderInput} title="Importer un design" label="Importer" onClick={() => setImportOpen(true)} />
+          {/* Import = mode Avancé uniquement (import de design multi-standards). Masqué en Guidé. */}
+          {!guided && <ToolBtn icon={FolderInput} title="Importer un design" label="Importer" onClick={() => setImportOpen(true)} />}
           <ToolBtn icon={Workflow} title="Parcours de réservation (modèles + composeur)" label="Funnel" onClick={handleFunnel} />
           <ToolBtn icon={PaintBucket} title="Insérer les styles de widgets (skin de base, à personnaliser)" label="Styles widgets" onClick={insertWidgetStyles} />
           <Box sx={{ flex: 1, minWidth: 8 }} />
@@ -1483,7 +1496,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
           {!panelCollapsed && !chromeHidden && (
             <Box sx={{ flexShrink: 0, display: 'flex', justifyContent: 'center', p: 1, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
               <Box sx={{ display: 'inline-flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}>
-                {VIEW_TABS.map(({ key, icon: Icon, label }) => {
+                {visibleTabs.map(({ key, icon: Icon, label }) => {
                   const active = key === activeView;
                   return (
                     <Tooltip key={key} title={label}>
@@ -1511,7 +1524,8 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
           )}
           {/* Contenu — SEUL à scroller : la barre de défilement n'apparaît plus au niveau des onglets. */}
           <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
-            <Box ref={blocksRef} sx={{ display: activeView === 'blocks' ? 'block' : 'none' }} />
+            {/* `data-guided` (mode Guidé) → la palette se restreint au set curé via CSS (`grapesStudio.css`). */}
+            <Box ref={blocksRef} {...(guided ? { 'data-guided': '' } : {})} sx={{ display: activeView === 'blocks' ? 'block' : 'none' }} />
             {activeView === 'composites' && (
               <CompositesPanel
                 composites={[...BUILTIN_COMPOSITES, ...savedComposites]}

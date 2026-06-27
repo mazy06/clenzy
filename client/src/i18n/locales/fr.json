@@ -4050,6 +4050,15 @@
     "design": {
       "modalTitle": "Personnaliser le design"
     },
+    "studio": {
+      "mode": {
+        "label": "Mode d’édition",
+        "guided": "Guidé",
+        "advanced": "Avancé",
+        "guidedTip": "Édition simplifiée : blocs essentiels, couleurs et typo. Idéal pour démarrer vite.",
+        "advancedTip": "Éditeur complet : tous les blocs, calques, réglages et import de design."
+      }
+    },
     "sections": {
       "statusApiKey": "Statut & Clé API",
       "theming": "Apparence",

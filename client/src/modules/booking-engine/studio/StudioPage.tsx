@@ -26,6 +26,7 @@ import BlogPanel from './builder/BlogPanel';
 import DistributionPanel from './settings/DistributionPanel';
 import GrowthSettingsPanel from './settings/GrowthSettingsPanel';
 import { useStudioConfig } from './useStudioConfig';
+import { readStudioMode, writeStudioMode, type StudioMode } from './studioMode';
 import type { BookingEngineConfig, DesignTokens } from '../../../services/api/bookingEngineApi';
 
 /**
@@ -54,6 +55,14 @@ export default function StudioPage() {
   const [previewCurrency, setPreviewCurrency] = useState('EUR');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [designAnalysisOpen, setDesignAnalysisOpen] = useState(false);
+
+  // Mode d'édition (Guidé / Avancé) — persisté dans le champ JSON `componentConfig` (clé `studioMode`),
+  // sans migration DB. Défaut `advanced` = comportement historique inchangé.
+  const studioMode = readStudioMode(cfg.config?.componentConfig);
+  const handleModeChange = (mode: StudioMode) => {
+    if (mode === studioMode) return;
+    cfg.patch({ componentConfig: writeStudioMode(cfg.config?.componentConfig, mode) });
+  };
 
   // Applique le design extrait (analyse IA d'un site) au booking engine courant : tokens (widget +
   // blocs), CSS généré, couleur/police miroir. Reflété en direct (canvas + widget) ; persisté au save.
@@ -109,9 +118,11 @@ export default function StudioPage() {
         onBreakpointChange={setBreakpoint}
         onOpenCommand={() => setPaletteOpen(true)}
         onAnalyzeDesign={() => setDesignAnalysisOpen(true)}
+        mode={studioMode}
+        onModeChange={handleModeChange}
         onBack={() => navigate('/booking-engine', { state: { tab: 2 } })}
       >
-        {active.key === 'design' && <GrapesStudio cfg={cfg} breakpoint={breakpoint} />}
+        {active.key === 'design' && <GrapesStudio cfg={cfg} breakpoint={breakpoint} mode={studioMode} />}
         {active.key === 'embed' && <SiteEmbedPreview config={cfg.config} breakpoint={breakpoint} />}
         {active.key === 'theme' && <ThemeInspector config={cfg.config} patch={cfg.patch} />}
         {active.key === 'content' && <ContentSection cfg={cfg} />}
