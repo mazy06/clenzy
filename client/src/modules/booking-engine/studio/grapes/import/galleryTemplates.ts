@@ -2,6 +2,9 @@ import type { SitePageType } from '../../../../../services/api/sitesApi';
 import { conciergerieMarrakech } from './templates/conciergerieMarrakech';
 import { rechercheCataloguePremium } from './templates/rechercheCataloguePremium';
 import { villaBordDeMer } from './templates/villaBordDeMer';
+import { bordDeMerBalneaire } from './templates/bordDeMerBalneaire';
+import { appartementUrbain } from './templates/appartementUrbain';
+import { maisonCampagne } from './templates/maisonCampagne';
 import { GENERATED_TEMPLATES } from './templates/generatedTemplates';
 
 /**
@@ -57,6 +60,9 @@ export interface GalleryTemplate {
 export const GALLERY_TEMPLATES: GalleryTemplate[] = [
   conciergerieMarrakech,
   villaBordDeMer,
+  bordDeMerBalneaire,
+  appartementUrbain,
+  maisonCampagne,
   rechercheCataloguePremium,
   ...GENERATED_TEMPLATES,
 ];
