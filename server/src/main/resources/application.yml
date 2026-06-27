@@ -193,6 +193,16 @@ clenzy:
       analytics-ai: false
       sentiment-ai: false
 
+  # ─── Booking engine — relance de panier abandonné ─────────────────────
+  # Récupération de panier : email(s) de relance échelonné(s) vers les voyageurs
+  # ayant laissé une réservation PENDING expirée (capture via PendingReservationCleanupScheduler).
+  # DÉFAUT INERTE : désactivé globalement tant que la feature n'est pas décidée.
+  # Garde-fous RGPD : ne relance que les emails consentis (MarketingContact SUBSCRIBED),
+  # respecte l'opt-out, et reste gated par org (Organization.abandonedCartRecoveryEnabled).
+  booking:
+    cart-recovery:
+      enabled: ${BOOKING_CART_RECOVERY_ENABLED:false}
+
   # ─── Signature électronique ────────────────────────────────────────────
   # Provider actif : clenzy_custom = workflow interne SES (lien public /sign/{token}).
   # Bascule vers un QTSP (yousign, docusign, …) via SIGNATURE_PROVIDER quand câblé.
