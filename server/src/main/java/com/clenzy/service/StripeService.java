@@ -133,6 +133,22 @@ public class StripeService {
     }
 
     /**
+     * Variante alimentant Stripe Radar (P2 — scoring de fraude advisory) : {@code riskMetadata}
+     * (null/vide = aucun effet) est propagé dans {@code payment_intent_data.metadata} (lu par Radar)
+     * + la metadata de session. Ne modifie jamais le montant ni les paramètres de paiement.
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
+                                                     String customerEmail, String guestName,
+                                                     String propertyName,
+                                                     java.time.Duration expiresIn,
+                                                     String successUrl,
+                                                     java.util.Map<String, String> riskMetadata) throws StripeException {
+        return checkoutSessionFactory.createReservationCheckoutSession(reservationId, amount,
+            customerEmail, guestName, propertyName, expiresIn, successUrl, riskMetadata);
+    }
+
+    /**
      * Cree une session Stripe EMBEDDED pour un upsell guest (clientSecret cote livret).
      * Chargee sur le compte plateforme comme les reservations ; la repartition part
      * hote / part plateforme est creditee au ledger a la confirmation du paiement

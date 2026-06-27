@@ -215,7 +215,7 @@ class PublicBookingControllerTest {
 
         BookingCheckoutRequestDto req = new BookingCheckoutRequestDto("code-1", null);
         BookingCheckoutResponseDto resp = new BookingCheckoutResponseDto("https://stripe.test", "s_1");
-        when(bookingService.checkout(ctx, req)).thenReturn(resp);
+        when(bookingService.checkout(eq(ctx), eq(req), any())).thenReturn(resp);
 
         ResponseEntity<BookingCheckoutResponseDto> response = controller.checkout("slug", req, request);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
