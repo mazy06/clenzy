@@ -8,7 +8,10 @@ package com.clenzy.config.ai;
  * @param model        modele a utiliser (null = defaut du provider)
  * @param temperature  creativite (0.0 = deterministe, 1.0 = creatif)
  * @param maxTokens    nombre max de tokens en sortie
- * @param jsonMode     si true, force la reponse en JSON structure (OpenAI only)
+ * @param jsonMode     si true, demande une reponse JSON structuree. Applique par les providers compatibles
+ *                     OpenAI/Bedrock (`response_format`). Anthropic ne le supporte pas via response_format
+ *                     et le prefill assistant n'est pas portable (certains modeles le rejettent) : la sortie
+ *                     JSON y repose sur le prompt + un parsing tolerant cote appelant.
  */
 public record AiRequest(
         String systemPrompt,
@@ -46,6 +49,15 @@ public record AiRequest(
      */
     public static AiRequest withMaxTokens(String systemPrompt, String userPrompt, int maxTokens) {
         return new AiRequest(systemPrompt, userPrompt, null, 0.3, maxTokens, false);
+    }
+
+    /**
+     * Cree une requete en mode JSON avec des tokens max custom (sortie structuree volumineuse :
+     * generation de site, etc.). Le {@code jsonMode} est applique par les providers compatibles OpenAI
+     * ({@code response_format}); ignore sans risque par les autres (le prompt impose deja le JSON).
+     */
+    public static AiRequest jsonWithMaxTokens(String systemPrompt, String userPrompt, int maxTokens) {
+        return new AiRequest(systemPrompt, userPrompt, null, 0.3, maxTokens, true);
     }
 
     /**

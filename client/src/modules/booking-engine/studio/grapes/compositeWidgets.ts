@@ -28,6 +28,9 @@ export interface CompositeWidget {
   filterSubs?: string[];
   /** `true` = composite livré en code ; absent/false = composite custom de l'org. */
   builtin?: boolean;
+  /** `true` = composite de la bibliothèque GLOBALE plateforme (partagé à tous les engines, géré par
+   *  les SUPER_ADMIN/SUPER_MANAGER). Marqueur runtime — NON persisté (la source est la lib globale). */
+  global?: boolean;
 }
 
 /** Sous-titre court pour la palette : « N widgets » (compte les marqueurs `data-clenzy-widget` du markup). */
@@ -50,8 +53,9 @@ export const COMPOSITE_KIND_LABELS: Record<CompositeKind, string> = {
  */
 export const BUILTIN_COMPOSITES: CompositeWidget[] = [];
 
-/** Section HTML d'un composite selon son type (sections headless, stylables par le template). */
-export function buildCompositeHtml(c: CompositeWidget): string {
+/** Markup INTERNE d'un composite (sections headless `.sb`/`.clenzy-*`), SANS enveloppe — chargé tel quel
+ *  dans le canvas du constructeur (stockage propre). Pour le RENDU sur page, utiliser `buildCompositeHtml`. */
+export function buildCompositeInner(c: CompositeWidget): string {
   // Mini-éditeur DnD : le markup libre est la source de vérité.
   if (typeof c.html === 'string' && c.html.trim()) return c.html;
   // LEGACY (kind + widgetIds) — composites créés avant le mini-éditeur DnD.
@@ -62,6 +66,24 @@ export function buildCompositeHtml(c: CompositeWidget): string {
     return `<section class="clenzy-row">${items}</section>`;
   }
   return buildFunnelHtml(ids); // column → .clenzy-funnel
+}
+
+/** Classe de l'enveloppe `.cb-widget` du composite (porteuse des tokens `--cb-*`). */
+const COMPOSITE_SHELL_CLASS = 'cz-composite';
+
+/**
+ * Section HTML d'un composite pour le RENDU sur page, ENVELOPPÉE dans un `.cb-widget`.
+ *
+ * Pourquoi l'enveloppe : un composite assemble des widgets-feuilles (`.cb-widget`) dans des wrappers de
+ * disposition (`.sb__*`, `.clenzy-*`) situés AU-DESSUS des feuilles. Les tokens `--cb-*` étant posés sur
+ * `.cb-widget` (skin baké du template), ces wrappers n'hériteraient SINON aucun token → composite non stylé.
+ * En faisant porter `.cb-widget` par la racine, toute la composition hérite les tokens du template
+ * (couleurs/surface/bordure/rayon) — sans migration. Idempotent (ne ré-enveloppe pas un markup déjà enveloppé).
+ */
+export function buildCompositeHtml(c: CompositeWidget): string {
+  const inner = buildCompositeInner(c);
+  if (new RegExp(`class="[^"]*\\b${COMPOSITE_SHELL_CLASS}\\b`).test(inner)) return inner;
+  return `<div class="cb-widget ${COMPOSITE_SHELL_CLASS}">${inner}</div>`;
 }
 
 /** Lit les composites custom stockés en JSON dans `config.compositeWidgets` (tolérant aux données invalides). */

@@ -1,9 +1,12 @@
 package com.clenzy.service.agent;
 
 import com.clenzy.config.ai.ChatMessage;
+import com.clenzy.model.AiFeature;
 import com.clenzy.model.AssistantConversation;
 import com.clenzy.model.AssistantMessage;
 import com.clenzy.repository.AssistantMessageRepository;
+import com.clenzy.service.AiTargetResolver;
+import com.clenzy.service.ResolvedTarget;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -28,7 +31,7 @@ import java.util.function.Consumer;
  * <ul>
  *   <li>{@link com.clenzy.service.agent.multiagent.OrchestratorAgent} : moteur multi-agent</li>
  *   <li>{@link com.clenzy.service.agent.multiagent.SpecialistRegistry} : disponibilite des specialistes</li>
- *   <li>{@link AssistantTargetResolver} : provider/modele/cle/baseUrl effectifs (reprise)</li>
+ *   <li>{@link AiTargetResolver} : provider/modele/cle/baseUrl effectifs (reprise)</li>
  *   <li>{@link AgentToolLoopRunner} : tracking usage tokens ({@code recordUsageSafe})</li>
  *   <li>{@link AssistantMessageRepository} : persistance du message assistant</li>
  *   <li>{@link PendingToolStore} : pause-confirmation (clé = toolCallId)</li>
@@ -46,7 +49,7 @@ public class MultiAgentFlowRunner {
     private final AssistantMessageRepository messageRepository;
     private final PendingToolStore pendingToolStore;
     private final AgentToolLoopRunner toolLoopRunner;
-    private final AssistantTargetResolver targetResolver;
+    private final AiTargetResolver targetResolver;
     private final ToolRegistry toolRegistry;
     private final ObjectMapper objectMapper;
 
@@ -64,7 +67,7 @@ public class MultiAgentFlowRunner {
             AssistantMessageRepository messageRepository,
             PendingToolStore pendingToolStore,
             AgentToolLoopRunner toolLoopRunner,
-            AssistantTargetResolver targetResolver,
+            AiTargetResolver targetResolver,
             ToolRegistry toolRegistry,
             ObjectMapper objectMapper,
             @Value("${clenzy.assistant.multi-agent.enabled:false}") boolean multiAgentEnabled) {
@@ -232,8 +235,8 @@ public class MultiAgentFlowRunner {
                 maCtx.effectiveContext().modelOverride(),
                 maCtx.effectiveContext().aiProvider(),
                 maCtx.effectiveContext().aiBaseUrl());
-        AssistantTargetResolver.ChatTarget target =
-                targetResolver.resolve(context.organizationId(), effective.modelOverride());
+        ResolvedTarget target =
+                targetResolver.resolvePrimary(context.organizationId(), AiFeature.ASSISTANT_CHAT, effective.modelOverride());
         String apiKey = target.apiKey();
 
         com.clenzy.service.agent.multiagent.OrchestratorAgent.OrchestrationResult result;

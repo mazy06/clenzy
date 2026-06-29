@@ -17,6 +17,9 @@ export type WidgetType =
   | 'priceSummary'
   | 'propertySummary'
   | 'amenities'
+  // Avis (preuve sociale)
+  | 'reviews'
+  | 'rating'
   // Panier
   | 'cart'
   | 'addToCart'
@@ -608,6 +611,36 @@ const AMENITIES_FILTER_WIDGET: BookingWidgetDef = {
   category: CAT_SEARCH, icon: WIFI_ICON, widgetType: 'filter',
 };
 
+/** Étoile — badge de note (lucide `Star`). */
+const STAR_ICON: BookingIconShape = {
+  paths: [{ tag: 'polygon', attrs: { points: '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26' } }],
+};
+
+/** Bulle de citation — section d'avis (lucide `MessageSquare`). */
+const REVIEWS_ICON: BookingIconShape = {
+  paths: [{ tag: 'path', attrs: { d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' } }],
+};
+
+/** Section d'avis publics (résumé note + distribution + liste). SDK : `createReviewsList`. */
+const REVIEWS_WIDGET: BookingWidgetDef = {
+  id: 'booking-reviews',
+  label: 'Avis voyageurs',
+  description: 'Note moyenne, distribution et liste des avis publics.',
+  category: CAT_RESULTS,
+  icon: REVIEWS_ICON,
+  widgetType: 'reviews',
+};
+
+/** Badge note compact (★ 4,7 · N avis) du logement sélectionné. SDK : `createRatingBadge`. */
+const RATING_WIDGET: BookingWidgetDef = {
+  id: 'booking-rating',
+  label: 'Note (badge)',
+  description: 'Note moyenne et nombre d’avis, en ligne compacte.',
+  category: CAT_RESULTS,
+  icon: STAR_ICON,
+  widgetType: 'rating',
+};
+
 /**
  * Registre des widgets de réservation montables dans GrapesJS : les micro-widgets SDK, ordonnés par
  * étape du parcours. Il n'y a PLUS de widget « tout-en-un » (l'ancien monolithe a été supprimé) — la
@@ -631,6 +664,8 @@ export const BOOKING_WIDGET_DEFS: BookingWidgetDef[] = [
   PROPERTY_RESULTS_WIDGET,
   PROPERTY_SUMMARY_WIDGET,
   AMENITIES_WIDGET,
+  REVIEWS_WIDGET,
+  RATING_WIDGET,
   PRICE_SUMMARY_WIDGET,
   // Panier & options
   CART_WIDGET,

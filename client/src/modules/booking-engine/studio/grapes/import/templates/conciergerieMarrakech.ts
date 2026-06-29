@@ -197,12 +197,19 @@ const ABOUT_IMG = 'https://images.unsplash.com/photo-1597211833712-5e41faa202ea?
 const STORY_IMG = 'https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1200&q=70';
 const MAP_IMG = 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=1000&q=70';
 
+/** Fonds image en classes CSS (le style inline est retiré par GrapesJS à l'import). */
+const IMG_CSS = `
+.cm-hero__bg { background-image: url('${HERO_IMG}'); }
+.cm-img-about { background-image: url('${ABOUT_IMG}'); }
+.cm-img-story { background-image: url('${STORY_IMG}'); }
+.cm-map { background-image: url('${MAP_IMG}'); }`;
+
 /* ── Pages ──────────────────────────────────────────────────────────────────────── */
 
 const HOME = `<div class="cm-root">
   ${nav('/')}
   <section class="cm-hero">
-    <div class="cm-hero__bg" style="background-image:url('${HERO_IMG}')"></div>
+    <div class="cm-hero__bg"></div>
     <div class="cm-wrap"><div class="cm-hero__inner">
       <p class="cm-eyebrow">Conciergerie de luxe · Marrakech</p>
       <h1>Des riads d'exception, gérés avec une attention rare</h1>
@@ -237,7 +244,7 @@ const HOME = `<div class="cm-root">
 
   <section class="cm-section">
     <div class="cm-wrap"><div class="cm-split">
-      <div class="cm-split__media" style="background-image:url('${ABOUT_IMG}')"></div>
+      <div class="cm-split__media cm-img-about"></div>
       <div>
         <p class="cm-eyebrow">La maison</p>
         <h2>L'art de recevoir, à la marocaine</h2>
@@ -342,7 +349,7 @@ const ABOUT = `<div class="cm-root">
         <p class="cm-lead">Une conciergerie indépendante, ancrée dans la médina, qui place l'humain et le détail au cœur de chaque séjour.</p>
       </div>
       <div class="cm-split">
-        <div class="cm-split__media" style="background-image:url('${STORY_IMG}')"></div>
+        <div class="cm-split__media cm-img-story"></div>
         <div>
           <h2>Notre histoire</h2>
           <p>Tout a commencé par un riad, restauré avec des artisans de la ville. Le bouche-à-oreille a fait le reste : aujourd'hui, nous veillons sur une collection confidentielle de maisons.</p>
@@ -387,7 +394,7 @@ const CONTACT = `<div class="cm-root">
           <div class="cm-contact__item"><span>Horaires</span><strong>Conciergerie 7j/7, 24h/24</strong></div>
           <p style="margin-top:26px"><a class="cm-btn cm-btn--primary" href="/logements">Réserver un riad</a></p>
         </div>
-        <div class="cm-map" style="background-image:url('${MAP_IMG}')"></div>
+        <div class="cm-map"></div>
       </div>
     </div>
   </section>
@@ -395,14 +402,14 @@ const CONTACT = `<div class="cm-root">
 </div>`;
 
 /** Concatène le design system partagé + le CSS éventuel de la page. */
-const css = (pageCss = ''): string => `${SHARED_CSS}\n${pageCss}`;
+const css = (pageCss = ''): string => `${SHARED_CSS}\n${IMG_CSS}\n${pageCss}`;
 
 export const conciergerieMarrakech: GalleryTemplate = {
   id: 'conciergerie-marrakech',
   name: 'Conciergerie Marrakech',
   description: 'Riads de luxe — multi-page',
   thumbnail: HERO_IMG,
-  theme: { primaryColor: '#c2674a', fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" },
+  theme: { primaryColor: '#c2674a', fontFamily: "'Manrope', system-ui, -apple-system, sans-serif", headingFontFamily: "'Cormorant Garamond', Georgia, serif" },
   pages: [
     { path: '/', type: 'HOME', title: 'Accueil', seoTitle: 'Dar Atlas — Conciergerie de riads à Marrakech', seoDescription: 'Riads d’exception dans la médina de Marrakech. Réservation directe, conciergerie 24/7, séjours sur mesure.', html: HOME, css: css() },
     { path: '/logements', type: 'PROPERTY_LIST', title: 'Nos riads', seoTitle: 'Nos riads disponibles — Dar Atlas Marrakech', seoDescription: 'Découvrez nos riads de la médina et leurs disponibilités en temps réel.', html: LODGINGS, css: css() },

@@ -159,6 +159,20 @@ export interface SiteGenerationBrief {
   primaryColorHint?: string | null;
   /** Locales à générer (la 1re = langue source rédigée par le LLM). */
   languages?: string[];
+  /** Clientèle cible (« familles », « couples », « voyageurs d'affaires »…). */
+  audience?: string | null;
+  /** Objectif principal / appel à l'action (« réservation directe », « demande de devis »…). */
+  goal?: string | null;
+  /** Niveau de gamme (« économique », « premium », « luxe »…). */
+  tier?: string | null;
+  /** Localisation / destination (ville, région) — contenu + SEO local. */
+  location?: string | null;
+  /** Devise d'affichage (code ISO, ex. « EUR », « MAD »). */
+  currency?: string | null;
+  /** Points forts à mettre en avant (« sans commission », « conciergerie 24/7 »…). */
+  usps?: string[];
+  /** Clés des pages à générer, dans l'ordre (vide → set par défaut). */
+  pages?: string[];
 }
 
 /** Résumé d'une page générée par IA (miroir de `GeneratedPageSummary`). */

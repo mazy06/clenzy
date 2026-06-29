@@ -78,7 +78,8 @@ class PublicBookingServiceTest {
                 org.mockito.Mockito.mock(com.clenzy.booking.repository.SitePageRepository.class),
                 org.mockito.Mockito.mock(com.clenzy.booking.service.BookingDisplayCurrencyService.class),
                 org.mockito.Mockito.mock(com.clenzy.service.UpsellService.class),
-                fraudScoringService);
+                fraudScoringService,
+                new BookingMockDataProvider());
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────

@@ -24,6 +24,7 @@ import { createAddonsPanel } from '../components/AddonsPanel';
 import { createRebookStrip } from '../components/RebookStrip';
 import { createPropertySummary } from '../components/PropertySummary';
 import { createAmenitiesList } from '../components/AmenitiesList';
+import { createReviewsList, createRatingBadge } from '../components/Reviews';
 import { createConfirmationCard } from '../components/Confirmation';
 import { HEADLESS_WIDGETS, ensureStructuralStyles } from '../headless';
 
@@ -230,7 +231,7 @@ function renderStep(step: PrimitiveStep, ctx: MountContext, el: HTMLElement): HT
     case 'checkout':
       return buildCheckoutButton(ctx, el);
     case 'property':
-      return buildPropertySummary(ctx);
+      return buildPropertySummary(ctx, el);
     case 'upsells':
       return buildUpsells(ctx);
     case 'confirmation':
@@ -417,7 +418,11 @@ function renderGranularWidget(id: string, ctx: MountContext, el: HTMLElement): H
     case 'booking-dates': {
       const wrap = document.createElement('div');
       wrap.className = 'cb-wdates';
-      wrap.appendChild(createDatePicker(state, i18n));
+      // Présentation opt-in via attributs du marqueur (posés par le template) : style « labeled » (libellé
+      // au-dessus + icône) et placeholder personnalisable. Absents = style compact historique (aucun impact).
+      const labeled = el.getAttribute('data-clenzy-date-style') === 'labeled';
+      const ph = el.getAttribute('data-clenzy-date-placeholder');
+      wrap.appendChild(createDatePicker(state, i18n, { labeled, ...(ph !== null ? { placeholder: ph } : {}) }));
       wrap.appendChild(createCalendar(state, i18n, currency));
       return wrap;
     }
@@ -463,9 +468,29 @@ function renderGranularWidget(id: string, ctx: MountContext, el: HTMLElement): H
     case 'booking-price-summary':
       return createPriceSummary(state, i18n);
     case 'booking-property-summary':
-      return buildPropertySummary(ctx);
+      return buildPropertySummary(ctx, el);
     case 'booking-amenities':
-      return createAmenitiesList(state);
+      return createAmenitiesList(state, i18n, { grouped: el.getAttribute('data-clenzy-amenities-layout') === 'grouped' });
+    case 'booking-reviews': {
+      // Présentation opt-in via attributs du marqueur (posés par le template) : disposition, nombre max,
+      // et lien du résumé (`href` → ex. /avis). Sans `limit` → pagination « Charger plus » (tout récupérer).
+      const la = el.getAttribute('data-clenzy-reviews-layout');
+      const layout = la === 'summary' || la === 'list' ? la : 'full';
+      const limit = Number(el.getAttribute('data-clenzy-reviews-limit'));
+      const href = el.getAttribute('data-clenzy-reviews-href') || undefined;
+      // Aperçu éditeur (`ctx.preview`) → jeu de démo (la clé d'aperçu ne résout aucun avis réel).
+      return createReviewsList(core.api, i18n, {
+        layout,
+        ...(Number.isFinite(limit) && limit > 0 ? { limit } : {}),
+        ...(href ? { href } : {}),
+        demo: ctx.preview === true,
+      });
+    }
+    case 'booking-rating': {
+      // `href` → le badge devient un lien (ex. vers /avis pour voir tous les avis).
+      const href = el.getAttribute('data-clenzy-rating-href') || undefined;
+      return createRatingBadge(state, i18n, href ? { href } : {});
+    }
     case 'booking-cart':
       return createCartList(state, i18n, () => { void runCheckout(ctx, el); });
     case 'booking-add-to-cart':
@@ -500,8 +525,13 @@ function renderGranularWidget(id: string, ctx: MountContext, el: HTMLElement): H
  * indicatif. Pas de factory dédiée ni de nouvelle dépendance → on réutilise les classes `.cb-*` de
  * base et on re-rend sur `'*'` (changement de sélection / devise).
  */
-function buildPropertySummary(ctx: MountContext): HTMLElement {
-  return createPropertySummary(ctx.core.state, ctx.config.baseUrl || window.location.origin);
+function buildPropertySummary(ctx: MountContext, el: HTMLElement): HTMLElement {
+  const layout = el.getAttribute('data-clenzy-property-layout') === 'detail' ? 'detail' : undefined;
+  const reviewsHref = el.getAttribute('data-clenzy-reviews-href') || undefined;
+  return createPropertySummary(ctx.core.state, ctx.config.baseUrl || window.location.origin, ctx.i18n, {
+    ...(layout ? { layout } : {}),
+    ...(reviewsHref ? { reviewsHref } : {}),
+  });
 }
 
 /** Formatte un montant en devise (parité avec `PropertyList.formatPrice`, non exporté → dupliqué). */

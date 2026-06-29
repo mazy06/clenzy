@@ -13,7 +13,6 @@ import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -182,13 +181,8 @@ public class AiPricingService {
     @Retry(name = "ai-pricing")
     public List<AiPricingRecommendationDto> getAiPredictions(Long propertyId, Long orgId,
                                                               LocalDate from, LocalDate to) {
-        if (!aiProperties.getFeatures().isPricingAi()) {
-            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "pricing",
-                    "AI pricing is disabled. Enable via clenzy.ai.features.pricing-ai=true");
-        }
-
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.PRICING);
-        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.PRICING);
+        ResolvedTarget key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.PRICING);
         tokenBudgetService.requireBudget(orgId, AiFeature.PRICING, key.source());
 
         Property property = propertyRepository.findById(propertyId)

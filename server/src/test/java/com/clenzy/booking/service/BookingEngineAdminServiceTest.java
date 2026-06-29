@@ -77,6 +77,7 @@ class BookingEngineAdminServiceTest {
                 "1,2",
                 "{}", "https://src", null,
                 "bottom", "tgt", "after",
+                "REAL",
                 null
         );
     }

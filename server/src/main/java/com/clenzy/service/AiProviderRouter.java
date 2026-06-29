@@ -7,18 +7,16 @@ import com.clenzy.config.ai.AnthropicProvider;
 import com.clenzy.config.ai.BedrockProvider;
 import com.clenzy.config.ai.OpenAiProvider;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver.KeySource;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Routes les requetes IA vers le bon provider en fonction de la resolution de cle.
+ * Routes les requetes IA vers le bon provider en fonction de la cible resolue par
+ * {@link AiTargetResolver}.
  *
- * Logique :
- * - ORGANIZATION → utilise le provider demande avec la cle BYOK de l'org
- * - PLATFORM     → utilise le provider demande avec la cle env var
+ * Logique (source de verite unique = config DB, plus aucune cle env) :
+ * - ORGANIZATION → utilise le provider effectif avec la cle BYOK de l'org
  * - PLATFORM_DB  → utilise le provider configure en DB par le SUPER_ADMIN
  *                   (peut etre different du provider demande — ex: demande "anthropic" mais
  *                    la plateforme utilise "bedrock" comme fallback gratuit)
@@ -28,23 +26,23 @@ public class AiProviderRouter {
 
     private static final Logger log = LoggerFactory.getLogger(AiProviderRouter.class);
 
-    private final AiKeyResolver aiKeyResolver;
+    private final AiTargetResolver aiTargetResolver;
     private final OpenAiProvider openAiProvider;
     private final AnthropicProvider anthropicProvider;
     private final BedrockProvider bedrockProvider;
 
-    public AiProviderRouter(AiKeyResolver aiKeyResolver,
+    public AiProviderRouter(AiTargetResolver aiTargetResolver,
                             OpenAiProvider openAiProvider,
                             AnthropicProvider anthropicProvider,
                             BedrockProvider bedrockProvider) {
-        this.aiKeyResolver = aiKeyResolver;
+        this.aiTargetResolver = aiTargetResolver;
         this.openAiProvider = openAiProvider;
         this.anthropicProvider = anthropicProvider;
         this.bedrockProvider = bedrockProvider;
     }
 
     /**
-     * Resout la cle et dispatch la requete vers le bon provider.
+     * Resout la cible et dispatch la requete vers le bon provider.
      *
      * @param orgId             ID de l'organisation
      * @param preferredProvider provider prefere ("openai" ou "anthropic")
@@ -59,36 +57,35 @@ public class AiProviderRouter {
      * Route avec resolution du modele specifique a la feature.
      */
     public RoutedResponse route(Long orgId, String preferredProvider, AiFeature feature, AiRequest request) {
-        ResolvedKey key = aiKeyResolver.resolve(orgId, preferredProvider, feature);
+        ResolvedTarget target = aiTargetResolver.resolve(orgId, preferredProvider, feature);
 
         // Platform DB — provider configure par le SUPER_ADMIN
-        if (key.source() == KeySource.PLATFORM_DB) {
-            return routeViaPlatformDb(key, request, orgId);
+        if (target.source() == KeySource.PLATFORM_DB) {
+            return routeViaPlatformDb(target, request, orgId);
         }
 
-        // ORGANIZATION or PLATFORM env var — utilise le provider EFFECTIF resolu
-        // (peut differer du provider demande quand une feature a un override provider
-        //  connecte assigne en Settings > IA). Fallback sur preferredProvider par securite.
-        String effectiveProvider = key.providerName() != null ? key.providerName() : preferredProvider;
+        // ORGANIZATION (BYOK) — provider EFFECTIF resolu (peut differer du provider demande
+        // quand une feature a un override provider connecte assigne en Settings > IA).
+        // Fallback sur preferredProvider par securite. PLATFORM_DB est traite plus haut ;
+        // il n'existe plus de source a cle env (cf. KeySource).
+        String effectiveProvider = target.provider() != null ? target.provider() : preferredProvider;
         AiProvider provider = getProvider(effectiveProvider);
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
-        AiResponse response = (key.source() == KeySource.ORGANIZATION)
-                ? provider.chat(resolved, key.apiKey())
-                : provider.chat(resolved);
+        AiRequest resolved = target.model() != null ? request.overrideModel(target.model()) : request;
+        AiResponse response = provider.chat(resolved, target.apiKey());
 
-        return new RoutedResponse(response, provider.name(), key.source());
+        return new RoutedResponse(response, provider.name(), target.source());
     }
 
     /**
-     * Resout uniquement la cle (sans executer la requete).
+     * Resout uniquement la cible (sans executer la requete).
      * Utile pour les services qui ont besoin de verifier le budget avant le route.
      */
-    public ResolvedKey resolveKey(Long orgId, String preferredProvider) {
-        return aiKeyResolver.resolve(orgId, preferredProvider);
+    public ResolvedTarget resolveKey(Long orgId, String preferredProvider) {
+        return aiTargetResolver.resolve(orgId, preferredProvider, null);
     }
 
-    public ResolvedKey resolveKey(Long orgId, String preferredProvider, AiFeature feature) {
-        return aiKeyResolver.resolve(orgId, preferredProvider, feature);
+    public ResolvedTarget resolveKey(Long orgId, String preferredProvider, AiFeature feature) {
+        return aiTargetResolver.resolve(orgId, preferredProvider, feature);
     }
 
     /**
@@ -97,22 +94,22 @@ public class AiProviderRouter {
      * BedrockProvider avec un RestClient dynamique (meme format /v1/chat/completions).
      * Pour Anthropic, on utilise le AnthropicProvider avec la cle BYOK.
      */
-    private RoutedResponse routeViaPlatformDb(ResolvedKey key, AiRequest request, Long orgId) {
-        String effectiveProvider = key.providerName();
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
+    private RoutedResponse routeViaPlatformDb(ResolvedTarget target, AiRequest request, Long orgId) {
+        String effectiveProvider = target.provider();
+        AiRequest resolved = target.model() != null ? request.overrideModel(target.model()) : request;
 
         log.debug("Routed to platform DB provider {} for org={}", effectiveProvider, orgId);
 
         if ("anthropic".equals(effectiveProvider)) {
-            AiResponse response = anthropicProvider.chat(resolved, key.apiKey(), key.baseUrl());
-            return new RoutedResponse(response, effectiveProvider, key.source());
+            AiResponse response = anthropicProvider.chat(resolved, target.apiKey(), target.baseUrl());
+            return new RoutedResponse(response, effectiveProvider, target.source());
         }
 
         // OpenAI-compatible providers (bedrock, nvidia, openai) :
-        // Use BedrockProvider with the key's apiKey (it builds a one-shot RestClient)
+        // Use BedrockProvider with the target's apiKey (it builds a one-shot RestClient)
         // BedrockProvider already handles the OpenAI-compatible format
-        AiResponse response = bedrockProvider.chat(resolved, key.apiKey(), key.baseUrl(), effectiveProvider);
-        return new RoutedResponse(response, effectiveProvider, key.source());
+        AiResponse response = bedrockProvider.chat(resolved, target.apiKey(), target.baseUrl(), effectiveProvider);
+        return new RoutedResponse(response, effectiveProvider, target.source());
     }
 
     private AiProvider getProvider(String providerName) {

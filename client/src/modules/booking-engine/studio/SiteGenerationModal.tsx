@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog, DialogContent, IconButton, Box, InputBase, ButtonBase, CircularProgress,
 } from '@mui/material';
 import { X, Sparkles, AlertTriangle } from 'lucide-react';
 import type { SiteGenerationBrief } from '../../../services/api/sitesApi';
+import SiteGenerationProgress from './SiteGenerationProgress';
 
 /**
  * Modale « Générer mon site par IA » du Studio (P2.a). Recueille un brief minimal (type de bien, ton,
@@ -20,6 +21,12 @@ export interface SiteGenerationModalProps {
   onClose: () => void;
   /** Génère le site à partir du brief. Doit rejeter en cas d'échec (message affiché dans la modale). */
   onGenerate: (brief: SiteGenerationBrief) => Promise<void>;
+  /** Brief pré-assemblé par le constructeur de prompt du Studio (champ hero + chips). Pré-remplit les
+   *  champs éditables (type/ton/couleur/langues) ; les champs structurés non éditables ici (audience,
+   *  objectif, gamme, lieu, devise, points forts, pages) sont CONSERVÉS et renvoyés tels quels. */
+  initialBrief?: Partial<SiteGenerationBrief>;
+  /** Récapitulatif lisible des champs structurés portés (affiché en lecture seule). */
+  recap?: string;
 }
 
 /** Langues proposées (alignées sur les locales supportées du Studio). */
@@ -29,7 +36,39 @@ const LANGUAGE_CHOICES = [
   { code: 'ar', labelKey: 'arabic', fallback: 'Arabe' },
 ] as const;
 
-export default function SiteGenerationModal({ open, onClose, onGenerate }: SiteGenerationModalProps) {
+/**
+ * Champs pondérés par leur impact sur la qualité de la génération. Pilote la jauge de complétude :
+ * plus le brief est riche et spécifique, meilleur est le prompt envoyé au LLM. `hint` = nudge affiché
+ * pour les champs manquants à plus fort impact.
+ */
+const COMPLETENESS_FIELDS: { present: (b: Partial<SiteGenerationBrief>) => boolean; weight: number; hint: string }[] = [
+  { present: (b) => !!b.propertyType?.trim(), weight: 25, hint: 'décrivez le type de biens' },
+  { present: (b) => !!b.location, weight: 12, hint: 'ajoutez une localisation (SEO local)' },
+  { present: (b) => !!(b.usps && b.usps.length), weight: 12, hint: 'listez vos points forts' },
+  { present: (b) => !!b.audience, weight: 10, hint: 'précisez la clientèle cible' },
+  { present: (b) => !!b.goal, weight: 8, hint: "définissez l'objectif principal" },
+  { present: (b) => !!b.tone, weight: 8, hint: 'choisissez un ton' },
+  { present: (b) => !!b.tier, weight: 7, hint: 'indiquez le niveau de gamme' },
+  { present: (b) => !!b.brandName?.trim(), weight: 6, hint: 'renseignez le nom de marque' },
+  { present: (b) => !!b.primaryColorHint, weight: 6, hint: 'définissez une couleur' },
+  { present: (b) => !!(b.languages && b.languages.length), weight: 6, hint: 'sélectionnez les langues' },
+];
+
+/** Score de complétude (0-100) + les 2 nudges manquants à plus fort impact. */
+function briefCompleteness(b: Partial<SiteGenerationBrief>): { score: number; hints: string[] } {
+  let got = 0;
+  let total = 0;
+  const missing: { w: number; h: string }[] = [];
+  for (const f of COMPLETENESS_FIELDS) {
+    total += f.weight;
+    if (f.present(b)) got += f.weight;
+    else missing.push({ w: f.weight, h: f.hint });
+  }
+  missing.sort((x, y) => y.w - x.w);
+  return { score: Math.round((got / total) * 100), hints: missing.slice(0, 2).map((m) => m.h) };
+}
+
+export default function SiteGenerationModal({ open, onClose, onGenerate, initialBrief, recap }: SiteGenerationModalProps) {
   const { t } = useTranslation();
   const [propertyType, setPropertyType] = useState('');
   const [tone, setTone] = useState('');
@@ -38,6 +77,23 @@ export default function SiteGenerationModal({ open, onClose, onGenerate }: SiteG
   const [languages, setLanguages] = useState<string[]>(['fr']);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Aucun modèle IA exploitable (422 AI_NOT_CONFIGURED / AI_FEATURE_DISABLED) → modale d'indisponibilité.
+  const [unavailable, setUnavailable] = useState(false);
+
+  // À chaque ouverture (déclenchée par le champ hero), pré-remplit les champs éditables depuis le brief
+  // assemblé par le constructeur de prompt. Les champs structurés (audience, pages…) sont portés tels
+  // quels via `initialBrief` (cf. handleSubmit). `initialBrief` est mémoïsé côté StudioHome → identité
+  // stable tant que la modale est ouverte (pas de réinitialisation pendant l'édition).
+  useEffect(() => {
+    if (!open) return;
+    const b = initialBrief ?? {};
+    setPropertyType(b.propertyType?.trim() ?? '');
+    setPrimaryColorHint(/^#[0-9a-fA-F]{6}$/.test(b.primaryColorHint ?? '') ? (b.primaryColorHint as string) : '');
+    setTone(b.tone ?? '');
+    if (b.languages && b.languages.length) setLanguages(b.languages);
+    setError(null);
+    setUnavailable(false);
+  }, [open, initialBrief]);
 
   const k = (key: string, fallback: string) => t(`bookingEngine.studio.ai.generate.${key}`, fallback);
 
@@ -47,12 +103,26 @@ export default function SiteGenerationModal({ open, onClose, onGenerate }: SiteG
 
   const canSubmit = propertyType.trim().length > 0 && languages.length > 0 && !generating;
 
+  // Jauge de complétude : reflète le brief complet (champs structurés portés + champs éditables courants).
+  const { score: briefScore, hints: briefHints } = briefCompleteness({
+    ...initialBrief,
+    propertyType,
+    tone: tone || null,
+    brandName: brandName || null,
+    primaryColorHint: primaryColorHint || null,
+    languages,
+  });
+  const briefScoreColor = briefScore >= 80 ? 'var(--ok, #3E8E7E)' : briefScore >= 50 ? 'var(--accent)' : 'var(--warn, #D4A574)';
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setGenerating(true);
     setError(null);
     try {
       await onGenerate({
+        // Champs structurés portés par le constructeur de prompt (audience, objectif, pages…)…
+        ...initialBrief,
+        // …puis les champs éditables de la modale prennent le dessus.
         propertyType: propertyType.trim(),
         tone: tone.trim() || null,
         brandName: brandName.trim() || null,
@@ -61,7 +131,15 @@ export default function SiteGenerationModal({ open, onClose, onGenerate }: SiteG
         languages,
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : k('error', 'La génération a échoué. Réessayez dans un instant.'));
+      // 422 AI_NOT_CONFIGURED / AI_FEATURE_DISABLED → aucun modèle exploitable : modale d'indisponibilité
+      // (les admins ont déjà été notifiés côté serveur). Sinon : message d'erreur générique.
+      const err = e as { status?: number; details?: { errorCode?: string } };
+      const code = err?.details?.errorCode;
+      if (err?.status === 422 && (code === 'AI_NOT_CONFIGURED' || code === 'AI_FEATURE_DISABLED')) {
+        setUnavailable(true);
+      } else {
+        setError(e instanceof Error ? e.message : k('error', 'La génération a échoué. Réessayez dans un instant.'));
+      }
       setGenerating(false);
     }
   };
@@ -85,8 +163,48 @@ export default function SiteGenerationModal({ open, onClose, onGenerate }: SiteG
       </Box>
 
       <DialogContent sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {unavailable ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 1.5, py: 3 }}>
+            <Box sx={{ width: 48, height: 48, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'var(--err-soft)', color: 'var(--err, #c0392b)' }}>
+              <AlertTriangle size={26} strokeWidth={2} />
+            </Box>
+            <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
+              {k('unavailableTitle', 'Génération IA indisponible')}
+            </Box>
+            <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5, maxWidth: 380 }}>
+              {k('unavailableBody', "Aucun modèle IA n'est disponible pour la génération de site pour le moment. Les administrateurs ont été notifiés et vont rétablir le service. Réessayez plus tard.")}
+            </Box>
+            <ButtonBase onClick={onClose} sx={primaryBtnSx}>{k('unavailableClose', 'Fermer')}</ButtonBase>
+          </Box>
+        ) : generating ? (
+          <SiteGenerationProgress brandLabel={brandName.trim() || null} />
+        ) : (
+        <>
         <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
-          {k('intro', "Décrivez votre activité : l'IA rédige et structure un site complet (accueil, liste de logements, à propos, contact) et dérive un thème. Les pages sont créées en brouillon — à relire avant publication.")}
+          {k('intro', "Décrivez votre activité : l'IA rédige et structure un site complet (selon les pages choisies) et dérive un thème. Les pages sont créées en brouillon — à relire avant publication.")}
+        </Box>
+
+        {recap ? (
+          <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--body)', bgcolor: 'var(--accent-soft)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', px: 1.25, py: 1, lineHeight: 1.5 }}>
+            <Box component="span" sx={{ fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{k('briefRecap', 'Brief')} : </Box>
+            {recap}
+          </Box>
+        ) : null}
+
+        {/* Jauge de complétude du brief : plus il est riche, meilleur est le prompt envoyé au LLM. */}
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-2xs)', color: 'var(--muted)', mb: 0.5 }}>
+            <span>{k('completeness', 'Complétude du brief')}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: briefScoreColor }}>{briefScore}%</span>
+          </Box>
+          <Box sx={{ height: 6, borderRadius: 999, bgcolor: 'var(--line)', overflow: 'hidden' }}>
+            <Box sx={{ height: '100%', width: `${briefScore}%`, bgcolor: briefScoreColor, transition: 'width var(--duration-fast) var(--ease-out)' }} />
+          </Box>
+          {briefScore < 100 && briefHints.length > 0 ? (
+            <Box sx={{ mt: 0.5, fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>
+              {k('completenessHint', 'Pour un meilleur résultat')} : {briefHints.join(' · ')}
+            </Box>
+          ) : null}
         </Box>
 
         <Field label={k('propertyTypeLabel', 'Type de biens')} required>
@@ -183,6 +301,8 @@ export default function SiteGenerationModal({ open, onClose, onGenerate }: SiteG
               : <><Sparkles size={16} strokeWidth={2.2} /> {k('submit', 'Générer le site')}</>}
           </ButtonBase>
         </Box>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

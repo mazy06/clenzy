@@ -52,6 +52,15 @@ public class PlatformSettings {
     @Column(name = "sender_name", nullable = false, columnDefinition = "TEXT")
     private String senderName = "Baitly";
 
+    /**
+     * Bibliothèque GLOBALE de widgets composites du booking engine (JSON, même format que
+     * {@code booking_engine_configs.composite_widgets}). Niveau plateforme : alimentée par les
+     * SUPER_ADMIN / SUPER_MANAGER, elle est visible (lecture) dans le Studio de TOUS les booking
+     * engines, en plus des composites propres à chaque engine. {@code null}/absent = aucune.
+     */
+    @Column(name = "global_composite_widgets", columnDefinition = "TEXT")
+    private String globalCompositeWidgets;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -75,6 +84,9 @@ public class PlatformSettings {
 
     public String getSenderName() { return senderName; }
     public void setSenderName(String senderName) { this.senderName = senderName; }
+
+    public String getGlobalCompositeWidgets() { return globalCompositeWidgets; }
+    public void setGlobalCompositeWidgets(String globalCompositeWidgets) { this.globalCompositeWidgets = globalCompositeWidgets; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

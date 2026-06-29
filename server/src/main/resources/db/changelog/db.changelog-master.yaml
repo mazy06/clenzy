@@ -2759,3 +2759,35 @@ databaseChangeLog:
       sqlFile:
         path: changes/0283__add_site_page_review.sql
         relativeToChangelogFile: true
+
+  # Élargit users.first_name/last_name (ciphertext AES) à varchar(500) — fix WARN ddl-auto varchar(50).
+  - changeSet:
+      id: "0284-widen-users-encrypted-name-columns"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0284__widen_users_encrypted_name_columns.sql
+        relativeToChangelogFile: true
+
+  # Mode source de données du booking engine (REAL = vraies données tenant, MOCK = jeu de démo).
+  - changeSet:
+      id: "0285-add-booking-engine-data-source-mode"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0285__add_booking_engine_data_source_mode.sql
+        relativeToChangelogFile: true
+
+  # Contrat de variables CSS de design (--bt-*) émis par le LLM, appliqué pages + widgets.
+  - changeSet:
+      id: "0286-add-booking-engine-design-css-variables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0286__add_booking_engine_design_css_variables.sql
+        relativeToChangelogFile: true
+
+  # Bibliothèque globale de widgets composites (plateforme, alimentée par SUPER_ADMIN/SUPER_MANAGER).
+  - changeSet:
+      id: "0287-add-platform-global-composites"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0287__add_platform_global_composites.sql
+        relativeToChangelogFile: true

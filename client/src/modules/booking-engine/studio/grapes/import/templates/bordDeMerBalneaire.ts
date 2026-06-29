@@ -88,7 +88,7 @@ const SHARED_CSS = `${FONTS_IMPORT}
 .bm-hero h1 { color: #fff; font-size: clamp(40px, 6vw, 66px); margin: 14px 0 18px; }
 .bm-hero__sub { color: rgba(255, 255, 255, 0.92); font-size: 18px; max-width: 520px; }
 .bm-hero__search { position: relative; margin-top: -56px; padding-bottom: 64px; z-index: 2; }
-.bm-searchcard { background: var(--bm-surface); border: 1px solid var(--bm-line); border-radius: var(--bm-radius); box-shadow: var(--bm-shadow); padding: 18px; }
+.bm-searchcard { background: var(--bm-surface); border: 1px solid var(--bm-line); border-radius: var(--bm-radius); box-shadow: var(--bm-shadow); padding: 18px; color: var(--bm-ink); }
 .bm-searchcard__label { font-size: 12px; font-weight: 600; color: var(--bm-muted); margin: 0 0 12px; text-transform: uppercase; letter-spacing: .08em; }
 
 /* Sections */
@@ -210,12 +210,19 @@ const ABOUT_IMG = 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?
 const STORY_IMG = 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1200&q=70';
 const MAP_IMG = 'https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=1000&q=70';
 
+/** Fonds image en classes CSS (le style inline est retiré par GrapesJS à l'import). */
+const IMG_CSS = `
+.bm-hero__bg { background-image: url('${HERO_IMG}'); }
+.bm-img-about { background-image: url('${ABOUT_IMG}'); }
+.bm-img-story { background-image: url('${STORY_IMG}'); }
+.bm-map { background-image: url('${MAP_IMG}'); }`;
+
 /* ── Pages ──────────────────────────────────────────────────────────────────────── */
 
 const HOME = `<div class="bm-root">
   ${nav('/')}
   <section class="bm-hero">
-    <div class="bm-hero__bg" style="background-image:url('${HERO_IMG}')"></div>
+    <div class="bm-hero__bg"></div>
     <div class="bm-wrap"><div class="bm-hero__inner">
       <p class="bm-eyebrow">Locations balnéaires · Littoral</p>
       <h1>Réveillez-vous face à la mer, sans intermédiaire</h1>
@@ -256,7 +263,7 @@ const HOME = `<div class="bm-root">
 
   <section class="bm-section">
     <div class="bm-wrap"><div class="bm-split">
-      <div class="bm-split__media" style="background-image:url('${ABOUT_IMG}')"></div>
+      <div class="bm-split__media bm-img-about"></div>
       <div>
         <p class="bm-eyebrow">La maison</p>
         <h2>L'art de recevoir, au rythme des marées</h2>
@@ -370,7 +377,7 @@ const ABOUT = `<div class="bm-root">
         <p class="bm-lead">Une conciergerie indépendante, ancrée sur le littoral, qui place l'humain et le détail au cœur de chaque séjour.</p>
       </div>
       <div class="bm-split">
-        <div class="bm-split__media" style="background-image:url('${STORY_IMG}')"></div>
+        <div class="bm-split__media bm-img-story"></div>
         <div>
           <h2>Notre histoire</h2>
           <p>Tout a commencé par une maison de pêcheur, restaurée avec des artisans de la région. Le bouche-à-oreille a fait le reste : aujourd'hui, nous veillons sur une collection confidentielle de logements de bord de mer.</p>
@@ -415,7 +422,7 @@ const CONTACT = `<div class="bm-root">
           <div class="bm-citem"><span>Horaires</span><strong>Accueil 7j/7, 24h/24</strong></div>
           <p style="margin-top:26px"><a class="bm-btn bm-btn--primary" href="/logements">Réserver un logement</a></p>
         </div>
-        <div class="bm-map" style="background-image:url('${MAP_IMG}')"></div>
+        <div class="bm-map"></div>
       </div>
     </div>
   </section>
@@ -427,14 +434,14 @@ const THUMBNAIL =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231f8fc7'/%3E%3Cstop offset='1' stop-color='%233fc1c9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='320' height='180' fill='url(%23g)'/%3E%3Crect y='128' width='320' height='52' fill='%23f3e3c3'/%3E%3C/svg%3E";
 
 /** Concatène le design system partagé + le CSS éventuel de la page. */
-const css = (pageCss = ''): string => `${SHARED_CSS}\n${pageCss}`;
+const css = (pageCss = ''): string => `${SHARED_CSS}\n${IMG_CSS}\n${pageCss}`;
 
 export const bordDeMerBalneaire: GalleryTemplate = {
   id: 'bord-de-mer-balneaire',
   name: 'Bord de mer balnéaire',
   description: 'Balnéaire lumineux — hero plein écran',
   thumbnail: THUMBNAIL,
-  theme: { primaryColor: '#1f8fc7', fontFamily: "'Inter', system-ui, -apple-system, sans-serif" },
+  theme: { primaryColor: '#1f8fc7', fontFamily: "'Inter', system-ui, -apple-system, sans-serif", headingFontFamily: "'Fraunces', Georgia, serif" },
   pages: [
     { path: '/', type: 'HOME', title: 'Accueil', seoTitle: 'Baitly — Locations en bord de mer', seoDescription: 'Maisons de plage et appartements pieds dans l’eau. Réservation directe, accueil attentionné, séjours sur mesure.', html: HOME, css: css() },
     { path: '/logements', type: 'PROPERTY_LIST', title: 'Nos logements', seoTitle: 'Nos logements disponibles — Baitly', seoDescription: 'Découvrez nos logements en bord de mer et leurs disponibilités en temps réel.', html: LODGINGS, css: css() },

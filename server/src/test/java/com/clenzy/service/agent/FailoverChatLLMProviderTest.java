@@ -4,7 +4,10 @@ import com.clenzy.config.ai.ChatEvent;
 import com.clenzy.config.ai.ChatLLMRouter;
 import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
-import com.clenzy.service.agent.AssistantTargetResolver.ChatTarget;
+import com.clenzy.model.AiFeature;
+import com.clenzy.service.AiTargetResolver;
+import com.clenzy.service.ResolvedTarget;
+import com.clenzy.service.KeySource;
 import com.clenzy.tenant.TenantContext;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +35,7 @@ import static org.mockito.Mockito.when;
 class FailoverChatLLMProviderTest {
 
     private ChatLLMRouter router;
-    private AssistantTargetResolver targetResolver;
+    private AiTargetResolver targetResolver;
     private TenantContext tenantContext;
     private SimpleMeterRegistry meterRegistry;
     private FailoverChatLLMProvider failover;
@@ -43,7 +46,7 @@ class FailoverChatLLMProviderTest {
     @BeforeEach
     void setup() {
         router = mock(ChatLLMRouter.class);
-        targetResolver = mock(AssistantTargetResolver.class);
+        targetResolver = mock(AiTargetResolver.class);
         tenantContext = mock(TenantContext.class);
         meterRegistry = new SimpleMeterRegistry();
         failover = new FailoverChatLLMProvider(router, targetResolver, tenantContext, meterRegistry);
@@ -73,9 +76,9 @@ class FailoverChatLLMProviderTest {
 
     @Test
     void primaryRateLimited_failsOverToAnthropic_andHidesError() {
-        when(targetResolver.resolveFailoverChain(eq(2L), isNull())).thenReturn(List.of(
-                new ChatTarget("nvidia", "mistral-large-3", "nv-key", "https://nvidia/v1"),
-                new ChatTarget("anthropic", null, "anthropic-key", null)));
+        when(targetResolver.resolveChain(eq(2L), eq(AiFeature.ASSISTANT_CHAT), isNull())).thenReturn(List.of(
+                new ResolvedTarget("nvidia", "mistral-large-3", "nv-key", "https://nvidia/v1", KeySource.PLATFORM_DB),
+                new ResolvedTarget("anthropic", null, "anthropic-key", null, KeySource.PLATFORM_DB)));
         routerEmits(provider -> "anthropic".equals(provider)
                 ? List.of(new ChatEvent.TextDelta("Bonjour"))
                 : List.of(new ChatEvent.Error("nvidia API returned status 429", null)));
@@ -93,9 +96,9 @@ class FailoverChatLLMProviderTest {
 
     @Test
     void allProvidersFail_lastErrorSurfaces() {
-        when(targetResolver.resolveFailoverChain(eq(2L), isNull())).thenReturn(List.of(
-                new ChatTarget("nvidia", "mistral-large-3", "nv-key", "https://nvidia/v1"),
-                new ChatTarget("anthropic", null, "anthropic-key", null)));
+        when(targetResolver.resolveChain(eq(2L), eq(AiFeature.ASSISTANT_CHAT), isNull())).thenReturn(List.of(
+                new ResolvedTarget("nvidia", "mistral-large-3", "nv-key", "https://nvidia/v1", KeySource.PLATFORM_DB),
+                new ResolvedTarget("anthropic", null, "anthropic-key", null, KeySource.PLATFORM_DB)));
         routerEmits(provider -> List.of(new ChatEvent.Error(
                 provider + " API returned status 429", null)));
 
@@ -117,7 +120,7 @@ class FailoverChatLLMProviderTest {
         assertThat(received.get(0)).isInstanceOf(ChatEvent.TextDelta.class);
         verify(router, times(1)).streamChat(any(), any(), any());
         // Pas de resolution de chaine si le primaire reussit.
-        verify(targetResolver, times(0)).resolveFailoverChain(any(), any());
+        verify(targetResolver, times(0)).resolveChain(any(), any(), any());
         // Aucune bascule comptee.
         assertThat(failoverCount("anthropic")).isZero();
     }

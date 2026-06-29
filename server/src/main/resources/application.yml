@@ -187,11 +187,6 @@ clenzy:
     token-budget:
       default-monthly-tokens: 100000
       enforced: true
-    features:
-      pricing-ai: false
-      messaging-ai: false
-      analytics-ai: false
-      sentiment-ai: false
 
   # ─── Booking engine — relance de panier abandonné ─────────────────────
   # Récupération de panier : email(s) de relance échelonné(s) vers les voyageurs

@@ -35,6 +35,9 @@ import {
   BarChart,
   StarRate,
   AutoAwesome,
+  Article,
+  AutoFixHigh,
+  Hub,
   CheckCircle,
   OpenInNew,
   Refresh,
@@ -81,6 +84,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   nvidia: '#76B900',
   openai: '#10A37F',
   anthropic: '#D4A574',
+  voyage: '#5B8DEF',
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -88,6 +92,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   nvidia: 'NVIDIA Build',
   openai: 'OpenAI',
   anthropic: 'Anthropic',
+  voyage: 'Voyage AI',
 };
 
 // Catégorie de modèle du catalogue live (dérivée de l'ID côté backend) → label + couleur.
@@ -107,6 +112,7 @@ const PROVIDER_BASE_URLS: Record<string, string> = {
   nvidia: 'https://integrate.api.nvidia.com/v1',
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com/v1',
+  voyage: 'https://api.voyageai.com',
 };
 
 // Deep-link vers la page "API keys" du provider pour aider l'admin a recuperer
@@ -116,6 +122,7 @@ const PROVIDER_API_KEY_URLS: Record<string, { url: string; label: string }> = {
   bedrock:   { url: 'https://console.aws.amazon.com/iam/home#/security_credentials', label: 'AWS IAM : Security credentials > Create access key' },
   openai:    { url: 'https://platform.openai.com/api-keys',                label: 'OpenAI Platform : API keys' },
   anthropic: { url: 'https://console.anthropic.com/settings/keys',         label: 'Anthropic Console : Settings > API Keys' },
+  voyage:    { url: 'https://dashboard.voyageai.com/api-keys',             label: 'Voyage AI : Dashboard > API Keys' },
 };
 
 const MODELS_BY_PROVIDER: Record<string, Array<{ id: string; label: string; desc: string }>> = {
@@ -147,7 +154,20 @@ const MODELS_BY_PROVIDER: Record<string, Array<{ id: string; label: string; desc
     { id: 'claude-haiku-4-20250514', label: 'Claude Haiku 4', desc: 'Tres rapide' },
     { id: 'claude-opus-4-20250514', label: 'Claude Opus 4', desc: 'Meilleure qualite' },
   ],
+  // Voyage AI : embeddings (et rerank) — feature EMBEDDINGS uniquement, 1024d.
+  voyage: [
+    { id: 'voyage-3-large', label: 'Voyage 3 Large', desc: 'Embeddings 1024d, meilleure qualite (RAG)' },
+    { id: 'voyage-3', label: 'Voyage 3', desc: 'Embeddings 1024d, equilibre cout/qualite' },
+    { id: 'voyage-3-lite', label: 'Voyage 3 Lite', desc: 'Embeddings 1024d, economique' },
+  ],
 };
+
+// Modeles d'embeddings OpenAI (feature EMBEDDINGS) — proposes en plus des modeles chat.
+MODELS_BY_PROVIDER.openai = [
+  ...MODELS_BY_PROVIDER.openai,
+  { id: 'text-embedding-3-large', label: 'Text Embedding 3 Large', desc: 'Embeddings (tronque a 1024d)' },
+  { id: 'text-embedding-3-small', label: 'Text Embedding 3 Small', desc: 'Embeddings economiques (1024d)' },
+];
 
 const PROVIDER_IDS = Object.keys(PROVIDER_LABELS);
 
@@ -163,6 +183,9 @@ const AI_FEATURES = [
   { key: 'MESSAGING', label: 'Messagerie IA', desc: 'Detection intention + reponses', icon: <Chat />, color: '#7BA3C2' }, // = --info
   { key: 'ANALYTICS', label: 'Analytics IA', desc: 'Insights performance', icon: <BarChart />, color: '#C28A52' }, // = --warn
   { key: 'SENTIMENT', label: 'Sentiment IA', desc: 'Analyse avis guests', icon: <StarRate />, color: '#C97A7A' }, // = --err
+  { key: 'CONTENT', label: 'Contenu IA', desc: 'Descriptions de biens + SEO multilingue', icon: <Article />, color: '#6FA38A' }, // sage
+  { key: 'STUDIO_ASSIST', label: 'Assistant Studio IA', desc: "Aide à la création : analyse de site, import d'annonce, livret d'accueil", icon: <AutoFixHigh />, color: '#8A7FB0' }, // periwinkle
+  { key: 'EMBEDDINGS', label: 'Embeddings RAG', desc: 'Recherche sémantique de la base de connaissances (Voyage / OpenAI, 1024d)', icon: <Hub />, color: '#6E8AAD' }, // steel
 ];
 
 // En-tete de groupe dans le selecteur de modele (providers connectes / modeles plateforme).

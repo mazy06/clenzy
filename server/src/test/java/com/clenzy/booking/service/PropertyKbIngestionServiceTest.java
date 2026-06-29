@@ -40,7 +40,7 @@ class PropertyKbIngestionServiceTest {
                 2, 1, 4, 60,
                 BigDecimal.valueOf(120), BigDecimal.valueOf(40), 2,
                 "EUR", null, List.<String>of(), amenities,
-                "15:00", "11:00", 7, 12);
+                "15:00", "11:00", 7, 12, null, 0L);
     }
 
     @Test

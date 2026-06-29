@@ -4060,8 +4060,6 @@
       },
       "ai": {
         "generate": {
-          "cardTitle": "Générer mon site par IA",
-          "cardDesc": "Décrivez votre activité, l’IA rédige un site complet en brouillon.",
           "title": "Générer mon site par IA",
           "intro": "Décrivez votre activité : l'IA rédige et structure un site complet (accueil, liste de logements, à propos, contact) et dérive un thème. Les pages sont créées en brouillon — à relire avant publication.",
           "propertyTypeLabel": "Type de biens",

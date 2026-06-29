@@ -15,8 +15,8 @@ import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
-import com.clenzy.service.AiKeyResolver.KeySource;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.clenzy.service.KeySource;
+import com.clenzy.service.ResolvedTarget;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +35,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -170,31 +172,30 @@ class AiPricingServiceTest {
     @DisplayName("AI-powered predictions")
     class AiPowered {
 
-        private static final ResolvedKey PLATFORM_KEY = new ResolvedKey("sk-platform", null, KeySource.PLATFORM);
+        private static final ResolvedTarget PLATFORM_KEY = new ResolvedTarget(null, null, "sk-platform", null, KeySource.PLATFORM_DB);
 
         @Test
         void featureFlagDisabled_throwsException() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setPricingAi(false);
-            when(aiProperties.getFeatures()).thenReturn(features);
+            doThrow(new AiNotConfiguredException("AI_FEATURE_DISABLED", "pricing",
+                    "Pricing AI is disabled for this organization"))
+                    .when(tokenBudgetService).requireFeatureEnabled(
+                            org.mockito.ArgumentMatchers.anyLong(),
+                            org.mockito.ArgumentMatchers.eq(AiFeature.PRICING));
 
             assertThrows(AiNotConfiguredException.class,
                     () -> service.getAiPredictions(PROPERTY_ID, ORG_ID,
                             LocalDate.now(), LocalDate.now().plusDays(3)));
+
+            verify(aiProviderRouter, never()).route(anyLong(), anyString(), any(AiFeature.class), any(AiRequest.class));
         }
 
         @Test
         void validResponse_parsesCorrectly() {
-            // Setup feature flag
-            AiProperties.Features features = new AiProperties.Features();
-            features.setPricingAi(true);
-            when(aiProperties.getFeatures()).thenReturn(features);
-
             // Key resolver → platform key
             when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.PRICING)).thenReturn(PLATFORM_KEY);
 
             // Budget OK
-            doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
+            doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM_DB);
 
             // Property
             when(propertyRepository.findById(PROPERTY_ID))
@@ -220,7 +221,7 @@ class AiPricingServiceTest {
                 """;
             AiResponse aiResponse = new AiResponse(aiJson, 200, 100, 300, "claude-sonnet-4-20250514", "end_turn");
             when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.PRICING), any(AiRequest.class)))
-                    .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                    .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             List<AiPricingRecommendationDto> results = service.getAiPredictions(
                     PROPERTY_ID, ORG_ID, LocalDate.of(2026, 3, 15), LocalDate.of(2026, 3, 15));
@@ -231,17 +232,14 @@ class AiPricingServiceTest {
             assertEquals(3, results.get(0).factors().size());
 
             // Verify budget was checked and usage recorded
-            verify(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
+            verify(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM_DB);
             verify(tokenBudgetService).recordUsage(eq(ORG_ID), eq(AiFeature.PRICING), eq("anthropic"), eq(aiResponse));
         }
 
         @Test
         void anonymizationCalled() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setPricingAi(true);
-            when(aiProperties.getFeatures()).thenReturn(features);
             when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.PRICING)).thenReturn(PLATFORM_KEY);
-            doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
+            doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM_DB);
             when(propertyRepository.findById(PROPERTY_ID))
                     .thenReturn(Optional.of(createProperty(new BigDecimal("100"))));
             when(reservationRepository.findByPropertyIdsAndDateRange(any(), any(), any(), eq(ORG_ID)))
@@ -252,7 +250,7 @@ class AiPricingServiceTest {
                     "\"confidence\":0.5,\"marketComparison\":\"avg\",\"factors\":[]}]";
             AiResponse aiResponse = new AiResponse(aiJson, 10, 5, 15, "claude-sonnet-4-20250514", "end_turn");
             when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.PRICING), any(AiRequest.class)))
-                    .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                    .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             service.getAiPredictions(PROPERTY_ID, ORG_ID,
                     LocalDate.of(2026, 3, 15), LocalDate.of(2026, 3, 15));
@@ -262,12 +260,9 @@ class AiPricingServiceTest {
 
         @Test
         void budgetExceeded_throwsException() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setPricingAi(true);
-            when(aiProperties.getFeatures()).thenReturn(features);
             when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.PRICING)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("PRICING", 100_000, 100_000))
-                    .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
+                    .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM_DB);
 
             assertThrows(AiBudgetExceededException.class,
                     () -> service.getAiPredictions(PROPERTY_ID, ORG_ID,

@@ -27,6 +27,11 @@ const LANGUAGES = [
   { value: 'ar', label: 'العربية' },
 ];
 
+const DATA_SOURCE_MODES = [
+  { value: 'REAL', label: 'Vraies données du tenant' },
+  { value: 'MOCK', label: 'Données de démonstration' },
+];
+
 export interface BookingSettingsPanelProps {
   config: BookingEngineConfig | null;
   loading: boolean;
@@ -60,6 +65,18 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
       description="Les règles de réservation appliquées à ce booking engine."
       footer={<SaveBar dirty={dirty} saving={saving} onSave={onSave} error={error} />}
     >
+      <SettingCard title="Source de données" description="Vraies données du tenant ou jeu de démonstration.">
+        <SettingRow
+          label="Mode de données"
+          helper="« Vraies données » : propriétés, tarifs et disponibilités réels du tenant. « Démonstration » : jeu de démo générique, aucune réservation ni paiement réel — idéal pour prévisualiser le design avant la mise en ligne."
+          htmlFor="cfg-data-source"
+          control={
+            <SelectControl id="cfg-data-source" value={config.dataSourceMode ?? 'REAL'}
+              onChange={(v) => patch({ dataSourceMode: v as 'REAL' | 'MOCK' })} options={DATA_SOURCE_MODES} />
+          }
+        />
+      </SettingCard>
+
       <SettingCard title="Devise & langue" description="Valeurs par défaut présentées aux voyageurs.">
         <SettingRow label="Devise" htmlFor="cfg-currency" control={
           <SelectControl id="cfg-currency" value={config.defaultCurrency} onChange={(v) => patch({ defaultCurrency: v })} options={CURRENCIES} />

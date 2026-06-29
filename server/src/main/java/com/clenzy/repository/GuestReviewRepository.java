@@ -99,4 +99,15 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
 
     @Query("SELECT COUNT(r) FROM GuestReview r WHERE r.organizationId = :orgId AND r.isPublic = true")
     long countPublicByOrgId(@Param("orgId") Long orgId);
+
+    /**
+     * Batch : note moyenne + nombre d'avis PUBLICS par propriété, en UNE seule query (anti N+1).
+     * Retourne {@code [propertyId, avgRating, count]} pour chaque propriété ayant au moins un avis
+     * public noté — les propriétés sans avis ne sont pas retournées (caller : getOrDefault).
+     */
+    @Query("SELECT r.propertyId, AVG(r.rating), COUNT(r) FROM GuestReview r "
+            + "WHERE r.propertyId IN :propertyIds AND r.organizationId = :orgId "
+            + "AND r.isPublic = true AND r.rating IS NOT NULL GROUP BY r.propertyId")
+    List<Object[]> publicReviewStatsByPropertyIds(@Param("propertyIds") List<Long> propertyIds,
+                                                  @Param("orgId") Long orgId);
 }

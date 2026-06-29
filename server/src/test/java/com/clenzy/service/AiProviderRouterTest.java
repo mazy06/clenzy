@@ -6,8 +6,8 @@ import com.clenzy.config.ai.AnthropicProvider;
 import com.clenzy.config.ai.BedrockProvider;
 import com.clenzy.config.ai.OpenAiProvider;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver.KeySource;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.clenzy.service.KeySource;
+import com.clenzy.service.ResolvedTarget;
 import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -30,7 +29,7 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AiProviderRouterTest {
 
-    @Mock private AiKeyResolver aiKeyResolver;
+    @Mock private AiTargetResolver aiTargetResolver;
     @Mock private OpenAiProvider openAiProvider;
     @Mock private AnthropicProvider anthropicProvider;
     @Mock private BedrockProvider bedrockProvider;
@@ -39,7 +38,7 @@ class AiProviderRouterTest {
 
     @BeforeEach
     void setUp() {
-        router = new AiProviderRouter(aiKeyResolver, openAiProvider, anthropicProvider, bedrockProvider);
+        router = new AiProviderRouter(aiTargetResolver, openAiProvider, anthropicProvider, bedrockProvider);
         when(openAiProvider.name()).thenReturn("openai");
         when(anthropicProvider.name()).thenReturn("anthropic");
         when(bedrockProvider.name()).thenReturn("bedrock");
@@ -60,8 +59,8 @@ class AiProviderRouterTest {
         @Test
         @DisplayName("uses provider.chat(request, apiKey) for org BYOK keys")
         void orgKey_usesBYOKMethod() {
-            ResolvedKey key = new ResolvedKey("sk-org-key", null, KeySource.ORGANIZATION);
-            when(aiKeyResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
+            ResolvedTarget key = new ResolvedTarget(null, null, "sk-org-key", null, KeySource.ORGANIZATION);
+            when(aiTargetResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
             when(openAiProvider.chat(any(AiRequest.class), eq("sk-org-key"))).thenReturn(aiResponse("hi"));
 
             RoutedResponse result = router.route(1L, "openai", aiRequest());
@@ -75,8 +74,8 @@ class AiProviderRouterTest {
         @Test
         @DisplayName("applies modelOverride when present")
         void orgKey_appliesModelOverride() {
-            ResolvedKey key = new ResolvedKey("sk-org-key", "gpt-4o", KeySource.ORGANIZATION);
-            when(aiKeyResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
+            ResolvedTarget key = new ResolvedTarget(null, "gpt-4o", "sk-org-key", null, KeySource.ORGANIZATION);
+            when(aiTargetResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
             when(openAiProvider.chat(any(AiRequest.class), eq("sk-org-key"))).thenReturn(aiResponse("ok"));
 
             router.route(1L, "openai", aiRequest());
@@ -88,70 +87,15 @@ class AiProviderRouterTest {
     }
 
     @Nested
-    @DisplayName("route - PLATFORM env source")
-    class PlatformEnvRoute {
-
-        @Test
-        @DisplayName("uses provider.chat(request) without apiKey")
-        void platformEnv_usesDefaultChat() {
-            ResolvedKey key = new ResolvedKey("env-key", null, KeySource.PLATFORM);
-            when(aiKeyResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
-            when(openAiProvider.chat(any(AiRequest.class))).thenReturn(aiResponse("ok"));
-
-            RoutedResponse result = router.route(1L, "openai", aiRequest());
-
-            assertThat(result.source()).isEqualTo(KeySource.PLATFORM);
-            verify(openAiProvider).chat(any(AiRequest.class));
-            verify(openAiProvider, never()).chat(any(AiRequest.class), any(String.class));
-        }
-
-        @Test
-        @DisplayName("routes anthropic provider")
-        void platformEnv_anthropic() {
-            ResolvedKey key = new ResolvedKey("env-anthropic", null, KeySource.PLATFORM);
-            when(aiKeyResolver.resolve(eq(1L), eq("anthropic"), any())).thenReturn(key);
-            when(anthropicProvider.chat(any(AiRequest.class))).thenReturn(aiResponse("a"));
-
-            RoutedResponse result = router.route(1L, "anthropic", aiRequest());
-
-            assertThat(result.providerName()).isEqualTo("anthropic");
-            verify(anthropicProvider).chat(any(AiRequest.class));
-        }
-
-        @Test
-        @DisplayName("routes bedrock provider")
-        void platformEnv_bedrock() {
-            ResolvedKey key = new ResolvedKey("env-bedrock", null, KeySource.PLATFORM);
-            when(aiKeyResolver.resolve(eq(1L), eq("bedrock"), any())).thenReturn(key);
-            when(bedrockProvider.chat(any(AiRequest.class))).thenReturn(aiResponse("b"));
-
-            RoutedResponse result = router.route(1L, "bedrock", aiRequest());
-
-            assertThat(result.providerName()).isEqualTo("bedrock");
-        }
-
-        @Test
-        @DisplayName("throws when unknown provider requested")
-        void unknownProvider_throws() {
-            ResolvedKey key = new ResolvedKey("env-key", null, KeySource.PLATFORM);
-            when(aiKeyResolver.resolve(eq(1L), eq("mystery"), any())).thenReturn(key);
-
-            assertThatThrownBy(() -> router.route(1L, "mystery", aiRequest()))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Unknown AI provider");
-        }
-    }
-
-    @Nested
     @DisplayName("route - PLATFORM_DB source")
     class PlatformDbRoute {
 
         @Test
         @DisplayName("routes anthropic via apiKey + baseUrl")
         void anthropicEffectiveProvider() {
-            ResolvedKey key = new ResolvedKey("db-key", "claude-3", KeySource.PLATFORM_DB,
-                    "anthropic", "https://api.anthropic.com");
-            when(aiKeyResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
+            ResolvedTarget key = new ResolvedTarget("anthropic", "claude-3", "db-key",
+                    "https://api.anthropic.com", KeySource.PLATFORM_DB);
+            when(aiTargetResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
             when(anthropicProvider.chat(any(AiRequest.class), eq("db-key"), eq("https://api.anthropic.com")))
                     .thenReturn(aiResponse("ok"));
 
@@ -165,9 +109,9 @@ class AiProviderRouterTest {
         @Test
         @DisplayName("routes openai-compatible provider via bedrockProvider")
         void openaiCompatibleViaBedrock() {
-            ResolvedKey key = new ResolvedKey("db-key", "nvidia-model", KeySource.PLATFORM_DB,
-                    "nvidia", "https://integrate.api.nvidia.com");
-            when(aiKeyResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
+            ResolvedTarget key = new ResolvedTarget("nvidia", "nvidia-model", "db-key",
+                    "https://integrate.api.nvidia.com", KeySource.PLATFORM_DB);
+            when(aiTargetResolver.resolve(eq(1L), eq("openai"), any())).thenReturn(key);
             when(bedrockProvider.chat(any(AiRequest.class), eq("db-key"),
                     eq("https://integrate.api.nvidia.com"), eq("nvidia"))).thenReturn(aiResponse("ok"));
 
@@ -179,9 +123,9 @@ class AiProviderRouterTest {
         @Test
         @DisplayName("applies modelOverride when present")
         void platformDb_appliesModelOverride() {
-            ResolvedKey key = new ResolvedKey("db-key", "claude-3-haiku", KeySource.PLATFORM_DB,
-                    "anthropic", null);
-            when(aiKeyResolver.resolve(eq(1L), eq("anthropic"), any())).thenReturn(key);
+            ResolvedTarget key = new ResolvedTarget("anthropic", "claude-3-haiku", "db-key",
+                    null, KeySource.PLATFORM_DB);
+            when(aiTargetResolver.resolve(eq(1L), eq("anthropic"), any())).thenReturn(key);
             when(anthropicProvider.chat(any(AiRequest.class), eq("db-key"), any()))
                     .thenReturn(aiResponse("ok"));
 
@@ -198,19 +142,19 @@ class AiProviderRouterTest {
     class ResolveKey {
 
         @Test
-        @DisplayName("delegates to AiKeyResolver without feature")
+        @DisplayName("delegates to AiTargetResolver without feature")
         void delegates() {
-            ResolvedKey key = new ResolvedKey("k", null, KeySource.PLATFORM);
-            when(aiKeyResolver.resolve(1L, "openai")).thenReturn(key);
+            ResolvedTarget key = new ResolvedTarget(null, null, "k", null, KeySource.PLATFORM_DB);
+            when(aiTargetResolver.resolve(1L, "openai", null)).thenReturn(key);
 
             assertThat(router.resolveKey(1L, "openai")).isSameAs(key);
         }
 
         @Test
-        @DisplayName("delegates to AiKeyResolver with feature")
+        @DisplayName("delegates to AiTargetResolver with feature")
         void delegatesWithFeature() {
-            ResolvedKey key = new ResolvedKey("k", null, KeySource.PLATFORM);
-            when(aiKeyResolver.resolve(1L, "openai", AiFeature.PRICING))
+            ResolvedTarget key = new ResolvedTarget(null, null, "k", null, KeySource.PLATFORM_DB);
+            when(aiTargetResolver.resolve(1L, "openai", AiFeature.PRICING))
                     .thenReturn(key);
 
             assertThat(router.resolveKey(1L, "openai", AiFeature.PRICING))
@@ -225,14 +169,15 @@ class AiProviderRouterTest {
         @Test
         @DisplayName("forwards feature to key resolver")
         void forwardsFeature() {
-            ResolvedKey key = new ResolvedKey("k", null, KeySource.PLATFORM);
-            when(aiKeyResolver.resolve(eq(1L), eq("openai"), eq(AiFeature.PRICING)))
+            ResolvedTarget key = new ResolvedTarget("anthropic", null, "k", null, KeySource.PLATFORM_DB);
+            when(aiTargetResolver.resolve(eq(1L), eq("openai"), eq(AiFeature.PRICING)))
                     .thenReturn(key);
-            when(openAiProvider.chat(any(AiRequest.class))).thenReturn(aiResponse("ok"));
+            when(anthropicProvider.chat(any(AiRequest.class), eq("k"), any()))
+                    .thenReturn(aiResponse("ok"));
 
             router.route(1L, "openai", AiFeature.PRICING, aiRequest());
 
-            verify(aiKeyResolver).resolve(eq(1L), eq("openai"), eq(AiFeature.PRICING));
+            verify(aiTargetResolver).resolve(eq(1L), eq("openai"), eq(AiFeature.PRICING));
         }
     }
 }

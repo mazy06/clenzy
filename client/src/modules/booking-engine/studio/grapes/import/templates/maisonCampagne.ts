@@ -88,7 +88,7 @@ const SHARED_CSS = `${FONTS_IMPORT}
 .mc-hero h1 { color: #fff; font-size: clamp(42px, 6vw, 68px); margin: 14px 0 18px; }
 .mc-hero__sub { color: rgba(255, 255, 255, 0.92); font-size: 18px; max-width: 520px; }
 .mc-hero__search { position: relative; margin-top: -56px; padding-bottom: 64px; z-index: 2; }
-.mc-searchcard { background: var(--mc-surface); border: 1px solid var(--mc-line); border-radius: var(--mc-radius); box-shadow: var(--mc-shadow); padding: 18px; }
+.mc-searchcard { background: var(--mc-surface); border: 1px solid var(--mc-line); border-radius: var(--mc-radius); box-shadow: var(--mc-shadow); padding: 18px; color: var(--mc-ink); }
 .mc-searchcard__label { font-size: 12px; font-weight: 700; color: var(--mc-muted); margin: 0 0 12px; text-transform: uppercase; letter-spacing: .08em; }
 
 /* Sections */
@@ -209,12 +209,19 @@ const ABOUT_IMG = 'https://images.unsplash.com/photo-1448630360428-65456885c650?
 const STORY_IMG = 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=1200&q=70';
 const MAP_IMG = 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1000&q=70';
 
+/** Fonds image en classes CSS (le style inline est retiré par GrapesJS à l'import). */
+const IMG_CSS = `
+.mc-hero__bg { background-image: url('${HERO_IMG}'); }
+.mc-img-about { background-image: url('${ABOUT_IMG}'); }
+.mc-img-story { background-image: url('${STORY_IMG}'); }
+.mc-map { background-image: url('${MAP_IMG}'); }`;
+
 /* ── Pages ──────────────────────────────────────────────────────────────────────── */
 
 const HOME = `<div class="mc-root">
   ${nav('/')}
   <section class="mc-hero">
-    <div class="mc-hero__bg" style="background-image:url('${HERO_IMG}')"></div>
+    <div class="mc-hero__bg"></div>
     <div class="mc-wrap"><div class="mc-hero__inner">
       <p class="mc-eyebrow">Gîtes & maisons de campagne · Nature</p>
       <h1>Respirez : la campagne vous attend, en direct</h1>
@@ -255,7 +262,7 @@ const HOME = `<div class="mc-root">
 
   <section class="mc-section">
     <div class="mc-wrap"><div class="mc-split">
-      <div class="mc-split__media" style="background-image:url('${ABOUT_IMG}')"></div>
+      <div class="mc-split__media mc-img-about"></div>
       <div>
         <p class="mc-eyebrow">La maison</p>
         <h2>L'art de recevoir, au grand air</h2>
@@ -368,7 +375,7 @@ const ABOUT = `<div class="mc-root">
         <p class="mc-lead">Une conciergerie indépendante, ancrée à la campagne, qui place l'humain et le détail au cœur de chaque séjour.</p>
       </div>
       <div class="mc-split">
-        <div class="mc-split__media" style="background-image:url('${STORY_IMG}')"></div>
+        <div class="mc-split__media mc-img-story"></div>
         <div>
           <h2>Notre histoire</h2>
           <p>Tout a commencé par une vieille ferme, restaurée avec des artisans du village. Le bouche-à-oreille a fait le reste : aujourd'hui, nous veillons sur une collection confidentielle de gîtes et de maisons de campagne.</p>
@@ -413,7 +420,7 @@ const CONTACT = `<div class="mc-root">
           <div class="mc-citem"><span>Horaires</span><strong>Accueil 7j/7, 24h/24</strong></div>
           <p style="margin-top:26px"><a class="mc-btn mc-btn--primary" href="/logements">Réserver un gîte</a></p>
         </div>
-        <div class="mc-map" style="background-image:url('${MAP_IMG}')"></div>
+        <div class="mc-map"></div>
       </div>
     </div>
   </section>
@@ -425,14 +432,14 @@ const THUMBNAIL =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236e8b62'/%3E%3Cstop offset='1' stop-color='%233f5a3a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='320' height='180' fill='url(%23g)'/%3E%3Crect y='150' width='320' height='30' fill='%23c08457'/%3E%3C/svg%3E";
 
 /** Concatène le design system partagé + le CSS éventuel de la page. */
-const css = (pageCss = ''): string => `${SHARED_CSS}\n${pageCss}`;
+const css = (pageCss = ''): string => `${SHARED_CSS}\n${IMG_CSS}\n${pageCss}`;
 
 export const maisonCampagne: GalleryTemplate = {
   id: 'maison-campagne',
   name: 'Maison de campagne',
   description: 'Nature chaleureuse — hero plein écran',
   thumbnail: THUMBNAIL,
-  theme: { primaryColor: '#3f5a3a', fontFamily: "'Nunito Sans', system-ui, -apple-system, sans-serif" },
+  theme: { primaryColor: '#3f5a3a', fontFamily: "'Nunito Sans', system-ui, -apple-system, sans-serif", headingFontFamily: "'Cormorant Garamond', Georgia, serif" },
   pages: [
     { path: '/', type: 'HOME', title: 'Accueil', seoTitle: 'Baitly — Gîtes & maisons de campagne', seoDescription: 'Gîtes de caractère et maisons à la campagne. Réservation directe, accueil chaleureux, séjours ressourçants.', html: HOME, css: css() },
     { path: '/logements', type: 'PROPERTY_LIST', title: 'Nos gîtes', seoTitle: 'Nos gîtes disponibles — Baitly', seoDescription: 'Découvrez nos gîtes de campagne et leurs disponibilités en temps réel.', html: LODGINGS, css: css() },
