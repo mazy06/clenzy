@@ -23,6 +23,12 @@
 /* Helpers de flux (ex-base.css). */
 .cb-row { display: flex; align-items: center; }
 .cb-row-between { display: flex; align-items: center; justify-content: space-between; }
+/* TYPO UNIFORME du widget : ses titres internes (`<h3>` des formulaires, fiches, confirmation…) HÉRITENT la
+ * police du widget (= police de CORPS de la page) au lieu d'adopter la police d'AFFICHAGE/titre (souvent
+ * serif) du template via son sélecteur `hN`. Un widget = UNE seule police cohérente, quel que soit le
+ * template (et neutre sans template). Fonctionnel (cohérence typo), pas cosmétique. */
+.cb-widget h1, .cb-widget h2, .cb-widget h3,
+.cb-widget h4, .cb-widget h5, .cb-widget h6 { font-family: inherit; }
 .cb-col { display: flex; flex-direction: column; }
 .cb-gap-1 { gap: 4px; } .cb-gap-2 { gap: 8px; } .cb-gap-3 { gap: 12px; } .cb-gap-4 { gap: 16px; }
 .cb-section { margin-bottom: 20px; }
@@ -71,6 +77,13 @@
 .cb-date-input { display: flex; flex-direction: column; min-height: 56px; justify-content: center; }
 /* Label + valeur/placeholder sur UNE ligne → la HAUTEUR du champ ne change pas au focus / à la saisie. */
 .cb-date-input__label, .cb-date-input__placeholder, .cb-date-input__value { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* Variante « labeled » (opt-in, data-clenzy-date-style="labeled") : libellé AU-DESSUS de la boîte + icône
+ * calendrier à gauche. Layout uniquement (les couleurs viennent des tokens, cf. widget-skin.css). */
+.cb-dates--labeled { align-items: end; }
+.cb-datefield { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cb-datefield__label { font-size: 0.72em; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; line-height: 1; }
+.cb-dates--labeled .cb-date-input { flex-direction: row; align-items: center; justify-content: flex-start; position: relative; padding-left: 38px; min-height: 50px; }
+.cb-date-input__ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; pointer-events: none; }
 
 /* ── Date picker (calendrier) — deux couches ────────────────────────────────────────────────────────
  * 1) FONCTIONNEL (ci-dessous, NON-layered) : layout 2 mois, ouverture/fermeture, grille, popover, curseur,
@@ -223,19 +236,22 @@
 .sb .cb-filters__panel.cb-open .cb-property-select,
 .sb .cb-filters__panel.cb-open .cb-multiselect { width: 100%; }
 .sb .cb-filters__panel.cb-open .cb-row .cb-input { flex: 1 1 0; min-width: 0; width: 0; }
-/* Habillage des sous-contrôles via les variables `--cb-*` du template (sa règle `.cb-input` n'atteint pas
- * le panneau) + `appearance:none` → pas de double flèche. NON-layered → bat les défauts UA/app (fond gris). */
+/* Relais des sous-contrôles vers les variables `--cb-*` du template (sa règle `.cb-input` n'atteint pas
+ * le panneau Filtre, popover détaché) + `appearance:none` → neutralise le défaut UA (fond gris, double
+ * flèche). FALLBACKS NEUTRES (transparent / 0) : SANS template, le Filtre n'a AUCUN style prédéfini —
+ * comme les autres widgets ; AVEC template, il prend `--cb-surface`/`--cb-border`/`--cb-radius`. Seuls
+ * `min-height`/`padding` (layout) restent inconditionnels. */
 .sb .cb-filters__panel .cb-property-select__control,
 .sb .cb-multiselect__trigger {
   appearance: none !important; -webkit-appearance: none !important; background-image: none !important;
-  background-color: var(--cb-surface, #fff); color: var(--cb-text, inherit);
-  border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 10px);
+  background-color: var(--cb-surface, transparent); color: var(--cb-text, inherit);
+  border: 1px solid var(--cb-border, transparent); border-radius: var(--cb-radius, 0);
   min-height: var(--cb-control-h, 48px); padding: 0 36px 0 12px; font: inherit;
 }
 .sb .cb-filters__panel .cb-row .cb-input {
   appearance: none !important; -webkit-appearance: none !important; background-image: none !important;
-  background-color: var(--cb-surface, #fff); color: var(--cb-text, inherit);
-  border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 10px);
+  background-color: var(--cb-surface, transparent); color: var(--cb-text, inherit);
+  border: 1px solid var(--cb-border, transparent); border-radius: var(--cb-radius, 0);
   min-height: var(--cb-control-h, 48px); padding: 0 12px; font: inherit;
 }
 
@@ -271,7 +287,11 @@
 .sb__control > .cb-widget { flex: 1; min-width: 0; }
 .sb__control svg { flex: 0 0 auto; width: 18px; height: 18px; stroke: currentColor; fill: none; }
 .sb__chev { margin-inline-start: auto; }
-.sb__cta { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: auto; align-self: flex-end; min-height: var(--cb-control-h, 52px); cursor: pointer; }
+/* `display` + `align-items` en FONCTIONNEL `!important` : `.sb__cta` est AUSSI le mount du widget (porte
+ * `[data-clenzy-widget]`/`.cb-widget` → `display:block` à même spécificité). Sans `!important`, une 2ᵉ copie
+ * de `[data-clenzy-widget]{display:block}` (le SDK ré-injecte son CSS par montage) repasse après cette règle
+ * et écrase `inline-flex` → la cellule redevient `block` et le bouton interne s'effondre à la hauteur du texte. */
+.sb__cta { display: inline-flex !important; align-items: stretch !important; justify-content: center; flex: 0 0 auto; width: auto; align-self: flex-end; min-height: var(--cb-control-h, 52px); cursor: pointer; }
 /* Le DÉCLENCHEUR est NU dans le contrôle (le .sb__control est l'unique boîte → pas de double bordure).
  * Sélecteurs SPÉCIFIQUES aux déclencheurs (jamais l'intérieur des popovers : les prix du filtre `.cb-input`
  * et les jours du calendrier restent habillés). Destination ciblée via `.cb-search__destination` (≠ `.cb-input`).
@@ -297,7 +317,10 @@
 .sb__control:has(.cb-property-select) > [data-clenzy-widget],
 .sb__control .cb-property-select { display: block; height: 100%; }
 .sb__control .cb-property-select__control { height: 100% !important; padding-inline-start: 14px !important; }
-.sb__cta > .cb-widget, .sb__cta .cb-cta { width: 100%; height: 100%; }
+/* `height: auto` + `align-self: stretch` → le bouton remplit la hauteur de la cellule via l'étirement flex.
+ * (Avec `height:100%`, le % retombe en `auto` contre une cellule dimensionnée par `min-height` — donc
+ * indéfinie — ET une hauteur non-`auto` neutralise `stretch` → le bouton s'effondrait à la hauteur du texte.) */
+.sb__cta > .cb-widget, .sb__cta .cb-cta { width: 100%; height: auto; align-self: stretch; }
 .sb__cta .cb-cta { background: none; border: 0; color: inherit; font: inherit; min-height: 0; cursor: pointer; }
 /* ── Groupe FILTRE éditable & conservé, basculable compact ↔ déplié (sous-filtres = vrais widgets) ──────
  * Layout = FONCTIONNEL (non-layered → l'emporte) ; l'habillage du popover/déclencheur passe par var(--cb-*)
@@ -347,15 +370,15 @@
 @layer cz-skin {
   /* Conteneur de la barre : FOND TRANSPARENT + bordure/forme via les tokens du template (`--cb-*`) → s'intègre
    * au template (filet subtil, pas de carte blanche). Surchargeable si le template stylise `.sb`. */
-  .sb { background: transparent; border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 12px); padding: 16px 18px; font-family: var(--cb-font, inherit); }
-  /* Libellés PLUS MARQUÉS : couleur accent du template (au lieu du muet). */
-  .sb__label, .sb .cb-filters__panel .cb-section-label { color: var(--cb-accent, #6B8A9A); font-weight: 600; }
+  .sb { background: transparent; border: 1px solid var(--cb-border, transparent); border-radius: var(--cb-radius, 0); padding: 16px 18px; font-family: var(--cb-font, inherit); }
+  /* Libellés PLUS MARQUÉS : couleur accent du template (au lieu du muet). Fallback `inherit` = neutre sans template. */
+  .sb__label, .sb .cb-filters__panel .cb-section-label { color: var(--cb-accent, inherit); font-weight: 600; }
   .cb-filters__toggle {
     padding: 0 14px;
-    background: var(--cb-surface, #fff);
+    background: var(--cb-surface, transparent);
     color: var(--cb-text, inherit);
-    border: 1px solid var(--cb-border, rgba(0,0,0,.14));
-    border-radius: var(--cb-radius, 10px);
+    border: 1px solid var(--cb-border, transparent);
+    border-radius: var(--cb-radius, 0);
     transition: border-color .15s ease;
   }
   .cb-filters__toggle:hover, .cb-filters__toggle.cb-has-active { border-color: var(--cb-accent, #6B8A9A); }
@@ -373,17 +396,17 @@
   .cb-singleselect__option.cb-selected { font-weight: 600; color: var(--cb-accent, #6B8A9A); }
   .sb__control {
     padding: 0 14px;
-    background: var(--cb-surface, #fff);
+    background: var(--cb-surface, transparent);
     color: var(--cb-text, inherit);
-    border: 1px solid var(--cb-border, rgba(0,0,0,.14));
-    border-radius: var(--cb-radius, 10px);
+    border: 1px solid var(--cb-border, transparent);
+    border-radius: var(--cb-radius, 0);
   }
   .sb__control svg, .cb-filters__toggle > svg { opacity: 0.6; }
   .sb__cta {
     padding: 0 22px;
-    background: var(--cb-accent, #6B8A9A);
-    color: var(--cb-on-accent, #fff);
-    border-radius: var(--cb-radius, 10px);
+    background: var(--cb-accent, transparent);
+    color: var(--cb-on-accent, inherit);
+    border-radius: var(--cb-radius, 0);
     font-weight: 600;
   }
 }
@@ -423,11 +446,41 @@
 .cb-property-card--overlay .cb-property-card__img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .cb-property-card--overlay .cb-property-card__body { position: relative; z-index: 1; }
 .cb-property-summary__image { display: block; width: 100%; }
+/* Galerie : photo principale + bande de miniatures cliquables (la miniation cliquée passe en grande). */
+.cb-property-summary__gallery { display: flex; flex-direction: column; gap: 8px; }
+.cb-property-summary__main { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.cb-property-summary__thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+.cb-property-summary__thumb { flex: 0 0 auto; width: 72px; height: 54px; padding: 0; overflow: hidden; cursor: pointer; background: none; border: 2px solid transparent; }
+.cb-property-summary__thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cb-property-summary__place { display: inline-flex; align-items: center; gap: 5px; }
+.cb-property-summary__place-icon { display: inline-flex; flex: 0 0 auto; }
+.cb-property-summary__place-icon svg { width: 14px; height: 14px; }
+.cb-property-summary__price { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+/* Layout DÉTAIL : galerie à gauche, infos à droite. */
+.cb-property-summary__info { display: flex; flex-direction: column; gap: 7px; }
+.cb-property-summary--detail { display: flex; gap: 22px; align-items: flex-start; }
+.cb-property-summary--detail .cb-property-summary__gallery { flex: 0 0 clamp(220px, 42%, 320px); }
+.cb-property-summary--detail .cb-property-summary__info { flex: 1; min-width: 0; }
+.cb-property-summary--detail .cb-property-summary__price { display: none; }
+.cb-property-summary__note { display: inline-flex; align-items: center; gap: 6px; }
+.cb-property-summary__note-star { display: inline-flex; }
+.cb-property-summary__note-star svg { width: 15px; height: 15px; }
+.cb-property-summary__capacity { display: flex; gap: 18px; flex-wrap: wrap; }
+.cb-property-summary__cap-item { display: inline-flex; align-items: center; gap: 6px; }
+.cb-property-summary__cap-item svg { width: 15px; height: 15px; }
+@media (max-width: 720px) { .cb-property-summary--detail { flex-direction: column; } }
 .cb-property-tabs { display: flex; overflow-x: auto; }
 .cb-property-tabs::-webkit-scrollbar { display: none; }
 
 /* Équipements. */
 .cb-amenities__list { display: flex; flex-wrap: wrap; gap: 8px; }
+.cb-amenity { display: inline-flex; align-items: center; gap: 6px; }
+.cb-amenity__icon { display: inline-flex; flex: 0 0 auto; }
+.cb-amenity__icon svg { width: 1.1em; height: 1.1em; }
+.cb-amenities__groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; }
+.cb-amenities--grouped .cb-amenities__list { flex-direction: column; gap: 14px; }
+@media (max-width: 860px) { .cb-amenities__groups { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .cb-amenities__groups { grid-template-columns: 1fr; } }
 
 /* Panier. */
 .cb-cart__item { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -458,3 +511,42 @@
 .cb-lead-consent { display: flex; align-items: flex-start; gap: 8px; }
 .cb-auth-row { display: flex; gap: 8px; }
 .cb-auth-row > * { flex: 1; min-width: 0; }
+
+/* ── Avis (booking-reviews) : résumé (score + distribution) + liste de cartes ── */
+.cb-reviews { display: flex; flex-direction: column; gap: 28px; }
+.cb-reviews__summary { display: grid; grid-template-columns: minmax(180px, 240px) 1fr; gap: 32px; align-items: center; }
+.cb-reviews__score { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.cb-reviews__score-value { font-size: 56px; line-height: 1; }
+.cb-reviews__score-meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.cb-reviews__stars { display: inline-flex; gap: 2px; }
+.cb-reviews__stars svg { width: 16px; height: 16px; }
+.cb-reviews__bars { display: flex; flex-direction: column; gap: 8px; }
+.cb-reviews__bar { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 8px; }
+.cb-reviews__bar-star svg { width: 12px; height: 12px; }
+.cb-reviews__bar-track { height: 7px; border-radius: 999px; overflow: hidden; }
+.cb-reviews__bar-fill { display: block; height: 100%; }
+.cb-reviews__bar-count { font-variant-numeric: tabular-nums; min-width: 1.6em; text-align: right; }
+.cb-reviews__list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.cb-reviews__item { display: flex; flex-direction: column; gap: 12px; }
+.cb-reviews__text { margin: 0; }
+.cb-reviews__cite { display: flex; flex-direction: column; gap: 2px; }
+.cb-reviews__response { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; padding-top: 12px; }
+.cb-reviews__response-label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.cb-reviews__response-text { margin: 0; }
+@media (max-width: 720px) {
+  .cb-reviews__summary { grid-template-columns: 1fr; }
+  .cb-reviews__list { grid-template-columns: 1fr; }
+}
+
+/* Pagination des avis + liens « voir tous les avis ». */
+.cb-reviews__more { display: block; margin: 8px auto 0; cursor: pointer; font: inherit; }
+.cb-reviews__summary-link { display: block; text-decoration: none; color: inherit; cursor: pointer; }
+.cb-property-summary__note-link { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: inherit; cursor: pointer; }
+
+/* ── Badge note (booking-rating) : ★ 4,7 · N avis ── */
+.cb-rating { display: inline-flex; align-items: center; gap: 6px; }
+.cb-rating--empty { display: none; }
+.cb-rating--link { text-decoration: none; color: inherit; cursor: pointer; }
+.cb-rating__star { display: inline-flex; }
+.cb-rating__star svg { width: 16px; height: 16px; }
+.cb-rating__count { font-variant-numeric: tabular-nums; }

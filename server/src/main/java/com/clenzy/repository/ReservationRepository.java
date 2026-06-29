@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -92,6 +93,15 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     /** Nombre de réservations par propriété (batch, preuve sociale honnête 2.9 — évite le N+1). */
     @Query("SELECT r.property.id, COUNT(r) FROM Reservation r WHERE r.property.id IN :propertyIds AND r.organizationId = :orgId GROUP BY r.property.id")
     List<Object[]> countByPropertyIds(@Param("propertyIds") List<Long> propertyIds, @Param("orgId") Long orgId);
+
+    /**
+     * Total moyen des réservations passées d'une propriété (org-scopé) — baseline du signal « montant
+     * atypique » du scoring de fraude (P2). {@code null} si aucune réservation avec un total. La moyenne
+     * porte sur le total <b>déjà persisté côté serveur</b> ({@code totalPrice}) — jamais un montant client.
+     */
+    @Query("SELECT AVG(r.totalPrice) FROM Reservation r WHERE r.property.id = :propertyId "
+        + "AND r.organizationId = :orgId AND r.totalPrice IS NOT NULL")
+    BigDecimal averageTotalPriceByProperty(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
     /**
      * Reservations confirmees avec check-in dans la plage donnee.

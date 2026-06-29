@@ -64,6 +64,17 @@ public class SitePage {
     @Column(name = "seo_og_image_url", length = 500)
     private String seoOgImageUrl;
 
+    /** Contenu issu d'une auto-traduction IA (P1) → relecture manuelle requise avant publication. */
+    @Column(name = "ai_generated", nullable = false)
+    private boolean aiGenerated = false;
+
+    /** Validation manuelle : horodatage + keycloakId du relecteur ayant approuvé la publication. */
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "reviewed_by", length = 255)
+    private String reviewedBy;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -113,6 +124,15 @@ public class SitePage {
 
     public String getSeoOgImageUrl() { return seoOgImageUrl; }
     public void setSeoOgImageUrl(String seoOgImageUrl) { this.seoOgImageUrl = seoOgImageUrl; }
+
+    public boolean isAiGenerated() { return aiGenerated; }
+    public void setAiGenerated(boolean aiGenerated) { this.aiGenerated = aiGenerated; }
+
+    public LocalDateTime getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
+
+    public String getReviewedBy() { return reviewedBy; }
+    public void setReviewedBy(String reviewedBy) { this.reviewedBy = reviewedBy; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

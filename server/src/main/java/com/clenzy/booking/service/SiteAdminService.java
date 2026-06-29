@@ -209,6 +209,37 @@ public class SiteAdminService {
         return SitePageDto.from(pageRepository.save(page));
     }
 
+    /**
+     * Crée une page générée par IA (P2.a) : forcée en {@code DRAFT} + {@code aiGenerated=true} pour
+     * relecture humaine (jamais auto-publiée — même garde-fou que l'auto-traduction et le blog IA, 2.13).
+     * Le statut demandé dans le DTO est ignoré : seul DRAFT est autorisé pour du contenu IA.
+     */
+    @Transactional
+    public SitePageDto createAiGeneratedPage(Long orgId, Long siteId, SitePageDto req) {
+        requireOwnedSite(orgId, siteId);
+        // Upsert par (path, langue) : la génération est autoritaire pour ces chemins. On supprime la page
+        // existante de même path (même langue OU langue nulle — ex. la page « Accueil » par défaut seedée à
+        // la création du site par ensureHomePage) pour éviter un doublon avec la page générée.
+        deleteCollidingPage(siteId, req.path(), req.locale());
+        SitePage page = new SitePage();
+        page.setSiteId(siteId);
+        applyPage(page, req);
+        page.setStatus(SiteStatus.DRAFT);
+        page.setAiGenerated(true);
+        return SitePageDto.from(pageRepository.save(page));
+    }
+
+    /** Supprime la page existante en collision de chemin (même langue + variante langue nulle legacy). */
+    private void deleteCollidingPage(Long siteId, String path, String locale) {
+        if (path == null) {
+            return;
+        }
+        if (locale != null && !locale.isBlank()) {
+            pageRepository.findBySiteIdAndPathAndLocale(siteId, path, locale).ifPresent(pageRepository::delete);
+        }
+        pageRepository.findBySiteIdAndPathAndLocaleIsNull(siteId, path).ifPresent(pageRepository::delete);
+    }
+
     @Transactional
     public SitePageDto updatePage(Long orgId, Long siteId, Long pageId, SitePageDto req) {
         requireOwnedSite(orgId, siteId);

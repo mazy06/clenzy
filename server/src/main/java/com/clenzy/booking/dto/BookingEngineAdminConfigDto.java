@@ -1,6 +1,7 @@
 package com.clenzy.booking.dto;
 
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.model.DataSourceMode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -68,6 +69,8 @@ public record BookingEngineAdminConfigDto(
     String widgetPosition,
     String inlineTargetId,
     String inlinePlacement,
+    // Source de données : "REAL" (vraies données du tenant) ou "MOCK" (jeu de démo, aucune réservation réelle).
+    String dataSourceMode,
     // Cross-org (populated only for platform staff /configs/all endpoint)
     String organizationName
 ) {
@@ -118,6 +121,7 @@ public record BookingEngineAdminConfigDto(
             config.getWidgetPosition(),
             config.getInlineTargetId(),
             config.getInlinePlacement(),
+            config.getDataSourceMode() != null ? config.getDataSourceMode().name() : DataSourceMode.REAL.name(),
             organizationName
         );
     }
@@ -162,5 +166,7 @@ public record BookingEngineAdminConfigDto(
         config.setWidgetPosition(widgetPosition);
         config.setInlineTargetId(inlineTargetId);
         config.setInlinePlacement(inlinePlacement);
+        // "MOCK" (insensible à la casse) → mode démo ; toute autre valeur (ou null) → REAL (sûr par défaut).
+        config.setDataSourceMode("MOCK".equalsIgnoreCase(dataSourceMode) ? DataSourceMode.MOCK : DataSourceMode.REAL);
     }
 }

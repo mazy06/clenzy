@@ -77,8 +77,19 @@ public class AnthropicProvider implements AiProvider {
 
     @SuppressWarnings("unchecked")
     private AiResponse doChat(RestClient client, AiRequest request) {
-        String model = request.model() != null ? request.model() : aiProperties.getAnthropic().getModel();
+        // Source de vérité unique : le modèle vient TOUJOURS de la config (résolu par AiTargetResolver),
+        // jamais d'un défaut env. Absence = config plateforme manquante → erreur explicite.
+        if (request.model() == null || request.model().isBlank()) {
+            throw new AiProviderException("anthropic",
+                    "Aucun modèle résolu : assignez un modèle à la feature dans Paramètres > IA.");
+        }
+        String model = request.model();
 
+        // jsonMode : Anthropic n'expose pas de `response_format`. La technique du prefill assistant
+        // (« { ») n'est PAS portable — certains modèles la REJETTENT (400 « conversation must end with a
+        // user message »). On ne l'utilise donc PAS : la conversation se termine toujours par un message
+        // user, et la sortie JSON est imposée par le prompt (« réponds UNIQUEMENT par un objet JSON ») +
+        // un parsing tolérant côté appelant. (Upgrade robuste possible un jour : tool-use schématisé.)
         Map<String, Object> requestBody = Map.of(
                 "model", model,
                 "max_tokens", request.maxTokens(),

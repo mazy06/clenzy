@@ -658,7 +658,8 @@ class AnthropicChatProviderTest {
 
         @Test
         void noApiKey_emitsErrorImmediately() {
-            // Empty key in props + no BYOK override → short-circuit
+            // Surcharge 2-arg (INCHANGEE) : utilise toujours la cle plateforme.
+            // Cle plateforme vide + pas de BYOK → court-circuit "Aucune cle".
             aiProperties.getAnthropic().setApiKey("");
             ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
                     List.of(), "claude-sonnet-4-20250514", 0.3, 1000);
@@ -672,35 +673,66 @@ class AnthropicChatProviderTest {
         }
 
         @Test
-        void byokApiKey_overridesPlatformKey() {
-            // BYOK empty falls back to platform key (which is set)
+        void byokNullApiKey_shortCircuits_noPlatformFallback() {
+            // Surcharge 3-arg : la cle passee est la source de verite unique.
+            // null → court-circuit "Aucune cle" (PLUS de repli sur la cle plateforme),
+            // meme si aiProperties porte une cle valide.
             ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
-                    List.of(), null, 0.3, 1000);
+                    List.of(), "claude-sonnet-4-20250514", 0.3, 1000);
 
             List<ChatEvent> events = new ArrayList<>();
-            // With null BYOK key, falls back to platform "sk-ant-test" → attempts network call
-            // We can't test the success path without a real server, but we can verify
-            // that the override logic does NOT short-circuit.
             provider.streamChat(req, events::add, null);
 
-            // It should not short-circuit with "Aucune cle" since platform key is set
+            assertEquals(1, events.size());
+            assertInstanceOf(ChatEvent.Error.class, events.get(0));
+            assertTrue(((ChatEvent.Error) events.get(0)).message().contains("Aucune cle"));
+        }
+
+        @Test
+        void byokBlankApiKey_shortCircuits_noPlatformFallback() {
+            // 3-arg avec cle blank → meme court-circuit, pas de repli plateforme.
+            ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), "claude-sonnet-4-20250514", 0.3, 1000);
+
+            List<ChatEvent> events = new ArrayList<>();
+            provider.streamChat(req, events::add, "   ");  // blank → court-circuit
+
+            assertEquals(1, events.size());
+            assertInstanceOf(ChatEvent.Error.class, events.get(0));
+            assertTrue(((ChatEvent.Error) events.get(0)).message().contains("Aucune cle"));
+        }
+
+        @Test
+        void byokExplicitApiKey_doesNotShortCircuit() {
+            // 3-arg avec une cle explicite non-blank + un modele explicite : aucune
+            // erreur de configuration. On ne teste pas le chemin reseau (pas de serveur),
+            // on verifie juste l'absence de court-circuit "Aucune cle" / "Aucun modele".
+            ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), "claude-sonnet-4-20250514", 0.3, 1000);
+
+            List<ChatEvent> events = new ArrayList<>();
+            provider.streamChat(req, events::add, "sk-ant-byok-explicit");
+
             assertFalse(events.stream().anyMatch(e ->
-                e instanceof ChatEvent.Error err && err.message().contains("Aucune cle")
+                    e instanceof ChatEvent.Error err
+                            && (err.message().contains("Aucune cle")
+                                || err.message().contains("Aucun modèle"))
             ));
         }
 
         @Test
-        void byokBlankApiKey_fallsBackToPlatform() {
+        void noModel_emitsErrorImmediately() {
+            // Modele null dans le ChatRequest → court-circuit "Aucun modèle IA configuré"
+            // (plus de defaut env). Cle plateforme valide pour franchir le 1er garde.
             ChatRequest req = new ChatRequest("sys", List.of(ChatMessage.user("hi")),
                     List.of(), null, 0.3, 1000);
 
             List<ChatEvent> events = new ArrayList<>();
-            provider.streamChat(req, events::add, "   ");  // blank → fallback
+            provider.streamChat(req, events::add);
 
-            // No "no key" error
-            assertFalse(events.stream().anyMatch(e ->
-                e instanceof ChatEvent.Error err && err.message().contains("Aucune cle")
-            ));
+            assertEquals(1, events.size());
+            assertInstanceOf(ChatEvent.Error.class, events.get(0));
+            assertTrue(((ChatEvent.Error) events.get(0)).message().contains("Aucun modèle"));
         }
     }
 

@@ -18,7 +18,6 @@ class AiPropertiesTest {
         assertNotNull(props.getAnthropic());
         assertNotNull(props.getWebsiteFetch());
         assertNotNull(props.getTokenBudget());
-        assertNotNull(props.getFeatures());
     }
 
     @Test
@@ -56,16 +55,6 @@ class AiPropertiesTest {
     }
 
     @Test
-    void features_allDisabledByDefault() {
-        AiProperties.Features features = new AiProperties.Features();
-
-        assertFalse(features.isPricingAi());
-        assertFalse(features.isMessagingAi());
-        assertFalse(features.isAnalyticsAi());
-        assertFalse(features.isSentimentAi());
-    }
-
-    @Test
     void setters_work() {
         AiProperties props = new AiProperties();
         props.setEnabled(true);
@@ -84,12 +73,6 @@ class AiPropertiesTest {
         budget.setDefaultMonthlyTokens(500_000);
         budget.setEnforced(false);
 
-        AiProperties.Features features = props.getFeatures();
-        features.setPricingAi(true);
-        features.setMessagingAi(true);
-        features.setAnalyticsAi(true);
-        features.setSentimentAi(true);
-
         assertTrue(props.isEnabled());
         assertEquals("sk-test-key", openai.getApiKey());
         assertEquals("gpt-4o-mini", openai.getModel());
@@ -98,9 +81,5 @@ class AiPropertiesTest {
         assertEquals("claude-3-haiku", anthropic.getModel());
         assertEquals(500_000, budget.getDefaultMonthlyTokens());
         assertFalse(budget.isEnforced());
-        assertTrue(features.isPricingAi());
-        assertTrue(features.isMessagingAi());
-        assertTrue(features.isAnalyticsAi());
-        assertTrue(features.isSentimentAi());
     }
 }

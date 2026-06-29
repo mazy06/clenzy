@@ -5,7 +5,7 @@ import grapesjs, { type Editor, type ToolbarButtonProps, type Component } from '
 import { registerBookingComponents, setupEditorInteraction, setCanvasInert, blockLabelHtml } from './bookingComponents';
 import { ensureStructuralStyles, STRUCTURAL_STYLE_ID } from '../../sdk/headless';
 import { buildFilterGroupHtml } from './searchBarRules';
-import { buildCompositeHtml, type CompositeWidget } from './compositeWidgets';
+import { buildCompositeInner, type CompositeWidget } from './compositeWidgets';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
 
 /** Icône « ouvrir le groupe » (ungroup) — contenu SVG de l'item toolbar (hérite du style natif GrapesJS). */
@@ -66,12 +66,16 @@ export interface CompositeBuilderProps {
   initial?: CompositeWidget | null;
   /** CSS du template courant → injecté dans le canvas pour habiller les widgets comme la page. */
   getTemplateCss?: () => string;
+  /** Skin widgets de l'engine (`--cb-*` dérivés des tokens) → le composite s'affiche STYLÉ comme sur le
+   *  site publié (WYSIWYG), au lieu de neutre. Absent/null = pas de skin (rendu structurel nu). */
+  getSkinCss?: () => string;
   onClose: () => void;
   onInsert: (c: CompositeDraft) => void;
   onSave: (c: CompositeDraft) => void;
 }
 
 const TPL_STYLE_ID = 'cz-cb-template-css';
+const SKIN_STYLE_ID = 'cz-cb-skin-css';
 
 /** Injecte/maj un `<style>` (idempotent) dans le document du canvas. */
 function injectStyle(doc: Document | null | undefined, id: string, css: string): void {
@@ -98,7 +102,7 @@ function registerLayoutBlocks(editor: Editor): void {
   });
 }
 
-export default function CompositeBuilder({ open, config, initial, getTemplateCss, onClose, onInsert, onSave }: CompositeBuilderProps) {
+export default function CompositeBuilder({ open, config, initial, getTemplateCss, getSkinCss, onClose, onInsert, onSave }: CompositeBuilderProps) {
   const [name, setName] = useState('');
   // `interactive` = mode INTERAGIR (contenu vivant : ouvrir le filtre, voir le caché, tester). false = ÉDITION (inerte).
   const [interactive, setInteractive] = useState(false);
@@ -112,6 +116,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
   // Refs pour éviter des closures obsolètes dans l'init (qui ne tourne qu'à l'ouverture).
   const configRef = useRef(config); configRef.current = config;
   const tplRef = useRef(getTemplateCss); tplRef.current = getTemplateCss;
+  const skinRef = useRef(getSkinCss); skinRef.current = getSkinCss;
   const initialRef = useRef(initial); initialRef.current = initial;
 
   useEffect(() => { if (open) { setName(initial?.name ?? ''); setInteractive(false); setRightTab('blocks'); } }, [open, initial]);
@@ -157,12 +162,15 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
       const doc = editor.Canvas.getDocument();
       ensureStructuralStyles(doc);
       injectStyle(doc, TPL_STYLE_ID, tplRef.current?.() ?? '');
-      // Cascade : on place les feuilles INJECTÉES (structural, puis template) EN TÊTE du <head> du canvas, donc
-      // AVANT le <style> du CssComposer GrapesJS → les éditions du Style Manager (mêmes sélecteurs de classe)
-      // gagnent et s'affichent EN DIRECT. Ordre final : structural → template → (CssComposer GrapesJS).
+      // Skin de l'engine (tokens `--cb-*` + cosmétique de base des widgets) → le composite s'affiche STYLÉ
+      // comme sur le site (WYSIWYG). Sans skin (aucun template) → rien injecté → rendu structurel neutre.
+      injectStyle(doc, SKIN_STYLE_ID, skinRef.current?.() ?? '');
+      // Cascade : on place les feuilles INJECTÉES EN TÊTE du <head> du canvas, donc AVANT le <style> du
+      // CssComposer GrapesJS → les éditions du Style Manager (mêmes sélecteurs de classe) gagnent et
+      // s'affichent EN DIRECT. Ordre final (faible→fort) : skin → structural → template → (CssComposer).
       const head = doc?.head;
       if (head) {
-        for (const id of [TPL_STYLE_ID, STRUCTURAL_STYLE_ID]) {
+        for (const id of [TPL_STYLE_ID, STRUCTURAL_STYLE_ID, SKIN_STYLE_ID]) {
           const el = doc?.getElementById(id);
           if (el && head.firstChild !== el) head.insertBefore(el, head.firstChild);
         }
@@ -228,7 +236,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
     // Édition : charge le markup existant. Composite LEGACY (sans `html`) → on reconstruit son markup
     // depuis kind/widgetIds (migration transparente vers le markup libre à la prochaine sauvegarde).
     const init = initialRef.current;
-    const html = init ? (init.html?.trim() ? init.html : buildCompositeHtml(init)) : '';
+    const html = init ? (init.html?.trim() ? init.html : buildCompositeInner(init)) : '';
     if (html.trim()) editor.setComponents(html);
 
     return () => { editor.destroy(); editorRef.current = null; };

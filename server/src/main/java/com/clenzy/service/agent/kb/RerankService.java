@@ -53,11 +53,9 @@ public class RerankService {
         if (chosen == null) {
             log.warn("RerankService : provider '{}' inconnu, fallback noop", providerName);
             chosen = noOpProvider;
-        } else if (!chosen.isAvailable()) {
-            log.info("RerankService : provider '{}' indisponible (cle API ?), fallback noop",
-                    chosen.name());
-            chosen = noOpProvider;
         }
+        // Disponibilite verifiee a l'appel (rerank/isActive) et non au boot : isAvailable()
+        // depend desormais de la config DB (modele EMBEDDINGS Voyage), pas prete en construction.
         this.provider = chosen;
         this.fallback = noOpProvider;
         this.enabled = enabled;
@@ -78,7 +76,7 @@ public class RerankService {
      */
     public List<Integer> rerank(String query, List<String> documents, int topK) {
         if (documents == null || documents.isEmpty()) return List.of();
-        if (!enabled || provider == fallback) {
+        if (!enabled || provider == fallback || !provider.isAvailable()) {
             return fallback.rerank(query, documents, topK);
         }
         try {
@@ -99,9 +97,9 @@ public class RerankService {
         return overFetchFactor;
     }
 
-    /** True si le rerank est actif ET le provider exploitable. */
+    /** True si le rerank est actif ET le provider exploitable (config DB resolue a l'appel). */
     public boolean isActive() {
-        return enabled && provider != fallback;
+        return enabled && provider != fallback && provider.isAvailable();
     }
 
     /** Provider courant — utile pour les tests et la diagnostic. */

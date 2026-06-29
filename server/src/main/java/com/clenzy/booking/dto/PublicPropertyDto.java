@@ -32,7 +32,11 @@ public record PublicPropertyDto(
     /** Preuve sociale honnête (2.9) : nombre de réservations de la propriété. NULL si non calculé. */
     Integer totalBookings,
     /** Urgence honnête (2.9) : jours disponibles sur les 30 prochains jours. NULL si non calculé. */
-    Integer availableDays30
+    Integer availableDays30,
+    /** Note moyenne des avis publics (0..5), NULL si aucun avis public. */
+    Double rating,
+    /** Nombre d'avis publics. */
+    long reviewCount
 ) {
     /**
      * URL photo PUBLIQUE (img-friendly) : externalUrl (Channex/Airbnb, déjà absolue + publique)
@@ -100,7 +104,9 @@ public record PublicPropertyDto(
             p.getDefaultCheckInTime(),
             p.getDefaultCheckOutTime(),
             null,
-            null
+            null,
+            null,
+            0L
         );
     }
 
@@ -108,13 +114,20 @@ public record PublicPropertyDto(
     public PublicPropertyDto withDisplayCurrency(BigDecimal newPriceFrom, BigDecimal newCleaningFee, String newCurrency) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, newPriceFrom, newCleaningFee, minimumNights, newCurrency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount);
     }
 
     /** Copie enrichie des signaux honnêtes de preuve sociale / urgence (2.9). */
     public PublicPropertyDto withSignals(Integer totalBookings, Integer availableDays30) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount);
+    }
+
+    /** Copie enrichie de la note moyenne + nombre d'avis publics (Domaine 2 — preuve sociale réelle). */
+    public PublicPropertyDto withReviewStats(Double avgRating, long publicReviewCount) {
+        return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
+            squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, avgRating, publicReviewCount);
     }
 }

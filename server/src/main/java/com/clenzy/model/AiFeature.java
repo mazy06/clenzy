@@ -23,5 +23,13 @@ public enum AiFeature {
      * Tracking par tour user : 1 record AiTokenUsage par message assistant
      * persiste, alimente le badge frontend "consommation cumulee USD / mois".
      */
-    ASSISTANT_CHAT
+    ASSISTANT_CHAT,
+    /**
+     * Embeddings RAG (recherche semantique de la knowledge base).
+     * Modele PLATFORM-GLOBAL : la dimension de l'index pgvector {@code kb_chunk} est figee
+     * (1024d), donc pas de BYOK org (qui melangerait des modeles de dimensions differentes).
+     * Resolu par {@code EmbeddingService} via la config DB (provider voyage/openai + cle + baseUrl) —
+     * plus aucune cle en variable d'environnement. Le rerank Voyage reutilise cette cle.
+     */
+    EMBEDDINGS
 }

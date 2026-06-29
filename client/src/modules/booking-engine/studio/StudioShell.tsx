@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
 import {
   ChevronLeft,
@@ -7,8 +8,11 @@ import {
   Tablet,
   Smartphone,
   Wand2,
+  Compass,
+  SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
+import type { StudioMode } from './studioMode';
 
 /**
  * Baitly Studio — coquille structurelle (F0) : topbar (projet + preview controls + Publier) +
@@ -36,6 +40,10 @@ export interface StudioShellProps {
   onOpenCommand: () => void;
   /** Ouvre la modale « Analyse du design » (analyse IA d'un site → thème du widget). */
   onAnalyzeDesign?: () => void;
+  /** Mode d'édition courant (Guidé / Avancé) — affiché seulement si `onModeChange` est fourni. */
+  mode?: StudioMode;
+  /** Bascule le mode d'édition. Si absent, le sélecteur n'est pas rendu. */
+  onModeChange?: (mode: StudioMode) => void;
   onBack?: () => void;
   children: ReactNode;
 }
@@ -54,6 +62,8 @@ export default function StudioShell({
   onBreakpointChange,
   onOpenCommand,
   onAnalyzeDesign,
+  mode,
+  onModeChange,
   onBack,
   children,
 }: StudioShellProps) {
@@ -119,6 +129,9 @@ export default function StudioShell({
         )}
 
         <Box sx={{ flex: 1 }} />
+
+        {/* Sélecteur de mode d'édition (Guidé / Avancé) */}
+        {mode && onModeChange && <ModeToggle value={mode} onChange={onModeChange} />}
 
         {/* Breakpoint switcher */}
         <SegmentedBreakpoint value={breakpoint} onChange={onBreakpointChange} />
@@ -233,6 +246,67 @@ function SegmentedBreakpoint({ value, onChange }: { value: Breakpoint; onChange:
               }}
             >
               <Icon size={15} strokeWidth={2} />
+            </ButtonBase>
+          </Tooltip>
+        );
+      })}
+    </Box>
+  );
+}
+
+/**
+ * Sélecteur de mode d'édition (segmented) : « Guidé » (bridé, façon Lodgify) vs « Avancé » (GrapesJS
+ * libre + import). Accessible (aria-pressed, focus visible), tooltips i18n, icônes lucide.
+ */
+function ModeToggle({ value, onChange }: { value: StudioMode; onChange: (m: StudioMode) => void }) {
+  const { t } = useTranslation();
+  const items: { key: StudioMode; icon: LucideIcon; label: string; tip: string }[] = [
+    {
+      key: 'guided',
+      icon: Compass,
+      label: t('bookingEngine.studio.mode.guided', 'Guidé'),
+      tip: t('bookingEngine.studio.mode.guidedTip', 'Édition simplifiée : blocs essentiels, couleurs et typo. Idéal pour démarrer vite.'),
+    },
+    {
+      key: 'advanced',
+      icon: SlidersHorizontal,
+      label: t('bookingEngine.studio.mode.advanced', 'Avancé'),
+      tip: t('bookingEngine.studio.mode.advancedTip', 'Éditeur complet : tous les blocs, calques, réglages et import de design.'),
+    },
+  ];
+  return (
+    <Box
+      role="group"
+      aria-label={t('bookingEngine.studio.mode.label', 'Mode d’édition')}
+      sx={{ display: 'flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}
+    >
+      {items.map(({ key, icon: Icon, label, tip }) => {
+        const active = key === value;
+        return (
+          <Tooltip key={key} title={tip}>
+            <ButtonBase
+              onClick={() => onChange(key)}
+              aria-pressed={active}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                height: 28,
+                px: 1,
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: active ? 'var(--fw-semibold)' : 'var(--fw-medium)',
+                color: active ? 'var(--accent)' : 'var(--muted)',
+                bgcolor: active ? 'var(--card)' : 'transparent',
+                boxShadow: active ? 'var(--shadow-card)' : 'none',
+                cursor: 'pointer',
+                transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
+                '&:hover': { color: active ? 'var(--accent)' : 'var(--ink)' },
+                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+              }}
+            >
+              <Icon size={15} strokeWidth={2} />
+              <Box component="span">{label}</Box>
             </ButtonBase>
           </Tooltip>
         );

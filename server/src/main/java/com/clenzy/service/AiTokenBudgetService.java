@@ -11,7 +11,6 @@ import com.clenzy.model.AiTokenBudget;
 import com.clenzy.model.AiTokenUsage;
 import com.clenzy.repository.AiTokenBudgetRepository;
 import com.clenzy.repository.AiTokenUsageRepository;
-import com.clenzy.service.AiKeyResolver.KeySource;
 import com.clenzy.service.ai.LlmPricingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,7 +153,7 @@ public class AiTokenBudgetService {
      *
      * @param organizationId ID de l'organisation
      * @param feature        feature AI
-     * @param keySource      source de la cle (PLATFORM ou ORGANIZATION)
+     * @param keySource      source de la cle (PLATFORM_DB ou ORGANIZATION)
      */
     public void requireBudget(Long organizationId, AiFeature feature, KeySource keySource) {
         if (keySource == KeySource.ORGANIZATION) {

@@ -24,7 +24,10 @@ public record SitePageDto(
     String seoDescription,
     String seoOgImageUrl,
     LocalDateTime publishedAt,
-    boolean dirty
+    boolean dirty,
+    boolean aiGenerated,
+    LocalDateTime reviewedAt,
+    String reviewedBy
 ) {
     public static SitePageDto from(SitePage p) {
         return new SitePageDto(
@@ -33,6 +36,7 @@ public record SitePageDto(
             p.getTitle(), p.getBlocks(), p.getLocale(),
             p.getStatus() != null ? p.getStatus().name() : null,
             p.getSortOrder(), p.getSeoTitle(), p.getSeoDescription(), p.getSeoOgImageUrl(),
-            p.getPublishedAt(), !Objects.equals(p.getBlocks(), p.getPublishedBlocks()));
+            p.getPublishedAt(), !Objects.equals(p.getBlocks(), p.getPublishedBlocks()),
+            p.isAiGenerated(), p.getReviewedAt(), p.getReviewedBy());
     }
 }

@@ -124,6 +124,18 @@ public class SiteContentAiService {
     public String translatePageHtml(Long orgId, Long siteId, String html, String targetLocale) {
         siteRepository.findByIdAndOrganizationId(siteId, orgId)
             .orElseThrow(() -> new NotFoundException("Site introuvable: " + siteId));
+        return translateHtmlMarkup(orgId, html, targetLocale);
+    }
+
+    /**
+     * Traduit le markup HTML stocké (corps d'article, fragment de page) vers {@code targetLocale} sans
+     * vérifier d'ownership de site — réservé aux APPELANTS internes ayant déjà validé l'org de la ressource
+     * (ex. {@link ContentTranslationService}). Même contrat que {@link #translatePageHtml} : structure
+     * préservée, repli SÛR (HTML inchangé) si l'IA échoue. L'appel LLM se fait hors transaction (à la
+     * charge de l'appelant). RTL : le markup n'est pas réécrit → la directionnalité {@code ar} reste gérée
+     * au rendu SSR.
+     */
+    public String translateHtmlMarkup(Long orgId, String html, String targetLocale) {
         if (html == null || html.isBlank()) return html == null ? "" : html;
         final String lang = normalizeLang(targetLocale);
 
@@ -160,7 +172,7 @@ public class SiteContentAiService {
 
         List<String> translated = translateStrings(orgId, strings, lang);
         if (translated == null || translated.size() != strings.size()) {
-            return html; // repli sûr : on ne casse jamais la page
+            return html; // repli sûr : on ne casse jamais le markup
         }
 
         int i = 0;
@@ -171,6 +183,16 @@ public class SiteContentAiService {
             attrEls.get(k).attr(attrNames.get(k), translated.get(i++));
         }
         return doc.body().html();
+    }
+
+    /**
+     * Traduit une liste ordonnée de champs texte courts (titre, meta SEO, extrait…) vers
+     * {@code targetLocale} en UN appel IA. Renvoie {@code null} en cas d'échec (l'appelant garde alors la
+     * valeur source). Réutilisé par {@link ContentTranslationService} pour les champs hors-markup.
+     */
+    public List<String> translateTextFields(Long orgId, List<String> fields, String targetLocale) {
+        if (fields == null || fields.isEmpty()) return fields;
+        return translateStrings(orgId, fields, normalizeLang(targetLocale));
     }
 
     /** Traduit une liste ordonnée de chaînes via UN appel IA (tableau JSON in/out). `null` si échec. */

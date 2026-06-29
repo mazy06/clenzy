@@ -56,7 +56,9 @@ public class PlatformAiConfigService {
             "bedrock", new ProviderDefaults("amazon.nova-lite-v1:0", "https://bedrock-mantle.eu-west-1.api.aws/v1"),
             "nvidia", new ProviderDefaults("meta/llama-3.1-8b-instruct", "https://integrate.api.nvidia.com/v1"),
             "openai", new ProviderDefaults("gpt-4o", "https://api.openai.com/v1"),
-            "anthropic", new ProviderDefaults("claude-sonnet-4-20250514", "https://api.anthropic.com/v1")
+            "anthropic", new ProviderDefaults("claude-sonnet-4-20250514", "https://api.anthropic.com/v1"),
+            // Voyage AI : provider d'EMBEDDINGS (et rerank) uniquement — pas de chat.
+            "voyage", new ProviderDefaults("voyage-3-large", "https://api.voyageai.com")
     );
 
     /** Providers connectables en BYOK (cle org ou partagee) assignables a une feature. */
@@ -133,9 +135,11 @@ public class PlatformAiConfigService {
 
     /**
      * Premier modele plateforme configure pour un {@code provider} donne, avec une cle
-     * utilisable (non vide). Sert au <b>failover</b> ({@code AssistantTargetResolver}) :
-     * recuperer une cible Anthropic/OpenAI de repli meme si elle n'est PAS assignee a
-     * ASSISTANT_CHAT (un modele simplement configure dans le catalogue suffit).
+     * utilisable (non vide) ET non marque {@code UNAVAILABLE} par le monitoring. Sert au
+     * <b>failover</b> ({@code AiTargetResolver}) : recuperer une cible Anthropic/OpenAI
+     * de repli meme si elle n'est PAS assignee a ASSISTANT_CHAT (un modele simplement configure
+     * dans le catalogue suffit). Aligne sur {@code AiTargetResolver} (filtre usable) : un modele sonde
+     * indisponible (404/410/cle invalide) n'est jamais retourne comme repli.
      */
     @Transactional(readOnly = true)
     public Optional<PlatformAiModel> findUsableModelByProvider(String provider) {
@@ -145,6 +149,7 @@ public class PlatformAiConfigService {
         return modelRepository.findAll().stream()
                 .filter(m -> provider.equalsIgnoreCase(m.getProvider()))
                 .filter(m -> m.getApiKey() != null && !m.getApiKey().isBlank())
+                .filter(m -> m.getAvailabilityStatus() != AiModelAvailability.UNAVAILABLE)
                 .findFirst();
     }
 
@@ -159,6 +164,9 @@ public class PlatformAiConfigService {
         String baseUrl = resolveBaseUrl(provider, request.baseUrl());
 
         try {
+            if (isEmbeddingModel(provider, request.modelId())) {
+                return testEmbeddingProvider(baseUrl, request.apiKey(), request.modelId());
+            }
             if ("anthropic".equals(provider)) {
                 return testAnthropicProvider(request.apiKey());
             }
@@ -392,6 +400,44 @@ public class PlatformAiConfigService {
         return response != null && response.contains("choices");
     }
 
+    /**
+     * Un modele d'embeddings (a tester via {@code /v1/embeddings}, pas {@code /chat/completions}) :
+     * provider Voyage (embedding-only) ou {@code modelId} contenant « embedding » (OpenAI). Evite
+     * que le probe de disponibilite marque a tort UNAVAILABLE un modele d'embeddings sonde en chat.
+     */
+    private static boolean isEmbeddingModel(String provider, String modelId) {
+        return "voyage".equalsIgnoreCase(provider)
+                || (modelId != null && modelId.toLowerCase(java.util.Locale.ROOT).contains("embedding"));
+    }
+
+    /** Teste/probe un modele d'embeddings : POST {baseUrl}/v1/embeddings {input:["ping"], model}. */
+    private boolean testEmbeddingProvider(String baseUrl, String apiKey, String model) {
+        String endpoint = baseUrl.endsWith("/v1") ? "/embeddings" : "/v1/embeddings";
+        RestClient client = RestClient.builder()
+                .baseUrl(baseUrl)
+                .defaultHeader("Authorization", "Bearer " + apiKey)
+                .defaultHeader("Content-Type", "application/json")
+                .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory() {{
+                    setConnectTimeout(10_000);
+                    setReadTimeout(30_000);
+                }})
+                .build();
+
+        Map<String, Object> body = Map.of(
+                "input", List.of("ping"),
+                "model", model
+        );
+
+        String response = client.post()
+                .uri(endpoint)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(String.class);
+
+        return response != null && response.contains("embedding");
+    }
+
     private boolean testAnthropicProvider(String apiKey) {
         AiRequest request = AiRequest.of("You are a test assistant.", "Say OK");
         try {
@@ -460,9 +506,14 @@ public class PlatformAiConfigService {
         String provider = m.getProvider();
         String baseUrl = resolveBaseUrl(provider, m.getBaseUrl());
         try {
-            boolean ok = "anthropic".equals(provider)
-                    ? probeAnthropicModel(baseUrl, m.getApiKey(), m.getModelId())
-                    : testOpenAiCompatibleProvider(baseUrl, m.getApiKey(), m.getModelId());
+            boolean ok;
+            if (isEmbeddingModel(provider, m.getModelId())) {
+                ok = testEmbeddingProvider(baseUrl, m.getApiKey(), m.getModelId());
+            } else if ("anthropic".equals(provider)) {
+                ok = probeAnthropicModel(baseUrl, m.getApiKey(), m.getModelId());
+            } else {
+                ok = testOpenAiCompatibleProvider(baseUrl, m.getApiKey(), m.getModelId());
+            }
             return ok ? ProbeOutcome.ok()
                       : ProbeOutcome.failed("Réponse inattendue du provider.");
         } catch (HttpClientErrorException e) {

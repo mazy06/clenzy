@@ -107,7 +107,88 @@ export const sitesApi = {
   /** Traduit (IA) le texte d'un fragment HTML de page vers une langue cible (multi-langue, P2). */
   translateHtml: (siteId: number, body: { html: string; targetLocale: string }) =>
     apiClient.post<{ html: string }>(`/sites/${siteId}/translate-html`, body),
+
+  // ─── Auto-traduction IA (crée des variantes DRAFT, relecture humaine) ────────
+  /**
+   * Auto-traduit (IA) une PAGE vers les langues cibles : crée les variantes localisées EN BROUILLON
+   * (jamais publiées automatiquement). Renvoie les variantes créées + les locales ignorées.
+   */
+  autoTranslatePage: (siteId: number, pageId: number, targets: string[]): Promise<AutoTranslateResult> =>
+    apiClient.post<AutoTranslateResult>(
+      `/sites/${siteId}/pages/${pageId}/auto-translate`,
+      undefined,
+      { params: { targets: targets.join(',') } },
+    ),
+
+  /** Auto-traduit (IA) un ARTICLE de blog vers les langues cibles (mêmes garanties que les pages). */
+  autoTranslatePost: (siteId: number, postId: number, targets: string[]): Promise<AutoTranslateResult> =>
+    apiClient.post<AutoTranslateResult>(
+      `/sites/${siteId}/posts/${postId}/auto-translate`,
+      undefined,
+      { params: { targets: targets.join(',') } },
+    ),
+
+  /**
+   * Génère un SITE COMPLET par IA à partir d'un brief : dérive un thème + crée un set de pages
+   * (accueil / liste / à propos / contact) EN BROUILLON. Renvoie le résumé des pages créées.
+   */
+  generateSite: (siteId: number, brief: SiteGenerationBrief): Promise<SiteGenerationResult> =>
+    apiClient.post<SiteGenerationResult>(`/sites/${siteId}/ai-generate`, brief),
 };
+
+/**
+ * Résultat d'une auto-traduction IA (miroir de `AutoTranslateResultDto`). Selon la cible, seules
+ * `createdPages` (page) ou `createdPosts` (article) sont remplies ; `skippedLocales` liste les locales
+ * ignorées (déjà traduites ou identiques à la source).
+ */
+export interface AutoTranslateResult {
+  createdPages: SitePage[];
+  createdPosts: BlogPost[];
+  skippedLocales: string[];
+}
+
+/** Brief de génération de site par IA (miroir de `SiteGenerationBrief`). */
+export interface SiteGenerationBrief {
+  /** Nature des biens (« riad de luxe », « appartement urbain »…) — requis. */
+  propertyType: string;
+  /** Ton / ambiance souhaités (« chaleureux et authentique », « épuré et moderne »…). */
+  tone?: string | null;
+  /** Nom de marque à afficher (repli = nom du site). */
+  brandName?: string | null;
+  /** Indice de couleur primaire (hex ou nom libre) ; sinon le LLM choisit. */
+  primaryColorHint?: string | null;
+  /** Locales à générer (la 1re = langue source rédigée par le LLM). */
+  languages?: string[];
+  /** Clientèle cible (« familles », « couples », « voyageurs d'affaires »…). */
+  audience?: string | null;
+  /** Objectif principal / appel à l'action (« réservation directe », « demande de devis »…). */
+  goal?: string | null;
+  /** Niveau de gamme (« économique », « premium », « luxe »…). */
+  tier?: string | null;
+  /** Localisation / destination (ville, région) — contenu + SEO local. */
+  location?: string | null;
+  /** Devise d'affichage (code ISO, ex. « EUR », « MAD »). */
+  currency?: string | null;
+  /** Points forts à mettre en avant (« sans commission », « conciergerie 24/7 »…). */
+  usps?: string[];
+  /** Clés des pages à générer, dans l'ordre (vide → set par défaut). */
+  pages?: string[];
+}
+
+/** Résumé d'une page générée par IA (miroir de `GeneratedPageSummary`). */
+export interface GeneratedPageSummary {
+  id: number;
+  path: string;
+  type: string;
+  title: string | null;
+  status: string;
+}
+
+/** Résultat d'une génération de site par IA (miroir de `SiteGenerationResultDto`). */
+export interface SiteGenerationResult {
+  pagesCreated: GeneratedPageSummary[];
+  themeApplied: boolean;
+}
 
 export interface GeneratedSeo {
   seoTitle: string | null;

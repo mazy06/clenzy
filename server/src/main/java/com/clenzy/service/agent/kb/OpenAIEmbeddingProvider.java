@@ -1,10 +1,8 @@
 package com.clenzy.service.agent.kb;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -17,51 +15,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provider OpenAI {@code text-embedding-3-large} avec param {@code dimensions=1024}
- * pour matcher la table {@code kb_chunk.embedding}.
+ * Provider OpenAI {@code text-embedding-3-*} avec param {@code dimensions} (troncature MRL)
+ * pour matcher la table {@code kb_chunk.embedding} (1024d).
  *
- * <p><b>Modele defaut : {@code text-embedding-3-large}</b> (jusqu'a 3072d,
- * tronque a 1024 via MRL). Qualite superieure a {@code small} (-3.5% MRR
- * benchmark MTEB), surcout ~6.5x (~$0.13/1M vs $0.02/1M) — mais absolument
- * negligeable a notre volume.</p>
+ * <p><b>Modele defaut : {@code text-embedding-3-large}</b>, repli si le catalogue ne fixe
+ * pas de {@code modelId}.</p>
  *
- * <p>Override possible via {@code clenzy.ai.embeddings.openai.model} si on
- * voulait revenir a {@code text-embedding-3-small} pour reduire les couts
- * sur de gros volumes (>10M tokens/mois).</p>
+ * <p>Endpoint : {@code POST {baseUrl}/v1/embeddings}.</p>
  *
- * <p>Endpoint : {@code POST https://api.openai.com/v1/embeddings}.</p>
- *
- * <p>Activation : {@code clenzy.ai.embeddings.provider=openai}. La cle est
- * lue depuis {@code clenzy.ai.embeddings.openai.api-key} (peut etre la meme
- * que celle du chat ou differente).</p>
+ * <p><b>Credential-stateless</b> : cle/modele/baseUrl/dimension viennent de la
+ * {@link EmbeddingTarget} resolue par {@link EmbeddingService} depuis la config DB
+ * (feature EMBEDDINGS) — plus aucune variable d'environnement.</p>
  */
 @Component
 public class OpenAIEmbeddingProvider implements EmbeddingProvider {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAIEmbeddingProvider.class);
-    /** Meilleur modele OpenAI 2026 (qualite > cout justifie). */
-    private static final String DEFAULT_MODEL = "text-embedding-3-large";
+    /** Meilleur modele OpenAI 2026. Repli si le catalogue ne fixe rien. */
+    static final String DEFAULT_MODEL = "text-embedding-3-large";
+    static final String DEFAULT_BASE_URL = "https://api.openai.com";
     private static final int BATCH_SIZE = 96; // OpenAI limit ~2048 inputs mais on reste prudent
 
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    private final String apiKey;
-    private final String model;
-    private final String baseUrl;
-    private final int targetDimensions;
 
-    public OpenAIEmbeddingProvider(RestTemplate restTemplate,
-                                     ObjectMapper objectMapper,
-                                     @Value("${clenzy.ai.embeddings.openai.api-key:}") String apiKey,
-                                     @Value("${clenzy.ai.embeddings.openai.model:" + DEFAULT_MODEL + "}") String model,
-                                     @Value("${clenzy.ai.embeddings.openai.base-url:https://api.openai.com}") String baseUrl,
-                                     @Value("${clenzy.ai.embeddings.openai.dimensions:1024}") int targetDimensions) {
+    public OpenAIEmbeddingProvider(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
-        this.apiKey = apiKey;
-        this.model = model;
-        this.baseUrl = baseUrl;
-        this.targetDimensions = targetDimensions;
     }
 
     @Override
@@ -70,40 +48,39 @@ public class OpenAIEmbeddingProvider implements EmbeddingProvider {
     }
 
     @Override
-    public int dimensions() {
-        return targetDimensions;
+    public float[] embed(String text, EmbeddingTarget target) {
+        if (text == null || text.isBlank()) return new float[target.dimensions()];
+        List<float[]> result = embedBatch(List.of(text), target);
+        return result.isEmpty() ? new float[target.dimensions()] : result.get(0);
     }
 
     @Override
-    public float[] embed(String text) {
-        if (text == null || text.isBlank()) return new float[dimensions()];
-        List<float[]> result = embedBatch(List.of(text));
-        return result.isEmpty() ? new float[dimensions()] : result.get(0);
-    }
-
-    @Override
-    public List<float[]> embedBatch(List<String> texts) {
+    public List<float[]> embedBatch(List<String> texts, EmbeddingTarget target) {
         if (texts == null || texts.isEmpty()) return List.of();
-        if (apiKey == null || apiKey.isBlank()) {
+        if (target == null || target.apiKey() == null || target.apiKey().isBlank()) {
             throw new EmbeddingException(
-                    "OPENAI_API_KEY non configure pour embeddings "
-                            + "(property clenzy.ai.embeddings.openai.api-key)");
+                    "OpenAI : cle API manquante pour les embeddings "
+                            + "(configurez le modele d'embeddings dans Parametres > IA)");
         }
+        final String model = (target.model() != null && !target.model().isBlank())
+                ? target.model() : DEFAULT_MODEL;
+        final String baseUrl = (target.baseUrl() != null && !target.baseUrl().isBlank())
+                ? target.baseUrl() : DEFAULT_BASE_URL;
 
         List<float[]> all = new ArrayList<>(texts.size());
         for (int i = 0; i < texts.size(); i += BATCH_SIZE) {
             int end = Math.min(i + BATCH_SIZE, texts.size());
-            all.addAll(callApi(texts.subList(i, end)));
+            all.addAll(callApi(texts.subList(i, end), target.apiKey(), model, baseUrl, target.dimensions()));
         }
         return all;
     }
 
-    private List<float[]> callApi(List<String> batch) {
+    private List<float[]> callApi(List<String> batch, String apiKey, String model, String baseUrl, int dimensions) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("input", batch);
         body.put("model", model);
         // text-embedding-3-{small,large} supportent la troncature MRL via "dimensions"
-        body.put("dimensions", targetDimensions);
+        body.put("dimensions", dimensions);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -111,7 +88,7 @@ public class OpenAIEmbeddingProvider implements EmbeddingProvider {
 
         try {
             OpenAIResponse response = restTemplate.postForObject(
-                    baseUrl + "/v1/embeddings",
+                    embeddingsEndpoint(baseUrl),
                     new HttpEntity<>(body, headers),
                     OpenAIResponse.class);
             if (response == null || response.data == null) {
@@ -120,7 +97,7 @@ public class OpenAIEmbeddingProvider implements EmbeddingProvider {
             List<float[]> out = new ArrayList<>(response.data.size());
             for (OpenAIData d : response.data) {
                 if (d.embedding == null) {
-                    out.add(new float[dimensions()]);
+                    out.add(new float[dimensions]);
                     continue;
                 }
                 float[] v = new float[d.embedding.size()];
@@ -133,6 +110,11 @@ public class OpenAIEmbeddingProvider implements EmbeddingProvider {
                     batch.size(), e.getMessage());
             throw new EmbeddingException("OpenAI embeddings : " + e.getMessage(), e);
         }
+    }
+
+    /** baseUrl peut finir par "/v1" (convention catalogue chat) ou non — on normalise. */
+    private static String embeddingsEndpoint(String baseUrl) {
+        return baseUrl.endsWith("/v1") ? baseUrl + "/embeddings" : baseUrl + "/v1/embeddings";
     }
 
     // ─── DTOs OpenAI ────────────────────────────────────────────────────────

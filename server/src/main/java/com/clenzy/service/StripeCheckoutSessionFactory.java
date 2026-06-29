@@ -116,6 +116,24 @@ public class StripeCheckoutSessionFactory {
                                                     String propertyName,
                                                     java.time.Duration expiresIn,
                                                     String successUrl) throws StripeException {
+        return createReservationCheckoutSession(reservationId, amount, customerEmail,
+            guestName, propertyName, expiresIn, successUrl, null);
+    }
+
+    /**
+     * Variante alimentant Stripe Radar (P2 — scoring de fraude advisory). {@code riskMetadata}
+     * (null/vide = aucun effet) est propagé dans {@code payment_intent_data.metadata} — donc lu par
+     * les règles Radar côté Stripe — ET dans la metadata de session (visibilité webhook/dashboard).
+     * On NE duplique PAS la logique Radar maison : on lui fournit seulement des signaux (IP réelle,
+     * score, niveau). Stripe capte déjà nativement l'IP cliente du checkout hébergé ; la passer en
+     * metadata permet en plus de l'exploiter dans des règles Radar custom.
+     */
+    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
+                                                    String customerEmail, String guestName,
+                                                    String propertyName,
+                                                    java.time.Duration expiresIn,
+                                                    String successUrl,
+                                                    java.util.Map<String, String> riskMetadata) throws StripeException {
         // Resoudre la devise depuis la reservation
         String resCurrency = reservationRepository.findById(reservationId)
             .map(Reservation::getCurrency)
@@ -135,8 +153,28 @@ public class StripeCheckoutSessionFactory {
         if (expiresIn != null) {
             builder.setExpiresAt(java.time.Instant.now().plus(expiresIn).getEpochSecond());
         }
+        applyRiskMetadata(builder, riskMetadata);
 
         return stripeGateway.createSession(builder.build());
+    }
+
+    /**
+     * Propage les signaux de risque vers Radar : metadata du PaymentIntent (lue par Radar) + metadata
+     * de session. No-op si la map est null/vide (mode advisory désactivé). N'altère jamais le montant
+     * ni les paramètres de paiement — purement informatif pour le scoring Stripe.
+     */
+    private void applyRiskMetadata(SessionCreateParams.Builder builder, java.util.Map<String, String> riskMetadata) {
+        if (riskMetadata == null || riskMetadata.isEmpty()) {
+            return;
+        }
+        SessionCreateParams.PaymentIntentData.Builder piData = SessionCreateParams.PaymentIntentData.builder();
+        riskMetadata.forEach((k, v) -> {
+            if (k != null && v != null) {
+                builder.putMetadata(k, v);
+                piData.putMetadata(k, v);
+            }
+        });
+        builder.setPaymentIntentData(piData.build());
     }
 
     /**

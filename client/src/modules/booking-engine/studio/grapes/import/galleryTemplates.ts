@@ -1,7 +1,11 @@
 import type { SitePageType } from '../../../../../services/api/sitesApi';
+import { duplexMarrakech } from './templates/duplexMarrakech';
 import { conciergerieMarrakech } from './templates/conciergerieMarrakech';
 import { rechercheCataloguePremium } from './templates/rechercheCataloguePremium';
 import { villaBordDeMer } from './templates/villaBordDeMer';
+import { bordDeMerBalneaire } from './templates/bordDeMerBalneaire';
+import { appartementUrbain } from './templates/appartementUrbain';
+import { maisonCampagne } from './templates/maisonCampagne';
 import { GENERATED_TEMPLATES } from './templates/generatedTemplates';
 
 /**
@@ -47,16 +51,20 @@ export interface GalleryTemplate {
   description?: string;
   /** Vignette d'aperçu (URL data:image ou chemin d'asset). Optionnelle (placeholder sinon). */
   thumbnail?: string;
-  /** Thème appliqué à la config à l'import (couleur de marque + police). */
-  theme?: { primaryColor?: string; fontFamily?: string };
+  /** Thème appliqué à la config à l'import (couleur de marque + polices corps/titres). */
+  theme?: { primaryColor?: string; fontFamily?: string; headingFontFamily?: string };
   /** Pages du template (la 1re entrée `type:'HOME'` est chargée dans le canvas). */
   pages: TemplatePage[];
 }
 
 /** Catalogue des templates de galerie. Peuplé par les templates natifs (cf. `templates/`). */
 export const GALLERY_TEMPLATES: GalleryTemplate[] = [
+  duplexMarrakech,
   conciergerieMarrakech,
   villaBordDeMer,
+  bordDeMerBalneaire,
+  appartementUrbain,
+  maisonCampagne,
   rechercheCataloguePremium,
   ...GENERATED_TEMPLATES,
 ];

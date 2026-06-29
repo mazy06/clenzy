@@ -2,6 +2,7 @@ package com.clenzy.booking.service;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.model.DataSourceMode;
 import com.clenzy.booking.model.Site;
 import com.clenzy.booking.model.SitePage;
 import com.clenzy.booking.model.SitePageType;
@@ -9,6 +10,9 @@ import com.clenzy.booking.model.SiteStatus;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.repository.SitePageRepository;
 import com.clenzy.booking.repository.SiteRepository;
+import com.clenzy.booking.security.BookingFraudScoringService;
+import com.clenzy.booking.security.RiskAssessment;
+import com.clenzy.booking.security.RiskLevel;
 import com.clenzy.dto.TouristTaxCalculationDto;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.exception.RestrictionViolationException;
@@ -101,6 +105,9 @@ public class PublicBookingService {
     private final SitePageRepository sitePageRepository;
     private final BookingDisplayCurrencyService displayCurrencyService;
     private final com.clenzy.service.UpsellService upsellService;
+    private final BookingFraudScoringService fraudScoringService;
+    /** Jeu de démo servi quand la config est en mode {@link DataSourceMode#MOCK}. */
+    private final BookingMockDataProvider mockDataProvider;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -124,7 +131,9 @@ public class PublicBookingService {
             SiteRepository siteRepository,
             SitePageRepository sitePageRepository,
             BookingDisplayCurrencyService displayCurrencyService,
-            com.clenzy.service.UpsellService upsellService) {
+            com.clenzy.service.UpsellService upsellService,
+            BookingFraudScoringService fraudScoringService,
+            BookingMockDataProvider mockDataProvider) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -147,6 +156,13 @@ public class PublicBookingService {
         this.sitePageRepository = sitePageRepository;
         this.displayCurrencyService = displayCurrencyService;
         this.upsellService = upsellService;
+        this.fraudScoringService = fraudScoringService;
+        this.mockDataProvider = mockDataProvider;
+    }
+
+    /** {@code true} si le booking engine du ctx est en mode démo (données mock). */
+    private static boolean isMock(OrgContext ctx) {
+        return ctx.config() != null && ctx.config().getDataSourceMode() == DataSourceMode.MOCK;
     }
 
     // ─── Upsells (booking engine) ────────────────────────────────────────────────
@@ -265,6 +281,9 @@ public class PublicBookingService {
      * `currency` null/blank → pas de conversion (devise de la propriété, comportement historique).
      */
     public List<PublicPropertyDto> getProperties(OrgContext ctx, PropertySearchFilters filters, String currency) {
+        if (isMock(ctx)) {
+            return mockDataProvider.getProperties(filters, currency);
+        }
         // Curation « propriétés affichées » : si le booking engine a une sélection, on s'y restreint
         // (vide/NULL = toutes les propriétés visibles). Curation d'affichage, pas de contrôle d'accès.
         java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
@@ -287,10 +306,26 @@ public class PublicBookingService {
         LocalDate today = LocalDate.now();
         java.util.Map<Long, Integer> unavailable =
             toCountMap(calendarDayRepository.countUnavailableByPropertyIds(ids, today, today.plusDays(windowDays)));
+        // Note moyenne + nombre d'avis PUBLICS par propriété (1 query batch, anti N+1) → preuve sociale réelle.
+        java.util.Map<Long, double[]> reviewStats = new java.util.HashMap<>();
+        for (Object[] row : guestReviewRepository.publicReviewStatsByPropertyIds(ids, ctx.orgId())) {
+            if (row[0] == null || row[1] == null) {
+                continue;
+            }
+            long pid = ((Number) row[0]).longValue();
+            double avg = java.math.BigDecimal.valueOf(((Number) row[1]).doubleValue())
+                .setScale(2, java.math.RoundingMode.HALF_UP).doubleValue();
+            long cnt = ((Number) row[2]).longValue();
+            reviewStats.put(pid, new double[] { avg, cnt });
+        }
         return base.stream()
             .map(dto -> dto.withSignals(
                 bookings.getOrDefault(dto.id(), 0),
                 Math.max(0, windowDays - unavailable.getOrDefault(dto.id(), 0))))
+            .map(dto -> {
+                double[] rs = reviewStats.get(dto.id());
+                return rs == null ? dto : dto.withReviewStats(rs[0], (long) rs[1]);
+            })
             .toList();
     }
 
@@ -299,6 +334,9 @@ public class PublicBookingService {
      * VISIBLES (non filtrées) de l'org. Sert à peupler l'UI du widget « Filtre ».
      */
     public PublicSearchFiltersDto getSearchFilters(OrgContext ctx, String requestedCurrency) {
+        if (isMock(ctx)) {
+            return mockDataProvider.getSearchFilters(requestedCurrency);
+        }
         java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
         final LocalDate rateDate = LocalDate.now();
         // Prix convertis en devise d'affichage → les bornes priceMin/priceMax du widget « Filtre » (et donc
@@ -378,6 +416,9 @@ public class PublicBookingService {
             value = "booking-engine-properties",
             key = "#ctx.orgId() + ':' + #propertyId")
     public PublicPropertyDetailDto getPropertyDetail(OrgContext ctx, Long propertyId) {
+        if (isMock(ctx)) {
+            return mockDataProvider.getPropertyDetail(propertyId);
+        }
         Property property = propertyRepository.findBookingEngineProperty(propertyId, ctx.orgId())
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable ou non visible"));
         return PublicPropertyDetailDto.from(property);
@@ -396,6 +437,9 @@ public class PublicBookingService {
      * reserve/checkout → le montant Stripe en hérite.
      */
     public AvailabilityResponseDto checkAvailability(OrgContext ctx, AvailabilityRequestDto req, boolean member) {
+        if (isMock(ctx)) {
+            return mockDataProvider.checkAvailability(req);
+        }
         Long orgId = ctx.orgId();
         Long propertyId = req.propertyId();
         LocalDate checkIn = req.checkIn();
@@ -574,6 +618,10 @@ public class PublicBookingService {
 
     /** Variante tarif membre (2.8) : recalcule le total (autoritatif) avec la remise membre si connecté. */
     public BookingReserveResponseDto reserve(OrgContext ctx, BookingReserveRequestDto req, boolean member) {
+        if (isMock(ctx)) {
+            // Mode démo : réservation SIMULÉE — aucun effet réel (ni Reservation, ni calendrier, ni Stripe).
+            return mockDataProvider.reserve(req);
+        }
         Long orgId = ctx.orgId();
 
         // 1. Re-verifier la disponibilite (anti double-booking)
@@ -928,6 +976,20 @@ public class PublicBookingService {
 
     @Transactional
     public BookingCheckoutResponseDto checkout(OrgContext ctx, BookingCheckoutRequestDto req) {
+        return checkout(ctx, req, null);
+    }
+
+    /**
+     * Variante avec IP cliente réelle (P2 — scoring de risque/fraude advisory). {@code clientIp} doit
+     * être résolu par l'appelant via {@code ClientIpResolver} (jamais {@code X-Forwarded-For.split(",")[0]}).
+     * {@code null} = pas de signal de vélocité IP (le scoring reste cohérent).
+     */
+    @Transactional
+    public BookingCheckoutResponseDto checkout(OrgContext ctx, BookingCheckoutRequestDto req, String clientIp) {
+        if (isMock(ctx)) {
+            // Mode démo : checkout SIMULÉ — aucun appel Stripe, aucune session réelle créée.
+            return mockDataProvider.checkout(req);
+        }
         Long orgId = ctx.orgId();
 
         // Guard: si collectPaymentOnBooking=false, pas de checkout Stripe
@@ -967,6 +1029,11 @@ public class PublicBookingService {
         BigDecimal creditApplied = reservation.getCreditApplied() != null ? reservation.getCreditApplied() : BigDecimal.ZERO;
         BigDecimal chargeAmount = totalPrice.subtract(creditApplied);
 
+        // P2 — scoring de risque/fraude AVANT la création de session (donc avant le seul appel externe).
+        // Le montant scoré est le total RECALCULÉ SERVEUR (reservation.totalPrice), jamais un montant
+        // client. La décision graduée est appliquée par assessCheckoutRisk (advisory par défaut → no-op).
+        RiskDecision riskDecision = assessCheckoutRisk(reservation, clientIp);
+
         try {
             String propertyName = reservation.getProperty() != null
                 ? reservation.getProperty().getName() : "Reservation";
@@ -987,7 +1054,8 @@ public class PublicBookingService {
                 reservation.getGuestName(),
                 propertyName,
                 java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES),
-                successUrl
+                successUrl,
+                riskDecision.radarMetadata()
             );
 
             reservation.setStripeSessionId(session.getId());
@@ -1002,6 +1070,91 @@ public class PublicBookingService {
                 reservation.getConfirmationCode(), e.getMessage(), e);
             throw new RuntimeException("Erreur lors de la creation du paiement", e);
         }
+    }
+
+    /**
+     * Résultat interne du scoring : la metadata à transmettre à Stripe Radar ({@code null} si scoring
+     * désactivé). On garde l'assessment pour les logs/décisions futures.
+     */
+    private record RiskDecision(java.util.Map<String, String> radarMetadata) {}
+
+    /**
+     * Évalue le risque du checkout (P2) et applique la décision graduée. Inerte si le scoring est
+     * désactivé ({@code clenzy.booking.fraud-scoring.enabled=false}) — aucun appel au service.
+     *
+     * <p>Décision graduée (uniquement en enforcement — sinon advisory : on logge + on transmet la
+     * metadata Radar, on ne bloque jamais) :</p>
+     * <ul>
+     *   <li>LOW → rien ;</li>
+     *   <li>MEDIUM → marqué pour revue (notes + notification host) ; la caution renforcée réutilise
+     *       {@link BookingEngineDepositService} via le metadata déposé après paiement ;</li>
+     *   <li>HIGH → revue manuelle, ou refus (409) si {@code refuse-high-risk=true}.</li>
+     * </ul>
+     */
+    private RiskDecision assessCheckoutRisk(Reservation reservation, String clientIp) {
+        if (!fraudScoringService.isEnabled()) {
+            return new RiskDecision(null);
+        }
+        String email = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
+        String declaredCountry = reservation.getGuest() != null ? reservation.getGuest().getCountryCode() : null;
+        // Montant scoré = total RECALCULÉ SERVEUR (déjà persisté sur la réservation), jamais le client.
+        BigDecimal serverTotal = reservation.getTotalPrice();
+        Long propertyId = reservation.getProperty() != null ? reservation.getProperty().getId() : null;
+
+        RiskAssessment assessment = fraudScoringService.score(
+            new BookingFraudScoringService.FraudSignalInput(
+                reservation.getOrganizationId(), propertyId, clientIp, email, serverTotal,
+                null /* ipCountry : pas de géo-IP serveur — enrichissement futur */, declaredCountry));
+
+        // Metadata Radar (advisory : transmise même sans enforcement → Radar score côté Stripe).
+        java.util.Map<String, String> radarMetadata = new java.util.LinkedHashMap<>();
+        radarMetadata.put("risk_score", String.valueOf(assessment.score()));
+        radarMetadata.put("risk_level", assessment.level().name());
+
+        if (!fraudScoringService.isEnforcement()) {
+            // Advisory : on NE bloque ni n'altère jamais le paiement. On journalise seulement.
+            if (assessment.isMediumOrAbove()) {
+                log.warn("Booking Engine — checkout résa {} scoré {} ({}) [advisory] : {}",
+                    reservation.getConfirmationCode(), assessment.score(), assessment.level(), assessment.reasons());
+            }
+            return new RiskDecision(radarMetadata);
+        }
+
+        // Enforcement.
+        if (assessment.isHigh()) {
+            if (fraudScoringService.isRefuseHighRisk()) {
+                log.warn("Booking Engine — checkout résa {} REFUSÉ (risque HIGH {}) : {}",
+                    reservation.getConfirmationCode(), assessment.score(), assessment.reasons());
+                throw new IllegalStateException("Paiement temporairement indisponible : la réservation nécessite une vérification");
+            }
+            flagForManualReview(reservation, assessment);
+        } else if (assessment.level() == RiskLevel.MEDIUM) {
+            flagForManualReview(reservation, assessment);
+        }
+        return new RiskDecision(radarMetadata);
+    }
+
+    /**
+     * Marque la réservation pour revue (annotation {@code notes} + notification host) sans bloquer le
+     * paiement. La caution renforcée associée (MEDIUM) reste pilotée par {@link BookingEngineDepositService}
+     * après paiement (carte enregistrée) — non rejouée ici pour ne pas dupliquer le flux acompte/caution.
+     */
+    private void flagForManualReview(Reservation reservation, RiskAssessment assessment) {
+        String tag = "[REVUE FRAUDE " + assessment.level() + " score=" + assessment.score() + "] "
+            + String.join("; ", assessment.reasons());
+        String existing = reservation.getNotes();
+        reservation.setNotes(existing == null || existing.isBlank() ? tag : existing + "\n" + tag);
+        reservationRepository.save(reservation);
+        log.warn("Booking Engine — checkout résa {} marqué pour revue ({} score={}) : {}",
+            reservation.getConfirmationCode(), assessment.level(), assessment.score(), assessment.reasons());
+        final Long orgId = reservation.getOrganizationId();
+        final String code = reservation.getConfirmationCode();
+        runAfterCommit(() -> notificationService.notifyAdminsAndManagersByOrgId(orgId,
+            NotificationKey.BOOKING_FRAUD_REVIEW,
+            "Réservation à vérifier",
+            "La réservation " + code + " a été marquée pour revue par le scoring de risque ("
+                + assessment.level() + ", score " + assessment.score() + ").",
+            "/reservations"));
     }
 
     // ─── Retour Stripe template-driven : success_url valide (anti open-redirect, B3) ─────────────

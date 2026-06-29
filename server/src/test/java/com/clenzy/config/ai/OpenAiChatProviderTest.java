@@ -315,4 +315,81 @@ class OpenAiChatProviderTest {
             assertTrue(events.stream().anyMatch(e -> e instanceof ChatEvent.Done));
         }
     }
+
+    // ─── Guard clauses : cle API + modele requis (3-arg streamChat) ──────────
+
+    @Nested
+    @DisplayName("guard clauses (cle API + modele)")
+    class GuardClauses {
+
+        /** ChatRequest valide (modele present) pour isoler le guard sur la cle. */
+        private ChatRequest requestWithModel() {
+            return new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), "gpt-4o", 0.3, 100, null, "openai", "https://api.test/v1");
+        }
+
+        /** ChatRequest sans modele (null) pour declencher le guard "modele requis". */
+        private ChatRequest requestWithoutModel() {
+            return new ChatRequest("sys", List.of(ChatMessage.user("hi")),
+                    List.of(), null, 0.3, 100, null, "openai", "https://api.test/v1");
+        }
+
+        private ChatEvent.Error onlyError(List<ChatEvent> events) {
+            return (ChatEvent.Error) events.stream()
+                    .filter(e -> e instanceof ChatEvent.Error)
+                    .findFirst().orElseThrow();
+        }
+
+        @Test
+        @DisplayName("3-arg avec cle null → Error 'Aucune cle API' (plus de repli env)")
+        void threeArg_nullApiKey_emitsApiKeyError() throws Exception {
+            // La surcharge 3-arg utilise la cle passee telle quelle : null → Error,
+            // sans retomber sur aiProperties.getOpenai().getApiKey().
+            HttpClient httpClient = mock(HttpClient.class);
+            OpenAiChatProvider p = new OpenAiChatProvider(aiProperties, objectMapper,
+                    mock(ApplicationEventPublisher.class), httpClient);
+
+            List<ChatEvent> events = new ArrayList<>();
+            p.streamChat(requestWithModel(), events::add, null);
+
+            ChatEvent.Error err = onlyError(events);
+            assertTrue(err.message().contains("Aucune cle API"),
+                    "message: " + err.message());
+            assertTrue(err.message().contains("openai"),
+                    "le provider doit apparaitre dans le message: " + err.message());
+            // Court-circuit avant tout appel reseau.
+            verify(httpClient, times(0)).send(any(), any());
+        }
+
+        @Test
+        @DisplayName("3-arg avec cle blank → Error 'Aucune cle API'")
+        void threeArg_blankApiKey_emitsApiKeyError() throws Exception {
+            HttpClient httpClient = mock(HttpClient.class);
+            OpenAiChatProvider p = new OpenAiChatProvider(aiProperties, objectMapper,
+                    mock(ApplicationEventPublisher.class), httpClient);
+
+            List<ChatEvent> events = new ArrayList<>();
+            p.streamChat(requestWithModel(), events::add, "   ");
+
+            assertTrue(onlyError(events).message().contains("Aucune cle API"));
+            verify(httpClient, times(0)).send(any(), any());
+        }
+
+        @Test
+        @DisplayName("modele null → Error 'Aucun modèle IA configuré' (plus de defaut env)")
+        void nullModel_emitsModelError() throws Exception {
+            // Cle valide pour passer le 1er guard ; le modele null doit court-circuiter
+            // sans retomber sur aiProperties.getOpenai().getModel().
+            HttpClient httpClient = mock(HttpClient.class);
+            OpenAiChatProvider p = new OpenAiChatProvider(aiProperties, objectMapper,
+                    mock(ApplicationEventPublisher.class), httpClient);
+
+            List<ChatEvent> events = new ArrayList<>();
+            p.streamChat(requestWithoutModel(), events::add, "sk-explicit-key");
+
+            assertTrue(onlyError(events).message().contains("Aucun modèle IA configuré"),
+                    "message: " + onlyError(events).message());
+            verify(httpClient, times(0)).send(any(), any());
+        }
+    }
 }

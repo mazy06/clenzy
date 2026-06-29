@@ -10,7 +10,6 @@ import com.clenzy.dto.PeriodComparisonDto;
 import com.clenzy.dto.RevenueAnalyticsDto;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
@@ -451,13 +450,8 @@ public class AiAnalyticsService {
     @Retry(name = "ai-analytics")
     public List<AiInsightDto> getAiInsights(Long propertyId, Long orgId,
                                               LocalDate from, LocalDate to) {
-        if (!aiProperties.getFeatures().isAnalyticsAi()) {
-            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "analytics",
-                    "AI analytics is disabled. Enable via clenzy.ai.features.analytics-ai=true");
-        }
-
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.ANALYTICS);
-        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.ANALYTICS);
+        ResolvedTarget key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.ANALYTICS);
         tokenBudgetService.requireBudget(orgId, AiFeature.ANALYTICS, key.source());
 
         // Build analytics data to send to AI

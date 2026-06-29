@@ -5,14 +5,23 @@ import com.clenzy.config.ai.ChatLLMProvider;
 import com.clenzy.config.ai.ChatMessage;
 import com.clenzy.config.ai.ChatRequest;
 import com.clenzy.config.ai.ToolDescriptor;
+import com.clenzy.exception.AiBudgetExceededException;
+import com.clenzy.exception.AiNotConfiguredException;
+import com.clenzy.model.AiFeature;
 import com.clenzy.model.AssistantConversation;
 import com.clenzy.model.AssistantMemory;
 import com.clenzy.model.AssistantMessage;
 import com.clenzy.repository.AssistantConversationRepository;
 import com.clenzy.repository.AssistantMessageRepository;
 import com.clenzy.repository.OrgAiApiKeyRepository;
+import com.clenzy.repository.PlatformAiFeatureModelRepository;
+import com.clenzy.repository.PlatformAiFeatureProviderRepository;
+import com.clenzy.repository.PlatformAiModelRepository;
+import com.clenzy.service.AiTargetResolver;
+import com.clenzy.service.AiTokenBudgetService;
 import com.clenzy.service.AssistantMemoryService;
 import com.clenzy.service.PhotoStorageService;
+import com.clenzy.service.ResolvedTarget;
 import com.clenzy.service.agent.kb.KbSearchService;
 import com.clenzy.service.agent.prompt.ComposedSystemPrompt;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,7 +63,7 @@ import java.util.function.Consumer;
  * <ul>
  *   <li>{@link AgentPromptComposer} : system prompt (v1 legacy / v2 PromptBuilder),
  *       memoire long-terme et RAG auto-injection</li>
- *   <li>{@link AssistantTargetResolver} : provider/modele/cle/baseUrl effectifs</li>
+ *   <li>{@link AiTargetResolver} : provider/modele/cle/baseUrl effectifs</li>
  *   <li>{@link AgentToolLoopRunner} : boucle tool-calling + streaming LLM + usage tokens</li>
  *   <li>{@link ConversationHistoryMapper} : historique BDD → messages LLM + attachments</li>
  *   <li>{@link MultiAgentFlowRunner} : flux multi-agent (orchestrateur + specialistes,
@@ -73,10 +82,12 @@ public class AgentOrchestrator {
     private final AssistantMessageRepository messageRepository;
     private final PendingToolStore pendingToolStore;
     private final AgentPromptComposer promptComposer;
-    private final AssistantTargetResolver targetResolver;
+    private final AiTargetResolver targetResolver;
     private final AgentToolLoopRunner toolLoopRunner;
     private final ConversationHistoryMapper historyMapper;
     private final MultiAgentFlowRunner multiAgentFlowRunner;
+    /** Gate ASSISTANT_CHAT : toggle d'activation + budget, comme toutes les autres features IA. */
+    private final AiTokenBudgetService tokenBudgetService;
 
     /** Constructeur Spring : injection des collaborateurs extraits. */
     @Autowired
@@ -85,10 +96,11 @@ public class AgentOrchestrator {
                               AssistantMessageRepository messageRepository,
                               PendingToolStore pendingToolStore,
                               AgentPromptComposer promptComposer,
-                              AssistantTargetResolver targetResolver,
+                              AiTargetResolver targetResolver,
                               AgentToolLoopRunner toolLoopRunner,
                               ConversationHistoryMapper historyMapper,
-                              MultiAgentFlowRunner multiAgentFlowRunner) {
+                              MultiAgentFlowRunner multiAgentFlowRunner,
+                              AiTokenBudgetService tokenBudgetService) {
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
@@ -98,6 +110,7 @@ public class AgentOrchestrator {
         this.toolLoopRunner = toolLoopRunner;
         this.historyMapper = historyMapper;
         this.multiAgentFlowRunner = multiAgentFlowRunner;
+        this.tokenBudgetService = tokenBudgetService;
     }
 
     /**
@@ -114,6 +127,9 @@ public class AgentOrchestrator {
                               AssistantMessageRepository messageRepository,
                               ObjectMapper objectMapper,
                               OrgAiApiKeyRepository orgAiApiKeyRepository,
+                              PlatformAiFeatureModelRepository platformAiFeatureModelRepository,
+                              PlatformAiFeatureProviderRepository platformAiFeatureProviderRepository,
+                              PlatformAiModelRepository platformAiModelRepository,
                               AiProperties aiProperties,
                               PendingToolStore pendingToolStore,
                               AssistantMemoryService memoryService,
@@ -129,7 +145,8 @@ public class AgentOrchestrator {
         this(toolRegistry, conversationRepository, messageRepository,
                 pendingToolStore,
                 new AgentPromptComposer(memoryService, kbSearchService, promptBuilder, promptV2Enabled),
-                new AssistantTargetResolver(platformAiConfigService, orgAiApiKeyRepository, aiProperties),
+                new AiTargetResolver(orgAiApiKeyRepository, platformAiFeatureModelRepository,
+                        platformAiFeatureProviderRepository, platformAiModelRepository, aiProperties),
                 // Instrumentation audit/metrics = null sur ce chemin legacy test-only
                 // (AgentToolLoopRunner est null-safe). Le chemin Spring @Primary injecte
                 // les vrais beans AgentActionAuditService + AgentToolMetrics.
@@ -143,8 +160,10 @@ public class AgentOrchestrator {
                         messageRepository, pendingToolStore,
                         buildLegacyToolLoopRunner(chatProvider, toolRegistry, messageRepository,
                                 pendingToolStore, objectMapper, aiTokenBudgetService),
-                        new AssistantTargetResolver(platformAiConfigService, orgAiApiKeyRepository, aiProperties),
-                        toolRegistry, objectMapper, multiAgentEnabled));
+                        new AiTargetResolver(orgAiApiKeyRepository, platformAiFeatureModelRepository,
+                        platformAiFeatureProviderRepository, platformAiModelRepository, aiProperties),
+                        toolRegistry, objectMapper, multiAgentEnabled),
+                aiTokenBudgetService);
     }
 
     /**
@@ -221,9 +240,29 @@ public class AgentOrchestrator {
                 promptComposer.loadRelevantKbHits(effectiveMessage, context.organizationId());
         // Cible LLM resolue UNE SEULE FOIS (provider effectif + modele + cle + baseUrl),
         // partagee entre le flow multi-agent et le fallback mono-agent.
-        AssistantTargetResolver.ChatTarget target =
-                targetResolver.resolve(context.organizationId(), context.modelOverride());
+        ResolvedTarget target =
+                targetResolver.resolvePrimary(context.organizationId(), AiFeature.ASSISTANT_CHAT, context.modelOverride());
         String apiKey = target.apiKey();
+
+        // 4-bis. Gate ASSISTANT_CHAT : l'assistant respecte le toggle d'activation ET le budget,
+        //   comme TOUTES les autres features IA (avant, seul recordUsage était appelé a posteriori →
+        //   désactiver la feature ou dépasser le budget n'arrêtait pas l'assistant). S'applique aussi
+        //   au superviseur (AgUiController réutilise handleMessage). BYOK exempté du budget (target.source()).
+        //   Échec → message gracieux en SSE (le translator AG-UI le rend visible côté superviseur).
+        try {
+            tokenBudgetService.requireFeatureEnabled(context.organizationId(), AiFeature.ASSISTANT_CHAT);
+            tokenBudgetService.requireBudget(context.organizationId(), AiFeature.ASSISTANT_CHAT, target.source());
+        } catch (AiNotConfiguredException e) {
+            consumer.accept(AgentSseEvent.error(
+                    "L'assistant IA est désactivé ou non configuré pour votre organisation. "
+                            + "Activez-le dans Paramètres > IA."));
+            return conversation.getId();
+        } catch (AiBudgetExceededException e) {
+            consumer.accept(AgentSseEvent.error(
+                    "Le budget IA mensuel de l'assistant est atteint. Augmentez-le dans "
+                            + "Paramètres > IA ou réessayez le mois prochain."));
+            return conversation.getId();
+        }
 
         // 5. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts).
         //    Attachments → fallback mono-agent car les spécialistes ne gerent pas
@@ -361,8 +400,8 @@ public class AgentOrchestrator {
         messages.add(ChatMessage.tool(pending.toolCallId(), result.content()));
 
         ComposedSystemPrompt resumeSystem = promptComposer.buildSegmentedSystemPrompt(context);
-        AssistantTargetResolver.ChatTarget target =
-                targetResolver.resolve(context.organizationId(), context.modelOverride());
+        ResolvedTarget target =
+                targetResolver.resolvePrimary(context.organizationId(), AiFeature.ASSISTANT_CHAT, context.modelOverride());
         ChatRequest request = new ChatRequest(
                 resumeSystem.cacheablePrefix(), messages,
                 RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context),

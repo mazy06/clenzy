@@ -23,6 +23,10 @@ export interface ApiProperty {
   amenities: string[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** Note moyenne des avis publics (0..5), null si aucun avis. Optionnel (exposé backend Phase 2). */
+  rating?: number | null;
+  /** Nombre d'avis publics. */
+  reviewCount?: number | null;
   totalBookings: number | null;
   availableDays30: number | null;
 }
@@ -171,6 +175,35 @@ export interface ApiUpsellCheckout {
   orderId: number;
 }
 
+/** Note moyenne + total + distribution des avis publics (booking/dto/ReviewStatsDto). */
+export interface ApiReviewStats {
+  averageRating: number;
+  totalCount: number;
+  /** Distribution par note : clés "1".."5" (JSON) → nombre d'avis. */
+  distribution: Record<string, number>;
+}
+
+/** Un avis public (booking/dto/PublicReviewDto). */
+export interface ApiReview {
+  guestName: string | null;
+  rating: number | null;
+  reviewText: string | null;
+  hostResponse: string | null;
+  /** Date ISO (YYYY-MM-DD). */
+  reviewDate: string | null;
+}
+
+/** Page d'avis publics paginés (Spring Page) — GET /{slug}/reviews?page=&size=. */
+export interface ApiReviewPage {
+  content: ApiReview[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  first: boolean;
+}
+
 /** Réponse d'auth guest (Keycloak realm clenzy-guests) — token gardé EN MÉMOIRE (règle #7). */
 export interface GuestAuthResult {
   accessToken: string;
@@ -303,6 +336,19 @@ export class BookingApi {
 
   getProperties(currency?: string, filters?: SearchFilters): Promise<ApiProperty[]> {
     return this.request(`/properties${this.buildPropertiesQuery(currency, filters)}`);
+  }
+
+  /** Statistiques d'avis publics (note moyenne + total + distribution) — org résolue par la clé API. */
+  getReviewStats(): Promise<ApiReviewStats> {
+    return this.request('/reviews/stats');
+  }
+
+  /**
+   * Avis publics PAGINÉS (org-wide ; `size` borné ≤20 côté serveur) → pour tout récupérer page par page.
+   * Renvoie une Spring Page (`content`, `last`, `number`, `totalElements`…).
+   */
+  getReviews(page = 0, size = 20): Promise<ApiReviewPage> {
+    return this.request(`/reviews?page=${page}&size=${size}`);
   }
 
   /** Facettes de recherche (options de filtres) pour construire l'UI du widget « Filtre ». */

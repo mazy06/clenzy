@@ -96,12 +96,18 @@ export interface BookingEngineConfig {
   featuredPropertyIds: string | null;
   // AI Design Analysis
   designTokens: string | null;
+  /** Contrat de variables CSS de design (`--bt-*`), JSON map émise par le LLM (pilote pages + widgets).
+   *  Optionnel : non exposé par le DTO admin — la livraison principale aux widgets passe par le bloc
+   *  `:root{--bt-*}` baké dans le CSS de page (cascade). Sert de repli explicite côté canvas. */
+  designCssVariables?: string | null;
   sourceWebsiteUrl: string | null;
   aiAnalysisAt: string | null;
   // Widget Integration Position
   widgetPosition: string | null;
   inlineTargetId: string | null;
   inlinePlacement: string | null;
+  // Source de données : 'REAL' (vraies données du tenant) ou 'MOCK' (jeu de démo, aucune réservation réelle).
+  dataSourceMode?: 'REAL' | 'MOCK';
   // Cross-org (populated only for platform staff /configs/all endpoint)
   organizationName?: string | null;
 }
@@ -258,6 +264,18 @@ export const bookingEngineApi = {
   /** Regenerate API key — old key is immediately invalidated. */
   regenerateApiKey: (id: number) =>
     apiClient.post<BookingEngineConfig>(`/booking-engine/configs/${id}/regenerate-key`),
+
+  // ─── Bibliothèque GLOBALE de widgets composites (plateforme) ──────────────
+  // Lecture : tout utilisateur du Studio (HOST + staff) → s'affiche dans tous les engines.
+  // Écriture : SUPER_ADMIN / SUPER_MANAGER uniquement (gardé côté backend). `widgets` = JSON sérialisé.
+
+  /** Lit la bibliothèque globale de composites (JSON sérialisé, défaut `[]`). */
+  getGlobalComposites: () =>
+    apiClient.get<{ widgets: string }>('/booking-engine/global-composites'),
+
+  /** Remplace la bibliothèque globale (staff plateforme uniquement). */
+  putGlobalComposites: (widgets: string) =>
+    apiClient.put<{ widgets: string }>('/booking-engine/global-composites', { widgets }),
 
   // ─── Catalogue de templates de site (global Clenzy + privés par org) ──
 

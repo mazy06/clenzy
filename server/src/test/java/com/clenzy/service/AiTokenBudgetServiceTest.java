@@ -210,8 +210,10 @@ class AiTokenBudgetServiceTest {
             assertEquals(0L, stats.usageByFeature().get("CONTENT"));
             // STUDIO_ASSIST ajoute (champ IA du Studio booking engine / livret) — meme defaut 100k
             assertEquals(0L, stats.usageByFeature().get("STUDIO_ASSIST"));
+            // EMBEDDINGS ajoute (P1-A, RAG via config DB) — meme defaut 100k
+            assertEquals(0L, stats.usageByFeature().get("EMBEDDINGS"));
             assertEquals(11_000L, stats.totalUsed());
-            assertEquals(800_000L, stats.totalBudget()); // 8 features * 100k default
+            assertEquals(900_000L, stats.totalBudget()); // 9 features * 100k default
             assertEquals("2026-03", stats.monthYear());
         }
     }
@@ -407,7 +409,7 @@ class AiTokenBudgetServiceTest {
         void whenOrganizationKey_thenSkipsEnforcement() {
             // No stubbing needed — should short-circuit
             assertDoesNotThrow(() -> service.requireBudget(1L, AiFeature.PRICING,
-                    com.clenzy.service.AiKeyResolver.KeySource.ORGANIZATION));
+                    com.clenzy.service.KeySource.ORGANIZATION));
         }
 
         @Test
@@ -419,7 +421,7 @@ class AiTokenBudgetServiceTest {
 
             assertThrows(com.clenzy.exception.AiBudgetExceededException.class,
                     () -> service.requireBudget(1L, AiFeature.PRICING,
-                            com.clenzy.service.AiKeyResolver.KeySource.PLATFORM));
+                            com.clenzy.service.KeySource.PLATFORM_DB));
         }
     }
 }

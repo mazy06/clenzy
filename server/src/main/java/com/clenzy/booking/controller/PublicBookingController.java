@@ -348,7 +348,13 @@ public class PublicBookingController {
             @Valid @RequestBody BookingCheckoutRequestDto request,
             HttpServletRequest httpRequest) {
         OrgContext ctx = resolveContext(slug, httpRequest);
-        return ResponseEntity.ok(bookingService.checkout(ctx, request));
+        // IP cliente réelle (anti-spoof X-Forwarded-For) pour le scoring de risque/fraude (P2).
+        // Source unique partagée avec le rate-limiter (jamais X-Forwarded-For.split(",")[0]).
+        String clientIp = com.clenzy.util.ClientIpResolver.resolve(
+            httpRequest.getRemoteAddr(),
+            httpRequest.getHeader("X-Forwarded-For"),
+            httpRequest.getHeader("X-Real-IP"));
+        return ResponseEntity.ok(bookingService.checkout(ctx, request, clientIp));
     }
 
     /** GET /{slug}/upsells — services additionnels diffusés sur le booking engine (logement optionnel). */

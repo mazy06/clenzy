@@ -12,8 +12,8 @@ import com.clenzy.dto.RevenueAnalyticsDto;
 import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver.KeySource;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.clenzy.service.KeySource;
+import com.clenzy.service.ResolvedTarget;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
@@ -35,6 +35,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -385,19 +387,7 @@ class AiAnalyticsServiceTest {
     @Nested
     class AiPowered {
 
-        private static final ResolvedKey PLATFORM_KEY = new ResolvedKey("sk-platform", null, KeySource.PLATFORM);
-
-        private void enableAnalyticsAi() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setAnalyticsAi(true);
-            when(aiProperties.getFeatures()).thenReturn(features);
-        }
-
-        private void disableAnalyticsAi() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setAnalyticsAi(false);
-            when(aiProperties.getFeatures()).thenReturn(features);
-        }
+        private static final ResolvedTarget PLATFORM_KEY = new ResolvedTarget(null, null, "sk-platform", null, KeySource.PLATFORM_DB);
 
         private void setupPropertyAndReservations() {
             when(propertyRepository.findById(PROPERTY_ID))
@@ -414,16 +404,21 @@ class AiAnalyticsServiceTest {
 
         @Test
         void featureFlagDisabled_throws() {
-            disableAnalyticsAi();
+            doThrow(new AiNotConfiguredException("AI_FEATURE_DISABLED", "analytics",
+                "Analytics AI is disabled for this organization"))
+                .when(tokenBudgetService).requireFeatureEnabled(
+                    org.mockito.ArgumentMatchers.anyLong(),
+                    org.mockito.ArgumentMatchers.eq(AiFeature.ANALYTICS));
 
             assertThrows(AiNotConfiguredException.class,
                 () -> service.getAiInsights(PROPERTY_ID, ORG_ID,
                     LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31)));
+
+            verify(aiProviderRouter, never()).route(anyLong(), anyString(), any(AiFeature.class), any(AiRequest.class));
         }
 
         @Test
         void validResponse_parsesCorrectly() {
-            enableAnalyticsAi();
             when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.ANALYTICS)).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -437,7 +432,7 @@ class AiAnalyticsServiceTest {
                 100, 150, 250, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.ANALYTICS), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             List<AiInsightDto> insights = service.getAiInsights(
                 PROPERTY_ID, ORG_ID, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 10));
@@ -450,10 +445,9 @@ class AiAnalyticsServiceTest {
 
         @Test
         void budgetExceeded_throws() {
-            enableAnalyticsAi();
             when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.ANALYTICS)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("ANALYTICS", 100_000, 100_000))
-                .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.ANALYTICS, KeySource.PLATFORM);
+                .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.ANALYTICS, KeySource.PLATFORM_DB);
 
             assertThrows(AiBudgetExceededException.class,
                 () -> service.getAiInsights(PROPERTY_ID, ORG_ID,
@@ -462,7 +456,6 @@ class AiAnalyticsServiceTest {
 
         @Test
         void recordsUsage() {
-            enableAnalyticsAi();
             when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.ANALYTICS)).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -473,7 +466,7 @@ class AiAnalyticsServiceTest {
                 50, 80, 130, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.ANALYTICS), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM_DB));
 
             service.getAiInsights(PROPERTY_ID, ORG_ID,
                 LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 10));
@@ -483,13 +476,12 @@ class AiAnalyticsServiceTest {
 
         @Test
         void invalidJson_throwsProviderException() {
-            enableAnalyticsAi();
             when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.ANALYTICS)).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
             AiResponse aiResponse = new AiResponse("not valid json", 20, 10, 30, "claude-3-haiku", "end_turn");
             when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.ANALYTICS), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             assertThrows(AiProviderException.class,
                 () -> service.getAiInsights(PROPERTY_ID, ORG_ID,
