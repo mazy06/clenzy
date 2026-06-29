@@ -2,7 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.config.GuideConfig;
 import com.clenzy.config.ai.AiResponse;
-import com.clenzy.service.AiKeyResolver.KeySource;
+import com.clenzy.service.KeySource;
 import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.service.WelcomeGuideService.GuestChatContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +49,7 @@ class GuestChatServiceTest {
         when(aiProviderRouter.route(eq(1L), anyString(), any(), any()))
             .thenReturn(new RoutedResponse(
                 new AiResponse("Le réseau Wi-Fi est Maison.", 10, 8, 18, "m", "stop"),
-                "anthropic", KeySource.PLATFORM));
+                "anthropic", KeySource.PLATFORM_DB));
 
         GuestChatService.GuestChatResult result = service.answer(token, "C'est quoi le wifi ?");
 

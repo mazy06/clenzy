@@ -27,6 +27,7 @@ class BookingEngineAdminConfigDtoTest {
                 "12,7",
                 "{\"primary\":\"#FF\"}", "https://source", analysisAt,
                 "bottom", "target", "after",
+                "REAL",
                 "Acme Corp"
         );
 
@@ -139,6 +140,7 @@ class BookingEngineAdminConfigDtoTest {
                 "3,4",
                 "tokens-new", "https://new.source", null,
                 "inline", "elem", "after",
+                "REAL",
                 null
         );
         BookingEngineConfig target = new BookingEngineConfig();
@@ -200,6 +202,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null, null,
                 null, null, null,
                 null, null, null,
+                "REAL",
                 null
         );
 
@@ -223,7 +226,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null,
                 null, null, null, null, null, null,
                 null, null, null, null,
-                null, null, null, null
+                null, null, null, "REAL", null
         );
         BookingEngineAdminConfigDto b = new BookingEngineAdminConfigDto(
                 1L, 1L, "n", true, "k",
@@ -233,7 +236,7 @@ class BookingEngineAdminConfigDtoTest {
                 null, null, null, null, null, null,
                 null, null, null, null, null, null,
                 null, null, null, null,
-                null, null, null, null
+                null, null, null, "REAL", null
         );
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());

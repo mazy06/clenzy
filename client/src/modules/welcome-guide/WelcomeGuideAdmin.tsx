@@ -15,6 +15,7 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  Menu,
   MenuItem,
   Snackbar,
   Alert,
@@ -56,10 +57,12 @@ import {
   List as ListIcon,
   Home as HomeIcon,
   ChevronDown,
+  MoreHorizontal,
 } from 'lucide-react';
 // Feuille de style « studio accueil » partagée (scopée .be-home, accent indigo)
 // avec l'onglet Booking Engine — hero, champ IA, éventail, thèmes, cartes.
 import '../booking-engine/studio/studioHome.css';
+import { StructureArt } from './structureArt';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -184,10 +187,15 @@ function formatReservationRange(r: GuideReservationRef, locale: string): string 
 
 const WelcomeGuideAdmin: React.FC = () => {
   const { t, currentLanguage } = useTranslation();
-  const { isPlatformStaff } = useAuth();
+  const { isPlatformStaff, user } = useAuth();
   // Création réservée au staff plateforme (cf. POST /welcome-guides côté backend).
   // L'édition d'un livret existant reste ouverte à tous les rôles métier.
   const isStaff = isPlatformStaff();
+  // Initiales du propriétaire (colonne « Propriétaire » de la liste, façon Booking Engine).
+  const ownerInitials = ((user?.firstName?.[0] ?? '') + (user?.lastName?.[0] ?? '')).toUpperCase()
+    || (user?.fullName || user?.email || 'V').trim().charAt(0).toUpperCase();
+  // Menu « … » d'actions par ligne de la liste (toutes les actions y sont conservées).
+  const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; guide: WelcomeGuide } | null>(null);
   const { properties } = usePropertiesList();
 
   const { data: guides = [], isLoading, refetch } = useQuery({
@@ -230,6 +238,11 @@ const WelcomeGuideAdmin: React.FC = () => {
   const [language, setLanguage] = useState<string>('fr');
   const [brandingColor, setBrandingColor] = useState<string>(DEFAULT_COLOR);
   const [theme, setTheme] = useState<string>(DEFAULT_THEME);
+  // Sélection « studio » (parité Booking Engine) : structure obligatoire → thème (gated) → le bouton ↑ crée.
+  const [structureId, setStructureId] = useState<string | null>(null);
+  const [hoveredStructureId, setHoveredStructureId] = useState<string | null>(null);
+  const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
+  const [hoveredThemeId, setHoveredThemeId] = useState<string | null>(null);
   // Photos de couverture (carrousel) : liste d'ids de PropertyPhoto sélectionnées.
   const [heroPhotoIds, setHeroPhotoIds] = useState<number[]>([]);
   // Distingue « choix explicite de l'hôte » de « pas encore choisi » : tant que false,
@@ -361,6 +374,18 @@ const WelcomeGuideAdmin: React.FC = () => {
     setStep(0);
     setView('form');
   };
+
+  // Sélection « studio » (parité Booking Engine) ───────────────────────────────
+  const applyStructure = (id: string) => setStructureId(id);                              // structure obligatoire
+  const applyThemeSel = (id: string) => { if (structureId) setSelectedThemeId(id); };     // thème gated par la structure
+  // Bouton ↑ : si une structure est choisie → crée le livret (structure + thème) ; sinon → génération IA.
+  const handleStudioSubmit = () => {
+    if (structureId) { openCreate({ theme: selectedThemeId ?? DEFAULT_THEME }); return; }
+    void handleGenerateGuide();
+  };
+  // Rotation (deg) / lift (px) d'une carte d'éventail — fan symétrique pour un nombre VARIABLE de cartes.
+  const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - i) * 3).toFixed(2));
+  const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
 
   // Champ IA du livret (gated STUDIO_ASSIST) : génère un brouillon complet (message d'accueil + sections
   // + recommandations du quartier) depuis la description/URL saisie, puis ouvre le formulaire pré-rempli
@@ -711,9 +736,14 @@ const WelcomeGuideAdmin: React.FC = () => {
     const filtered = q
       ? guides.filter((g) => g.title.toLowerCase().includes(q) || (g.propertyName ?? '').toLowerCase().includes(q))
       : guides;
+    // Sélection courante (sélectionné, sinon survolé) pour les chips + chevauchement dynamique des thèmes.
+    const curStructure = LIVRET_STRUCTURES.find((s) => s.id === (structureId ?? hoveredStructureId)) ?? null;
+    const curTheme = WELCOME_BOOK_THEMES.find((tt) => tt.id === (selectedThemeId ?? hoveredThemeId)) ?? null;
+    const themeOverlap = WELCOME_BOOK_THEMES.length > 1
+      ? Math.max(6, (WELCOME_BOOK_THEMES.length * 124 - 760) / (WELCOME_BOOK_THEMES.length - 1)) : 0;
     return (
       <Box className="be-home" data-accent="indigo" sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
-        <div className="canvas" style={{ maxWidth: 1180 }}>
+        <div className="canvas" style={{ maxWidth: 860, margin: '0 auto' }}>
           {/* Bloc création (studio) — réservé au staff plateforme (cf. POST /welcome-guides).
               Même écran que le Booking Engine : TOUJOURS affiché (pas d'écran différent selon
               qu'on ait ou non un livret). Studio à gauche, thèmes en rail vertical à droite. */}
@@ -739,76 +769,91 @@ const WelcomeGuideAdmin: React.FC = () => {
                 />
                 <div className="field__bar">
                   <button className="chip chip--icon" type="button" aria-label="Importer une photo" disabled><Add size={16} strokeWidth={2} /></button>
-                  <button className="chip" type="button" disabled><HomeIcon size={16} strokeWidth={2} /><span className="lbl-faint">Logement</span> Tous <ChevronDown size={14} strokeWidth={2} /></button>
-                  <button className="chip" type="button" disabled><Globe size={16} strokeWidth={2} /><span className="lbl-faint">Langue</span> Français <ChevronDown size={14} strokeWidth={2} /></button>
+                  {/* Structure (obligatoire) : reflète la sélection de l'éventail. */}
+                  <div className="chip">
+                    <span className={'chip__slide' + (curStructure ? ' chip__slide--open' : '')}>
+                      {curStructure && <span className="chip__art"><StructureArt id={curStructure.id} /></span>}
+                    </span>
+                    <span className="chip__text"><span className="chip__lbl">Structure</span><span className="chip__val">{curStructure ? curStructure.name : 'Aucune'}</span></span>
+                  </div>
+                  {/* Thème : grisé tant qu'aucune structure choisie. */}
+                  <div className={'chip' + (!structureId ? ' chip--locked' : '')}>
+                    <span className={'chip__slide' + (curTheme ? ' chip__slide--open' : '')}>
+                      {curTheme && <span className="chip__art chip__art--img"><span aria-hidden style={{ position: 'absolute', inset: 0, background: curTheme.swatch.accent }} /></span>}
+                    </span>
+                    <span className="chip__text"><span className="chip__lbl">Thème</span><span className="chip__val">{curTheme ? curTheme.name : (structureId ? 'Aucun' : 'Choisir une structure')}</span></span>
+                  </div>
                   <div className="field__spacer" />
-                  <button className="send" type="button" aria-label="Générer le livret" disabled={generating} onClick={handleGenerateGuide}><ArrowUp size={19} strokeWidth={2.2} /></button>
+                  <button className="send" type="button" aria-label={structureId ? 'Créer le livret' : 'Générer le livret'} disabled={generating} onClick={handleStudioSubmit}><ArrowUp size={19} strokeWidth={2.2} /></button>
                 </div>
               </div>
-              <div className="examples">
-                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><Download size={14} strokeWidth={2} /> Importer depuis Airbnb</button>
-                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><Sparkles size={14} strokeWidth={2} /> Générer les sections automatiquement</button>
-                <button className="ex" type="button" disabled={generating} onClick={handleGenerateGuide}><MapPin size={14} strokeWidth={2} /> Recommandations du quartier</button>
-              </div>
 
-              {/* Structures (éventail) — TODO: préréglage de sections par structure. */}
+              {/* Structures (éventail, sélection obligatoire) */}
               <div className="fan-wrap">
-                <p className="fan-lead">Ou commencez avec une structure prête à remplir…</p>
+                <p className="fan-lead">Choisissez une structure de livret…</p>
                 <div className="fan">
-                  {LIVRET_STRUCTURES.map((s) => (
+                  {LIVRET_STRUCTURES.map((s, i) => (
                     <article
-                      key={s.id} className="fan__card" role="button" tabIndex={0}
-                      onClick={() => openCreate()}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCreate(); } }}
+                      key={s.id}
+                      className={'fan__card' + (s.id === structureId ? ' fan__card--active' : '')}
+                      style={{ ['--tip']: fanTip(i, LIVRET_STRUCTURES.length), ['--lift']: fanLift(i, LIVRET_STRUCTURES.length) } as React.CSSProperties}
+                      role="button" tabIndex={0} aria-pressed={s.id === structureId}
+                      title={`Choisir la structure « ${s.name} »`}
+                      onClick={() => applyStructure(s.id)}
+                      onMouseEnter={() => setHoveredStructureId(s.id)}
+                      onMouseLeave={() => setHoveredStructureId(null)}
+                      onFocus={() => setHoveredStructureId(s.id)}
+                      onBlur={() => setHoveredStructureId(null)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyStructure(s.id); } }}
                     >
-                      <div className="fan__vig"><s.icon size={30} strokeWidth={1.6} /></div>
-                      {s.badge && <span className="fan__badge">{s.badge}</span>}
+                      <div className="fan__vig"><StructureArt id={s.id} /></div>
                       <p className="fan__name">{s.name}</p>
-                      <p className="fan__desc">{s.desc}</p>
                     </article>
                   ))}
                 </div>
-                <div className="blank-row">
-                  <button className="blank" type="button" onClick={() => openCreate()}>Créer un livret vierge <ArrowRight size={16} strokeWidth={2} /></button>
-                </div>
+              </div>
+
+              {/* Thèmes (éventail, grisés tant qu'aucune structure ; le ↑ crée avec structure + thème). */}
+              <div className="fan-wrap">
+                <p className="fan-lead">Puis choisissez un thème…</p>
+                {!structureId ? (
+                  <p className="fan-locked">Sélectionnez d'abord une structure ci-dessus pour débloquer les thèmes.</p>
+                ) : (
+                  <div className="fan fan--tpl" style={{ ['--fan-mx']: `${-(themeOverlap / 2)}px` } as React.CSSProperties}>
+                    {WELCOME_BOOK_THEMES.map((th, i) => (
+                      <article
+                        key={th.id}
+                        className={'fan__card' + (th.id === selectedThemeId ? ' fan__card--active' : '')}
+                        style={{ ['--tip']: fanTip(i, WELCOME_BOOK_THEMES.length), ['--lift']: fanLift(i, WELCOME_BOOK_THEMES.length) } as React.CSSProperties}
+                        role="button" tabIndex={0} aria-pressed={th.id === selectedThemeId}
+                        title={`Choisir le thème « ${th.name} »`}
+                        onClick={() => applyThemeSel(th.id)}
+                        onMouseEnter={() => setHoveredThemeId(th.id)}
+                        onMouseLeave={() => setHoveredThemeId(null)}
+                        onFocus={() => setHoveredThemeId(th.id)}
+                        onBlur={() => setHoveredThemeId(null)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyThemeSel(th.id); } }}
+                      >
+                        <div className="fan__vig fan__vig--img" style={{ background: th.swatch.bg }}>
+                          <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', gap: 2, padding: 5, boxSizing: 'border-box' }}>
+                            <span style={{ height: 4, width: '52%', borderRadius: 2, background: th.swatch.accent }} />
+                            <span style={{ flex: 1, borderRadius: 3, background: th.swatch.surface, border: `1px solid ${th.swatch.accent}40` }} />
+                            <span style={{ height: 6, borderRadius: 2, background: th.swatch.accent, opacity: 0.5 }} />
+                          </span>
+                        </div>
+                        <p className="fan__name">{th.name}</p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Page vierge (sans structure ni thème) */}
+              <div className="blank-row">
+                <button className="blank" type="button" onClick={() => openCreate()}>Créer un livret vierge <ArrowRight size={16} strokeWidth={2} /></button>
               </div>
 
               </div>{/* /studio-split__main */}
-
-              <aside className="studio-split__rail">
-              {/* Thèmes — présélectionnent le thème du livret à la création (rail vertical). */}
-              <section className="templates templates--rail templates--scroll">
-                <div className="tpl-head">
-                  <div><p className="eyebrow2">Thèmes</p><h2 className="tpl-title">Des thèmes de livret prêts à l'emploi</h2></div>
-                </div>
-                <div className="tpl-grid">
-                  {WELCOME_BOOK_THEMES.map((th) => (
-                    <article
-                      key={th.id} className="tpl-card" role="button" tabIndex={0}
-                      style={{ ['--t1']: th.swatch.accent, ['--t2']: th.swatch.surface, ['--t3']: th.swatch.bg, ['--t-on']: 'rgba(255,255,255,.94)' } as React.CSSProperties}
-                      onClick={() => openCreate({ theme: th.id })}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCreate({ theme: th.id }); } }}
-                    >
-                      <div className="tpl-thumb">
-                        <div className="lv-themeprev">
-                          {/* TODO: remplacer l'aperçu mock par un screenshot réel du livret. */}
-                          <div className="phone">
-                            <div className="phone__hero"><span className="phone__eyebrow" /><span className="phone__title" /><span className="phone__title s" /></div>
-                            <div className="phone__body">
-                              <div className="phone__card"><span className="phone__dot" /><span className="phone__line" /></div>
-                              <div className="phone__card"><span className="phone__dot" /><span className="phone__line" /></div>
-                              <div className="phone__card"><span className="phone__dot" /><span className="phone__line" /></div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="tpl-use"><span><Add size={15} strokeWidth={2} /> Utiliser ce thème</span></div>
-                      </div>
-                      <div className="tpl-body"><p className="tpl-name">{th.name}</p><div className="tpl-meta"><span className="tpl-tag">Thème</span><span className="tpl-style">{th.desc}</span></div></div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-              </aside>
             </div>
           )}
 
@@ -838,48 +883,58 @@ const WelcomeGuideAdmin: React.FC = () => {
                 ) : undefined}
               />
             ) : (
-              <div className="lv-stack">
+              <div className="tbl lv-tbl">
+                <div className="tbl__h"><span>Nom</span><span>Statut</span><span>Langue</span><span>Propriétaire</span></div>
                 {filtered.map((g) => {
                   const prop = properties.find((p) => p.id === String(g.propertyId));
                   const heroIds = parseHeroPhotoIds(g.heroPhotoIds);
                   return (
-                    <article className="lv-card" key={g.id}>
-                      <div
-                        className="lv-thumb" role="button" tabIndex={0}
-                        aria-label={t('welcomeGuide.actions.edit', 'Modifier') + ' — ' + g.title}
-                        onClick={() => openEdit(g)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(g); } }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <GuidePhotoCarousel propertyId={g.propertyId} theme={g.theme} alt={g.propertyName || g.title} priorityIds={heroIds} />
-                      </div>
-                      <div className="lv-main">
-                        <div className="lv-info">
-                          <p className="lv-title"><span className="pd" style={{ background: themeAccent(g.theme) }} /> {g.title}</p>
-                          <p className="lv-sub">{g.propertyName || '—'}{prop?.city ? ` · ${prop.city}` : ''}</p>
-                          <div className="lv-badges">
-                            {g.published ? <span className="b-pub">Publié</span> : <span className="b-draft">Brouillon</span>}
-                            <span className="b-lang"><Globe size={13} strokeWidth={2} /> {g.language.toUpperCase()}</span>
+                    <div key={g.id} className="row-wrap">
+                      <button className="row" type="button" onClick={() => openEdit(g)}>
+                        <div className="row__name">
+                          <div className="row__thumb"><GuidePhotoCarousel propertyId={g.propertyId} theme={g.theme} alt={g.propertyName || g.title} priorityIds={heroIds} /></div>
+                          <div>
+                            <p className="row__t"><span className="pd" style={{ background: themeAccent(g.theme) }} /> {g.title}</p>
+                            <p className="row__u">{g.propertyName || '—'}{prop?.city ? ` · ${prop.city}` : ''}</p>
                           </div>
                         </div>
-                        <div className="lv-actions">
-                          <button
-                            className={`switch ${g.published ? '' : 'off'}`} role="switch" aria-checked={g.published}
-                            aria-label={g.published ? t('welcomeGuide.actions.unpublish', 'Dépublier') : t('welcomeGuide.actions.publish', 'Publier')}
-                            disabled={togglingPublishId === g.id} onClick={() => handleTogglePublish(g)}
-                          />
-                          <button className="act" aria-label={t('welcomeGuide.actions.generateLink', 'Générer le lien')} disabled={!g.published} onClick={() => handleGenerateLink(g)}><Link2 size={18} strokeWidth={2} /></button>
-                          <button className="act" aria-label={t('welcomeGuide.actions.guestbook', "Livre d'or")} onClick={() => handleOpenGuestbook(g)}><MessageSquare size={18} strokeWidth={2} /></button>
-                          <button className="act" aria-label={t('welcomeGuide.actions.stats', 'Statistiques')} onClick={() => handleOpenStats(g)}><BarChart3 size={18} strokeWidth={2} /></button>
-                          <button className="act" aria-label={t('welcomeGuide.actions.edit', 'Modifier')} onClick={() => openEdit(g)}><Edit size={18} strokeWidth={2} /></button>
-                          {isStaff && <button className="act danger" aria-label={t('welcomeGuide.actions.delete', 'Supprimer')} onClick={() => handleDelete(g)}><Delete size={18} strokeWidth={2} /></button>}
-                        </div>
-                      </div>
-                    </article>
+                        <span className={`status ${g.published ? 'active' : 'off'}`}><span className="led" /> {g.published ? 'Publié' : 'Brouillon'}</span>
+                        <span className="row__meta">{g.language.toUpperCase()}</span>
+                        <div className="row__acc"><span className="av-sm">{ownerInitials}</span><span className="row__owner">Vous</span></div>
+                      </button>
+                      <button className="row__menu" type="button" aria-label={t('common.actions', 'Actions')} title={t('common.actions', 'Actions')} onClick={(e) => setRowMenu({ el: e.currentTarget, guide: g })}><MoreHorizontal size={18} strokeWidth={2} /></button>
+                    </div>
                   );
                 })}
               </div>
             )}
+            {/* Menu d'actions par ligne — TOUTES les actions de l'ancienne carte sont conservées ici. */}
+            <Menu anchorEl={rowMenu?.el ?? null} open={!!rowMenu} onClose={() => setRowMenu(null)}>
+              {rowMenu && ([
+                <MenuItem key="pub" disabled={togglingPublishId === rowMenu.guide.id} onClick={() => { handleTogglePublish(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
+                  {rowMenu.guide.published ? <Unlink size={16} strokeWidth={2} /> : <Check size={16} strokeWidth={2} />}
+                  {rowMenu.guide.published ? t('welcomeGuide.actions.unpublish', 'Dépublier') : t('welcomeGuide.actions.publish', 'Publier')}
+                </MenuItem>,
+                <MenuItem key="link" disabled={!rowMenu.guide.published} onClick={() => { handleGenerateLink(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
+                  <Link2 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.generateLink', 'Générer le lien')}
+                </MenuItem>,
+                <MenuItem key="gb" onClick={() => { handleOpenGuestbook(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
+                  <MessageSquare size={16} strokeWidth={2} /> {t('welcomeGuide.actions.guestbook', "Livre d'or")}
+                </MenuItem>,
+                <MenuItem key="stats" onClick={() => { handleOpenStats(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
+                  <BarChart3 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.stats', 'Statistiques')}
+                </MenuItem>,
+                <MenuItem key="edit" onClick={() => { openEdit(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
+                  <Edit size={16} strokeWidth={2} /> {t('welcomeGuide.actions.edit', 'Modifier')}
+                </MenuItem>,
+                ...(isStaff ? [
+                  <Divider key="div" sx={{ my: 0.5 }} />,
+                  <MenuItem key="del" onClick={() => { handleDelete(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1, color: 'error.main' }}>
+                    <Delete size={16} strokeWidth={2} /> {t('welcomeGuide.actions.delete', 'Supprimer')}
+                  </MenuItem>,
+                ] : []),
+              ])}
+            </Menu>
           </section>
         </div>
       </Box>

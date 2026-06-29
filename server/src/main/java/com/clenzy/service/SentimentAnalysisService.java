@@ -9,7 +9,6 @@ import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.ReviewTag;
 import com.clenzy.model.SentimentLabel;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -190,13 +189,8 @@ public class SentimentAnalysisService {
     @CircuitBreaker(name = "ai-sentiment")
     @Retry(name = "ai-sentiment")
     public AiSentimentResultDto analyzeAi(String text, String language, Long orgId) {
-        if (!aiProperties.getFeatures().isSentimentAi()) {
-            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "sentiment",
-                    "AI sentiment is disabled. Enable via clenzy.ai.features.sentiment-ai=true");
-        }
-
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.SENTIMENT);
-        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.SENTIMENT);
+        ResolvedTarget key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.SENTIMENT);
         tokenBudgetService.requireBudget(orgId, AiFeature.SENTIMENT, key.source());
 
         String anonymized = anonymizationService.anonymize(text);

@@ -5,8 +5,8 @@ import com.clenzy.config.ai.AiResponse;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.Property;
 import com.clenzy.repository.PropertyRepository;
-import com.clenzy.service.AiKeyResolver.KeySource;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.clenzy.service.KeySource;
+import com.clenzy.service.ResolvedTarget;
 import com.clenzy.service.AiProviderRouter;
 import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.service.AiTokenBudgetService;
@@ -64,9 +64,9 @@ class PropertyContentAiServiceTest {
 
     private void stubLlm(String content) {
         when(aiProviderRouter.resolveKey(eq(ORG), any(), eq(AiFeature.CONTENT)))
-            .thenReturn(new ResolvedKey("k", null, KeySource.PLATFORM));
+            .thenReturn(new ResolvedTarget(null, null, "k", null, KeySource.PLATFORM_DB));
         when(aiProviderRouter.route(eq(ORG), any(), eq(AiFeature.CONTENT), any()))
-            .thenReturn(new RoutedResponse(new AiResponse(content, 10, 50, 60, "claude", "stop"), "anthropic", KeySource.PLATFORM));
+            .thenReturn(new RoutedResponse(new AiResponse(content, 10, 50, 60, "claude", "stop"), "anthropic", KeySource.PLATFORM_DB));
     }
 
     @Test

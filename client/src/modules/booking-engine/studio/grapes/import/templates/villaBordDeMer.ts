@@ -206,6 +206,13 @@ const ABOUT_IMG = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?
 const STORY_IMG = 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1200&q=70';
 const MAP_IMG = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=70';
 
+/** Fonds image en classes CSS (le style inline est retiré par GrapesJS à l'import). */
+const IMG_CSS = `
+.az-hero__media { background-image: url('${HERO_IMG}'); }
+.az-img-about { background-image: url('${ABOUT_IMG}'); }
+.az-img-story { background-image: url('${STORY_IMG}'); }
+.az-map { background-image: url('${MAP_IMG}'); }`;
+
 /* ── Pages ──────────────────────────────────────────────────────────────────────── */
 
 const HOME = `<div class="az-root">
@@ -221,7 +228,7 @@ const HOME = `<div class="az-root">
           <div data-clenzy-widget="search" data-clenzy-next="/logements"></div>
         </div>
       </div>
-      <div class="az-hero__media" style="background-image:url('${HERO_IMG}')"></div>
+      <div class="az-hero__media"></div>
     </div></div>
   </section>
 
@@ -252,7 +259,7 @@ const HOME = `<div class="az-root">
 
   <section class="az-section">
     <div class="az-wrap"><div class="az-split">
-      <div class="az-split__media" style="background-image:url('${ABOUT_IMG}')"></div>
+      <div class="az-split__media az-img-about"></div>
       <div>
         <p class="az-eyebrow">La maison</p>
         <h2>L'art de recevoir, face à la mer</h2>
@@ -366,7 +373,7 @@ const ABOUT = `<div class="az-root">
         <p class="az-lead">Une conciergerie indépendante, ancrée sur la côte, qui place l'humain et le détail au cœur de chaque séjour.</p>
       </div>
       <div class="az-split">
-        <div class="az-split__media" style="background-image:url('${STORY_IMG}')"></div>
+        <div class="az-split__media az-img-story"></div>
         <div>
           <h2>Notre histoire</h2>
           <p>Tout a commencé par une villa, restaurée avec des artisans de la région. Le bouche-à-oreille a fait le reste : aujourd'hui, nous veillons sur une collection confidentielle de maisons.</p>
@@ -411,7 +418,7 @@ const CONTACT = `<div class="az-root">
           <div class="az-citem"><span>Horaires</span><strong>Conciergerie 7j/7, 24h/24</strong></div>
           <p style="margin-top:26px"><a class="az-btn az-btn--primary" href="/logements">Réserver une villa</a></p>
         </div>
-        <div class="az-map" style="background-image:url('${MAP_IMG}')"></div>
+        <div class="az-map"></div>
       </div>
     </div>
   </section>
@@ -419,14 +426,14 @@ const CONTACT = `<div class="az-root">
 </div>`;
 
 /** Concatène le design system partagé + le CSS éventuel de la page. */
-const css = (pageCss = ''): string => `${SHARED_CSS}\n${pageCss}`;
+const css = (pageCss = ''): string => `${SHARED_CSS}\n${IMG_CSS}\n${pageCss}`;
 
 export const villaBordDeMer: GalleryTemplate = {
   id: 'villa-bord-de-mer',
   name: 'Villa bord de mer',
   description: 'Côtier épuré — hero split + recherche',
   thumbnail: HERO_IMG,
-  theme: { primaryColor: '#0e6b78', fontFamily: "'Inter', system-ui, -apple-system, sans-serif" },
+  theme: { primaryColor: '#0e6b78', fontFamily: "'Inter', system-ui, -apple-system, sans-serif", headingFontFamily: "'Fraunces', Georgia, serif" },
   pages: [
     { path: '/', type: 'HOME', title: 'Accueil', seoTitle: 'Azura — Villas & conciergerie sur la côte', seoDescription: 'Villas d’exception face à la mer. Réservation directe, conciergerie 24/7, séjours sur mesure.', html: HOME, css: css() },
     { path: '/logements', type: 'PROPERTY_LIST', title: 'Nos villas', seoTitle: 'Nos villas disponibles — Azura', seoDescription: 'Découvrez nos villas de la côte et leurs disponibilités en temps réel.', html: LODGINGS, css: css() },

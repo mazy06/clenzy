@@ -10,13 +10,17 @@ import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.booking.repository.SiteRepository;
 import com.clenzy.config.ai.AiRequest;
 import com.clenzy.config.ai.AiResponse;
+import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.SiteGenerationException;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver;
+import com.clenzy.model.NotificationKey;
+import com.clenzy.service.ResolvedTarget;
+import com.clenzy.service.KeySource;
 import com.clenzy.service.AiProviderRouter;
 import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.service.AiTokenBudgetService;
+import com.clenzy.service.NotificationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +61,7 @@ class SiteGenerationServiceTest {
     @Mock private AiProviderRouter aiProviderRouter;
     @Mock private AiTokenBudgetService tokenBudgetService;
     @Mock private SiteAdminService siteAdminService;
+    @Mock private NotificationService notificationService;
     @Mock private ObjectProvider<SiteGenerationService> self;
 
     private ObjectMapper objectMapper;
@@ -67,7 +72,7 @@ class SiteGenerationServiceTest {
         objectMapper = new ObjectMapper();
         service = new SiteGenerationService(
             siteRepository, configRepository, aiProviderRouter, tokenBudgetService,
-            siteAdminService, objectMapper, self);
+            siteAdminService, notificationService, objectMapper, self);
         // self.getObject() → l'instance réelle (applyTheme @Transactional = no-op en test unitaire).
         lenient().when(self.getObject()).thenReturn(service);
     }
@@ -88,14 +93,13 @@ class SiteGenerationServiceTest {
             "Dar Atlas", "#c2674a", List.of("fr", "en"));
     }
 
-    private AiKeyResolver.ResolvedKey platformKey() {
-        return new AiKeyResolver.ResolvedKey("api-key", null, AiKeyResolver.KeySource.PLATFORM,
-            "anthropic", null);
+    private ResolvedTarget platformKey() {
+        return new ResolvedTarget("anthropic", null, "api-key", null, KeySource.PLATFORM_DB);
     }
 
     private RoutedResponse routed(String body) {
         AiResponse resp = new AiResponse(body, 500, 3000, 3500, "claude-x", "stop");
-        return new RoutedResponse(resp, "anthropic", AiKeyResolver.KeySource.PLATFORM);
+        return new RoutedResponse(resp, "anthropic", KeySource.PLATFORM_DB);
     }
 
     /** Réponse LLM JSON valide : 4 pages, marqueurs booking sur HOME (search) + PROPERTY_LIST (results). */
@@ -124,8 +128,8 @@ class SiteGenerationServiceTest {
     /** Stub commun du happy path : site possédé + features ON + key + routing. */
     private void stubHappyPath(String llmBody) {
         when(siteRepository.findByIdAndOrganizationId(SITE_ID, ORG_ID)).thenReturn(Optional.of(ownedSite()));
-        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.CONTENT)).thenReturn(platformKey());
-        when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.CONTENT), any(AiRequest.class)))
+        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.DESIGN)).thenReturn(platformKey());
+        when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.DESIGN), any(AiRequest.class)))
             .thenReturn(routed(llmBody));
         // createAiGeneratedPage echoes the DRAFT it was handed (id assigned).
         when(siteAdminService.createAiGeneratedPage(eq(ORG_ID), eq(SITE_ID), any(SitePageDto.class)))
@@ -215,8 +219,8 @@ class SiteGenerationServiceTest {
         Site site = ownedSite();
         site.setBookingEngineConfigId(11L);
         when(siteRepository.findByIdAndOrganizationId(SITE_ID, ORG_ID)).thenReturn(Optional.of(site));
-        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.CONTENT)).thenReturn(platformKey());
-        when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.CONTENT), any(AiRequest.class)))
+        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.DESIGN)).thenReturn(platformKey());
+        when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.DESIGN), any(AiRequest.class)))
             .thenReturn(routed(validLlmJson()));
         when(siteAdminService.createAiGeneratedPage(eq(ORG_ID), eq(SITE_ID), any(SitePageDto.class)))
             .thenAnswer(inv -> {
@@ -240,8 +244,8 @@ class SiteGenerationServiceTest {
     @DisplayName("échec LLM → SiteGenerationException, aucune page créée (pas avalé)")
     void llm_failure_throws_and_creates_nothing() {
         when(siteRepository.findByIdAndOrganizationId(SITE_ID, ORG_ID)).thenReturn(Optional.of(ownedSite()));
-        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.CONTENT)).thenReturn(platformKey());
-        when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.CONTENT), any(AiRequest.class)))
+        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.DESIGN)).thenReturn(platformKey());
+        when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.DESIGN), any(AiRequest.class)))
             .thenThrow(new RuntimeException("LLM timeout"));
 
         assertThatThrownBy(() -> service.generateSite(ORG_ID, SITE_ID, brief()))
@@ -254,8 +258,8 @@ class SiteGenerationServiceTest {
     @DisplayName("réponse LLM illisible → SiteGenerationException")
     void unparseable_llm_response_throws() {
         when(siteRepository.findByIdAndOrganizationId(SITE_ID, ORG_ID)).thenReturn(Optional.of(ownedSite()));
-        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.CONTENT)).thenReturn(platformKey());
-        when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.CONTENT), any(AiRequest.class)))
+        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.DESIGN)).thenReturn(platformKey());
+        when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.DESIGN), any(AiRequest.class)))
             .thenReturn(routed("ceci n'est pas du JSON"));
 
         assertThatThrownBy(() -> service.generateSite(ORG_ID, SITE_ID, brief()))
@@ -282,11 +286,26 @@ class SiteGenerationServiceTest {
 
         service.generateSite(ORG_ID, SITE_ID, brief());
 
+        // La génération de site est rattachée à la feature DESIGN (« Generation CSS/JS du booking engine »).
         verify(tokenBudgetService).requireFeatureEnabled(ORG_ID, AiFeature.DESIGN);
-        verify(tokenBudgetService).requireFeatureEnabled(ORG_ID, AiFeature.CONTENT);
-        verify(tokenBudgetService).requireBudget(eq(ORG_ID), eq(AiFeature.CONTENT), any());
+        verify(tokenBudgetService).requireBudget(eq(ORG_ID), eq(AiFeature.DESIGN), any());
         // L'usage tokens est enregistré après l'appel.
-        verify(tokenBudgetService).recordUsage(eq(ORG_ID), eq(AiFeature.CONTENT), eq("anthropic"), any());
+        verify(tokenBudgetService).recordUsage(eq(ORG_ID), eq(AiFeature.DESIGN), eq("anthropic"), any());
+    }
+
+    @Test
+    @DisplayName("aucun modèle exploitable → notifie SUPER_ADMIN/SUPER_MANAGER + remonte AI_NOT_CONFIGURED")
+    void no_usable_model_notifies_platform_staff() {
+        when(siteRepository.findByIdAndOrganizationId(SITE_ID, ORG_ID)).thenReturn(Optional.of(ownedSite()));
+        // Aucun modèle configuré exploitable → le resolver lève AI_NOT_CONFIGURED (repli DB déjà tenté).
+        when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.DESIGN))
+            .thenThrow(new AiNotConfiguredException("AI_NOT_CONFIGURED", "design", "aucun modèle"));
+
+        assertThatThrownBy(() -> service.generateSite(ORG_ID, SITE_ID, brief()))
+            .isInstanceOf(AiNotConfiguredException.class);
+
+        verify(notificationService).notifyAllPlatformStaff(eq(NotificationKey.AI_MODEL_EOL), any(), any(), any());
+        verify(siteAdminService, never()).createAiGeneratedPage(any(), any(), any());
     }
 
     @Test

@@ -34,13 +34,16 @@ public class User {
     
     @NotBlank(message = "Le prénom est obligatoire")
     @Size(min = 2, max = 50, message = "Le prénom doit contenir entre 2 et 50 caractères")
-    @Column(name = "first_name", nullable = false)
+    // length=500 : la valeur stockée est le ciphertext AES (EncryptedFieldConverter), bien plus long
+    // que le texte clair. Sans cette longueur explicite, Hibernate dimensionnerait la colonne sur le
+    // @Size(50) (texte clair) → varchar(50) trop court (cf. Guest, varchar(500)). Le @Size valide le clair.
+    @Column(name = "first_name", nullable = false, length = 500)
     @Convert(converter = EncryptedFieldConverter.class)
     private String firstName;
 
     @NotBlank(message = "Le nom est obligatoire")
     @Size(min = 2, max = 50, message = "Le nom doit contenir entre 2 et 50 caractères")
-    @Column(name = "last_name", nullable = false)
+    @Column(name = "last_name", nullable = false, length = 500)
     @Convert(converter = EncryptedFieldConverter.class)
     private String lastName;
 

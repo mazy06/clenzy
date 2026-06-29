@@ -2,6 +2,7 @@ package com.clenzy.booking.service;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.model.DataSourceMode;
 import com.clenzy.booking.model.Site;
 import com.clenzy.booking.model.SitePage;
 import com.clenzy.booking.model.SitePageType;
@@ -105,6 +106,8 @@ public class PublicBookingService {
     private final BookingDisplayCurrencyService displayCurrencyService;
     private final com.clenzy.service.UpsellService upsellService;
     private final BookingFraudScoringService fraudScoringService;
+    /** Jeu de démo servi quand la config est en mode {@link DataSourceMode#MOCK}. */
+    private final BookingMockDataProvider mockDataProvider;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -129,7 +132,8 @@ public class PublicBookingService {
             SitePageRepository sitePageRepository,
             BookingDisplayCurrencyService displayCurrencyService,
             com.clenzy.service.UpsellService upsellService,
-            BookingFraudScoringService fraudScoringService) {
+            BookingFraudScoringService fraudScoringService,
+            BookingMockDataProvider mockDataProvider) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -153,6 +157,12 @@ public class PublicBookingService {
         this.displayCurrencyService = displayCurrencyService;
         this.upsellService = upsellService;
         this.fraudScoringService = fraudScoringService;
+        this.mockDataProvider = mockDataProvider;
+    }
+
+    /** {@code true} si le booking engine du ctx est en mode démo (données mock). */
+    private static boolean isMock(OrgContext ctx) {
+        return ctx.config() != null && ctx.config().getDataSourceMode() == DataSourceMode.MOCK;
     }
 
     // ─── Upsells (booking engine) ────────────────────────────────────────────────
@@ -271,6 +281,9 @@ public class PublicBookingService {
      * `currency` null/blank → pas de conversion (devise de la propriété, comportement historique).
      */
     public List<PublicPropertyDto> getProperties(OrgContext ctx, PropertySearchFilters filters, String currency) {
+        if (isMock(ctx)) {
+            return mockDataProvider.getProperties(filters, currency);
+        }
         // Curation « propriétés affichées » : si le booking engine a une sélection, on s'y restreint
         // (vide/NULL = toutes les propriétés visibles). Curation d'affichage, pas de contrôle d'accès.
         java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
@@ -293,10 +306,26 @@ public class PublicBookingService {
         LocalDate today = LocalDate.now();
         java.util.Map<Long, Integer> unavailable =
             toCountMap(calendarDayRepository.countUnavailableByPropertyIds(ids, today, today.plusDays(windowDays)));
+        // Note moyenne + nombre d'avis PUBLICS par propriété (1 query batch, anti N+1) → preuve sociale réelle.
+        java.util.Map<Long, double[]> reviewStats = new java.util.HashMap<>();
+        for (Object[] row : guestReviewRepository.publicReviewStatsByPropertyIds(ids, ctx.orgId())) {
+            if (row[0] == null || row[1] == null) {
+                continue;
+            }
+            long pid = ((Number) row[0]).longValue();
+            double avg = java.math.BigDecimal.valueOf(((Number) row[1]).doubleValue())
+                .setScale(2, java.math.RoundingMode.HALF_UP).doubleValue();
+            long cnt = ((Number) row[2]).longValue();
+            reviewStats.put(pid, new double[] { avg, cnt });
+        }
         return base.stream()
             .map(dto -> dto.withSignals(
                 bookings.getOrDefault(dto.id(), 0),
                 Math.max(0, windowDays - unavailable.getOrDefault(dto.id(), 0))))
+            .map(dto -> {
+                double[] rs = reviewStats.get(dto.id());
+                return rs == null ? dto : dto.withReviewStats(rs[0], (long) rs[1]);
+            })
             .toList();
     }
 
@@ -305,6 +334,9 @@ public class PublicBookingService {
      * VISIBLES (non filtrées) de l'org. Sert à peupler l'UI du widget « Filtre ».
      */
     public PublicSearchFiltersDto getSearchFilters(OrgContext ctx, String requestedCurrency) {
+        if (isMock(ctx)) {
+            return mockDataProvider.getSearchFilters(requestedCurrency);
+        }
         java.util.Set<Long> featured = parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
         final LocalDate rateDate = LocalDate.now();
         // Prix convertis en devise d'affichage → les bornes priceMin/priceMax du widget « Filtre » (et donc
@@ -384,6 +416,9 @@ public class PublicBookingService {
             value = "booking-engine-properties",
             key = "#ctx.orgId() + ':' + #propertyId")
     public PublicPropertyDetailDto getPropertyDetail(OrgContext ctx, Long propertyId) {
+        if (isMock(ctx)) {
+            return mockDataProvider.getPropertyDetail(propertyId);
+        }
         Property property = propertyRepository.findBookingEngineProperty(propertyId, ctx.orgId())
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable ou non visible"));
         return PublicPropertyDetailDto.from(property);
@@ -402,6 +437,9 @@ public class PublicBookingService {
      * reserve/checkout → le montant Stripe en hérite.
      */
     public AvailabilityResponseDto checkAvailability(OrgContext ctx, AvailabilityRequestDto req, boolean member) {
+        if (isMock(ctx)) {
+            return mockDataProvider.checkAvailability(req);
+        }
         Long orgId = ctx.orgId();
         Long propertyId = req.propertyId();
         LocalDate checkIn = req.checkIn();
@@ -580,6 +618,10 @@ public class PublicBookingService {
 
     /** Variante tarif membre (2.8) : recalcule le total (autoritatif) avec la remise membre si connecté. */
     public BookingReserveResponseDto reserve(OrgContext ctx, BookingReserveRequestDto req, boolean member) {
+        if (isMock(ctx)) {
+            // Mode démo : réservation SIMULÉE — aucun effet réel (ni Reservation, ni calendrier, ni Stripe).
+            return mockDataProvider.reserve(req);
+        }
         Long orgId = ctx.orgId();
 
         // 1. Re-verifier la disponibilite (anti double-booking)
@@ -944,6 +986,10 @@ public class PublicBookingService {
      */
     @Transactional
     public BookingCheckoutResponseDto checkout(OrgContext ctx, BookingCheckoutRequestDto req, String clientIp) {
+        if (isMock(ctx)) {
+            // Mode démo : checkout SIMULÉ — aucun appel Stripe, aucune session réelle créée.
+            return mockDataProvider.checkout(req);
+        }
         Long orgId = ctx.orgId();
 
         // Guard: si collectPaymentOnBooking=false, pas de checkout Stripe

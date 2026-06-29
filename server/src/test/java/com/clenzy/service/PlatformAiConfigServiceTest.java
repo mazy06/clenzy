@@ -581,7 +581,7 @@ class PlatformAiConfigServiceTest {
         @Test
         void containsAllExpectedProviders() {
             assertThat(PlatformAiConfigService.SUPPORTED_PROVIDERS.keySet())
-                    .containsExactlyInAnyOrder("bedrock", "nvidia", "openai", "anthropic");
+                    .containsExactlyInAnyOrder("bedrock", "nvidia", "openai", "anthropic", "voyage");
         }
 
         @Test

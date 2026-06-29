@@ -80,7 +80,11 @@ class AgentE2EFlowTest {
                 .thenReturn(List.of());
 
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore(),
+                convRepo, msgRepo, om, keyRepo,
+                mock(com.clenzy.repository.PlatformAiFeatureModelRepository.class),
+                mock(com.clenzy.repository.PlatformAiFeatureProviderRepository.class),
+                mock(com.clenzy.repository.PlatformAiModelRepository.class),
+                new AiProperties(), new PendingToolStore(),
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
                 mock(com.clenzy.service.agent.kb.KbSearchService.class),
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),

@@ -75,8 +75,11 @@ class RerankServiceTest {
         };
         RerankService service = new RerankService(
                 List.of(noOp, unavailable), noOp, true, "voyage", 4);
+        // Disponibilite resolue a l'appel (config DB) : le provider reste "voyage" (choisi par nom)
+        // mais isActive() est false car indisponible, et rerank degrade en NoOp (ordre d'entree).
         assertFalse(service.isActive());
-        assertEquals("noop", service.activeProviderName());
+        assertEquals("voyage", service.activeProviderName());
+        assertEquals(List.of(0, 1), service.rerank("q", List.of("a", "b", "c"), 2));
     }
 
     @Test

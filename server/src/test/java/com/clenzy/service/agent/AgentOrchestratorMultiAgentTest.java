@@ -96,7 +96,11 @@ class AgentOrchestratorMultiAgentTest {
     private AgentOrchestrator build(boolean multiAgentEnabled) {
         return new AgentOrchestrator(
                 chatProvider, toolRegistry, convRepo, msgRepo, new ObjectMapper(),
-                keyRepo, new AiProperties(), new PendingToolStore(),
+                keyRepo,
+                mock(com.clenzy.repository.PlatformAiFeatureModelRepository.class),
+                mock(com.clenzy.repository.PlatformAiFeatureProviderRepository.class),
+                mock(com.clenzy.repository.PlatformAiModelRepository.class),
+                new AiProperties(), new PendingToolStore(),
                 memoryService, mock(PhotoStorageService.class), kbSearchService,
                 mock(PromptBuilder.class),
                 multiAgent, specialistRegistry,

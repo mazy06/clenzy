@@ -4004,8 +4004,6 @@
       },
       "ai": {
         "generate": {
-          "cardTitle": "Generate my site with AI",
-          "cardDesc": "Describe your business and AI drafts a full site as drafts.",
           "title": "Generate my site with AI",
           "intro": "Describe your business: AI writes and structures a full site (home, listings, about, contact) and derives a theme. Pages are created as drafts — review before publishing.",
           "propertyTypeLabel": "Property type",

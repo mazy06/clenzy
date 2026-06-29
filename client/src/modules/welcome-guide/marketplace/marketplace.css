@@ -1,0 +1,150 @@
+/* ============================================================================
+   Marketplace partenaire — refonte (grille unifiée + filtre pastilles + toggle + détail).
+   Couleurs via nos variables (theme-adaptatif) ; --mp-action = accent produit (posé inline).
+   Fixes : partenaires, succès (#15915A), commission (#C2773A), étoile (#F2B23E).
+   La vue Liste réutilise .tbl/.row de studioHome.css (override grille via .mp-tbl).
+   ============================================================================ */
+.be-home .mp { --mp-success: #15915A; --mp-success-soft: #E7F4EE; --mp-success-line: #C9E7D8; --mp-commission: #C2773A; --mp-star: #F2B23E; }
+.be-home .mp-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+.be-home .mp-faint { color: var(--faint); }
+.be-home .mp-star { color: var(--mp-star); fill: var(--mp-star); }
+.be-home .mp-comm { font-size: 12.5px; font-weight: 600; color: var(--mp-commission); }
+.be-home .mp-action-text { color: var(--mp-action); }
+.be-home .mp-sep { width: 1px; height: 13px; background: var(--line2); display: inline-block; }
+
+/* ── Barre : filtres pastilles (gauche) + toggle Cartes/Liste (droite), même ligne ── */
+.be-home .mp__bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+
+/* ── Toggle Cartes / Liste ── */
+.be-home .mp__toggle { display: inline-flex; gap: 2px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; flex: none; }
+.be-home .mp__toggle button { display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 9px; cursor: pointer; transition: background .16s, color .16s, box-shadow .16s; }
+.be-home .mp__toggle button.on { background: var(--card); color: var(--ink); box-shadow: var(--sh-sm); }
+
+/* ── Filtre partenaire (pastilles) ── */
+.be-home .mp__pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.be-home .mp-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line2); color: var(--body); font: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 999px; cursor: pointer; transition: background .16s, border-color .16s, color .16s; }
+.be-home .mp-pill:hover { border-color: var(--faint); }
+.be-home .mp-pill__n { font-size: 12px; font-weight: 600; color: var(--faint); }
+.be-home .mp-pill--on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.be-home .mp-pill--on .mp-pill__n { color: rgba(255,255,255,.6); }
+
+/* ── Badge partenaire (pilule) ── */
+.be-home .mp-pbadge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--ink); background: var(--card); border: 1px solid var(--line); padding: 4px 9px; border-radius: 999px; }
+.be-home .mp-pbadge--over { position: absolute; top: 10px; left: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.12); z-index: 2; }
+
+/* ── Bouton Ajouter / Ajouté ── */
+.be-home .mp-add { display: inline-flex; align-items: center; gap: 6px; flex: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; padding: 8px 13px; border-radius: 10px; background: var(--mp-action-soft); color: var(--mp-action); transition: filter .14s, background .14s; }
+.be-home .mp-add:hover { filter: brightness(0.97); }
+.be-home .mp-add--done { background: var(--mp-success-soft); color: var(--mp-success); cursor: default; }
+
+/* ── Vue Cartes ── */
+.be-home .mp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.be-home .mp-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--sh-sm); overflow: hidden; cursor: pointer; transition: transform .2s var(--be-ease, ease), box-shadow .2s; display: flex; flex-direction: column; text-align: left; }
+.be-home .mp-card:hover { transform: translateY(-3px); box-shadow: var(--sh-lg); }
+.be-home .mp-card:focus-visible { outline: 2px solid var(--mp-action); outline-offset: 2px; }
+.be-home .mp-card__vis { position: relative; height: 138px; background: var(--surface2); display: grid; place-items: center; }
+.be-home .mp-card__vis img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.be-home .mp-rate { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; color: #fff; background: rgba(20,30,38,.72); padding: 3px 8px; border-radius: 999px; }
+.be-home .mp-rate .mp-star { color: var(--mp-star); fill: var(--mp-star); }
+.be-home .mp-card__body { padding: 14px 16px 16px; display: flex; flex-direction: column; flex: 1; }
+.be-home .mp-card__title { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0; line-height: 1.25; }
+.be-home .mp-card__desc { font-size: 12.5px; color: var(--muted); margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.be-home .mp-card__foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 12px; }
+.be-home .mp-price { min-width: 0; }
+.be-home .mp-price__v { font-size: 18px; font-weight: 800; color: var(--ink); }
+.be-home .mp-card__foot .mp-comm { display: block; margin-top: 2px; }
+
+/* ── Vue Liste (réutilise .tbl/.row ; override grille + cellules) ── */
+.be-home .mp-tbl .tbl__h, .be-home .mp-tbl .row { grid-template-columns: minmax(150px, 1fr) 150px 70px 96px 150px 112px; gap: 14px; padding: 12px 18px; }
+.be-home .mp-tbl .row { align-items: center; }
+.be-home .mp-row__exp { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.be-home .mp-row__vig { width: 46px; height: 46px; border-radius: 12px; flex: none; display: grid; place-items: center; }
+.be-home .mp-row__txt { min-width: 0; display: flex; flex-direction: column; }
+.be-home .mp-row__txt b { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.be-home .mp-row__txt small { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.be-home .mp-row__partner { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--body); min-width: 0; }
+.be-home .mp-row__note { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.be-home .mp-row__price { font-size: 16px; font-weight: 800; color: var(--ink); }
+
+/* ── Items « service interne » (mêmes carte/ligne que les partenaires, cellules source-aware) ── */
+.be-home .mp-dot--int { background: var(--accent); }
+.be-home .mp-card__vis--int { background: var(--surface2); }
+.be-home .mp-art { display: grid; place-items: center; }
+.be-home .mp-art svg { width: 40px; height: 40px; }
+.be-home .mp-srcint { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--accent); background: var(--accent-soft); padding: 4px 9px; border-radius: 999px; }
+.be-home .mp-srcint--over { position: absolute; top: 10px; left: 10px; z-index: 2; }
+.be-home .mp-stat { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.be-home .mp-stat__led { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.be-home .mp-stat.on { color: var(--mp-success); }
+.be-home .mp-stat.off { color: var(--faint); }
+.be-home .mp-stat--over { position: absolute; top: 10px; right: 10px; z-index: 2; background: var(--card); border: 1px solid var(--line); padding: 3px 9px; border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,.10); }
+.be-home .mp-imenu { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; transition: background .14s, color .14s; }
+.be-home .mp-imenu:hover { background: var(--hover); color: var(--ink); }
+.be-home .mp-row__srcint { display: inline-flex; align-items: center; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 3px 9px; border-radius: 999px; width: fit-content; }
+.be-home .mp-row__chans { font-size: 12.5px; color: var(--muted); }
+.be-home .mp-row__vig--int { background: var(--surface2); }
+.be-home .mp-row__vig--int svg { width: 26px; height: 26px; }
+
+/* ── État vide ── */
+.be-home .mp-empty { text-align: center; padding: 40px 16px; font-size: 14px; color: var(--muted); }
+
+/* ── Détail ── */
+.be-home .mp-back { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); color: var(--body); font: inherit; font-size: 13.5px; font-weight: 600; padding: 8px 14px; border-radius: 999px; cursor: pointer; margin-bottom: 20px; transition: border-color .16s, background .16s; }
+.be-home .mp-back:hover { border-color: var(--faint); background: var(--hover); }
+.be-home .mp-detail { display: grid; grid-template-columns: minmax(0, 1.5fr) 380px; gap: 36px; align-items: start; }
+.be-home .mp-detail__hero { position: relative; height: 380px; border-radius: 16px; background: var(--surface2); display: grid; place-items: center; overflow: hidden; }
+.be-home .mp-detail__hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.be-home .mp-detail__thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.be-home .mp-detail__thumb { height: 84px; border-radius: 12px; background: var(--surface2); display: grid; place-items: center; }
+.be-home .mp-detail__eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin: 22px 0 0; }
+.be-home .mp-detail__title { font-size: 30px; font-weight: 800; line-height: 1.15; color: var(--ink); margin: 8px 0 0; text-wrap: balance; }
+.be-home .mp-detail__meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 14px 0 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+.be-home .mp-detail__meta > span { display: inline-flex; align-items: center; gap: 6px; }
+.be-home .mp-detail__h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin: 28px 0 12px; }
+.be-home .mp-detail__desc { font-size: 14.5px; line-height: 1.6; color: var(--body); max-width: 62ch; margin: 0; }
+.be-home .mp-detail__incl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+.be-home .mp-incl { display: inline-flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--body); }
+.be-home .mp-incl__chk { width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--mp-success-soft); color: var(--mp-success); display: grid; place-items: center; }
+.be-home .mp-detail__know { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.be-home .mp-know { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.be-home .mp-know__ic { width: 34px; height: 34px; flex: none; border-radius: 9px; background: var(--surface2); color: var(--mp-action); display: grid; place-items: center; }
+.be-home .mp-know__lbl { display: block; font-size: 11.5px; color: var(--faint); }
+.be-home .mp-know__val { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+
+/* Panneau sticky droit */
+.be-home .mp-detail__panel { position: sticky; top: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--sh-lg); padding: 24px; }
+.be-home .mp-detail__price { font-size: 30px; font-weight: 800; color: var(--ink); margin: 0; }
+.be-home .mp-detail__price span { font-size: 15px; font-weight: 600; color: var(--faint); }
+.be-home .mp-detail__comm { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 18px 0; }
+.be-home .mp-detail__commrow { display: flex; align-items: center; justify-content: space-between; font-size: 13.5px; color: var(--body); }
+.be-home .mp-detail__commrow b { font-weight: 700; color: var(--ink); }
+.be-home .mp-detail__commrow b.mp-action-text { color: var(--mp-action); white-space: nowrap; }
+.be-home .mp-detail__commsep { height: 1px; background: var(--line); margin: 10px 0; }
+.be-home .mp-detail__commnote { font-size: 12px; color: var(--faint); margin: 8px 0 0; }
+.be-home .mp-detail__diffuse { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.be-home .mp-detail__chans { display: flex; gap: 10px; margin-bottom: 16px; }
+.be-home .mp-chan { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line2); background: var(--card); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 10px; border-radius: 11px; cursor: pointer; transition: background .16s, color .16s, border-color .16s; }
+.be-home .mp-chan--on { background: var(--mp-action-soft); color: var(--mp-action); border-color: transparent; }
+.be-home .mp-chan__chk { margin-left: 2px; }
+.be-home .mp-cta { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; background: var(--mp-action); color: #fff; font: inherit; font-size: 14.5px; font-weight: 700; padding: 13px; border-radius: 13px; cursor: pointer; box-shadow: 0 6px 16px -8px var(--mp-action); transition: filter .14s; }
+.be-home .mp-cta:hover { filter: brightness(1.05); }
+.be-home .mp-cta--done { background: var(--mp-success-soft); color: var(--mp-success); border-color: var(--mp-success-line); box-shadow: none; cursor: default; }
+.be-home .mp-outline { width: 100%; margin-top: 10px; border: 1px solid var(--line2); background: var(--card); color: var(--body); font: inherit; font-size: 13.5px; font-weight: 600; padding: 11px; border-radius: 11px; cursor: pointer; transition: border-color .16s, background .16s; }
+.be-home .mp-outline:hover { border-color: var(--faint); background: var(--hover); }
+.be-home .mp-detail__mention { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--faint); margin: 14px 0 0; }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) { .be-home .mp-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) {
+  .be-home .mp-detail { grid-template-columns: 1fr; gap: 22px; }
+  .be-home .mp-detail__panel { position: static; }
+  .be-home .mp-detail__hero { height: 280px; }
+}
+@media (max-width: 820px) {
+  .be-home .mp-grid { grid-template-columns: repeat(2, 1fr); }
+  .be-home .mp-tbl .tbl__h { display: none; }
+  .be-home .mp-tbl .row { grid-template-columns: 1fr auto; gap: 10px; padding: 12px 14px; min-height: 64px; }
+  .be-home .mp-tbl .mp-row__partner, .be-home .mp-tbl .mp-row__note, .be-home .mp-tbl .mp-row__price,
+  .be-home .mp-tbl .mp-row__srcint, .be-home .mp-tbl .mp-stat, .be-home .mp-tbl .mp-row__chans { display: none; }
+}
+@media (max-width: 560px) { .be-home .mp-grid { grid-template-columns: 1fr; } }

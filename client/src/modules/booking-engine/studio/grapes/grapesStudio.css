@@ -130,6 +130,14 @@
 }
 .clenzy-grapes .gjs-field:focus-within { border-color: var(--accent); }
 
+/* ── Champ combiné « token + valeur » (type de propriété custom bt-value) ─────── */
+.clenzy-grapes .bt-value { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.clenzy-grapes .bt-value__token,
+.clenzy-grapes .bt-value__input { width: 100%; box-sizing: border-box; padding: 3px 6px; font-size: var(--text-2xs); }
+.clenzy-grapes .bt-value__token { cursor: pointer; }
+.clenzy-grapes .bt-value__input:focus,
+.clenzy-grapes .bt-value__token:focus { border-color: var(--accent); outline: none; }
+
 /* ── Calques ────────────────────────────────────────────────────────────────── */
 .clenzy-grapes .gjs-layer-title { color: var(--body); border-color: var(--line); }
 .clenzy-grapes .gjs-layer.gjs-hovered > .gjs-layer-title,

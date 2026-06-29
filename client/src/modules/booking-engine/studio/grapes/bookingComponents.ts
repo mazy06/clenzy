@@ -53,6 +53,15 @@ function getEditorPreview(editor: Editor, ctx: BookingComponentsCtx): EditorPrev
   return p;
 }
 
+/**
+ * Re-seede l'aperçu éditeur de cet éditeur pour le mode courant (REAL → vraies propriétés du tenant,
+ * MOCK → démo). No-op si l'aperçu n'a pas encore été créé (aucun widget monté) — il se seedera au mode
+ * courant à son premier montage. Appelé par le Studio quand `config.dataSourceMode` change.
+ */
+export function reseedEditorPreview(editor: Editor, config: BookingEngineConfig | null): void {
+  editorPreviews.get(editor)?.reseed(config);
+}
+
 /** Construit une icône SVG (def) en DOM sûr, dans le document fourni (hôte OU iframe). */
 function buildIcon(shape: BookingIconShape, doc: Document, size = 22): SVGSVGElement {
   const svg = doc.createElementNS(SVG_NS, 'svg');

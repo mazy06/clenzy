@@ -209,6 +209,13 @@ const ABOUT_IMG = 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?
 const STORY_IMG = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=70';
 const MAP_IMG = 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1000&q=70';
 
+/** Fonds image en classes CSS (le style inline est retiré par GrapesJS à l'import). */
+const IMG_CSS = `
+.ub-hero__media { background-image: url('${HERO_IMG}'); }
+.ub-img-about { background-image: url('${ABOUT_IMG}'); }
+.ub-img-story { background-image: url('${STORY_IMG}'); }
+.ub-map { background-image: url('${MAP_IMG}'); }`;
+
 /* ── Pages ──────────────────────────────────────────────────────────────────────── */
 
 const HOME = `<div class="ub-root">
@@ -224,7 +231,7 @@ const HOME = `<div class="ub-root">
           <div data-clenzy-widget="search" data-clenzy-next="/logements"></div>
         </div>
       </div>
-      <div class="ub-hero__media" style="background-image:url('${HERO_IMG}')"></div>
+      <div class="ub-hero__media"></div>
     </div></div>
   </section>
 
@@ -255,7 +262,7 @@ const HOME = `<div class="ub-root">
 
   <section class="ub-section">
     <div class="ub-wrap"><div class="ub-split">
-      <div class="ub-split__media" style="background-image:url('${ABOUT_IMG}')"></div>
+      <div class="ub-split__media ub-img-about"></div>
       <div>
         <p class="ub-eyebrow">L'agence</p>
         <h2>L'efficacité, sans rien sacrifier au confort</h2>
@@ -369,7 +376,7 @@ const ABOUT = `<div class="ub-root">
         <p class="ub-lead">Une agence indépendante, ancrée au cœur de la ville, qui place la fiabilité et le détail au cœur de chaque séjour.</p>
       </div>
       <div class="ub-split">
-        <div class="ub-split__media" style="background-image:url('${STORY_IMG}')"></div>
+        <div class="ub-split__media ub-img-story"></div>
         <div>
           <h2>Notre histoire</h2>
           <p>Tout a commencé par un appartement loué à des consultants de passage. Le bouche-à-oreille a fait le reste : aujourd'hui, nous gérons un parc d'adresses choisies en centre-ville.</p>
@@ -414,7 +421,7 @@ const CONTACT = `<div class="ub-root">
           <div class="ub-citem"><span>Horaires</span><strong>Assistance 7j/7, 24h/24</strong></div>
           <p style="margin-top:26px"><a class="ub-btn ub-btn--primary" href="/logements">Réserver un appartement</a></p>
         </div>
-        <div class="ub-map" style="background-image:url('${MAP_IMG}')"></div>
+        <div class="ub-map"></div>
       </div>
     </div>
   </section>
@@ -426,14 +433,14 @@ const THUMBNAIL =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3Crect width='320' height='180' fill='%23f6f7f9'/%3E%3Crect width='320' height='112' fill='%23121417'/%3E%3Crect x='24' y='128' width='150' height='14' rx='3' fill='%23cfd4dc'/%3E%3Crect x='24' y='150' width='90' height='12' rx='3' fill='%233f3df0'/%3E%3C/svg%3E";
 
 /** Concatène le design system partagé + le CSS éventuel de la page. */
-const css = (pageCss = ''): string => `${SHARED_CSS}\n${pageCss}`;
+const css = (pageCss = ''): string => `${SHARED_CSS}\n${IMG_CSS}\n${pageCss}`;
 
 export const appartementUrbain: GalleryTemplate = {
   id: 'appartement-urbain',
   name: 'Appartement urbain',
   description: 'City & affaires — sobre et contrasté',
   thumbnail: THUMBNAIL,
-  theme: { primaryColor: '#3f3df0', fontFamily: "'Inter', system-ui, -apple-system, sans-serif" },
+  theme: { primaryColor: '#3f3df0', fontFamily: "'Inter', system-ui, -apple-system, sans-serif", headingFontFamily: "'Space Grotesk', system-ui, sans-serif" },
   pages: [
     { path: '/', type: 'HOME', title: 'Accueil', seoTitle: 'Baitly — Appartements urbains meublés', seoDescription: 'Appartements meublés en centre-ville pour les voyageurs d’affaires. Réservation directe, check-in autonome, facturation claire.', html: HOME, css: css() },
     { path: '/logements', type: 'PROPERTY_LIST', title: 'Nos appartements', seoTitle: 'Nos appartements disponibles — Baitly', seoDescription: 'Découvrez nos appartements en centre-ville et leurs disponibilités en temps réel.', html: LODGINGS, css: css() },

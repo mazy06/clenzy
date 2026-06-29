@@ -51,7 +51,7 @@ class PublicBookingCalendarServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PublicBookingCalendarService(propertyRepository, calendarDayRepository, priceEngine, currencyConverter);
+        service = new PublicBookingCalendarService(propertyRepository, calendarDayRepository, priceEngine, currencyConverter, new BookingMockDataProvider());
     }
 
     private OrgContext ctx() {

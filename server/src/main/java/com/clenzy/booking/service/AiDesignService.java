@@ -10,8 +10,8 @@ import com.clenzy.config.ai.AiRequest;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.service.AiAnonymizationService;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.clenzy.service.AiProviderRouter;
+import com.clenzy.service.ResolvedTarget;
 import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.service.AiTokenBudgetService;
 import com.clenzy.tenant.TenantContext;
@@ -107,7 +107,7 @@ public class AiDesignService {
 
         // 3. Generate CSS directly from the website content
         log.info("Generating CSS for config {}", configId);
-        ResolvedKey cssKey = aiProviderRouter.resolveKey(orgId, "openai", AiFeature.DESIGN);
+        ResolvedTarget cssKey = aiProviderRouter.resolveKey(orgId, "openai", AiFeature.DESIGN);
         tokenBudgetService.requireBudget(orgId, AiFeature.DESIGN, cssKey.source());
         String generatedCss = generateCssFromWebsite(content.html(), content.css(), orgId);
 
@@ -140,7 +140,7 @@ public class AiDesignService {
         configRepository.findByIdAndOrganizationId(configId, orgId)
                 .orElseThrow(() -> new IllegalArgumentException("Config not found: " + configId));
 
-        ResolvedKey cssKey = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.DESIGN);
+        ResolvedTarget cssKey = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.DESIGN);
         tokenBudgetService.requireBudget(orgId, AiFeature.DESIGN, cssKey.source());
         return generateCss(request.designTokens(), request.additionalInstructions(), orgId);
     }

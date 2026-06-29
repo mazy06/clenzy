@@ -8,7 +8,6 @@ import com.clenzy.dto.AiIntentDetectionDto;
 import com.clenzy.dto.AiSuggestedResponseDto;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -132,13 +131,8 @@ public class AiMessagingService {
     @CircuitBreaker(name = "ai-messaging")
     @Retry(name = "ai-messaging")
     public AiIntentDetectionDto detectIntentAi(String message, Long orgId) {
-        if (!aiProperties.getFeatures().isMessagingAi()) {
-            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "messaging",
-                    "AI messaging is disabled. Enable via clenzy.ai.features.messaging-ai=true");
-        }
-
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.MESSAGING);
-        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.MESSAGING);
+        ResolvedTarget key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.MESSAGING);
         tokenBudgetService.requireBudget(orgId, AiFeature.MESSAGING, key.source());
 
         String anonymized = anonymizationService.anonymize(message);
@@ -161,13 +155,8 @@ public class AiMessagingService {
     @Retry(name = "ai-messaging")
     public AiSuggestedResponseDto generateSuggestedResponseAi(String message, String context,
                                                                 String language, Long orgId) {
-        if (!aiProperties.getFeatures().isMessagingAi()) {
-            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "messaging",
-                    "AI messaging is disabled. Enable via clenzy.ai.features.messaging-ai=true");
-        }
-
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.MESSAGING);
-        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.MESSAGING);
+        ResolvedTarget key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.MESSAGING);
         tokenBudgetService.requireBudget(orgId, AiFeature.MESSAGING, key.source());
 
         String anonymized = anonymizationService.anonymize(message);

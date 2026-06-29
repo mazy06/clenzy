@@ -274,6 +274,9 @@ input:focus-visible, .cb-input:focus-visible {
 .lx-edito__txt p { font-weight: 300; color: var(--muted-ivory); max-width: 46ch; }
 .lx-edito__txt .lx-link { margin-top: 22px; }
 .lx-edito__img { align-self: stretch; min-height: 280px; background: linear-gradient(150deg,#2c2419,#7a6a4f); }
+.lx-edito__img--1 { background: linear-gradient(150deg,#2c2419,#7a6a4f); }
+.lx-edito__img--2 { background: linear-gradient(150deg,#283021,#6d7a55); }
+.lx-edito__img--3 { background: linear-gradient(150deg,#2b2218,#806b50); }
 
 /* Bande de chiffres-clés (sur charbon) */
 .lx-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
@@ -558,6 +561,7 @@ export const rechercheCataloguePremium: GalleryTemplate = {
   theme: {
     primaryColor: '#C6A867',
     fontFamily: 'Jost',
+    headingFontFamily: '"Cormorant Garamond", Georgia, "Times New Roman", serif',
   },
   pages: [
   {
@@ -647,17 +651,17 @@ export const rechercheCataloguePremium: GalleryTemplate = {
         <article class="lx-edito">
           <div class="lx-edito__num">01</div>
           <div class="lx-edito__txt"><h3>Riads</h3><p>Patios secrets, zelliges et terrasses sur les toits de la médina, à deux pas des souks.</p><a class="lx-link" href="/logements">Découvrir <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
-          <div class="lx-edito__img" style="background:linear-gradient(150deg,#2c2419,#7a6a4f)"></div>
+          <div class="lx-edito__img lx-edito__img--1"></div>
         </article>
         <article class="lx-edito">
           <div class="lx-edito__num">02</div>
           <div class="lx-edito__txt"><h3>Villas</h3><p>Domaines à la Palmeraie, piscines à débordement et jardins d'oliviers, loin de l'agitation.</p><a class="lx-link" href="/logements">Découvrir <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
-          <div class="lx-edito__img" style="background:linear-gradient(150deg,#283021,#6d7a55)"></div>
+          <div class="lx-edito__img lx-edito__img--2"></div>
         </article>
         <article class="lx-edito">
           <div class="lx-edito__num">03</div>
           <div class="lx-edito__txt"><h3>Appartements</h3><p>Adresses contemporaines à Guéliz et Hivernage, pour un séjour citadin tout confort.</p><a class="lx-link" href="/logements">Découvrir <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
-          <div class="lx-edito__img" style="background:linear-gradient(150deg,#2b2218,#806b50)"></div>
+          <div class="lx-edito__img lx-edito__img--3"></div>
         </article>
       </div>
     </div>

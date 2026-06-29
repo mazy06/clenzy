@@ -28,17 +28,19 @@ import {
   Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus,
   LogIn, Clock, Coffee, Car, SquareParking,
   SlidersHorizontal, Search, BookOpen, Network, ChevronRight, ArrowLeft, Eye, Home,
-  Sailboat, UtensilsCrossed, Compass, Tent, Flower2,
+  MoreHorizontal, Power,
 } from 'lucide-react';
 // Feuille de style « studio accueil » partagée (scopée .be-home, accent indigo).
 import '../booking-engine/studio/studioHome.css';
+import ServicesCatalog from './marketplace/ServicesCatalog';
+import { type MarketplaceExperience } from './marketplace/marketplaceData';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { useCurrency } from '../../hooks/useCurrency';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
 import { usePageHeaderActions, usePageHeaderFilters } from '../../components/PageHeaderActionsContext';
 import { Money } from '../../components/Money';
-import { EmptyHint, SectionHeading } from './formPrimitives';
+import { SectionHeading } from './formPrimitives';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
@@ -98,60 +100,12 @@ const TYPE_ICON: Record<string, typeof Tag> = {
 };
 const typeIcon = (type: string): typeof Tag => TYPE_ICON[type] ?? Tag;
 
-// Marketplace partenaire — STUB de démonstration, organisé PAR marketplace.
-// Aucun connecteur back pour l'instant (pas de browse/import GetYourGuide/Viator/
-// Klook). TODO : brancher les connecteurs + commission réelle. « Ajouter » pré-remplit
-// le formulaire de création (le service devient un service interne lié au partenaire).
-interface MarketplaceExperience {
-  icon: typeof Tag;
-  gradient: string;
-  name: string;
-  desc: string;
-  category: string;
-  /** Prix en EUR (devise des marketplaces stub) → converti à l'affichage. */
-  priceValue: number;
-  unit: string;
-  commission: number;
-}
-interface MarketplacePartner { partner: string; color: string; experiences: MarketplaceExperience[]; }
-const MARKETPLACE_PARTNERS: MarketplacePartner[] = [
-  {
-    partner: 'GetYourGuide', color: '#FF5533',
-    experiences: [
-      { icon: Sailboat, gradient: 'linear-gradient(150deg,#e08a6f,#c96a4e)', name: 'Croisière au coucher du soleil', desc: "Une vue imprenable depuis l'eau, en fin de journée.", category: 'Expérience', priceValue: 39, unit: '/ pers.', commission: 12 },
-      { icon: Sparkles, gradient: 'linear-gradient(150deg,#d97f63,#b85c40)', name: "Montgolfière à l'aube", desc: 'Survol panoramique au lever du soleil.', category: 'Expérience', priceValue: 120, unit: '/ pers.', commission: 14 },
-    ],
-  },
-  {
-    partner: 'Viator', color: '#3DA35D',
-    experiences: [
-      { icon: UtensilsCrossed, gradient: 'linear-gradient(150deg,#6f9e7e,#4e8060)', name: 'Dégustation de spécialités locales', desc: 'Vins, fromages et produits du terroir, commentés.', category: 'Gastronomie', priceValue: 45, unit: '/ pers.', commission: 15 },
-      { icon: Sparkles, gradient: 'linear-gradient(150deg,#5e9070,#477352)', name: 'Atelier cuisine du marché', desc: 'Marché puis cuisine avec un chef local.', category: 'Gastronomie', priceValue: 65, unit: '/ pers.', commission: 15 },
-    ],
-  },
-  {
-    partner: 'Klook', color: '#FF5722',
-    experiences: [
-      { icon: Compass, gradient: 'linear-gradient(150deg,#d98a5a,#b86f3e)', name: 'Visite guidée de la médina', desc: 'Les incontournables avec un guide local.', category: 'Découverte', priceValue: 29, unit: '/ pers.', commission: 10 },
-      { icon: Tent, gradient: 'linear-gradient(150deg,#d07c4e,#ab6235)', name: 'Excursion désert & dunes', desc: 'Journée 4×4, déjeuner inclus.', category: 'Aventure', priceValue: 95, unit: '/ pers.', commission: 11 },
-    ],
-  },
-  {
-    partner: 'Partenaire local', color: '#5453D6',
-    experiences: [
-      { icon: Flower2, gradient: 'linear-gradient(150deg,#8a86c8,#6a66b0)', name: 'Spa & hammam à domicile', desc: 'Praticien diplômé, matériel fourni.', category: 'Bien-être', priceValue: 80, unit: '/ séance', commission: 20 },
-    ],
-  },
-];
-
-type Segment = 'all' | 'internal' | 'partner';
+// Marketplace partenaire : données (fixtures) + composant refondu dans `./marketplace/` (refonte 2026-06).
 type CanalFilter = 'all' | 'livret' | 'booking';
 /** Données minimales d'aperçu guest d'un service (carte telle que vue par le voyageur). */
 interface PreviewData { title: string; description: string | null; price: number; currency: string; imageUrl: string | null; }
 // null = vue catalogue ; sinon = écran détaillé (service interne ou expérience partenaire).
-type Selected =
-  | { kind: 'internal'; id: number }
-  | { kind: 'partner'; partnerIdx: number; expIdx: number };
+type Selected = { kind: 'internal'; id: number };
 
 interface EditState {
   open: boolean;
@@ -236,7 +190,6 @@ const UpsellsAdmin: React.FC = () => {
 
   // ── Vue catalogue ↔ détail + filtres ──────────────────────────────────────
   const [selected, setSelected] = useState<Selected | null>(null);
-  const [seg, setSeg] = useState<Segment>('all');
   const [search, setSearch] = useState('');
   const [canalFilter, setCanalFilter] = useState<CanalFilter>('all');
   const [catFilter, setCatFilter] = useState<string | null>(null);
@@ -250,6 +203,8 @@ const UpsellsAdmin: React.FC = () => {
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [commissionsOpen, setCommissionsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UpsellOffer | null>(null);
+  // Menu « … » d'actions par ligne (table « Mes services », parité Booking Engine / Welcome guide).
+  const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; offer: UpsellOffer } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
     open: false,
@@ -326,11 +281,6 @@ const UpsellsAdmin: React.FC = () => {
   const perfFor = (title: string) => perfByTitle.get(title) ?? { count: 0, revenue: 0 };
 
   const presentTypes = useMemo(() => Array.from(new Set(offers.map((o) => o.type))), [offers]);
-  const partnerTotal = useMemo(
-    () => MARKETPLACE_PARTNERS.reduce((s, p) => s + p.experiences.length, 0),
-    [],
-  );
-  const totalCount = offers.length + partnerTotal;
 
   const filteredOffers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -354,9 +304,6 @@ const UpsellsAdmin: React.FC = () => {
   const openInternalDetail = (o: UpsellOffer) => {
     setSelected({ kind: 'internal', id: o.id });
   };
-  const openPartnerDetail = (partnerIdx: number, expIdx: number) => {
-    setSelected({ kind: 'partner', partnerIdx, expIdx });
-  };
 
   const openCreate = (prefill?: Partial<EditState>) => setEdit({ ...emptyEdit, open: true, ...prefill });
   const openEdit = (o: UpsellOffer) =>
@@ -376,11 +323,16 @@ const UpsellsAdmin: React.FC = () => {
       bundleOfferIds: o.bundleOfferIds ? o.bundleOfferIds.split(',').map((x) => x.trim()).filter(Boolean) : [],
     });
 
-  // « Ajouter » depuis la marketplace : pré-remplit le formulaire de création
-  // (l'hôte revoit puis enregistre → devient un service interne).
-  const addFromPartner = (m: MarketplaceExperience) => {
-    openCreate({ type: 'EXPERIENCE', title: m.name, description: m.desc, price: String(m.priceValue), currency: DEFAULT_CURRENCY });
-    notify(t('upsells.market.prefilled', 'Pré-rempli depuis le partenaire — vérifiez puis enregistrez.'), 'info');
+  // « Ajouter » depuis la marketplace : création directe (optimiste côté ServicesCatalog) → service interne.
+  const handleMarketplaceAdd = async (m: MarketplaceExperience) => {
+    try {
+      await upsellApi.createOffer({ type: 'EXPERIENCE', title: m.title, description: m.desc, price: m.price, currency: DEFAULT_CURRENCY, active: true });
+      await refetch();
+      notify(`« ${m.title} » ajouté à vos services.`, 'success');
+    } catch (e) {
+      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
+      throw e; // remonte pour que ServicesCatalog annule l'état optimiste
+    }
   };
 
   // Aperçu guest d'un service : à brancher (pas de route d'aperçu par service pour l'instant).
@@ -590,144 +542,27 @@ const UpsellsAdmin: React.FC = () => {
   // ── Catalogue (vue liste) ──────────────────────────────────────────────────
   const renderList = () => (
     <>
-      {/* KPIs + segment de vue sur une MÊME ligne (recherche + filtres Canal/Catégorie
-          sont dans le PageHeader). */}
-      <div className="svc-band">
-        <div className="kpis">
-          <div className="kpi"><b>{activeCount}</b><span>{t('upsells.kpi.active', 'Services actifs')}</span></div>
-          <div className="kpi"><b>{bookings30}</b><span>{t('upsells.kpi.bookings', 'Réservations · 30 j')}</span></div>
-          <div className="kpi"><b><Money value={revenue30} decimals={0} /></b><span>{t('upsells.kpi.revenue', 'Revenu · 30 j')}</span></div>
-        </div>
-        <div className="filters">
-          <button className={seg === 'all' ? 'on' : ''} onClick={() => setSeg('all')}>{t('upsells.seg.all', 'Tous')} <span className="n">{totalCount}</span></button>
-          <button className={seg === 'internal' ? 'on' : ''} onClick={() => setSeg('internal')}>{t('upsells.seg.internal', 'Internes')} <span className="n">{offers.length}</span></button>
-          <button className={seg === 'partner' ? 'on' : ''} onClick={() => setSeg('partner')}>{t('upsells.seg.partner', 'Partenaires')} <span className="n">{partnerTotal}</span></button>
-        </div>
-      </div>
-
-      {seg !== 'partner' && (
-        <>
-          <div className="slabel">
-            <h2>{t('upsells.section.title', 'Mes services')}</h2>
-            <span className="src internal">{t('upsells.source.internal', 'Source interne')}</span>
-            <div className="sp" />
-          </div>
-          {isLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
-          ) : filteredOffers.length === 0 ? (
-            <EmptyHint
-              icon={<Tag size={18} strokeWidth={1.75} />}
-              text={offers.length === 0
-                ? t('upsells.empty.description', 'Créez votre premier service additionnel à proposer aux voyageurs.')
-                : t('upsells.empty.filtered', 'Aucun service ne correspond à votre recherche.')}
-            />
-          ) : (
-            <div className="tbl">
-              <div className="cat-h">
-                <span>{t('upsells.col.service', 'Service')}</span>
-                <span className="col-src">{t('upsells.col.source', 'Source')}</span>
-                <span className="col-chan">{t('upsells.col.channels', 'Canaux')}</span>
-                <span>{t('upsells.col.price', 'Prix')}</span>
-                <span className="col-resa">{t('upsells.col.resa', 'Résa · 30j')}</span>
-                <span className="col-stat">{t('upsells.col.status', 'Statut')}</span>
-                <span />
-              </div>
-              {filteredOffers.map((o) => {
-                const Ic = typeIcon(o.type);
-                const perf = perfFor(o.title);
-                return (
-                  <div
-                    key={o.id}
-                    className="trow"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => openInternalDetail(o)}
-                    onKeyDown={onActivate(() => openInternalDetail(o))}
-                  >
-                    <span className="svc-cell">
-                      <span className="svc-ic"><Ic size={20} strokeWidth={2} /></span>
-                      <span style={{ minWidth: 0 }}><b>{o.title}</b><small>{typeLabel(o.type)}</small></span>
-                    </span>
-                    <span className="col-src">
-                      <span className="src-tag int"><span className="pdot" style={{ background: 'var(--accent)' }} />{t('upsells.detail.internalShort', 'Interne')}</span>
-                    </span>
-                    <span className="col-chan chans">
-                      <span className={`ch ${o.active ? 'on-l' : 'off'}`}><BookOpen size={12} strokeWidth={2} />{t('upsells.channel.guide', 'Livret')}</span>
-                      <span className={`ch ${o.active ? 'on-b' : 'off'}`}><Network size={12} strokeWidth={2} />{t('upsells.channel.booking', 'Booking')}</span>
-                    </span>
-                    <span className="price"><Money value={o.price} from={o.currency} /></span>
-                    <span className="col-resa resa"><b>{perf.count}</b></span>
-                    <span className="col-stat">
-                      <button
-                        className={`switch ${o.active ? '' : 'off'}`}
-                        disabled={togglingId === o.id}
-                        aria-label={o.active ? t('upsells.active', 'Actif') : t('upsells.inactive', 'Inactif')}
-                        onClick={(e) => { e.stopPropagation(); toggleActive(o); }}
-                      />
-                    </span>
-                    <span className="go r"><ChevronRight size={17} strokeWidth={2} /></span>
-                  </div>
-                );
-              })}
+      {/* Catalogue unifié : services internes + expériences partenaires (filtre source + pagination).
+          Recherche / filtres Canal-Catégorie restent dans le PageHeader (alimentent filteredOffers). */}
+      <ServicesCatalog
+        loading={isLoading}
+        offers={filteredOffers}
+        search={search}
+        addedTitles={offers.map((o) => o.title)}
+        typeLabel={typeLabel}
+        onAdd={handleMarketplaceAdd}
+        onOpenInternal={openInternalDetail}
+        onMenuInternal={(el, o) => setRowMenu({ el, offer: o })}
+        kpis={(
+          <div className="svc-band">
+            <div className="kpis">
+              <div className="kpi"><b>{activeCount}</b><span>{t('upsells.kpi.active', 'Services actifs')}</span></div>
+              <div className="kpi"><b>{bookings30}</b><span>{t('upsells.kpi.bookings', 'Réservations · 30 j')}</span></div>
+              <div className="kpi"><b><Money value={revenue30} decimals={0} /></b><span>{t('upsells.kpi.revenue', 'Revenu · 30 j')}</span></div>
             </div>
-          )}
-        </>
-      )}
-
-      {seg !== 'internal' && (
-        <>
-          <div className="slabel" style={{ marginTop: 40 }}>
-            <h2>{t('upsells.market.title', 'Marketplace partenaire')}</h2>
-            <span className="src partner">{t('upsells.source.partner', 'Source partenaire')}</span>
-            <div className="sp" />
           </div>
-          {MARKETPLACE_PARTNERS.map((p, pi) => {
-            const q = search.trim().toLowerCase();
-            const visible = p.experiences
-              .map((m, ei) => ({ m, ei }))
-              .filter(({ m }) => !q || m.name.toLowerCase().includes(q));
-            if (!visible.length) return null;
-            return (
-              <div className="mk-group" key={p.partner}>
-                <div className="mk-group__head">
-                  {/* TODO: logo officiel du partenaire (brand kit) au lieu de la pastille couleur. */}
-                  <span className="mk-group__name"><span className="mk__pdot" style={{ background: p.color }} /> {p.partner}</span>
-                  <span className="mk-group__count">{visible.length} {visible.length > 1 ? t('upsells.market.experiences', 'expériences') : t('upsells.market.experience', 'expérience')}</span>
-                </div>
-                <div className="mk-row">
-                  {visible.map(({ m, ei }) => (
-                    <div
-                      className="mk"
-                      role="button"
-                      tabIndex={0}
-                      key={ei}
-                      onClick={() => openPartnerDetail(pi, ei)}
-                      onKeyDown={onActivate(() => openPartnerDetail(pi, ei))}
-                    >
-                      <div className="mk__img" style={{ background: m.gradient }}>
-                        <span className="mk__partner"><span className="mk__pdot" style={{ background: p.color }} />{p.partner}</span>
-                      </div>
-                      <div className="mk__body">
-                        <p className="mk__name">{m.name}</p>
-                        <p className="mk__desc">{m.desc}</p>
-                        <div className="mk__foot">
-                          <div>
-                            <p className="mk__price"><Money value={m.priceValue} from={DEFAULT_CURRENCY} decimals={0} /> <small>{m.unit}</small></p>
-                            <p className="mk__comm">{m.commission}% {t('upsells.market.commission', 'de commission')}</p>
-                          </div>
-                          <button className="mk__add" type="button" onClick={(e) => { e.stopPropagation(); addFromPartner(m); }}>
-                            <Add size={15} strokeWidth={2} /> {t('upsells.market.add', 'Ajouter')}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </>
-      )}
+        )}
+      />
 
       <Menu anchorEl={canalAnchor} open={!!canalAnchor} onClose={() => setCanalAnchor(null)}>
         {(['all', 'livret', 'booking'] as CanalFilter[]).map((v) => (
@@ -745,6 +580,20 @@ const UpsellsAdmin: React.FC = () => {
             {typeLabel(tp)}
           </MenuItem>
         ))}
+      </Menu>
+      {/* Menu d'actions par ligne — toggle actif / modifier / supprimer (aucune action perdue). */}
+      <Menu anchorEl={rowMenu?.el ?? null} open={!!rowMenu} onClose={() => setRowMenu(null)}>
+        {rowMenu && ([
+          <MenuItem key="toggle" disabled={togglingId === rowMenu.offer.id} onClick={() => { toggleActive(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
+            <Power size={16} strokeWidth={2} /> {rowMenu.offer.active ? t('upsells.actions.deactivate', 'Désactiver') : t('upsells.actions.activate', 'Activer')}
+          </MenuItem>,
+          <MenuItem key="edit" onClick={() => { openEdit(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
+            <Edit size={16} strokeWidth={2} /> {t('upsells.actions.edit', 'Modifier')}
+          </MenuItem>,
+          <MenuItem key="del" onClick={() => { handleDelete(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1, color: 'error.main' }}>
+            <Delete size={16} strokeWidth={2} /> {t('upsells.actions.delete', 'Supprimer')}
+          </MenuItem>,
+        ])}
       </Menu>
     </>
   );
@@ -854,81 +703,8 @@ const UpsellsAdmin: React.FC = () => {
       );
     }
 
-    // Expérience partenaire (aperçu — pas encore ajoutée au catalogue).
-    const partner = MARKETPLACE_PARTNERS[selected.partnerIdx];
-    const exp = partner?.experiences[selected.expIdx];
-    if (!partner || !exp) return null;
-    const Ic = exp.icon;
-    return (
-      <div className="detail">
-        {backBtn}
-        <div className="dhead">
-          <div className="dhead__ic partner"><Ic size={28} strokeWidth={2} /></div>
-          <div className="dhead__t">
-            <h1>{exp.name}</h1>
-            <div className="dhead__meta">
-              <span>{exp.category}</span><span>·</span>
-              <span className="src-tag"><span className="pdot" style={{ background: partner.color }} />{partner.partner}</span>
-            </div>
-          </div>
-          <div className="dhead__act">
-            <button className="btn-ghost" onClick={() => handlePreview({ title: exp.name, description: exp.desc, price: exp.priceValue, currency: DEFAULT_CURRENCY, imageUrl: null })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
-          </div>
-        </div>
-
-        <div className="dgrid">
-          <div>
-            <div className="dcard">
-              <h3>{t('upsells.detail.description', 'Description')}</h3>
-              <p className="lead">{exp.desc}</p>
-              <div className="gallery">{[0, 1, 2].map((i) => <i key={i} style={{ background: exp.gradient, opacity: 0.85 }} />)}</div>
-            </div>
-            <div className="dcard">
-              <h3>{t('upsells.detail.pricing', 'Tarification')}</h3>
-              <div className="price-row"><b><Money value={exp.priceValue} from={DEFAULT_CURRENCY} decimals={0} /></b><span>{exp.unit}</span></div>
-              <div className="deflist">
-                <div className="d"><span>{t('upsells.detail.billing', 'Facturation')}</span><b>{t('upsells.detail.partnerBilling', 'Réservation partenaire')}</b></div>
-                <div className="d"><span>{t('upsells.detail.marketplace', 'Marketplace')}</span><b>{partner.partner}</b></div>
-                <div className="d"><span>{t('upsells.detail.commission', 'Commission')}</span><b style={{ color: 'var(--warn)' }}>{exp.commission}%</b></div>
-                <div className="d"><span>{t('upsells.fields.type', 'Catégorie')}</span><b>{exp.category}</b></div>
-              </div>
-            </div>
-          </div>
-
-          <aside>
-            <div className="dcard">
-              <h3>{t('upsells.detail.distribution', 'Distribution')}</h3>
-              <div className="dist">
-                <div className="dist__row">
-                  <span className="ic l"><BookOpen size={18} strokeWidth={2} /></span>
-                  <div className="t"><b>{t('upsells.detail.guideChannel', "Livret d'accueil")}</b><small>{t('upsells.detail.notAdded', 'Ajoutez-le à votre catalogue pour le diffuser')}</small></div>
-                  <button className="switch off" aria-label={t('upsells.detail.guideChannel', "Livret d'accueil")} disabled />
-                </div>
-                <div className="dist__row">
-                  <span className="ic b"><Network size={18} strokeWidth={2} /></span>
-                  <div className="t"><b>{t('upsells.detail.bookingChannel', 'Booking Engine')}</b><small>{t('upsells.detail.notAdded', 'Ajoutez-le à votre catalogue pour le diffuser')}</small></div>
-                  <button className="switch off" aria-label={t('upsells.detail.bookingChannel', 'Booking Engine')} disabled />
-                </div>
-              </div>
-            </div>
-
-            <div className="dcard">
-              <h3>{t('upsells.detail.partner', 'Partenaire')}</h3>
-              <div className="deflist">
-                <div className="d"><span>{t('upsells.detail.marketplace', 'Marketplace')}</span><b>{partner.partner}</b></div>
-                <div className="d"><span>{t('upsells.detail.commission', 'Commission')}</span><b style={{ color: 'var(--warn)' }}>{exp.commission}%</b></div>
-                <div className="d"><span>{t('upsells.fields.type', 'Catégorie')}</span><b>{exp.category}</b></div>
-                <div className="d"><span>{t('upsells.detail.statusLabel', 'Statut')}</span><b style={{ color: 'var(--muted)' }}>{t('upsells.detail.notAddedShort', 'Non ajouté')}</b></div>
-              </div>
-              {/* TODO: connecteur réel — créer le service lié au partenaire (commission incluse). */}
-              <Button fullWidth variant="contained" sx={{ mt: 2 }} startIcon={<Add size={16} strokeWidth={2} />} onClick={() => addFromPartner(exp)}>
-                {t('upsells.market.addToCatalog', 'Ajouter à mon catalogue')}
-              </Button>
-            </div>
-          </aside>
-        </div>
-      </div>
-    );
+    // Détail d'une expérience partenaire : désormais géré par <ServicesCatalog> (état local interne).
+    return null;
   };
 
   return (

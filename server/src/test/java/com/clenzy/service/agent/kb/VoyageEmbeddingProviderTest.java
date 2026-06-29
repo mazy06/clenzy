@@ -1,6 +1,6 @@
 package com.clenzy.service.agent.kb;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.clenzy.service.agent.kb.EmbeddingProvider.EmbeddingTarget;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,28 +21,23 @@ class VoyageEmbeddingProviderTest {
 
     private RestTemplate restTemplate;
     private MockRestServiceServer mockServer;
-    private ObjectMapper om;
+    private VoyageEmbeddingProvider provider;
+
+    /** Cible nominale resolue depuis la config DB (cle/modele/baseUrl/dimension). */
+    private static EmbeddingTarget target(String apiKey) {
+        return new EmbeddingTarget(apiKey, "voyage-3-large", "https://api.voyageai.com", 1024);
+    }
 
     @BeforeEach
     void setUp() {
         restTemplate = new RestTemplate();
         mockServer = MockRestServiceServer.createServer(restTemplate);
-        om = new ObjectMapper();
-    }
-
-    private VoyageEmbeddingProvider providerWithKey(String key) {
-        return new VoyageEmbeddingProvider(restTemplate, om, key,
-                "voyage-3-large", "https://api.voyageai.com");
+        provider = new VoyageEmbeddingProvider(restTemplate);
     }
 
     @Test
     void name_isVoyage() {
-        assertEquals("voyage", providerWithKey("k").name());
-    }
-
-    @Test
-    void dimensions_defaultsTo1024() {
-        assertEquals(1024, providerWithKey("k").dimensions());
+        assertEquals("voyage", provider.name());
     }
 
     @Nested
@@ -51,13 +46,19 @@ class VoyageEmbeddingProviderTest {
 
         @Test
         void nullText_returnsZeroVector() {
-            float[] v = providerWithKey("k").embed(null);
+            float[] v = provider.embed(null, target("k"));
             assertEquals(1024, v.length);
         }
 
         @Test
         void blankText_returnsZeroVector() {
-            float[] v = providerWithKey("k").embed("   ");
+            float[] v = provider.embed("   ", target("k"));
+            assertEquals(1024, v.length);
+        }
+
+        @Test
+        void emptyText_returnsZeroVector() {
+            float[] v = provider.embed("", target("k"));
             assertEquals(1024, v.length);
         }
     }
@@ -68,19 +69,26 @@ class VoyageEmbeddingProviderTest {
 
         @Test
         void nullOrEmptyBatch_returnsEmpty_noHttp() {
-            VoyageEmbeddingProvider p = providerWithKey("k");
-            assertTrue(p.embedBatch(null).isEmpty());
-            assertTrue(p.embedBatch(List.of()).isEmpty());
+            assertTrue(provider.embedBatch(null, target("k")).isEmpty());
+            assertTrue(provider.embedBatch(List.of(), target("k")).isEmpty());
         }
 
         @Test
-        void noApiKey_throwsEmbeddingException() {
-            VoyageEmbeddingProvider p = providerWithKey("");
+        void nullApiKey_throwsEmbeddingException() {
             EmbeddingProvider.EmbeddingException ex = assertThrows(
                     EmbeddingProvider.EmbeddingException.class,
-                    () -> p.embedBatch(List.of("hello")));
-            assertTrue(ex.getMessage().toLowerCase().contains("voyage_api_key")
-                    || ex.getMessage().toLowerCase().contains("clenzy.ai.embeddings"));
+                    () -> provider.embedBatch(List.of("hello"), target(null)));
+            assertTrue(ex.getMessage().toLowerCase().contains("cle")
+                    || ex.getMessage().toLowerCase().contains("voyage"));
+        }
+
+        @Test
+        void blankApiKey_throwsEmbeddingException() {
+            EmbeddingProvider.EmbeddingException ex = assertThrows(
+                    EmbeddingProvider.EmbeddingException.class,
+                    () -> provider.embedBatch(List.of("hello"), target("   ")));
+            assertTrue(ex.getMessage().toLowerCase().contains("cle")
+                    || ex.getMessage().toLowerCase().contains("voyage"));
         }
 
         @Test
@@ -97,10 +105,11 @@ class VoyageEmbeddingProviderTest {
                             }
                             """, MediaType.APPLICATION_JSON));
 
-            List<float[]> result = providerWithKey("k").embedBatch(List.of("a", "b"));
+            List<float[]> result = provider.embedBatch(List.of("a", "b"), target("k"));
             assertEquals(2, result.size());
             assertEquals(0.1f, result.get(0)[0], 1e-6);
             assertEquals(0.6f, result.get(1)[2], 1e-6);
+            mockServer.verify();
         }
 
         @Test
@@ -110,7 +119,7 @@ class VoyageEmbeddingProviderTest {
                             {"data": [{"embedding": [0.99], "index": 0}]}
                             """, MediaType.APPLICATION_JSON));
 
-            float[] v = providerWithKey("k").embed("hello");
+            float[] v = provider.embed("hello", target("k"));
             assertEquals(1, v.length);
             assertEquals(0.99f, v[0], 1e-6);
         }
@@ -122,7 +131,7 @@ class VoyageEmbeddingProviderTest {
                             {"data": [{"embedding": null, "index": 0}]}
                             """, MediaType.APPLICATION_JSON));
 
-            List<float[]> result = providerWithKey("k").embedBatch(List.of("x"));
+            List<float[]> result = provider.embedBatch(List.of("x"), target("k"));
             assertEquals(1, result.size());
             assertEquals(1024, result.get(0).length);
         }
@@ -134,7 +143,7 @@ class VoyageEmbeddingProviderTest {
 
             EmbeddingProvider.EmbeddingException ex = assertThrows(
                     EmbeddingProvider.EmbeddingException.class,
-                    () -> providerWithKey("k").embedBatch(List.of("hello")));
+                    () -> provider.embedBatch(List.of("hello"), target("k")));
             assertTrue(ex.getMessage().toLowerCase().contains("voyage"));
         }
 
@@ -143,7 +152,7 @@ class VoyageEmbeddingProviderTest {
             mockServer.expect(requestTo("https://api.voyageai.com/v1/embeddings"))
                     .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
             assertThrows(EmbeddingProvider.EmbeddingException.class,
-                    () -> providerWithKey("k").embedBatch(List.of("a")));
+                    () -> provider.embedBatch(List.of("a"), target("k")));
         }
 
         @Test
@@ -155,8 +164,76 @@ class VoyageEmbeddingProviderTest {
                     .andRespond(withSuccess(generateOkResponse(2), MediaType.APPLICATION_JSON));
 
             List<String> texts = IntStream.range(0, 130).mapToObj(i -> "t" + i).toList();
-            List<float[]> result = providerWithKey("k").embedBatch(texts);
+            List<float[]> result = provider.embedBatch(texts, target("k"));
             assertEquals(130, result.size());
+            mockServer.verify();
+        }
+    }
+
+    @Nested
+    @DisplayName("Endpoint resolution from target.baseUrl")
+    class EndpointResolution {
+
+        @Test
+        void baseUrlEndingInV1_appendsEmbeddingsOnly() {
+            mockServer.expect(requestTo("https://proxy.example.com/v1/embeddings"))
+                    .andExpect(method(HttpMethod.POST))
+                    .andRespond(withSuccess("""
+                            {"data": [{"embedding": [0.5], "index": 0}]}
+                            """, MediaType.APPLICATION_JSON));
+
+            EmbeddingTarget t = new EmbeddingTarget(
+                    "k", "voyage-3-large", "https://proxy.example.com/v1", 1024);
+            List<float[]> result = provider.embedBatch(List.of("a"), t);
+            assertEquals(1, result.size());
+            mockServer.verify();
+        }
+
+        @Test
+        void baseUrlWithoutV1_appendsV1Embeddings() {
+            mockServer.expect(requestTo("https://proxy.example.com/v1/embeddings"))
+                    .andExpect(method(HttpMethod.POST))
+                    .andRespond(withSuccess("""
+                            {"data": [{"embedding": [0.5], "index": 0}]}
+                            """, MediaType.APPLICATION_JSON));
+
+            EmbeddingTarget t = new EmbeddingTarget(
+                    "k", "voyage-3-large", "https://proxy.example.com", 1024);
+            List<float[]> result = provider.embedBatch(List.of("a"), t);
+            assertEquals(1, result.size());
+            mockServer.verify();
+        }
+    }
+
+    @Nested
+    @DisplayName("Model fallback")
+    class ModelFallback {
+
+        @Test
+        void blankModel_fallsBackToDefaultModelInRequestBody() {
+            mockServer.expect(requestTo("https://api.voyageai.com/v1/embeddings"))
+                    .andExpect(method(HttpMethod.POST))
+                    .andExpect(jsonPath("$.model").value(VoyageEmbeddingProvider.DEFAULT_MODEL))
+                    .andRespond(withSuccess("""
+                            {"data": [{"embedding": [0.1], "index": 0}]}
+                            """, MediaType.APPLICATION_JSON));
+
+            EmbeddingTarget t = new EmbeddingTarget("k", "  ", "https://api.voyageai.com", 1024);
+            provider.embedBatch(List.of("a"), t);
+            mockServer.verify();
+        }
+
+        @Test
+        void explicitModel_isUsedInRequestBody() {
+            mockServer.expect(requestTo("https://api.voyageai.com/v1/embeddings"))
+                    .andExpect(jsonPath("$.model").value("voyage-3-lite"))
+                    .andRespond(withSuccess("""
+                            {"data": [{"embedding": [0.1], "index": 0}]}
+                            """, MediaType.APPLICATION_JSON));
+
+            EmbeddingTarget t = new EmbeddingTarget(
+                    "k", "voyage-3-lite", "https://api.voyageai.com", 1024);
+            provider.embedBatch(List.of("a"), t);
             mockServer.verify();
         }
     }
