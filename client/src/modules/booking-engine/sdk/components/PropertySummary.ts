@@ -79,6 +79,13 @@ export function createPropertySummary(state: StateManager, baseUrl: string, i18n
       info.appendChild(buildCapacity(prop.maxGuests, prop.bedroomCount, i18n));
     }
 
+    if (prop.description && prop.description.trim()) {
+      const desc = document.createElement('p');
+      desc.className = 'cb-text-sm cb-property-summary__desc';
+      desc.textContent = prop.description.trim();
+      info.appendChild(desc);
+    }
+
     if (prop.priceFrom != null) {
       info.appendChild(buildPrice(prop.priceFrom, prop.currency, i18n));
     }

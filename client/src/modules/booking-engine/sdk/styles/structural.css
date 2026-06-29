@@ -466,6 +466,7 @@
 .cb-property-summary__note-star { display: inline-flex; }
 .cb-property-summary__note-star svg { width: 15px; height: 15px; }
 .cb-property-summary__capacity { display: flex; gap: 18px; flex-wrap: wrap; }
+.cb-property-summary__desc { margin: 4px 0 0; line-height: 1.6; max-width: 62ch; white-space: pre-line; }
 .cb-property-summary__cap-item { display: inline-flex; align-items: center; gap: 6px; }
 .cb-property-summary__cap-item svg { width: 15px; height: 15px; }
 @media (max-width: 720px) { .cb-property-summary--detail { flex-direction: column; } }
