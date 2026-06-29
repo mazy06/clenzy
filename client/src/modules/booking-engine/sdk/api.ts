@@ -23,6 +23,8 @@ export interface ApiProperty {
   amenities: string[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** Description publique du logement (texte libre). Optionnel (exposé backend). */
+  description?: string | null;
   /** Note moyenne des avis publics (0..5), null si aucun avis. Optionnel (exposé backend Phase 2). */
   rating?: number | null;
   /** Nombre d'avis publics. */

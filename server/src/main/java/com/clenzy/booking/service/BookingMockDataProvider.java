@@ -386,7 +386,8 @@ public class BookingMockDataProvider {
                 PHOTO_1, List.of(PHOTO_1, PHOTO_2), amenities,
                 DEMO_CHECK_IN_TIME, DEMO_CHECK_OUT_TIME,
                 null, null,
-                4.9, 38L
+                4.9, 38L,
+                description
             );
         }
 
