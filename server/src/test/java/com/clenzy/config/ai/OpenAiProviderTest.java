@@ -61,7 +61,7 @@ class OpenAiProviderTest {
             RestClient mockClient = createMockClient(responseJson);
             provider.setRestClient(mockClient);
 
-            AiRequest request = AiRequest.of("You are helpful.", "Say hello");
+            AiRequest request = AiRequest.withModel("You are helpful.", "Say hello", "gpt-test");
             AiResponse response = provider.chat(request);
 
             assertEquals("Hello, world!", response.content());
@@ -88,7 +88,7 @@ class OpenAiProviderTest {
             RestClient mockClient = createMockClient(responseJson);
             provider.setRestClient(mockClient);
 
-            AiRequest request = AiRequest.json("Extract JSON.", "Some data");
+            AiRequest request = AiRequest.json("Extract JSON.", "Some data").overrideModel("gpt-test");
             AiResponse response = provider.chat(request);
 
             assertEquals("{\"key\": \"value\"}", response.content());
@@ -107,7 +107,7 @@ class OpenAiProviderTest {
             RestClient mockClient = createMockClient(responseJson);
             provider.setRestClient(mockClient);
 
-            AiRequest request = AiRequest.of("test", "test");
+            AiRequest request = AiRequest.withModel("test", "test", "gpt-test");
             AiProviderException ex = assertThrows(AiProviderException.class, () -> provider.chat(request));
             assertTrue(ex.getMessage().contains("Empty choices"));
             assertEquals("openai", ex.getProvider());
@@ -122,7 +122,7 @@ class OpenAiProviderTest {
             RestClient mockClient = createMockClient(responseJson);
             provider.setRestClient(mockClient);
 
-            AiRequest request = AiRequest.of("test", "test");
+            AiRequest request = AiRequest.withModel("test", "test", "gpt-test");
             assertThrows(AiProviderException.class, () -> provider.chat(request));
         }
 
@@ -141,7 +141,7 @@ class OpenAiProviderTest {
             RestClient mockClient = createMockClient(responseJson);
             provider.setRestClient(mockClient);
 
-            AiRequest request = AiRequest.of("test", "test");
+            AiRequest request = AiRequest.withModel("test", "test", "gpt-test");
             AiResponse response = provider.chat(request);
 
             assertEquals(0, response.promptTokens());
@@ -169,6 +169,17 @@ class OpenAiProviderTest {
             AiResponse response = provider.chat(request);
 
             assertEquals("gpt-4o-mini", response.model());
+        }
+
+        @Test
+        void nullModel_throwsAiProviderException() {
+            // Plus de defaut env : une requete sans modele doit echouer avant tout appel HTTP.
+            provider.setRestClient(createMockClient("{}"));
+
+            AiRequest request = AiRequest.of("sys", "usr");
+            AiProviderException ex = assertThrows(AiProviderException.class, () -> provider.chat(request));
+            assertTrue(ex.getMessage().contains("Aucun modèle résolu"));
+            assertEquals("openai", ex.getProvider());
         }
     }
 

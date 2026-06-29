@@ -11,8 +11,8 @@ import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.ReviewTag;
 import com.clenzy.model.SentimentLabel;
-import com.clenzy.service.AiKeyResolver.KeySource;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.clenzy.service.KeySource;
+import com.clenzy.service.ResolvedTarget;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -164,23 +164,14 @@ class SentimentAnalysisServiceTest {
     @Nested
     class AiPowered {
 
-        private static final ResolvedKey PLATFORM_KEY = new ResolvedKey("sk-platform", null, KeySource.PLATFORM);
-
-        private void enableSentimentAi() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setSentimentAi(true);
-            when(aiProperties.getFeatures()).thenReturn(features);
-        }
-
-        private void disableSentimentAi() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setSentimentAi(false);
-            when(aiProperties.getFeatures()).thenReturn(features);
-        }
+        private static final ResolvedTarget PLATFORM_KEY = new ResolvedTarget(null, null, "sk-platform", null, KeySource.PLATFORM_DB);
 
         @Test
-        void featureFlagDisabled_throws() {
-            disableSentimentAi();
+        void featureDisabled_throws() {
+            doThrow(new AiNotConfiguredException("AI_FEATURE_DISABLED", "sentiment", "Sentiment AI disabled"))
+                .when(tokenBudgetService).requireFeatureEnabled(
+                    org.mockito.ArgumentMatchers.anyLong(),
+                    org.mockito.ArgumentMatchers.eq(AiFeature.SENTIMENT));
 
             assertThrows(AiNotConfiguredException.class,
                 () -> service.analyzeAi("Great place!", "en", 1L));
@@ -188,7 +179,6 @@ class SentimentAnalysisServiceTest {
 
         @Test
         void validResponse_parsesCorrectly() {
-            enableSentimentAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Great place!");
             AiResponse aiResponse = new AiResponse(
@@ -198,7 +188,7 @@ class SentimentAnalysisServiceTest {
                 40, 80, 120, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.SENTIMENT), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             AiSentimentResultDto result = service.analyzeAi("Great place!", "en", 1L);
 
@@ -211,7 +201,6 @@ class SentimentAnalysisServiceTest {
 
         @Test
         void callsAnonymization() {
-            enableSentimentAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize("My email john@test.com review")).thenReturn("My email [EMAIL] review");
             AiResponse aiResponse = new AiResponse(
@@ -221,7 +210,7 @@ class SentimentAnalysisServiceTest {
                 20, 30, 50, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.SENTIMENT), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             service.analyzeAi("My email john@test.com review", "en", 1L);
 
@@ -230,10 +219,9 @@ class SentimentAnalysisServiceTest {
 
         @Test
         void budgetExceeded_throws() {
-            enableSentimentAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("SENTIMENT", 100_000, 100_000))
-                .when(tokenBudgetService).requireBudget(1L, AiFeature.SENTIMENT, KeySource.PLATFORM);
+                .when(tokenBudgetService).requireBudget(1L, AiFeature.SENTIMENT, KeySource.PLATFORM_DB);
 
             assertThrows(AiBudgetExceededException.class,
                 () -> service.analyzeAi("Great place!", "en", 1L));
@@ -241,7 +229,6 @@ class SentimentAnalysisServiceTest {
 
         @Test
         void recordsUsage() {
-            enableSentimentAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Great");
             AiResponse response = new AiResponse(
@@ -251,7 +238,7 @@ class SentimentAnalysisServiceTest {
                 30, 50, 80, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.SENTIMENT), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM_DB));
 
             service.analyzeAi("Great", "en", 1L);
 
@@ -260,12 +247,11 @@ class SentimentAnalysisServiceTest {
 
         @Test
         void invalidJson_throwsProviderException() {
-            enableSentimentAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse aiResponse = new AiResponse("invalid json", 10, 5, 15, "claude-3-haiku", "end_turn");
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.SENTIMENT), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             assertThrows(AiProviderException.class,
                 () -> service.analyzeAi("Hello", "en", 1L));

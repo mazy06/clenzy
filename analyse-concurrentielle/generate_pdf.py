@@ -111,6 +111,17 @@ CLENZY_V2 = {
         "Multi-langue interface booking": "3",
         "Email de confirmation de reservation": "3",
         "Politiques d'annulation parametrables": "3",
+        "Site web inclus (builder de pages / templates)": "3",
+        "Builder drag-and-drop sans code": "3",
+        "Templates de site pretes a l'emploi": "3",
+        "Panier multi-sejours / multi-proprietes en un checkout": "3",
+        "Multi-devise": "3",
+        "SEO du site direct (meta / schema / sitemap)": "3",
+        "Blog integre / contenu marketing": "3",
+        "Protection anti-fraude / damage protection booking direct": "2",
+        "Capture de leads / email marketing": "2",
+        "SDK / API booking engine pour integration custom": "3",
+        "Outils IA (contenu / SEO / design)": "3",
     },
     "03-calendrier-multitenant.csv": {
         "Edition groupee (rates / min-stay / blocages)": "3",
@@ -130,6 +141,8 @@ CLENZY_V2 = {
     "07-guest-experience.csv": {
         "Collecte de caution / depot (pre-autorisation)": "2",
         "Taxe de sejour (calcul + collecte)": "3",
+        "Check-in en ligne": "3",
+        "Declaration police / registration voyageurs": "2",
     },
     "08-finance-compta.csv": {
         "Gestion depot de garantie/caution (auth-hold)": "2",
@@ -145,10 +158,14 @@ CLENZY_V2 = {
     },
     "12-admin-securite.csv": {
         "2FA / MFA": "2",
+        "Journal d'audit / activity log": "3",
+        "Declaration voyageurs FR (police)": "2",
     },
     "13-ia-automatisation.csv": {
         "IA de pricing / revenue management": "2",
         "Detection d'anomalies / fraude paiement": "2",
+        "Architecture multi-agent productisee": "2",
+        "IA agentique d'action (agents qui executent des taches)": "2",
     },
 }
 

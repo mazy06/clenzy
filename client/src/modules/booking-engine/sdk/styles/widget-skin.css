@@ -5,7 +5,15 @@
  * (rendus headless par le SDK). Piloté par variables avec FALLBACKS : un template surcharge
  * juste les variables (ou des sélecteurs précis), sans réécrire tout le fichier.
  *
- * Variables (à définir sur `.cb-widget` ou un parent ; sinon le fallback s'applique) :
+ * Deux niveaux de variables :
+ *   1. Contrat `--bt-*` = design system du site/template généré (couleurs, espacements,
+ *      rayons, ombres, typo, durées…). C'est la source de vérité quand un thème est posé.
+ *   2. Variables internes du skin `--cb-*` = ce que consomment les règles ci-dessous. Elles
+ *      sont DÉRIVÉES du contrat `--bt-*` (bloc de mapping ci-dessous), avec pour fallback la
+ *      valeur historique. Un template peut toujours surcharger directement un `--cb-*` : son
+ *      override prime sur le défaut dérivé.
+ *
+ * Variables `--cb-*` (à définir sur `.cb-widget` ou un parent ; sinon le défaut dérivé s'applique) :
  *   --cb-accent      couleur principale (boutons, sélection, accents)      défaut #6B8A9A
  *   --cb-on-accent   texte/icône sur l'accent                              défaut #ffffff
  *   --cb-font        police                                                défaut inherit (template)
@@ -18,17 +26,39 @@
  *
  * NB : aucune règle cosmétique sur `.cb-widget` lui-même → on peut y poser les variables
  * (override template) sans rien casser. La mise en page vit dans `structural.css` (SDK).
+ * Sans aucune variable `--bt-*` NI `--cb-*` définie, le rendu est strictement identique à
+ * l'historique (tous les fallbacks valent la valeur d'origine en dur).
  * ───────────────────────────────────────────────────────────────────────────── */
 
 .cb-skin-v1 { --cb-skin: 1; } /* sentinelle de présence (idempotence) */
 
+/* Mapping contrat → skin : dérive les variables internes `--cb-*` du design system `--bt-*`.
+ * Chaque fallback = valeur historique en dur, donc aucun thème = rendu inchangé. Un override
+ * explicite de `--cb-*` posé par-dessus (sur `.cb-widget` ou un parent) prime toujours. */
+.cb-widget {
+  --cb-accent: var(--bt-color-primary, #6B8A9A);
+  --cb-on-accent: var(--bt-color-on-primary, #ffffff);
+  --cb-text: var(--bt-color-text, inherit);
+  --cb-muted: var(--bt-color-text-muted, rgba(0,0,0,.55));
+  --cb-surface: var(--bt-color-surface, #fff);
+  --cb-border: var(--bt-color-border, rgba(0,0,0,.14));
+  --cb-radius: var(--bt-radius-md, 10px);
+  --cb-font: var(--bt-font-body, inherit);
+  --cb-control-h: var(--bt-control-height, 48px);
+}
+
 /* Reset des contrôles natifs des widgets (light DOM, pas de reset.css en headless) : sinon les boutons
  * — notamment les JOURS du calendrier — gardent le look UA (cases bordées grises). `:where()` a une
- * spécificité NULLE → toutes les règles `.cb-*` ci-dessous l'emportent (état hover/selected inclus). */
-.cb-widget :where(button) {
-  appearance: none; -webkit-appearance: none;
-  background: none; border: 0; padding: 0; margin: 0;
-  font: inherit; color: inherit; line-height: inherit; cursor: pointer;
+ * spécificité NULLE → toutes les règles `.cb-*` l'emportent (état hover/selected inclus).
+ * DANS @layer cz-skin : l'habillage stateful du calendrier (`.cb-calendar-day.cb-selected`/`.cb-in-range`…)
+ * vit dans CETTE layer (structural.css). Si ce reset restait NON-layered, il battrait la layer (une couche
+ * a TOUJOURS une priorité < au non-layered) et écraserait à `none` le fond des jours sélectionnés/range. */
+@layer cz-skin {
+  .cb-widget :where(button) {
+    appearance: none; -webkit-appearance: none;
+    background: none; border: 0; padding: 0; margin: 0;
+    font: inherit; color: inherit; line-height: inherit; cursor: pointer;
+  }
 }
 
 /* Typographie relative (hérite de la taille de base du template). */
@@ -58,21 +88,24 @@
   background: var(--cb-surface, #fff);
   color: var(--cb-text, inherit);
   font-family: var(--cb-font, inherit);
-  padding: 0 14px;
+  padding: 0 var(--bt-space-4, 14px);
 }
-.cb-textarea { padding: 12px 14px; }
-.cb-date-input { padding: 8px 14px; }
+.cb-textarea { padding: var(--bt-space-3, 12px) var(--bt-space-4, 14px); }
+.cb-date-input { padding: var(--bt-space-2, 8px) var(--bt-space-4, 14px); }
+/* Variante labeled : étiquette (texte atténué) + icône calendrier (couleur d'accent) — pilotées par tokens. */
+.cb-datefield__label { color: var(--cb-muted, rgba(0,0,0,.55)); }
+.cb-date-input__ic { color: var(--cb-accent, #6B8A9A); }
 .cb-input:focus,
 .cb-textarea:focus,
 .cb-guests-toggle.cb-open { border-color: var(--cb-accent, #6B8A9A); }
 
 /* Boutons d'action (recherche / paiement / ajouter / CTA). */
 .cb-cta {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; min-height: var(--cb-control-h, 48px); padding: 0 20px;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--bt-space-2, 8px);
+  width: 100%; min-height: var(--cb-control-h, 48px); padding: 0 var(--bt-space-5, 20px);
   background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff);
-  border-radius: var(--cb-radius, 10px); font-family: var(--cb-font, inherit);
-  font-weight: 600; cursor: pointer; transition: filter 150ms ease;
+  border-radius: var(--bt-radius-button, var(--cb-radius)); font-family: var(--cb-font, inherit);
+  font-weight: 600; cursor: pointer; transition: filter var(--bt-duration, 150ms) var(--bt-ease, ease);
 }
 .cb-cta:hover:not(:disabled) { filter: brightness(0.94); }
 .cb-cta:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -84,7 +117,7 @@
   border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-top: none;
   border-radius: 0 0 var(--cb-radius, 10px) var(--cb-radius, 10px);
 }
-.cb-guests-row { padding: 12px 14px; }
+.cb-guests-row { padding: var(--bt-space-3, 12px) var(--bt-space-4, 14px); }
 .cb-guests-row + .cb-guests-row { border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); }
 .cb-counter__btn {
   border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: 50%;
@@ -98,7 +131,7 @@
  * la double source. Un template peut surcharger une variable, ou un sélecteur précis pour du sur-mesure. */
 
 /* Récap prix. */
-.cb-price-total { border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); padding-top: 10px; margin-top: 6px; font-weight: 600; }
+.cb-price-total { border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); padding-top: var(--bt-space-3, 10px); margin-top: var(--bt-space-1, 6px); font-weight: 600; }
 
 /* Stepper (progression). */
 .cb-step__dot { border-radius: 50%; background: var(--cb-border, rgba(0,0,0,.14)); }
@@ -106,49 +139,80 @@
 .cb-step__line { background: var(--cb-border, rgba(0,0,0,.14)); }
 
 /* Options & extras. */
-.cb-addon { padding: 12px 0; border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); }
-.cb-addon__check { border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: 6px; }
+.cb-addon { padding: var(--bt-space-3, 12px) 0; border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); }
+.cb-addon__check { border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--bt-radius-sm, 6px); }
 .cb-addon.cb-selected .cb-addon__check { background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff); border-color: var(--cb-accent, #6B8A9A); }
 
 /* Cartes de logements + détail. */
 .cb-property-card {
-  border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--cb-radius, 10px);
+  border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--bt-radius-card, var(--cb-radius));
   background: var(--cb-surface, #fff); cursor: pointer;
-  transition: box-shadow 150ms ease, border-color 150ms ease;
+  transition: box-shadow var(--bt-duration, 150ms) var(--bt-ease, ease), border-color var(--bt-duration, 150ms) var(--bt-ease, ease);
 }
-.cb-property-card:hover { border-color: var(--cb-accent, #6B8A9A); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+.cb-property-card:hover { border-color: var(--cb-accent, #6B8A9A); box-shadow: var(--bt-shadow-md, 0 6px 20px rgba(0,0,0,.08)); }
 .cb-property-card.cb-selected { border-color: var(--cb-accent, #6B8A9A); }
 .cb-property-card__img { object-fit: cover; }
-.cb-property-card__body { padding: 12px 14px; }
+.cb-property-card__body { padding: var(--bt-space-3, 12px) var(--bt-space-4, 14px); }
 .cb-property-summary__image { border-radius: var(--cb-radius, 10px); object-fit: cover; }
+.cb-property-summary__main { border-radius: var(--cb-radius, 10px); }
+.cb-property-summary__thumb { border-radius: var(--cb-radius-sm, 8px); }
+.cb-property-summary__thumb.cb-active { border-color: var(--cb-accent, #6B8A9A); }
+.cb-property-summary__place-icon { color: var(--cb-accent, #6B8A9A); }
+.cb-property-summary__note-star, .cb-property-summary__cap-item svg { color: var(--cb-accent, #6B8A9A); }
+.cb-property-summary__note-count { color: var(--cb-muted, var(--bt-color-text-muted, #8a7c6f)); }
+.cb-property-summary__from { color: var(--cb-muted, var(--bt-color-text-muted, #8a7c6f)); font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.08em; }
+.cb-property-summary__per { color: var(--cb-muted, var(--bt-color-text-muted, #8a7c6f)); font-size: 0.875em; }
+.cb-property-summary__price b { color: var(--cb-accent, #6B8A9A); font-size: 1.6em; line-height: 1; font-variant-numeric: tabular-nums; }
 
 /* Équipements + puces de filtre (type, équipements, min chambres/SDB/capacité). */
-.cb-amenity { padding: 5px 12px; border-radius: 999px; background: rgba(0,0,0,.05); font-size: 0.875em; }
+.cb-amenity { padding: var(--bt-space-1, 5px) var(--bt-space-3, 12px); border-radius: var(--bt-radius-pill, 999px); background: var(--bt-color-surface-2, rgba(0,0,0,.05)); font-size: 0.875em; }
 .cb-amenity.cb-active { background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff); }
 
 /* Widget « Filtre » : panneau flottant (état ouvert). */
 .cb-filters__panel.cb-open {
   background: var(--cb-surface, #fff);
   border: 1px solid var(--cb-border, rgba(0,0,0,.14));
-  border-radius: var(--cb-radius, 10px);
-  box-shadow: 0 14px 38px rgba(0,0,0,.16);
-  padding: 16px;
+  border-radius: var(--bt-radius-card, var(--cb-radius));
+  box-shadow: var(--bt-shadow-lg, 0 14px 38px rgba(0,0,0,.16));
+  padding: var(--bt-space-4, 16px);
 }
 
 /* Badges. */
-.cb-badge { padding: 2px 8px; border-radius: 999px; background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff); font-size: 0.7em; font-weight: 600; }
+.cb-badge { padding: var(--bt-space-1, 2px) var(--bt-space-2, 8px); border-radius: var(--bt-radius-pill, 999px); background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff); font-size: 0.7em; font-weight: 600; }
 
 /* Panier. */
-.cb-cart__item { padding: 10px 0; border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); }
-.cb-cart__total { border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); padding-top: 10px; margin-top: 6px; font-weight: 600; }
+.cb-cart__item { padding: var(--bt-space-3, 10px) 0; border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); }
+.cb-cart__total { border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); padding-top: var(--bt-space-3, 10px); margin-top: var(--bt-space-1, 6px); font-weight: 600; }
 
 /* Confirmation. */
-.cb-confirmation__icon { border-radius: 50%; background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff); margin: 0 auto 12px; }
+.cb-confirmation__icon { border-radius: 50%; background: var(--cb-accent, #6B8A9A); color: var(--cb-on-accent, #fff); margin: 0 auto var(--bt-space-3, 12px); }
 
 /* Overlays modaux (compte voyageur / capture de lead). */
 .cb-lead-overlay { background: rgba(0,0,0,.5); }
 .cb-lead-card {
   background: var(--cb-surface, #fff); border: 1px solid var(--cb-border, rgba(0,0,0,.14));
-  border-radius: var(--cb-radius, 10px); padding: 24px; box-shadow: 0 18px 48px rgba(0,0,0,.28);
+  border-radius: var(--bt-radius-card, var(--cb-radius)); padding: var(--bt-space-5, 24px); box-shadow: var(--bt-shadow-lg, 0 18px 48px rgba(0,0,0,.28));
 }
 .cb-lead-card__close { color: var(--cb-muted, rgba(0,0,0,.55)); cursor: pointer; }
+
+/* Avis (booking-reviews) + badge note (booking-rating) — couleurs token-driven (le template peut surcharger). */
+.cb-reviews__score-value, .cb-reviews__text, .cb-reviews__author, .cb-rating__value { color: var(--cb-text, inherit); }
+.cb-reviews__stars svg, .cb-reviews__bar-star svg, .cb-rating__star svg, .cb-reviews__response-label { color: var(--cb-accent, #6B8A9A); }
+.cb-reviews__score-count, .cb-reviews__date, .cb-reviews__bar-count, .cb-reviews__bar-label, .cb-reviews__response-text, .cb-rating__count { color: var(--cb-muted, rgba(0,0,0,.55)); }
+.cb-reviews__bar-track { background: color-mix(in srgb, var(--cb-border, rgba(0,0,0,.14)) 55%, transparent); }
+.cb-reviews__bar-fill { background: var(--cb-accent, #6B8A9A); }
+.cb-reviews__item {
+  background: var(--cb-surface, #fff); border: 1px solid var(--cb-border, rgba(0,0,0,.14));
+  border-radius: var(--bt-radius-card, var(--cb-radius)); padding: var(--bt-space-5, 24px);
+}
+.cb-reviews__response { border-top: 1px solid var(--cb-border, rgba(0,0,0,.14)); }
+.cb-reviews__more {
+  border: 1px solid var(--cb-border, rgba(0,0,0,.14)); border-radius: var(--bt-radius-button, var(--cb-radius));
+  padding: var(--bt-space-3, 10px) var(--bt-space-5, 22px); background: transparent; color: var(--cb-text, inherit);
+}
+.cb-reviews__more:hover:not(:disabled) { border-color: var(--cb-accent, #6B8A9A); color: var(--cb-accent, #6B8A9A); }
+.cb-reviews__more:disabled { opacity: .5; cursor: default; }
+/* Liens « voir tous les avis » : teinte accent au survol. */
+.cb-reviews__summary-link:hover .cb-reviews__score-value,
+.cb-rating--link:hover .cb-rating__value,
+.cb-property-summary__note-link:hover { color: var(--cb-accent, #6B8A9A); }

@@ -31,53 +31,78 @@
 .be-home .canvas { max-width: 880px; margin: 0 auto; }
 
 /* hero */
-.be-home .hero { text-align: center; margin-bottom: 34px; }
+.be-home .hero { text-align: center; margin-bottom: 20px; }
 .be-home .hero .eyebrow { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 16px; }
 .be-home .hero h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 5vw, 54px); line-height: 1.05; letter-spacing: -.015em; color: var(--ink); margin: 0; text-wrap: balance; }
 
 /* AI field */
-.be-home .field { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--sh-lg); padding: 8px; transition: border-color .18s, box-shadow .18s; }
+.be-home .field { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--sh-md); padding: 8px; transition: border-color .18s, box-shadow .18s; }
 .be-home .field:focus-within { border-color: var(--accent); box-shadow: var(--sh-lg), 0 0 0 4px var(--accent-soft); }
-.be-home .field__area { width: 100%; min-height: 104px; padding: 18px 16px 6px; font-family: var(--font-sans); font-size: 16px; color: var(--ink); line-height: 1.5; outline: none; border: 0; background: transparent; resize: none; }
+.be-home .field__area { width: 100%; min-height: 64px; padding: 14px 16px 4px; font-family: var(--font-sans); font-size: 16px; color: var(--ink); line-height: 1.5; outline: none; border: 0; background: transparent; resize: none; }
 .be-home .field__area::placeholder { color: var(--faint); }
 .be-home .field__bar { display: flex; align-items: center; gap: 8px; padding: 8px; flex-wrap: wrap; }
-.be-home .chip { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line2); border-radius: 11px; padding: 9px 13px; font-size: 13px; font-weight: 600; color: var(--body); transition: .16s; }
+/* Chip 2 lignes calé sur Claude Design : libellé fin au-dessus, valeur en dessous — mêmes poids (500), tailles/couleurs différentes. */
+.be-home .chip { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line2); border-radius: 11px; padding: 0 12px; height: 46px; color: var(--body); transition: background .12s, border-color .12s; }
 .be-home .chip:hover { border-color: var(--faint); background: var(--hover); }
-.be-home .chip svg { color: var(--muted); }
-.be-home .chip .lbl-faint { color: var(--faint); font-weight: 500; margin-right: -3px; }
-.be-home .chip--icon { padding: 9px; }
+.be-home .chip > svg { color: var(--muted); flex-shrink: 0; }
+.be-home .chip__text { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; line-height: 1; }
+.be-home .chip__lbl { font-size: 10.5px; font-weight: 500; color: var(--faint); line-height: 1; }
+.be-home .chip__val { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.15; white-space: nowrap; }
+.be-home .chip--icon { width: 46px; padding: 0; justify-content: center; }
+/* Glissement de la miniature du funnel : conteneur overflow caché + width animée (repris de l'aperçu Template Claude). */
+.be-home .chip__slide { display: flex; align-items: center; overflow: hidden; width: 0; transition: width .18s ease, margin-right .18s ease; }
+.be-home .chip__slide--open { width: 42px; margin-right: 2px; }
+.be-home .chip__art { width: 42px; height: 32px; flex-shrink: 0; border-radius: 5px; background: var(--surface2); border: 1px solid var(--line); color: var(--accent); display: grid; place-items: center; overflow: hidden; padding: 3px; box-sizing: border-box; }
+.be-home .chip__art svg { width: 100%; height: 100%; display: block; }
+/* Vignette template dans le chip (image/maquette, remplit le bord). */
+.be-home .chip__art--img { padding: 0; position: relative; }
+.be-home .chip__art--img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Chip Template grisé tant qu'aucun funnel n'est choisi. */
+.be-home .chip--locked { opacity: .5; cursor: not-allowed; }
 .be-home .field__spacer { flex: 1; }
-.be-home .send { width: 42px; height: 42px; border-radius: 12px; background: var(--accent); color: #fff; border: 0; display: grid; place-items: center; box-shadow: 0 8px 18px -8px var(--accent-soft); transition: background .16s, transform .12s; }
+.be-home .send { width: 46px; height: 46px; border-radius: 11px; background: var(--accent); color: #fff; border: 0; display: grid; place-items: center; box-shadow: 0 8px 18px -8px var(--accent-soft); transition: background .16s, transform .12s; }
 .be-home .send:hover { background: var(--accent-deep); }
 .be-home .send:active { transform: scale(.96); }
 .be-home .send:disabled { opacity: .55; cursor: not-allowed; }
 
-/* example prompts */
-.be-home .examples { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 16px 0 0; }
-.be-home .ex { display: inline-flex; align-items: center; gap: 7px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 500; color: var(--muted); transition: .16s; }
-.be-home .ex:hover { color: var(--ink); border-color: var(--faint); box-shadow: var(--sh-sm); }
 .be-home .ex svg { color: var(--accent); }
 
 /* funnel fan */
-.be-home .fan-wrap { margin: 52px 0 8px; text-align: center; }
-.be-home .fan-lead { font-size: 14px; color: var(--muted); margin: 0 0 26px; }
-.be-home .fan { display: flex; justify-content: center; align-items: flex-end; height: 208px; }
-.be-home .fan__card { width: 158px; height: 188px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--sh-md); padding: 16px 14px; display: flex; flex-direction: column; text-align: left; margin-left: -34px; transform-origin: bottom center; transition: transform .4s var(--be-ease), box-shadow .25s, margin .4s var(--be-ease); cursor: pointer; position: relative; }
-.be-home .fan__card:first-child { margin-left: 0; }
-.be-home .fan__card:nth-child(1) { transform: rotate(-9deg) translateY(10px); z-index: 1; }
-.be-home .fan__card:nth-child(2) { transform: rotate(-4.5deg) translateY(2px); z-index: 2; }
-.be-home .fan__card:nth-child(3) { transform: rotate(0deg); z-index: 3; }
-.be-home .fan__card:nth-child(4) { transform: rotate(4.5deg) translateY(2px); z-index: 2; }
-.be-home .fan__card:nth-child(5) { transform: rotate(9deg) translateY(10px); z-index: 1; }
-.be-home .fan:hover .fan__card { margin-left: 12px; transform: rotate(0deg) translateY(0); }
-.be-home .fan:hover .fan__card:first-child { margin-left: 0; }
-.be-home .fan__card:hover { transform: translateY(-8px) rotate(0deg) !important; box-shadow: var(--sh-lg); border-color: var(--line2); z-index: 10; }
-.be-home .fan__card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.be-home .fan__vig { width: 100%; height: 78px; border-radius: 11px; background: var(--surface2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--accent); margin-bottom: 14px; }
-.be-home .fan__name { font-weight: 700; font-size: 14px; color: var(--ink); margin: 0 0 3px; line-height: 1.2; }
-.be-home .fan__desc { font-size: 11.5px; color: var(--muted); margin: 0; }
-.be-home .fan__badge { position: absolute; top: 12px; right: 12px; font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); padding: 3px 7px; border-radius: 6px; }
-.be-home .blank { display: inline-flex; align-items: center; gap: 7px; margin: 34px auto 0; color: var(--muted); font-size: 13.5px; font-weight: 600; border: 0; background: transparent; transition: color .16s; }
+.be-home .fan-wrap { margin: 24px 0 0; text-align: center; }
+.be-home .fan-lead { font-size: 13px; font-weight: 500; color: var(--muted); margin: 0 0 12px; }
+/* Rangée PLATE sans chevauchement (cartes + badges toujours lisibles). L'ancien éventail rotatif et
+   l'écartement au survol ont été retirés — le survol = simple lift. */
+.be-home .fan { display: flex; justify-content: center; align-items: flex-end; gap: 0; padding: 18px 16px 6px; }
+/* Deck en éventail calé sur Claude Design : rotation/lift par carte via --tip/--lift, origin 50% 90%, chevauchement -3px (subtil), ease ressort. */
+.be-home .fan__card { --tip: 0; --lift: 0; flex: 0 0 auto; width: 124px; margin: 0 -3px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sh-md); padding: 7px 7px 9px; display: flex; flex-direction: column; cursor: pointer; position: relative; transform: translateY(calc(var(--lift) * -1px)) rotate(calc(var(--tip) * 1deg)); transform-origin: 50% 90%; transition: transform .2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow .15s, border-color .12s; }
+.be-home .fan__card:nth-child(1) { --tip: 6; --lift: 13; }
+.be-home .fan__card:nth-child(2) { --tip: 3; --lift: 5; }
+.be-home .fan__card:nth-child(3) { --tip: 0; --lift: 0; }
+.be-home .fan__card:nth-child(4) { --tip: -3; --lift: 5; }
+.be-home .fan__card:nth-child(5) { --tip: -6; --lift: 13; }
+/* Survol : POP — garde rotation/lift + scale(1.06), anneau DOUX 3px + ombre portée (distinct de la sélection). */
+.be-home .fan__card:hover, .be-home .fan__card:focus-visible { transform: translateY(calc(var(--lift) * -1px)) rotate(calc(var(--tip) * 1deg)) scale(1.06); z-index: 10; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent), 0 12px 26px -10px rgba(0,0,0,.5); outline: none; }
+/* Sélection (= funnel du chip) : reste DANS le deck, cadre accent PLEIN — ni scale ni anneau diffus → nettement différent du survol. */
+.be-home .fan__card--active { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent); z-index: 9; }
+/* Survol de la carte déjà sélectionnée : pop tout en gardant le cadre plein. */
+.be-home .fan__card--active:hover { transform: translateY(calc(var(--lift) * -1px)) rotate(calc(var(--tip) * 1deg)) scale(1.06); z-index: 10; box-shadow: 0 0 0 1.5px var(--accent), 0 12px 26px -10px rgba(0,0,0,.5); border-color: var(--accent); }
+.be-home .fan__vig { width: 100%; aspect-ratio: 4 / 3; border-radius: 6px; background: var(--surface2); border: 1px solid var(--line); display: grid; place-items: center; color: var(--accent); margin-bottom: 0; overflow: hidden; padding: 8px; box-sizing: border-box; }
+.be-home .fan__vig svg { width: 100%; height: 100%; display: block; }
+/* Vignette template (image/maquette) dans la carte d'éventail : remplit le bord, sans marge interne. */
+.be-home .fan__vig--img { padding: 0; position: relative; }
+.be-home .fan__vig--img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Éventail templates : chevauchement DYNAMIQUE (--fan-mx posé inline selon le nombre de cartes → largeur de rangée bornée). */
+.be-home .fan--tpl .fan__card { margin: 0 var(--fan-mx, -3px); }
+/* Dernière carte « Voir tous » (+N) : vignette pointillée, redirige vers la galerie complète. */
+.be-home .fan__vig--more { border-style: dashed; place-items: center; }
+.be-home .fan__more { font-size: 17px; font-weight: 600; color: var(--muted); }
+/* Section template verrouillée (aucun funnel) ou vide. */
+.be-home .fan-locked { margin: 8px auto 2px; max-width: 420px; padding: 18px 16px; font-size: 13px; color: var(--muted); text-align: center; border: 1px dashed var(--line2); border-radius: 12px; background: var(--surface2); }
+/* Lien « Voir tous → » inline dans le libellé de section. */
+.be-home .fan-lead__link { margin-left: 8px; border: 0; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.be-home .fan-lead__link:hover { text-decoration: underline; }
+.be-home .fan__name { font-weight: 600; font-size: 12.5px; color: var(--ink); margin: 9px 0 0; line-height: 1.2; text-align: center; min-height: 30px; }
+.be-home .blank { display: inline-flex; align-items: center; gap: 7px; margin: 14px auto 0; color: var(--muted); font-size: 13px; font-weight: 500; border: 0; background: transparent; transition: color .16s; }
 .be-home .blank:hover { color: var(--accent); }
 .be-home .blank svg { transition: transform .2s; }
 .be-home .blank:hover svg { transform: translateX(3px); }
@@ -129,9 +154,10 @@
 
 /* Studio à 2 colonnes : création (gauche) + rail vertical de templates (droite).
    Se replie en 1 colonne sous 1080px (templates redeviennent une galerie sous la création). */
-.be-home .studio-split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 34px; align-items: start; }
+/* Colonne unique (façon Claude Design) : la galerie de templates n'est plus en rail, elle est en éventail sous les funnels. */
+.be-home .studio-split { display: block; max-width: 820px; margin: 0 auto; }
 .be-home .studio-split__main { min-width: 0; }
-.be-home .studio-split__rail { min-width: 0; }
+
 .be-home .templates--rail { margin-top: 0; }
 .be-home .templates--rail .tpl-head { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 16px; }
 .be-home .templates--rail .tpl-grid { grid-template-columns: 1fr; gap: 14px; }
@@ -156,7 +182,7 @@
 }
 
 /* existing engines list */
-.be-home .list { margin-top: 64px; }
+.be-home .list { max-width: 820px; margin: 48px auto 0; }
 .be-home .list__head { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; }
 .be-home .list__head h2 { font-size: 16px; font-weight: 700; color: var(--ink); margin: 0; }
 .be-home .list__head .count { font-size: 12px; font-weight: 600; color: var(--muted); background: var(--hover); border-radius: 999px; padding: 3px 9px; }
@@ -167,17 +193,18 @@
 .be-home .view { display: flex; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
 .be-home .view button { width: 32px; height: 30px; border: 0; background: transparent; border-radius: 7px; display: grid; place-items: center; color: var(--faint); }
 .be-home .view button.on { background: var(--card); color: var(--ink); box-shadow: var(--sh-sm); }
-.be-home .tbl { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--sh-sm); }
-.be-home .tbl__h, .be-home .row { display: grid; grid-template-columns: 1fr 130px 150px 80px; align-items: center; gap: 16px; padding: 13px 20px; }
-.be-home .tbl__h { border-bottom: 1px solid var(--line); background: var(--surface2); }
-.be-home .tbl__h span { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
-.be-home .row { border-bottom: 1px solid var(--line); transition: background .14s; text-decoration: none; color: inherit; width: 100%; border-left: 0; border-right: 0; border-top: 0; background: transparent; text-align: left; cursor: pointer; }
+/* Liste de projets calée sur Claude Design : table nue (pas de carte), en-têtes 12px/500 gris, rangées 60px à fine bordure. */
+.be-home .tbl { background: transparent; }
+.be-home .tbl__h, .be-home .row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 150px 150px; align-items: center; gap: 16px; padding: 0 10px; }
+.be-home .tbl__h { height: 34px; border-bottom: 1px solid var(--line); background: transparent; }
+.be-home .tbl__h span { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.be-home .row { min-height: 60px; border-bottom: 1px solid var(--line); transition: background .14s; text-decoration: none; color: inherit; width: 100%; border-left: 0; border-right: 0; border-top: 0; background: transparent; text-align: left; cursor: pointer; }
 .be-home .row:last-child { border-bottom: 0; }
 .be-home .row:hover { background: var(--hover); }
 .be-home .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .be-home .row__name { display: flex; align-items: center; gap: 13px; min-width: 0; }
-.be-home .row__ic { width: 40px; height: 40px; border-radius: 10px; flex: none; display: grid; place-items: center; color: #fff; }
-.be-home .row__t { font-weight: 700; font-size: 14px; color: var(--ink); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.be-home .row__thumb { width: 58px; height: 40px; border-radius: 6px; flex: none; position: relative; overflow: hidden; background: var(--surface2); border: 1px solid var(--line); }
+.be-home .row__t { font-weight: 500; font-size: 14px; color: var(--ink); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .be-home .row__u { font-size: 12px; color: var(--muted); margin: 1px 0 0; }
 .be-home .status { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
 .be-home .status .led { width: 7px; height: 7px; border-radius: 50%; }
@@ -186,10 +213,19 @@
 .be-home .status.off { color: var(--muted); }
 .be-home .status.off .led { background: var(--faint); }
 .be-home .row__meta { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.be-home .row__acc { display: flex; align-items: center; gap: 6px; }
-.be-home .av-sm { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; border: 2px solid var(--card); }
-.be-home .row__go { margin-left: auto; color: var(--faint); display: grid; place-items: center; transition: color .14s, transform .2s; }
-.be-home .row:hover .row__go { color: var(--accent); transform: translateX(3px); }
+.be-home .row__acc { display: flex; align-items: center; gap: 9px; }
+.be-home .av-sm { width: 26px; height: 26px; border-radius: 50%; background: var(--surface2); color: var(--body); display: grid; place-items: center; font-size: 10px; font-weight: 600; border: 1px solid var(--line); }
+.be-home .row__owner { font-size: 13px; color: var(--body); }
+/* Liste des livrets (Welcome guide) : colonnes Nom · Statut · Langue · Propriétaire + bouton « … » d'actions par ligne. */
+.be-home .lv-tbl .tbl__h, .be-home .lv-tbl .row { grid-template-columns: minmax(0, 1fr) 110px 70px 120px; padding-right: 44px; }
+.be-home .lv-tbl .row__thumb > *, .be-home .lv-tbl .row__thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.be-home .row__menu { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; display: grid; place-items: center; color: var(--muted); cursor: pointer; transition: background .14s, color .14s; }
+.be-home .row__menu:hover { background: var(--hover); color: var(--ink); }
+/* Table « Mes services » (Paid services) : Service · Canaux · Prix · Résa · Statut + menu « … » ; tuile = icône de catégorie. */
+.be-home .svc-tbl .tbl__h, .be-home .svc-tbl .row { grid-template-columns: minmax(0, 1fr) 150px 84px 76px 100px; padding-right: 44px; }
+.be-home .svc-tbl .svc-thumb { display: grid; place-items: center; color: var(--accent); }
+.be-home .svc-tbl .svc-thumb svg { width: 28px; height: 28px; }
+.be-home .row__t .pd { width: 7px; height: 7px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 4px; flex: none; }
 /* Suppression d'un booking engine : la ligne reste un <button>, le bouton supprimer est un frère en
    overlay (HTML valide) révélé au survol/focus, toujours visible au toucher. */
 .be-home .row-wrap { position: relative; }
@@ -231,7 +267,7 @@
 
 @media (max-width: 760px) {
   .be-home .fan { height: auto; flex-wrap: wrap; gap: 12px; }
-  .be-home .fan__card { margin-left: 0 !important; transform: none !important; width: calc(50% - 6px); height: auto; }
+  .be-home .fan__card { margin: 0 !important; transform: none !important; width: calc(50% - 6px); height: auto; }
   .be-home .tbl__h { display: none; }
   .be-home .row { grid-template-columns: 1fr auto; gap: 10px; }
   .be-home .row__meta, .be-home .row__acc { display: none; }
@@ -242,7 +278,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .be-home * { transition: none !important; }
-  .be-home .fan__card { transform: none !important; margin-left: 8px !important; }
+  .be-home .fan__card { transform: none !important; margin: 0 -3px !important; }
   .be-home .fan__card:first-child { margin-left: 0 !important; }
 }
 

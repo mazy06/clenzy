@@ -22,7 +22,8 @@ class PublicPropertyDtoTest {
                 2, "EUR", "https://main",
                 List.of("https://p1", "https://p2"),
                 List.of("wifi"), "15:00", "11:00",
-                7, 12
+                7, 12,
+                4.8, 12L
         );
 
         assertEquals(1L, dto.id());
@@ -45,6 +46,8 @@ class PublicPropertyDtoTest {
         assertEquals("11:00", dto.checkOutTime());
         assertEquals(7, dto.totalBookings());
         assertEquals(12, dto.availableDays30());
+        assertEquals(4.8, dto.rating(), 0.0);
+        assertEquals(12L, dto.reviewCount());
     }
 
     @Test

@@ -31,13 +31,19 @@ public class SiteAdminController {
 
     private final SiteAdminService service;
     private final com.clenzy.booking.service.SiteContentAiService contentAiService;
+    private final com.clenzy.booking.service.ContentTranslationService translationService;
+    private final com.clenzy.booking.service.SiteGenerationService siteGenerationService;
     private final TenantContext tenantContext;
 
     public SiteAdminController(SiteAdminService service,
                               com.clenzy.booking.service.SiteContentAiService contentAiService,
+                              com.clenzy.booking.service.ContentTranslationService translationService,
+                              com.clenzy.booking.service.SiteGenerationService siteGenerationService,
                               TenantContext tenantContext) {
         this.service = service;
         this.contentAiService = contentAiService;
+        this.translationService = translationService;
+        this.siteGenerationService = siteGenerationService;
         this.tenantContext = tenantContext;
     }
 
@@ -109,6 +115,17 @@ public class SiteAdminController {
         return ResponseEntity.ok(service.publishPage(orgId(), id, pageId));
     }
 
+    /**
+     * Auto-traduit (IA) une page vers les langues cibles (P1) : crée les variantes localisées EN
+     * BROUILLON ({@code DRAFT}, {@code aiGenerated}) pour relecture — jamais publiées automatiquement.
+     */
+    @PostMapping("/{id}/pages/{pageId}/auto-translate")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','SUPERVISOR')")
+    public ResponseEntity<com.clenzy.booking.dto.AutoTranslateResultDto> autoTranslatePage(
+            @PathVariable Long id, @PathVariable Long pageId, @RequestParam List<String> targets) {
+        return ResponseEntity.ok(translationService.autoTranslatePage(orgId(), id, pageId, targets));
+    }
+
     /** Génère un titre + meta SEO (IA) pour une page à partir de son contenu (2.13). */
     @PostMapping("/{id}/pages/{pageId}/ai/seo")
     public ResponseEntity<com.clenzy.booking.dto.GeneratedSeoDto> generatePageSeo(@PathVariable Long id,
@@ -122,6 +139,19 @@ public class SiteAdminController {
             @PathVariable Long id, @Valid @RequestBody com.clenzy.booking.dto.SiteTranslateRequest req) {
         String translated = contentAiService.translatePageHtml(orgId(), id, req.html(), req.targetLocale());
         return ResponseEntity.ok(new com.clenzy.booking.dto.SiteTranslateResultDto(translated));
+    }
+
+    /**
+     * Génère un SITE COMPLET par IA (P2.a) à partir d'un brief : dérive un thème + crée un set de pages
+     * (HOME / liste / à propos / contact) en BROUILLON ({@code DRAFT}, {@code aiGenerated}) — jamais
+     * publiées automatiquement (relecture humaine). Réservé aux rôles habilités + ownership org (service).
+     */
+    @PostMapping("/{id}/ai-generate")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<com.clenzy.booking.dto.SiteGenerationResultDto> aiGenerate(
+            @PathVariable Long id,
+            @Valid @RequestBody com.clenzy.booking.dto.SiteGenerationBrief brief) {
+        return ResponseEntity.ok(siteGenerationService.generateSite(orgId(), id, brief));
     }
 
     // ─── Domaines ───────────────────────────────────────────────────────────
@@ -164,6 +194,17 @@ public class SiteAdminController {
     public ResponseEntity<Void> deletePost(@PathVariable Long id, @PathVariable Long postId) {
         service.deletePost(orgId(), id, postId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Auto-traduit (IA) un article vers les langues cibles (P1) : crée les variantes localisées EN
+     * BROUILLON ({@code DRAFT}, {@code aiGenerated}) pour relecture — jamais publiées automatiquement.
+     */
+    @PostMapping("/{id}/posts/{postId}/auto-translate")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','SUPERVISOR')")
+    public ResponseEntity<com.clenzy.booking.dto.AutoTranslateResultDto> autoTranslatePost(
+            @PathVariable Long id, @PathVariable Long postId, @RequestParam List<String> targets) {
+        return ResponseEntity.ok(translationService.autoTranslatePost(orgId(), id, postId, targets));
     }
 
     /** Génère un brouillon d'article de blog (IA) à partir d'un sujet libre (2.13). */

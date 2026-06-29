@@ -66,7 +66,12 @@ public class OpenAiProvider implements AiProvider {
 
     @SuppressWarnings("unchecked")
     private AiResponse doChat(RestClient client, AiRequest request) {
-        String model = request.model() != null ? request.model() : aiProperties.getOpenai().getModel();
+        // Source de vérité unique : modèle issu de la config (résolu par AiTargetResolver), jamais de défaut env.
+        if (request.model() == null || request.model().isBlank()) {
+            throw new AiProviderException("openai",
+                    "Aucun modèle résolu : assignez un modèle à la feature dans Paramètres > IA.");
+        }
+        String model = request.model();
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);

@@ -371,9 +371,12 @@ function mapProperty(p: ApiProperty): WidgetProperty {
     minimumNights: p.minimumNights,
     currency: p.currency,
     mainPhotoUrl: p.mainPhotoUrl,
+    photoUrls: p.photoUrls ?? [],
     amenities: p.amenities,
     checkInTime: p.checkInTime,
     checkOutTime: p.checkOutTime,
+    rating: p.rating ?? null,
+    reviewCount: p.reviewCount ?? 0,
     totalBookings: p.totalBookings,
     availableDays30: p.availableDays30,
   };

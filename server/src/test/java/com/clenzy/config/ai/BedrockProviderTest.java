@@ -59,7 +59,7 @@ class BedrockProviderTest {
                 """;
             provider.setRestClient(createMockClient(body));
 
-            AiRequest req = AiRequest.of("sys", "usr");
+            AiRequest req = AiRequest.withModel("sys", "usr", "amazon.nova-lite-v1:0");
             AiResponse resp = provider.chat(req);
 
             assertEquals("Hello", resp.content());
@@ -97,7 +97,8 @@ class BedrockProviderTest {
                 """;
             provider.setRestClient(createMockClient(body));
 
-            AiResponse resp = provider.chat(AiRequest.json("sys", "usr"));
+            AiResponse resp = provider.chat(
+                    AiRequest.json("sys", "usr").overrideModel("amazon.nova-lite-v1:0"));
             assertEquals("{}", resp.content());
         }
 
@@ -109,7 +110,7 @@ class BedrockProviderTest {
             provider.setRestClient(createMockClient(body));
 
             AiProviderException ex = assertThrows(AiProviderException.class,
-                    () -> provider.chat(AiRequest.of("a", "b")));
+                    () -> provider.chat(AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0")));
             assertTrue(ex.getMessage().contains("Empty choices"));
             assertEquals("bedrock", ex.getProvider());
         }
@@ -122,7 +123,7 @@ class BedrockProviderTest {
             provider.setRestClient(createMockClient(body));
 
             assertThrows(AiProviderException.class,
-                    () -> provider.chat(AiRequest.of("a", "b")));
+                    () -> provider.chat(AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0")));
         }
 
         @Test
@@ -132,7 +133,7 @@ class BedrockProviderTest {
                 """;
             provider.setRestClient(createMockClient(body));
 
-            AiResponse resp = provider.chat(AiRequest.of("a", "b"));
+            AiResponse resp = provider.chat(AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0"));
             assertEquals(0, resp.promptTokens());
             assertEquals(0, resp.completionTokens());
             assertEquals(0, resp.totalTokens());
@@ -143,7 +144,7 @@ class BedrockProviderTest {
             provider.setRestClient(createMockClient("not-json-at-all{"));
 
             AiProviderException ex = assertThrows(AiProviderException.class,
-                    () -> provider.chat(AiRequest.of("a", "b")));
+                    () -> provider.chat(AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0")));
             assertTrue(ex.getMessage().contains("parse"));
         }
 
@@ -155,7 +156,7 @@ class BedrockProviderTest {
             provider.setRestClient(createMockClientWithError(gone));
 
             AiProviderException ex = assertThrows(AiProviderException.class,
-                    () -> provider.chat(AiRequest.of("a", "b")));
+                    () -> provider.chat(AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0")));
             assertTrue(ex.getMessage().contains("plus disponible"),
                     "User-friendly message expected, got: " + ex.getMessage());
             verify(eventPublisher).publishEvent(any(AiModelDeprecatedEvent.class));
@@ -167,8 +168,33 @@ class BedrockProviderTest {
             provider.setRestClient(createMockClientWithError(net));
 
             AiProviderException ex = assertThrows(AiProviderException.class,
-                    () -> provider.chat(AiRequest.of("a", "b")));
+                    () -> provider.chat(AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0")));
             assertTrue(ex.getMessage().contains("connection refused"));
+        }
+
+        @Test
+        void nullModel_throwsAiProviderException_beforeHttpCall() {
+            // Aucun défaut env : une requête sans modèle doit échouer avant tout appel HTTP.
+            RestClient client = mock(RestClient.class);
+            provider.setRestClient(client);
+
+            AiProviderException ex = assertThrows(AiProviderException.class,
+                    () -> provider.chat(AiRequest.of("a", "b")));
+            assertTrue(ex.getMessage().contains("Aucun modèle résolu"),
+                    "Expected unresolved-model message, got: " + ex.getMessage());
+            assertEquals("bedrock", ex.getProvider());
+            verifyNoInteractions(client);
+        }
+
+        @Test
+        void blankModel_throwsAiProviderException_beforeHttpCall() {
+            RestClient client = mock(RestClient.class);
+            provider.setRestClient(client);
+
+            AiProviderException ex = assertThrows(AiProviderException.class,
+                    () -> provider.chat(AiRequest.withModel("a", "b", "   ")));
+            assertTrue(ex.getMessage().contains("Aucun modèle résolu"));
+            verifyNoInteractions(client);
         }
     }
 
@@ -189,26 +215,28 @@ class BedrockProviderTest {
             // without a custom builder. Just verify the call signature exercised the overload.
             // For complete unit coverage we exercise the null-baseUrl branch (fallback to config).
             assertThrows(Exception.class, () -> provider.chat(
-                    AiRequest.of("a", "b"), "fake-key", "https://nonexistent.invalid", "nvidia"));
+                    AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0"),
+                    "fake-key", "https://nonexistent.invalid", "nvidia"));
         }
 
         @Test
         void nullBaseUrl_fallsBackToConfig() {
             assertThrows(Exception.class, () -> provider.chat(
-                    AiRequest.of("a", "b"), "fake-key", null, "nvidia"));
+                    AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0"), "fake-key", null, "nvidia"));
         }
 
         @Test
         void blankBaseUrl_fallsBackToConfig() {
             assertThrows(Exception.class, () -> provider.chat(
-                    AiRequest.of("a", "b"), "fake-key", "", "nvidia"));
+                    AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0"), "fake-key", "", "nvidia"));
         }
 
         @Test
         void nullProviderLabel_defaultsToBedrock() {
             // The exception will carry the provider label
             AiProviderException ex = assertThrows(AiProviderException.class,
-                    () -> provider.chat(AiRequest.of("a", "b"), null, null, null));
+                    () -> provider.chat(
+                            AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0"), null, null, null));
             assertEquals("bedrock", ex.getProvider());
         }
 
@@ -216,13 +244,15 @@ class BedrockProviderTest {
         void blankApiKey_skipsAuthHeader() {
             // Verifies the if-blank apiKey branch — should still throw on real call
             assertThrows(Exception.class, () -> provider.chat(
-                    AiRequest.of("a", "b"), "", "https://nonexistent.invalid", "label"));
+                    AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0"),
+                    "", "https://nonexistent.invalid", "label"));
         }
 
         @Test
         void nullApiKey_skipsAuthHeader() {
             assertThrows(Exception.class, () -> provider.chat(
-                    AiRequest.of("a", "b"), null, "https://nonexistent.invalid", "label"));
+                    AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0"),
+                    null, "https://nonexistent.invalid", "label"));
         }
     }
 
@@ -236,14 +266,16 @@ class BedrockProviderTest {
             BedrockProvider p = new BedrockProvider(aiProperties, objectMapper, eventPublisher);
             // Just calling chat() will trigger getOrCreateClient — will fail on network but
             // exercises the no-key branch
-            assertThrows(Exception.class, () -> p.chat(AiRequest.of("a", "b")));
+            assertThrows(Exception.class,
+                    () -> p.chat(AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0")));
         }
 
         @Test
         void firstCall_buildsClient_withKey() {
             aiProperties.getBedrock().setApiKey("some-key");
             BedrockProvider p = new BedrockProvider(aiProperties, objectMapper, eventPublisher);
-            assertThrows(Exception.class, () -> p.chat(AiRequest.of("a", "b")));
+            assertThrows(Exception.class,
+                    () -> p.chat(AiRequest.withModel("a", "b", "amazon.nova-lite-v1:0")));
         }
     }
 

@@ -163,9 +163,15 @@ export interface WidgetProperty {
   minimumNights: number | null;
   currency: string;
   mainPhotoUrl: string | null;
+  /** Galerie : toutes les photos du logement (peut inclure la photo principale). */
+  photoUrls: string[];
   amenities: string[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** Note moyenne des avis publics (0..5), null si aucun avis. */
+  rating: number | null;
+  /** Nombre d'avis publics. */
+  reviewCount: number;
   /** Preuve sociale honnête (2.9) : nombre de réservations. */
   totalBookings: number | null;
   /** Urgence honnête (2.9) : jours disponibles sur 30 jours. */

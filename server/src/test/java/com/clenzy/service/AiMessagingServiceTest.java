@@ -10,8 +10,8 @@ import com.clenzy.dto.AiSuggestedResponseDto;
 import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver.KeySource;
-import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.clenzy.service.KeySource;
+import com.clenzy.service.ResolvedTarget;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -206,25 +206,16 @@ class AiMessagingServiceTest {
     @Nested
     class AiPowered {
 
-        private static final ResolvedKey PLATFORM_KEY = new ResolvedKey("sk-platform", null, KeySource.PLATFORM);
-
-        private void enableMessagingAi() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setMessagingAi(true);
-            when(aiProperties.getFeatures()).thenReturn(features);
-        }
-
-        private void disableMessagingAi() {
-            AiProperties.Features features = new AiProperties.Features();
-            features.setMessagingAi(false);
-            when(aiProperties.getFeatures()).thenReturn(features);
-        }
+        private static final ResolvedTarget PLATFORM_KEY = new ResolvedTarget(null, null, "sk-platform", null, KeySource.PLATFORM_DB);
 
         // ── detectIntentAi ──
 
         @Test
-        void detectIntentAi_featureFlagDisabled_throws() {
-            disableMessagingAi();
+        void detectIntentAi_featureDisabled_throws() {
+            doThrow(new AiNotConfiguredException("AI_FEATURE_DISABLED", "messaging", "Messaging AI disabled"))
+                .when(tokenBudgetService).requireFeatureEnabled(
+                    org.mockito.ArgumentMatchers.anyLong(),
+                    org.mockito.ArgumentMatchers.eq(AiFeature.MESSAGING));
 
             assertThrows(AiNotConfiguredException.class,
                 () -> service.detectIntentAi("Hello", 1L));
@@ -232,7 +223,6 @@ class AiMessagingServiceTest {
 
         @Test
         void detectIntentAi_validResponse_parsesCorrectly() {
-            enableMessagingAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse aiResponse = new AiResponse(
@@ -242,7 +232,7 @@ class AiMessagingServiceTest {
                 50, 80, 130, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             AiIntentDetectionDto result = service.detectIntentAi("Hello, what's the check-in time?", 1L);
 
@@ -255,7 +245,6 @@ class AiMessagingServiceTest {
 
         @Test
         void detectIntentAi_callsAnonymization() {
-            enableMessagingAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize("My email is john@test.com")).thenReturn("My email is [EMAIL]");
             AiResponse aiResponse = new AiResponse(
@@ -265,7 +254,7 @@ class AiMessagingServiceTest {
                 30, 40, 70, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             service.detectIntentAi("My email is john@test.com", 1L);
 
@@ -274,10 +263,9 @@ class AiMessagingServiceTest {
 
         @Test
         void detectIntentAi_budgetExceeded_throws() {
-            enableMessagingAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("MESSAGING", 100_000, 100_000))
-                .when(tokenBudgetService).requireBudget(1L, AiFeature.MESSAGING, KeySource.PLATFORM);
+                .when(tokenBudgetService).requireBudget(1L, AiFeature.MESSAGING, KeySource.PLATFORM_DB);
 
             assertThrows(AiBudgetExceededException.class,
                 () -> service.detectIntentAi("Hello", 1L));
@@ -285,7 +273,6 @@ class AiMessagingServiceTest {
 
         @Test
         void detectIntentAi_recordsUsage() {
-            enableMessagingAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse response = new AiResponse(
@@ -295,7 +282,7 @@ class AiMessagingServiceTest {
                 40, 60, 100, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM_DB));
 
             service.detectIntentAi("What's the wifi?", 1L);
 
@@ -305,8 +292,11 @@ class AiMessagingServiceTest {
         // ── generateSuggestedResponseAi ──
 
         @Test
-        void suggestResponseAi_featureFlagDisabled_throws() {
-            disableMessagingAi();
+        void suggestResponseAi_featureDisabled_throws() {
+            doThrow(new AiNotConfiguredException("AI_FEATURE_DISABLED", "messaging", "Messaging AI disabled"))
+                .when(tokenBudgetService).requireFeatureEnabled(
+                    org.mockito.ArgumentMatchers.anyLong(),
+                    org.mockito.ArgumentMatchers.eq(AiFeature.MESSAGING));
 
             assertThrows(AiNotConfiguredException.class,
                 () -> service.generateSuggestedResponseAi("Bonjour", "context", "fr", 1L));
@@ -314,7 +304,6 @@ class AiMessagingServiceTest {
 
         @Test
         void suggestResponseAi_validResponse_parsesCorrectly() {
-            enableMessagingAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Bonjour");
             AiResponse aiResponse = new AiResponse(
@@ -324,7 +313,7 @@ class AiMessagingServiceTest {
                 60, 100, 160, "claude-3-haiku", "end_turn"
             );
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             AiSuggestedResponseDto result = service.generateSuggestedResponseAi("Bonjour", null, "fr", 1L);
 
@@ -336,12 +325,11 @@ class AiMessagingServiceTest {
 
         @Test
         void suggestResponseAi_invalidJson_throwsProviderException() {
-            enableMessagingAi();
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse aiResponse = new AiResponse("not valid json {{{", 20, 10, 30, "claude-3-haiku", "end_turn");
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
-                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM_DB));
 
             assertThrows(AiProviderException.class,
                 () -> service.generateSuggestedResponseAi("Hello", null, "en", 1L));
@@ -349,10 +337,9 @@ class AiMessagingServiceTest {
 
         @Test
         void suggestResponseAi_budgetExceeded_throws() {
-            enableMessagingAi();
             when(aiProviderRouter.resolveKey(2L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("MESSAGING", 100_000, 100_000))
-                .when(tokenBudgetService).requireBudget(2L, AiFeature.MESSAGING, KeySource.PLATFORM);
+                .when(tokenBudgetService).requireBudget(2L, AiFeature.MESSAGING, KeySource.PLATFORM_DB);
 
             assertThrows(AiBudgetExceededException.class,
                 () -> service.generateSuggestedResponseAi("Hello", null, "en", 2L));

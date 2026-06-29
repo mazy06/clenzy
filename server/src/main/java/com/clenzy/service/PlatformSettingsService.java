@@ -138,6 +138,22 @@ public class PlatformSettingsService {
         return update(s -> s.setAddDevisLeadsToWaitlist(enabled), updatedBy);
     }
 
+    /**
+     * Bibliothèque GLOBALE de widgets composites (JSON sérialisé, même format que
+     * {@code booking_engine_configs.composite_widgets}). Lisible par tout utilisateur authentifié
+     * (s'affiche dans chaque Studio) ; alimentée par les SUPER_ADMIN / SUPER_MANAGER.
+     */
+    @Transactional(readOnly = true)
+    public String getGlobalCompositeWidgets() {
+        String v = getOrDefault().getGlobalCompositeWidgets();
+        return (v != null && !v.isBlank()) ? v : null;
+    }
+
+    @Transactional
+    public PlatformSettings updateGlobalCompositeWidgets(String json, String updatedBy) {
+        return update(s -> s.setGlobalCompositeWidgets(json), updatedBy);
+    }
+
     private PlatformSettings update(java.util.function.Consumer<PlatformSettings> mutation, String updatedBy) {
         PlatformSettings settings = repository.findById(PlatformSettings.SINGLETON_ID)
                 .orElseGet(() -> {

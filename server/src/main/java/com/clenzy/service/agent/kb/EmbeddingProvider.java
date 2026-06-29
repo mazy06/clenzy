@@ -10,31 +10,34 @@ import java.util.List;
  *       {@code dimensions=1024} pour matcher la table {@code kb_chunk.embedding}</li>
  * </ul>
  *
- * <p>Selection via la property {@code clenzy.ai.embeddings.provider=voyage|openai}.
- * La factory {@link EmbeddingService} resout le provider au demarrage.</p>
+ * <p><b>Credential-stateless</b> : le provider ne porte AUCUNE cle/modele/baseUrl propre.
+ * {@link EmbeddingService} resout la cible ({@link EmbeddingTarget}) depuis la config DB
+ * (feature {@code EMBEDDINGS}, source de verite unique — plus de variable d'environnement)
+ * et la passe a chaque appel. Le provider concret n'apporte que le format d'API (Voyage/OpenAI).</p>
  */
 public interface EmbeddingProvider {
 
     /**
-     * Genere l'embedding d'un texte unique. Retourne un tableau float[1024].
-     *
-     * @throws EmbeddingException si l'API echoue (reseau, quota, etc.)
+     * Cible d'embedding resolue depuis la config DB : cle API, modele, baseUrl, dimension.
+     * La {@code dimension} doit valoir 1024 (= schema {@code kb_chunk.embedding}).
      */
-    float[] embed(String text);
+    record EmbeddingTarget(String apiKey, String model, String baseUrl, int dimensions) {}
+
+    /**
+     * Genere l'embedding d'un texte unique. Retourne un tableau float[target.dimensions()].
+     *
+     * @throws EmbeddingException si la cle manque ou si l'API echoue (reseau, quota, etc.)
+     */
+    float[] embed(String text, EmbeddingTarget target);
 
     /**
      * Batch embed : utilise pour l'ingestion (1 appel HTTP pour N chunks).
      * Les implementations decoupent en sous-batches si l'API a une limite.
      */
-    List<float[]> embedBatch(List<String> texts);
+    List<float[]> embedBatch(List<String> texts, EmbeddingTarget target);
 
-    /** Nom du provider — utilise pour {@code clenzy.ai.embeddings.provider}. */
+    /** Nom du provider (= valeur {@code PlatformAiModel.provider} : "voyage" ou "openai"). */
     String name();
-
-    /** Dimension de sortie — doit etre 1024 pour coller au schema BDD. */
-    default int dimensions() {
-        return 1024;
-    }
 
     /** Exception non-checked levee par les providers. */
     class EmbeddingException extends RuntimeException {

@@ -23,6 +23,7 @@ import { mountWishlistAuth, type WishlistAuthController } from './components/Wis
 import { createRebookStrip } from './components/RebookStrip';
 import { createPropertySummary } from './components/PropertySummary';
 import { createAmenitiesList } from './components/AmenitiesList';
+import { createReviewsList, createRatingBadge } from './components/Reviews';
 import { createConfirmationCard } from './components/Confirmation';
 import { HEADLESS_WIDGETS, ensureStructuralStyles } from './headless';
 
@@ -353,9 +354,13 @@ export class BaitlyWidget {
       case 'priceSummary':
         return createPriceSummary(this.state, this.i18n);
       case 'propertySummary':
-        return createPropertySummary(this.state, this.config.baseUrl || window.location.origin);
+        return createPropertySummary(this.state, this.config.baseUrl || window.location.origin, this.i18n);
       case 'amenities':
-        return createAmenitiesList(this.state);
+        return createAmenitiesList(this.state, this.i18n);
+      case 'reviews':
+        return createReviewsList(this.api, this.i18n, { layout: 'full' });
+      case 'rating':
+        return createRatingBadge(this.state, this.i18n);
       case 'cart':
         return createCartList(this.state, this.i18n, () => this.state.set({ page: 'form' }, 'pageChange'));
       case 'addToCart':
@@ -866,9 +871,12 @@ function mapProperty(p: ApiProperty): WidgetProperty {
     minimumNights: p.minimumNights,
     currency: p.currency,
     mainPhotoUrl: p.mainPhotoUrl,
+    photoUrls: p.photoUrls ?? [],
     amenities: p.amenities,
     checkInTime: p.checkInTime,
     checkOutTime: p.checkOutTime,
+    rating: p.rating ?? null,
+    reviewCount: p.reviewCount ?? 0,
     totalBookings: p.totalBookings,
     availableDays30: p.availableDays30,
   };

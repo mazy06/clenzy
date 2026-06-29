@@ -55,7 +55,11 @@ class AgentOrchestratorTest {
         // Le path v2 (XML) est valide par DefaultSystemPromptComposerTest + SectionsRenderingTest.
         // Tests cross-path (v2 enabled + fallback) : voir AgentOrchestratorV2FallbackTest.
         orchestrator = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), new PendingToolStore(),
+                convRepo, msgRepo, om, keyRepo,
+                mock(com.clenzy.repository.PlatformAiFeatureModelRepository.class),
+                mock(com.clenzy.repository.PlatformAiFeatureProviderRepository.class),
+                mock(com.clenzy.repository.PlatformAiModelRepository.class),
+                new AiProperties(), new PendingToolStore(),
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
                 kbSearchService,
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
@@ -114,6 +118,77 @@ class AgentOrchestratorTest {
 
         // Persistance : 1 user + 1 assistant
         verify(msgRepo, atLeast(2)).save(any(AssistantMessage.class));
+    }
+
+    /** Construit un orchestrateur avec un budget service stubable (gate ASSISTANT_CHAT). */
+    private AgentOrchestrator orchestratorWithBudget(com.clenzy.service.AiTokenBudgetService budget) {
+        return new AgentOrchestrator(chatProvider, toolRegistry,
+                convRepo, msgRepo, om, keyRepo,
+                mock(com.clenzy.repository.PlatformAiFeatureModelRepository.class),
+                mock(com.clenzy.repository.PlatformAiFeatureProviderRepository.class),
+                mock(com.clenzy.repository.PlatformAiModelRepository.class),
+                new AiProperties(), new PendingToolStore(),
+                memoryService, mock(com.clenzy.service.PhotoStorageService.class),
+                kbSearchService,
+                mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
+                mock(com.clenzy.service.agent.multiagent.OrchestratorAgent.class),
+                mock(com.clenzy.service.agent.multiagent.SpecialistRegistry.class),
+                budget,
+                mock(com.clenzy.service.PlatformAiConfigService.class),
+                false, false);
+    }
+
+    @Test
+    void assistantChatDisabled_emitsError_andSkipsLlmCall() {
+        // P0-B : l'assistant respecte le toggle ASSISTANT_CHAT comme toutes les autres
+        // features IA. Feature desactivee → erreur gracieuse en SSE, AUCUN appel LLM.
+        AssistantConversation saved = new AssistantConversation(1L, "user-123");
+        saved.setId(99L);
+        when(convRepo.save(any())).thenReturn(saved);
+        when(msgRepo.findByConversation(99L)).thenReturn(List.of(
+                AssistantMessage.user(99L, 1L, "Bonjour")));
+
+        com.clenzy.service.AiTokenBudgetService budget =
+                mock(com.clenzy.service.AiTokenBudgetService.class);
+        doThrow(new com.clenzy.exception.AiNotConfiguredException(
+                "AI_FEATURE_DISABLED", "ASSISTANT_CHAT", "desactivee"))
+                .when(budget).requireFeatureEnabled(
+                        org.mockito.ArgumentMatchers.anyLong(),
+                        eq(com.clenzy.model.AiFeature.ASSISTANT_CHAT));
+        AgentOrchestrator orch = orchestratorWithBudget(budget);
+
+        List<AgentSseEvent> events = new ArrayList<>();
+        orch.handleMessage(null, "Bonjour", ctx, events::add);
+
+        assertTrue(events.stream().anyMatch(e -> "error".equals(e.type())),
+                "un evenement d'erreur gracieux doit etre emis");
+        verify(chatProvider, never()).streamChat(any(ChatRequest.class), any());
+    }
+
+    @Test
+    void assistantChatOverBudget_emitsError_andSkipsLlmCall() {
+        // P0-B : budget mensuel ASSISTANT_CHAT depasse → erreur gracieuse, AUCUN appel LLM.
+        AssistantConversation saved = new AssistantConversation(1L, "user-123");
+        saved.setId(98L);
+        when(convRepo.save(any())).thenReturn(saved);
+        when(msgRepo.findByConversation(98L)).thenReturn(List.of(
+                AssistantMessage.user(98L, 1L, "Bonjour")));
+
+        com.clenzy.service.AiTokenBudgetService budget =
+                mock(com.clenzy.service.AiTokenBudgetService.class);
+        doThrow(new com.clenzy.exception.AiBudgetExceededException("ASSISTANT_CHAT", 100L, 50L))
+                .when(budget).requireBudget(
+                        org.mockito.ArgumentMatchers.anyLong(),
+                        eq(com.clenzy.model.AiFeature.ASSISTANT_CHAT),
+                        any());
+        AgentOrchestrator orch = orchestratorWithBudget(budget);
+
+        List<AgentSseEvent> events = new ArrayList<>();
+        orch.handleMessage(null, "Bonjour", ctx, events::add);
+
+        assertTrue(events.stream().anyMatch(e -> "error".equals(e.type())),
+                "un evenement d'erreur gracieux doit etre emis");
+        verify(chatProvider, never()).streamChat(any(ChatRequest.class), any());
     }
 
     @Test
@@ -479,7 +554,11 @@ class AgentOrchestratorTest {
         // Prepare pending tool
         PendingToolStore store = new PendingToolStore();
         AgentOrchestrator orch = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), store,
+                convRepo, msgRepo, om, keyRepo,
+                mock(com.clenzy.repository.PlatformAiFeatureModelRepository.class),
+                mock(com.clenzy.repository.PlatformAiFeatureProviderRepository.class),
+                mock(com.clenzy.repository.PlatformAiModelRepository.class),
+                new AiProperties(), store,
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
                 kbSearchService,
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
@@ -519,7 +598,11 @@ class AgentOrchestratorTest {
     void resumeAfterConfirmation_confirmedTrue_unknownToolReturnsError() {
         PendingToolStore store = new PendingToolStore();
         AgentOrchestrator orch = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), store,
+                convRepo, msgRepo, om, keyRepo,
+                mock(com.clenzy.repository.PlatformAiFeatureModelRepository.class),
+                mock(com.clenzy.repository.PlatformAiFeatureProviderRepository.class),
+                mock(com.clenzy.repository.PlatformAiModelRepository.class),
+                new AiProperties(), store,
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
                 kbSearchService,
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
@@ -557,7 +640,11 @@ class AgentOrchestratorTest {
     void resumeAfterConfirmation_confirmedTrue_toolThrowsToolExecutionException() {
         PendingToolStore store = new PendingToolStore();
         AgentOrchestrator orch = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), store,
+                convRepo, msgRepo, om, keyRepo,
+                mock(com.clenzy.repository.PlatformAiFeatureModelRepository.class),
+                mock(com.clenzy.repository.PlatformAiFeatureProviderRepository.class),
+                mock(com.clenzy.repository.PlatformAiModelRepository.class),
+                new AiProperties(), store,
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
                 kbSearchService,
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
@@ -597,7 +684,11 @@ class AgentOrchestratorTest {
     void resumeAfterConfirmation_conversationNotFound_throws() {
         PendingToolStore store = new PendingToolStore();
         AgentOrchestrator orch = new AgentOrchestrator(chatProvider, toolRegistry,
-                convRepo, msgRepo, om, keyRepo, new AiProperties(), store,
+                convRepo, msgRepo, om, keyRepo,
+                mock(com.clenzy.repository.PlatformAiFeatureModelRepository.class),
+                mock(com.clenzy.repository.PlatformAiFeatureProviderRepository.class),
+                mock(com.clenzy.repository.PlatformAiModelRepository.class),
+                new AiProperties(), store,
                 memoryService, mock(com.clenzy.service.PhotoStorageService.class),
                 kbSearchService,
                 mock(com.clenzy.service.agent.prompt.PromptBuilder.class),
@@ -681,11 +772,12 @@ class AgentOrchestratorTest {
         when(msgRepo.findByConversation(125L)).thenReturn(List.of(
                 AssistantMessage.user(125L, 1L, "hi")));
 
-        // BYOK key present
+        // BYOK key present (avec modèle : une clé BYOK sans modèle est désormais ignorée).
         com.clenzy.model.OrgAiApiKey k = new com.clenzy.model.OrgAiApiKey();
         k.setApiKey("sk-ant-byok");
         k.setProvider("anthropic");
         k.setValid(true);
+        k.setModelOverride("claude-sonnet-4");
         when(keyRepo.findByOrganizationIdAndProvider(1L, "anthropic"))
                 .thenReturn(Optional.of(k));
 

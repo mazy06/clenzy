@@ -3,6 +3,9 @@ package com.clenzy.booking.service;
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
+import com.clenzy.booking.security.BookingFraudScoringService;
+import com.clenzy.booking.security.RiskAssessment;
+import com.clenzy.booking.security.RiskLevel;
 import com.clenzy.dto.TouristTaxCalculationDto;
 import com.clenzy.model.*;
 import com.clenzy.model.voucher.VoucherChannelScope;
@@ -52,6 +55,7 @@ class PublicBookingServiceTest {
     @Mock private VoucherEngine voucherEngine;
     @Mock private NotificationService notificationService;
     @Mock private BookingServiceOptionsService serviceOptionsService;
+    @Mock private com.clenzy.booking.security.BookingFraudScoringService fraudScoringService;
 
     private PublicBookingService service;
 
@@ -73,7 +77,9 @@ class PublicBookingServiceTest {
                 org.mockito.Mockito.mock(com.clenzy.booking.repository.SiteRepository.class),
                 org.mockito.Mockito.mock(com.clenzy.booking.repository.SitePageRepository.class),
                 org.mockito.Mockito.mock(com.clenzy.booking.service.BookingDisplayCurrencyService.class),
-                org.mockito.Mockito.mock(com.clenzy.service.UpsellService.class));
+                org.mockito.Mockito.mock(com.clenzy.service.UpsellService.class),
+                fraudScoringService,
+                new BookingMockDataProvider());
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────
@@ -768,9 +774,10 @@ class PublicBookingServiceTest {
             when(session.getId()).thenReturn("cs_test");
             when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
             // Reliquat A3 : le flux /reserve+/checkout pose une duree de vie (~35 min). B3 : surcharge
-            // 7-arg avec success_url explicite (null ici car returnUrl absent → success_url par defaut).
+            // success_url explicite (null ici car returnUrl absent → success_url par defaut). P2 : 8-arg
+            // avec riskMetadata (null car scoring désactivé par défaut sur le mock).
             when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    eq(java.time.Duration.ofMinutes(35)), isNull()))
+                    eq(java.time.Duration.ofMinutes(35)), isNull(), isNull()))
                     .thenReturn(session);
 
             BookingCheckoutResponseDto resp = service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null));
@@ -792,7 +799,7 @@ class PublicBookingServiceTest {
             r.setProperty(buildProperty());
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.of(r));
-            when(stripeService.createReservationCheckoutSession(any(), any(), any(), any(), any(), any(), any()))
+            when(stripeService.createReservationCheckoutSession(any(), any(), any(), any(), any(), any(), any(), any()))
                     .thenThrow(new RuntimeException("boom"));
 
             assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
@@ -818,7 +825,7 @@ class PublicBookingServiceTest {
             when(session.getId()).thenReturn("cs_test");
             when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
             when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), any())).thenReturn(session);
+                    any(), any(), any())).thenReturn(session);
 
             BookingEngineConfig cfg = buildConfig(true);
             cfg.setAllowedOrigins(allowedOrigins);
@@ -833,7 +840,7 @@ class PublicBookingServiceTest {
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci"));
 
             verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), eq("https://book.acme.com/merci?reservation=CODE"));
+                    any(), eq("https://book.acme.com/merci?reservation=CODE"), any());
         }
 
         @Test
@@ -844,7 +851,7 @@ class PublicBookingServiceTest {
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci?lang=fr"));
 
             verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), eq("https://book.acme.com/merci?lang=fr&reservation=CODE"));
+                    any(), eq("https://book.acme.com/merci?lang=fr&reservation=CODE"), any());
         }
 
         @Test
@@ -855,7 +862,7 @@ class PublicBookingServiceTest {
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://evil.example.com/steal"));
 
             verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), isNull());
+                    any(), isNull(), any());
         }
 
         @Test
@@ -866,7 +873,7 @@ class PublicBookingServiceTest {
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "http://book.acme.com/merci"));
 
             verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), isNull());
+                    any(), isNull(), any());
         }
 
         @Test
@@ -877,7 +884,158 @@ class PublicBookingServiceTest {
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci"));
 
             verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), isNull());
+                    any(), isNull(), any());
+        }
+    }
+
+    // ───────────────────── checkout : scoring fraude (P2) ────────────────────────
+
+    @Nested
+    class CheckoutFraudScoring {
+
+        private Reservation payableReservation() {
+            Guest guest = new Guest();
+            guest.setEmail("guest@example.com");
+            Reservation r = new Reservation();
+            r.setId(50L);
+            r.setStatus("pending");
+            r.setOrganizationId(ORG_ID);
+            r.setConfirmationCode("CODE");
+            r.setTotalPrice(new BigDecimal("100.00"));
+            r.setGuestName("Jane");
+            r.setGuest(guest);
+            r.setProperty(buildProperty());
+            return r;
+        }
+
+        private Session stubStripeSession() throws StripeException {
+            Session session = mock(Session.class);
+            lenient().when(session.getId()).thenReturn("cs_test");
+            lenient().when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
+            when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    any(), any(), any())).thenReturn(session);
+            return session;
+        }
+
+        @Test
+        @DisplayName("scoring désactivé → service de scoring jamais appelé (no-op)")
+        void whenScoringDisabled_thenServiceNotInvoked() throws StripeException {
+            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+                    .thenReturn(Optional.of(payableReservation()));
+            stubStripeSession();
+            when(fraudScoringService.isEnabled()).thenReturn(false);
+
+            service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null), "1.2.3.4");
+
+            verify(fraudScoringService, never()).score(any());
+        }
+
+        @Test
+        @DisplayName("LOW → checkout normal, aucune note de revue, metadata Radar transmise")
+        void whenLowRisk_thenNormalCheckout() throws StripeException {
+            Reservation r = payableReservation();
+            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+                    .thenReturn(Optional.of(r));
+            stubStripeSession();
+            when(fraudScoringService.isEnabled()).thenReturn(true);
+            when(fraudScoringService.isEnforcement()).thenReturn(true); // même en enforcement, LOW = rien
+            when(fraudScoringService.score(any()))
+                    .thenReturn(new RiskAssessment(0, RiskLevel.LOW, java.util.List.of()));
+
+            BookingCheckoutResponseDto resp = service.checkout(
+                    buildCtx(), new BookingCheckoutRequestDto("CODE", null), "1.2.3.4");
+
+            assertThat(resp.sessionId()).isEqualTo("cs_test");
+            assertThat(r.getNotes()).isNull();
+            // Radar metadata (score/level) passée en 8e argument.
+            ArgumentCaptor<java.util.Map<String, String>> md = ArgumentCaptor.forClass(java.util.Map.class);
+            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
+                    any(), any(), md.capture());
+            assertThat(md.getValue()).containsEntry("risk_level", "LOW").containsEntry("risk_score", "0");
+        }
+
+        @Test
+        @DisplayName("MEDIUM + enforcement → réservation marquée pour revue (notes), paiement non bloqué")
+        void whenMediumWithEnforcement_thenFlaggedForReview() throws StripeException {
+            Reservation r = payableReservation();
+            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+                    .thenReturn(Optional.of(r));
+            stubStripeSession();
+            when(fraudScoringService.isEnabled()).thenReturn(true);
+            when(fraudScoringService.isEnforcement()).thenReturn(true);
+            when(fraudScoringService.score(any()))
+                    .thenReturn(new RiskAssessment(45, RiskLevel.MEDIUM,
+                            java.util.List.of("Vélocité IP élevée (9 tentatives / 60 min)")));
+
+            BookingCheckoutResponseDto resp = service.checkout(
+                    buildCtx(), new BookingCheckoutRequestDto("CODE", null), "1.2.3.4");
+
+            // Le paiement n'est PAS bloqué (session créée) mais la résa est marquée pour revue.
+            assertThat(resp.sessionId()).isEqualTo("cs_test");
+            assertThat(r.getNotes()).contains("REVUE FRAUDE MEDIUM").contains("Vélocité IP");
+        }
+
+        @Test
+        @DisplayName("HIGH + advisory (enforcement off) → ne bloque JAMAIS, pas de note de revue")
+        void whenHighButAdvisory_thenNeverBlocks() throws StripeException {
+            Reservation r = payableReservation();
+            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+                    .thenReturn(Optional.of(r));
+            stubStripeSession();
+            when(fraudScoringService.isEnabled()).thenReturn(true);
+            when(fraudScoringService.isEnforcement()).thenReturn(false); // advisory
+            when(fraudScoringService.score(any()))
+                    .thenReturn(new RiskAssessment(90, RiskLevel.HIGH, java.util.List.of("Email jetable")));
+
+            BookingCheckoutResponseDto resp = service.checkout(
+                    buildCtx(), new BookingCheckoutRequestDto("CODE", null), "1.2.3.4");
+
+            assertThat(resp.sessionId()).isEqualTo("cs_test"); // paiement légitime jamais bloqué
+            assertThat(r.getNotes()).isNull(); // advisory : aucune décision appliquée
+        }
+
+        @Test
+        @DisplayName("HIGH + enforcement + refuse-high-risk → checkout refusé (409)")
+        void whenHighWithRefuse_thenRejected() throws StripeException {
+            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+                    .thenReturn(Optional.of(payableReservation()));
+            when(fraudScoringService.isEnabled()).thenReturn(true);
+            when(fraudScoringService.isEnforcement()).thenReturn(true);
+            when(fraudScoringService.isRefuseHighRisk()).thenReturn(true);
+            when(fraudScoringService.score(any()))
+                    .thenReturn(new RiskAssessment(90, RiskLevel.HIGH, java.util.List.of("Vélocité IP très élevée")));
+
+            assertThatThrownBy(() -> service.checkout(
+                    buildCtx(), new BookingCheckoutRequestDto("CODE", null), "1.2.3.4"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("vérification");
+
+            // Aucune session Stripe créée pour un checkout refusé.
+            verify(stripeService, never()).createReservationCheckoutSession(any(), any(), any(), any(), any(),
+                    any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("le montant scoré est le total RECALCULÉ SERVEUR (jamais un montant client)")
+        void whenScoring_thenUsesServerSideTotal() throws StripeException {
+            Reservation r = payableReservation();
+            r.setTotalPrice(new BigDecimal("777.00")); // total serveur de référence
+            when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
+                    .thenReturn(Optional.of(r));
+            stubStripeSession();
+            when(fraudScoringService.isEnabled()).thenReturn(true);
+            lenient().when(fraudScoringService.isEnforcement()).thenReturn(false);
+            when(fraudScoringService.score(any()))
+                    .thenReturn(new RiskAssessment(0, RiskLevel.LOW, java.util.List.of()));
+
+            service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null), "1.2.3.4");
+
+            ArgumentCaptor<BookingFraudScoringService.FraudSignalInput> captor =
+                    ArgumentCaptor.forClass(BookingFraudScoringService.FraudSignalInput.class);
+            verify(fraudScoringService).score(captor.capture());
+            assertThat(captor.getValue().serverTotal()).isEqualByComparingTo("777.00");
+            assertThat(captor.getValue().clientIp()).isEqualTo("1.2.3.4");
+            assertThat(captor.getValue().email()).isEqualTo("guest@example.com");
         }
     }
 

@@ -1,22 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
 import {
   Rocket, PanelLeftClose, PanelLeftOpen,
   Undo2, Redo2, Eye, Maximize, Code, SquareDashed, FolderInput, Workflow, PaintBucket, Boxes, Trash2, Plus,
-  Paintbrush, Layers, SlidersHorizontal, LayoutGrid, Pencil,
+  Paintbrush, Layers, SlidersHorizontal, LayoutGrid, Pencil, Languages, ImagePlus,
   type LucideIcon,
 } from 'lucide-react';
 import grapesjs, { type Editor, type ProjectData } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import type { StudioConfigState } from '../useStudioConfig';
 import type { BookingEngineConfig, DesignTokens } from '../../../../services/api/bookingEngineApi';
+import { bookingEngineApi } from '../../../../services/api/bookingEngineApi';
+import { useAuth } from '../../../../hooks/useAuth';
 import { mediaApi } from '../../../../services/api/mediaApi';
 import { sitesApi } from '../../../../services/api/sitesApi';
 import { API_CONFIG } from '../../../../config/api';
-import { registerBookingComponents, blockLabelHtml, resolveBlockId } from './bookingComponents';
+import { registerBookingComponents, reseedEditorPreview, blockLabelHtml, resolveBlockId } from './bookingComponents';
+import { setupImageEditing } from './imageEditing';
+import { setupElementTransform } from './elementTransform';
 import { BOOKING_WIDGET_DEFS, BOOKING_WIDGET_ATTR } from './bookingWidgetDefs';
-import { WIDGET_SKIN_CSS, WIDGET_SKIN_SENTINEL, buildWidgetSkinBlock } from '../../sdk/styles/widgetSkin';
+import { WIDGET_SKIN_CSS, WIDGET_SKIN_SENTINEL, buildWidgetSkinBlock, buildRootSkinBlock, btVarMap, type DesignVars } from '../../sdk/styles/widgetSkin';
+import { STYLE_SECTORS } from './styleSectors';
+import { registerBtValueType } from './registerBtValueType';
 import { ensureStructuralStyles } from '../../sdk/headless';
 import ImportPanel from './ImportPanel';
 import FunnelPicker from './FunnelPicker';
@@ -30,8 +37,11 @@ import { validateComposition } from './funnelRules';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 import { sanitizeHtml, sanitizeCss } from './import/sanitizeHtml';
 import PagesBar from '../builder/PagesBar';
+import TranslateModal from '../TranslateModal';
 import { useSitePages } from '../useSitePages';
+import { useNotification } from '../../../../hooks/useNotification';
 import type { Breakpoint } from '../StudioShell';
+import { GUIDED_VIEWS, type StudioMode } from '../studioMode';
 import './grapesStudio.css';
 
 /**
@@ -153,20 +163,22 @@ const BLANK_PROJECT = { pages: [{ component: '' }] } as unknown as ProjectData;
  *   3. sinon → canvas vierge.
  * L'appelant suspend la persistance (`hydratingRef`) autour de cet appel.
  */
-function loadPageInto(editor: Editor, source: string | null | undefined): void {
+function loadPageInto(editor: Editor, source: string | null | undefined, logoUrl?: string | null): void {
   const project = parseInitialProject(source);
   if (project) {
     editor.loadProjectData(project);
-    return;
+  } else {
+    const hc = parseHtmlCssEnvelope(source);
+    if (hc) {
+      editor.loadProjectData(BLANK_PROJECT);
+      editor.setComponents(sanitizeHtml(hc.html));
+      if (hc.css.trim()) editor.setStyle(sanitizeCss(hc.css));
+    } else {
+      editor.loadProjectData(BLANK_PROJECT);
+    }
   }
-  const hc = parseHtmlCssEnvelope(source);
-  if (hc) {
-    editor.loadProjectData(BLANK_PROJECT);
-    editor.setComponents(sanitizeHtml(hc.html));
-    if (hc.css.trim()) editor.setStyle(sanitizeCss(hc.css));
-    return;
-  }
-  editor.loadProjectData(BLANK_PROJECT);
+  // Logo source unique : appliqué à chaque chargement de page (nav + footer de la page courante).
+  applyLogoToCanvas(editor, logoUrl);
 }
 
 /**
@@ -180,27 +192,57 @@ const SUPPORTED_LOCALES = ['fr', 'en', 'ar'] as const;
 const LOCALE_LABEL: Record<string, string> = { fr: 'FR', en: 'EN', ar: 'AR' };
 
 /**
- * Balises de texte rendues éditables (double-clic → RTE) dans le canvas. GrapesJS ne détecte « texte »
- * que les éléments dont TOUS les enfants sont du texte : un titre à contenu mixte (`<h1>… <em>…</em></h1>`)
- * échappe à l'heuristique et reste non éditable. On élargit donc la détection à ces balises.
+ * Balises JAMAIS converties en texte éditable, même si elles portent du texte direct :
+ *  - `a` → déjà géré par le type natif `link` (éditable + trait href) : ne pas l'écraser ;
+ *  - contrôles de formulaire, médias et balises techniques → pas du contenu rédactionnel.
  */
-const EDITABLE_TEXT_TAGS = new Set([
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote', 'cite', 'figcaption', 'li', 'label', 'small',
+const NON_EDITABLE_TEXT_TAGS = new Set([
+  'a', 'script', 'style', 'title', 'noscript', 'iframe', 'svg', 'img', 'video', 'audio',
+  'source', 'canvas', 'input', 'textarea', 'select', 'option', 'datalist',
 ]);
 
 /**
- * Enregistre un type `cm-text` (extension du type `text` natif → éditable + RTE) qui revendique les
- * balises de `EDITABLE_TEXT_TAGS` quel que soit leur contenu inline → le texte importé devient éditable
- * au double-clic. DOIT être enregistré AVANT tout parse HTML (`setComponents`) pour s'appliquer. Les
- * marqueurs widget (`<div data-clenzy-widget>`) ne sont pas des balises de texte → aucun conflit.
+ * Balises inline « phrasing » autorisées comme enfants d'un champ de texte éditable. Si un élément porteur
+ * de texte n'a QUE des enfants de ce type, il reste un champ de texte (contenu mixte type `<h1>… <em>…</em>`).
+ * Dès qu'il contient un enfant BLOC, c'est un conteneur → on ne le convertit pas (sinon l'absorption RTE
+ * casserait le drag/drop des blocs enfants).
+ */
+const INLINE_PHRASING_TAGS = new Set([
+  'span', 'strong', 'em', 'b', 'i', 'u', 's', 'small', 'mark', 'sub', 'sup', 'code', 'a', 'br',
+  'abbr', 'cite', 'q', 'time', 'kbd', 'var', 'samp', 'wbr', 'bdi', 'bdo', 'data', 'ins', 'del',
+]);
+
+/**
+ * Vrai si l'élément est un « champ de texte » du site : il porte du texte rédactionnel DIRECT (un nœud
+ * texte enfant non vide) et n'est PAS un conteneur de blocs (ses enfants éléments, s'il y en a, sont tous
+ * inline). Exclut aussi les marqueurs de widget de réservation et les balises non rédactionnelles.
+ */
+function holdsDirectText(el: HTMLElement): boolean {
+  const tag = el.tagName?.toLowerCase();
+  if (!tag || NON_EDITABLE_TEXT_TAGS.has(tag)) return false;
+  if (el.getAttribute?.(BOOKING_WIDGET_ATTR) != null) return false; // marqueur widget : atomique, non éditable
+  const hasDirectText = Array.from(el.childNodes || []).some(
+    (n) => n.nodeType === 3 && (n.textContent || '').trim().length > 0,
+  );
+  if (!hasDirectText) return false;
+  // N'accepte que des enfants inline : un enfant bloc ⇒ conteneur, on laisse droppable/non-texte.
+  return Array.from(el.children || []).every(
+    (c) => INLINE_PHRASING_TAGS.has(c.tagName?.toLowerCase()),
+  );
+}
+
+/**
+ * Enregistre un type `cm-text` (extension du type `text` natif → éditable + RTE) qui revendique TOUT
+ * élément porteur de texte rédactionnel direct, quelle que soit sa balise : titres, paragraphes, listes,
+ * mais aussi `span`, `td`/`th`, `button`, `figcaption`, `div` à texte direct… GrapesJS ne rend nativement
+ * éditables que les éléments dont TOUS les enfants sont du texte → cette détection élargie garantit que
+ * TOUT le texte du site (y compris contenus mixtes et balises non standard) soit modifiable au double-clic.
+ * DOIT être enregistré AVANT tout parse HTML (`setComponents`).
  */
 function registerTextEditing(editor: Editor): void {
   editor.DomComponents.addType('cm-text', {
     extend: 'text',
-    isComponent: (el) => {
-      const tag = (el as HTMLElement).tagName?.toLowerCase();
-      return tag && EDITABLE_TEXT_TAGS.has(tag) ? { type: 'cm-text' } : undefined;
-    },
+    isComponent: (el) => (holdsDirectText(el as HTMLElement) ? { type: 'cm-text' } : undefined),
     model: { defaults: { editable: true } },
   });
 }
@@ -258,9 +300,66 @@ a { color: var(--clenzy-primary); }
 .clenzy-booking-placeholder__hint { font-size: 12px; }`;
 }
 
+/**
+ * Contrat de variables CSS `--bt-*` des widgets, dérivé de la config : (1) la map exhaustive émise par le
+ * LLM (`config.designCssVariables`, JSON) si présente — prioritaire ; (2) repli minimal depuis les champs
+ * structurés (primaire/police/surfaces/rayon) pour les configs sans contrat (anciennes / templates). Sert
+ * à habiller les widgets EXACTEMENT comme les pages (unification pages ↔ widgets via le namespace --bt-*).
+ */
+function configBtVars(config: BookingEngineConfig | null): DesignVars {
+  const out: DesignVars = {};
+  const raw = config?.designCssVariables;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (parsed && typeof parsed === 'object') {
+        for (const [k, v] of Object.entries(parsed)) {
+          if (k.startsWith('--bt-') && typeof v === 'string' && v) out[k] = v;
+        }
+      }
+    } catch { /* JSON invalide : ignoré, on retombe sur le repli */ }
+  }
+  const t = parseTokens(config?.designTokens);
+  const put = (key: string, val?: string | null) => { if (val && !out[key]) out[key] = val; };
+  put('--bt-color-primary', t?.primaryColor || config?.primaryColor);
+  put('--bt-font-body', t?.bodyFontFamily || config?.fontFamily);
+  put('--bt-color-surface', t?.surfaceColor);
+  put('--bt-color-text', t?.textColor);
+  put('--bt-color-text-muted', t?.textSecondaryColor);
+  put('--bt-color-border', t?.borderColor);
+  put('--bt-radius-md', t?.borderRadius);
+  return out;
+}
+
+/** Variables `--bt-*` dérivées du thème d'un template importé (couleur de marque + polices corps/titres). */
+function templateBtVars(theme?: { primaryColor?: string | null; fontFamily?: string | null; headingFontFamily?: string | null } | null): DesignVars {
+  const out: DesignVars = {};
+  if (theme?.primaryColor) out['--bt-color-primary'] = theme.primaryColor;
+  if (theme?.fontFamily) out['--bt-font-body'] = theme.fontFamily;
+  if (theme?.headingFontFamily) out['--bt-font-heading'] = theme.headingFontFamily;
+  return out;
+}
+
 /** Résout l'URL d'un média Clenzy en absolu (l'API renvoie un chemin relatif keyless `/api/public/media/{id}`). */
 function resolveMediaUrl(url: string): string {
   return url.startsWith('http') ? url : `${API_CONFIG.BASE_URL}${url}`;
+}
+
+/**
+ * Logo SOURCE UNIQUE : applique `config.logoUrl` à tous les marqueurs `[data-clenzy-logo]` (nav + footer)
+ * du canvas. Lecture seule depuis la config → pas de boucle ; sérialisé (addAttributes) donc baké à la
+ * publication. URL absente → on laisse le slot masqué (juste le titre, comme avant).
+ */
+function applyLogoToCanvas(editor: Editor, logoUrl: string | null | undefined): void {
+  const wrapper = editor.getWrapper?.();
+  if (!wrapper) return;
+  const url = logoUrl && logoUrl.trim() ? resolveMediaUrl(logoUrl.trim()) : null;
+  wrapper.find('[data-clenzy-logo]').forEach((c) => {
+    if (url) {
+      c.addAttributes({ src: url });
+      c.removeAttributes('hidden');
+    }
+  });
 }
 
 /** Extrait les fichiers d'un évènement d'upload GrapesJS (drop sur la dropzone OU input file). */
@@ -466,7 +565,7 @@ const WIDGET_SKIN_STYLE_ID = 'clenzy-widget-skin';
  * (parsée par le navigateur, ≠ `editor.Css` dont le parser bute sur `::after`/`var()`/`:not()`) →
  * rendu fiable et immédiat. Les variables de marque (accent/police) priment sur les fallbacks du skin.
  */
-function applyWidgetSkinToCanvas(editor: Editor, primaryColor?: string | null, fontFamily?: string | null): void {
+function applyWidgetSkinToCanvas(editor: Editor, vars: DesignVars): void {
   const doc = editor.Canvas.getDocument();
   if (!doc) return;
   let style = doc.getElementById(WIDGET_SKIN_STYLE_ID) as HTMLStyleElement | null;
@@ -475,10 +574,37 @@ function applyWidgetSkinToCanvas(editor: Editor, primaryColor?: string | null, f
     style.id = WIDGET_SKIN_STYLE_ID;
     doc.head.appendChild(style);
   }
-  const vars: string[] = [];
-  if (primaryColor) vars.push(`--cb-accent:${primaryColor};`);
-  if (fontFamily) vars.push(`--cb-font:${fontFamily};`);
-  style.textContent = (vars.length ? `.cb-widget{${vars.join('')}}\n` : '') + WIDGET_SKIN_CSS;
+  const decls = Object.entries(btVarMap(vars)).map(([k, v]) => `${k}:${v};`).join('');
+  style.textContent = (decls ? `.cb-widget{${decls}}\n` : '') + WIDGET_SKIN_CSS;
+}
+
+/**
+ * Pose le skin cosmétique des widgets de réservation : affichage canvas (raw) + skin dans le CSS projet
+ * (idempotent via sentinelle) + variables de marque `--bt-*` sur `.cb-widget`. Réutilisé par le bouton
+ * « Styles widgets » ET par l'auto-pose au 1er ajout d'un widget (dev manuel / composite / funnel).
+ */
+function ensureWidgetSkin(editor: Editor, vars: DesignVars): void {
+  // Affichage éditeur FIABLE : injection raw dans l'iframe (le navigateur parse le skin).
+  applyWidgetSkinToCanvas(editor, vars);
+  // Persistance/export (best-effort) : ajout au CSS projet (le parser GrapesJS peut ignorer certaines
+  // règles `::after`/`var()` → l'affichage reste assuré par le <style> canvas ci-dessus).
+  try {
+    if (!editor.Css.getRule(WIDGET_SKIN_SENTINEL)) editor.Css.addRules(WIDGET_SKIN_CSS);
+    const cbVars = btVarMap(vars);
+    if (Object.keys(cbVars).length) editor.Css.setRule('.cb-widget', cbVars);
+    editor.trigger('update');
+  } catch { /* parser GrapesJS : affichage éditeur déjà garanti par le <style> canvas */ }
+}
+
+/** True si le composant ajouté EST ou CONTIENT un widget de réservation (marqueur `data-clenzy-widget`). */
+function componentHasBookingWidget(
+  comp: { getAttributes?: () => Record<string, unknown>; find?: (sel: string) => unknown[] } | null | undefined,
+): boolean {
+  if (!comp) return false;
+  const attrs = comp.getAttributes?.() ?? {};
+  if (attrs[BOOKING_WIDGET_ATTR] != null) return true;
+  const found = comp.find?.(`[${BOOKING_WIDGET_ATTR}]`);
+  return Array.isArray(found) && found.length > 0;
 }
 
 /**
@@ -545,11 +671,13 @@ function ToolBtn({ icon: Icon, title, onClick, active = false, disabled = false,
 }
 
 /** Panneau « Composites » du panneau droit (P1) : liste des composites + bouton « Nouveau composite ». */
-function CompositesPanel({ composites, onInsert, onEdit, onDelete, onNew }: {
+function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete, onNew }: {
   composites: CompositeWidget[];
+  /** Le staff plateforme peut éditer/supprimer les composites de la bibliothèque GLOBALE. */
+  canEditGlobal: boolean;
   onInsert: (c: CompositeWidget) => void;
   onEdit: (c: CompositeWidget) => void;
-  onDelete: (id: string) => void;
+  onDelete: (c: CompositeWidget) => void;
   onNew: () => void;
 }) {
   return (
@@ -567,19 +695,24 @@ function CompositesPanel({ composites, onInsert, onEdit, onDelete, onNew }: {
         <Box key={c.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.9, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', transition: 'border-color var(--duration-fast) var(--ease-out)', '&:hover': { borderColor: 'var(--accent)' } }}>
           <Box sx={{ flexShrink: 0, display: 'inline-flex', color: 'var(--muted)' }}><Boxes size={20} strokeWidth={1.8} /></Box>
         <ButtonBase onClick={() => onInsert(c)} sx={{ flex: 1, minWidth: 0, display: 'block', textAlign: 'left', cursor: 'pointer' }}>
-            <Box component="span" sx={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>{c.name}</Box>
+            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>
+              {c.name}
+              {c.global && (
+                <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--accent)', bgcolor: 'var(--accent-soft)', px: 0.6, py: 0.1, borderRadius: 'var(--radius-sm)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Global</Box>
+              )}
+            </Box>
             <Box component="span" sx={{ display: 'block', fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{compositeSummary(c)}</Box>
           </ButtonBase>
-          {!c.builtin && (
+          {!c.builtin && (!c.global || canEditGlobal) && (
             <Tooltip title="Modifier">
               <ButtonBase onClick={() => onEdit(c)} aria-label="Modifier" sx={{ flexShrink: 0, width: 26, height: 24, borderRadius: 'var(--radius-sm)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { color: 'var(--accent)', bgcolor: 'var(--accent-soft)' } }}>
                 <Pencil size={14} strokeWidth={2} />
               </ButtonBase>
             </Tooltip>
           )}
-          {!c.builtin && (
+          {!c.builtin && (!c.global || canEditGlobal) && (
             <Tooltip title="Supprimer">
-              <ButtonBase onClick={() => onDelete(c.id)} aria-label="Supprimer" sx={{ flexShrink: 0, width: 26, height: 24, borderRadius: 'var(--radius-sm)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { color: 'var(--danger, #d4453f)', bgcolor: 'var(--danger-soft, rgba(212,69,63,.12))' } }}>
+              <ButtonBase onClick={() => onDelete(c)} aria-label="Supprimer" sx={{ flexShrink: 0, width: 26, height: 24, borderRadius: 'var(--radius-sm)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { color: 'var(--danger, #d4453f)', bgcolor: 'var(--danger-soft, rgba(212,69,63,.12))' } }}>
                 <Trash2 size={14} strokeWidth={2} />
               </ButtonBase>
             </Tooltip>
@@ -594,9 +727,13 @@ export interface GrapesStudioProps {
   cfg: StudioConfigState;
   /** Breakpoint d'aperçu, piloté par le toggle du page header (le sélecteur device natif GrapesJS est masqué). */
   breakpoint: Breakpoint;
+  /** Mode d'édition. `guided` bride l'UI (onglets Blocs+Style, blocs curés, pas d'import) ; `advanced` = complet. */
+  mode: StudioMode;
 }
 
-export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
+export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProps) {
+  const { t } = useTranslation();
+  const { notify } = useNotification();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Editor | null>(null);
   // Miroir d'état de l'éditeur : permet à la modale d'import (React) de se (re)rendre une fois l'éditeur
@@ -613,6 +750,10 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
   const [compositeCreatorOpen, setCompositeCreatorOpen] = useState(false);
   // Composite en cours d'édition (null = création d'un nouveau composite).
   const [editingComposite, setEditingComposite] = useState<CompositeWidget | null>(null);
+  // Bibliothèque GLOBALE (plateforme) de composites — partagée à TOUS les engines, alimentée par le staff.
+  const [globalComposites, setGlobalComposites] = useState<CompositeWidget[]>([]);
+  const { hasAnyRole } = useAuth();
+  const canEditGlobal = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
   const [publishing, setPublishing] = useState(false);
   // Réduction du panneau latéral (bouton « réduire la colonne »).
   const [panelCollapsed, setPanelCollapsed] = useState(false);
@@ -628,6 +769,15 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
   // Skin widgets activé (session) → réinjecté dans l'iframe à chaque (re)chargement de page.
   const widgetSkinOnRef = useRef(false);
   const [activeView, setActiveView] = useState<EditorView>('blocks');
+  // Mode GUIDÉ : onglets restreints (Blocs + Style). Les blocs sont curés via CSS (`data-guided`),
+  // l'import est masqué (cf. barre d'outils). Le mode Avancé garde TOUS les onglets/blocs/l'import.
+  const guided = mode === 'guided';
+  const visibleTabs = guided ? VIEW_TABS.filter((t) => GUIDED_VIEWS.has(t.key)) : VIEW_TABS;
+  // Si l'onglet actif n'est plus visible (passage en Guidé alors qu'on était sur Calques/Réglages/Composites),
+  // on retombe sur « Blocs ». Effet (≠ rendu) → ne perturbe pas le rendu en cours.
+  useEffect(() => {
+    if (guided && !GUIDED_VIEWS.has(activeView)) setActiveView('blocks');
+  }, [guided, activeView]);
   // États des actions toggle de la barre d'outils.
   const [previewOn, setPreviewOn] = useState(false);
   const [fullscreenOn, setFullscreenOn] = useState(false);
@@ -714,10 +864,14 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       // Option A — AUCUN panneau GrapesJS par défaut : la barre d'outils + le panneau droit sont 100 %
       // React (cf. rendu). Les managers ci-dessous sont montés dans NOS conteneurs via `appendTo`.
       panels: { defaults: [] },
+      // Enregistre le type de propriété custom `bt-value` (menu tokens --bt-* + valeur libre) AVANT que le
+      // Style Manager ne rende les secteurs (qui l'utilisent).
+      plugins: [registerBtValueType],
       blockManager: { appendTo: blocksEl },
       layerManager: { appendTo: layersEl },
       selectorManager: { appendTo: stylesEl },
-      styleManager: { appendTo: stylesEl },
+      // Secteurs EXHAUSTIFS : toute la grammaire CSS, propriétés de marque mappées aux tokens --bt-*.
+      styleManager: { appendTo: stylesEl, sectors: STYLE_SECTORS as unknown as never[] },
       traitManager: { appendTo: traitsEl },
       // Devices alignés sur les breakpoints du page header (largeurs = FRAME_WIDTH).
       deviceManager: {
@@ -751,13 +905,15 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     registerBaseBlocks(editor);
     registerBookingComponents(editor, ctx);
     registerTextEditing(editor);
+    setupImageEditing(editor); // clic/dbl-clic sur image → picker (défauts du template + médiathèque + upload)
+    setupElementTransform(editor); // toolbar −/+ (échelle, texte inclus) + flèches (déplacement px), par device
 
     // Contenu initial chargé APRÈS les types → le parse HTML applique la détection texte/widget (texte
     // éditable au double-clic, marqueurs hydratés en aperçu). Persistance suspendue le temps du chargement.
     lastHydratedRef.current = persistTargetRef.current.pageMode ? persistTargetRef.current.pageId : 'legacy';
     hydratingRef.current = true;
     try {
-      loadPageInto(editor, initialBlocksRef.current);
+      loadPageInto(editor, initialBlocksRef.current, configRef.current?.logoUrl);
     } finally {
       setTimeout(() => { hydratingRef.current = false; }, 0);
     }
@@ -881,7 +1037,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       // persisté INCOMPLET subsiste (le parser GrapesJS ignore certaines règles `::after`/`var()`) →
       // l'habillage « template » disparaît. La détection le restaure automatiquement au chargement.
       if (!widgetSkinOnRef.current && editor.Css.getRule(WIDGET_SKIN_SENTINEL)) widgetSkinOnRef.current = true;
-      if (widgetSkinOnRef.current) applyWidgetSkinToCanvas(editor, cfg.config?.primaryColor, cfg.config?.fontFamily);
+      if (widgetSkinOnRef.current) applyWidgetSkinToCanvas(editor, configBtVars(cfg.config));
       // (Re)branche l'observer sur le nouveau document d'iframe. `childList`+`subtree` SEULEMENT : nos
       // marquages (classes/attributs) ne déclenchent pas l'observer → aucune boucle.
       canvasObserver?.disconnect();
@@ -896,6 +1052,18 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     editor.on('component:remove', scheduleValidation);
     editor.on('component:update', scheduleValidation);
 
+    // Auto-pose du skin widgets : dès qu'un widget de réservation est ajouté À LA MAIN (drag / funnel /
+    // composite) sur une page qui n'a pas encore le skin, on l'injecte UNE fois (puis l'effet de thème
+    // réactif maintient les variables --bt-* à jour). Évite d'avoir à cliquer « Styles widgets ».
+    // Pas pendant l'hydratation (la page chargée gère son propre skin) ni si le skin est déjà présent.
+    const onAutoSkin = (comp: { getAttributes?: () => Record<string, unknown>; find?: (s: string) => unknown[] }) => {
+      if (hydratingRef.current || widgetSkinOnRef.current) return;
+      if (!componentHasBookingWidget(comp)) return;
+      widgetSkinOnRef.current = true;
+      ensureWidgetSkin(editor, configBtVars(configRef.current));
+    };
+    editor.on('component:add', onAutoSkin);
+
     return () => {
       if (timer) clearTimeout(timer);
       if (validationTimer) clearTimeout(validationTimer);
@@ -905,6 +1073,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       editor.off('component:deselected', onDeselected);
       editor.off('load', onCanvasLoad);
       editor.off('component:add', scheduleValidation);
+      editor.off('component:add', onAutoSkin);
       editor.off('component:remove', scheduleValidation);
       editor.off('component:update', scheduleValidation);
       editor.destroy();
@@ -943,7 +1112,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     hydratingRef.current = true;
     try {
       // Charge projectData (ré-éditable) OU enveloppe html+css (template importé) OU canvas vierge.
-      loadPageInto(editor, source);
+      loadPageInto(editor, source, configRef.current?.logoUrl);
     } finally {
       // Relâche au prochain tick : laisse passer les `update` synchrones émis par le load.
       setTimeout(() => { hydratingRef.current = false; }, 0);
@@ -958,21 +1127,53 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
   // sur d'autres mutations de config, ex. nom du projet).
   const c = cfg.config;
   const themeSig = c
-    ? JSON.stringify([c.primaryColor, c.fontFamily, c.designTokens, c.customCss, c.defaultCurrency, c.defaultLanguage])
+    ? JSON.stringify([c.primaryColor, c.fontFamily, c.designTokens, c.designCssVariables, c.customCss, c.defaultCurrency, c.defaultLanguage])
     : '';
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || !c) return;
     applyCanvasThemeCss(editor, c);
+    // Rafraîchit les variables --cb-* du skin widget depuis les tokens (design unifié pages ↔ widgets).
+    if (widgetSkinOnRef.current) applyWidgetSkinToCanvas(editor, configBtVars(c));
     rerenderBookingWidgets(editor);
     // Dépend uniquement de la signature de thème ; `c` est lu via la ref dans les helpers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeSig]);
 
+  // Source de données (MOCK/REAL) : re-seede l'aperçu éditeur quand le mode change, sans réinitialiser
+  // l'éditeur. REAL → vraies propriétés du tenant ; MOCK → jeu de démo. (Le site PUBLIÉ applique déjà le
+  // mode via l'API publique ; ici on aligne le canvas d'édition.)
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    reseedEditorPreview(editor, configRef.current);
+    rerenderBookingWidgets(editor);
+  }, [cfg.config?.dataSourceMode]);
+
   // ── Device piloté par le page header (le sélecteur device natif GrapesJS est masqué via CSS) ──
   useEffect(() => {
     if (editorInstance) editorInstance.setDevice(GJS_DEVICE[breakpoint]);
   }, [breakpoint, editorInstance]);
+
+  // ── Logo SOURCE UNIQUE : ré-applique config.logoUrl au canvas quand il change (ex. après upload),
+  //    en plus de l'application à chaque chargement de page (cf. loadPageInto). ──
+  useEffect(() => {
+    if (editorInstance) applyLogoToCanvas(editorInstance, cfg.config?.logoUrl);
+  }, [editorInstance, cfg.config?.logoUrl]);
+
+  // Upload du logo (médiathèque) → persiste config.logoUrl (source unique) → l'effet ci-dessus l'applique
+  // au canvas (nav + footer), et la publication le bake dans chaque page.
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const handleLogoUpload = useCallback(async () => {
+    const input = logoInputRef.current;
+    const file = input?.files?.[0];
+    if (!file) return;
+    if (input) input.value = '';
+    try {
+      const asset = await mediaApi.upload(file);
+      await cfg.patchPersist({ logoUrl: asset.url });
+    } catch { /* upload / persistance échouée : erreur exposée par le hook */ }
+  }, [cfg]);
 
   // ── Gestion des pages (B4) : sauvegarde la page courante avant de switcher/ajouter ─────────────
   // Force la sauvegarde immédiate de l'enveloppe grapes de la page active (court-circuite le débounce),
@@ -1033,7 +1234,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       await pages.savePageBlocks(current.id, env);
       // Recharge le canvas avec la traduction (page active inchangée → l'effet d'hydratation ne se redéclenche pas).
       hydratingRef.current = true;
-      try { loadPageInto(editor, env); } finally { setTimeout(() => { hydratingRef.current = false; }, 0); }
+      try { loadPageInto(editor, env, configRef.current?.logoUrl); } finally { setTimeout(() => { hydratingRef.current = false; }, 0); }
       lastHydratedRef.current = current.id;
     } catch {
       /* échec traduction : la page reste inchangée (erreur réseau/IA) */
@@ -1064,7 +1265,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       // Recharge la page active avec sa traduction (les autres sont déjà persistées).
       if (activeEnv) {
         hydratingRef.current = true;
-        try { loadPageInto(editor, activeEnv); } finally { setTimeout(() => { hydratingRef.current = false; }, 0); }
+        try { loadPageInto(editor, activeEnv, configRef.current?.logoUrl); } finally { setTimeout(() => { hydratingRef.current = false; }, 0); }
         lastHydratedRef.current = pages.selectedPageId;
       }
     } catch {
@@ -1073,6 +1274,44 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       setTranslating(false);
     }
   }, [pages, translating]);
+
+  // Auto-traduction IA (P1) de la page ACTIVE vers des langues cibles choisies : crée les variantes
+  // localisées EN BROUILLON via l'endpoint dédié (relecture humaine), puis recharge les pages du site.
+  // Distinct du « Traduire (IA) » in-place ci-dessus : ici on génère des variantes à relire, sans écraser.
+  const [autoTranslateOpen, setAutoTranslateOpen] = useState(false);
+  // Cibles proposées = langues supportées hors langue de la page active (sa propre langue).
+  const autoTranslateTargets = SUPPORTED_LOCALES.filter((l) => l !== pages.activeLocale);
+
+  const handleAutoTranslatePage = useCallback(async (targets: string[]) => {
+    const site = pages.site;
+    const current = pages.selectedPage;
+    if (!site || !current) {
+      throw new Error(t('bookingEngine.studio.ai.translate.noPage', 'Aucune page sélectionnée.'));
+    }
+    // S'assure que le brouillon courant est persisté avant de traduire (la source doit être à jour).
+    await flushActivePage();
+    const result = await sitesApi.autoTranslatePage(site.id, current.id, targets);
+    const created = result.createdPages.length;
+    const skipped = result.skippedLocales.length;
+    setAutoTranslateOpen(false);
+    if (created > 0) {
+      notify.success(
+        t('bookingEngine.studio.ai.translate.success', '{{count}} variante(s) créée(s) en brouillon — à relire avant publication.', { count: created }),
+      );
+    } else {
+      notify.info(
+        t('bookingEngine.studio.ai.translate.noneCreated', 'Aucune variante créée (langues déjà traduites).'),
+      );
+    }
+    if (skipped > 0) {
+      notify.info(
+        t('bookingEngine.studio.ai.translate.skipped', '{{count}} langue(s) ignorée(s) (déjà traduite(s)).', { count: skipped }),
+      );
+    }
+    // Recharge site + pages pour faire apparaître les nouvelles variantes (barre de langues + pages).
+    try { await pages.reload(); } catch { /* best-effort : les variantes existent côté serveur */ }
+    return result;
+  }, [pages, flushActivePage, notify, t]);
 
   // Repartir de zéro (B4) : supprime toutes les pages sauf l'accueil, vide l'accueil, et blanchit le canvas.
   const handleReset = useCallback(async () => {
@@ -1107,11 +1346,16 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     const themeChanges: Partial<BookingEngineConfig> = {};
     if (template.theme?.primaryColor) themeChanges.primaryColor = template.theme.primaryColor;
     if (template.theme?.fontFamily) themeChanges.fontFamily = template.theme.fontFamily;
+    // Contrat `--bt-*` du template PERSISTÉ : l'injection widget du Studio (`configBtVars`) le prend en
+    // priorité (cf. `configBtVars`) → les widgets suivent le design du template (couleur/polices), même si
+    // `primaryColor` de l'engine dérive. Évite le split-brain « page = template, widgets = marque engine ».
+    const btVars = templateBtVars(template.theme);
+    if (Object.keys(btVars).length > 0) themeChanges.designCssVariables = JSON.stringify(btVars);
     if (Object.keys(themeChanges).length > 0) cfg.patch(themeChanges);
 
     // Skin cosmétique des widgets baké dans CHAQUE page (light DOM) : variables de marque du template
     // + feuille de base. Les widgets headless sont ainsi habillés dès l'import, et restent surchargeables.
-    const skinBlock = buildWidgetSkinBlock(template.theme?.primaryColor, template.theme?.fontFamily);
+    const skinBlock = buildWidgetSkinBlock(btVars);
     const envelopeOf = (p: { html: string; css: string }) =>
       JSON.stringify({ format: GRAPES_FORMAT, html: p.html, css: `${p.css}\n\n${skinBlock}` });
 
@@ -1133,7 +1377,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
         if (editor && result) {
           hydratingRef.current = true;
           try {
-            loadPageInto(editor, result.homeBlocks);
+            loadPageInto(editor, result.homeBlocks, configRef.current?.logoUrl);
           } finally {
             setTimeout(() => { hydratingRef.current = false; }, 0);
           }
@@ -1148,7 +1392,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     // Repli mono-page : pas de SitePages → on charge l'accueil (NON suspendu → persisté en pageLayout).
     if (editor) {
       const home = template.pages.find((p) => p.type === 'HOME') ?? template.pages[0];
-      if (home) loadPageInto(editor, envelopeOf(home));
+      if (home) loadPageInto(editor, envelopeOf(home), configRef.current?.logoUrl);
     }
   }, [pages, cfg]);
 
@@ -1198,19 +1442,8 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     const ed = editorRef.current;
     if (!ed) return;
     widgetSkinOnRef.current = true;
-    // Affichage éditeur FIABLE : injection raw dans l'iframe (le navigateur parse le skin).
-    applyWidgetSkinToCanvas(ed, cfg.config?.primaryColor, cfg.config?.fontFamily);
-    // Persistance/export (best-effort) : ajout au CSS projet (le parser GrapesJS peut ignorer certaines
-    // règles `::after`/`var()` → l'affichage reste assuré par le <style> canvas ci-dessus).
-    try {
-      if (!ed.Css.getRule(WIDGET_SKIN_SENTINEL)) ed.Css.addRules(WIDGET_SKIN_CSS);
-      const vars: Record<string, string> = {};
-      if (cfg.config?.primaryColor) vars['--cb-accent'] = cfg.config.primaryColor;
-      if (cfg.config?.fontFamily) vars['--cb-font'] = cfg.config.fontFamily;
-      if (Object.keys(vars).length) ed.Css.setRule('.cb-widget', vars);
-      ed.trigger('update');
-    } catch { /* parser GrapesJS : affichage éditeur déjà garanti par le <style> canvas */ }
-  }, [cfg.config?.primaryColor, cfg.config?.fontFamily]);
+    ensureWidgetSkin(ed, configBtVars(cfg.config));
+  }, [cfg.config?.primaryColor, cfg.config?.fontFamily, cfg.config?.designTokens, cfg.config?.designCssVariables]);
   const handleInsertFunnel = useCallback((widgetIds: string[]) => {
     const ed = editorRef.current;
     if (ed) insertFunnel(ed, widgetIds);
@@ -1238,13 +1471,21 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
 
   // ── Widgets composites (P1–P3) : bibliothèque persistée par org dans `config.compositeWidgets`. ──
   const savedComposites = parseSavedComposites(cfg.config?.compositeWidgets);
-  // Expose les composites comme BLOCS draggables (catégorie « Composites » du panneau Blocs), re-synchronisés
-  // à l'init de l'éditeur et à chaque changement de la bibliothèque.
+  // Charge la bibliothèque GLOBALE (plateforme) une fois — visible dans le Studio de TOUS les engines.
+  useEffect(() => {
+    let alive = true;
+    bookingEngineApi.getGlobalComposites()
+      .then((res) => { if (alive) setGlobalComposites(parseSavedComposites(res?.widgets).map((c) => ({ ...c, global: true }))); })
+      .catch(() => { /* lib globale indisponible → on continue avec les composites de l'engine */ });
+    return () => { alive = false; };
+  }, []);
+  // Expose les composites (GLOBAUX + engine) comme BLOCS draggables (catégorie « Composites »), re-synchronisés
+  // à l'init de l'éditeur et à chaque changement de bibliothèque.
   useEffect(() => {
     const ed = editorRef.current;
-    if (ed) registerCompositeBlocks(ed, [...BUILTIN_COMPOSITES, ...savedComposites]);
+    if (ed) registerCompositeBlocks(ed, [...BUILTIN_COMPOSITES, ...globalComposites, ...savedComposites]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editorInstance, cfg.config?.compositeWidgets]);
+  }, [editorInstance, cfg.config?.compositeWidgets, globalComposites]);
   const handleInsertComposite = useCallback((c: CompositeWidget) => {
     const ed = editorRef.current;
     if (ed) insertComposite(ed, c);
@@ -1262,6 +1503,20 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
     if (ed && d.css?.trim()) ed.addStyle(d.css);
     // Le CSS rejoint le template (global) ; on ne stocke QUE name/html dans la bibliothèque du composite.
     const widget = { name: d.name, html: d.html };
+    // Cible GLOBALE si on édite un composite global, OU si un staff plateforme en CRÉE un nouveau
+    // (les composites créés par le staff alimentent la bibliothèque partagée à tous les engines).
+    const toGlobal = !!editingComposite?.global || (!editingComposite && canEditGlobal);
+    if (toGlobal) {
+      const current = globalComposites.map((c) => ({ id: c.id, name: c.name, html: c.html }));
+      const editId = editingComposite?.global ? editingComposite.id : null;
+      const next = editId
+        ? current.map((c) => (c.id === editId ? { ...c, ...widget } : c))
+        : [...current, { id: `composite-${Date.now().toString(36)}`, ...widget }];
+      void bookingEngineApi.putGlobalComposites(serializeSavedComposites(next as CompositeWidget[]))
+        .then(() => setGlobalComposites(next.map((c) => ({ ...c, global: true }) as CompositeWidget)))
+        .catch(() => { /* erreur réseau : la lib globale reste inchangée */ });
+      return;
+    }
     const current = parseSavedComposites(cfg.config?.compositeWidgets);
     // Édition : met à jour le composite existant (même id) ; sinon en crée un nouveau.
     const editId = editingComposite && current.some((c) => c.id === editingComposite.id) ? editingComposite.id : null;
@@ -1270,15 +1525,22 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
       : [...current, { id: `composite-${Date.now().toString(36)}`, ...widget } as CompositeWidget];
     // Persistance IMMÉDIATE (PUT) → le composite survit à un reload / une reconnexion.
     void cfg.patchPersist({ compositeWidgets: serializeSavedComposites(next) }).catch(() => { /* erreur exposée par le hook */ });
-  }, [cfg, editingComposite]);
+  }, [cfg, editingComposite, globalComposites, canEditGlobal]);
   const handleEditComposite = useCallback((c: CompositeWidget) => {
     setEditingComposite(c);
     setCompositeCreatorOpen(true);
   }, []);
-  const handleDeleteComposite = useCallback((id: string) => {
-    const current = parseSavedComposites(cfg.config?.compositeWidgets).filter((c) => c.id !== id);
+  const handleDeleteComposite = useCallback((c: CompositeWidget) => {
+    if (c.global) {
+      const next = globalComposites.filter((g) => g.id !== c.id).map((g) => ({ id: g.id, name: g.name, html: g.html }));
+      void bookingEngineApi.putGlobalComposites(serializeSavedComposites(next as CompositeWidget[]))
+        .then(() => setGlobalComposites(next.map((g) => ({ ...g, global: true }) as CompositeWidget)))
+        .catch(() => { /* erreur réseau */ });
+      return;
+    }
+    const current = parseSavedComposites(cfg.config?.compositeWidgets).filter((x) => x.id !== c.id);
     void cfg.patchPersist({ compositeWidgets: serializeSavedComposites(current) }).catch(() => { /* erreur exposée par le hook */ });
-  }, [cfg]);
+  }, [cfg, globalComposites]);
   const togglePreview = useCallback(() => {
     const ed = editorRef.current; if (!ed) return;
     setPreviewOn((on) => { if (on) ed.stopCommand('preview'); else ed.runCommand('preview'); return !on; });
@@ -1358,7 +1620,29 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
                 </ButtonBase>
               </Tooltip>
             ))}
-            {/* Traduction IA : visible seulement hors langue par défaut. Traduit la page active. */}
+            {/* Auto-traduction IA (P1) : crée des VARIANTES en brouillon de la page active vers les
+                langues choisies (relecture humaine), via l'endpoint dédié — distinct du « Traduire »
+                in-place ci-dessous. Toujours disponible dès qu'une page est sélectionnée. */}
+            {pages.selectedPage && autoTranslateTargets.length > 0 && (
+              <Tooltip title={t('bookingEngine.studio.ai.translate.pageTooltip', 'Traduire cette page (IA) — crée des variantes en brouillon')}>
+                <ButtonBase
+                  onClick={() => setAutoTranslateOpen(true)}
+                  disabled={pages.loading}
+                  aria-label={t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
+                  sx={{
+                    height: 24, px: 1, ml: 0.5, borderRadius: 'var(--radius-sm)', display: 'inline-flex',
+                    alignItems: 'center', gap: 0.5, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)',
+                    color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', whiteSpace: 'nowrap',
+                    '&:hover': { bgcolor: 'var(--accent)', color: 'var(--on-accent)' },
+                    '&.Mui-disabled': { opacity: 0.5 },
+                  }}
+                >
+                  <Languages size={13} strokeWidth={2.2} />
+                  {t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
+                </ButtonBase>
+              </Tooltip>
+            )}
+            {/* Traduction in-place : visible seulement hors langue par défaut. Traduit la page active. */}
             {pages.activeLocale !== pages.defaultLocale && (
               <Tooltip title="Traduire cette page depuis la langue par défaut (IA)">
                 <ButtonBase
@@ -1433,9 +1717,12 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
           <ToolBtn icon={Undo2} title="Annuler" onClick={doUndo} />
           <ToolBtn icon={Redo2} title="Rétablir" onClick={doRedo} />
           <Box sx={{ width: '1px', height: 20, bgcolor: 'var(--line)', mx: 0.5 }} />
-          <ToolBtn icon={FolderInput} title="Importer un design" label="Importer" onClick={() => setImportOpen(true)} />
+          {/* Import = mode Avancé uniquement (import de design multi-standards). Masqué en Guidé. */}
+          {!guided && <ToolBtn icon={FolderInput} title="Importer un design" label="Importer" onClick={() => setImportOpen(true)} />}
           <ToolBtn icon={Workflow} title="Parcours de réservation (modèles + composeur)" label="Funnel" onClick={handleFunnel} />
           <ToolBtn icon={PaintBucket} title="Insérer les styles de widgets (skin de base, à personnaliser)" label="Styles widgets" onClick={insertWidgetStyles} />
+          <ToolBtn icon={ImagePlus} title="Logo du site (barre de navigation + pied de page)" label="Logo" onClick={() => logoInputRef.current?.click()} />
+          <input ref={logoInputRef} type="file" accept="image/*" hidden onChange={() => { void handleLogoUpload(); }} />
           <Box sx={{ flex: 1, minWidth: 8 }} />
           <ToolBtn icon={SquareDashed} title="Afficher les contours d'édition" active={outlineOn} onClick={toggleOutline} />
           <ToolBtn icon={Eye} title="Aperçu" active={previewOn} onClick={togglePreview} />
@@ -1461,6 +1748,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
             config={cfg.config}
             initial={editingComposite}
             getTemplateCss={() => editorRef.current?.getCss() ?? ''}
+            getSkinCss={() => buildRootSkinBlock(configBtVars(cfg.config))}
             onClose={() => { setCompositeCreatorOpen(false); setEditingComposite(null); }}
             onInsert={handleInsertCompositeDraft}
             onSave={handleSaveComposite}
@@ -1483,7 +1771,7 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
           {!panelCollapsed && !chromeHidden && (
             <Box sx={{ flexShrink: 0, display: 'flex', justifyContent: 'center', p: 1, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
               <Box sx={{ display: 'inline-flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}>
-                {VIEW_TABS.map(({ key, icon: Icon, label }) => {
+                {visibleTabs.map(({ key, icon: Icon, label }) => {
                   const active = key === activeView;
                   return (
                     <Tooltip key={key} title={label}>
@@ -1511,10 +1799,12 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
           )}
           {/* Contenu — SEUL à scroller : la barre de défilement n'apparaît plus au niveau des onglets. */}
           <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
-            <Box ref={blocksRef} sx={{ display: activeView === 'blocks' ? 'block' : 'none' }} />
+            {/* `data-guided` (mode Guidé) → la palette se restreint au set curé via CSS (`grapesStudio.css`). */}
+            <Box ref={blocksRef} {...(guided ? { 'data-guided': '' } : {})} sx={{ display: activeView === 'blocks' ? 'block' : 'none' }} />
             {activeView === 'composites' && (
               <CompositesPanel
-                composites={[...BUILTIN_COMPOSITES, ...savedComposites]}
+                composites={[...BUILTIN_COMPOSITES, ...globalComposites, ...savedComposites]}
+                canEditGlobal={canEditGlobal}
                 onInsert={handleInsertComposite}
                 onEdit={handleEditComposite}
                 onDelete={handleDeleteComposite}
@@ -1561,6 +1851,13 @@ export default function GrapesStudio({ cfg, breakpoint }: GrapesStudioProps) {
         savedPresets={savedFunnelPresets}
         onSave={handleSaveFunnelPreset}
         onDelete={handleDeleteFunnelPreset}
+      />
+      <TranslateModal
+        open={autoTranslateOpen}
+        onClose={() => setAutoTranslateOpen(false)}
+        targetName={pages.selectedPage?.title ?? null}
+        availableTargets={autoTranslateTargets}
+        onTranslate={handleAutoTranslatePage}
       />
     </Box>
   );

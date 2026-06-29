@@ -112,7 +112,7 @@ function buildCss(t: TplTheme): string {
 .bkt-hero--editorial .bkt-hero__sub { font-size: 19px; color: var(--bk-body); max-width: 540px; }
 
 /* Carte de recherche */
-.bkt-searchcard { background: var(--bk-surface); border: 1px solid var(--bk-line); border-radius: var(--bk-radius); box-shadow: var(--bk-shadow); padding: 18px; }
+.bkt-searchcard { background: var(--bk-surface); border: 1px solid var(--bk-line); border-radius: var(--bk-radius); box-shadow: var(--bk-shadow); padding: 18px; color: var(--bk-ink); }
 .bkt-searchcard--light { color: var(--bk-ink); }
 .bkt-searchcard__label { font-size: 12px; font-weight: 600; color: var(--bk-muted); margin: 0 0 12px; text-transform: uppercase; letter-spacing: .08em; }
 .bkt-searchbar { background: var(--bk-surface); border: 1px solid var(--bk-line); border-radius: var(--bk-radius); padding: 16px; box-shadow: var(--bk-shadow); margin-bottom: 28px; }
@@ -267,7 +267,7 @@ const featuresSection = (t: TplTheme) => `<section class="bkt-section bkt-sectio
 
 const splitSection = (t: TplTheme) => `<section class="bkt-section">
     <div class="bkt-wrap"><div class="bkt-split">
-      <div class="bkt-split__media" style="background-image:url('${t.images.about}')"></div>
+      <div class="bkt-split__media bkt-img-about"></div>
       <div>
         <p class="bkt-eyebrow">La maison</p>
         <h2>L'art de recevoir</h2>
@@ -300,7 +300,7 @@ function homeFor(t: TplTheme, archetype: TplArchetype): string {
   let hero = '';
   if (archetype === 'overlay') {
     hero = `<section class="bkt-hero--overlay">
-      <div class="bkt-hero__bg" style="background-image:url('${t.images.hero}')"></div>
+      <div class="bkt-hero__bg"></div>
       <div class="bkt-wrap"><div class="bkt-hero__inner">
         <p class="bkt-eyebrow">${t.eyebrow}</p>
         <h1>${t.heroTitle}</h1>
@@ -316,7 +316,7 @@ function homeFor(t: TplTheme, archetype: TplArchetype): string {
         <p class="bkt-hero__sub">${t.heroSub}</p>
         ${searchCard(t)}
       </div>
-      <div class="bkt-hero__media" style="background-image:url('${t.images.hero}')"></div>
+      <div class="bkt-hero__media"></div>
     </div></div></section>`;
   } else if (archetype === 'catalogue') {
     hero = `<section class="bkt-hero--band"><div class="bkt-wrap">
@@ -421,7 +421,7 @@ const pageAbout = (t: TplTheme) => `<div class="bkt-root">
         <p class="bkt-lead">Une conciergerie indépendante qui place l'humain et le détail au cœur de chaque séjour.</p>
       </div>
       <div class="bkt-split">
-        <div class="bkt-split__media" style="background-image:url('${t.images.story}')"></div>
+        <div class="bkt-split__media bkt-img-story"></div>
         <div>
           <h2>Notre histoire</h2>
           <p>Tout a commencé par un ${t.category.replace(/s$/, '')}, restauré avec des artisans locaux. Le bouche-à-oreille a fait le reste : aujourd'hui, nous veillons sur une collection confidentielle de maisons.</p>
@@ -452,7 +452,7 @@ const pageContact = (t: TplTheme) => `<div class="bkt-root">
           <div class="bkt-citem"><span>Horaires</span><strong>Conciergerie 7j/7, 24h/24</strong></div>
           <p style="margin-top:26px"><a class="bkt-btn bkt-btn--primary" href="/logements">Réserver</a></p>
         </div>
-        <div class="bkt-map" style="background-image:url('${t.images.map}')"></div>
+        <div class="bkt-map"></div>
       </div>
     </div>
   </section>
@@ -471,7 +471,12 @@ export interface TemplateSpec {
 
 export function makeTemplate(spec: TemplateSpec): GalleryTemplate {
   const t = spec.theme;
-  const cssStr = buildCss(t);
+  // Fonds image en CLASSES (GrapesJS retire les style inline à l'import → on passe par le CSS de page).
+  const cssStr = `${buildCss(t)}
+.bkt-hero__bg, .bkt-hero__media { background-image: url('${t.images.hero}'); }
+.bkt-img-about { background-image: url('${t.images.about}'); }
+.bkt-img-story { background-image: url('${t.images.story}'); }
+.bkt-map { background-image: url('${t.images.map}'); }`;
   const page = (path: string, type: TemplatePage['type'], title: string, html: string, seoTitle: string, seoDescription: string): TemplatePage =>
     ({ path, type, title, seoTitle, seoDescription, html, css: cssStr });
   return {
@@ -479,7 +484,7 @@ export function makeTemplate(spec: TemplateSpec): GalleryTemplate {
     name: spec.name,
     description: spec.description,
     thumbnail: t.images.hero,
-    theme: { primaryColor: t.primary, fontFamily: t.fontBody },
+    theme: { primaryColor: t.primary, fontFamily: t.fontBody, headingFontFamily: t.fontHeading },
     pages: [
       page('/', 'HOME', 'Accueil', homeFor(t, spec.archetype), `${t.brand} — ${t.categoryCap} & conciergerie`, t.heroSub),
       page('/logements', 'PROPERTY_LIST', `Nos ${t.categoryCap.toLowerCase()}`, pageLodgings(t), `Nos ${t.categoryCap.toLowerCase()} disponibles — ${t.brand}`, `Découvrez nos ${t.category} et leurs disponibilités en temps réel.`),

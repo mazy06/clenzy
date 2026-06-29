@@ -106,8 +106,8 @@ public class OpenAiChatProvider implements ChatLLMProvider {
     @Override
     public void streamChat(ChatRequest request, Consumer<ChatEvent> consumer, String apiKey) {
         AiProperties.OpenAi config = aiProperties.getOpenai();
-        String effectiveKey = (apiKey == null || apiKey.isBlank()) ? config.getApiKey() : apiKey;
-        doStream(request, consumer, effectiveKey, resolveBaseUrl(request, config));
+        // Source de vérité unique : la clé vient du target résolu (config DB / BYOK), jamais d'un repli env.
+        doStream(request, consumer, apiKey, resolveBaseUrl(request, config));
     }
 
     /** baseUrl de la requete (modele plateforme NVIDIA/Bedrock) sinon defaut OpenAI. */
@@ -130,7 +130,14 @@ public class OpenAiChatProvider implements ChatLLMProvider {
             return;
         }
 
-        String model = request.model() != null ? request.model() : aiProperties.getOpenai().getModel();
+        // Source de vérité unique : le modèle vient du target résolu (config DB), jamais d'un défaut env.
+        if (request.model() == null || request.model().isBlank()) {
+            consumer.accept(new ChatEvent.Error(
+                    "Aucun modèle IA configuré pour l'assistant. Assignez un modèle à la feature « Assistant » "
+                            + "dans Paramètres > IA.", null));
+            return;
+        }
+        String model = request.model();
         String body;
         try {
             body = objectMapper.writeValueAsString(buildRequestBody(request, model));

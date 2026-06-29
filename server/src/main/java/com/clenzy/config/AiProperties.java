@@ -19,13 +19,9 @@ import org.springframework.stereotype.Component;
  *       token-budget:
  *         default-monthly-tokens: 100000
  *         enforced: true
- *       features:
- *         pricing-ai: false
- *         messaging-ai: false
- *         analytics-ai: false
- *         sentiment-ai: false
  *
- * Chaque feature AI est independamment activable via son flag.
+ * L'activation par feature est gouvernee par la config DB (toggle AiTokenBudget.enabled),
+ * source de verite unique — cf. AiTokenBudgetService.requireFeatureEnabled.
  * Le flag global "enabled" doit etre true pour que les providers LLM fonctionnent.
  */
 @Component
@@ -38,7 +34,6 @@ public class AiProperties {
     private Bedrock bedrock = new Bedrock();
     private WebsiteFetch websiteFetch = new WebsiteFetch();
     private TokenBudget tokenBudget = new TokenBudget();
-    private Features features = new Features();
 
     // ─── OpenAI ──────────────────────────────────────────────────────────
 
@@ -112,24 +107,6 @@ public class AiProperties {
         public void setEnforced(boolean enforced) { this.enforced = enforced; }
     }
 
-    // ─── Feature Flags (chaque feature AI independamment activable) ──────
-
-    public static class Features {
-        private boolean pricingAi = false;
-        private boolean messagingAi = false;
-        private boolean analyticsAi = false;
-        private boolean sentimentAi = false;
-
-        public boolean isPricingAi() { return pricingAi; }
-        public void setPricingAi(boolean pricingAi) { this.pricingAi = pricingAi; }
-        public boolean isMessagingAi() { return messagingAi; }
-        public void setMessagingAi(boolean messagingAi) { this.messagingAi = messagingAi; }
-        public boolean isAnalyticsAi() { return analyticsAi; }
-        public void setAnalyticsAi(boolean analyticsAi) { this.analyticsAi = analyticsAi; }
-        public boolean isSentimentAi() { return sentimentAi; }
-        public void setSentimentAi(boolean sentimentAi) { this.sentimentAi = sentimentAi; }
-    }
-
     // ─── Root getters/setters ────────────────────────────────────────────
 
     public boolean isEnabled() { return enabled; }
@@ -150,6 +127,4 @@ public class AiProperties {
     public TokenBudget getTokenBudget() { return tokenBudget; }
     public void setTokenBudget(TokenBudget tokenBudget) { this.tokenBudget = tokenBudget; }
 
-    public Features getFeatures() { return features; }
-    public void setFeatures(Features features) { this.features = features; }
 }

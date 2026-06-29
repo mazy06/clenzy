@@ -4,6 +4,7 @@ import com.clenzy.booking.dto.PropertyCalendarDto;
 import com.clenzy.booking.dto.PropertyCalendarDto.CalendarDayDto;
 import com.clenzy.booking.dto.PropertySearchFilters;
 import com.clenzy.booking.dto.PublicPropertyDto;
+import com.clenzy.booking.model.DataSourceMode;
 import com.clenzy.booking.service.PublicBookingService.OrgContext;
 import com.clenzy.model.CalendarDay;
 import com.clenzy.model.CalendarDayStatus;
@@ -42,19 +43,31 @@ public class PublicBookingCalendarService {
     private final CalendarDayRepository calendarDayRepository;
     private final PriceEngine priceEngine;
     private final CurrencyConverterService currencyConverter;
+    /** Jeu de démo servi quand la config est en mode {@link DataSourceMode#MOCK}. */
+    private final BookingMockDataProvider mockDataProvider;
 
     public PublicBookingCalendarService(PropertyRepository propertyRepository,
                                   CalendarDayRepository calendarDayRepository,
                                   PriceEngine priceEngine,
-                                  CurrencyConverterService currencyConverter) {
+                                  CurrencyConverterService currencyConverter,
+                                  BookingMockDataProvider mockDataProvider) {
         this.propertyRepository = propertyRepository;
         this.calendarDayRepository = calendarDayRepository;
         this.priceEngine = priceEngine;
         this.currencyConverter = currencyConverter;
+        this.mockDataProvider = mockDataProvider;
+    }
+
+    /** {@code true} si le booking engine du ctx est en mode démo (données mock). */
+    private static boolean isMock(OrgContext ctx) {
+        return ctx.config() != null && ctx.config().getDataSourceMode() == DataSourceMode.MOCK;
     }
 
     @Transactional(readOnly = true)
     public PropertyCalendarDto getCalendar(OrgContext ctx, Long propertyId, YearMonth from, int months) {
+        if (isMock(ctx)) {
+            return mockDataProvider.getCalendar(propertyId, from, months);
+        }
         Long orgId = ctx.orgId();
         Property property = propertyRepository.findBookingEngineProperty(propertyId, orgId)
             .orElseThrow(() -> new IllegalArgumentException("Propriete introuvable ou non visible"));
@@ -100,6 +113,9 @@ public class PublicBookingCalendarService {
     @Transactional(readOnly = true)
     public PropertyCalendarDto getPriceCalendar(OrgContext ctx, PropertySearchFilters filters, Integer guests,
                                                 YearMonth from, int months, String currency) {
+        if (isMock(ctx)) {
+            return mockDataProvider.getPriceCalendar(from, months);
+        }
         Long orgId = ctx.orgId();
         Set<Long> featured = PublicBookingService.parseFeaturedPropertyIds(ctx.config().getFeaturedPropertyIds());
         List<Property> props = propertyRepository.findBookingEngineVisible(orgId).stream()

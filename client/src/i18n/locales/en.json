@@ -3994,6 +3994,59 @@
     "design": {
       "modalTitle": "Customize design"
     },
+    "studio": {
+      "mode": {
+        "label": "Editing mode",
+        "guided": "Guided",
+        "advanced": "Advanced",
+        "guidedTip": "Simplified editing: essential blocks, colors and fonts. Great to get started fast.",
+        "advancedTip": "Full editor: all blocks, layers, settings and design import."
+      },
+      "ai": {
+        "generate": {
+          "title": "Generate my site with AI",
+          "intro": "Describe your business: AI writes and structures a full site (home, listings, about, contact) and derives a theme. Pages are created as drafts — review before publishing.",
+          "propertyTypeLabel": "Property type",
+          "propertyTypePlaceholder": "e.g. luxury riads in Marrakech, city apartments…",
+          "toneLabel": "Desired tone",
+          "tonePlaceholder": "e.g. warm and authentic, clean and modern…",
+          "brandLabel": "Brand name",
+          "brandPlaceholder": "Optional",
+          "colorLabel": "Primary color",
+          "colorPickerLabel": "Pick a color",
+          "colorPlaceholder": "Auto",
+          "languagesLabel": "Languages to generate",
+          "languagesHint": "The first selected language is written by AI; the others are produced by auto-translation (to review).",
+          "submit": "Generate site",
+          "generating": "Generating…",
+          "success": "{{count}} pages created as drafts — review before publishing.",
+          "error": "Generation failed. Please try again in a moment."
+        },
+        "translate": {
+          "title": "Translate with AI",
+          "intro": "Choose the target languages. Variants are created as drafts, to review before publishing.",
+          "introNamed": "Choose the languages to translate “{{name}}” into. Variants are created as drafts, to review before publishing.",
+          "noTargets": "No other language available to translate.",
+          "submit": "Translate",
+          "translating": "Translating…",
+          "pageAction": "Translate (AI)",
+          "pageTooltip": "Translate this page (AI) — creates draft variants",
+          "postAction": "Translate (AI)",
+          "postTooltip": "Translate this article (AI) — creates draft variants",
+          "success": "{{count}} variant(s) created as drafts — review before publishing.",
+          "noneCreated": "No variant created (languages already translated).",
+          "skipped": "{{count}} language(s) skipped (already translated).",
+          "error": "Translation failed. Please try again in a moment.",
+          "noPage": "No page selected.",
+          "noPost": "No article selected."
+        },
+        "locales": {
+          "french": "French",
+          "english": "English",
+          "arabic": "Arabic"
+        }
+      }
+    },
     "sections": {
       "statusApiKey": "Status & API Key",
       "theming": "Appearance",

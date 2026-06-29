@@ -1,10 +1,8 @@
 package com.clenzy.service.agent.kb;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -19,49 +17,30 @@ import java.util.Map;
 /**
  * Provider Voyage AI (https://docs.voyageai.com/).
  *
- * <p><b>Modele defaut : {@code voyage-3-large}</b> (1024d, ~$0.18/1M tokens).
- * Recommande par Anthropic pour les embeddings dans un contexte Claude.
- * <i>Choix design</i> : la qualite de rappel RAG est critique pour
- * l'anti-hallucination, et le surcout est negligeable a notre volume
- * (ingestion doc + ~10-100 tokens/query) — quelques euros/mois.</p>
+ * <p><b>Modele defaut : {@code voyage-3-large}</b> (1024d, ~$0.18/1M tokens), repli si le
+ * catalogue ne fixe pas de {@code modelId}. Recommande par Anthropic pour les embeddings
+ * dans un contexte Claude.</p>
  *
- * <p>Override possible via {@code clenzy.ai.embeddings.voyage.model} si on
- * voulait revenir a {@code voyage-3-lite} (1024d, ~$0.02/1M, qualite plus
- * faible) ou tester {@code voyage-3} (1024d, ~$0.06/1M, milieu).</p>
+ * <p>Endpoint : {@code POST {baseUrl}/v1/embeddings}. Body :
+ * {@code {"input": ["..."], "model": "voyage-3-large", "input_type": "document"}}.</p>
  *
- * <p>Endpoint : {@code POST /v1/embeddings}. Body :
- * {@code {"input": ["..."], "model": "voyage-3-large", "input_type": "document"}}.
- * Reponse : {@code {"data": [{"embedding": [0.1, ...]}, ...], "usage": {...}}}.</p>
- *
- * <p>Activation : property {@code clenzy.ai.embeddings.provider=voyage} +
- * {@code clenzy.ai.embeddings.voyage.api-key=<key>}. Sans cle, le bean reste
- * declare mais throw a la premiere invocation — c'est intentionnel (fail-fast
- * vs degradation silencieuse).</p>
+ * <p><b>Credential-stateless</b> : cle/modele/baseUrl viennent de la {@link EmbeddingTarget}
+ * resolue par {@link EmbeddingService} depuis la config DB (feature EMBEDDINGS) — plus aucune
+ * variable d'environnement. Sans cle, throw {@link EmbeddingException} (fail-fast).</p>
  */
 @Component
 public class VoyageEmbeddingProvider implements EmbeddingProvider {
 
     private static final Logger log = LoggerFactory.getLogger(VoyageEmbeddingProvider.class);
-    /** {@code voyage-3-large} : meilleur modele Voyage 1024d. Qualite > cout. */
-    private static final String DEFAULT_MODEL = "voyage-3-large";
+    /** {@code voyage-3-large} : meilleur modele Voyage 1024d. Repli si le catalogue ne fixe rien. */
+    static final String DEFAULT_MODEL = "voyage-3-large";
+    static final String DEFAULT_BASE_URL = "https://api.voyageai.com";
     private static final int BATCH_SIZE = 128;
 
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    private final String apiKey;
-    private final String model;
-    private final String baseUrl;
 
-    public VoyageEmbeddingProvider(RestTemplate restTemplate,
-                                     ObjectMapper objectMapper,
-                                     @Value("${clenzy.ai.embeddings.voyage.api-key:}") String apiKey,
-                                     @Value("${clenzy.ai.embeddings.voyage.model:" + DEFAULT_MODEL + "}") String model,
-                                     @Value("${clenzy.ai.embeddings.voyage.base-url:https://api.voyageai.com}") String baseUrl) {
+    public VoyageEmbeddingProvider(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
-        this.apiKey = apiKey;
-        this.model = model;
-        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -70,33 +49,36 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
     }
 
     @Override
-    public float[] embed(String text) {
+    public float[] embed(String text, EmbeddingTarget target) {
         if (text == null || text.isBlank()) {
-            return new float[dimensions()];
+            return new float[target.dimensions()];
         }
-        List<float[]> result = embedBatch(List.of(text));
-        return result.isEmpty() ? new float[dimensions()] : result.get(0);
+        List<float[]> result = embedBatch(List.of(text), target);
+        return result.isEmpty() ? new float[target.dimensions()] : result.get(0);
     }
 
     @Override
-    public List<float[]> embedBatch(List<String> texts) {
+    public List<float[]> embedBatch(List<String> texts, EmbeddingTarget target) {
         if (texts == null || texts.isEmpty()) return List.of();
-        if (apiKey == null || apiKey.isBlank()) {
+        if (target == null || target.apiKey() == null || target.apiKey().isBlank()) {
             throw new EmbeddingException(
-                    "VOYAGE_API_KEY non configure (property clenzy.ai.embeddings.voyage.api-key)");
+                    "Voyage : cle API manquante (configurez le modele d'embeddings dans Parametres > IA)");
         }
+        final String model = (target.model() != null && !target.model().isBlank())
+                ? target.model() : DEFAULT_MODEL;
+        final String baseUrl = (target.baseUrl() != null && !target.baseUrl().isBlank())
+                ? target.baseUrl() : DEFAULT_BASE_URL;
 
         List<float[]> all = new ArrayList<>(texts.size());
         // L'API Voyage accepte jusqu'a ~128 inputs par requete — on sous-batch.
         for (int i = 0; i < texts.size(); i += BATCH_SIZE) {
             int end = Math.min(i + BATCH_SIZE, texts.size());
-            List<String> batch = texts.subList(i, end);
-            all.addAll(callApi(batch));
+            all.addAll(callApi(texts.subList(i, end), target.apiKey(), model, baseUrl, target.dimensions()));
         }
         return all;
     }
 
-    private List<float[]> callApi(List<String> batch) {
+    private List<float[]> callApi(List<String> batch, String apiKey, String model, String baseUrl, int dimensions) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("input", batch);
         body.put("model", model);
@@ -108,7 +90,7 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
 
         try {
             VoyageResponse response = restTemplate.postForObject(
-                    baseUrl + "/v1/embeddings",
+                    embeddingsEndpoint(baseUrl),
                     new HttpEntity<>(body, headers),
                     VoyageResponse.class);
             if (response == null || response.data == null) {
@@ -117,7 +99,7 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
             List<float[]> out = new ArrayList<>(response.data.size());
             for (VoyageData d : response.data) {
                 if (d.embedding == null) {
-                    out.add(new float[dimensions()]);
+                    out.add(new float[dimensions]);
                     continue;
                 }
                 float[] v = new float[d.embedding.size()];
@@ -130,6 +112,11 @@ public class VoyageEmbeddingProvider implements EmbeddingProvider {
                     batch.size(), e.getMessage());
             throw new EmbeddingException("Voyage embeddings : " + e.getMessage(), e);
         }
+    }
+
+    /** baseUrl peut finir par "/v1" (convention catalogue chat) ou non — on normalise. */
+    private static String embeddingsEndpoint(String baseUrl) {
+        return baseUrl.endsWith("/v1") ? baseUrl + "/embeddings" : baseUrl + "/v1/embeddings";
     }
 
     // ─── DTOs Voyage AI ─────────────────────────────────────────────────────

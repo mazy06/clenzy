@@ -126,6 +126,16 @@ public class BookingEngineConfig {
     @Column(name = "pending_hold_minutes")
     private Integer pendingHoldMinutes;
 
+    // ─── Source de données (démo vs réel) ────────────────────────────────
+
+    /**
+     * Source de données des widgets : REAL = vraies données du tenant, MOCK = jeu de démo générique
+     * (aucune vraie donnée, aucune réservation/paiement réel). Défaut REAL.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "data_source_mode", length = 16, nullable = false)
+    private DataSourceMode dataSourceMode = DataSourceMode.REAL;
+
     // ─── Custom CSS/JS ──────────────────────────────────────────────────
 
     @Column(name = "custom_css", columnDefinition = "TEXT")
@@ -158,6 +168,10 @@ public class BookingEngineConfig {
 
     @Column(name = "design_tokens", columnDefinition = "TEXT")
     private String designTokens;
+
+    /** Contrat de variables CSS de design (`--bt-*`), JSON map émis par le LLM puis assaini. Pilote pages + widgets. */
+    @Column(name = "design_css_variables", columnDefinition = "TEXT")
+    private String designCssVariables;
 
     @Column(name = "source_website_url", length = 500)
     private String sourceWebsiteUrl;
@@ -272,6 +286,11 @@ public class BookingEngineConfig {
     public Integer getPendingHoldMinutes() { return pendingHoldMinutes; }
     public void setPendingHoldMinutes(Integer pendingHoldMinutes) { this.pendingHoldMinutes = pendingHoldMinutes; }
 
+    public DataSourceMode getDataSourceMode() { return dataSourceMode; }
+    public void setDataSourceMode(DataSourceMode dataSourceMode) {
+        this.dataSourceMode = dataSourceMode != null ? dataSourceMode : DataSourceMode.REAL;
+    }
+
     public String getCustomCss() { return customCss; }
     public void setCustomCss(String customCss) { this.customCss = customCss; }
 
@@ -295,6 +314,9 @@ public class BookingEngineConfig {
 
     public String getDesignTokens() { return designTokens; }
     public void setDesignTokens(String designTokens) { this.designTokens = designTokens; }
+
+    public String getDesignCssVariables() { return designCssVariables; }
+    public void setDesignCssVariables(String designCssVariables) { this.designCssVariables = designCssVariables; }
 
     public String getSourceWebsiteUrl() { return sourceWebsiteUrl; }
     public void setSourceWebsiteUrl(String sourceWebsiteUrl) { this.sourceWebsiteUrl = sourceWebsiteUrl; }

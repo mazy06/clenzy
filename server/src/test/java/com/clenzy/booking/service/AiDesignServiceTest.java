@@ -11,7 +11,8 @@ import com.clenzy.config.ai.AiResponse;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.service.AiAnonymizationService;
-import com.clenzy.service.AiKeyResolver;
+import com.clenzy.service.ResolvedTarget;
+import com.clenzy.service.KeySource;
 import com.clenzy.service.AiProviderRouter;
 import com.clenzy.service.AiTokenBudgetService;
 import com.clenzy.tenant.TenantContext;
@@ -123,12 +124,11 @@ class AiDesignServiceTest {
     }
 
     private AiProviderRouter.RoutedResponse routed(AiResponse resp, String providerName) {
-        return new AiProviderRouter.RoutedResponse(resp, providerName, AiKeyResolver.KeySource.PLATFORM);
+        return new AiProviderRouter.RoutedResponse(resp, providerName, KeySource.PLATFORM_DB);
     }
 
-    private AiKeyResolver.ResolvedKey key() {
-        return new AiKeyResolver.ResolvedKey("api-key", null, AiKeyResolver.KeySource.PLATFORM,
-                "openai", null);
+    private ResolvedTarget key() {
+        return new ResolvedTarget("openai", null, "api-key", null, KeySource.PLATFORM_DB);
     }
 
     // ─── analyzeWebsite ──────────────────────────────────────────────────
@@ -239,7 +239,7 @@ class AiDesignServiceTest {
             // Budget bookkeeping
             verify(tokenBudgetService).requireFeatureEnabled(ORG_ID, AiFeature.DESIGN);
             verify(tokenBudgetService).requireBudget(ORG_ID, AiFeature.DESIGN,
-                    AiKeyResolver.KeySource.PLATFORM);
+                    KeySource.PLATFORM_DB);
             verify(tokenBudgetService).recordUsage(eq(ORG_ID), eq(AiFeature.DESIGN), eq("openai"),
                     any(AiResponse.class));
             verify(anonymizationService).anonymize(anyString());
@@ -323,7 +323,7 @@ class AiDesignServiceTest {
             assertThat(css).isEqualTo("body{color:red}");
             verify(tokenBudgetService).requireFeatureEnabled(ORG_ID, AiFeature.DESIGN);
             verify(tokenBudgetService).requireBudget(ORG_ID, AiFeature.DESIGN,
-                    AiKeyResolver.KeySource.PLATFORM);
+                    KeySource.PLATFORM_DB);
             verify(tokenBudgetService).recordUsage(eq(ORG_ID), eq(AiFeature.DESIGN), eq("anthropic"),
                     any(AiResponse.class));
         }
