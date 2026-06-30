@@ -204,7 +204,18 @@
 - **Constellation** : suggestion « 12 guests récurrents arrivent ce mois → message VIP / upsell ».
 - **Valeur** : **rétention** + upsell personnalisé. **Effort** : M.
 
-### P1-7. Forecast d'occupation/demande long terme (90–365 j)  *(agent `rev`)*
+### P1-7. Forecast d'occupation/demande long terme (90–365 j)  *(agent `rev`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `DemandForecastServiceTest` 2/2, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `DemandForecastService` (couche `analytics/`) : projette sur N mois via le modèle de forecast
+    existant (`AiAnalyticsService.getForecast`) et **agrège par mois** (occupation/confiance moyennes,
+    jours réservés, saison dominante, pic/creux) → vue planification.
+  - Tool read-only `forecast_demand_longterm` (param `propertyId` requis, `months` 2..12) rattaché à
+    `data_analyst` (10→**11** ; dette rebalancing notée, cf. ci-dessous).
+  - Test unitaire : agrégation mensuelle + cas vide.
+- **Dette rebalancing** : `data_analyst` à 11 et `operations` à 13 (> limite 10) — un lot dédié
+  séparera les clusters « monitoring/forecast read-only » (non bloquant, warning).
+
+#### (spéc d'origine, pour mémoire)
 - Étendre `get_occupancy_forecast` (30 j) → `forecast_demand_longterm` (read-only, horizon configurable),
   modèle saisonnalité multi-années (+ events P1-9). Sortie : occupation projetée + intervalle de confiance.
 - **Valeur** : planification **capacité, staffing, trésorerie**. **Effort** : L (besoin historique 2-3 ans).
