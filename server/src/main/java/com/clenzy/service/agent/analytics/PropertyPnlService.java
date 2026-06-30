@@ -34,21 +34,20 @@ import java.util.Map;
 @Service
 public class PropertyPnlService {
 
-    /** Taux de commission par défaut (repli si {@code otaFeeAmount} absent). */
-    private static final Map<String, Double> DEFAULT_RATES = Map.of(
-            "airbnb", 0.03, "booking", 0.15, "vrbo", 0.08, "expedia", 0.15);
-
     private final ReservationRepository reservationRepository;
     private final InterventionRepository interventionRepository;
+    private final ChannelCommissionResolver commissionResolver;
     private final TenantContext tenantContext;
     private final Clock clock;
 
     public PropertyPnlService(ReservationRepository reservationRepository,
                               InterventionRepository interventionRepository,
+                              ChannelCommissionResolver commissionResolver,
                               TenantContext tenantContext,
                               Clock clock) {
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
+        this.commissionResolver = commissionResolver;
         this.tenantContext = tenantContext;
         this.clock = clock;
     }
@@ -81,7 +80,7 @@ public class PropertyPnlService {
             Acc acc = accFor(byProperty, r.getProperty());
             BigDecimal gross = nz(r.getTotalPrice());
             acc.revenue = acc.revenue.add(gross);
-            acc.commission = acc.commission.add(commissionOf(r, gross));
+            acc.commission = acc.commission.add(commissionResolver.commissionOf(r, gross));
             acc.reservations++;
             if (currency == null && r.getCurrency() != null) {
                 currency = r.getCurrency();
@@ -141,26 +140,6 @@ public class PropertyPnlService {
             a.propertyName = p.getName();
             return a;
         });
-    }
-
-    private static BigDecimal commissionOf(Reservation r, BigDecimal gross) {
-        if (r.getOtaFeeAmount() != null) {
-            return r.getOtaFeeAmount();
-        }
-        double rate = DEFAULT_RATES.getOrDefault(normalize(r.getSource()), 0.0);
-        return gross.multiply(BigDecimal.valueOf(rate));
-    }
-
-    private static String normalize(String source) {
-        if (source == null) {
-            return "other";
-        }
-        String s = source.trim().toLowerCase();
-        if (s.contains("airbnb")) return "airbnb";
-        if (s.contains("booking")) return "booking";
-        if (s.contains("vrbo") || s.contains("homeaway")) return "vrbo";
-        if (s.contains("expedia")) return "expedia";
-        return s;
     }
 
     private static double marginPct(BigDecimal net, BigDecimal revenue) {

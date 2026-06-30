@@ -15,7 +15,7 @@ import java.util.Set;
  * <p>Issu du rebalancing : regroupe les tools de monitoring jusque-là dispersés
  * dans {@code operations} (qui dépassait 10) et {@code data_analyst} : ménages à
  * faire, distribution des interventions, santé de sync des canaux, alertes de
- * bruit, risques opérationnels, snapshot KPI plateforme. 6 tools read-only.
+ * bruit, risques opérationnels, snapshot KPI plateforme, analytique & maintenance prédictive. 8 tools read-only.
  * Mappé sur l'agent constellation {@code ops}.</p>
  */
 @Component

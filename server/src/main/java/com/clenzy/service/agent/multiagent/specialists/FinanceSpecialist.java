@@ -15,7 +15,7 @@ import java.util.Set;
  *
  * <p>Issu d'un decoupage de {@code data_analyst} (qui depassait 10 tools) :
  * regroupe le cluster « argent » pour un routing plus net. Mappe sur l'agent
- * constellation {@code fin} (jusque-la dormant). 5 tools read-only.</p>
+ * constellation {@code fin} (jusque-la dormant). 7 tools read-only.</p>
  */
 @Component
 public class FinanceSpecialist extends AbstractAgentSpecialist {

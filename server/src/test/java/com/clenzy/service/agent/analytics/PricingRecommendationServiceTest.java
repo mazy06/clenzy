@@ -60,8 +60,22 @@ class PricingRecommendationServiceTest {
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG);
         lenient().when(priceEngine.resolvePriceRange(eq(PROP), any(), any(), eq(ORG)))
                 .thenReturn(Map.of());
-        // Par défaut : pas de localisation → pas d'événement (cas des tests existants).
-        lenient().when(propertyRepository.findById(eq(PROP))).thenReturn(java.util.Optional.empty());
+        // Par défaut : propriété possédée par l'org, sans ville → guard ownership OK, pas d'événement.
+        Property owned = new Property();
+        owned.setId(PROP);
+        owned.setOrganizationId(ORG);
+        lenient().when(propertyRepository.findById(eq(PROP))).thenReturn(java.util.Optional.of(owned));
+    }
+
+    @Test
+    @DisplayName("Logement d'une autre org → aucune reco (guard ownership, pas de fuite de prix)")
+    void foreignProperty_returnsEmpty() {
+        Property foreign = new Property();
+        foreign.setId(PROP);
+        foreign.setOrganizationId(2L);
+        when(propertyRepository.findById(eq(PROP))).thenReturn(java.util.Optional.of(foreign));
+
+        assertThat(service.recommend(PROP, 7, "kc")).isEmpty();
     }
 
     @Test

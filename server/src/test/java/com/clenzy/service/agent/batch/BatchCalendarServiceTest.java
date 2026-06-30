@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,7 +71,8 @@ class BatchCalendarServiceTest {
         when(calendarEngine.getDays(eq(5L), any(), any(), eq(ORG))).thenReturn(List.of());
         when(calendarEngine.getDays(eq(6L), any(), any(), eq(ORG)))
                 .thenReturn(List.of(day(LocalDate.of(2026, 7, 11), CalendarDayStatus.BOOKED)));
-        when(calendarEngine.block(eq(5L), any(), any(), eq(ORG), any(), any(), any()))
+        // La borne 'to' INCLUSIVE (07-12) doit être passée à block() en EXCLUSIF (07-13).
+        when(calendarEngine.block(eq(5L), eq(FROM), eq(TO.plusDays(1)), eq(ORG), any(), any(), any()))
                 .thenReturn(List.of(new CalendarDay(), new CalendarDay(), new CalendarDay()));
         when(calendarEngine.block(eq(6L), any(), any(), eq(ORG), any(), any(), any()))
                 .thenThrow(new CalendarConflictException(6L, FROM, TO, 1L));
@@ -83,6 +85,8 @@ class BatchCalendarServiceTest {
 
         assertThat(r.applied()).isEqualTo(1);
         assertThat(r.skipped()).isEqualTo(2);
+        // Verrouille la convention : block reçoit bien to.plusDays(1) (dernière nuit incluse).
+        verify(calendarEngine).block(eq(5L), eq(FROM), eq(TO.plusDays(1)), eq(ORG), any(), any(), any());
     }
 
     @Test

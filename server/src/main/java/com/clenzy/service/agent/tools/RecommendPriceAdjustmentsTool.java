@@ -111,7 +111,8 @@ public class RecommendPriceAdjustmentsTool implements ToolHandler {
                             + "sur-vendent (occupation élevée → hausse), à partir du calendrier réel, et valide "
                             + "chaque proposition via une simulation à élasticité réelle (les propositions "
                             + "revenue-négatives sont écartées). Retourne pour chaque créneau : occupation, prix "
-                            + "moyen courant, ajustement suggéré (%), impact revenu simulé. Ne modifie JAMAIS les "
+                            + "moyen courant, ajustement suggéré (%) ; et l'impact revenu simulé du delta sur la "
+                            + "fenêtre d'analyse (indépendant du créneau). Ne modifie JAMAIS les "
                             + "tarifs. Utiliser pour 'quels prix ajuster', 'où baisser/monter mes prix', "
                             + "'optimiser mon revenu sur les prochaines semaines'.",
                     schema

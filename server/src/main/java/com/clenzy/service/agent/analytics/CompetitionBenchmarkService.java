@@ -2,7 +2,9 @@ package com.clenzy.service.agent.analytics;
 
 import com.clenzy.dto.ExternalPriceRecommendation;
 import com.clenzy.model.ExternalPricingConfig;
+import com.clenzy.model.Property;
 import com.clenzy.repository.ExternalPricingConfigRepository;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.ExternalPricingService;
 import com.clenzy.service.ExternalPricingSourceRegistry;
 import com.clenzy.service.PriceEngine;
@@ -19,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Benchmark concurrence / positionnement marché (P2-11) — agent {@code rev}.
+ * Benchmark concurrence / positionnement marché (P2-11) — agent {@code rep} (specialist insights).
  *
  * <p>Interroge la/les <b>source(s) de données de marché activée(s)</b>
  * ({@link ExternalPricingSourceRegistry} : PriceLabs, Beyond, Wheelhouse…) pour un
@@ -43,17 +45,20 @@ public class CompetitionBenchmarkService {
     private final ExternalPricingConfigRepository configRepository;
     private final ExternalPricingSourceRegistry sourceRegistry;
     private final PriceEngine priceEngine;
+    private final PropertyRepository propertyRepository;
     private final TenantContext tenantContext;
     private final Clock clock;
 
     public CompetitionBenchmarkService(ExternalPricingConfigRepository configRepository,
                                        ExternalPricingSourceRegistry sourceRegistry,
                                        PriceEngine priceEngine,
+                                       PropertyRepository propertyRepository,
                                        TenantContext tenantContext,
                                        Clock clock) {
         this.configRepository = configRepository;
         this.sourceRegistry = sourceRegistry;
         this.priceEngine = priceEngine;
+        this.propertyRepository = propertyRepository;
         this.tenantContext = tenantContext;
         this.clock = clock;
     }
@@ -71,6 +76,13 @@ public class CompetitionBenchmarkService {
         LocalDate today = LocalDate.now(clock);
         int window = Math.max(7, Math.min(windowDays, MAX_WINDOW_DAYS));
         LocalDate end = today.plusDays(window);
+
+        // Ownership (règle audit #3) AVANT resolvePriceRange : propertyId vient de l'argument du tool
+        // (LLM) et le fallback nightlyPrice de PriceEngine n'est pas tenant-safe → sinon fuite de prix cross-org.
+        Property property = propertyRepository.findById(propertyId).orElse(null);
+        if (property == null || !orgId.equals(property.getOrganizationId())) {
+            return new BenchmarkResult(propertyId, window, 0, List.of(), "Logement introuvable.");
+        }
 
         List<ExternalPricingConfig> enabled = configRepository.findByOrganizationId(orgId).stream()
                 .filter(c -> Boolean.TRUE.equals(c.getEnabled()))

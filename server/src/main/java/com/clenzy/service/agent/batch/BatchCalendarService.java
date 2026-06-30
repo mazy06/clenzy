@@ -121,7 +121,9 @@ public class BatchCalendarService {
                 continue;
             }
             try {
-                List<CalendarDay> days = calendarEngine.block(id, from, to, orgId, SOURCE, notes, keycloakId);
+                // CalendarEngine.block traite 'to' comme EXCLUSIF ; les schémas/preview annoncent
+                // une plage INCLUSIVE → +1 jour pour bloquer aussi la dernière nuit.
+                List<CalendarDay> days = calendarEngine.block(id, from, to.plusDays(1), orgId, SOURCE, notes, keycloakId);
                 applied++;
                 items.add(new ApplyItem(id, p.getName(), "APPLIED", days.size(), null));
             } catch (CalendarConflictException e) {

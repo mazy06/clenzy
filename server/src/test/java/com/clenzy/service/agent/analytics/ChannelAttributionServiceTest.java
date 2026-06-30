@@ -35,7 +35,8 @@ class ChannelAttributionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ChannelAttributionService(reservationRepository, tenantContext, CLOCK);
+        service = new ChannelAttributionService(reservationRepository, new ChannelCommissionResolver(),
+                tenantContext, CLOCK);
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG);
     }
 

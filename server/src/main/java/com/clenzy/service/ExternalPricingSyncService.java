@@ -39,13 +39,22 @@ public class ExternalPricingSyncService {
         this.propertyRepository = propertyRepository;
     }
 
-    @Transactional
+    /**
+     * NON transactionnel : {@code fetchRecommendations} fait des appels HTTP externes (PriceLabs)
+     * qui ne doivent JAMAIS tenir une connexion DB ouverte (règle absolue #2). Chaque
+     * {@code repository.save(...)} s'exécute dans sa propre transaction courte (Spring Data).
+     */
     public int syncPricesForOrg(Long orgId) {
         List<ExternalPricingConfig> configs = configRepository.findByOrganizationId(orgId);
         int totalSynced = 0;
 
         for (ExternalPricingConfig config : configs) {
             if (!config.getEnabled()) continue;
+            // Provider déclaré mais non implémenté (BEYOND/WHEELHOUSE) : skip ATTENDU, distinct d'un échec réseau.
+            if (!sourceRegistry.available().contains(config.getProvider())) {
+                log.warn("Provider {} non implémenté (org {}) — config ignorée", config.getProvider(), orgId);
+                continue;
+            }
 
             try {
                 ExternalPricingService provider = resolveProvider(config.getProvider());
