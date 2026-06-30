@@ -2,12 +2,12 @@ package com.clenzy.service;
 
 import com.clenzy.config.ai.AiModelDeprecatedEvent;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.repository.PlatformAiModelRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,12 +23,15 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 class AiModelDeprecationListenerTest {
 
     @Mock private NotificationService notificationService;
-    @InjectMocks private AiModelDeprecationListener listener;
+    @Mock private PlatformAiModelRepository modelRepository;
+    private AiModelDeprecationListener listener;
 
     @BeforeEach
     void setUp() {
-        // fresh listener per test (le Set dedup repart vide)
-        listener = new AiModelDeprecationListener(notificationService);
+        // fresh listener per test (le Set dedup repart vide). Suggester réel sur
+        // un repo vide → suggestion vide (le contenu testé reste inchangé).
+        listener = new AiModelDeprecationListener(
+                notificationService, new AiModelReplacementSuggester(modelRepository));
     }
 
     @Test
