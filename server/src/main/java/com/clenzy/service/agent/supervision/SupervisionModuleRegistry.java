@@ -47,6 +47,7 @@ public class SupervisionModuleRegistry {
             "communication", "com",
             "data_analyst", "rev",
             "operations", "ops",
+            "monitoring", "ops",
             "workflow", "ops",
             "insights", "rep",
             "finance", "fin"

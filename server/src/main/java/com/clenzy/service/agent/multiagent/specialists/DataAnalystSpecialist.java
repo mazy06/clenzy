@@ -41,8 +41,7 @@ public class DataAnalystSpecialist extends AbstractAgentSpecialist {
                 - Tendances de reservations, prevision d'occupation, listes filtrees
                 - Equipements / amenities d'un logement ("quels equipements ?", "le logement a-t-il une piscine ?")
                 - Detail d'un logement ou d'une reservation, disponibilite (calendrier), devis de prix pour des dates
-                - Snapshot KPI plateforme (readiness, sync, double bookings)
-                Pour factures, revenus/depenses, versements proprietaires : voir le specialiste finance.
+                Pour factures, revenus/depenses : voir finance. Pour la sante systeme/sync/risques : voir monitoring.
                 Read-only : ne modifie rien.""";
     }
 
@@ -56,7 +55,6 @@ public class DataAnalystSpecialist extends AbstractAgentSpecialist {
                 "get_price_quote",
                 "list_reservations",
                 "get_reservation_details",
-                "get_dashboard_summary",
                 "get_reservation_trend",
                 "get_occupancy_forecast",
                 "forecast_demand_longterm"
