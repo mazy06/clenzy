@@ -229,7 +229,16 @@
   modèle saisonnalité multi-années (+ events P1-9). Sortie : occupation projetée + intervalle de confiance.
 - **Valeur** : planification **capacité, staffing, trésorerie**. **Effort** : L (besoin historique 2-3 ans).
 
-### P1-8. Coût & SLA des opérations  *(agent `ops`)*
+### P1-8. Coût & SLA des opérations  *(agent `ops`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `OpsAnalyticsServiceTest` 2/2, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `OpsAnalyticsService` (couche `analytics/`) : coût total et par type (ménage/maintenance), coût par
+    logement (top), taux de complétion, **taux « à temps » (SLA** : terminé au plus tard le jour
+    planifié), interventions en retard, durée moyenne + recommandation.
+  - Tool read-only `get_ops_analytics` (param `months`, défaut 3) rattaché à `monitoring` (6→7).
+  - Test unitaire : coûts/SLA/retard/durée, cas vide.
+- **Raffinement futur** : turnaround time (départ→prêt) en liant ménage ↔ check-out.
+
+#### (spéc d'origine, pour mémoire)
 - **Tool** `get_ops_analytics` (read-only) : coût ménage/maintenance par logement, **turnaround time**
   (départ→prêt), taux de retard, charge par intervenant/équipe.
 - **Constellation** : suggestion « turnaround moyen > 4 h sur logement W → risque sur arrivées serrées ».
