@@ -1,0 +1,85 @@
+id: new_listing_optimization
+title: "Optimisation d'une nouvelle annonce"
+description: "Checklist pour maximiser les performances d'un logement : prix, marché, avis, upsells."
+estimatedDuration: 20
+
+steps:
+  - id: select_listing
+    title: "Logement à optimiser"
+    prompts:
+      fr: |
+        Quel **logement** veux-tu optimiser ? Donne-moi son nom ou son identifiant.
+      en: |
+        Which **listing** do you want to optimize? Give me its name or id.
+    expectsData:
+      property: string
+
+  - id: pricing_review
+    title: "Tarification"
+    prompts:
+      fr: |
+        On commence par la **tarification** : je peux proposer des ajustements basés sur l'occupation
+        et l'élasticité réelle. On regarde ? (oui / non)
+      en: |
+        Let's start with **pricing**: I can suggest adjustments based on occupancy and real elasticity.
+        Shall we? (yes / no)
+    expectsData:
+      reviewPricing: boolean
+    suggestTool:
+      name: recommend_price_adjustments
+      args: {}
+
+  - id: market_position
+    title: "Positionnement marché"
+    prompts:
+      fr: |
+        Veux-tu **comparer au marché concurrent** (sources de données de marché activées) ? (oui / non)
+      en: |
+        Want to **benchmark against the market** (enabled market-data sources)? (yes / no)
+    expectsData:
+      checkMarket: boolean
+    suggestTool:
+      name: benchmark_competition
+      args: {}
+
+  - id: content_quality
+    title: "Avis et contenu"
+    prompts:
+      fr: |
+        Faisons un point sur la **qualité perçue** : je peux analyser le sentiment et les thèmes des avis. (oui / non)
+      en: |
+        Let's check **perceived quality**: I can analyze review sentiment and themes. (yes / no)
+    expectsData:
+      checkReviews: boolean
+    suggestTool:
+      name: analyze_reviews
+      args: {}
+
+  - id: revenue_upside
+    title: "Revenu additionnel"
+    prompts:
+      fr: |
+        Dernier levier : les **opportunités d'upsell** sur les séjours à venir (nuit en plus, arrivée/départ flexibles). (oui / non)
+      en: |
+        Last lever: **upsell opportunities** on upcoming stays (extra night, flexible arrival/departure). (yes / no)
+    expectsData:
+      checkUpsells: boolean
+    suggestTool:
+      name: suggest_upsells
+      args: {}
+
+  - id: summary
+    title: "Synthèse"
+    prompts:
+      fr: |
+        Synthèse du plan d'optimisation :
+        {{summary}}
+
+        On part là-dessus ? (oui / non)
+      en: |
+        Optimization plan summary:
+        {{summary}}
+
+        Good to go? (yes / no)
+    expectsData:
+      confirm: boolean
