@@ -67,7 +67,23 @@
 
 ## Phase P0 — Fort ROI, faisable, nourrit directement la constellation
 
-### P0-1. Recommandation de prix continue + élasticité réelle  *(agent `rep`/`rev`)*
+### P0-1. Recommandation de prix continue + élasticité réelle  *(agent `rep`)* ✅ FAIT
+- **Découverte** : l'élasticité réelle existe DÉJÀ (`SimulationService.resolveElasticity` : override
+  `PropertyPricingConfig` → estimation empirique `PropertyElasticityEstimate` → défaut 0.5). Le vrai
+  manque était la **recommandation continue**, pas l'élasticité.
+- **Livré & vérifié** (`mvn package`, `PricingRecommendationServiceTest` 4/4, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `PricingRecommendationService` (couche `analytics/`) : segmente l'horizon en semaines, repère
+    via le **calendrier réel** les créneaux qui sous-vendent (occupation faible → baisse) ou
+    sur-vendent (→ hausse), puis **valide chaque proposition via `simulatePricingChange`**
+    (élasticité réelle) — les propositions revenue-négatives sont écartées.
+  - Tool read-only `recommend_price_adjustments` (param `propertyId` requis, `windowDays`) rattaché
+    à `insights` (5→6). Ne modifie JAMAIS les tarifs (mode suggest).
+  - Test unitaire : baisse validée, hausse, baisse supprimée par simulation négative, occupation
+    moyenne → rien.
+- **Raffinement futur** : pondérer par météo/événements (P1-9) ; impact revenu par créneau (vs
+  property-level aujourd'hui).
+
+#### (spéc d'origine, pour mémoire)
 - **Aujourd'hui** : `simulate_pricing_change` avec élasticité **figée à 0.5**, one-shot.
 - **À construire** :
   - `PricingElasticityService` : estime l'élasticité **par logement/saison** depuis l'historique
