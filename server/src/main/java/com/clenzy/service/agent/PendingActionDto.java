@@ -17,6 +17,9 @@ import java.time.Instant;
  * @param argsSummary    résumé JSON compact des arguments proposés (peut être null)
  * @param conversationId conversation à laquelle l'action est rattachée
  * @param createdAt      instant de mise en pause (ordonnancement côté front)
+ * @param specialistName nom du specialist qui a demandé l'action (ex. {@code data_analyst}),
+ *                       {@code null} en mono-agent. Permet au front de rattacher l'action à
+ *                       l'agent constellation correspondant (cf. specialistMapping).
  */
 public record PendingActionDto(
         String toolCallId,
@@ -24,6 +27,7 @@ public record PendingActionDto(
         String description,
         String argsSummary,
         Long conversationId,
-        Instant createdAt
+        Instant createdAt,
+        String specialistName
 ) {
 }

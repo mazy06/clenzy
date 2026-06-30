@@ -43,11 +43,16 @@ class AgUiControllerSecurityTest {
         @Bean TenantContext tenantContext() { return Mockito.mock(TenantContext.class); }
         @Bean ObjectMapper objectMapper() { return new ObjectMapper(); }
         @Bean PendingToolStore pendingToolStore() { return Mockito.mock(PendingToolStore.class); }
+        @Bean com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService() {
+            return Mockito.mock(com.clenzy.service.agent.supervision.SupervisionActivityService.class);
+        }
 
         @Bean
         AgUiController controller(AgentOrchestrator orchestrator, TenantContext tenantContext,
-                                  ObjectMapper objectMapper, PendingToolStore pendingToolStore) {
-            return new AgUiController(orchestrator, tenantContext, objectMapper, pendingToolStore);
+                                  ObjectMapper objectMapper, PendingToolStore pendingToolStore,
+                                  com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService) {
+            return new AgUiController(orchestrator, tenantContext, objectMapper, pendingToolStore,
+                    supervisionActivityService);
         }
     }
 

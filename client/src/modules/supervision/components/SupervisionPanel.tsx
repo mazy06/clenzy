@@ -9,8 +9,9 @@
    ============================================================ */
 
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Box, Button } from '@mui/material';
+import { Box, Button, CircularProgress } from '@mui/material';
 import { WifiOff, Replay } from '../../../icons';
+import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
 import { useResolutionToasts } from '../core/useResolutionToasts';
@@ -31,6 +32,8 @@ export interface SupervisionPanelProps {
   createProvider: () => SupervisionProvider;
   /** Identité du provider (ex. [propertyId]). */
   deps: unknown[];
+  /** Propriété pilotée — active le bouton « Scanner » (mode live). */
+  propertyId?: number | string;
   onSelectAgent?: (id: AgentId) => void;
   /** Agent qui agit sur une réservation → comète (en plus du rendu interne). */
   onActing?: (agentId: AgentId, reservationId: string) => void;
@@ -38,7 +41,7 @@ export interface SupervisionPanelProps {
   onEditAction?: (actionId: string) => void;
 }
 
-export function SupervisionPanel({ createProvider, deps, onSelectAgent, onActing, onEditAction }: SupervisionPanelProps) {
+export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAgent, onActing, onEditAction }: SupervisionPanelProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [selected, setSelected] = useState<AgentId | null>(null);
@@ -61,6 +64,21 @@ export function SupervisionPanel({ createProvider, deps, onSelectAgent, onActing
   });
 
   const handleSend = useCallback((message: string) => void actions.kickoff(message), [actions]);
+
+  // Scan manuel (Phase 3-B.2) : revue proactive → recharge le snapshot (feed/suggestions réels).
+  const [scanning, setScanning] = useState(false);
+  const handleScan = useCallback(async () => {
+    if (propertyId == null || scanning) return;
+    setScanning(true);
+    try {
+      await runSupervisionScan(propertyId);
+      retry(); // re-getSnapshot → reflète l'activité + suggestions produites
+    } catch {
+      /* échec réseau/LLM → l'opérateur peut relancer */
+    } finally {
+      setScanning(false);
+    }
+  }, [propertyId, scanning, retry]);
 
   // Approbation inline (interrupt) : la décision opérateur reprend le run.
   const handleResolvePending = useCallback(
@@ -110,6 +128,31 @@ export function SupervisionPanel({ createProvider, deps, onSelectAgent, onActing
   return (
     <Box ref={rootRef} sx={{ position: 'relative' }}>
       <AgentConstellation snapshot={snapshot} online={status === 'live'} onSelectAgent={handleSelect} />
+
+      {/* Scan manuel (mode live) : revue proactive de la propriété à la demande. */}
+      {canKickoff && propertyId != null && (
+        <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 7 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleScan}
+            disabled={scanning}
+            startIcon={scanning ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : undefined}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: 999,
+              color: '#E7E9FB',
+              borderColor: 'rgba(255,255,255,.18)',
+              bgcolor: 'rgba(20,24,58,.7)',
+              backdropFilter: 'blur(8px)',
+              '&:hover': { borderColor: 'rgba(255,255,255,.35)', bgcolor: 'rgba(20,24,58,.85)' },
+            }}
+          >
+            {scanning ? t('supervision.scan.running', 'Scan en cours…') : t('supervision.scan.button', 'Scanner')}
+          </Button>
+        </Box>
+      )}
 
       {/* Entrée de chat opérateur (chemin live) : un message déclenche un run du
           moteur multi-agent → la constellation réagit + réponse texte ci-dessous.

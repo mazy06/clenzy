@@ -29,7 +29,7 @@
 
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
-import type { OrchestratorSnapshot, PendingAgentAction, StreamEvent } from '../types';
+import type { AgentId, OrchestratorSnapshot, PendingAgentAction, StreamEvent } from '../types';
 import type { SupervisionProvider } from './SupervisionProvider';
 import { buildPropertySnapshot } from './mockData';
 import { mapSpecialistToAgent } from './specialistMapping';
@@ -51,13 +51,46 @@ interface ResumePayload {
   payload: { confirmed: boolean };
 }
 
-/** Interrupt remonté dans RUN_FINISHED.outcome (contrat backend HITL). */
+/** Interrupt remonté dans RUN_FINISHED.outcome (contrat backend HITL, flux live). */
 interface AgUiInterrupt {
   id: string;
   reason?: string;
   message?: string;
   toolCallId?: string;
   metadata?: { toolName?: string; args?: Record<string, unknown> };
+}
+
+/**
+ * Forme RÉELLE renvoyée par `GET /api/agui/pending` (cf. PendingActionDto.java).
+ * Distincte d'{@link AgUiInterrupt} (flux live) : ici la clé de reprise est
+ * `toolCallId` et le détail tient dans `description` / `argsSummary`.
+ */
+interface PendingActionDtoShape {
+  toolCallId: string;
+  toolName?: string;
+  description?: string;
+  argsSummary?: string;
+  conversationId?: number;
+  createdAt?: string;
+  /** Specialist backend (ex. `data_analyst`) → mappé vers l'agent constellation. */
+  specialistName?: string;
+}
+
+/** Réponse de GET /api/ai/supervision/activity/{id} (feed + métriques réels). */
+interface ActivitySnapshotShape {
+  feed: Array<{ id: string; agentId: string; at: string; text: string }>;
+  autoActions: number;
+}
+
+/** Suggestion org-scopée (GET /api/ai/supervision/suggestions/{id}). */
+interface SuggestionShape {
+  id: string;
+  agentId: string;
+  title: string;
+  motif?: string;
+  reservationId?: number | null;
+  createdAt: string;
+  expiresAt?: string;
 }
 
 export interface AgUiProviderOptions {
@@ -100,35 +133,91 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   ) {}
 
   /**
-   * Snapshot initial : on part d'une constellation « en direct » au repos
-   * (5 agents en veille). L'état réel se construit ensuite par les StreamEvents
-   * d'activité reçus du moteur. On réutilise le builder existant (scénario
-   * `calm` → online:true, agents présents) puis on neutralise les statuts.
+   * Snapshot initial : constellation « en direct » au repos. On part du roster
+   * statique (5 agents) puis on reflète l'état RÉEL :
+   *  - métriques honnêtes (PAS les valeurs mock du builder) : `awaiting` = nb
+   *    d'actions en attente, `autoActions`/`timeSaved` neutres tant que la
+   *    persistance d'activité (Phase 3) n'alimente pas de chiffres réels ;
+   *  - agents rattachés à une action en attente → statut `wait` ;
+   *  - 1re action en attente exposée en carte inline (réhydratation HITL).
+   * Le reste (feed, activité) se construit ensuite par les StreamEvents du moteur.
    */
   async getSnapshot(): Promise<OrchestratorSnapshot> {
     const base = buildPropertySnapshot(this.propertyId, 'calm');
-    // Réhydratation gracieuse : si le backend expose une file d'actions en
-    // attente (run mis en pause avant un reload), on la réaffiche. L'endpoint
-    // peut ne pas exister encore → on ignore tout échec (404 / réseau).
-    const pendingAction = await this.fetchPendingAction();
+    const [hitlPending, activity, suggestions] = await Promise.all([
+      this.fetchPending(),
+      this.fetchActivity(),
+      this.fetchSuggestions(),
+    ]);
+    const inline = hitlPending[0] ? pendingDtoToAgentAction(hitlPending[0]) : null;
+    if (inline) this.currentInterruptId = inline.interruptId;
+
+    // File persistante org-scopée (suggestions des scans autonomes).
+    const pendingQueue = suggestions.map((s) => ({
+      id: s.id,
+      agentId: s.agentId as AgentId,
+      title: s.title,
+      motif: s.motif ?? '',
+      reasoning: s.motif ?? '',
+      reservationId: s.reservationId != null ? String(s.reservationId) : null,
+      createdAt: s.createdAt,
+      expiresAt: s.expiresAt ?? s.createdAt,
+    }));
+
+    // Agents en attente : HITL (specialist) + suggestions (module).
+    const waiting = new Set<AgentId>([
+      ...hitlPending
+        .map((dto) => mapSpecialistToAgent(dto.specialistName))
+        .filter((id): id is AgentId => id !== null),
+      ...pendingQueue.map((p) => p.agentId),
+    ]);
+    const agents = base.agents.map((a) => ({
+      ...a,
+      status: waiting.has(a.id) ? ('wait' as const) : ('veille' as const),
+      task: null,
+      reservationId: null,
+      metrics: [], // pas de métriques mock en live ; réelles via le feed/activité
+    }));
+
+    // Feed réel (activité persistée). agentId backend = clé module = AgentId.
+    const feed = (activity?.feed ?? []).map((e) => ({
+      id: e.id,
+      agentId: e.agentId as AgentId,
+      at: e.at,
+      text: e.text,
+    }));
+
+    const awaiting = hitlPending.length + pendingQueue.length;
     return {
       ...base,
       online: true,
       paused: false,
-      pending: [],
-      feed: [],
-      agents: base.agents.map((a) => ({ ...a, status: 'veille', reservationId: null })),
-      summary: 'Connecté au moteur multi-agent · en attente d’activité',
-      ...(pendingAction ? { pendingAction } : {}),
+      pending: pendingQueue,
+      feed,
+      agents,
+      dayMetrics: {
+        timeSaved: '—',
+        autoActions: activity?.autoActions ?? 0,
+        awaiting,
+      },
+      summary:
+        awaiting > 0
+          ? `Connecté · ${awaiting} action${awaiting > 1 ? 's' : ''} attend${
+              awaiting > 1 ? 'ent' : ''
+            } ta validation`
+          : 'Connecté au moteur multi-agent · en attente d’activité',
+      ...(inline ? { pendingAction: inline } : {}),
     };
   }
 
   /**
-   * Réinterroge la file d'actions en attente au montage (GET /api/agui/pending).
-   * GRACIEUX : tout échec (endpoint absent, réseau, parse) → null, jamais
-   * d'erreur propagée. Mémorise l'interruptId pour permettre la reprise.
+   * Liste les actions en attente au montage (GET /api/agui/pending). Le backend
+   * renvoie une liste de {@link PendingActionDtoShape} (forme RÉELLE, cf.
+   * PendingActionDto.java) — PAS la forme `AgUiInterrupt` du flux live.
+   * GRACIEUX : tout échec (endpoint absent, réseau, parse) → liste vide, jamais
+   * d'erreur propagée.
    */
-  private async fetchPendingAction(): Promise<PendingAgentAction | null> {
+  private async fetchPending(): Promise<PendingActionDtoShape[]> {
     try {
       const token = getAccessToken();
       const response = await fetch(buildApiUrl('/agui/pending'), {
@@ -139,16 +228,72 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
-      if (!response.ok) return null;
-      const body = (await response.json()) as { interrupts?: AgUiInterrupt[] } | AgUiInterrupt[];
-      const interrupts = Array.isArray(body) ? body : body.interrupts;
-      const interrupt = interrupts?.[0];
-      if (!interrupt?.id) return null;
-      this.currentInterruptId = interrupt.id;
-      return toPendingAgentAction(interrupt);
+      if (!response.ok) return [];
+      const body = (await response.json()) as PendingActionDtoShape[];
+      return Array.isArray(body) ? body.filter((dto) => !!dto?.toolCallId) : [];
     } catch {
-      return null; // endpoint pas encore en place / réseau → ignoré
+      return []; // endpoint indisponible / réseau → ignoré
     }
+  }
+
+  /**
+   * Feed + compteur d'actions réels de la propriété (GET /ai/supervision/activity/{id}).
+   * GRACIEUX : tout échec → null (le snapshot reste lisible, feed vide).
+   */
+  private async fetchActivity(): Promise<ActivitySnapshotShape | null> {
+    try {
+      const token = getAccessToken();
+      const response = await fetch(buildApiUrl(`/ai/supervision/activity/${this.propertyId}`), {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!response.ok) return null;
+      return (await response.json()) as ActivitySnapshotShape;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * File de suggestions org-scopée (GET /ai/supervision/suggestions/{id}).
+   * GRACIEUX : tout échec → liste vide.
+   */
+  private async fetchSuggestions(): Promise<SuggestionShape[]> {
+    try {
+      const token = getAccessToken();
+      const response = await fetch(buildApiUrl(`/ai/supervision/suggestions/${this.propertyId}`), {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!response.ok) return [];
+      const body = (await response.json()) as SuggestionShape[];
+      return Array.isArray(body) ? body.filter((s) => !!s?.id) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /** Rejette une suggestion côté serveur (best-effort) + retire de la file. */
+  private async dismissSuggestion(id: string, outcome: 'validated' | 'edited'): Promise<void> {
+    try {
+      const token = getAccessToken();
+      await fetch(buildApiUrl(`/ai/supervision/suggestions/${id}/dismiss`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+    } catch {
+      /* réseau → on retire quand même de la file localement */
+    }
+    if (!this.disposed) this.emit({ type: 'pending.resolved', actionId: id, outcome });
   }
 
   subscribe(listener: Listener): () => void {
@@ -420,16 +565,16 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
 
   // ── Écritures (actions opérateur) ─────────────────────────────────────────
   // Le HITL inline passe par `resolvePendingAction` (resume AG-UI ci-dessus).
-  // La file persistante « Attend ta validation » (PendingAction) n'est pas
-  // branchée sur ce provider : ces écritures restent des no-op structurels (la
-  // constellation reste lisible). On NE simule RIEN (contrairement au mock).
+  // La file persistante « Attend ta validation » (PendingAction) = suggestions
+  // org-scopées : valider/modifier les REJETTE côté serveur (informationnelles).
+  // L'autonomie globale / pause restent pilotées depuis Settings > IA (no-op ici).
 
-  async validatePending(_actionId: string): Promise<void> {
-    return Promise.resolve();
+  async validatePending(actionId: string): Promise<void> {
+    await this.dismissSuggestion(actionId, 'validated');
   }
 
-  async editPending(_actionId: string): Promise<void> {
-    return Promise.resolve();
+  async editPending(actionId: string): Promise<void> {
+    await this.dismissSuggestion(actionId, 'edited');
   }
 
   async setGlobalAutonomy(): Promise<void> {
@@ -465,6 +610,34 @@ function toPendingAgentAction(interrupt: AgUiInterrupt): PendingAgentAction {
     message: interrupt.message ?? interrupt.reason ?? 'Cette action requiert votre validation.',
     ...(interrupt.metadata?.args ? { args: interrupt.metadata.args } : {}),
   };
+}
+
+/**
+ * PendingActionDto (réhydratation REST) → carte d'approbation inline. `argsSummary`
+ * est un résumé JSON éventuellement tronqué : on le re-parse au mieux, sinon on
+ * l'ignore (l'affichage des args reste optionnel).
+ */
+function pendingDtoToAgentAction(dto: PendingActionDtoShape): PendingAgentAction {
+  const args = parseArgsSummary(dto.argsSummary);
+  return {
+    interruptId: dto.toolCallId,
+    toolName: dto.toolName ? humanizeTool(dto.toolName) : 'Action',
+    message: dto.description ?? 'Cette action requiert votre validation.',
+    ...(args ? { args } : {}),
+  };
+}
+
+/** Re-parse best-effort du résumé d'arguments (peut être tronqué → null). */
+function parseArgsSummary(raw?: string): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null; // résumé tronqué (suffixe « … ») ou non-JSON → on n'affiche pas les args
+  }
 }
 
 // ─── Libellés métier (pas de jargon LLM) ──────────────────────────────────────

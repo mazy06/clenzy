@@ -1,15 +1,19 @@
 /* ============================================================
    Bascule mock ⇄ réel (Superviseur d'agents)
 
-   Le MOCK reste le défaut tant que le provider réel n'est pas validé en
-   navigateur. La bascule se fait par :
-     1. flag build-time `VITE_SUPERVISION_LIVE=true` (CI/preview), OU
+   Le mode RÉEL (branché sur le moteur multi-agent via AG-UI) est désormais le
+   DÉFAUT. L'opt-out se fait par :
+     1. flag build-time `VITE_SUPERVISION_LIVE=false` (ou `0`) → repasse en mock, OU
      2. override per-session (dev) : `sessionStorage.clenzy_supervision_live`.
 
+   Note UX : sans activité (pas de chat opérateur, runtime ambiant pas encore
+   livré — cf. Phase 3 du plan), la constellation réelle reste « en direct » mais
+   au repos (agents en veille). C'est le comportement attendu, pas un bug.
+
    Pas de localStorage (le mode n'a pas à survivre à la fermeture de l'onglet),
-   pas de toggle UI imposé : c'est un seam de dev/intégration, pas une
-   préférence métier persistée. Un appelant peut toujours forcer le provider
-   via `SupervisionView.createPropertyProvider` (override explicite > flag).
+   pas de toggle UI imposé : c'est un seam d'intégration, pas une préférence
+   métier persistée. Un appelant peut toujours forcer le provider via
+   `SupervisionView.createPropertyProvider` (override explicite > flag).
    ============================================================ */
 
 const SESSION_KEY = 'clenzy_supervision_live';
@@ -25,7 +29,8 @@ export function isSupervisionLiveEnabled(): boolean {
     /* sessionStorage indisponible (SSR / privacy) → on retombe sur l'env. */
   }
   const env = (import.meta.env as Record<string, string | undefined>).VITE_SUPERVISION_LIVE;
-  return env === 'true' || env === '1';
+  // Live par défaut : seul un opt-out EXPLICITE (`false`/`0`) repasse en mock.
+  return env !== 'false' && env !== '0';
 }
 
 /** Dev : force le mode pour la session courante (sans rebuild). */

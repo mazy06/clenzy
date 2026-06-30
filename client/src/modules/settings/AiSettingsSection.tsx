@@ -44,6 +44,7 @@ import type { AiApiKeyStatus, SaveAiApiKeyRequest } from '../../services/api/aiA
 import PlatformAiConfigSection from './PlatformAiConfigSection';
 import AssistantBriefingPrefs from './AssistantBriefingPrefs';
 import KnowledgeBaseAdmin from './KnowledgeBaseAdmin';
+import AgentSupervisionSection from './AgentSupervisionSection';
 
 // ─── Provider Brand Config ──────────────────────────────────────────────────
 
@@ -682,7 +683,7 @@ function FeatureTogglesSection() {
  * (ex: lien depuis un email de support) ou de retrouver son contexte apres un
  * refresh.</p>
  */
-const SUBTABS = ['connection', 'models', 'briefings', 'kb'] as const;
+const SUBTABS = ['connection', 'models', 'supervision', 'briefings', 'kb'] as const;
 type SubTab = (typeof SUBTABS)[number];
 const DEFAULT_SUBTAB: SubTab = 'connection';
 
@@ -760,6 +761,7 @@ export default function AiSettingsSection() {
       >
         <Tab value="connection" label={t('settings.ai.tabs.connection', 'Connexion')} />
         <Tab value="models" label={t('settings.ai.tabs.models', 'Modèles & features')} />
+        <Tab value="supervision" label={t('settings.ai.tabs.supervision', 'Superviseur')} />
         <Tab value="briefings" label={t('settings.ai.tabs.briefings', 'Briefings')} />
         <Tab value="kb" label={t('settings.ai.tabs.kb', 'Documentation')} />
       </Tabs>
@@ -793,6 +795,8 @@ export default function AiSettingsSection() {
           {!mainHasAnyRole(['SUPER_ADMIN']) && <FeatureTogglesSection />}
         </>
       )}
+
+      {activeTab === 'supervision' && <AgentSupervisionSection />}
 
       {activeTab === 'briefings' && <AssistantBriefingPrefs />}
 

@@ -45,6 +45,10 @@
       "notify": "Notify",
       "full": "Auto"
     },
+    "scan": {
+      "button": "Scan",
+      "running": "Scanning…"
+    },
     "scope": {
       "byProperty": "By property",
       "portfolio": "Overview"
@@ -2610,8 +2614,32 @@
       "tabs": {
         "connection": "Connection",
         "models": "Models & features",
+        "supervision": "Supervisor",
         "briefings": "Briefings",
         "kb": "Documentation"
+      },
+      "supervision": {
+        "title": "Agent supervisor (constellation)",
+        "subtitle": "Enable the constellation and set the autonomy of each AI module. Imported modules will appear here.",
+        "loadError": "Unable to load the configuration.",
+        "master": {
+          "label": "Enable supervisor",
+          "description": "Shows the constellation in the planning view and lets agents propose actions."
+        },
+        "paused": {
+          "label": "Pause",
+          "description": "Temporarily suspends agents' automatic activity (the configuration is kept)."
+        },
+        "budget": {
+          "label": "Automatic scan cap",
+          "description": "Maximum number of automatic analyses per day for the organization (0 = no automatic analysis). Caps AI cost."
+        },
+        "modules": {
+          "title": "Modules"
+        },
+        "readOnly": "Read-only — only an administrator can change these settings.",
+        "saved": "Configuration saved",
+        "saveError": "Failed to save. Please try again."
       },
       "platform": {
         "title": "Platform configuration",
