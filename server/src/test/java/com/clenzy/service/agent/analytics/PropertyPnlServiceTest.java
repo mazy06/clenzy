@@ -39,7 +39,8 @@ class PropertyPnlServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PropertyPnlService(reservationRepository, interventionRepository, tenantContext, CLOCK);
+        service = new PropertyPnlService(reservationRepository, interventionRepository,
+                new ChannelCommissionResolver(), tenantContext, CLOCK);
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG);
     }
 

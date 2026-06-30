@@ -83,7 +83,8 @@ public class PricingRecommendationService {
      * @param suggestedDeltaPct     ajustement proposé (ex. -8, +8)
      * @param direction             DECREASE | INCREASE
      * @param reason                justification métier
-     * @param simulatedRevenueImpactPct impact revenu simulé (élasticité réelle, 0 si inconnu)
+     * @param simulatedRevenueImpactPct impact revenu simulé de ce delta% sur TOUTE la fenêtre
+     *        d'analyse (élasticité réelle, ratio indépendant du créneau), 0 si inconnu
      */
     public record PriceRecommendation(
             LocalDate from,
@@ -106,6 +107,16 @@ public class PricingRecommendationService {
         LocalDate windowEnd = today.plusDays(window);
         LocalDate lastNight = windowEnd.minusDays(1);
 
+        // Ownership (règle audit #3) AVANT tout accès prix/calendrier : findById contourne le filtre
+        // Hibernate et le fallback nightlyPrice de PriceEngine n'est pas tenant-safe → sans ce guard,
+        // un propertyId d'une autre org fuiterait son prix. propertyId vient de l'argument du tool (LLM).
+        Property property = propertyRepository.findById(propertyId).orElse(null);
+        if (property == null || !orgId.equals(property.getOrganizationId())) {
+            return List.of();
+        }
+        String city = property.getCity();
+        String country = property.getCountryCode();
+
         // Calendrier réel : null OU AVAILABLE = libre ; BOOKED = vendu ; BLOCKED/MAINTENANCE = hors-vente.
         Map<LocalDate, CalendarDayStatus> statusByDate = new HashMap<>();
         for (CalendarDay d : calendarEngine.getDays(propertyId, today, windowEnd, orgId)) {
@@ -115,11 +126,6 @@ public class PricingRecommendationService {
         }
         // Prix courant par nuit (resolvePriceRange : borne haute exclusive).
         Map<LocalDate, BigDecimal> priceByDate = priceEngine.resolvePriceRange(propertyId, today, windowEnd, orgId);
-
-        // Localisation pour les événements (org-guardée : findById contourne le filtre Hibernate).
-        Property property = propertyRepository.findById(propertyId).orElse(null);
-        String city = property != null && orgId.equals(property.getOrganizationId()) ? property.getCity() : null;
-        String country = property != null && orgId.equals(property.getOrganizationId()) ? property.getCountryCode() : null;
 
         // Validation simulation mise en cache par delta% (la simulation ne dépend pas du créneau).
         Map<Integer, Double> impactByDelta = new HashMap<>();

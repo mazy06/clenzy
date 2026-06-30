@@ -80,6 +80,24 @@ class ProactiveMaintenanceServiceTest {
     }
 
     @Test
+    @DisplayName("Séjour à cheval sur l'entretien → seules les nuits postérieures comptent")
+    void straddlingStay_countsOnlyPostMaintenanceNights() {
+        Property p = property(5L, "Villa A");
+        // Entretien ancien (>1 an → HIGH) pour que le logement apparaisse dans atRisk.
+        when(interventionRepository.findAllByDateRange(any(), any(), eq(ORG)))
+                .thenReturn(List.of(maintenance(p, LocalDateTime.of(2025, 6, 1, 9, 0))));
+        // Séjour 2025-05-20 → 2025-06-10 : à cheval sur l'entretien (2025-06-01).
+        when(reservationRepository.findAllByDateRange(any(), any(), eq(ORG)))
+                .thenReturn(List.of(res(p, LocalDate.of(2025, 5, 20), LocalDate.of(2025, 6, 10))));
+
+        ProactiveMaintenanceService.MaintenanceForecastResult r = service.predict();
+
+        assertThat(r.atRisk()).hasSize(1);
+        // 2025-06-01 → 2025-06-10 = 9 nuits (et non 21 = durée totale du séjour).
+        assertThat(r.atRisk().get(0).guestNightsSinceLastMaintenance()).isEqualTo(9);
+    }
+
+    @Test
     @DisplayName("Entretien récent + faible usage → pas de risque")
     void recentMaintenance_lowUsage_none() {
         Property p = property(5L, "Villa A");

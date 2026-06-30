@@ -12,9 +12,10 @@ import java.util.Set;
 /**
  * Specialiste ACTIONS operations terrain : interventions, calendrier, statuts, tarifs.
  *
- * <p>8 tools write (avec confirmation user — gere au niveau orchestrator qui forward
- * le tool_confirmation_request). La SURVEILLANCE read-only (ménages, statut sync,
- * bruit, risques) est portee par {@code MonitoringSpecialist}.</p>
+ * <p>10 tools write (avec confirmation user — gere au niveau orchestrator qui forward
+ * le tool_confirmation_request), dont le blocage calendrier en lot (preview + apply).
+ * La SURVEILLANCE read-only (ménages, statut sync, bruit, risques) est portee par
+ * {@code MonitoringSpecialist}.</p>
  */
 @Component
 public class OperationsSpecialist extends AbstractAgentSpecialist {

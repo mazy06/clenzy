@@ -95,7 +95,10 @@ public class ProactiveMaintenanceService {
             int nights = (int) Math.max(0, ChronoUnit.DAYS.between(r.getCheckIn(), r.getCheckOut()));
             a.totalNights += nights;
             if (a.lastMaintenance == null || r.getCheckOut().isAfter(a.lastMaintenance)) {
-                a.nightsSince += nights;
+                // Séjour à cheval sur l'entretien : ne compter que les nuits POSTÉRIEURES à l'entretien.
+                LocalDate effStart = (a.lastMaintenance != null && r.getCheckIn().isBefore(a.lastMaintenance))
+                        ? a.lastMaintenance : r.getCheckIn();
+                a.nightsSince += (int) Math.max(0, ChronoUnit.DAYS.between(effStart, r.getCheckOut()));
             }
         }
 

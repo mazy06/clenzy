@@ -31,21 +31,17 @@ import java.util.Map;
 @Service
 public class ChannelAttributionService {
 
-    /** Taux de commission par défaut (repli si {@code otaFeeAmount} absent). */
-    private static final Map<String, Double> DEFAULT_RATES = Map.of(
-            "airbnb", 0.03,
-            "booking", 0.15,
-            "vrbo", 0.08,
-            "expedia", 0.15);
-
     private final ReservationRepository reservationRepository;
+    private final ChannelCommissionResolver commissionResolver;
     private final TenantContext tenantContext;
     private final Clock clock;
 
     public ChannelAttributionService(ReservationRepository reservationRepository,
+                                     ChannelCommissionResolver commissionResolver,
                                      TenantContext tenantContext,
                                      Clock clock) {
         this.reservationRepository = reservationRepository;
+        this.commissionResolver = commissionResolver;
         this.tenantContext = tenantContext;
         this.clock = clock;
     }
@@ -86,19 +82,10 @@ public class ChannelAttributionService {
             if ("cancelled".equalsIgnoreCase(r.getStatus())) {
                 continue;
             }
-            String channel = normalize(r.getSource());
+            String channel = commissionResolver.normalize(r.getSource());
             BigDecimal gross = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
-
-            BigDecimal commission;
-            boolean estimated;
-            if (r.getOtaFeeAmount() != null) {
-                commission = r.getOtaFeeAmount();
-                estimated = false;
-            } else {
-                double rate = DEFAULT_RATES.getOrDefault(channel, 0.0);
-                commission = gross.multiply(BigDecimal.valueOf(rate));
-                estimated = rate > 0.0;
-            }
+            BigDecimal commission = commissionResolver.commissionOf(r, gross);
+            boolean estimated = commissionResolver.isEstimated(r);
 
             Acc acc = byChannel.computeIfAbsent(channel, k -> new Acc());
             acc.count++;
@@ -150,19 +137,6 @@ public class ChannelAttributionService {
         return "Le canal « " + costliest.channel() + " » coûte " + scale(costliest.commission())
                 + " de commission (" + Math.round(costliest.commissionPct() * 100)
                 + "% du brut). Pousser le direct améliorerait la marge nette.";
-    }
-
-    private static String normalize(String source) {
-        if (source == null || source.isBlank()) {
-            return "other";
-        }
-        String s = source.trim().toLowerCase();
-        if (s.contains("airbnb")) return "airbnb";
-        if (s.contains("booking")) return "booking";
-        if (s.contains("vrbo") || s.contains("homeaway")) return "vrbo";
-        if (s.contains("expedia")) return "expedia";
-        if (s.contains("direct")) return "direct";
-        return s;
     }
 
     private static double pct(BigDecimal part, BigDecimal whole) {

@@ -12,9 +12,9 @@ import java.util.Set;
 /**
  * Specialiste insights strategiques + simulations what-if.
  *
- * <p>4 tools : business insights par propriete, vue portfolio cross-property,
- * simulations pricing et calendrier. Tres haut signal/bruit — ces tools font
- * des analyses lourdes.</p>
+ * <p>8 tools : business insights par propriete, vue portfolio cross-property,
+ * simulations pricing/calendrier, recommandation de prix, avis voyageurs (liste +
+ * analyse) et benchmark concurrence. Tres haut signal/bruit — analyses lourdes.</p>
  */
 @Component
 public class InsightsSpecialist extends AbstractAgentSpecialist {

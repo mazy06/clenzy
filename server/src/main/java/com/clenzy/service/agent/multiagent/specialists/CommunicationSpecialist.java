@@ -12,9 +12,10 @@ import java.util.Set;
 /**
  * Specialiste communication guest : envoi messages + annulation reservation.
  *
- * <p>2 write tools avec confirmation. Distinct d'Operations car focus sur
- * l'interaction guest (templates email/SMS/WhatsApp) et la gestion des
- * reservations cote relationnel.</p>
+ * <p>7 tools (read + write avec confirmation) : liste/segmentation guests et
+ * suggestions d'upsell (read) ; envoi de message, annulation/maj de réservation,
+ * réponse aux avis (write irréversibles avec confirmation). Distinct d'Operations
+ * car focus sur l'interaction guest (templates email/SMS/WhatsApp).</p>
  */
 @Component
 public class CommunicationSpecialist extends AbstractAgentSpecialist {

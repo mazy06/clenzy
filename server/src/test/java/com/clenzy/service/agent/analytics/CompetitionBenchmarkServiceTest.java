@@ -3,7 +3,9 @@ package com.clenzy.service.agent.analytics;
 import com.clenzy.dto.ExternalPriceRecommendation;
 import com.clenzy.model.ExternalPricingConfig;
 import com.clenzy.model.PricingProvider;
+import com.clenzy.model.Property;
 import com.clenzy.repository.ExternalPricingConfigRepository;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.ExternalPricingService;
 import com.clenzy.service.ExternalPricingSourceRegistry;
 import com.clenzy.service.PriceEngine;
@@ -22,10 +24,12 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +43,7 @@ class CompetitionBenchmarkServiceTest {
     @Mock private ExternalPricingConfigRepository configRepository;
     @Mock private ExternalPricingSourceRegistry sourceRegistry;
     @Mock private PriceEngine priceEngine;
+    @Mock private PropertyRepository propertyRepository;
     @Mock private TenantContext tenantContext;
     @Mock private ExternalPricingService source;
 
@@ -47,8 +52,27 @@ class CompetitionBenchmarkServiceTest {
     @BeforeEach
     void setUp() {
         service = new CompetitionBenchmarkService(configRepository, sourceRegistry, priceEngine,
-                tenantContext, CLOCK);
+                propertyRepository, tenantContext, CLOCK);
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG);
+        // Propriété possédée par l'org → guard ownership OK pour les tests existants.
+        Property owned = new Property();
+        owned.setId(PROP);
+        owned.setOrganizationId(ORG);
+        lenient().when(propertyRepository.findById(PROP)).thenReturn(Optional.of(owned));
+    }
+
+    @Test
+    @DisplayName("Logement d'une autre org → message dédié (guard ownership, pas de fuite de prix)")
+    void foreignProperty_returnsEmpty() {
+        Property foreign = new Property();
+        foreign.setId(PROP);
+        foreign.setOrganizationId(2L);
+        when(propertyRepository.findById(PROP)).thenReturn(Optional.of(foreign));
+
+        CompetitionBenchmarkService.BenchmarkResult r = service.benchmark(PROP, 30);
+
+        assertThat(r.sources()).isZero();
+        assertThat(r.headline()).contains("introuvable");
     }
 
     @Test
