@@ -45,6 +45,10 @@
       "notify": "Notifie",
       "full": "Auto"
     },
+    "scan": {
+      "button": "Scanner",
+      "running": "Scan en cours…"
+    },
     "scope": {
       "byProperty": "Par logement",
       "portfolio": "Vue d'ensemble"
@@ -2634,8 +2638,32 @@
       "tabs": {
         "connection": "Connexion",
         "models": "Modèles & features",
+        "supervision": "Superviseur",
         "briefings": "Briefings",
         "kb": "Documentation"
+      },
+      "supervision": {
+        "title": "Superviseur d'agents (constellation)",
+        "subtitle": "Activez la constellation et réglez l'autonomie de chaque module IA. Les modules importés apparaîtront ici.",
+        "loadError": "Impossible de charger la configuration.",
+        "master": {
+          "label": "Activer le superviseur",
+          "description": "Affiche la constellation dans le planning et autorise les agents à proposer des actions."
+        },
+        "paused": {
+          "label": "Mettre en pause",
+          "description": "Suspend temporairement l'activité automatique des agents (la config est conservée)."
+        },
+        "budget": {
+          "label": "Plafond de scans automatiques",
+          "description": "Nombre maximum d'analyses automatiques par jour pour l'organisation (0 = aucune analyse automatique). Limite le coût IA."
+        },
+        "modules": {
+          "title": "Modules"
+        },
+        "readOnly": "Lecture seule — seul un administrateur peut modifier ces réglages.",
+        "saved": "Configuration enregistrée",
+        "saveError": "Échec de l'enregistrement. Réessayez."
       },
       "platform": {
         "title": "Configuration plateforme",
