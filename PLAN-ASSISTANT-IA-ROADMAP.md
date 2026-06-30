@@ -144,7 +144,17 @@
 - **Valeur** : anti **no-show / double-booking / mauvais avis**. Réduction directe du risque.
 - **Effort** : M. Fort impact, faisabilité élevée (jointures existantes).
 
-### P0-4. Sentiment + thèmes des avis  *(agent `rep`/`com`)*
+### P0-4. Sentiment + thèmes des avis  *(agent `rep`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `ReviewSentimentServiceTest` 3/3, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `ReviewSentimentService` (couche `analytics/`), **v1 déterministe sans coût LLM** : sentiment via
+    la **note** (1-5), thèmes via **lexique normalisé sans accents** (propreté, bruit, arrivée,
+    équipements, qualité-prix, emplacement, communication), tendance récente (90 j), avis à risque
+    réputationnel non répondus.
+  - Tool read-only `analyze_reviews` rattaché à `insights` (6→7).
+  - Test unitaire : thème propreté NEGATIVE + négatifs non répondus, avis positifs sans risque, vide.
+- **Raffinement futur** : extraction de sentiment fine par LLM (cache + batch).
+
+#### (spéc d'origine, pour mémoire)
 - **Aujourd'hui** : `list_reviews` renvoie des avis **bruts**.
 - **À construire** :
   - `ReviewSentimentService` : score de sentiment + extraction de **thèmes** (propreté, bruit,
