@@ -2,7 +2,10 @@ package com.clenzy.service.agent.analytics;
 
 import com.clenzy.model.CalendarDay;
 import com.clenzy.model.CalendarDayStatus;
+import com.clenzy.model.Property;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.CalendarEngine;
+import com.clenzy.service.LocalEventsRegistry;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.SimulationService;
 import com.clenzy.service.SimulationService.PricingChangeResult;
@@ -44,17 +47,21 @@ class PricingRecommendationServiceTest {
     @Mock private CalendarEngine calendarEngine;
     @Mock private PriceEngine priceEngine;
     @Mock private SimulationService simulationService;
+    @Mock private PropertyRepository propertyRepository;
+    @Mock private LocalEventsRegistry localEventsRegistry;
     @Mock private TenantContext tenantContext;
 
     private PricingRecommendationService service;
 
     @BeforeEach
     void setUp() {
-        service = new PricingRecommendationService(
-                calendarEngine, priceEngine, simulationService, tenantContext, CLOCK);
+        service = new PricingRecommendationService(calendarEngine, priceEngine, simulationService,
+                propertyRepository, localEventsRegistry, tenantContext, CLOCK);
         when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG);
         lenient().when(priceEngine.resolvePriceRange(eq(PROP), any(), any(), eq(ORG)))
                 .thenReturn(Map.of());
+        // Par défaut : pas de localisation → pas d'événement (cas des tests existants).
+        lenient().when(propertyRepository.findById(eq(PROP))).thenReturn(java.util.Optional.empty());
     }
 
     @Test
@@ -108,6 +115,34 @@ class PricingRecommendationServiceTest {
         when(calendarEngine.getDays(eq(PROP), any(), any(), eq(ORG))).thenReturn(days);
 
         assertThat(service.recommend(PROP, 7, "kc")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Événement local sur le créneau → baisse atténuée (demande attendue)")
+    void localEvent_attenuatesDiscount() {
+        Property p = new Property();
+        p.setId(PROP);
+        p.setCity("Paris");
+        p.setOrganizationId(ORG);
+        when(propertyRepository.findById(eq(PROP))).thenReturn(java.util.Optional.of(p));
+
+        LocalEventsRegistry.LocalEvent ev = new LocalEventsRegistry.LocalEvent();
+        ev.title = "Festival Jazz";
+        ev.date = TODAY.plusDays(2);
+        when(localEventsRegistry.findByCityAndDateRange(any(), any(), any(), any()))
+                .thenReturn(List.of(ev));
+
+        when(calendarEngine.getDays(eq(PROP), any(), any(), eq(ORG))).thenReturn(List.of()); // occupation 0
+        when(simulationService.simulatePricingChange(anyString(), eq(PROP), anyDouble(), any(), any()))
+                .thenReturn(sim(0.10));
+
+        List<PricingRecommendationService.PriceRecommendation> recs = service.recommend(PROP, 7, "kc");
+
+        assertThat(recs).hasSize(1);
+        assertThat(recs.get(0).direction()).isEqualTo("DECREASE");
+        assertThat(recs.get(0).suggestedDeltaPct()).isEqualTo(-7); // -15 atténué de moitié
+        assertThat(recs.get(0).events()).contains("Festival Jazz");
+        assertThat(recs.get(0).reason()).contains("événement");
     }
 
     // ─── helpers ──────────────────────────────────────────────────────────────

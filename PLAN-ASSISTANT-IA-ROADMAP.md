@@ -235,7 +235,17 @@
 - **Constellation** : suggestion « turnaround moyen > 4 h sur logement W → risque sur arrivées serrées ».
 - **Valeur** : marge cachée + qualité de service. **Effort** : M.
 
-### P1-9. Météo / événements → prix automatique  *(agents `context` → `rep`)*
+### P1-9. Météo / événements → prix automatique  *(agents `context` → `rep`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `PricingRecommendationServiceTest` 5/5, ArchUnit 1/1) :
+  - `PricingRecommendationService` (P0-1) enrichi : pour chaque créneau, interroge
+    `LocalEventsRegistry.findByCityAndDateRange` (ville/pays du logement, org-guardé). Un événement
+    local **atténue une baisse** (demande attendue → baisse divisée par 2 + raison) ou **renforce une
+    hausse**. Champ `events` ajouté à la recommandation. Pas de nouveau tool (compteurs inchangés).
+  - Test unitaire ajouté : événement → baisse atténuée (-15 → -7) + raison.
+- **Raffinement futur** : météo (Open-Meteo, horizon ~7 j → uniquement le 1er créneau) en signal
+  near-term complémentaire.
+
+#### (spéc d'origine, pour mémoire)
 - Brancher `get_weather_forecast` + `get_local_events` **dans** `recommend_price_adjustments` (P0-1) :
   un festival J+20 ou une météo défavorable pondère la reco de prix automatiquement.
 - **Valeur** : **demand-aware pricing** sans effort manuel. **Effort** : S. **Dépend de** : P0-1.
