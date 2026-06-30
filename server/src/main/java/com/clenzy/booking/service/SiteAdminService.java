@@ -270,7 +270,17 @@ public class SiteAdminService {
         page.setPublishedBlocks(page.getBlocks());
         page.setPublishedAt(LocalDateTime.now());
         page.setStatus(SiteStatus.PUBLISHED);
-        return SitePageDto.from(pageRepository.save(page));
+        SitePage saved = pageRepository.save(page);
+        // Publier une page rend aussi le SITE accessible publiquement : la livraison publique
+        // (SiteDeliveryService.resolve) n'expose QUE les sites PUBLISHED, or le site est créé en DRAFT
+        // (createSiteForConfig) et aucune action ne le passait en ligne → sinon 404 sur {slug}.clenzy.site.
+        siteRepository.findById(siteId)
+            .filter(s -> s.getStatus() != SiteStatus.PUBLISHED)
+            .ifPresent(s -> {
+                s.setStatus(SiteStatus.PUBLISHED);
+                siteRepository.save(s);
+            });
+        return SitePageDto.from(saved);
     }
 
     // ─── Domaines ───────────────────────────────────────────────────────────
