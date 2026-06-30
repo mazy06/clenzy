@@ -96,7 +96,19 @@
 - **Valeur** : **levier revenu n°1** (yield). Passe de la simulation à la **reco actionnable**.
 - **Effort** : L. **Garde-fous** : delta max, plancher de revenu, jamais auto-appliqué.
 
-### P0-2. Attribution canal nette de commission  *(agent `fin`)*
+### P0-2. Attribution canal nette de commission  *(agent `fin`)* ✅ FAIT
+- **Découverte** : la commission OTA réelle existe par réservation (`Reservation.otaFeeAmount`,
+  nullable) + le canal (`Reservation.source`).
+- **Livré & vérifié** (`mvn package`, `ChannelAttributionServiceTest` 3/3, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `ChannelAttributionService` (couche `analytics/`) : revenu brut / commission / **net** par canal
+    (Airbnb/Booking/Vrbo/direct/autre) sur N mois, part %, taux de commission, + recommandation
+    d'arbitrage du mix. Commission = valeur **réelle** (`otaFeeAmount`) si connue, sinon **taux par
+    défaut** par canal (marqué « estimé »).
+  - Tool read-only `get_channel_attribution` (param `months`, défaut 3) rattaché à `finance` (5→6).
+  - Test unitaire : commission réelle vs estimée, exclusion des annulées, canal direct sans commission.
+- **Raffinement futur** : taux de commission configurables par org (vs défauts) ; multi-devises.
+
+#### (spéc d'origine, pour mémoire)
 - **Aujourd'hui** : `get_billing_overview` donne le revenu **brut** par canal, sans coût d'acquisition.
 - **À construire** :
   - Modéliser/tracer la **commission par canal** (Airbnb/Booking/direct…) : taux par canal
