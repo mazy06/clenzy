@@ -292,7 +292,17 @@
   propriétaire**, **optimisation d'une nouvelle annonce**.
 - **Valeur** : standardise les procédures complexes, réduit les erreurs. **Effort** : M (par workflow).
 
-### P2-14. Suggestions promos / upsells avec garde-fous  *(agents `rev`/`ops`)*
+### P2-14. Suggestions promos / upsells avec garde-fous  *(agents `rev`/`ops`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `UpsellSuggestionServiceTest` 3/3, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `UpsellSuggestionService` : pour les séjours confirmés à venir, détecte les opportunités d'upsell via
+    les **trous de calendrier** autour de la réservation (nuit libre la veille → arrivée anticipée / nuit
+    en plus ; nuit libre au départ → départ tardif / nuit en plus). Read-only, **propose, ne crée rien**.
+  - Tool read-only `suggest_upsells` (param `windowDays`, défaut 30) rattaché à `communication` (6→7).
+  - Test unitaire : 2 nuits libres / veille réservée / les 2 réservées.
+- **Note** : volet « promos » couvert par P0-1 (baisses sur créneaux à faible occupation validées par
+  l'élasticité). P2-14 ajoute le volet **upsell** distinct (revenu additionnel par séjour).
+
+#### (spéc d'origine, pour mémoire)
 - **Tools read-only** `suggest_promotion` / `suggest_upsells` (propose, ne crée pas) à partir de
   l'occupation et du segment guest ; création effective laissée à l'UI ou à un write confirmé.
 - **Valeur** : revenu additionnel maîtrisé. **Effort** : M. **Dépend de** : P1-6.
