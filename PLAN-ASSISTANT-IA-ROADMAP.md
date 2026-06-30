@@ -263,7 +263,16 @@
 
 ## Phase P2 — Différenciation / itérations suivantes
 
-### P2-10. Maintenance prédictive  *(agent `ops`)*
+### P2-10. Maintenance prédictive  *(agent `ops`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `ProactiveMaintenanceServiceTest` 3/3, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `ProactiveMaintenanceService` (couche `analytics/`), v1 déterministe : risque par logement à partir
+    de l'ancienneté du dernier entretien (maintenance COMPLETED) + l'**usure** (nuits-voyageurs depuis).
+    Niveaux HIGH/MEDIUM + raison, priorisés.
+  - Tool read-only `predict_maintenance_needs` rattaché à `monitoring` (7→8).
+  - Test unitaire : jamais entretenu+usure / entretien ancien / récent+faible usage.
+- **Raffinement futur** : signaux capteurs (température/humidité), modèle appris.
+
+#### (spéc d'origine, pour mémoire)
 - `PredictiveMaintenanceService` : fenêtre de maintenance estimée (usure ∝ occupation + historique
   interventions + signaux capteurs). **Tool** `predict_maintenance_needs` (read-only).
 - **Valeur** : intervenir **avant** la panne/le mauvais avis. **Effort** : L (modèle + données capteurs).

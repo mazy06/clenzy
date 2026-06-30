@@ -54,7 +54,8 @@ public class MonitoringSpecialist extends AbstractAgentSpecialist {
                 "get_noise_alerts",
                 "detect_operational_risks",
                 "get_dashboard_summary",
-                "get_ops_analytics"
+                "get_ops_analytics",
+                "predict_maintenance_needs"
         );
     }
 }
