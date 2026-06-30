@@ -35,12 +35,15 @@ public class AiModelDeprecationListener {
     private static final Logger log = LoggerFactory.getLogger(AiModelDeprecationListener.class);
 
     private final NotificationService notificationService;
+    private final AiModelReplacementSuggester replacementSuggester;
 
     /** Modeles deja notifies (cle = "providerLabel|modelId"). */
     private final Set<String> alreadyNotified = ConcurrentHashMap.newKeySet();
 
-    public AiModelDeprecationListener(NotificationService notificationService) {
+    public AiModelDeprecationListener(NotificationService notificationService,
+                                      AiModelReplacementSuggester replacementSuggester) {
         this.notificationService = notificationService;
+        this.replacementSuggester = replacementSuggester;
     }
 
     @Async
@@ -52,10 +55,12 @@ public class AiModelDeprecationListener {
             return;
         }
 
+        String suggestion = replacementSuggester.sentence(event.providerLabel(), event.modelId(), null);
         String title = "Modele IA obsolete : " + event.modelId();
         String message = "Le modele '" + event.modelId() + "' n'est plus disponible chez "
                 + event.providerLabel() + ". Action requise : selectionnez un nouveau modele "
-                + "dans Parametres > IA et sauvegardez pour reactiver les features impactees.";
+                + "dans Parametres > IA et sauvegardez pour reactiver les features impactees."
+                + suggestion;
 
         // /settings?tab=ai → route stable, deep-link vers la section AI config
         String actionUrl = "/settings?tab=ai";
