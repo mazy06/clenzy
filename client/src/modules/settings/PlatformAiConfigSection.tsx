@@ -868,6 +868,22 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
+  // Budget editable : etat local + commit au blur / Entree. Sans ca, l'input
+  // controle sur la valeur serveur sauvegardait a CHAQUE frappe et ecrasait la
+  // saisie (impossible de taper un nombre proprement).
+  const [budgetInput, setBudgetInput] = useState(String(budget));
+  useEffect(() => {
+    setBudgetInput(String(budget));
+  }, [budget]);
+  const commitBudget = () => {
+    const val = parseInt(budgetInput, 10);
+    if (!isNaN(val) && val >= 0 && val !== budget) {
+      onBudgetChange(feature.key, val);
+    } else {
+      setBudgetInput(String(budget));
+    }
+  };
+
   // Valeur encodee : 'provider:<p>' | 'model:<id>' | '__none__' (le selecteur melange
   // providers connectes ET modeles plateforme, mutuellement exclusifs cote backend).
   const selectValue = assignedProvider
@@ -1037,11 +1053,16 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
               <TextField
                 size="small"
                 type="number"
-                value={budget}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  if (!isNaN(val) && val >= 0) onBudgetChange(feature.key, val);
+                value={budgetInput}
+                onChange={(e) => setBudgetInput(e.target.value)}
+                onBlur={commitBudget}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    commitBudget();
+                    (e.target as HTMLInputElement).blur();
+                  }
                 }}
+                title={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
                 InputProps={{
                   endAdornment: (
                     <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 0.5, fontSize: '0.65rem', fontVariantNumeric: 'tabular-nums' }}>
@@ -1055,6 +1076,9 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
                     fontSize: '0.75rem',
                     bgcolor: 'transparent',
                     '& fieldset': { border: 'none' },
+                    // Affordance : bordure au survol/focus → signale que c'est éditable.
+                    '&:hover fieldset': { border: '1px solid', borderColor: 'divider' },
+                    '&.Mui-focused fieldset': { border: '1px solid', borderColor: feature.color },
                   },
                   '& .MuiInputBase-input': { position: 'relative', zIndex: 1 },
                 }}
