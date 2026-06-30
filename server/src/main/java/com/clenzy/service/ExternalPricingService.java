@@ -2,6 +2,7 @@ package com.clenzy.service;
 
 import com.clenzy.dto.ExternalPriceRecommendation;
 import com.clenzy.model.ExternalPricingConfig;
+import com.clenzy.model.PricingProvider;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -10,6 +11,12 @@ import java.util.List;
  * Interface for external pricing providers (PriceLabs, Beyond Pricing, Wheelhouse).
  */
 public interface ExternalPricingService {
+
+    /**
+     * Provider identity — used by {@code ExternalPricingSourceRegistry} to make sources
+     * switchable / used in competition.
+     */
+    PricingProvider getProvider();
 
     /**
      * Fetch price recommendations from the external provider.

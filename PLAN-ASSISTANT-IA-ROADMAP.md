@@ -277,10 +277,23 @@
   interventions + signaux capteurs). **Tool** `predict_maintenance_needs` (read-only).
 - **Valeur** : intervenir **avant** la panne/le mauvais avis. **Effort** : L (modèle + données capteurs).
 
-### P2-11. Benchmarking concurrence  *(agent `rev`)*
-- **Tool** `get_market_benchmark` (read-only) : positionnement prix/occupation vs marché local.
-- **Valeur** : positionnement. **Effort** : L+ (dépend d'une **source de donnée externe** OTA/agrégateur
-  — à sourcer ; bloquant). **Risque** : disponibilité/coût de la donnée marché.
+### P2-11. Benchmarking concurrence  *(agent `rev`)* ✅ FAIT (registry multi-source + concurrence)
+- **Décision user** : sources **switchables / plusieurs en concurrence**. La recon a montré que
+  l'abstraction existait déjà (mono-source) : `ExternalPricingService` + `PriceLabsService` +
+  `PricingProvider` (PRICELABS/BEYOND/WHEELHOUSE) + `ExternalPricingConfig` (per-org, enabled).
+- **Livré & vérifié** (`mvn package`, `CompetitionBenchmarkServiceTest` 3/3, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - **Registry** `ExternalPricingSourceRegistry` (pattern `WhatsAppProviderResolver`) : auto-wiring des
+    beans `ExternalPricingService` indexés par `PricingProvider`. `getProvider()` ajouté à l'interface
+    (impl PriceLabs). `ExternalPricingSyncService.resolveProvider` ne renvoie plus PriceLabs en dur mais
+    `registry.resolve(provider)` → **sources switchables** ; ajouter une source = un bean, zéro modif.
+  - **Tool read-only** `benchmark_competition` (param `propertyId`, `windowDays`) + `CompetitionBenchmarkService` :
+    interroge **toutes les sources activées** (`enabled`) **en concurrence** (côte à côte), compare au prix
+    courant (`PriceEngine`) → ton prix moyen / prix marché moyen / écart % / confiance / positionnement
+    (UNDERPRICED/ALIGNED/OVERPRICED). Non transactionnel (appels HTTP hors tx) ; une source en échec =
+    UNAVAILABLE sans casser les autres. Rattaché à `insights` (7→8, agent `rev`/`rep`).
+- **Pour activer en réel** : configurer + activer une source (PriceLabs…) dans les intégrations pricing
+  (clé API par org). Sans source activée, le tool renvoie un message dédié.
+- **Prochaines sources** (Beyond/Wheelhouse) : 1 bean `@Service implements ExternalPricingService` chacun.
 
 ### P2-12. Batch operations multi-logements  *(agents `ops`/`com`)*
 - Variantes batch (write, confirmation) : `block_calendar_days(propertyIds[], range)`,
