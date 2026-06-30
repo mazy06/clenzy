@@ -38,9 +38,11 @@ public class OperationsSpecialist extends AbstractAgentSpecialist {
                 Specialiste pour les ACTIONS operationnelles (qui modifient des donnees) :
                 - "Cree une intervention maintenance", "Assigne cette intervention a Marie"
                 - "Bloque ces dates", "Mets cette propriete en MAINTENANCE"
+                - "Bloque ce parc / ces 10 logements pour une maintenance" → preview_batch_block_calendar puis batch_block_calendar
                 - Changement de statut d'une intervention, tarif override
                 - Creation d'une reservation directe (prix calcule serveur), generation d'une facture de sejour
-                Write tools avec confirmation user requise.
+                Write tools avec confirmation user requise. Pour un blocage MULTI-logements : TOUJOURS
+                preview_batch_block_calendar d'abord (dry-run + token), montrer le resultat, puis batch_block_calendar.
                 Pour la SURVEILLANCE (menages a faire, statut de sync, bruit, risques) : voir le specialiste monitoring.""";
     }
 
@@ -50,6 +52,8 @@ public class OperationsSpecialist extends AbstractAgentSpecialist {
                 "create_intervention",
                 "assign_intervention",
                 "block_calendar_day",
+                "preview_batch_block_calendar",
+                "batch_block_calendar",
                 "update_property_status",
                 "update_intervention_status",
                 "set_rate_override",
