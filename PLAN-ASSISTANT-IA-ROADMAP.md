@@ -170,7 +170,15 @@
 
 ## Phase P1 — Valeur claire, construction modérée
 
-### P1-5. Rentabilité nette par logement  *(agents `fin` + `ops`)*
+### P1-5. Rentabilité nette par logement  *(agents `fin` + `ops`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `PropertyPnlServiceTest` 3/3, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `PropertyPnlService` (couche `analytics/`) : par logement, revenu − commission canal − coûts
+    d'intervention (réel sinon estimé) = **profit net + marge %**, classement, comptage des déficitaires
+    + recommandation. Commission = `otaFeeAmount` réel sinon taux par défaut (cf. P0-2).
+  - Tool read-only `get_property_pnl` (param `months`, défaut 3) rattaché à `finance` (6→7).
+  - Test unitaire : net/marge, logement déficitaire, exclusion des annulées.
+
+#### (spéc d'origine, pour mémoire)
 - **Tool** `get_property_pnl` (read-only) : revenu − (ménage + maintenance + commissions canal) par
   logement sur période → marge nette, classement, biens déficitaires.
 - **Données** : revenu (résa), coûts interventions (service paiement intervention), commissions (P0-2).
