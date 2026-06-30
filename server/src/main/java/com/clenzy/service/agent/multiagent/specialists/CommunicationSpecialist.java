@@ -40,12 +40,13 @@ public class CommunicationSpecialist extends AbstractAgentSpecialist {
                 - "Envoie le message de bienvenue au guest de la resa 123"
                 - "Annule la reservation 456 (motif: ...)", "Change le statut de la resa 789"
                 - "Reponds a l'avis 12 : merci pour votre sejour..."
-                Write tools avec confirmation user (irreversibles).""";
+                - "Ou puis-je vendre plus ?", "opportunites d'upsell" (nuit en plus / arrivee ou depart flexible)
+                Write tools avec confirmation user (irreversibles). suggest_upsells propose, ne cree rien.""";
     }
 
     @Override
     public Set<String> toolNames() {
         return Set.of("list_guests", "segment_guests", "send_guest_message", "cancel_reservation",
-                "update_reservation_status", "reply_to_review");
+                "update_reservation_status", "reply_to_review", "suggest_upsells");
     }
 }
