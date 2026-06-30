@@ -295,10 +295,19 @@
   (clé API par org). Sans source activée, le tool renvoie un message dédié.
 - **Prochaines sources** (Beyond/Wheelhouse) : 1 bean `@Service implements ExternalPricingService` chacun.
 
-### P2-12. Batch operations multi-logements  *(agents `ops`/`com`)*
-- Variantes batch (write, confirmation) : `block_calendar_days(propertyIds[], range)`,
-  `assign_interventions([...])`, ciblage messages par segment (P1-6) avec détection de conflits.
-- **Valeur** : **scalabilité** 50+ logements. **Effort** : M.
+### P2-12. Batch operations multi-logements  *(agents `ops`/`com`)* ✅ FAIT (approche sûre)
+- **Décision user** : **preview obligatoire + confirmation + bornes + ownership par item + zéro argent.**
+- **Livré & vérifié** (`mvn package`, `BatchCalendarServiceTest` 3/3, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `BatchCalendarService` (couche `agent/batch/`) — blocage calendrier **multi-logements** :
+    - `preview` (read-only, aucun write) : par logement, nuits à bloquer + conflits (jours réservés) +
+      ownership revalidé (`findById`+org, règle audit #3) → **token déterministe** du périmètre exact.
+    - `apply` (write) : exige le **token du preview** (sinon refus → preview obligatoire), **borné à 50**,
+      ownership revalidé par item, blocage atomique via `CalendarEngine.block` (conflit booké = item ignoré,
+      jamais d'écrasement de réservation, pas de check-then-act). **Aucune action monétaire.**
+  - 2 tools : `preview_batch_block_calendar` (read-only) + `batch_block_calendar` (write,
+    `requiresConfirmation`). Rattachés à `operations` (8→10). `OperationsSpecialist` impose preview→apply.
+- **Note** : 1er batch livré (le plus à valeur : fermeture parc maintenance/saison). Variantes futures
+  (assign en lot, messages par segment) suivront le **même pattern preview-token-apply**.
 
 ### P2-13. Nouveaux workflows guidés  *(agent `workflow`)* ✅ FAIT
 - **Archi** : workflows **déclaratifs en YAML** (`resources/workflows/*.yaml`), scannés au boot par
