@@ -48,7 +48,8 @@ public class SupervisionModuleRegistry {
             "data_analyst", "rev",
             "operations", "ops",
             "workflow", "ops",
-            "insights", "rep"
+            "insights", "rep",
+            "finance", "fin"
     );
 
     /** Catalogue complet (ordre canonique). */
