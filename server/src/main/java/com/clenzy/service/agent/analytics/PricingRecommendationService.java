@@ -2,7 +2,10 @@ package com.clenzy.service.agent.analytics;
 
 import com.clenzy.model.CalendarDay;
 import com.clenzy.model.CalendarDayStatus;
+import com.clenzy.model.Property;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.CalendarEngine;
+import com.clenzy.service.LocalEventsRegistry;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.SimulationService;
 import com.clenzy.service.SimulationService.PricingChangeResult;
@@ -47,17 +50,23 @@ public class PricingRecommendationService {
     private final CalendarEngine calendarEngine;
     private final PriceEngine priceEngine;
     private final SimulationService simulationService;
+    private final PropertyRepository propertyRepository;
+    private final LocalEventsRegistry localEventsRegistry;
     private final TenantContext tenantContext;
     private final Clock clock;
 
     public PricingRecommendationService(CalendarEngine calendarEngine,
                                         PriceEngine priceEngine,
                                         SimulationService simulationService,
+                                        PropertyRepository propertyRepository,
+                                        LocalEventsRegistry localEventsRegistry,
                                         TenantContext tenantContext,
                                         Clock clock) {
         this.calendarEngine = calendarEngine;
         this.priceEngine = priceEngine;
         this.simulationService = simulationService;
+        this.propertyRepository = propertyRepository;
+        this.localEventsRegistry = localEventsRegistry;
         this.tenantContext = tenantContext;
         this.clock = clock;
     }
@@ -86,7 +95,8 @@ public class PricingRecommendationService {
             int suggestedDeltaPct,
             String direction,
             String reason,
-            double simulatedRevenueImpactPct) {}
+            double simulatedRevenueImpactPct,
+            List<String> events) {}
 
     /** Recommande des ajustements pour {@code propertyId} sur {@code windowDays} jours (7..90). */
     public List<PriceRecommendation> recommend(Long propertyId, int windowDays, String keycloakId) {
@@ -105,6 +115,11 @@ public class PricingRecommendationService {
         }
         // Prix courant par nuit (resolvePriceRange : borne haute exclusive).
         Map<LocalDate, BigDecimal> priceByDate = priceEngine.resolvePriceRange(propertyId, today, windowEnd, orgId);
+
+        // Localisation pour les événements (org-guardée : findById contourne le filtre Hibernate).
+        Property property = propertyRepository.findById(propertyId).orElse(null);
+        String city = property != null && orgId.equals(property.getOrganizationId()) ? property.getCity() : null;
+        String country = property != null && orgId.equals(property.getOrganizationId()) ? property.getCountryCode() : null;
 
         // Validation simulation mise en cache par delta% (la simulation ne dépend pas du créneau).
         Map<Integer, Double> impactByDelta = new HashMap<>();
@@ -155,6 +170,19 @@ public class PricingRecommendationService {
                 continue;
             }
 
+            // Demand-aware : un événement local sur le créneau atténue une baisse
+            // (la demande devrait monter) ou renforce une hausse.
+            List<String> events = eventsFor(city, country, segFrom, segTo);
+            if (!events.isEmpty()) {
+                String evt = String.join(", ", events.size() > 2 ? events.subList(0, 2) : events);
+                if ("DECREASE".equals(direction)) {
+                    deltaPct = deltaPct / 2; // baisse atténuée
+                    reason += " · événement détecté (" + evt + ") → baisse modérée, demande attendue";
+                } else {
+                    reason += " · soutenu par l'événement (" + evt + ")";
+                }
+            }
+
             // Validation par l'élasticité réelle : on supprime si la simulation est nettement négative.
             double impact = impactByDelta.computeIfAbsent(deltaPct,
                     dp -> simulateImpact(keycloakId, propertyId, dp, today, lastNight));
@@ -166,9 +194,24 @@ public class PricingRecommendationService {
                     ? priceSum.divide(BigDecimal.valueOf(priceCount), 2, RoundingMode.HALF_UP)
                     : null;
             recs.add(new PriceRecommendation(segFrom, segTo, free, booked,
-                    round2(occupancy), avgPrice, deltaPct, direction, reason, round4(impact)));
+                    round2(occupancy), avgPrice, deltaPct, direction, reason, round4(impact), events));
         }
         return recs;
+    }
+
+    /** Titres des événements locaux sur le créneau (vide si ville inconnue / erreur). */
+    private List<String> eventsFor(String city, String country, LocalDate from, LocalDate to) {
+        if (city == null || city.isBlank()) {
+            return List.of();
+        }
+        try {
+            return localEventsRegistry.findByCityAndDateRange(city, country, from, to).stream()
+                    .map(e -> e.title)
+                    .filter(t -> t != null && !t.isBlank())
+                    .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     /** Impact revenu simulé (pctRevenueChange) pour un delta% ; 0 si indisponible. */
