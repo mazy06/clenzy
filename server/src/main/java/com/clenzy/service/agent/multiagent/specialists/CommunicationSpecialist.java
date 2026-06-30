@@ -45,7 +45,7 @@ public class CommunicationSpecialist extends AbstractAgentSpecialist {
 
     @Override
     public Set<String> toolNames() {
-        return Set.of("list_guests", "send_guest_message", "cancel_reservation",
+        return Set.of("list_guests", "segment_guests", "send_guest_message", "cancel_reservation",
                 "update_reservation_status", "reply_to_review");
     }
 }

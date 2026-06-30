@@ -177,7 +177,19 @@
 - **Constellation** : suggestion « logement Z en marge négative 3 mois → revoir prix/coûts ou sortir ».
 - **Valeur** : **décision de portefeuille** sur la vraie marge. **Effort** : M. **Dépend de** : P0-2.
 
-### P1-6. Segmentation & ciblage guest  *(agent `com`)*
+### P1-6. Segmentation & ciblage guest  *(agent `com`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `GuestAnalyticsServiceTest` 2/2, SpecialistRegistry 8/8, ArchUnit 1/1) :
+  - `GuestAnalyticsService` (couche `analytics/`) : segmente les voyageurs en **NEW** (1 séjour),
+    **REPEAT** (≥2), **VIP** (dépense ≥ 2× la moyenne) — par segment : nombre, dépense totale/moyenne,
+    exemples, + recommandation de ciblage. Réutilise `GuestService.listGuests` (stats déjà calculées).
+  - Tool read-only `segment_guests` rattaché à `communication` (5→6).
+  - Test unitaire : mix de profils → segments corrects + recommandation VIP ; vide.
+- **→ Premier apport d'ANALYSE pour l'agent `com`** (jusque-là purement transactionnel) : les 5 agents
+  de la constellation produisent désormais de la vraie analyse.
+- **Affinage futur** : segment AT_RISK (churn) — nécessite la date du dernier séjour (non exposée
+  par `GuestListDto`) ; ciblage des messages par segment (write).
+
+#### (spéc d'origine, pour mémoire)
 - `GuestAnalyticsService` : segments (récurrents, haute valeur, à risque de churn, 1re visite).
 - **Tools** : `segment_guests` (read-only) + extension de `send_guest_message` au **ciblage par
   segment** (write, confirmation).
