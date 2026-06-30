@@ -50,6 +50,7 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
                 "get_business_insights",
                 "analyze_portfolio",
                 "simulate_pricing_change",
+                "recommend_price_adjustments",
                 "simulate_calendar_block",
                 "list_reviews"
         );
