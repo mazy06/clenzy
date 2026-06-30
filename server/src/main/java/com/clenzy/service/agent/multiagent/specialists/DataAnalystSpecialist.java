@@ -58,7 +58,8 @@ public class DataAnalystSpecialist extends AbstractAgentSpecialist {
                 "get_reservation_details",
                 "get_dashboard_summary",
                 "get_reservation_trend",
-                "get_occupancy_forecast"
+                "get_occupancy_forecast",
+                "forecast_demand_longterm"
         );
     }
 }
