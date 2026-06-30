@@ -53,7 +53,8 @@ public class FinanceSpecialist extends AbstractAgentSpecialist {
                 "get_owner_payout_summary",
                 "get_financial_summary",
                 "get_properties_performance",
-                "get_channel_attribution"
+                "get_channel_attribution",
+                "get_property_pnl"
         );
     }
 }
