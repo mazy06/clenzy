@@ -12,7 +12,8 @@
      communication  → com   (messagerie voyageur)
      data_analyst   → rev   (KPIs, occupation, tendances — hors finance)
      finance        → fin   (facturation, revenus/dépenses, versements, rentabilité)
-     operations     → ops   (interventions, ménage, check-in/out)
+     operations     → ops   (actions : interventions, blocage, statuts, tarifs)
+     monitoring     → ops   (surveillance : ménages, sync, bruit, risques, KPI système)
      workflow       → ops   (exécution de workflows opérationnels)
      insights       → rep   (avis, réputation, business insights)
      context        → ∅     (technique : résolution de contexte — masqué)
@@ -35,6 +36,7 @@ const SPECIALIST_TO_AGENT: Record<string, AgentId> = {
   communication: 'com',
   data_analyst: 'rev',
   operations: 'ops',
+  monitoring: 'ops',
   workflow: 'ops',
   insights: 'rep',
   finance: 'fin',

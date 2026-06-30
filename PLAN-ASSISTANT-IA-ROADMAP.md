@@ -38,6 +38,15 @@
     → **l'agent `fin` de la constellation est activé**.
 - **Valeur** : routing fiable (≤10/specialist) + l'agent Finance devient vivant.
 
+### F0-A-bis. Rebalancing — specialist `monitoring` ✅ FAIT
+- **Problème** : à force d'ajouter des tools, `operations` (13) et `data_analyst` (11) dépassaient 10.
+- **Livré & vérifié** (`mvn package`, SpecialistRegistry 8/8, MultiAgent 8/8, OrchestratorAgent 27/27, ArchUnit 1/1, `tsc`) :
+  - Nouveau `MonitoringSpecialist` (`name=monitoring`, mappé `ops`) = cluster surveillance read-only :
+    `list_cleaning_tasks`, `get_interventions_by_status`, `get_channel_sync_status`, `get_noise_alerts`,
+    `detect_operational_risks` (depuis operations) + `get_dashboard_summary` (depuis data_analyst). 6 tools.
+  - `operations` recentré sur les **8 actions write** ; `data_analyst` repasse à **10**.
+  - **Tous les specialists sont désormais ≤ 10 tools.** Mapping `monitoring → ops` (backend + front).
+
 ### F0-B / F0-C — construits AVEC les lots P0 (pas de scaffolding vide)
 - La couche analytique (F0-B) et le pont insight→suggestion (F0-C) seront créés au fil des tools
   P0 qui les utilisent (YAGNI : pas de services vides anticipés).
