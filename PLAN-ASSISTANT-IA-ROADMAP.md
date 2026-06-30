@@ -91,7 +91,19 @@
 - **Valeur** : arbitrage du **mix de distribution** → marge directe.
 - **Effort** : M (le gros est le tracking commission). **Dépend de** : F0-A (FinanceSpecialist).
 
-### P0-3. Détection proactive d'anomalies opérationnelles  *(agent `ops`)*
+### P0-3. Détection proactive d'anomalies opérationnelles  *(agent `ops`)* ✅ FAIT
+- **Livré & vérifié** (`mvn package`, `OpsRiskServiceTest` 4/4, SpecialistRegistry 8/8, MultiAgent 8/8, ArchUnit 1/1) :
+  - `OpsRiskService` (couche analytique `service/agent/analytics/`, démarre F0-B) détecte 3 risques :
+    **arrivée sans ménage** (HIGH), **intervention en retard** (MEDIUM), **sync canal en retard** (MEDIUM),
+    triés par sévérité, org-scopés.
+  - Tool read-only `detect_operational_risks` (param `windowDays`, défaut 3) rattaché à `operations`.
+  - Test unitaire couvrant les 3 cas + cas « ménage présent → pas de risque ».
+- **Dette à suivre (F0-A-bis)** : `operations` passe à **13 tools** (déjà 12 avant) — au-dessus de la
+  limite de routing de 10. Rebalancing à faire (séparer le cluster « monitoring read-only » :
+  list_cleaning_tasks, get_interventions_by_status, get_channel_sync_status, get_noise_alerts,
+  detect_operational_risks) — non bloquant (warning), traité dans un lot dédié.
+
+#### (spéc d'origine, pour mémoire)
 - **Aujourd'hui** : ops ne fait que CRUD + 1 camembert. Aucune détection.
 - **À construire** :
   - `OpsRiskService` : détecte les risques **à fenêtre courte** — ménage non assigné avant une

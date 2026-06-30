@@ -57,7 +57,8 @@ public class OperationsSpecialist extends AbstractAgentSpecialist {
                 "update_intervention_status",
                 "set_rate_override",
                 "create_reservation",
-                "create_invoice"
+                "create_invoice",
+                "detect_operational_risks"
         );
     }
 }
