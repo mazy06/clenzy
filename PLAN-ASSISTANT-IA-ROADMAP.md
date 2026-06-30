@@ -300,10 +300,19 @@
   `assign_interventions([...])`, ciblage messages par segment (P1-6) avec détection de conflits.
 - **Valeur** : **scalabilité** 50+ logements. **Effort** : M.
 
-### P2-13. Nouveaux workflows guidés  *(agent `workflow`)*
-- Ajouter : **résolution d'incident** (bruit/dégât), **repricing saisonnier**, **reporting
-  propriétaire**, **optimisation d'une nouvelle annonce**.
-- **Valeur** : standardise les procédures complexes, réduit les erreurs. **Effort** : M (par workflow).
+### P2-13. Nouveaux workflows guidés  *(agent `workflow`)* ✅ FAIT
+- **Archi** : workflows **déclaratifs en YAML** (`resources/workflows/*.yaml`), scannés au boot par
+  `WorkflowRegistry`. État persisté dans `assistant_workflow_run` (déjà en place). **Zéro Java moteur à
+  toucher** ; les `suggestTool`/`action` sont des **suggestions** (jamais auto-exécutées).
+- **Livré & vérifié** (`mvn package`, `WorkflowRegistryTest` 10/10 — asserte les 7 IDs, `WorkflowServiceTest`
+  9/9, SpecialistRegistry 8/8) — 4 nouveaux workflows (fr/en) :
+  - `incident_resolution` (bruit/dégât/plainte → qualifier, gravité, intervention, notif, action
+    `create_intervention`).
+  - `seasonal_repricing` (période → marché `benchmark_competition` → reco `recommend_price_adjustments` →
+    stratégie → action `set_rate_override`).
+  - `owner_reporting` (propriétaire+mois → `get_owner_payout_summary` → `get_property_pnl` → nav Rapports).
+  - `new_listing_optimization` (logement → prix → marché → avis → upsells → synthèse).
+  - `WorkflowSpecialist` documente les 4 (routing LLM).
 
 ### P2-14. Suggestions promos / upsells avec garde-fous  *(agents `rev`/`ops`)* ✅ FAIT
 - **Livré & vérifié** (`mvn package`, `UpsellSuggestionServiceTest` 3/3, SpecialistRegistry 8/8, ArchUnit 1/1) :

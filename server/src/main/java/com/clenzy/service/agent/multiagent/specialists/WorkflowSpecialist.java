@@ -29,7 +29,7 @@ public class WorkflowSpecialist extends AbstractAgentSpecialist {
     public String name() { return "workflow"; }
 
     @Override
-    public String domain() { return "Procedures guidees multi-etapes (onboarding propriete, cloture mois, prep haute saison)"; }
+    public String domain() { return "Procedures guidees multi-etapes (onboarding, cloture, haute saison, incident, repricing, reporting, optimisation annonce)"; }
 
     @Override
     public String description() {
@@ -38,6 +38,10 @@ public class WorkflowSpecialist extends AbstractAgentSpecialist {
                 - "Aide-moi a creer une nouvelle propriete" → onboard_property
                 - "Cloture mon mois" → end_of_month_closing
                 - "Prepare la haute saison" → prepare_high_season
+                - "J'ai un incident (bruit/degat/plainte)" → incident_resolution
+                - "Reprices une periode / une saison" → seasonal_repricing
+                - "Prepare le rapport d'un proprietaire" → owner_reporting
+                - "Optimise une annonce / un nouveau logement" → new_listing_optimization
                 Stateful : le specialiste maintient l'etat du workflow via run_id.""";
     }
 

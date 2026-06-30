@@ -1,0 +1,68 @@
+id: owner_reporting
+title: "Reporting propriétaire"
+description: "Prépare un rapport propriétaire : reversements, performance et P&L par logement."
+estimatedDuration: 15
+
+steps:
+  - id: select_scope
+    title: "Propriétaire et période"
+    prompts:
+      fr: |
+        Pour quel rapport ? Donne-moi un JSON avec :
+        - **owner** : le propriétaire (nom ou identifiant)
+        - **month** : le mois concerné (AAAA-MM)
+      en: |
+        Which report? Give me a JSON with:
+        - **owner**: the owner (name or id)
+        - **month**: the month (YYYY-MM)
+    expectsData:
+      owner: string
+      month: string
+
+  - id: gather_payouts
+    title: "Reversements"
+    prompts:
+      fr: |
+        Je récupère le **récapitulatif des reversements** du propriétaire pour ce mois. On continue ? (oui / non)
+      en: |
+        I'll pull the owner's **payout summary** for that month. Continue? (yes / no)
+    expectsData:
+      includePayouts: boolean
+    suggestTool:
+      name: get_owner_payout_summary
+      args: {}
+
+  - id: gather_pnl
+    title: "P&L par logement"
+    prompts:
+      fr: |
+        Veux-tu inclure le **P&L par logement** (revenus − commissions − coûts d'intervention) ? (oui / non)
+      en: |
+        Include the **per-property P&L** (revenue − commissions − intervention costs)? (yes / no)
+    expectsData:
+      includePnl: boolean
+    suggestTool:
+      name: get_property_pnl
+      args: {}
+
+  - id: review_and_send
+    title: "Revue et envoi"
+    prompts:
+      fr: |
+        Contenu du rapport :
+        {{summary}}
+
+        Le contenu te convient ? Tu pourras le générer et l'envoyer depuis l'écran Rapports. (oui / non)
+      en: |
+        Report content:
+        {{summary}}
+
+        Looks good? You can generate and send it from the Reports screen. (yes / no)
+    expectsData:
+      confirm: boolean
+    suggestTool:
+      name: suggest_navigation
+      args:
+        path: "/rapports"
+        label: "Générer le rapport propriétaire"
+        reason: "Produire et envoyer le rapport mensuel au propriétaire"
