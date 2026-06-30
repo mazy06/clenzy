@@ -41,6 +41,7 @@ public class FinanceSpecialist extends AbstractAgentSpecialist {
                 - "Mon bilan revenus / depenses / profit ?"
                 - "Quels versements proprietaires sont en attente / verses ?"
                 - "Quels sont mes logements les plus rentables ?"
+                - "Quel canal me rapporte vraiment, net de commission ? Combien me coute Booking ?"
                 Read-only : ne modifie rien.""";
     }
 
@@ -51,7 +52,8 @@ public class FinanceSpecialist extends AbstractAgentSpecialist {
                 "get_billing_overview",
                 "get_owner_payout_summary",
                 "get_financial_summary",
-                "get_properties_performance"
+                "get_properties_performance",
+                "get_channel_attribution"
         );
     }
 }
