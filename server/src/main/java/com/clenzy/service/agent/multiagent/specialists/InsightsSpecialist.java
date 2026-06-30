@@ -41,7 +41,8 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
                 - "Que se passe-t-il si je baisse de 10% en juillet ?"
                 - "Combien je perds si je bloque ces dates ?"
                 - "Quels sont mes derniers avis voyageurs ?"
-                Read-only avec modeles d'elasticite et patterns AI.""";
+                - "Suis-je au bon prix ?", "positionnement face au marche / concurrence" (sources PriceLabs, Beyond…)
+                Read-only avec modeles d'elasticite, patterns AI et donnees de marche.""";
     }
 
     @Override
@@ -53,7 +54,8 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
                 "recommend_price_adjustments",
                 "simulate_calendar_block",
                 "list_reviews",
-                "analyze_reviews"
+                "analyze_reviews",
+                "benchmark_competition"
         );
     }
 }

@@ -25,16 +25,16 @@ public class ExternalPricingSyncService {
     private static final String SOURCE_EXTERNAL_PRICING = "EXTERNAL_PRICING";
 
     private final ExternalPricingConfigRepository configRepository;
-    private final PriceLabsService priceLabsService;
+    private final ExternalPricingSourceRegistry sourceRegistry;
     private final RateOverrideRepository rateOverrideRepository;
     private final PropertyRepository propertyRepository;
 
     public ExternalPricingSyncService(ExternalPricingConfigRepository configRepository,
-                                      PriceLabsService priceLabsService,
+                                      ExternalPricingSourceRegistry sourceRegistry,
                                       RateOverrideRepository rateOverrideRepository,
                                       PropertyRepository propertyRepository) {
         this.configRepository = configRepository;
-        this.priceLabsService = priceLabsService;
+        this.sourceRegistry = sourceRegistry;
         this.rateOverrideRepository = rateOverrideRepository;
         this.propertyRepository = propertyRepository;
     }
@@ -133,7 +133,7 @@ public class ExternalPricingSyncService {
     }
 
     private ExternalPricingService resolveProvider(PricingProvider provider) {
-        // MVP: Only PriceLabs implemented. Others will follow same pattern.
-        return priceLabsService;
+        // Registry multi-source : switchable + sources en concurrence (P2-11).
+        return sourceRegistry.resolve(provider);
     }
 }
