@@ -68,6 +68,7 @@ public class AgUiController {
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
     private final PendingToolStore pendingToolStore;
+    private final com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService;
 
     /** Pool SSE borné, même politique que {@code AssistantController}. */
     private final Executor sseExecutor = new ThreadPoolExecutor(
@@ -83,11 +84,13 @@ public class AgUiController {
     public AgUiController(AgentOrchestrator orchestrator,
                           TenantContext tenantContext,
                           ObjectMapper objectMapper,
-                          PendingToolStore pendingToolStore) {
+                          PendingToolStore pendingToolStore,
+                          com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService) {
         this.orchestrator = orchestrator;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.pendingToolStore = pendingToolStore;
+        this.supervisionActivityService = supervisionActivityService;
     }
 
     /** Découverte AG-UI : liste les agents exposés par ce serveur. */
@@ -163,8 +166,16 @@ public class AgUiController {
             }
             try {
                 translator.onStart().forEach(ev -> send(emitter, ev));
-                Consumer<AgentSseEvent> consumer =
-                        e -> translator.translate(e).forEach(ev -> send(emitter, ev));
+                Consumer<AgentSseEvent> consumer = e -> {
+                    // Journalise l'activité réelle (best-effort) pour le feed/métriques
+                    // de la constellation : un agent « agit » → une ligne d'activité.
+                    if ("agent_activity".equals(e.type()) && "acting".equals(e.finishReason())
+                            && selectedPropertyId != null) {
+                        supervisionActivityService.recordAct(orgId, selectedPropertyId,
+                                e.toolName(), e.displayHint(), e.toolResult());
+                    }
+                    translator.translate(e).forEach(ev -> send(emitter, ev));
+                };
 
                 if (resumeEntry != null && !resumeEntry.isNull()) {
                     log.info("AG-UI resume reçu (forme à confirmer) : {}", resumeEntry);

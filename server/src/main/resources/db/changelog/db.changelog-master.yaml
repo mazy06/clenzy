@@ -2791,3 +2791,35 @@ databaseChangeLog:
       sqlFile:
         path: changes/0287__add_platform_global_composites.sql
         relativeToChangelogFile: true
+
+  # Config org-level de la constellation Superviseur (master + autonomie par module).
+  - changeSet:
+      id: "0288-create-supervision-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0288__create_supervision_config.sql
+        relativeToChangelogFile: true
+
+  # Journal d'activité de la constellation Superviseur (feed + métriques réelles).
+  - changeSet:
+      id: "0289-create-supervision-activity"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0289__create_supervision_activity.sql
+        relativeToChangelogFile: true
+
+  # Plafond configurable de la boucle autonome (scans/jour/org).
+  - changeSet:
+      id: "0290-add-supervision-scan-budget"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0290__add_supervision_scan_budget.sql
+        relativeToChangelogFile: true
+
+  # File de suggestions org-scopée (scans autonomes → opérateurs).
+  - changeSet:
+      id: "0291-create-supervision-suggestion"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0291__create_supervision_suggestion.sql
+        relativeToChangelogFile: true

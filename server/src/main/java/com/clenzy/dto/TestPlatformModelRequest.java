@@ -12,7 +12,9 @@ public record TestPlatformModelRequest(
         @NotBlank(message = "Model ID is required")
         String modelId,
 
-        @NotBlank(message = "API key is required")
+        // Optionnel : si vide, le serveur réutilise une clé déjà configurée pour
+        // le provider (permet de tester un changement de modèle sur une config
+        // existante sans recoller la clé).
         String apiKey,
 
         String baseUrl

@@ -142,7 +142,8 @@ public class PendingToolStore {
         ));
         indexInRedis(keycloakId, new PendingActionDto(
                 toolCallId, toolName, description, summarizeArgs(argsJson),
-                conversationId, createdAt));
+                conversationId, createdAt,
+                multiAgentContext != null ? multiAgentContext.specialistName() : null));
         log.debug("PendingToolStore.put toolCallId={} tool={} multiAgent={} (store size={})",
                 toolCallId, toolName, multiAgentContext != null, store.size());
     }

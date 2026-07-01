@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.AiApiKeyTestResultDto;
+import com.clenzy.dto.AiCatalogModelDto;
 import com.clenzy.dto.OrgAiApiKeyStatusDto;
 import com.clenzy.dto.SaveAiApiKeyRequestDto;
 import com.clenzy.service.OrgAiApiKeyService;
@@ -50,7 +51,18 @@ public class OrgAiApiKeyController {
      */
     @PostMapping("/test")
     public ResponseEntity<AiApiKeyTestResultDto> testKey(@Valid @RequestBody SaveAiApiKeyRequestDto request) {
-        return ResponseEntity.ok(orgAiApiKeyService.testKey(request.provider(), request.apiKey()));
+        return ResponseEntity.ok(orgAiApiKeyService.testKey(
+                request.provider(), request.apiKey(), request.modelOverride()));
+    }
+
+    /**
+     * POST /api/ai/keys/catalog — Catalogue LIVE des modèles d'un provider (GET /models)
+     * avec la clé fournie, pour choisir un modèle réel à la connexion (BYOK) au lieu d'un
+     * modèle figé. Org-level (mêmes rôles que le BYOK) ; ne sauvegarde rien.
+     */
+    @PostMapping("/catalog")
+    public ResponseEntity<List<AiCatalogModelDto>> catalog(@Valid @RequestBody SaveAiApiKeyRequestDto request) {
+        return ResponseEntity.ok(orgAiApiKeyService.listModels(request.provider(), request.apiKey()));
     }
 
     /**

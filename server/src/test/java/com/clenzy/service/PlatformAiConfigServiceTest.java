@@ -60,7 +60,8 @@ class PlatformAiConfigServiceTest {
         service = new PlatformAiConfigService(
                 modelRepository, featureModelRepository, featureProviderRepository,
                 budgetRepository, aiProperties, anthropicProvider,
-                notificationService, java.time.Clock.systemUTC(), orgAiApiKeyRepository);
+                notificationService, java.time.Clock.systemUTC(), orgAiApiKeyRepository,
+                new AiModelReplacementSuggester(modelRepository));
     }
 
     private PlatformAiModel buildModel(Long id, String name, String provider, String modelId, String apiKey) {

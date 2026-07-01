@@ -12,9 +12,9 @@ import java.util.Set;
 /**
  * Specialiste insights strategiques + simulations what-if.
  *
- * <p>4 tools : business insights par propriete, vue portfolio cross-property,
- * simulations pricing et calendrier. Tres haut signal/bruit — ces tools font
- * des analyses lourdes.</p>
+ * <p>8 tools : business insights par propriete, vue portfolio cross-property,
+ * simulations pricing/calendrier, recommandation de prix, avis voyageurs (liste +
+ * analyse) et benchmark concurrence. Tres haut signal/bruit — analyses lourdes.</p>
  */
 @Component
 public class InsightsSpecialist extends AbstractAgentSpecialist {
@@ -41,7 +41,8 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
                 - "Que se passe-t-il si je baisse de 10% en juillet ?"
                 - "Combien je perds si je bloque ces dates ?"
                 - "Quels sont mes derniers avis voyageurs ?"
-                Read-only avec modeles d'elasticite et patterns AI.""";
+                - "Suis-je au bon prix ?", "positionnement face au marche / concurrence" (sources PriceLabs, Beyond…)
+                Read-only avec modeles d'elasticite, patterns AI et donnees de marche.""";
     }
 
     @Override
@@ -50,8 +51,11 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
                 "get_business_insights",
                 "analyze_portfolio",
                 "simulate_pricing_change",
+                "recommend_price_adjustments",
                 "simulate_calendar_block",
-                "list_reviews"
+                "list_reviews",
+                "analyze_reviews",
+                "benchmark_competition"
         );
     }
 }

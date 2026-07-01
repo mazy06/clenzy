@@ -24,6 +24,7 @@ import { BOOKING_WIDGET_DEFS, BOOKING_WIDGET_ATTR } from './bookingWidgetDefs';
 import { WIDGET_SKIN_CSS, WIDGET_SKIN_SENTINEL, buildWidgetSkinBlock, buildRootSkinBlock, btVarMap, type DesignVars } from '../../sdk/styles/widgetSkin';
 import { STYLE_SECTORS } from './styleSectors';
 import { registerBtValueType } from './registerBtValueType';
+import { registerDropZones } from './dropZones';
 import { ensureStructuralStyles } from '../../sdk/headless';
 import ImportPanel from './ImportPanel';
 import FunnelPicker from './FunnelPicker';
@@ -598,11 +599,20 @@ function ensureWidgetSkin(editor: Editor, vars: DesignVars): void {
 
 /** True si le composant ajouté EST ou CONTIENT un widget de réservation (marqueur `data-clenzy-widget`). */
 function componentHasBookingWidget(
-  comp: { getAttributes?: () => Record<string, unknown>; find?: (sel: string) => unknown[] } | null | undefined,
+  comp: {
+    getAttributes?: () => Record<string, unknown>;
+    getEl?: () => Element | null | undefined;
+    find?: (sel: string) => unknown[];
+  } | null | undefined,
 ): boolean {
   if (!comp) return false;
   const attrs = comp.getAttributes?.() ?? {};
   if (attrs[BOOKING_WIDGET_ATTR] != null) return true;
+  // `find` s'appuie sur le querySelectorAll de l'élément : garde-fou pour les composants sans el
+  // interrogeable (textnode, pas encore rendu) — sinon `context.querySelectorAll is not a function`
+  // casse l'événement component:add (vu en live : empêchait notamment le wrap DnD d'aboutir).
+  const el = comp.getEl?.();
+  if (!el || typeof el.querySelectorAll !== 'function') return false;
   const found = comp.find?.(`[${BOOKING_WIDGET_ATTR}]`);
   return Array.isArray(found) && found.length > 0;
 }
@@ -866,7 +876,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
       panels: { defaults: [] },
       // Enregistre le type de propriété custom `bt-value` (menu tokens --bt-* + valeur libre) AVANT que le
       // Style Manager ne rende les secteurs (qui l'utilisent).
-      plugins: [registerBtValueType],
+      plugins: [registerBtValueType, registerDropZones],
       blockManager: { appendTo: blocksEl },
       layerManager: { appendTo: layersEl },
       selectorManager: { appendTo: stylesEl },

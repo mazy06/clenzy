@@ -73,6 +73,7 @@ public class PlatformAiConfigService {
     private final NotificationService notificationService;
     private final Clock clock;
     private final OrgAiApiKeyRepository orgAiApiKeyRepository;
+    private final AiModelReplacementSuggester replacementSuggester;
 
     public PlatformAiConfigService(PlatformAiModelRepository modelRepository,
                                     PlatformAiFeatureModelRepository featureModelRepository,
@@ -82,7 +83,8 @@ public class PlatformAiConfigService {
                                     AnthropicProvider anthropicProvider,
                                     NotificationService notificationService,
                                     Clock clock,
-                                    OrgAiApiKeyRepository orgAiApiKeyRepository) {
+                                    OrgAiApiKeyRepository orgAiApiKeyRepository,
+                                    AiModelReplacementSuggester replacementSuggester) {
         this.modelRepository = modelRepository;
         this.featureModelRepository = featureModelRepository;
         this.featureProviderRepository = featureProviderRepository;
@@ -92,6 +94,7 @@ public class PlatformAiConfigService {
         this.notificationService = notificationService;
         this.clock = clock;
         this.orgAiApiKeyRepository = orgAiApiKeyRepository;
+        this.replacementSuggester = replacementSuggester;
     }
 
     /**
@@ -163,18 +166,39 @@ public class PlatformAiConfigService {
 
         String baseUrl = resolveBaseUrl(provider, request.baseUrl());
 
+        // Clé : si fournie on l'utilise ; sinon on réutilise une clé déjà
+        // configurée pour ce provider (modèle plateforme existant) — permet de
+        // tester un changement de modèle sans recoller la clé.
+        String apiKey = request.apiKey();
+        if (apiKey == null || apiKey.isBlank()) {
+            apiKey = reusableKeyForProvider(provider);
+        }
+        if (apiKey == null || apiKey.isBlank()) {
+            return false; // aucune clé disponible → test impossible
+        }
+
         try {
             if (isEmbeddingModel(provider, request.modelId())) {
-                return testEmbeddingProvider(baseUrl, request.apiKey(), request.modelId());
+                return testEmbeddingProvider(baseUrl, apiKey, request.modelId());
             }
             if ("anthropic".equals(provider)) {
-                return testAnthropicProvider(request.apiKey());
+                return testAnthropicProvider(apiKey);
             }
-            return testOpenAiCompatibleProvider(baseUrl, request.apiKey(), request.modelId());
+            return testOpenAiCompatibleProvider(baseUrl, apiKey, request.modelId());
         } catch (Exception e) {
             log.debug("Platform model test failed for {} / {}", provider, request.modelId());
             return false;
         }
+    }
+
+    /** Première clé non vide d'un modèle plateforme déjà configuré pour ce provider. */
+    private String reusableKeyForProvider(String provider) {
+        return modelRepository.findAll().stream()
+                .filter(m -> provider.equals(m.getProvider())
+                        && m.getApiKey() != null && !m.getApiKey().isBlank())
+                .map(PlatformAiModel::getApiKey)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -489,12 +513,13 @@ public class PlatformAiConfigService {
     }
 
     private void notifyModelUnavailable(PlatformAiModel m) {
+        String suggestion = replacementSuggester.sentence(m.getProvider(), m.getModelId(), m.getId());
         notificationService.notifyAllPlatformStaff(
                 NotificationKey.AI_MODEL_EOL,
                 "Modèle IA indisponible : " + m.getName(),
                 "Le modèle « " + m.getName() + " » (" + m.getProvider() + " / " + m.getModelId()
                         + ") n'est plus joignable chez le provider. Vérifie-le ou remplace-le dans "
-                        + "Paramètres > IA. Détail : "
+                        + "Paramètres > IA." + suggestion + " Détail : "
                         + (m.getAvailabilityError() != null ? m.getAvailabilityError() : "—"),
                 "/settings?tab=ai");
         log.warn("AI model '{}' ({}/{}) UNAVAILABLE: {}",

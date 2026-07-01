@@ -56,8 +56,8 @@ public class MultiAgentFlowRunner {
     /**
      * Feature flag : si true, le multi-agent peut etre tente (cf. {@link #canUse}).
      *
-     * <p>Defaut false. Override (en dev) :
-     * {@code clenzy.assistant.multi-agent.enabled=true}</p>
+     * <p>Defaut true (bascule multi-agent, lever #6). Desactiver pour revenir au
+     * mono-agent : {@code clenzy.assistant.multi-agent.enabled=false}</p>
      */
     private final boolean multiAgentEnabled;
 
@@ -70,7 +70,7 @@ public class MultiAgentFlowRunner {
             AiTargetResolver targetResolver,
             ToolRegistry toolRegistry,
             ObjectMapper objectMapper,
-            @Value("${clenzy.assistant.multi-agent.enabled:false}") boolean multiAgentEnabled) {
+            @Value("${clenzy.assistant.multi-agent.enabled:true}") boolean multiAgentEnabled) {
         this.multiAgentOrchestrator = multiAgentOrchestrator;
         this.specialistRegistry = specialistRegistry;
         this.messageRepository = messageRepository;
@@ -352,10 +352,17 @@ public class MultiAgentFlowRunner {
         messageRepository.save(assistantMsg);
 
         // Track usage : 1 record aggregate par tour multi-agent (orchestrator + somme des
-        // specialists). Le modele de reference est le modele primaire stocke sur la conv
-        // (estimation conservative du cout si plusieurs modeles).
-        String multiAgentModel = conversation.getModel() != null
-                ? conversation.getModel() : "claude-sonnet-4";
+        // specialists). Le modele REELLEMENT utilise est celui resolu pour ASSISTANT_CHAT et
+        // propage via le contexte (AgentContext.withAiTarget → modelOverride). Avant, on
+        // retombait en dur sur "claude-sonnet-4" quand conversation.getModel() etait null →
+        // combo impossible "claude-sonnet-4 · openai" dans la vue Consommation (modele
+        // Anthropic attribue au provider OpenAI, prix faux).
+        String multiAgentModel = context.modelOverride() != null && !context.modelOverride().isBlank()
+                ? context.modelOverride()
+                : (conversation.getModel() != null ? conversation.getModel() : "claude-sonnet-4");
+        if (conversation.getModel() == null && multiAgentModel != null) {
+            conversation.setModel(multiAgentModel);
+        }
         toolLoopRunner.recordUsageSafe(context.organizationId(),
                 context.aiProvider() != null ? context.aiProvider() : "anthropic",
                 result.totalPromptTokens(), result.totalCompletionTokens(),

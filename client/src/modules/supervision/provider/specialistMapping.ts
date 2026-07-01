@@ -10,8 +10,10 @@
    8 specialists techniques → 5 agents constellation :
 
      communication  → com   (messagerie voyageur)
-     data_analyst   → rev   (KPIs, revenus, tarification, finance analytique)
-     operations     → ops   (interventions, ménage, check-in/out)
+     data_analyst   → rev   (KPIs, occupation, tendances — hors finance)
+     finance        → fin   (facturation, revenus/dépenses, versements, rentabilité)
+     operations     → ops   (actions : interventions, blocage, statuts, tarifs)
+     monitoring     → ops   (surveillance : ménages, sync, bruit, risques, KPI système)
      workflow       → ops   (exécution de workflows opérationnels)
      insights       → rep   (avis, réputation, business insights)
      context        → ∅     (technique : résolution de contexte — masqué)
@@ -19,10 +21,8 @@
      navigation     → ∅     (technique : aide à la navigation UI — masqué)
 
    Notes :
-   - `fin` (Finance pure) n'a PAS de specialist dédié dans le moteur actuel :
-     les questions financières passent par `data_analyst` (→ rev). `fin` reste
-     donc en veille tant qu'aucun specialist ne lui est rattaché. À revoir si
-     un FinanceSpecialist est ajouté côté backend.
+   - `fin` est désormais alimenté par le `FinanceSpecialist` (cluster « argent »
+     issu du découpage de data_analyst). Avant, fin restait en veille.
    - Un specialist masqué (∅) ne produit AUCUN StreamEvent constellation : son
      activité technique ne pollue pas la vue métier.
    - L'orchestrateur lui-même ("orchestrator") n'est pas un satellite : son
@@ -36,8 +36,10 @@ const SPECIALIST_TO_AGENT: Record<string, AgentId> = {
   communication: 'com',
   data_analyst: 'rev',
   operations: 'ops',
+  monitoring: 'ops',
   workflow: 'ops',
   insights: 'rep',
+  finance: 'fin',
 };
 
 /**

@@ -154,6 +154,19 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     java.math.BigDecimal sumUnpaidByHostId(@Param("hostId") Long hostId, @Param("orgId") Long orgId);
 
     /**
+     * Interventions NON RÉGLÉES d'un LOGEMENT (quel que soit le demandeur) : coût &gt; 0
+     * et statut de paiement dû (null / PENDING / PARTIALLY_PAID / FAILED). Sert au scope
+     * « logement supervisé » de l'assistant (detect/settle par propriété, pas par host).
+     */
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property WHERE i.property.id = :propertyId " +
+           "AND i.estimatedCost IS NOT NULL AND i.estimatedCost > 0 AND i.organizationId = :orgId " +
+           "AND (i.paymentStatus IS NULL OR i.paymentStatus IN (" +
+           "com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.PARTIALLY_PAID, " +
+           "com.clenzy.model.PaymentStatus.FAILED)) " +
+           "ORDER BY i.scheduledDate")
+    List<Intervention> findUnpaidByProperty(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
+    /**
      * Historique des paiements — toutes interventions payantes (ADMIN/MANAGER, optionnellement par host)
      */
     @EntityGraph(attributePaths = {"property", "requestor"})

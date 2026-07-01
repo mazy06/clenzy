@@ -52,6 +52,14 @@ public class OpenAiChatProvider implements ChatLLMProvider {
     private static final String DONE_SENTINEL = "[DONE]";
 
     /**
+     * Lever #4 — cache-optimise : rattache le suffixe system volatil (memoire/RAG/date)
+     * a la fin du dernier message user plutot qu'au message system, pour garder
+     * [system + tools + tours anterieurs] comme prefixe stable cacheable par OpenAI.
+     * Repasser a false retablit l'ancien comportement (suffixe concatene au system).
+     */
+    private static final boolean CACHE_OPTIMIZED = true;
+
+    /**
      * Robustesse rate-limit : sur une erreur transitoire (HTTP 429/503 ou timeout
      * reseau), on retente l'appel avec un backoff court AVANT de remonter l'erreur
      * au caller. Les 4xx non-429 (cle invalide, modele retiré...) ne sont PAS
@@ -267,6 +275,7 @@ public class OpenAiChatProvider implements ChatLLMProvider {
 
         int[] promptTokens = {0};
         int[] completionTokens = {0};
+        int[] cachedPromptTokens = {0};
         String[] finishReason = {null};
         String[] usedModel = {modelHint};
 
@@ -287,6 +296,11 @@ public class OpenAiChatProvider implements ChatLLMProvider {
                 if (usage.isObject()) {
                     if (usage.has("prompt_tokens")) promptTokens[0] = usage.path("prompt_tokens").asInt(promptTokens[0]);
                     if (usage.has("completion_tokens")) completionTokens[0] = usage.path("completion_tokens").asInt(completionTokens[0]);
+                    // Prompt caching OpenAI : sous-ensemble de prompt_tokens servi depuis le cache (facturé ~50%).
+                    JsonNode details = usage.path("prompt_tokens_details");
+                    if (details.isObject() && details.has("cached_tokens")) {
+                        cachedPromptTokens[0] = details.path("cached_tokens").asInt(cachedPromptTokens[0]);
+                    }
                 }
 
                 JsonNode choices = chunk.path("choices");
@@ -341,7 +355,8 @@ public class OpenAiChatProvider implements ChatLLMProvider {
                 completionTokens[0],
                 usedModel[0],
                 finishReason[0],
-                fullText.toString()
+                fullText.toString(),
+                cachedPromptTokens[0]
         ));
     }
 
@@ -352,13 +367,20 @@ public class OpenAiChatProvider implements ChatLLMProvider {
      * Ne fait pas d'appel reseau.
      */
     Map<String, Object> buildRequestBody(ChatRequest request, String model) {
+        // API OpenAI officielle (base null/blank = défaut OpenAI, ou *.openai.com) : `max_completion_tokens`
+        // (exigé par gpt-5/o*, accepté partout). Endpoints compatibles (NVIDIA…) : `max_tokens`.
+        // Modèles « reasoning » : température par défaut uniquement → on l'omet.
+        String baseUrl = request.baseUrl();
+        boolean openAiApi = baseUrl == null || baseUrl.isBlank() || baseUrl.toLowerCase().contains("openai.com");
+        boolean reasoning = openAiApi && OpenAiProvider.isReasoningModel(model);
+
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
-        body.put("max_tokens", request.maxTokens());
+        body.put(openAiApi ? "max_completion_tokens" : "max_tokens", request.maxTokens());
         body.put("stream", true);
         // Demande l'usage en fin de stream (OpenAI ne l'inclut pas par defaut en streaming).
         body.put("stream_options", Map.of("include_usage", true));
-        if (request.temperature() >= 0) {
+        if (!reasoning && request.temperature() >= 0) {
             body.put("temperature", request.temperature());
         }
         body.put("messages", toOpenAiMessages(request));
@@ -372,19 +394,34 @@ public class OpenAiChatProvider implements ChatLLMProvider {
         List<Map<String, Object>> out = new ArrayList<>();
 
         // Le system prompt est un message role=system en tete (OpenAI n'a pas de champ
-        // "system" separe). On concatene l'eventuel suffixe volatil (memoire/RAG).
+        // "system" separe).
+        //
+        // Prompt caching OpenAI (lever #4) : le cache est base sur le PREFIXE stable de
+        // la requete (system + tools + tours precedents). Le suffixe volatil (date /
+        // memoire / RAG) change a chaque message ; le concatener dans le message system
+        // (en tete) casserait ce prefixe pour TOUS les messages suivants — on perdrait
+        // le cache des ~5k tokens de system + definitions d'outils. On le rattache donc
+        // a la fin du DERNIER message user : le prefixe [system stable + tools + tours
+        // anterieurs] reste identique d'un message a l'autre (et d'une iteration a
+        // l'autre, la position du dernier message user etant figee dans la boucle).
         String system = request.systemPrompt();
         String suffix = request.volatileSystemSuffix();
+        boolean hasSuffix = suffix != null && !suffix.isBlank();
+        int lastUserIdx = CACHE_OPTIMIZED && hasSuffix ? lastUserIndex(request.messages()) : -1;
+        boolean foldIntoUser = lastUserIdx >= 0;
+
         if (system != null && !system.isBlank()) {
-            String content = (suffix != null && !suffix.isBlank()) ? system + "\n\n" + suffix : system;
+            String content = (hasSuffix && !foldIntoUser) ? system + "\n\n" + suffix : system;
             out.add(Map.of("role", "system", "content", content));
-        } else if (suffix != null && !suffix.isBlank()) {
+        } else if (hasSuffix && !foldIntoUser) {
             out.add(Map.of("role", "system", "content", suffix));
         }
 
-        for (ChatMessage m : request.messages()) {
+        List<ChatMessage> messages = request.messages();
+        for (int i = 0; i < messages.size(); i++) {
+            ChatMessage m = messages.get(i);
             switch (m.role()) {
-                case ChatMessage.ROLE_USER -> out.add(toUserMessage(m));
+                case ChatMessage.ROLE_USER -> out.add(toUserMessage(m, i == lastUserIdx ? suffix : null));
                 case ChatMessage.ROLE_ASSISTANT -> out.add(toAssistantMessage(m));
                 case ChatMessage.ROLE_TOOL -> {
                     Map<String, Object> entry = new LinkedHashMap<>();
@@ -399,25 +436,43 @@ public class OpenAiChatProvider implements ChatLLMProvider {
         return out;
     }
 
-    private Map<String, Object> toUserMessage(ChatMessage m) {
+    /** Index du dernier message role=user, ou -1 si aucun (pour rattacher le contexte volatil). */
+    private static int lastUserIndex(List<ChatMessage> messages) {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            if (ChatMessage.ROLE_USER.equals(messages.get(i).role())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Message user OpenAI. {@code appendedContext} (optionnel) = contexte volatil
+     * (memoire/RAG/date) rattache a la fin du texte pour preserver le cache (#4).
+     */
+    private Map<String, Object> toUserMessage(ChatMessage m, String appendedContext) {
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("role", "user");
+        String text = m.content() != null ? m.content() : "";
+        if (appendedContext != null && !appendedContext.isBlank()) {
+            text = text.isBlank() ? appendedContext : text + "\n\n" + appendedContext;
+        }
         if (m.attachments() != null && !m.attachments().isEmpty()) {
             List<Map<String, Object>> blocks = new ArrayList<>();
-            if (m.content() != null && !m.content().isBlank()) {
-                blocks.add(Map.of("type", "text", "text", m.content()));
+            if (!text.isBlank()) {
+                blocks.add(Map.of("type", "text", "text", text));
             }
             for (MessageAttachment att : m.attachments()) {
                 Map<String, Object> img = toOpenAiImageBlock(att);
                 if (img != null) blocks.add(img);
             }
             if (blocks.isEmpty()) {
-                entry.put("content", m.content() != null ? m.content() : "");
+                entry.put("content", text);
             } else {
                 entry.put("content", blocks);
             }
         } else {
-            entry.put("content", m.content() != null ? m.content() : "");
+            entry.put("content", text);
         }
         return entry;
     }

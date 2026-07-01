@@ -1,6 +1,6 @@
 import apiClient from '../apiClient';
 import { buildApiUrl } from '../../config/api';
-import { getAccessToken } from '../../keycloak';
+import keycloak, { getAccessToken } from '../../keycloak';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -178,6 +178,14 @@ export const assistantApi = {
     onEvent: (event: AgentSseEvent) => void,
     signal?: AbortSignal,
   ): Promise<void> {
+    // Rafraîchir le token AVANT le flux SSE : le fetch régulier le fait (refreshTokenOnce),
+    // mais ce chemin l'oubliait → après ~5 min, Bearer expiré = 401 (SSE /assistant/chat,
+    // /agui/run). En mode cookie HttpOnly, updateToken rejette → on s'appuie sur le cookie.
+    try {
+      await keycloak.updateToken(30);
+    } catch {
+      /* mode cookie / refresh indisponible → fallback sur le cookie (credentials: include) */
+    }
     const token = getAccessToken();
     const response = await fetch(buildApiUrl(endpoint), {
       method: 'POST',

@@ -42,6 +42,7 @@ import {
   AgUiSupervisionProvider,
   isSupervisionLiveEnabled,
   useCanSuperviseAgents,
+  useSupervisionConfig,
   type SupervisionScope,
 } from '../supervision';
 
@@ -58,7 +59,11 @@ const PlanningPage: React.FC = () => {
   const nav = usePlanningNavigation();
 
   // Superviseur d'agents : portée (par logement / vue d'ensemble) + gate RBAC.
-  const { canView: canSupervise } = useCanSuperviseAgents();
+  const { canView: canViewSupervision } = useCanSuperviseAgents();
+  // Gate feature : la constellation ne s'affiche que si l'org l'a activée
+  // (Settings > IA). On ne fetch la config que pour les rôles habilités.
+  const { data: supervisionConfig } = useSupervisionConfig({ enabled: canViewSupervision });
+  const canSupervise = canViewSupervision && (supervisionConfig?.enabled ?? false);
   const [supervisionScope, setSupervisionScope] = useState<SupervisionScope>('property');
   const [expandedPropertyId, setExpandedPropertyId] = useState<number | null>(null);
   const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
@@ -682,6 +687,7 @@ const PlanningPage: React.FC = () => {
                             : new MockSupervisionProvider(String(property.id), { cometReservationId })
                         }
                         deps={[property.id, cometReservationId]}
+                        propertyId={property.id}
                       />
                     );
                   }

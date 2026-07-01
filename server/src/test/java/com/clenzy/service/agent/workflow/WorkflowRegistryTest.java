@@ -167,14 +167,20 @@ class WorkflowRegistryTest {
     }
 
     @Test
-    void productionDataset_loadsThreeWorkflows() {
-        // Sanity check : on charge depuis le classpath reel et on verifie les 3 workflows
+    void productionDataset_loadsAllWorkflows() {
+        // Sanity check : on charge depuis le classpath reel et on verifie les workflows livres.
         WorkflowRegistry r = new WorkflowRegistry();
         r.loadAll();
-        assertTrue(r.size() >= 3,
-                "Au moins 3 workflows attendus, got " + r.size());
+        assertTrue(r.size() >= 7,
+                "Au moins 7 workflows attendus, got " + r.size());
+        // Socle historique
         assertTrue(r.getById("onboard_property").isPresent());
         assertTrue(r.getById("end_of_month_closing").isPresent());
         assertTrue(r.getById("prepare_high_season").isPresent());
+        // P2-13 : nouveaux workflows guides
+        assertTrue(r.getById("incident_resolution").isPresent());
+        assertTrue(r.getById("seasonal_repricing").isPresent());
+        assertTrue(r.getById("owner_reporting").isPresent());
+        assertTrue(r.getById("new_listing_optimization").isPresent());
     }
 }

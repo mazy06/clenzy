@@ -48,4 +48,19 @@ public interface AiTokenUsageRepository extends JpaRepository<AiTokenUsage, Long
             @Param("feature") AiFeature feature,
             @Param("since") LocalDateTime since
     );
+
+    /**
+     * Série temporelle : agrège la conso par (jour, provider, model) depuis une date
+     * (vue « Consommation » — courbe dans le temps + coût par modèle).
+     * Chaque ligne = [date, provider, model, sumPrompt, sumCompletion, callCount].
+     */
+    @Query("SELECT CAST(u.createdAt AS date), u.provider, u.model, " +
+            "SUM(u.promptTokens), SUM(u.completionTokens), COUNT(u) " +
+            "FROM AiTokenUsage u WHERE u.organizationId = :orgId AND u.createdAt >= :since " +
+            "GROUP BY CAST(u.createdAt AS date), u.provider, u.model " +
+            "ORDER BY CAST(u.createdAt AS date)")
+    List<Object[]> aggregateDailyByProviderModel(
+            @Param("orgId") Long organizationId,
+            @Param("since") LocalDateTime since
+    );
 }

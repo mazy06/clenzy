@@ -39,19 +39,43 @@ public sealed interface ChatEvent
     /**
      * Fin du stream. Contient les metriques d'usage et la raison d'arret.
      *
-     * @param promptTokens     tokens en entree (input)
-     * @param completionTokens tokens en sortie (output)
-     * @param model            identifiant du modele effectivement utilise
-     * @param finishReason     "stop", "tool_use", "length", "end_turn", etc.
-     * @param fullText         texte concatene de tous les TextDelta emis (commodite pour la persistance)
+     * @param promptTokens       tokens en entree (input), cache INCLUS (semantique OpenAI)
+     * @param completionTokens   tokens en sortie (output)
+     * @param model              identifiant du modele effectivement utilise
+     * @param finishReason       "stop", "tool_use", "length", "end_turn", etc.
+     * @param fullText           texte concatene de tous les TextDelta emis (commodite pour la persistance)
+     * @param cachedPromptTokens sous-ensemble de {@code promptTokens} servi depuis le cache
+     *                           (OpenAI prompt caching). 0 si pas de cache / non supporte.
      */
     record Done(
             int promptTokens,
             int completionTokens,
             String model,
             String finishReason,
-            String fullText
+            String fullText,
+            int cachedPromptTokens
     ) implements ChatEvent {
+
+        /** Facteur de facturation des tokens cachés (OpenAI prompt caching : lecture ≈ 50%). */
+        public static final double CACHE_BILLING_FACTOR = 0.5;
+
+        /** Surcharge retro-compatible : pas de tokens cachés (Anthropic, tests, cache miss). */
+        public Done(int promptTokens, int completionTokens, String model, String finishReason,
+                    String fullText) {
+            this(promptTokens, completionTokens, model, finishReason, fullText, 0);
+        }
+
+        /**
+         * Tokens d'entrée FACTURÉS : les tokens cachés ne coûtent qu'une fraction
+         * ({@link #CACHE_BILLING_FACTOR}). C'est cette valeur qu'on agrège/enregistre
+         * pour que la vue Consommation reflète le gain du prompt caching (lever #4).
+         */
+        public int billedPromptTokens() {
+            if (cachedPromptTokens <= 0) {
+                return promptTokens;
+            }
+            return Math.max(0, promptTokens - (int) Math.round(cachedPromptTokens * (1.0 - CACHE_BILLING_FACTOR)));
+        }
     }
 
     /**

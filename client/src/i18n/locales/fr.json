@@ -45,6 +45,10 @@
       "notify": "Notifie",
       "full": "Auto"
     },
+    "scan": {
+      "button": "Scanner",
+      "running": "Scan en cours…"
+    },
     "scope": {
       "byProperty": "Par logement",
       "portfolio": "Vue d'ensemble"
@@ -2634,8 +2638,48 @@
       "tabs": {
         "connection": "Connexion",
         "models": "Modèles & features",
+        "consumption": "Consommation",
+        "supervision": "Superviseur",
         "briefings": "Briefings",
         "kb": "Documentation"
+      },
+      "usage": {
+        "days7": "7 jours",
+        "days30": "30 jours",
+        "days90": "90 jours",
+        "all": "Tous",
+        "tokens": "Tokens",
+        "cost": "Coût",
+        "totalTokens": "Total tokens",
+        "totalCost": "Coût total",
+        "threshold": "Seuil d’alerte ($)",
+        "overThreshold": "Seuil dépassé : {{cost}} sur la période (seuil {{limit}}).",
+        "empty": "Aucune consommation sur la période.",
+        "model": "Modèle",
+        "calls": "Appels"
+      },
+      "supervision": {
+        "title": "Superviseur d'agents (constellation)",
+        "subtitle": "Activez la constellation et réglez l'autonomie de chaque module IA. Les modules importés apparaîtront ici.",
+        "loadError": "Impossible de charger la configuration.",
+        "master": {
+          "label": "Activer le superviseur",
+          "description": "Affiche la constellation dans le planning et autorise les agents à proposer des actions."
+        },
+        "paused": {
+          "label": "Mettre en pause",
+          "description": "Suspend temporairement l'activité automatique des agents (la config est conservée)."
+        },
+        "budget": {
+          "label": "Plafond de scans automatiques",
+          "description": "Nombre maximum d'analyses automatiques par jour pour l'organisation (0 = aucune analyse automatique). Limite le coût IA."
+        },
+        "modules": {
+          "title": "Modules"
+        },
+        "readOnly": "Lecture seule — seul un administrateur peut modifier ces réglages.",
+        "saved": "Configuration enregistrée",
+        "saveError": "Échec de l'enregistrement. Réessayez."
       },
       "platform": {
         "title": "Configuration plateforme",
@@ -4476,8 +4520,11 @@
         "disconnect": "Déconnecter",
         "configureProvider": "Configurer {{provider}}",
         "apiKeyLabel": "Clé API",
-        "modelOverrideLabel": "Modèle personnalisé (optionnel)",
-        "modelOverrideHelper": "Laissez vide pour utiliser le modèle par défaut",
+        "modelOverrideLabel": "Modèle",
+        "modelOverrideHelper": "« Charger les modèles » pour choisir un modèle disponible, ou laissez vide pour le défaut.",
+        "loadModels": "Charger les modèles",
+        "modelCatalogLoaded": "{{count}} modèles disponibles — choisis-en un.",
+        "modelCatalogError": "Catalogue indisponible — saisis l'ID du modèle à la main.",
         "byokInfo": "Avec votre propre clé, les limites de tokens de la plateforme ne sont pas appliquées. Votre consommation sera facturée directement par {{provider}}.",
         "cancel": "Annuler",
         "test": "Tester",

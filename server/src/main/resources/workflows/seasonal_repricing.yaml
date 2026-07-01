@@ -1,0 +1,76 @@
+id: seasonal_repricing
+title: "Repricing saisonnier"
+description: "Ajuste les tarifs sur une période, appuyé sur l'occupation, l'élasticité et le marché."
+estimatedDuration: 18
+
+steps:
+  - id: select_period
+    title: "Période à reprices"
+    prompts:
+      fr: |
+        Quelle **période** veux-tu ajuster ? Donne-moi un JSON avec :
+        - **from** : date de début (AAAA-MM-JJ)
+        - **to** : date de fin (AAAA-MM-JJ)
+      en: |
+        Which **period** do you want to reprice? Give me a JSON with:
+        - **from**: start date (YYYY-MM-DD)
+        - **to**: end date (YYYY-MM-DD)
+    expectsData:
+      from: string
+      to: string
+
+  - id: review_market
+    title: "Positionnement marché"
+    prompts:
+      fr: |
+        Veux-tu d'abord **comparer tes prix au marché** (sources concurrence) ? (oui / non)
+      en: |
+        Want to first **compare your prices to the market** (competition sources)? (yes / no)
+    expectsData:
+      checkMarket: boolean
+    suggestTool:
+      name: benchmark_competition
+      args: {}
+
+  - id: review_reco
+    title: "Recommandations d'occupation"
+    prompts:
+      fr: |
+        Je peux te proposer des **ajustements basés sur l'occupation et l'élasticité réelle**.
+        On regarde ? (oui / non)
+      en: |
+        I can suggest **adjustments based on occupancy and real elasticity**. Shall we? (yes / no)
+    expectsData:
+      reviewReco: boolean
+    suggestTool:
+      name: recommend_price_adjustments
+      args: {}
+
+  - id: set_strategy
+    title: "Stratégie tarifaire"
+    prompts:
+      fr: |
+        Quel **ajustement** appliquer sur la période ?
+        (ex : "+15%", "-10%", ou un prix fixe par nuit en EUR)
+      en: |
+        Which **adjustment** to apply over the period?
+        (e.g. "+15%", "-10%", or a fixed nightly price in EUR)
+    expectsData:
+      adjustment: string
+
+  - id: confirm
+    title: "Confirmation"
+    prompts:
+      fr: |
+        Récapitulatif du repricing :
+        {{summary}}
+
+        Je n'applique rien sans ton accord. Réponds oui pour préparer les overrides de tarif.
+      en: |
+        Repricing recap:
+        {{summary}}
+
+        I won't apply anything without your approval. Reply yes to prepare the rate overrides.
+    expectsData:
+      confirm: boolean
+    action: set_rate_override
