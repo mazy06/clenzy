@@ -565,9 +565,10 @@ class AnthropicChatProviderTest {
         }
 
         @Test
-        void cacheReadAndWriteTokens_areLoggedNotEmitted() {
-            // Tokens cache_read/cache_creation : ne change pas le ChatEvent.Done,
-            // mais exerce la branche log.isDebugEnabled
+        void cacheReadAndWriteTokens_areFoldedIntoBilledInput() {
+            // M1 : l'input Anthropic EXCLUT le cache (facturé à part). On reconstitue
+            // une base d'input FACTURÉE homogène avec OpenAI : fresh + cache_read*0.1
+            // + cache_creation*1.25.
             String sse = """
                     data: {"type":"message_start","message":{"model":"claude-sonnet-4-20250514","usage":{"input_tokens":100,"output_tokens":0,"cache_read_input_tokens":500,"cache_creation_input_tokens":200}}}
 
@@ -583,8 +584,9 @@ class AnthropicChatProviderTest {
                     """;
             List<ChatEvent> events = collect(sse, "claude-sonnet-4-20250514");
             ChatEvent.Done done = (ChatEvent.Done) events.get(events.size() - 1);
-            // input_tokens = 100, cache fields are logged separately
-            assertEquals(100, done.promptTokens());
+            // 100 fresh + 500*0.1 (cache read) + 200*1.25 (cache write) = 400.
+            assertEquals(400, done.promptTokens());
+            assertEquals(400, done.billedPromptTokens());
         }
 
         @Test

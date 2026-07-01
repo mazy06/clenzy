@@ -20,11 +20,17 @@ describe('computeConstellationLayout', () => {
   // les relations r = R·RAD + l'invariant anti-clip ci-dessous.
   const R = layout.radius;
 
-  it('centre au milieu de la boîte, rayon dimensionné', () => {
+  it('centre horizontal au milieu ; centre vertical remonté (empreintes asymétriques)', () => {
     expect(layout.cx).toBe(300);
-    expect(layout.cy).toBe(280);
+    // cy est REMONTÉ de (BELOW-ABOVE)/2 = (75-34)/2 = 20.5 vs le milieu (280) :
+    // la pastille de nom sous l'avatar impose plus de réserve en bas qu'en haut,
+    // donc on remonte le centre pour équilibrer les portées et exploiter le haut.
+    expect(layout.cy).toBeCloseTo(280 - (75 - 34) / 2);
+    expect(layout.cy).toBeLessThan(280);
     expect(R).toBeGreaterThan(0);
-    expect(R).toBeLessThan(Math.min(SIZE.width, SIZE.height) / 2); // réduit vs l'ancien min/2
+    // R est une ÉCHELLE normalisée (rayon réel = R·RAD). C'est le rayon RÉEL de
+    // l'anneau extérieur qui doit tenir dans la demi-boîte, pas R lui-même.
+    expect(R * RAD.suggest).toBeLessThan(Math.min(SIZE.width, SIZE.height) / 2);
   });
 
   it('anti-clip : l\'agent extérieur (rotation incluse) garde une marge sous la boîte', () => {

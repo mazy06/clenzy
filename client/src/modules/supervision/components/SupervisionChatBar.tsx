@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Box, IconButton, Tooltip } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { Send, SmartToy } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ConversationTurn } from '../types';
@@ -25,10 +26,6 @@ export interface SupervisionChatBarProps {
   /** Envoi d'un message opérateur (déclenche un run). */
   onSend: (message: string) => void;
 }
-
-const ACCENT = '#9B9BF6';
-const SURFACE = 'rgba(20,24,58,.92)';
-const BORDER = '1px solid rgba(255,255,255,.12)';
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
@@ -60,13 +57,22 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
   return (
     <Box
       sx={{
-        mt: 1.25,
+        // Surface/bordure via tokens MUI → suit le thème de la session (clair
+        // ou sombre) et matche le reste du PMS. En flottant sur le canvas de la
+        // constellation, elle reste lisible dans les deux modes.
         borderRadius: '14px',
-        bgcolor: SURFACE,
-        border: BORDER,
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
         backdropFilter: 'blur(10px)',
-        boxShadow: '0 16px 40px -22px rgba(0,0,0,.7)',
+        boxShadow: (t) => `0 16px 40px -22px ${alpha(t.palette.common.black, 0.35)}`,
         overflow: 'hidden',
+        transition: 'border-color 160ms ease, box-shadow 160ms ease',
+        // Focus du champ → bordure au token d'accent de la session.
+        '&:focus-within': {
+          borderColor: 'var(--accent)',
+          boxShadow: '0 0 0 3px var(--accent-soft)',
+        },
       }}
     >
       {/* Transcription */}
@@ -99,7 +105,8 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
           gap: 1,
           px: 1.25,
           py: 1,
-          borderTop: hasTranscript ? BORDER : 'none',
+          borderTop: hasTranscript ? '1px solid' : 'none',
+          borderColor: 'divider',
         }}
       >
         <Box
@@ -123,15 +130,16 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
             border: 'none',
             outline: 'none',
             bgcolor: 'transparent',
-            color: '#E7E9FB',
+            color: 'text.primary',
+            caretColor: 'var(--accent)',
             fontFamily: 'inherit',
             fontSize: 13.5,
             lineHeight: 1.5,
             maxHeight: 96,
             py: 0.75,
             px: 0.5,
-            '&::placeholder': { color: 'rgba(231,233,251,.5)' },
-            '&:disabled': { color: 'rgba(231,233,251,.4)', cursor: 'not-allowed' },
+            '&::placeholder': { color: 'text.secondary', opacity: 1 },
+            '&:disabled': { color: 'text.disabled', cursor: 'not-allowed' },
           }}
         />
         <Tooltip title={t('supervision.chat.send', 'Envoyer')} arrow>
@@ -143,13 +151,18 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
               aria-label={t('supervision.chat.send', 'Envoyer')}
               size="small"
               sx={{
-                color: '#0c0e2a',
-                bgcolor: ACCENT,
+                // Token d'accent de la session (var(--accent)) — pas le primary
+                // MUI figé sur l'indigo par défaut.
+                color: 'var(--on-accent)',
+                bgcolor: 'var(--accent)',
                 width: 34,
                 height: 34,
                 transition: 'background-color 180ms ease, opacity 180ms ease',
-                '&:hover': { bgcolor: '#B4B4F9' },
-                '&.Mui-disabled': { bgcolor: 'rgba(155,155,246,.28)', color: 'rgba(12,14,42,.5)' },
+                '&:hover': { bgcolor: 'var(--accent-deep)' },
+                '&.Mui-disabled': {
+                  bgcolor: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                },
               }}
             >
               <Send size={16} strokeWidth={2} />
@@ -177,9 +190,10 @@ function ConversationBubble({ turn }: { turn: ConversationTurn }) {
           px: 1.25,
           py: 0.75,
           borderRadius: isOperator ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-          bgcolor: isOperator ? 'rgba(155,155,246,.18)' : 'rgba(255,255,255,.06)',
-          border: isOperator ? '1px solid rgba(155,155,246,.32)' : '1px solid rgba(255,255,255,.08)',
-          color: '#E7E9FB',
+          bgcolor: (t) => (isOperator ? 'var(--accent-soft)' : t.palette.action.hover),
+          border: '1px solid',
+          borderColor: (t) => (isOperator ? 'var(--accent)' : t.palette.divider),
+          color: 'text.primary',
           fontSize: 13,
           lineHeight: 1.5,
           whiteSpace: 'pre-wrap',
@@ -193,7 +207,7 @@ function ConversationBubble({ turn }: { turn: ConversationTurn }) {
           sx={{
             mt: 0.25,
             fontSize: 10.5,
-            color: 'rgba(231,233,251,.45)',
+            color: 'text.disabled',
             fontVariantNumeric: 'tabular-nums',
           }}
         >
@@ -212,7 +226,7 @@ function ThinkingRow({ label }: { label: string }) {
         display: 'flex',
         alignItems: 'center',
         gap: 0.75,
-        color: ACCENT,
+        color: 'var(--accent)',
         fontSize: 12,
         fontWeight: 600,
         '@keyframes supervisionDotPulse': {
@@ -232,7 +246,7 @@ function ThinkingRow({ label }: { label: string }) {
               width: 4,
               height: 4,
               borderRadius: '50%',
-              bgcolor: ACCENT,
+              bgcolor: 'var(--accent)',
               animation: 'supervisionDotPulse 1.2s infinite ease-in-out',
               animationDelay: `${i * 0.16}s`,
               '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0.6 },
