@@ -15,7 +15,8 @@ import java.util.Set;
  *
  * <p>Issu d'un decoupage de {@code data_analyst} (qui depassait 10 tools) :
  * regroupe le cluster « argent » pour un routing plus net. Mappe sur l'agent
- * constellation {@code fin} (jusque-la dormant). 7 tools read-only.</p>
+ * constellation {@code fin} (jusque-la dormant). 9 tools : 8 read-only + le règlement
+ * des interventions impayées (settle_intervention_payment, write avec confirmation = carte HITL).</p>
  */
 @Component
 public class FinanceSpecialist extends AbstractAgentSpecialist {
@@ -42,7 +43,10 @@ public class FinanceSpecialist extends AbstractAgentSpecialist {
                 - "Quels versements proprietaires sont en attente / verses ?"
                 - "Quels sont mes logements les plus rentables ?"
                 - "Quel canal me rapporte vraiment, net de commission ? Combien me coute Booking ?"
-                Read-only : ne modifie rien.""";
+                - "Ai-je des menages / interventions NON REGLES (impayes) ?" → detect_unpaid_interventions
+                - "Regle le menage / paie mes interventions impayees" → settle_intervention_payment (propose un
+                  lien de paiement Stripe, confirmation requise — c'est la carte HITL de reglement)
+                Lecture seule SAUF settle_intervention_payment (write, avec confirmation).""";
     }
 
     @Override
@@ -54,7 +58,9 @@ public class FinanceSpecialist extends AbstractAgentSpecialist {
                 "get_financial_summary",
                 "get_properties_performance",
                 "get_channel_attribution",
-                "get_property_pnl"
+                "get_property_pnl",
+                "detect_unpaid_interventions",
+                "settle_intervention_payment"
         );
     }
 }

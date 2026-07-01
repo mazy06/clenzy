@@ -190,4 +190,96 @@ public class DeferredPaymentService {
 
         return session.getUrl();
     }
+
+    /**
+     * Solde des interventions NON RÉGLÉES d'un LOGEMENT (scope « logement supervisé » de
+     * l'assistant, quel que soit le demandeur). Read-only, org-scopé.
+     */
+    @Transactional(readOnly = true)
+    public HostBalanceSummaryDto getPropertyBalance(Long propertyId) {
+        List<Intervention> unpaid = interventionRepository.findUnpaidByProperty(
+                propertyId, tenantContext.getRequiredOrganizationId());
+        BigDecimal total = unpaid.stream()
+                .map(Intervention::getEstimatedCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        HostBalanceSummaryDto summary = new HostBalanceSummaryDto();
+        summary.setTotalUnpaid(total);
+        summary.setTotalInterventions(unpaid.size());
+        if (!unpaid.isEmpty()) {
+            PropertyBalanceDto pb = new PropertyBalanceDto();
+            pb.setPropertyId(propertyId);
+            pb.setPropertyName(unpaid.get(0).getProperty() != null ? unpaid.get(0).getProperty().getName() : "Logement");
+            pb.setInterventionCount(unpaid.size());
+            pb.setUnpaidAmount(total);
+            pb.setInterventions(unpaid.stream().map(iv -> {
+                UnpaidInterventionDto dto = new UnpaidInterventionDto();
+                dto.setId(iv.getId());
+                dto.setTitle(iv.getTitle());
+                // Champ nommé scheduledDate → priorité au champ scheduledDate (cohérent avec
+                // l'ORDER BY de findUnpaidByProperty), repli sur startTime si absent.
+                java.time.LocalDateTime when = iv.getScheduledDate() != null
+                        ? iv.getScheduledDate() : iv.getStartTime();
+                dto.setScheduledDate(when != null ? when.toString() : null);
+                dto.setEstimatedCost(iv.getEstimatedCost());
+                dto.setStatus(iv.getStatus() != null ? iv.getStatus().name() : null);
+                dto.setPaymentStatus(iv.getPaymentStatus() != null ? iv.getPaymentStatus().name() : null);
+                return dto;
+            }).collect(Collectors.toList()));
+            summary.setProperties(List.of(pb));
+        }
+        return summary;
+    }
+
+    /**
+     * Crée une session Stripe groupée pour régler les interventions impayées d'un LOGEMENT.
+     * (Scope « logement supervisé » ; le demandeur peut différer de l'opérateur.)
+     */
+    public String createPropertyPaymentSession(Long propertyId) throws StripeException {
+        List<Intervention> unpaid = interventionRepository.findUnpaidByProperty(
+                propertyId, tenantContext.getRequiredOrganizationId());
+        if (unpaid.isEmpty()) {
+            throw new RuntimeException("Aucune intervention impayee pour ce logement");
+        }
+        BigDecimal total = unpaid.stream()
+                .map(Intervention::getEstimatedCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long amountInCents = com.clenzy.payment.StripeAmounts.toMinorUnits(total);
+        String interventionIds = unpaid.stream().map(i -> i.getId().toString()).collect(Collectors.joining(","));
+        String propName = unpaid.get(0).getProperty() != null ? unpaid.get(0).getProperty().getName() : "logement";
+        String email = unpaid.get(0).getRequestor() != null ? unpaid.get(0).getRequestor().getEmail() : null;
+
+        SessionCreateParams.Builder builder = SessionCreateParams.builder()
+                .setMode(SessionCreateParams.Mode.PAYMENT)
+                .setSuccessUrl(successUrl)
+                .setCancelUrl(cancelUrl)
+                .addLineItem(SessionCreateParams.LineItem.builder()
+                        .setQuantity(1L)
+                        .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
+                                .setCurrency(currency.toLowerCase())
+                                .setUnitAmount(amountInCents)
+                                .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                        .setName("Baitly - Interventions impayees")
+                                        .setDescription("Paiement groupe de " + unpaid.size()
+                                                + " intervention(s) impayee(s) - " + propName)
+                                        .build())
+                                .build())
+                        .build())
+                .putMetadata("type", "grouped_deferred")
+                .putMetadata("property_id", propertyId.toString())
+                .putMetadata("intervention_ids", interventionIds);
+        if (email != null && !email.isBlank()) {
+            builder.setCustomerEmail(email);
+        }
+
+        Session session = stripeGateway.createSession(builder.build());
+        for (Intervention intervention : unpaid) {
+            intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+            intervention.setStripeSessionId(session.getId());
+            interventionRepository.save(intervention);
+        }
+        logger.info("Session Stripe groupee creee: sessionId={}, propertyId={}, montant={} EUR, {} interventions",
+                session.getId(), propertyId, total, unpaid.size());
+        return session.getUrl();
+    }
 }

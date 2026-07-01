@@ -38,7 +38,7 @@ public class ExamplesSection extends AbstractXmlPromptSection {
      * Plafond defensif : on n'injecte jamais plus de N examples meme si la
      * YAML en contient plus. Garde le prompt sous controle de cout.
      */
-    static final int MAX_EXAMPLES_INJECTED = 6;
+    static final int MAX_EXAMPLES_INJECTED = 3;
 
     private final ExampleLoader exampleLoader;
 

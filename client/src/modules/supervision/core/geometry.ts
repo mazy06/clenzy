@@ -58,6 +58,16 @@ export interface ConstellationLayout {
 const CORE_EDGE = 34;
 const AVATAR_EDGE = 28;
 
+/* Empreinte d'un satellite autour de son centre (px), pour dimensionner R sans
+   rogner les agents extérieurs. BAS = demi-avatar (25) + gap + pastille de nom ;
+   c'est le bord le plus contraint. HAUT = demi-avatar + petite bande (anneau/label).
+   CÔTÉ = demi-avatar + marge. On garde un rayon minimal pour rester fini si la boîte
+   n'est pas encore mesurée (taille 0 en SSR/jsdom). */
+const SAT_FOOTPRINT_BELOW = 88;
+const SAT_FOOTPRINT_ABOVE = 34;
+const SAT_FOOTPRINT_SIDE = 60;
+const MIN_OUTER_REACH = 40;
+
 /** Du plus proche du centre (Auto) au plus loin (Suggère). */
 const RING_ORDER: AutonomyLevel[] = ['full', 'notify', 'suggest'];
 
@@ -72,7 +82,18 @@ export function computeConstellationLayout(
   const height = Math.max(0, size.height);
   const cx = width / 2;
   const cy = height / 2;
-  const R = Math.min(width, height) / 2;
+
+  // R est dimensionné pour que l'anneau EXTÉRIEUR (suggest) tienne dans la boîte
+  // AVEC l'empreinte d'un satellite — sinon l'agent du bas (avatar + pastille de
+  // nom dessous) était rogné par l'overflow:hidden. Le bord bas est le plus
+  // contraint (label sous l'avatar). On réserve aussi une bande haute (HUD/Scan +
+  // cartes HITL CopilotKit qui flottent dans les coins). La barre de chat CopilotKit
+  // est en flux SOUS la boîte → pas d'overlap à gérer ici.
+  const downReach = height - cy - SAT_FOOTPRINT_BELOW;
+  const upReach = cy - SAT_FOOTPRINT_ABOVE;
+  const sideReach = Math.min(cx, width - cx) - SAT_FOOTPRINT_SIDE;
+  const outerReach = Math.max(MIN_OUTER_REACH, Math.min(downReach, upReach, sideReach));
+  const R = RAD.suggest > 0 ? outerReach / RAD.suggest : outerReach;
 
   const rings: RingLayout[] = RING_ORDER.map((autonomy) => ({ autonomy, radius: R * RAD[autonomy] }));
 

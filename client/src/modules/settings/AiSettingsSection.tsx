@@ -9,6 +9,7 @@ import {
   Grid,
   Chip,
   Alert,
+  Autocomplete,
   CircularProgress,
   Dialog,
   DialogTitle,
@@ -40,8 +41,10 @@ import {
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useAiKeyStatus, useTestAiKey, useSaveAiKey, useDeleteAiKey, useAiFeatureToggles, useSetAiFeatureToggle } from '../../hooks/useAi';
-import type { AiApiKeyStatus, SaveAiApiKeyRequest } from '../../services/api/aiApi';
+import { aiApi } from '../../services/api/aiApi';
+import type { AiApiKeyStatus, AiCatalogModel, SaveAiApiKeyRequest } from '../../services/api/aiApi';
 import PlatformAiConfigSection from './PlatformAiConfigSection';
+import AiUsageTrendSection from './AiUsageTrendSection';
 import AssistantBriefingPrefs from './AssistantBriefingPrefs';
 import KnowledgeBaseAdmin from './KnowledgeBaseAdmin';
 import AgentSupervisionSection from './AgentSupervisionSection';
@@ -118,7 +121,8 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const isOrgKey = status.source === 'ORGANIZATION' && status.configured;
-  const accent = isDark ? brand.accentDark : brand.accent;
+  const accent = isDark ? brand.accentDark : brand.accent; // couleur de MARQUE : réservée au logo
+  const ok = theme.palette.success.main;
 
   const Logo = brand.id === 'openai' ? OpenAILogo : ClaudeLogo;
 
@@ -126,182 +130,97 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
     <Paper
       elevation={0}
       sx={{
-        position: 'relative',
-        overflow: 'hidden',
         height: '100%',
         border: '1px solid',
-        borderColor: isOrgKey ? alpha(accent, 0.4) : 'divider',
-        borderRadius: 2.5,
-        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': {
-          borderColor: alpha(accent, 0.6),
-          boxShadow: `0 0 0 1px ${alpha(accent, 0.1)}`,
-        },
+        borderColor: 'divider',
+        borderRadius: 2,
+        transition: 'border-color 0.2s ease',
+        '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.45) },
       }}
     >
-      <Box sx={{ p: 2.5 }}>
-        {/* ── Header: logo + name + status chip ── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Box sx={{ p: 1.75 }}>
+        {/* ── Header: logo (couleur de marque) + nom/modèle + badge clé ── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
             <Box
               sx={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 40,
-                height: 40,
-                borderRadius: 1.5,
-                bgcolor: alpha(accent, isDark ? 0.12 : 0.08),
+                width: 34,
+                height: 34,
+                borderRadius: 1.25,
+                bgcolor: alpha(accent, isDark ? 0.16 : 0.1),
                 flexShrink: 0,
               }}
             >
-              <Logo size={22} color={accent} />
+              <Logo size={18} color={accent} />
             </Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle2" fontWeight={700} lineHeight={1.2} noWrap>
                 {brand.label}
               </Typography>
-              <Typography variant="caption" color="text.secondary" fontSize="0.7rem">
-                {brand.model}
+              <Typography variant="caption" color="text.secondary" fontSize="0.72rem" noWrap display="block">
+                {/* Modèle EFFECTIF (choisi en live), repli sur le défaut — plus figé dans le code. */}
+                {status.modelOverride || brand.model}
               </Typography>
             </Box>
           </Box>
 
           <Chip
             size="small"
-            icon={isOrgKey ? <CheckCircle size={14} strokeWidth={1.75} /> : undefined}
             label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')}
             sx={{
+              flexShrink: 0,
               fontWeight: 600,
-              fontSize: '0.7rem',
-              height: 24,
-              ...(isOrgKey
-                ? {
-                    bgcolor: alpha(accent, isDark ? 0.18 : 0.1),
-                    color: accent,
-                    '& .MuiChip-icon': { color: accent },
-                  }
-                : {
-                    bgcolor: 'action.hover',
-                    color: 'text.secondary',
-                  }),
+              fontSize: '0.68rem',
+              height: 22,
+              bgcolor: 'action.hover',
+              color: 'text.secondary',
             }}
           />
         </Box>
 
-        {/* ── Key details (when org key connected) ── */}
+        {/* ── Clé masquée + état (clé perso uniquement) — une seule ligne compacte ── */}
         {isOrgKey && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 1.5,
-              borderRadius: 1.5,
-              bgcolor: alpha(accent, isDark ? 0.06 : 0.03),
-              border: '1px solid',
-              borderColor: alpha(accent, 0.12),
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, minWidth: 0 }}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                fontWeight={500}
-                fontSize="0.7rem"
-                sx={{ flexShrink: 0 }}
-              >
-                {t('bookingEngine.ai.settings.keyLabel')}
-              </Typography>
-              <Typography
-                variant="caption"
-                fontFamily="monospace"
-                fontWeight={600}
-                fontSize="0.72rem"
-                title={status.maskedApiKey ?? undefined}
-                sx={{
-                  color: accent,
-                  // Tronque la cle masquee (60+ etoiles) sans casser le layout flex.
-                  // minWidth:0 sur le parent + flex:1 ici + overflow ellipsis = truncation propre.
-                  flex: 1,
-                  minWidth: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {status.maskedApiKey}
-              </Typography>
-            </Box>
-            {status.modelOverride && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight={500} fontSize="0.7rem">
-                  {t('bookingEngine.ai.settings.modelLabel')}
-                </Typography>
-                <Typography variant="caption" fontWeight={600} fontSize="0.72rem">
-                  {status.modelOverride}
-                </Typography>
-              </Box>
-            )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, minWidth: 0 }}>
+            <Typography
+              variant="caption"
+              fontFamily="monospace"
+              color="text.primary"
+              title={status.maskedApiKey ?? undefined}
+              sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem' }}
+            >
+              {status.maskedApiKey}
+            </Typography>
             <Chip
               size="small"
-              icon={status.valid
-                ? <CheckCircle size={13} strokeWidth={1.75} />
-                : <ErrorIcon size={13} strokeWidth={1.75} />
-              }
+              icon={status.valid ? <CheckCircle size={13} strokeWidth={2} /> : <ErrorIcon size={13} strokeWidth={2} />}
               label={status.valid
                 ? t('bookingEngine.ai.settings.validated')
-                : t('bookingEngine.ai.settings.notValidated')
-              }
+                : t('bookingEngine.ai.settings.notValidated')}
               sx={{
+                flexShrink: 0,
                 height: 22,
-                fontSize: '0.65rem',
+                fontSize: '0.66rem',
                 fontWeight: 600,
-                ...(status.valid
-                  ? {
-                      bgcolor: alpha(accent, isDark ? 0.15 : 0.08),
-                      color: accent,
-                      '& .MuiChip-icon': { color: accent },
-                    }
-                  : {
-                      bgcolor: alpha(theme.palette.error.main, 0.08),
-                      color: 'error.main',
-                      '& .MuiChip-icon': { color: 'error.main' },
-                    }),
+                bgcolor: alpha(status.valid ? ok : theme.palette.error.main, isDark ? 0.18 : 0.1),
+                color: status.valid ? ok : theme.palette.error.main,
+                '& .MuiChip-icon': { color: status.valid ? ok : theme.palette.error.main },
               }}
             />
           </Box>
         )}
 
-        {/* ── Shared key description ── */}
-        {!isOrgKey && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem', lineHeight: 1.5 }}>
-            {t('bookingEngine.ai.settings.sharedKeyDescription')}
-          </Typography>
-        )}
-
-        {/* ── Action buttons ── */}
+        {/* ── Actions : couleurs cohérentes (primary action, error déconnexion) ── */}
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant={isOrgKey ? 'outlined' : 'contained'}
             size="small"
+            color="primary"
+            disableElevation
             onClick={onConfigure}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 600,
-              borderRadius: 1.5,
-              ...(isOrgKey
-                ? {
-                    borderColor: alpha(accent, 0.5),
-                    color: accent,
-                    '&:hover': {
-                      borderColor: accent,
-                      bgcolor: alpha(accent, 0.06),
-                    },
-                  }
-                : {
-                    bgcolor: accent,
-                    '&:hover': { bgcolor: alpha(accent, 0.85) },
-                  }),
-            }}
+            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, flex: isOrgKey ? '0 0 auto' : 1 }}
           >
             {isOrgKey ? t('bookingEngine.ai.settings.modify') : t('bookingEngine.ai.settings.connect')}
           </Button>
@@ -309,19 +228,11 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
             <Button
               variant="outlined"
               size="small"
-              startIcon={isDisconnecting ? <CircularProgress size={14} /> : <LinkOff size={16} strokeWidth={1.75} />}
+              color="error"
+              startIcon={isDisconnecting ? <CircularProgress size={14} color="inherit" /> : <LinkOff size={15} strokeWidth={1.75} />}
               onClick={onDisconnect}
               disabled={isDisconnecting}
-              sx={{
-                textTransform: 'none',
-                borderRadius: 1.5,
-                borderColor: alpha(theme.palette.error.main, 0.4),
-                color: 'error.main',
-                '&:hover': {
-                  borderColor: 'error.main',
-                  bgcolor: alpha(theme.palette.error.main, 0.06),
-                },
-              }}
+              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
             >
               {t('bookingEngine.ai.settings.disconnect')}
             </Button>
@@ -347,8 +258,30 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   const [apiKey, setApiKey] = useState('');
   const [modelOverride, setModelOverride] = useState('');
   const [showKey, setShowKey] = useState(false);
+  const [models, setModels] = useState<AiCatalogModel[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const testMutation = useTestAiKey();
   const saveMutation = useSaveAiKey();
+
+  // Catalogue LIVE : interroge le provider (GET /models) avec la clé saisie → on
+  // choisit un modèle réel au lieu d'un modèle figé dans le code.
+  const loadModels = async () => {
+    if (!provider || !apiKey.trim()) return;
+    setLoadingModels(true);
+    setCatalogError(null);
+    try {
+      setModels(await aiApi.getOrgProviderCatalog({ provider, apiKey: apiKey.trim() }));
+    } catch (e) {
+      setCatalogError(
+        (e as Error)?.message ||
+          t('bookingEngine.ai.settings.modelCatalogError', 'Catalogue indisponible — saisis l’ID du modèle à la main.'),
+      );
+      setModels([]);
+    } finally {
+      setLoadingModels(false);
+    }
+  };
 
   const brand = provider ? PROVIDERS[provider] : null;
   const accent = brand ? (isDark ? brand.accentDark : brand.accent) : theme.palette.primary.main;
@@ -358,6 +291,9 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
     setApiKey('');
     setModelOverride('');
     setShowKey(false);
+    setModels([]);
+    setCatalogError(null);
+    setLoadingModels(false);
     testMutation.reset();
     saveMutation.reset();
     onClose();
@@ -427,19 +363,57 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
             }}
           />
 
-          <TextField
-            label={t('bookingEngine.ai.settings.modelOverrideLabel')}
+          <Autocomplete
+            freeSolo
+            options={models.map((m) => m.id)}
             value={modelOverride}
-            onChange={(e) => setModelOverride(e.target.value)}
+            inputValue={modelOverride}
+            onInputChange={(_, v) => setModelOverride(v)}
+            loading={loadingModels}
             fullWidth
-            placeholder={brand?.modelPlaceholder}
-            helperText={t('bookingEngine.ai.settings.modelOverrideHelper')}
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: accent,
-              },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={t('bookingEngine.ai.settings.modelOverrideLabel')}
+                placeholder={brand?.modelPlaceholder}
+                error={Boolean(catalogError)}
+                helperText={
+                  catalogError ||
+                  (models.length > 0
+                    ? t('bookingEngine.ai.settings.modelCatalogLoaded', {
+                        count: models.length,
+                        defaultValue: '{{count}} modèles disponibles — choisis-en un.',
+                      })
+                    : t('bookingEngine.ai.settings.modelOverrideHelper'))
+                }
+                sx={{
+                  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: accent,
+                  },
+                  '& .MuiInputLabel-root.Mui-focused': { color: accent },
+                }}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      <Button
+                        onClick={loadModels}
+                        disabled={!apiKey.trim() || loadingModels}
+                        size="small"
+                        sx={{ textTransform: 'none', whiteSpace: 'nowrap', minWidth: 0, color: accent }}
+                      >
+                        {loadingModels ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          t('bookingEngine.ai.settings.loadModels', 'Charger les modèles')
+                        )}
+                      </Button>
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
 
           {testMutation.data && (
@@ -683,7 +657,7 @@ function FeatureTogglesSection() {
  * (ex: lien depuis un email de support) ou de retrouver son contexte apres un
  * refresh.</p>
  */
-const SUBTABS = ['connection', 'models', 'supervision', 'briefings', 'kb'] as const;
+const SUBTABS = ['connection', 'models', 'consumption', 'supervision', 'briefings', 'kb'] as const;
 type SubTab = (typeof SUBTABS)[number];
 const DEFAULT_SUBTAB: SubTab = 'connection';
 
@@ -761,6 +735,7 @@ export default function AiSettingsSection() {
       >
         <Tab value="connection" label={t('settings.ai.tabs.connection', 'Connexion')} />
         <Tab value="models" label={t('settings.ai.tabs.models', 'Modèles & features')} />
+        <Tab value="consumption" label={t('settings.ai.tabs.consumption', 'Consommation')} />
         <Tab value="supervision" label={t('settings.ai.tabs.supervision', 'Superviseur')} />
         <Tab value="briefings" label={t('settings.ai.tabs.briefings', 'Briefings')} />
         <Tab value="kb" label={t('settings.ai.tabs.kb', 'Documentation')} />
@@ -795,6 +770,8 @@ export default function AiSettingsSection() {
           {!mainHasAnyRole(['SUPER_ADMIN']) && <FeatureTogglesSection />}
         </>
       )}
+
+      {activeTab === 'consumption' && <AiUsageTrendSection />}
 
       {activeTab === 'supervision' && <AgentSupervisionSection />}
 

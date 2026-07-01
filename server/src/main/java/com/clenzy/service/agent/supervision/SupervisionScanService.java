@@ -96,9 +96,11 @@ public class SupervisionScanService {
         AgentContext context = new AgentContext(
                 orgId, jwt.getSubject(), jwt, language, "/planning", propertyId);
 
-        // Scan opérateur : HITL inline classique (file user-scopée) → pas de
-        // suggestion org-scopée (évite le doublon avec la carte de validation).
-        return runScan(orgId, propertyId, context, false);
+        // Scan opérateur (requête/réponse, sans streaming) : on PERSISTE les actions
+        // proposées dans la file de suggestions → elles apparaissent comme cartes HITL
+        // dans « Attend ta validation ». (Avant : false → le bouton « Scanner » ne
+        // produisait jamais de carte, juste un résumé texte.)
+        return runScan(orgId, propertyId, context, true);
     }
 
     /**
@@ -185,8 +187,12 @@ public class SupervisionScanService {
                 + "Passe en revue : (1) les messages voyageurs en attente de réponse, "
                 + "(2) les tarifs et créneaux à faible demande à optimiser, "
                 + "(3) les ménages et interventions à planifier, "
-                + "(4) les réservations nécessitant une attention. "
-                + "Pour chaque point réellement notable, propose UNE action concrète et utile. "
+                + "(4) les réservations nécessitant une attention, "
+                + "(5) les ménages/interventions NON RÉGLÉS (impayés) à régler. "
+                + "IMPORTANT : quand tu identifies un point actionnable, n'écris PAS seulement une "
+                + "recommandation — APPELLE le tool d'action correspondant pour la PROPOSER (il demandera "
+                + "confirmation avant tout effet). Exemple : interventions impayées → appelle "
+                + "detect_unpaid_interventions, puis si le total dû > 0, propose settle_intervention_payment. "
                 + "Si tout est en ordre, dis-le simplement. Sois concis.";
     }
 }

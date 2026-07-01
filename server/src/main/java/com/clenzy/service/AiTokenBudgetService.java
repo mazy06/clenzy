@@ -4,6 +4,7 @@ import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiResponse;
 import com.clenzy.dto.AiFeatureUsageBreakdownDto;
 import com.clenzy.dto.AiUsageStatsDto;
+import com.clenzy.dto.DailyUsageDto;
 import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -167,8 +170,13 @@ public class AiTokenBudgetService {
 
     /**
      * Enregistre la consommation de tokens apres un appel LLM.
+     *
+     * <p>REQUIRES_NEW : l'enregistrement (INSERT) doit avoir sa PROPRE transaction en
+     * écriture, car il est souvent appelé depuis un contexte read-only (ex. un tool
+     * analytics {@code @Transactional(readOnly = true)} comme {@code get_business_insights})
+     * — sinon « cannot execute INSERT in a read-only transaction » et l'usage n'est pas compté.</p>
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void recordUsage(Long organizationId, AiFeature feature,
                             String providerName, AiResponse response) {
         AiTokenUsage usage = new AiTokenUsage(
@@ -282,5 +290,28 @@ public class AiTokenBudgetService {
         }
 
         return new AiFeatureUsageBreakdownDto(currentMonth, result);
+    }
+
+    /**
+     * Série temporelle de consommation (vue « Consommation ») : par (jour, provider, model),
+     * avec coût USD. {@code days} borné 1..90. Read-only.
+     */
+    @Transactional(readOnly = true)
+    public List<DailyUsageDto> getDailyUsage(Long orgId, int days) {
+        int d = Math.max(1, Math.min(days, 90));
+        LocalDateTime since = LocalDate.now().minusDays(d - 1L).atStartOfDay();
+        List<DailyUsageDto> out = new ArrayList<>();
+        for (Object[] r : usageRepository.aggregateDailyByProviderModel(orgId, since)) {
+            Object rawDate = r[0];
+            LocalDate day = (rawDate instanceof java.sql.Date sd) ? sd.toLocalDate() : (LocalDate) rawDate;
+            String provider = (String) r[1];
+            String model = (String) r[2];
+            long in = ((Number) r[3]).longValue();
+            long outTokens = ((Number) r[4]).longValue();
+            long calls = ((Number) r[5]).longValue();
+            out.add(new DailyUsageDto(day.toString(), provider, model, in, outTokens, calls,
+                    pricingService.computeCost(model, in, outTokens)));
+        }
+        return out;
     }
 }

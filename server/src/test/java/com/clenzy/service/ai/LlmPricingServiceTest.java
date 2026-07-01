@@ -43,6 +43,34 @@ class LlmPricingServiceTest {
     }
 
     @Test
+    void gpt5_mini_wins_over_gpt5_prefix() {
+        // "gpt-5-mini" (0.25/2.00) doit gagner sur "gpt-5" (1.25/10.00)
+        LlmPricingService.ModelPrice p = pricing.priceOf("gpt-5-mini-2025-08-07");
+        assertThat(p.inputPerMillion()).isEqualByComparingTo("0.25");
+        assertThat(p.outputPerMillion()).isEqualByComparingTo("2.00");
+    }
+
+    @Test
+    void gpt41_wins_over_gpt4_prefix() {
+        // "gpt-4.1" (2.00/8.00) doit gagner sur "gpt-4" (30.00/60.00)
+        assertThat(pricing.priceOf("gpt-4.1").inputPerMillion()).isEqualByComparingTo("2.00");
+        assertThat(pricing.priceOf("gpt-4.1-mini").inputPerMillion()).isEqualByComparingTo("0.40");
+    }
+
+    @Test
+    void reasoning_models_priced() {
+        assertThat(pricing.priceOf("o3").outputPerMillion()).isEqualByComparingTo("8.00");
+        assertThat(pricing.priceOf("o1").inputPerMillion()).isEqualByComparingTo("15.00");
+    }
+
+    @Test
+    void gpt5_variant_falls_back_to_gpt5_not_zero() {
+        // Un variant non listé (ex. "gpt-5.4-mini") retombe sur le prefix "gpt-5" (ballpark, pas $0)
+        LlmPricingService.ModelPrice p = pricing.priceOf("gpt-5.4-mini");
+        assertThat(p.inputPerMillion()).isEqualByComparingTo("1.25");
+    }
+
+    @Test
     void voyage_large_embedding_only_charges_input() {
         // 1M input @ $0.18 + 0 output (embeddings ne facturent que l'input)
         BigDecimal cost = pricing.computeCost("voyage-3-large", 1_000_000L, 0L);
