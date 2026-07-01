@@ -35,7 +35,7 @@ import java.util.function.Consumer;
 public class AgentToolLoopRunner {
 
     private static final Logger log = LoggerFactory.getLogger(AgentToolLoopRunner.class);
-    private static final int MAX_TOOL_ITERATIONS = 5;
+    private static final int MAX_TOOL_ITERATIONS = 4;
 
     private final ChatLLMProvider chatProvider;
     private final ToolRegistry toolRegistry;
@@ -90,17 +90,27 @@ public class AgentToolLoopRunner {
             assistantMsg.setFinishReason(outcome.finishReason);
             messageRepository.save(assistantMsg);
 
-            if (conversation.getModel() == null && outcome.model != null) {
-                conversation.setModel(outcome.model);
+            // Modèle RÉELLEMENT utilisé = celui envoyé (request.model()) ; outcome.model peut
+            // retomber sur un défaut ('claude-sonnet-4') si le stream ne le renvoie pas
+            // → sinon coût FAUX dans la vue Consommation (prix Claude sur du gpt-5-mini).
+            String usedModel = (request.model() != null && !request.model().isBlank())
+                    ? request.model() : outcome.model;
+
+            if (conversation.getModel() == null && usedModel != null) {
+                conversation.setModel(usedModel);
             }
 
             // Track usage : alimente ai_token_usage pour le badge frontend
             // "$0.12 ce mois" + alertes budget. Granularite = par iteration LLM
             // (1 record par tool call round, pour matcher la realite des couts).
+            if (outcome.cachedPromptTokens > 0) {
+                log.info("[USAGE] Cache hit : {} tokens caches → {} tokens factures (prompt)",
+                        outcome.cachedPromptTokens, outcome.promptTokens);
+            }
             recordUsageSafe(context.organizationId(),
                     request.provider() != null ? request.provider() : "anthropic",
                     outcome.promptTokens, outcome.completionTokens,
-                    outcome.model, outcome.finishReason);
+                    usedModel, outcome.finishReason);
 
             // No tool calls → done
             if (outcome.toolCalls == null || outcome.toolCalls.isEmpty()) {
@@ -166,7 +176,9 @@ public class AgentToolLoopRunner {
                         call.id(), result.content());
                 messageRepository.save(toolMsg);
 
-                toolResults.add(ChatMessage.tool(call.id(), result.content()));
+                // Copie ENVOYÉE au LLM : tronquée si volumineuse (lever #2). La copie
+                // persistée ci-dessus et le widget frontend restent complets.
+                toolResults.add(ChatMessage.tool(call.id(), ContextBudget.capToolResult(result.content())));
             }
 
             // Build next request : current request + assistant turn + tool results
@@ -178,9 +190,32 @@ public class AgentToolLoopRunner {
             request = next;
         }
 
-        // Hit iteration cap
-        consumer.accept(AgentSseEvent.error(
-                "Trop d'iterations d'outils (>" + MAX_TOOL_ITERATIONS + "). Reformule ta demande."));
+        // Plafond d'iterations atteint : repli GRACIEUX (au lieu d'une erreur dure qui
+        // perdait tout le travail collecte). On force un DERNIER tour SANS outils pour que
+        // le modele synthetise une reponse a partir des resultats deja obtenus.
+        log.info("Cap d'iterations atteint ({}) — tour final sans outils pour synthese",
+                MAX_TOOL_ITERATIONS);
+        LoopOutcome finalOutcome = streamOneTurn(request.withoutTools(), apiKey, consumer);
+        if (finalOutcome.error != null) {
+            consumer.accept(AgentSseEvent.error(finalOutcome.error));
+            return;
+        }
+        AssistantMessage finalMsg = AssistantMessage.assistant(
+                conversation.getId(), context.organizationId(),
+                finalOutcome.text == null ? "" : finalOutcome.text, null);
+        finalMsg.setPromptTokens(finalOutcome.promptTokens);
+        finalMsg.setCompletionTokens(finalOutcome.completionTokens);
+        finalMsg.setFinishReason(finalOutcome.finishReason);
+        messageRepository.save(finalMsg);
+
+        String finalModel = (request.model() != null && !request.model().isBlank())
+                ? request.model() : finalOutcome.model;
+        recordUsageSafe(context.organizationId(),
+                request.provider() != null ? request.provider() : "anthropic",
+                finalOutcome.promptTokens, finalOutcome.completionTokens,
+                finalModel, finalOutcome.finishReason);
+        consumer.accept(AgentSseEvent.done(
+                finalOutcome.finishReason != null ? finalOutcome.finishReason : "stop"));
     }
 
     /**
@@ -278,8 +313,10 @@ public class AgentToolLoopRunner {
                 outcome.toolCalls = new ArrayList<>(tcr.calls());
             } else if (event instanceof ChatEvent.Done done) {
                 outcome.text = done.fullText();
-                outcome.promptTokens = done.promptTokens();
+                // Tokens FACTURÉS (cache OpenAI décompté à ~50%) → coût réel dans la vue Consommation (#4).
+                outcome.promptTokens = done.billedPromptTokens();
                 outcome.completionTokens = done.completionTokens();
+                outcome.cachedPromptTokens = done.cachedPromptTokens();
                 outcome.model = done.model();
                 outcome.finishReason = done.finishReason();
             } else if (event instanceof ChatEvent.Error err) {
@@ -375,6 +412,7 @@ public class AgentToolLoopRunner {
         List<ChatMessage.ToolCall> toolCalls;
         int promptTokens;
         int completionTokens;
+        int cachedPromptTokens;
         String model;
         String finishReason;
         String error;

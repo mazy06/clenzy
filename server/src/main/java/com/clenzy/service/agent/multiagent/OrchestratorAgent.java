@@ -277,7 +277,7 @@ public class OrchestratorAgent {
                 } else if (event instanceof ChatEvent.ToolCallRequest tcr) {
                     toolCallsRef.set(tcr.calls());
                 } else if (event instanceof ChatEvent.Done done) {
-                    totalPromptTokens.addAndGet(done.promptTokens());
+                    totalPromptTokens.addAndGet(done.billedPromptTokens());
                     totalCompletionTokens.addAndGet(done.completionTokens());
                 } else if (event instanceof ChatEvent.Error err) {
                     errorMsg.set(err.message());
@@ -660,7 +660,7 @@ public class OrchestratorAgent {
                 } else if (event instanceof ChatEvent.ToolCallRequest tcr) {
                     toolCallsRef.set(tcr.calls());
                 } else if (event instanceof ChatEvent.Done done) {
-                    totalPromptTokens.addAndGet(done.promptTokens());
+                    totalPromptTokens.addAndGet(done.billedPromptTokens());
                     totalCompletionTokens.addAndGet(done.completionTokens());
                 } else if (event instanceof ChatEvent.Error err) {
                     errorMsg.set(err.message());

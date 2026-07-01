@@ -11,16 +11,29 @@ const AGENTS: LayoutAgentInput[] = [
 ];
 
 const SIZE = { width: 600, height: 560 };
-const R = Math.min(SIZE.width, SIZE.height) / 2;
 const dist = (p: { x: number; y: number }, cx: number, cy: number) => Math.hypot(p.x - cx, p.y - cy);
 
 describe('computeConstellationLayout', () => {
   const layout = computeConstellationLayout(AGENTS, SIZE);
+  // R est désormais dimensionné pour que l'anneau extérieur tienne dans la boîte
+  // (empreinte du satellite incluse) → on le lit depuis la sortie, et on vérifie
+  // les relations r = R·RAD + l'invariant anti-clip ci-dessous.
+  const R = layout.radius;
 
-  it('centre et rayon R', () => {
+  it('centre au milieu de la boîte, rayon dimensionné', () => {
     expect(layout.cx).toBe(300);
     expect(layout.cy).toBe(280);
-    expect(layout.radius).toBe(R);
+    expect(R).toBeGreaterThan(0);
+    expect(R).toBeLessThan(Math.min(SIZE.width, SIZE.height) / 2); // réduit vs l'ancien min/2
+  });
+
+  it('anti-clip : l\'agent extérieur (rotation incluse) garde une marge sous la boîte', () => {
+    // .cst__spin tourne → un satellite de l'anneau le plus loin atteint le point
+    // le plus bas (cy + R·RAD.suggest). + ~55px de pastille de nom sous l'avatar.
+    const lowestLabelBottom = layout.cy + R * RAD.suggest + 55;
+    expect(lowestLabelBottom).toBeLessThanOrEqual(SIZE.height - 20);
+    // et l'agent ne dépasse pas non plus en haut (avatar)
+    expect(layout.cy - R * RAD.suggest - 25).toBeGreaterThanOrEqual(0);
   });
 
   it('3 anneaux aux rayons R·RAD', () => {

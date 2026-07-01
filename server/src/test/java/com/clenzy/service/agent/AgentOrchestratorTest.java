@@ -314,12 +314,17 @@ class AgentOrchestratorTest {
         List<AgentSseEvent> events = new ArrayList<>();
         orchestrator.handleMessage(null, "loop", ctx, events::add);
 
-        // Doit s'arreter sur erreur "Trop d'iterations"
-        AgentSseEvent error = events.stream()
-                .filter(e -> "error".equals(e.type())).findFirst().orElseThrow();
-        assertTrue(error.error().contains("Trop d'iterations"));
+        // Repli GRACIEUX : apres MAX_TOOL_ITERATIONS tours d'outils, un tour final SANS
+        // outils force une synthese (plus d'erreur dure "Trop d'iterations"). La boucle
+        // reste bornee et se termine par un 'done'.
+        boolean hasDone = events.stream().anyMatch(e -> "done".equals(e.type()));
+        assertTrue(hasDone, "un event 'done' doit etre emis apres le repli gracieux");
+        boolean hasIterationError = events.stream()
+                .anyMatch(e -> "error".equals(e.type())
+                        && e.error() != null && e.error().contains("Trop d'iterations"));
+        assertFalse(hasIterationError, "plus d'erreur dure 'Trop d'iterations'");
 
-        // Verify max 5 iterations
+        // Bornage : MAX_TOOL_ITERATIONS tours d'outils + 1 tour final de synthese.
         verify(chatProvider, times(5)).streamChat(any(ChatRequest.class), any());
     }
 

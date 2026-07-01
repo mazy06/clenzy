@@ -42,17 +42,29 @@ public class OrgAiApiKeyService {
     private final PlatformAiFeatureModelRepository platformAiFeatureModelRepository;
     private final OpenAiProvider openAiProvider;
     private final AnthropicProvider anthropicProvider;
+    private final PlatformAiConfigService platformAiConfigService;
 
     public OrgAiApiKeyService(OrgAiApiKeyRepository repository,
                                AiProperties aiProperties,
                                PlatformAiFeatureModelRepository platformAiFeatureModelRepository,
                                OpenAiProvider openAiProvider,
-                               AnthropicProvider anthropicProvider) {
+                               AnthropicProvider anthropicProvider,
+                               PlatformAiConfigService platformAiConfigService) {
         this.repository = repository;
         this.aiProperties = aiProperties;
         this.platformAiFeatureModelRepository = platformAiFeatureModelRepository;
         this.openAiProvider = openAiProvider;
         this.anthropicProvider = anthropicProvider;
+        this.platformAiConfigService = platformAiConfigService;
+    }
+
+    /**
+     * Catalogue LIVE des modèles d'un provider (BYOK) : interroge {@code GET /models}
+     * avec la clé fournie. NON transactionnel (appel HTTP externe). Réutilise la logique
+     * partagée de {@link PlatformAiConfigService#listProviderModels} (gère OpenAI & Anthropic).
+     */
+    public List<com.clenzy.dto.AiCatalogModelDto> listModels(String provider, String apiKey) {
+        return platformAiConfigService.listProviderModels(provider, apiKey, null);
     }
 
     /**
@@ -103,14 +115,14 @@ public class OrgAiApiKeyService {
      * @param apiKey   la cle API a tester
      * @return resultat du test (success/failure + keyValid + message)
      */
-    public AiApiKeyTestResultDto testKey(String provider, String apiKey) {
+    public AiApiKeyTestResultDto testKey(String provider, String apiKey, String modelOverride) {
         validateProvider(provider);
 
         try {
             if ("openai".equals(provider)) {
-                return testOpenAiKey(apiKey);
+                return testOpenAiKey(apiKey, modelOverride);
             } else {
-                return testAnthropicKey(apiKey);
+                return testAnthropicKey(apiKey, modelOverride);
             }
         } catch (Exception e) {
             log.warn("API key test failed for provider={}: {}", provider, e.getMessage());
@@ -132,8 +144,8 @@ public class OrgAiApiKeyService {
     public OrgAiApiKeyStatusDto saveKey(Long orgId, String provider, String apiKey, String modelOverride) {
         validateProvider(provider);
 
-        // Test the key first
-        AiApiKeyTestResultDto testResult = testKey(provider, apiKey);
+        // Test the key first (avec le modèle choisi, sinon « Aucun modèle résolu »)
+        AiApiKeyTestResultDto testResult = testKey(provider, apiKey, modelOverride);
 
         // Reject only if the key itself is invalid (not for billing/quota issues)
         if (!testResult.keyValid()) {
@@ -177,8 +189,11 @@ public class OrgAiApiKeyService {
 
     // ─── Private helpers ─────────────────────────────────────────────────
 
-    private AiApiKeyTestResultDto testOpenAiKey(String apiKey) {
-        AiRequest request = AiRequest.withMaxTokens("You are a test assistant.", "Say OK", 5);
+    private AiApiKeyTestResultDto testOpenAiKey(String apiKey, String model) {
+        // Le test PING utilise le modèle CHOISI (sinon le provider tente de résoudre le
+        // modèle de la feature → « Aucun modèle résolu »). Repli sur un modèle cheap.
+        AiRequest request = AiRequest.withMaxTokens("You are a test assistant.", "Say OK", 5)
+                .overrideModel((model != null && !model.isBlank()) ? model.trim() : "gpt-4o-mini");
 
         try {
             AiResponse response = openAiProvider.chat(request, apiKey);
@@ -193,8 +208,9 @@ public class OrgAiApiKeyService {
         }
     }
 
-    private AiApiKeyTestResultDto testAnthropicKey(String apiKey) {
-        AiRequest request = AiRequest.withMaxTokens("You are a test assistant.", "Say OK", 5);
+    private AiApiKeyTestResultDto testAnthropicKey(String apiKey, String model) {
+        AiRequest request = AiRequest.withMaxTokens("You are a test assistant.", "Say OK", 5)
+                .overrideModel((model != null && !model.isBlank()) ? model.trim() : "claude-3-5-haiku-latest");
 
         try {
             AiResponse response = anthropicProvider.chat(request, apiKey);

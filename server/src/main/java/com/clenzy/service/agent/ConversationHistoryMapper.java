@@ -41,7 +41,7 @@ public class ConversationHistoryMapper {
 
     public List<ChatMessage> toChatMessages(List<AssistantMessage> history) {
         List<ChatMessage> result = new ArrayList<>();
-        for (AssistantMessage m : history) {
+        for (AssistantMessage m : windowed(history)) {
             switch (m.getRole()) {
                 case AssistantMessage.ROLE_USER -> {
                     String content = m.getContent() != null ? m.getContent() : "";
@@ -62,11 +62,42 @@ public class ConversationHistoryMapper {
                 }
                 case AssistantMessage.ROLE_TOOL ->
                         result.add(ChatMessage.tool(m.getToolCallId(),
-                                m.getContent() != null ? m.getContent() : ""));
+                                ContextBudget.capToolResult(m.getContent())));
                 default -> log.warn("Role inconnu dans l'historique : {}", m.getRole());
             }
         }
         return result;
+    }
+
+    /**
+     * Fenêtre glissante d'historique (lever #2) : ne garde que les
+     * {@link ContextBudget#MAX_HISTORY_MESSAGES} messages les plus récents, en
+     * préservant l'intégrité tool_use/tool_result.
+     *
+     * <p>Après découpe, on élague les {@code ROLE_TOOL} en TÊTE de fenêtre : leur
+     * message assistant (tool_call) serait hors fenêtre → {@code tool_result} orphelin
+     * = requête invalide côté Anthropic/OpenAI. La queue (tour user courant) est
+     * toujours conservée.</p>
+     */
+    private List<AssistantMessage> windowed(List<AssistantMessage> history) {
+        if (history == null || history.size() <= ContextBudget.MAX_HISTORY_MESSAGES) {
+            return history;
+        }
+        int start = history.size() - ContextBudget.MAX_HISTORY_MESSAGES;
+        while (start < history.size()
+                && AssistantMessage.ROLE_TOOL.equals(history.get(start).getRole())) {
+            start++;
+        }
+        // Garde-fou : si la fenêtre ne contenait QUE des ROLE_TOOL (cas quasi-impossible
+        // en flux nominal), l'élagage viderait la liste → requête LLM sans message (400).
+        // On retombe sur la fenêtre brute (le provider tolère mieux un tool_result de tête
+        // qu'une liste vide).
+        if (start >= history.size()) {
+            return history.subList(history.size() - ContextBudget.MAX_HISTORY_MESSAGES, history.size());
+        }
+        log.debug("Historique tronqué : {} messages → fenêtre de {} (depuis l'index {})",
+                history.size(), history.size() - start, start);
+        return history.subList(start, history.size());
     }
 
     /**
