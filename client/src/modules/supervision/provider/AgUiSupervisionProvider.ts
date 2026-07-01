@@ -29,7 +29,7 @@
 
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
-import type { AgentId, OrchestratorSnapshot, PendingAgentAction, StreamEvent } from '../types';
+import type { AgentId, OrchestratorSnapshot, PendingAction, PendingAgentAction, StreamEvent } from '../types';
 import type { SupervisionProvider } from './SupervisionProvider';
 import { buildPropertySnapshot } from './mockData';
 import { mapSpecialistToAgent } from './specialistMapping';
@@ -93,6 +93,40 @@ interface SuggestionShape {
   expiresAt?: string;
 }
 
+/** Rappel J-1 de reversement (GET /api/ai/supervision/payout-reminder, cf. PayoutReminderDto). */
+interface PayoutReminderShape {
+  id: string;
+  title: string;
+  motif: string;
+  reasoning: string;
+  payoutDate: string; // ISO date (YYYY-MM-DD)
+}
+
+/** Préfixe d'id qui distingue une carte de rappel payout d'une suggestion de scan. */
+const PAYOUT_REMINDER_PREFIX = 'payout-reminder';
+
+/** Carte « demande de service impayée » (GET /api/ai/supervision/unpaid-service-requests/{id}). */
+interface UnpaidSrCardShape {
+  id: string;
+  serviceRequestId: number;
+  title: string;
+  motif: string;
+  reasoning: string;
+  amount: number;
+}
+
+/** Préfixe d'id d'une carte de paiement de demande de service. */
+const SERVICE_REQUEST_PREFIX = 'service-request';
+
+/** Montant € sans décimales superflues (95 → « 95 € », 95.5 → « 95,50 € »). */
+function formatEuro(amount: number): string {
+  const fractionDigits = Number.isInteger(amount) ? 0 : 2;
+  return `${amount.toLocaleString('fr-FR', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: 2,
+  })} €`;
+}
+
 export interface AgUiProviderOptions {
   /**
    * Si fourni, déclenche un run multi-agent dès la 1re souscription (ex. pour
@@ -144,25 +178,60 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    */
   async getSnapshot(): Promise<OrchestratorSnapshot> {
     const base = buildPropertySnapshot(this.propertyId, 'calm');
-    const [hitlPending, activity, suggestions] = await Promise.all([
+    const [hitlPending, activity, suggestions, payoutReminder, unpaidSrCards] = await Promise.all([
       this.fetchPending(),
       this.fetchActivity(),
       this.fetchSuggestions(),
+      this.fetchPayoutReminder(),
+      this.fetchUnpaidServiceRequests(),
     ]);
     const inline = hitlPending[0] ? pendingDtoToAgentAction(hitlPending[0]) : null;
     if (inline) this.currentInterruptId = inline.interruptId;
 
-    // File persistante org-scopée (suggestions des scans autonomes).
-    const pendingQueue = suggestions.map((s) => ({
-      id: s.id,
-      agentId: s.agentId as AgentId,
-      title: s.title,
-      motif: s.motif ?? '',
-      reasoning: s.motif ?? '',
-      reservationId: s.reservationId != null ? String(s.reservationId) : null,
-      createdAt: s.createdAt,
-      expiresAt: s.expiresAt ?? s.createdAt,
-    }));
+    // File persistante : demandes de service impayées à régler (une carte par SR, en
+    // tête, actionnable) + rappel payout J-1 + suggestions des scans autonomes.
+    const pendingQueue: PendingAction[] = [];
+    for (const sr of unpaidSrCards) {
+      pendingQueue.push({
+        id: sr.id,
+        agentId: 'fin',
+        title: sr.title,
+        motif: sr.motif,
+        reasoning: sr.reasoning,
+        reservationId: null,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date().toISOString(),
+        kind: 'payment',
+        // Montant formaté → affiché DANS le bouton « Régler » (la ligne
+        // « Montant à régler » est supprimée de la carte).
+        amountLabel: formatEuro(sr.amount),
+      });
+    }
+    if (payoutReminder) {
+      pendingQueue.push({
+        id: payoutReminder.id,
+        agentId: 'fin',
+        title: payoutReminder.title,
+        motif: payoutReminder.motif,
+        reasoning: payoutReminder.reasoning,
+        reservationId: null,
+        createdAt: new Date().toISOString(),
+        expiresAt: `${payoutReminder.payoutDate}T23:59:59`,
+        kind: 'reminder',
+      });
+    }
+    pendingQueue.push(
+      ...suggestions.map((s) => ({
+        id: s.id,
+        agentId: s.agentId as AgentId,
+        title: s.title,
+        motif: s.motif ?? '',
+        reasoning: s.motif ?? '',
+        reservationId: s.reservationId != null ? String(s.reservationId) : null,
+        createdAt: s.createdAt,
+        expiresAt: s.expiresAt ?? s.createdAt,
+      })),
+    );
 
     // Agents en attente : HITL (specialist) + suggestions (module).
     const waiting = new Set<AgentId>([
@@ -279,6 +348,104 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Rappel J-1 de reversement (GET /ai/supervision/payout-reminder). 204 = rien à
+   * afficher. GRACIEUX : tout échec → null (le snapshot reste lisible).
+   */
+  private async fetchPayoutReminder(): Promise<PayoutReminderShape | null> {
+    try {
+      const token = getAccessToken();
+      const response = await fetch(buildApiUrl('/ai/supervision/payout-reminder'), {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (response.status === 204 || !response.ok) return null;
+      const body = (await response.json()) as PayoutReminderShape;
+      return body?.id ? body : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Action sur le rappel payout : 'ack' (« Info reçue ») ou 'opt-out' (« Ne plus
+   * afficher »). Best-effort ; on retire la carte de la file localement dans tous les cas.
+   */
+  private async postReminderAction(id: string, action: 'ack' | 'opt-out'): Promise<void> {
+    try {
+      const token = getAccessToken();
+      await fetch(buildApiUrl(`/ai/supervision/payout-reminder/${action}`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+    } catch {
+      /* réseau → on retire quand même la carte localement */
+    }
+    if (!this.disposed) this.emit({ type: 'pending.resolved', actionId: id, outcome: 'validated' });
+  }
+
+  /**
+   * Cartes déterministes des demandes de service impayées du logement
+   * (GET /ai/supervision/unpaid-service-requests/{id}). GRACIEUX : tout échec → [].
+   */
+  private async fetchUnpaidServiceRequests(): Promise<UnpaidSrCardShape[]> {
+    try {
+      const token = getAccessToken();
+      const response = await fetch(
+        buildApiUrl(`/ai/supervision/unpaid-service-requests/${this.propertyId}`),
+        {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        },
+      );
+      if (!response.ok) return [];
+      const body = (await response.json()) as UnpaidSrCardShape[];
+      return Array.isArray(body) ? body.filter((c) => !!c?.id) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * « Régler » : réutilise le flux de paiement existant de la demande de service
+   * (POST /service-requests/{srId}/create-payment-session) et ouvre la page Stripe
+   * dans un nouvel onglet. Retire ensuite la carte de la file.
+   */
+  private async settleServiceRequest(cardId: string): Promise<void> {
+    const srId = cardId.slice(SERVICE_REQUEST_PREFIX.length + 1); // "service-request-<id>"
+    if (!srId) return;
+    try {
+      const token = getAccessToken();
+      const response = await fetch(buildApiUrl(`/service-requests/${srId}/create-payment-session`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (response.ok) {
+        const body = (await response.json()) as { checkoutUrl?: string };
+        if (body?.checkoutUrl) {
+          window.open(body.checkoutUrl, '_blank', 'noopener');
+        }
+      }
+    } catch {
+      /* réseau → la carte reste, l'opérateur pourra réessayer */
+      return;
+    }
+    if (!this.disposed) this.emit({ type: 'pending.resolved', actionId: cardId, outcome: 'validated' });
   }
 
   /** Rejette une suggestion côté serveur (best-effort) + retire de la file. */
@@ -569,11 +736,34 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   // org-scopées : valider/modifier les REJETTE côté serveur (informationnelles).
   // L'autonomie globale / pause restent pilotées depuis Settings > IA (no-op ici).
 
+  // Routage par type de carte (préfixe d'id) :
+  //  - « service-request-… » : « Régler » = ouvre le paiement Stripe de la SR, « Plus tard » = masque ;
+  //  - « payout-reminder-… » : « Info reçue » = ack, « Ne plus afficher » = opt-out ;
+  //  - sinon (suggestion de scan) : validate/edit = dismiss.
+
   async validatePending(actionId: string): Promise<void> {
+    if (actionId.startsWith(SERVICE_REQUEST_PREFIX)) {
+      await this.settleServiceRequest(actionId);
+      return;
+    }
+    if (actionId.startsWith(PAYOUT_REMINDER_PREFIX)) {
+      await this.postReminderAction(actionId, 'ack');
+      return;
+    }
     await this.dismissSuggestion(actionId, 'validated');
   }
 
   async editPending(actionId: string): Promise<void> {
+    if (actionId.startsWith(SERVICE_REQUEST_PREFIX)) {
+      // « Plus tard » : masque la carte pour cette session (revient au prochain chargement
+      // tant que la demande reste impayée). Aucun effet serveur.
+      if (!this.disposed) this.emit({ type: 'pending.resolved', actionId, outcome: 'edited' });
+      return;
+    }
+    if (actionId.startsWith(PAYOUT_REMINDER_PREFIX)) {
+      await this.postReminderAction(actionId, 'opt-out');
+      return;
+    }
     await this.dismissSuggestion(actionId, 'edited');
   }
 

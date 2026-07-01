@@ -1,8 +1,12 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.PayoutReminderDto;
 import com.clenzy.dto.SupervisionActivitySnapshotDto;
 import com.clenzy.dto.SupervisionScanResultDto;
 import com.clenzy.dto.SupervisionSuggestionDto;
+import com.clenzy.dto.UnpaidServiceRequestCardDto;
+import com.clenzy.service.PayoutReminderService;
+import com.clenzy.service.UnpaidServiceRequestCardService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.agent.supervision.SupervisionScanService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
@@ -33,15 +37,21 @@ public class SupervisionController {
     private final SupervisionActivityService activityService;
     private final SupervisionScanService scanService;
     private final SupervisionSuggestionService suggestionService;
+    private final PayoutReminderService payoutReminderService;
+    private final UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     private final TenantContext tenantContext;
 
     public SupervisionController(SupervisionActivityService activityService,
                                  SupervisionScanService scanService,
                                  SupervisionSuggestionService suggestionService,
+                                 PayoutReminderService payoutReminderService,
+                                 UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                  TenantContext tenantContext) {
         this.activityService = activityService;
         this.scanService = scanService;
         this.suggestionService = suggestionService;
+        this.payoutReminderService = payoutReminderService;
+        this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
         this.tenantContext = tenantContext;
     }
 
@@ -75,5 +85,42 @@ public class SupervisionController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         suggestionService.dismiss(orgId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * GET /api/ai/supervision/payout-reminder — rappel J-1 de génération d'un lot
+     * de reversement (module Finance de la constellation), ou 204 si rien à afficher.
+     * Par utilisateur (opt-out + accusé propres au demandeur).
+     */
+    @GetMapping("/payout-reminder")
+    public ResponseEntity<PayoutReminderDto> payoutReminder(@AuthenticationPrincipal Jwt jwt) {
+        return payoutReminderService.currentReminder(jwt.getSubject())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** POST /api/ai/supervision/payout-reminder/ack — « Info reçue » (accuse l'échéance courante). */
+    @PostMapping("/payout-reminder/ack")
+    public ResponseEntity<Void> ackPayoutReminder(@AuthenticationPrincipal Jwt jwt) {
+        payoutReminderService.acknowledge(jwt.getSubject());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** POST /api/ai/supervision/payout-reminder/opt-out — « Ne plus afficher » (opt-out définitif). */
+    @PostMapping("/payout-reminder/opt-out")
+    public ResponseEntity<Void> optOutPayoutReminder(@AuthenticationPrincipal Jwt jwt) {
+        payoutReminderService.optOut(jwt.getSubject());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * GET /api/ai/supervision/unpaid-service-requests/{propertyId} — cartes déterministes
+     * « demandes de service impayées » du logement (une par ServiceRequest non réglée),
+     * ou liste vide si tout est réglé. Org-scopé (pas d'IDOR). Le règlement réutilise le
+     * flux SR existant : {@code POST /service-requests/{id}/create-payment-session}.
+     */
+    @GetMapping("/unpaid-service-requests/{propertyId}")
+    public ResponseEntity<List<UnpaidServiceRequestCardDto>> unpaidServiceRequests(@PathVariable Long propertyId) {
+        return ResponseEntity.ok(unpaidServiceRequestCardService.forProperty(propertyId));
     }
 }

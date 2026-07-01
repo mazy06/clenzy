@@ -17,7 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -41,6 +44,8 @@ public class DeferredPaymentService {
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
     private final StripeGateway stripeGateway;
+    /** Marquage PROCESSING atomique HORS de la transaction ambiante (règle #2 : Stripe hors tx). */
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -54,11 +59,13 @@ public class DeferredPaymentService {
     public DeferredPaymentService(InterventionRepository interventionRepository,
                                    UserRepository userRepository,
                                    TenantContext tenantContext,
-                                   StripeGateway stripeGateway) {
+                                   StripeGateway stripeGateway,
+                                   PlatformTransactionManager transactionManager) {
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
         this.stripeGateway = stripeGateway;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     /**
@@ -126,7 +133,13 @@ public class DeferredPaymentService {
     /**
      * Cree une session Stripe groupee pour le paiement de toutes les interventions
      * impayees d'un host. Retourne l'URL de la session Stripe.
+     *
+     * <p>NOT_SUPPORTED (règle #2) : l'appel HTTP Stripe ne s'exécute PAS dans une
+     * transaction DB. Les lectures et le marquage PROCESSING s'exécutent dans leurs
+     * propres transactions courtes ; une clé d'idempotence dérivée du lot neutralise
+     * la double création de session (double-clic / concurrence).</p>
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public String createGroupedPaymentSession(Long hostId) throws StripeException {
         User host = userRepository.findById(hostId)
                 .orElseThrow(() -> new RuntimeException("Host non trouve: " + hostId));
@@ -162,7 +175,7 @@ public class DeferredPaymentService {
                                                 .setUnitAmount(amountInCents)
                                                 .setProductData(
                                                         SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                .setName("Clenzy - Interventions impayees")
+                                                                .setName("Baitly - Interventions impayees")
                                                                 .setDescription(description)
                                                                 .build()
                                                 )
@@ -176,14 +189,20 @@ public class DeferredPaymentService {
                 .putMetadata("intervention_ids", interventionIds)
                 .build();
 
-        Session session = stripeGateway.createSession(params);
+        // Clé d'idempotence stable pour ce lot (ids uniques → jamais de collision future).
+        String idempotencyKey = "deferred-host-" + hostId + "-" + Integer.toHexString(interventionIds.hashCode());
+        Session session = stripeGateway.createSession(params, idempotencyKey);
 
-        // Marquer toutes les interventions comme PROCESSING et sauvegarder le session ID
-        for (Intervention intervention : unpaidInterventions) {
-            intervention.setPaymentStatus(PaymentStatus.PROCESSING);
-            intervention.setStripeSessionId(session.getId());
-            interventionRepository.save(intervention);
-        }
+        // Marquer PROCESSING + session ID dans une transaction courte DÉDIÉE (hors de
+        // l'appel Stripe ci-dessus). Le @Version des interventions protège la course.
+        final String sessionId = session.getId();
+        transactionTemplate.executeWithoutResult(status -> {
+            for (Intervention intervention : unpaidInterventions) {
+                intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+                intervention.setStripeSessionId(sessionId);
+                interventionRepository.save(intervention);
+            }
+        });
 
         logger.info("Session Stripe groupee creee: sessionId={}, hostId={}, montant={} EUR, {} interventions",
                 session.getId(), hostId, totalUnpaid, count);
@@ -234,7 +253,11 @@ public class DeferredPaymentService {
     /**
      * Crée une session Stripe groupée pour régler les interventions impayées d'un LOGEMENT.
      * (Scope « logement supervisé » ; le demandeur peut différer de l'opérateur.)
+     *
+     * <p>NOT_SUPPORTED (règle #2) : l'appel Stripe est hors transaction DB ; marquage
+     * PROCESSING en transaction courte dédiée + clé d'idempotence dérivée du lot.</p>
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public String createPropertyPaymentSession(Long propertyId) throws StripeException {
         List<Intervention> unpaid = interventionRepository.findUnpaidByProperty(
                 propertyId, tenantContext.getRequiredOrganizationId());
@@ -272,12 +295,19 @@ public class DeferredPaymentService {
             builder.setCustomerEmail(email);
         }
 
-        Session session = stripeGateway.createSession(builder.build());
-        for (Intervention intervention : unpaid) {
-            intervention.setPaymentStatus(PaymentStatus.PROCESSING);
-            intervention.setStripeSessionId(session.getId());
-            interventionRepository.save(intervention);
-        }
+        // Clé d'idempotence stable pour ce lot (ids uniques → pas de double session).
+        String idempotencyKey = "deferred-property-" + propertyId + "-" + Integer.toHexString(interventionIds.hashCode());
+        Session session = stripeGateway.createSession(builder.build(), idempotencyKey);
+
+        // Marquage PROCESSING en transaction courte dédiée (hors appel Stripe).
+        final String sessionId = session.getId();
+        transactionTemplate.executeWithoutResult(status -> {
+            for (Intervention intervention : unpaid) {
+                intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+                intervention.setStripeSessionId(sessionId);
+                interventionRepository.save(intervention);
+            }
+        });
         logger.info("Session Stripe groupee creee: sessionId={}, propertyId={}, montant={} EUR, {} interventions",
                 session.getId(), propertyId, total, unpaid.size());
         return session.getUrl();

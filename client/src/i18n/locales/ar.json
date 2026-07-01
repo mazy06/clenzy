@@ -75,6 +75,16 @@
       "unitHour": "س",
       "unitMin": "د"
     },
+    "reminder": {
+      "badge": "تذكير",
+      "ack": "تم الاطلاع",
+      "mute": "عدم الإظهار مجددًا"
+    },
+    "payment": {
+      "badge": "للتسوية",
+      "settle": "الدفع",
+      "later": "لاحقًا"
+    },
     "approval": {
       "title": "مطلوب موافقة",
       "reject": "رفض",

@@ -31,6 +31,10 @@ class CalendarPartitionManagerTest {
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
         manager = new CalendarPartitionManager(jdbcTemplate, incidentService, meterRegistry);
+        // Table partitionnée par défaut (check isCalendarDaysPartitioned, overload 2-arg) —
+        // lenient car le test de skip le ré-stub à FALSE.
+        lenient().when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class)))
+            .thenReturn(Boolean.TRUE);
     }
 
     private double failureCount() {
@@ -47,6 +51,20 @@ class CalendarPartitionManagerTest {
         // 6 checks via queryForObject, no execute since all exist
         verify(jdbcTemplate, times(6))
             .queryForObject(anyString(), eq(Boolean.class), any(Object[].class));
+        verify(jdbcTemplate, never()).execute(anyString());
+        verifyNoInteractions(incidentService);
+        assertEquals(0.0, failureCount());
+    }
+
+    @Test
+    void createFuturePartitions_tableNotPartitioned_skipsGracefully() {
+        // Table plate (dev) : isCalendarDaysPartitioned() → false → no-op, aucun incident.
+        when(jdbcTemplate.queryForObject(anyString(), eq(Boolean.class)))
+            .thenReturn(Boolean.FALSE);
+
+        assertDoesNotThrow(() -> manager.createFuturePartitions());
+
+        verify(jdbcTemplate, never()).queryForObject(anyString(), eq(Boolean.class), any(Object[].class));
         verify(jdbcTemplate, never()).execute(anyString());
         verifyNoInteractions(incidentService);
         assertEquals(0.0, failureCount());

@@ -67,13 +67,17 @@ export function SupervisionView({
         <ScopeSwitch value={scope} onChange={setScope} />
       </Box>
       {scope === 'property' ? (
-        <SupervisionPanel
-          createProvider={propertyFactory}
-          deps={[propertyId]}
-          onSelectAgent={onSelectAgent}
-          onActing={onActing}
-          onEditAction={onEditAction}
-        />
+        // Hôte autonome (démo/spike) : hauteur responsive bornée pour que le
+        // panneau (height:100%) ait une hauteur définie à remplir.
+        <Box sx={{ height: 'clamp(460px, calc(100dvh - 220px), 760px)' }}>
+          <SupervisionPanel
+            createProvider={propertyFactory}
+            deps={[propertyId]}
+            onSelectAgent={onSelectAgent}
+            onActing={onActing}
+            onEditAction={onEditAction}
+          />
+        </Box>
       ) : (
         <PortfolioPanel createProvider={portfolioFactory} deps={['portfolio']} onEditAction={onEditAction} />
       )}

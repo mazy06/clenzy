@@ -158,7 +158,16 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * et statut de paiement dû (null / PENDING / PARTIALLY_PAID / FAILED). Sert au scope
      * « logement supervisé » de l'assistant (detect/settle par propriété, pas par host).
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property WHERE i.property.id = :propertyId " +
+    @Query("SELECT i FROM Intervention i " +
+           "LEFT JOIN FETCH i.property " +
+           "LEFT JOIN FETCH i.requestor " +
+           "LEFT JOIN i.serviceRequest sr " +
+           "LEFT JOIN sr.property srp " +
+           // Rattachement au logement par lien DIRECT (i.property) OU indirect via la
+           // demande de service (sr.property) : un ménage encore « À payer » n'a souvent
+           // pas de i.property alignée sur le logement, mais sa ServiceRequest le porte.
+           // LEFT JOIN explicites → ne pas exclure les interventions sans ServiceRequest.
+           "WHERE (i.property.id = :propertyId OR srp.id = :propertyId) " +
            "AND i.estimatedCost IS NOT NULL AND i.estimatedCost > 0 AND i.organizationId = :orgId " +
            "AND (i.paymentStatus IS NULL OR i.paymentStatus IN (" +
            "com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.PARTIALLY_PAID, " +

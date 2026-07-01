@@ -65,6 +65,11 @@ public class AnthropicChatProvider implements ChatLLMProvider {
      */
     private static final Map<String, Object> EPHEMERAL_CACHE = Map.of("type", "ephemeral");
 
+    /** Prompt caching Anthropic : lecture depuis le cache facturée ~10% du tarif input. */
+    private static final double CACHE_READ_FACTOR = 0.1;
+    /** Prompt caching Anthropic : écriture en cache facturée ~125% du tarif input. */
+    private static final double CACHE_WRITE_FACTOR = 1.25;
+
     private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
@@ -208,20 +213,18 @@ public class AnthropicChatProvider implements ChatLLMProvider {
                         JsonNode message = event.path("message");
                         if (message.has("model")) usedModel[0] = message.path("model").asText(modelHint);
                         JsonNode usage = message.path("usage");
-                        if (usage.has("input_tokens")) {
-                            promptTokens[0] = usage.path("input_tokens").asInt(0);
-                        }
-                        // Observabilite du prompt caching : cache_read = tokens relus
-                        // au tarif cache (~10%), cache_creation = tokens ecrits en
-                        // cache (~125%). Permet de verifier les hits sans changer le
-                        // modele d'usage existant.
-                        if (log.isDebugEnabled()
-                                && (usage.has("cache_read_input_tokens")
-                                    || usage.has("cache_creation_input_tokens"))) {
-                            log.debug("anthropic.cache read={} write={} fresh_input={}",
-                                    usage.path("cache_read_input_tokens").asInt(0),
-                                    usage.path("cache_creation_input_tokens").asInt(0),
-                                    promptTokens[0]);
+                        // Base d'input FACTURÉE, homogène avec OpenAI (billedPromptTokens) :
+                        // l'input Anthropic EXCLUT le cache, facturé à part (lecture ~10%,
+                        // écriture ~125% du tarif input). Avant, on ne comptait QUE le fresh
+                        // input → coût sous-estimé sur un hit cache (M1 audit).
+                        int freshInput = usage.path("input_tokens").asInt(0);
+                        int cacheRead = usage.path("cache_read_input_tokens").asInt(0);
+                        int cacheWrite = usage.path("cache_creation_input_tokens").asInt(0);
+                        promptTokens[0] = (int) Math.round(
+                                freshInput + cacheRead * CACHE_READ_FACTOR + cacheWrite * CACHE_WRITE_FACTOR);
+                        if (log.isDebugEnabled() && (cacheRead > 0 || cacheWrite > 0)) {
+                            log.debug("anthropic.cache read={} write={} fresh_input={} billed_input={}",
+                                    cacheRead, cacheWrite, freshInput, promptTokens[0]);
                         }
                     }
                     case "content_block_start" -> {
