@@ -10,7 +10,7 @@
    normalisée (déjà agrégée pour le portefeuille) + des callbacks.
    ============================================================ */
 
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import type { AgentId, AgentStatus, AutonomyLevel } from '../types';
 
 export interface ConstellationAgentView {
@@ -36,6 +36,8 @@ export interface ConstellationRendererProps {
   focused: boolean; // mode focus (clic cœur)
   onToggleFocus: () => void;
   onSelectAgent?: (id: AgentId) => void;
+  /** Action posée DANS le HUD (haut-gauche), ex. bouton « Scanner » en icône. */
+  headerAction?: ReactNode;
 }
 
 export type ConstellationRenderer = ComponentType<ConstellationRendererProps>;

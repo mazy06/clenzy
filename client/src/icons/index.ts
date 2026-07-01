@@ -258,6 +258,10 @@ export const Faders: FC<IconifyProps> = (props) =>
 // caractère). Glyphe Lucide « saudi-riyal » (≥ 1.x), inspiré du symbole SAMA.
 export { SaudiRiyal } from 'lucide-react';
 
+// « Scanner » (revue proactive) — balayage radar, métaphore de scan la plus
+// parlante ; stroke Lucide cohérent avec le reste du HUD.
+export { Radar } from 'lucide-react';
+
 // Symbole du dirham marocain — pas de code Unicode rendu par les polices ni
 // d'icône lucide/Iconify dédiée (symbole récent). Glyphe vectoriel (deux barres
 // verticales + swash calligraphique) enregistré EN LOCAL ; viewBox carré centré

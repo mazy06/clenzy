@@ -63,7 +63,7 @@ const AVATAR_EDGE = 28;
    c'est le bord le plus contraint. HAUT = demi-avatar + petite bande (anneau/label).
    CÔTÉ = demi-avatar + marge. On garde un rayon minimal pour rester fini si la boîte
    n'est pas encore mesurée (taille 0 en SSR/jsdom). */
-const SAT_FOOTPRINT_BELOW = 88;
+const SAT_FOOTPRINT_BELOW = 75;
 const SAT_FOOTPRINT_ABOVE = 34;
 const SAT_FOOTPRINT_SIDE = 60;
 const MIN_OUTER_REACH = 40;
@@ -81,7 +81,13 @@ export function computeConstellationLayout(
   const width = Math.max(0, size.width);
   const height = Math.max(0, size.height);
   const cx = width / 2;
-  const cy = height / 2;
+  // Centre VISUEL (≠ centre géométrique) : les empreintes verticales sont
+  // asymétriques — la pastille de NOM est SOUS l'avatar → il faut réserver ~75px
+  // en bas contre seulement ~34px en haut. Centrer sur height/2 bride donc le
+  // rayon par le bas ET laisse une bande vide EN HAUT. On remonte le centre de
+  // (BELOW-ABOVE)/2 : les portées haut/bas s'égalisent → rayon maximal et
+  // l'espace du haut est exploité (la bande vide passe de ~75px à ~34px).
+  const cy = height / 2 - (SAT_FOOTPRINT_BELOW - SAT_FOOTPRINT_ABOVE) / 2;
 
   // R est dimensionné pour que l'anneau EXTÉRIEUR (suggest) tienne dans la boîte
   // AVEC l'empreinte d'un satellite — sinon l'agent du bas (avatar + pastille de

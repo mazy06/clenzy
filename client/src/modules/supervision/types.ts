@@ -58,6 +58,18 @@ export interface PendingAction {
   reservationId?: string | null;
   createdAt: string; // ISO
   expiresAt: string; // ISO — l'action peut expirer
+  /**
+   * Type de carte. Absent/'action' = action à valider (défaut). 'reminder' =
+   * rappel informatif (ex. reversement J-1) : « Info reçue » / « Ne plus afficher ».
+   * 'payment' = interventions impayées à régler : « Régler » (ouvre Stripe) / « Plus tard ».
+   * Ni 'reminder' ni 'payment' n'ont de minuteur d'expiration.
+   */
+  kind?: 'action' | 'reminder' | 'payment';
+  /**
+   * Montant formaté (ex. « 95 € »), pour les cartes 'payment' : affiché
+   * directement DANS le bouton « Régler » (plus de ligne « Montant à régler »).
+   */
+  amountLabel?: string;
 }
 
 // ─── Approbation inline (interrupt AG-UI, chemin live) ───────────────────────

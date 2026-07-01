@@ -43,6 +43,7 @@ class DeferredPaymentServiceTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private UserRepository userRepository;
     @Mock private StripeGateway stripeGateway;
+    @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private TenantContext tenantContext;
     private DeferredPaymentService service;
@@ -52,7 +53,8 @@ class DeferredPaymentServiceTest {
     void setUp() throws Exception {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        service = new DeferredPaymentService(interventionRepository, userRepository, tenantContext, stripeGateway);
+        service = new DeferredPaymentService(
+                interventionRepository, userRepository, tenantContext, stripeGateway, transactionManager);
 
         setField(service, "currency", "EUR");
         setField(service, "successUrl", "http://localhost:3000/payment/success");
@@ -299,7 +301,7 @@ class DeferredPaymentServiceTest {
             Session session = mock(Session.class);
             when(session.getId()).thenReturn("cs_grouped_1");
             when(session.getUrl()).thenReturn("https://checkout.stripe.com/cs_grouped_1");
-            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
+            when(stripeGateway.createSession(any(SessionCreateParams.class), any())).thenReturn(session);
 
             // Act
             String url = service.createGroupedPaymentSession(1L);
@@ -312,7 +314,7 @@ class DeferredPaymentServiceTest {
 
             // T-SOLID-3 : montant et metadata passent par le gateway (plus de Stripe.apiKey statique)
             ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
-            verify(stripeGateway).createSession(paramsCaptor.capture());
+            verify(stripeGateway).createSession(paramsCaptor.capture(), any());
             SessionCreateParams params = paramsCaptor.getValue();
             assertThat(params.getMetadata())
                     .containsEntry("type", "grouped_deferred")

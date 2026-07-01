@@ -60,6 +60,15 @@ public class CalendarPartitionManager {
      */
     @Scheduled(cron = "0 0 3 1 * *") // 1er du mois a 03h00
     public void createFuturePartitions() {
+        // Selon l'environnement, calendar_days peut etre une table PLATE (dev, recreee
+        // par Hibernate ddl-auto) et non partitionnee. Y creer une partition echouerait
+        // systematiquement ("table is not partitioned") — erreur NON transitoire → on
+        // skip proprement (log) au lieu de spammer un incident chaque mois.
+        if (!isCalendarDaysPartitioned()) {
+            log.info("calendar_days non partitionnee — creation de partitions ignoree (table plate).");
+            return;
+        }
+
         LocalDate today = LocalDate.now();
         List<String> failedPartitions = new ArrayList<>();
 
@@ -94,6 +103,15 @@ public class CalendarPartitionManager {
         if (!failedPartitions.isEmpty()) {
             alertPartitionCreationFailure(failedPartitions);
         }
+    }
+
+    /** True si {@code calendar_days} est une table partitionnee (vs table plate en dev). */
+    private boolean isCalendarDaysPartitioned() {
+        Boolean partitioned = jdbcTemplate.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM pg_partitioned_table pt "
+                        + "JOIN pg_class c ON c.oid = pt.partrelid WHERE c.relname = 'calendar_days')",
+                Boolean.class);
+        return Boolean.TRUE.equals(partitioned);
     }
 
     private boolean partitionExists(String partitionName) {

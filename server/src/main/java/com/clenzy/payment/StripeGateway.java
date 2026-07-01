@@ -55,6 +55,15 @@ public class StripeGateway {
         return Session.create(params, requestOptions(null));
     }
 
+    /**
+     * Crée une session Checkout avec cle d'idempotence : un re-essai (double-clic,
+     * concurrence scan+action manuelle, retry apres timeout) ne cree pas une seconde
+     * session — Stripe renvoie la premiere. La cle doit etre stable pour un meme lot.
+     */
+    public Session createSession(SessionCreateParams params, String idempotencyKey) throws StripeException {
+        return Session.create(params, requestOptions(idempotencyKey));
+    }
+
     public Session retrieveSession(String sessionId) throws StripeException {
         return Session.retrieve(sessionId, requestOptions(null));
     }

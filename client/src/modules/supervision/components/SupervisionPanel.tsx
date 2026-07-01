@@ -9,8 +9,8 @@
    ============================================================ */
 
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Box, Button, CircularProgress } from '@mui/material';
-import { WifiOff, Replay } from '../../../icons';
+import { Box, Button, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { WifiOff, Replay, Radar } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
@@ -126,43 +126,79 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
   const propertySnapshot = snapshot.scope === 'property' ? snapshot : null;
 
   return (
-    <Box ref={rootRef} sx={{ position: 'relative' }}>
-      <AgentConstellation snapshot={snapshot} online={status === 'live'} onSelectAgent={handleSelect} />
-
-      {/* Scan manuel (mode live) : revue proactive de la propriété à la demande. */}
-      {canKickoff && propertyId != null && (
-        <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 7 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleScan}
-            disabled={scanning}
-            startIcon={scanning ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : undefined}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 700,
-              borderRadius: 999,
-              color: '#E7E9FB',
-              borderColor: 'rgba(255,255,255,.18)',
-              bgcolor: 'rgba(20,24,58,.7)',
-              backdropFilter: 'blur(8px)',
-              '&:hover': { borderColor: 'rgba(255,255,255,.35)', bgcolor: 'rgba(20,24,58,.85)' },
-            }}
-          >
-            {scanning ? t('supervision.scan.running', 'Scan en cours…') : t('supervision.scan.button', 'Scanner')}
-          </Button>
-        </Box>
-      )}
+    <Box
+      ref={rootRef}
+      sx={{
+        position: 'relative',
+        // Colonne flex pleine hauteur : la constellation (flex:1) remplit
+        // l'espace responsive de l'accordéon Planning et la barre de chat se
+        // pose dessous. height:100% résout via la chaîne accordéon→sticky→ici
+        // (hauteurs définies). Plancher pour les hôtes sans hauteur définie.
+        height: '100%',
+        minHeight: 380,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* Scan manuel (mode live) : posé EN ICÔNE dans le HUD (haut-gauche), à
+          droite du titre « Orchestrateur · actif » — plus de pastille texte
+          séparée qui recouvrait la carte d'activité. */}
+      <AgentConstellation
+        snapshot={snapshot}
+        online={status === 'live'}
+        onSelectAgent={handleSelect}
+        headerAction={
+          canKickoff && propertyId != null ? (
+            <Tooltip
+              title={scanning ? t('supervision.scan.running', 'Scan en cours…') : t('supervision.scan.button', 'Scanner')}
+              arrow
+            >
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={handleScan}
+                  disabled={scanning}
+                  aria-label={t('supervision.scan.button', 'Scanner')}
+                  sx={{
+                    width: 26,
+                    height: 26,
+                    color: 'var(--accent)',
+                    '&:hover': { bgcolor: 'var(--accent-soft)' },
+                  }}
+                >
+                  {scanning ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Radar size={16} />}
+                </IconButton>
+              </span>
+            </Tooltip>
+          ) : undefined
+        }
+      />
 
       {/* Entrée de chat opérateur (chemin live) : un message déclenche un run du
           moteur multi-agent → la constellation réagit + réponse texte ci-dessous.
           Masquée en mock (le provider mock n'expose pas kickoff). */}
       {canKickoff && propertySnapshot && (
-        <SupervisionChatBar
-          conversation={propertySnapshot.conversation ?? []}
-          busy={Boolean(propertySnapshot.conversationBusy)}
-          onSend={handleSend}
-        />
+        // Barre FLOTTANTE centrée sur le canvas (registre deep-space natif) :
+        // hors du flux vertical → la constellation garde toute la hauteur du
+        // panneau (sinon la barre lui volait ~56px et l'écrasait). Largeur
+        // bornée (plus de pleine largeur) ; posée dans le creux bas-centre
+        // (aucun agent à 90° : ils sont à ±64°/±136°).
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 14,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'min(440px, calc(100% - 32px))',
+            zIndex: 7,
+          }}
+        >
+          <SupervisionChatBar
+            conversation={propertySnapshot.conversation ?? []}
+            busy={Boolean(propertySnapshot.conversationBusy)}
+            onSend={handleSend}
+          />
+        </Box>
       )}
 
       {/* Zone flottante haut-droite (par logement) : carte d'approbation inline
@@ -196,7 +232,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
 
       {/* file HITL flottante (vue portefeuille / autres scopes) */}
       {!propertySnapshot && snapshot.pending.length > 0 && (
-        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 7, maxWidth: 'calc(100% - 32px)' }}>
+        <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 7, maxWidth: 'calc(100% - 32px)', display: 'flex', flexDirection: 'column' }}>
           <PendingQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} variant="floating" />
         </Box>
       )}
