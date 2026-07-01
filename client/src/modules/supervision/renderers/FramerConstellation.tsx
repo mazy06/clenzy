@@ -692,11 +692,22 @@ const Root = styled.div`
     animation-play-state: paused;
   }
 
-  /* survol UNIQUEMENT : la rotation ne s'arrête que lorsqu'on survole la
-     constellation (le focus d'un agent ne fige plus l'orbite). La pause
-     explicite reste gérée par la classe .paused ci-dessus. */
-  &:hover .cst__spin,
-  &:hover .sat__c {
+  /* Survol RÉEL d'un agent ou du cœur uniquement (pas l'espace vide autour) :
+     (1) on remonte la couche en orbite au-dessus du cœur/HUD (z-index 6) pour
+     que le tooltip de l'agent (z-index 12, confiné dans cette couche) passe au
+     PREMIER PLAN ; (2) on fige l'orbite pour lire le tooltip. Le survol de la
+     zone vide ne déclenche rien → la constellation continue de tourner.
+     La pause explicite reste gérée par la classe .paused ci-dessus. */
+  &:has(.sat:hover) .cst__spin,
+  &:has(.sat:focus-visible) .cst__spin {
+    z-index: 20;
+  }
+  &:has(.sat:hover) .cst__spin,
+  &:has(.sat:hover) .sat__c,
+  &:has(.sat:focus-visible) .cst__spin,
+  &:has(.sat:focus-visible) .sat__c,
+  &:has(.cst__center:hover) .cst__spin,
+  &:has(.cst__center:hover) .sat__c {
     animation-play-state: paused;
   }
 

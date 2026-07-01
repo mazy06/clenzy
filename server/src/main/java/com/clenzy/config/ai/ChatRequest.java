@@ -85,6 +85,16 @@ public record ChatRequest(
     }
 
     /**
+     * Retourne une copie SANS outils exposes. Utilise pour forcer un tour de synthese
+     * textuelle (le modele ne peut plus appeler d'outils) — ex. repli gracieux quand la
+     * boucle d'outils atteint son plafond d'iterations.
+     */
+    public ChatRequest withoutTools() {
+        return new ChatRequest(systemPrompt, messages, List.of(), model, temperature, maxTokens,
+                volatileSystemSuffix, provider, baseUrl);
+    }
+
+    /**
      * Retourne une copie avec un message supplementaire ajoute a l'historique.
      * Utilise par l'orchestrateur pour construire la prochaine iteration de la boucle.
      */

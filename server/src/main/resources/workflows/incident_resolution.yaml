@@ -1,0 +1,81 @@
+id: incident_resolution
+title: "Résolution d'incident"
+description: "Procédure guidée pour traiter un incident (bruit, dégât, plainte) de bout en bout."
+estimatedDuration: 12
+
+steps:
+  - id: identify_incident
+    title: "Qualifier l'incident"
+    prompts:
+      fr: |
+        On va traiter cet incident ensemble. Donne-moi un JSON avec :
+        - **type** : "bruit", "degat", "plainte" ou "autre"
+        - **property** : le logement concerné (nom ou identifiant)
+        - **description** : ce qui s'est passé en une phrase
+      en: |
+        Let's handle this incident together. Give me a JSON with:
+        - **type**: "noise", "damage", "complaint" or "other"
+        - **property**: the property involved (name or id)
+        - **description**: what happened, in one sentence
+    expectsData:
+      type: string
+      property: string
+      description: string
+
+  - id: assess_severity
+    title: "Évaluer la gravité"
+    prompts:
+      fr: |
+        Quelle est la **gravité** ? Réponds : "faible", "moyenne" ou "élevée".
+        (Je peux regarder les risques opérationnels et les alertes en cours si besoin.)
+      en: |
+        How **severe** is it? Answer: "low", "medium" or "high".
+        (I can check operational risks and current alerts if useful.)
+    expectsData:
+      severity: string
+    suggestTool:
+      name: detect_operational_risks
+      args: {}
+
+  - id: plan_intervention
+    title: "Planifier l'action"
+    prompts:
+      fr: |
+        Souhaites-tu **créer une intervention** pour traiter l'incident (technicien / ménage) ? (oui / non)
+      en: |
+        Do you want to **create an intervention** to handle it (technician / housekeeping)? (yes / no)
+    expectsData:
+      createIntervention: boolean
+    suggestTool:
+      name: suggest_navigation
+      args:
+        path: "/interventions"
+        label: "Voir les interventions"
+        reason: "Suivre et assigner l'intervention liée à l'incident"
+
+  - id: notify
+    title: "Communication"
+    prompts:
+      fr: |
+        Faut-il **prévenir le voyageur et/ou le propriétaire** ? (oui / non)
+      en: |
+        Should we **notify the guest and/or the owner**? (yes / no)
+    expectsData:
+      notify: boolean
+
+  - id: confirm
+    title: "Confirmation"
+    prompts:
+      fr: |
+        Récapitulatif de l'incident :
+        {{summary}}
+
+        Tout est correct ? Réponds oui pour créer l'intervention de traitement.
+      en: |
+        Incident recap:
+        {{summary}}
+
+        All good? Reply yes to create the handling intervention.
+    expectsData:
+      confirm: boolean
+    action: create_intervention

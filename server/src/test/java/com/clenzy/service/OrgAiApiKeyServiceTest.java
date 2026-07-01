@@ -114,7 +114,7 @@ class OrgAiApiKeyServiceTest {
             when(openAiProvider.chat(any(AiRequest.class), eq("sk-valid-key")))
                     .thenReturn(new AiResponse("OK", 5, 2, 7, "gpt-4o", "stop"));
 
-            AiApiKeyTestResultDto result = service.testKey("openai", "sk-valid-key");
+            AiApiKeyTestResultDto result = service.testKey("openai", "sk-valid-key", null);
 
             assertTrue(result.success());
             assertEquals("openai", result.provider());
@@ -125,7 +125,7 @@ class OrgAiApiKeyServiceTest {
             when(anthropicProvider.chat(any(AiRequest.class), eq("sk-ant-valid")))
                     .thenReturn(new AiResponse("OK", 5, 2, 7, "claude-3-haiku", "end_turn"));
 
-            AiApiKeyTestResultDto result = service.testKey("anthropic", "sk-ant-valid");
+            AiApiKeyTestResultDto result = service.testKey("anthropic", "sk-ant-valid", null);
 
             assertTrue(result.success());
             assertEquals("anthropic", result.provider());
@@ -136,7 +136,7 @@ class OrgAiApiKeyServiceTest {
             when(anthropicProvider.chat(any(AiRequest.class), eq("sk-ant-bad")))
                     .thenThrow(new AiProviderException("anthropic", "401 Unauthorized"));
 
-            AiApiKeyTestResultDto result = service.testKey("anthropic", "sk-ant-bad");
+            AiApiKeyTestResultDto result = service.testKey("anthropic", "sk-ant-bad", null);
 
             assertFalse(result.success());
             assertEquals("anthropic", result.provider());
@@ -145,7 +145,7 @@ class OrgAiApiKeyServiceTest {
         @Test
         void invalidProvider_throws() {
             assertThrows(IllegalArgumentException.class,
-                    () -> service.testKey("gemini", "sk-test"));
+                    () -> service.testKey("gemini", "sk-test", null));
         }
     }
 

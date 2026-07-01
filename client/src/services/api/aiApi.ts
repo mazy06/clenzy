@@ -27,6 +27,17 @@ export interface AiUsageBreakdown {
   breakdownByFeature: Record<string, AiModelUsage[]>;
 }
 
+// Série temporelle : une ligne = agrégat par (jour, provider, model) — matches DailyUsageDto.
+export interface AiDailyUsage {
+  date: string; // yyyy-MM-dd
+  provider: string;
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
+  calls: number;
+  costUsd: number;
+}
+
 // Pricing AI
 export interface AiPricingRecommendation {
   date: string;
@@ -111,6 +122,10 @@ export const aiApi = {
   getUsageBreakdown: (): Promise<AiUsageBreakdown> =>
     apiClient.get('/ai/usage/breakdown'),
 
+  // Série temporelle : conso par (jour, provider, model) — vue « Consommation ».
+  getDailyUsage: (days = 30): Promise<AiDailyUsage[]> =>
+    apiClient.get(`/ai/usage/daily?days=${days}`),
+
   // ── Pricing AI ──
   getPricingPredictions: (
     propertyId: number,
@@ -172,6 +187,11 @@ export const aiApi = {
 
   deleteKey: (provider: string): Promise<{ message: string; provider: string }> =>
     apiClient.delete(`/ai/keys/${provider}`),
+
+  // Catalogue live d'un provider (BYOK org-level) : GET /models avec la clé saisie
+  // → liste de modèles réels pour choisir à la connexion (au lieu d'un modèle figé).
+  getOrgProviderCatalog: (data: { provider: string; apiKey: string }): Promise<AiCatalogModel[]> =>
+    apiClient.post('/ai/keys/catalog', data),
 
   // ── Platform Models (SUPER_ADMIN) ──
   getPlatformModels: (): Promise<PlatformAiModel[]> =>

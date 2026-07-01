@@ -53,6 +53,22 @@ public class LlmPricingService {
         PRICES.put("claude-3-sonnet",     new ModelPrice("3.00", "15.00"));
 
         // ─── OpenAI ────────────────────────────────────────────────────────
+        // match par PREFIX le plus long : "gpt-5-mini" gagne sur "gpt-5", etc.
+        // GPT-5 (2025)
+        PRICES.put("gpt-5-nano",           new ModelPrice("0.05", "0.40"));
+        PRICES.put("gpt-5-mini",           new ModelPrice("0.25", "2.00"));
+        PRICES.put("gpt-5",                new ModelPrice("1.25", "10.00"));
+        // GPT-4.1
+        PRICES.put("gpt-4.1-nano",         new ModelPrice("0.10", "0.40"));
+        PRICES.put("gpt-4.1-mini",         new ModelPrice("0.40", "1.60"));
+        PRICES.put("gpt-4.1",              new ModelPrice("2.00", "8.00"));
+        // Reasoning (o-series)
+        PRICES.put("o4-mini",              new ModelPrice("1.10", "4.40"));
+        PRICES.put("o3-mini",              new ModelPrice("1.10", "4.40"));
+        PRICES.put("o3",                   new ModelPrice("2.00", "8.00"));
+        PRICES.put("o1-mini",              new ModelPrice("1.10", "4.40"));
+        PRICES.put("o1",                   new ModelPrice("15.00", "60.00"));
+        // GPT-4o / 4 / 3.5
         PRICES.put("gpt-4o-mini",          new ModelPrice("0.15", "0.60"));
         PRICES.put("gpt-4o",               new ModelPrice("2.50", "10.00"));
         PRICES.put("gpt-4-turbo",          new ModelPrice("10.00", "30.00"));

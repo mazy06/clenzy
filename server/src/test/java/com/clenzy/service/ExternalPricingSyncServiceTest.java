@@ -29,6 +29,7 @@ import static org.mockito.Mockito.*;
 class ExternalPricingSyncServiceTest {
 
     @Mock private ExternalPricingConfigRepository configRepository;
+    @Mock private ExternalPricingSourceRegistry sourceRegistry;
     @Mock private PriceLabsService priceLabsService;
     @Mock private RateOverrideRepository rateOverrideRepository;
     @Mock private PropertyRepository propertyRepository;
@@ -80,6 +81,8 @@ class ExternalPricingSyncServiceTest {
             100L, LocalDate.of(2025, 8, 1), new BigDecimal("150.00"), "EUR", 0.95, "pricelabs");
 
         when(configRepository.findByOrganizationId(ORG_ID)).thenReturn(List.of(enabledConfig));
+        when(sourceRegistry.available()).thenReturn(java.util.Set.of(PricingProvider.PRICELABS));
+        when(sourceRegistry.resolve(PricingProvider.PRICELABS)).thenReturn(priceLabsService);
         when(priceLabsService.fetchRecommendations(eq(enabledConfig), eq(100L), any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of(rec));
         when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
@@ -109,6 +112,8 @@ class ExternalPricingSyncServiceTest {
             100L, LocalDate.of(2025, 8, 1), new BigDecimal("160.00"), "EUR", 0.9, "pricelabs");
 
         when(configRepository.findByOrganizationId(ORG_ID)).thenReturn(List.of(enabledConfig));
+        when(sourceRegistry.available()).thenReturn(java.util.Set.of(PricingProvider.PRICELABS));
+        when(sourceRegistry.resolve(PricingProvider.PRICELABS)).thenReturn(priceLabsService);
         when(priceLabsService.fetchRecommendations(eq(enabledConfig), eq(100L), any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of(rec));
         when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
@@ -135,6 +140,8 @@ class ExternalPricingSyncServiceTest {
             100L, LocalDate.of(2025, 8, 1), new BigDecimal("150.00"), "EUR", 0.9, "pricelabs");
 
         when(configRepository.findByOrganizationId(ORG_ID)).thenReturn(List.of(enabledConfig));
+        when(sourceRegistry.available()).thenReturn(java.util.Set.of(PricingProvider.PRICELABS));
+        when(sourceRegistry.resolve(PricingProvider.PRICELABS)).thenReturn(priceLabsService);
         when(priceLabsService.fetchRecommendations(eq(enabledConfig), eq(100L), any(LocalDate.class), any(LocalDate.class)))
             .thenReturn(List.of(rec));
         when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));

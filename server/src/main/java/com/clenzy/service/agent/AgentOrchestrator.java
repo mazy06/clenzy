@@ -74,7 +74,7 @@ import java.util.function.Consumer;
 public class AgentOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(AgentOrchestrator.class);
-    private static final int MAX_TOKENS_PER_TURN = 4096;
+    private static final int MAX_TOKENS_PER_TURN = 2048;
     private static final double DEFAULT_TEMPERATURE = 0.3;
 
     private final ToolRegistry toolRegistry;
@@ -311,14 +311,19 @@ public class AgentOrchestrator {
             }
         }
 
-        // 7 (fallback). Boucle tool-calling mono-agent (27 tools), avec reutilisation
-        //    des memoires + RAG pre-chargees (pas de second appel embeddings).
+        // 7 (fallback). Boucle tool-calling mono-agent, avec reutilisation des memoires
+        //    + RAG pre-chargees (pas de second appel embeddings).
         //    Resolution du modele (priorite decroissante) :
         //      1. context.modelOverride() : forcage explicite (briefings = Haiku)
         //      2. Modele assigne a la feature ASSISTANT_CHAT dans Settings > IA
         //      3. null → defaut provider (Anthropic Sonnet)
-        // RBAC least-privilege : un role operationnel ne voit que ses outils d'intervention.
-        List<ToolDescriptor> tools = RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context);
+        // Deux reductions de contexte sur la liste d'outils envoyee a CHAQUE appel LLM :
+        //   - RBAC least-privilege (RoleToolPolicy) : un role operationnel ne voit que
+        //     ses outils d'intervention.
+        //   - Scoping par pertinence (ToolScopeSelector) : socle transverse + outils du
+        //     domaine detecte dans la requete, au lieu des ~60 outils du catalogue complet.
+        List<ToolDescriptor> roleTools = RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context);
+        List<ToolDescriptor> tools = ToolScopeSelector.select(roleTools, chatMessages);
         ComposedSystemPrompt systemPrompt =
                 promptComposer.buildSegmentedSystemPrompt(context, effectiveMessage, memories, kbHits);
         ChatRequest request = new ChatRequest(
@@ -404,7 +409,8 @@ public class AgentOrchestrator {
                 targetResolver.resolvePrimary(context.organizationId(), AiFeature.ASSISTANT_CHAT, context.modelOverride());
         ChatRequest request = new ChatRequest(
                 resumeSystem.cacheablePrefix(), messages,
-                RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context),
+                ToolScopeSelector.select(
+                        RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context), messages),
                 target.model() != null ? target.model() : conversation.getModel(),
                 DEFAULT_TEMPERATURE, MAX_TOKENS_PER_TURN, resumeSystem.volatileSuffix(),
                 target.provider(), target.baseUrl());

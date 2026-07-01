@@ -50,6 +50,11 @@ public class PriceLabsService implements ExternalPricingService {
     }
 
     @Override
+    public com.clenzy.model.PricingProvider getProvider() {
+        return com.clenzy.model.PricingProvider.PRICELABS;
+    }
+
+    @Override
     @CircuitBreaker(name = "pricelabs", fallbackMethod = "fetchRecommendationsFallback")
     public List<ExternalPriceRecommendation> fetchRecommendations(ExternalPricingConfig config,
                                                                     Long propertyId,

@@ -2,12 +2,16 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.AiFeatureUsageBreakdownDto;
 import com.clenzy.dto.AiUsageStatsDto;
+import com.clenzy.dto.DailyUsageDto;
 import com.clenzy.service.AiTokenBudgetService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/ai/usage")
@@ -39,5 +43,15 @@ public class AiTokenUsageController {
     public AiFeatureUsageBreakdownDto getUsageBreakdown() {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return aiTokenBudgetService.getUsageBreakdown(orgId);
+    }
+
+    /**
+     * Série temporelle : conso par (jour, provider, model) sur les {@code days} derniers
+     * jours (défaut 30, borné 1..90). Alimente la vue « Consommation » (courbe + coût).
+     */
+    @GetMapping("/daily")
+    public List<DailyUsageDto> getDailyUsage(@RequestParam(defaultValue = "30") int days) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return aiTokenBudgetService.getDailyUsage(orgId, days);
     }
 }

@@ -10,10 +10,12 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * Specialiste analyses de donnees, KPIs et rapports.
+ * Specialiste analyses de donnees : logements, reservations, occupation, tendances.
  *
- * <p>Reponsable des questions metier sur les chiffres : revenus, occupation,
- * tendances, performance comparative entre proprietes. 7 tools read-only.</p>
+ * <p>Questions metier sur les chiffres operationnels (hors finance, voir
+ * {@code FinanceSpecialist}) : listes filtrees, details, disponibilite, devis,
+ * tendances de reservations, prevision d'occupation, snapshot KPI. 10 tools
+ * read-only.</p>
  */
 @Component
 public class DataAnalystSpecialist extends AbstractAgentSpecialist {
@@ -34,13 +36,12 @@ public class DataAnalystSpecialist extends AbstractAgentSpecialist {
     @Override
     public String description() {
         return """
-                Specialiste pour toute question d'analyse de donnees :
-                - "Combien de reservations ce mois ?", "Mon revenu ?", "Mes biens a Paris ?"
-                - Bilans financiers, top properties, tendances reservations
-                - Previsions d'occupation, listes filtrees
+                Specialiste pour l'analyse de donnees operationnelles (hors finance) :
+                - "Combien de reservations ce mois ?", "Mes biens a Paris ?"
+                - Tendances de reservations, prevision d'occupation, listes filtrees
                 - Equipements / amenities d'un logement ("quels equipements ?", "le logement a-t-il une piscine ?")
                 - Detail d'un logement ou d'une reservation, disponibilite (calendrier), devis de prix pour des dates
-                - Factures, vue d'ensemble facturation, versements aux proprietaires
+                Pour factures, revenus/depenses : voir finance. Pour la sante systeme/sync/risques : voir monitoring.
                 Read-only : ne modifie rien.""";
     }
 
@@ -54,14 +55,9 @@ public class DataAnalystSpecialist extends AbstractAgentSpecialist {
                 "get_price_quote",
                 "list_reservations",
                 "get_reservation_details",
-                "get_dashboard_summary",
-                "get_financial_summary",
-                "get_properties_performance",
                 "get_reservation_trend",
                 "get_occupancy_forecast",
-                "list_invoices",
-                "get_billing_overview",
-                "get_owner_payout_summary"
+                "forecast_demand_longterm"
         );
     }
 }

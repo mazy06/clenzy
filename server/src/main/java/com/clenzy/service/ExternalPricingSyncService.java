@@ -25,27 +25,36 @@ public class ExternalPricingSyncService {
     private static final String SOURCE_EXTERNAL_PRICING = "EXTERNAL_PRICING";
 
     private final ExternalPricingConfigRepository configRepository;
-    private final PriceLabsService priceLabsService;
+    private final ExternalPricingSourceRegistry sourceRegistry;
     private final RateOverrideRepository rateOverrideRepository;
     private final PropertyRepository propertyRepository;
 
     public ExternalPricingSyncService(ExternalPricingConfigRepository configRepository,
-                                      PriceLabsService priceLabsService,
+                                      ExternalPricingSourceRegistry sourceRegistry,
                                       RateOverrideRepository rateOverrideRepository,
                                       PropertyRepository propertyRepository) {
         this.configRepository = configRepository;
-        this.priceLabsService = priceLabsService;
+        this.sourceRegistry = sourceRegistry;
         this.rateOverrideRepository = rateOverrideRepository;
         this.propertyRepository = propertyRepository;
     }
 
-    @Transactional
+    /**
+     * NON transactionnel : {@code fetchRecommendations} fait des appels HTTP externes (PriceLabs)
+     * qui ne doivent JAMAIS tenir une connexion DB ouverte (règle absolue #2). Chaque
+     * {@code repository.save(...)} s'exécute dans sa propre transaction courte (Spring Data).
+     */
     public int syncPricesForOrg(Long orgId) {
         List<ExternalPricingConfig> configs = configRepository.findByOrganizationId(orgId);
         int totalSynced = 0;
 
         for (ExternalPricingConfig config : configs) {
             if (!config.getEnabled()) continue;
+            // Provider déclaré mais non implémenté (BEYOND/WHEELHOUSE) : skip ATTENDU, distinct d'un échec réseau.
+            if (!sourceRegistry.available().contains(config.getProvider())) {
+                log.warn("Provider {} non implémenté (org {}) — config ignorée", config.getProvider(), orgId);
+                continue;
+            }
 
             try {
                 ExternalPricingService provider = resolveProvider(config.getProvider());
@@ -133,7 +142,7 @@ public class ExternalPricingSyncService {
     }
 
     private ExternalPricingService resolveProvider(PricingProvider provider) {
-        // MVP: Only PriceLabs implemented. Others will follow same pattern.
-        return priceLabsService;
+        // Registry multi-source : switchable + sources en concurrence (P2-11).
+        return sourceRegistry.resolve(provider);
     }
 }

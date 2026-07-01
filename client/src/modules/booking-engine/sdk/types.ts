@@ -168,6 +168,8 @@ export interface WidgetProperty {
   amenities: string[] | null;
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** Description publique du logement (texte libre), null si non renseignée. */
+  description: string | null;
   /** Note moyenne des avis publics (0..5), null si aucun avis. */
   rating: number | null;
   /** Nombre d'avis publics. */

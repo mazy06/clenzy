@@ -8,6 +8,7 @@ import com.clenzy.config.ai.ToolDescriptor;
 import com.clenzy.service.agent.AgentActionAuditService;
 import com.clenzy.service.agent.AgentContext;
 import com.clenzy.service.agent.AgentToolMetrics;
+import com.clenzy.service.agent.ContextBudget;
 import com.clenzy.service.agent.ToolHandler;
 import com.clenzy.service.agent.ToolRegistry;
 import com.clenzy.service.agent.ToolResult;
@@ -388,7 +389,8 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 } else if (event instanceof ChatEvent.ToolCallRequest tcr) {
                     toolCallsRef.set(tcr.calls());
                 } else if (event instanceof ChatEvent.Done done) {
-                    promptTokens.addAndGet(done.promptTokens());
+                    // Tokens FACTURÉS (cache OpenAI décompté) → coût réel agrégé côté orchestrateur (#4).
+                    promptTokens.addAndGet(done.billedPromptTokens());
                     completionTokens.addAndGet(done.completionTokens());
                 } else if (event instanceof ChatEvent.Error err) {
                     errorMsg.set(err.message());
@@ -455,8 +457,10 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                     ));
                     anyNewTool = true;
                 }
+                // Copie ENVOYÉE au LLM tronquée si volumineuse (lever #2) ; le snapshot
+                // widget ci-dessus (toolInvocations) garde le contenu complet.
                 chatRequest = chatRequest.withAppendedMessage(
-                        ChatMessage.tool(tc.id(), tr.content())
+                        ChatMessage.tool(tc.id(), ContextBudget.capToolResult(tr.content()))
                 );
             }
             if (!anyNewTool) {

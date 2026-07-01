@@ -36,7 +36,9 @@ public record PublicPropertyDto(
     /** Note moyenne des avis publics (0..5), NULL si aucun avis public. */
     Double rating,
     /** Nombre d'avis publics. */
-    long reviewCount
+    long reviewCount,
+    /** Description publique du logement (texte libre, peut être null/vide). */
+    String description
 ) {
     /**
      * URL photo PUBLIQUE (img-friendly) : externalUrl (Channex/Airbnb, déjà absolue + publique)
@@ -106,7 +108,8 @@ public record PublicPropertyDto(
             null,
             null,
             null,
-            0L
+            0L,
+            p.getDescription()
         );
     }
 
@@ -114,20 +117,20 @@ public record PublicPropertyDto(
     public PublicPropertyDto withDisplayCurrency(BigDecimal newPriceFrom, BigDecimal newCleaningFee, String newCurrency) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, newPriceFrom, newCleaningFee, minimumNights, newCurrency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description);
     }
 
     /** Copie enrichie des signaux honnêtes de preuve sociale / urgence (2.9). */
     public PublicPropertyDto withSignals(Integer totalBookings, Integer availableDays30) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, rating, reviewCount, description);
     }
 
     /** Copie enrichie de la note moyenne + nombre d'avis publics (Domaine 2 — preuve sociale réelle). */
     public PublicPropertyDto withReviewStats(Double avgRating, long publicReviewCount) {
         return new PublicPropertyDto(id, name, type, city, country, bedroomCount, bathroomCount, maxGuests,
             squareMeters, priceFrom, cleaningFee, minimumNights, currency, mainPhotoUrl, photoUrls,
-            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, avgRating, publicReviewCount);
+            amenities, checkInTime, checkOutTime, totalBookings, availableDays30, avgRating, publicReviewCount, description);
     }
 }

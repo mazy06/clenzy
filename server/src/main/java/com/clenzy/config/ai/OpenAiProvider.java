@@ -73,10 +73,19 @@ public class OpenAiProvider implements AiProvider {
         }
         String model = request.model();
 
+        // L'API OpenAI (api.openai.com) exige `max_completion_tokens` sur les modèles récents
+        // (série gpt-5 / o*) — et l'accepte sur tous les modèles courants. Les endpoints
+        // OpenAI-COMPATIBLES (NVIDIA, etc.) gardent `max_tokens`. De plus, les modèles
+        // « reasoning » n'acceptent QUE la température par défaut → on l'omet pour eux.
+        boolean openAiApi = isOpenAiEndpoint(aiProperties.getOpenai().getBaseUrl());
+        boolean reasoning = openAiApi && isReasoningModel(model);
+
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
-        requestBody.put("temperature", request.temperature());
-        requestBody.put("max_tokens", request.maxTokens());
+        if (!reasoning) {
+            requestBody.put("temperature", request.temperature());
+        }
+        requestBody.put(openAiApi ? "max_completion_tokens" : "max_tokens", request.maxTokens());
         requestBody.put("messages", List.of(
                 Map.of("role", "system", "content", request.systemPrompt()),
                 Map.of("role", "user", "content", request.userPrompt())
@@ -128,6 +137,20 @@ public class OpenAiProvider implements AiProvider {
             log.error("Failed to parse OpenAI response: {}", e.getMessage());
             throw new AiProviderException("openai", "Failed to parse response", e);
         }
+    }
+
+    /** Vrai si l'endpoint est l'API OpenAI officielle (vs un endpoint OpenAI-compatible type NVIDIA). */
+    static boolean isOpenAiEndpoint(String baseUrl) {
+        return baseUrl != null && baseUrl.toLowerCase().contains("openai.com");
+    }
+
+    /** Modèles « reasoning » OpenAI (série o* et gpt-5) : n'acceptent que la température par défaut. */
+    static boolean isReasoningModel(String model) {
+        if (model == null) {
+            return false;
+        }
+        String m = model.toLowerCase();
+        return m.startsWith("o1") || m.startsWith("o3") || m.startsWith("o4") || m.startsWith("gpt-5");
     }
 
     /**

@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -80,5 +81,71 @@ class ConversationHistoryMapperTest {
 
         assertThat(messages).hasSize(1);
         verify(photoStorageService, never()).assertReadableInCurrentOrg(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    // ─── Fenêtrage d'historique (lever #2 / correctif M4) ──────────────────
+
+    @Test
+    @DisplayName("historique > MAX_HISTORY_MESSAGES → fenêtre glissante des N derniers")
+    void longHistory_isWindowedToLastN() {
+        List<AssistantMessage> history = new ArrayList<>();
+        for (int i = 0; i < ContextBudget.MAX_HISTORY_MESSAGES + 6; i++) {
+            history.add(AssistantMessage.user(1L, 7L, "msg-" + i));
+        }
+
+        List<ChatMessage> messages = mapper.toChatMessages(history);
+
+        assertThat(messages).hasSize(ContextBudget.MAX_HISTORY_MESSAGES);
+        // Le tour le plus récent (queue) est conservé.
+        assertThat(messages.get(messages.size() - 1).content())
+                .isEqualTo("msg-" + (ContextBudget.MAX_HISTORY_MESSAGES + 5));
+    }
+
+    @Test
+    @DisplayName("fenêtre commençant sur des ROLE_TOOL orphelins → tête élaguée (pas de tool_result orphelin)")
+    void windowStartingOnOrphanToolResults_elidesThem() {
+        int max = ContextBudget.MAX_HISTORY_MESSAGES;
+        List<AssistantMessage> history = new ArrayList<>();
+        for (int i = 0; i < 4; i++) history.add(AssistantMessage.user(1L, 7L, "u" + i));
+        // Indices 4 et 5 = début de fenêtre (taille max+4) → ROLE_TOOL orphelins.
+        history.add(AssistantMessage.tool(1L, 7L, "tc-a", "{}"));
+        history.add(AssistantMessage.tool(1L, 7L, "tc-b", "{}"));
+        while (history.size() < max + 4) history.add(AssistantMessage.user(1L, 7L, "u" + history.size()));
+
+        List<ChatMessage> messages = mapper.toChatMessages(history);
+
+        assertThat(messages).isNotEmpty();
+        // Aucun tool_result en tête (son tool_call serait hors fenêtre → requête invalide).
+        assertThat(messages.get(0).role()).isNotEqualTo(ChatMessage.ROLE_TOOL);
+    }
+
+    @Test
+    @DisplayName("fenêtre 100% ROLE_TOOL → garde-fou : liste NON vide (pas de 400)")
+    void windowAllToolResults_guardReturnsNonEmpty() {
+        List<AssistantMessage> history = new ArrayList<>();
+        for (int i = 0; i < ContextBudget.MAX_HISTORY_MESSAGES + 1; i++) {
+            history.add(AssistantMessage.tool(1L, 7L, "tc-" + i, "{}"));
+        }
+
+        List<ChatMessage> messages = mapper.toChatMessages(history);
+
+        assertThat(messages).isNotEmpty();
+        assertThat(messages).hasSize(ContextBudget.MAX_HISTORY_MESSAGES);
+    }
+
+    @Test
+    @DisplayName("résultat d'outil volumineux → tronqué via le mapper (copie LLM)")
+    void oversizedToolResult_isCappedByMapper() {
+        String big = "y".repeat(ContextBudget.MAX_TOOL_RESULT_CHARS + 4000);
+        List<AssistantMessage> history = List.of(
+                AssistantMessage.user(1L, 7L, "liste tout"),
+                AssistantMessage.tool(1L, 7L, "tc-1", big));
+
+        List<ChatMessage> messages = mapper.toChatMessages(history);
+
+        ChatMessage toolMsg = messages.get(messages.size() - 1);
+        assertThat(toolMsg.role()).isEqualTo(ChatMessage.ROLE_TOOL);
+        assertThat(toolMsg.content().length()).isLessThan(big.length());
+        assertThat(toolMsg.content()).contains("tronqué");
     }
 }

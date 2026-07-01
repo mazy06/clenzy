@@ -45,6 +45,10 @@
       "notify": "Notify",
       "full": "Auto"
     },
+    "scan": {
+      "button": "Scan",
+      "running": "Scanning…"
+    },
     "scope": {
       "byProperty": "By property",
       "portfolio": "Overview"
@@ -2610,8 +2614,48 @@
       "tabs": {
         "connection": "Connection",
         "models": "Models & features",
+        "consumption": "Consumption",
+        "supervision": "Supervisor",
         "briefings": "Briefings",
         "kb": "Documentation"
+      },
+      "usage": {
+        "days7": "7 days",
+        "days30": "30 days",
+        "days90": "90 days",
+        "all": "All",
+        "tokens": "Tokens",
+        "cost": "Cost",
+        "totalTokens": "Total tokens",
+        "totalCost": "Total cost",
+        "threshold": "Alert threshold ($)",
+        "overThreshold": "Threshold exceeded: {{cost}} for the period (limit {{limit}}).",
+        "empty": "No consumption for the period.",
+        "model": "Model",
+        "calls": "Calls"
+      },
+      "supervision": {
+        "title": "Agent supervisor (constellation)",
+        "subtitle": "Enable the constellation and set the autonomy of each AI module. Imported modules will appear here.",
+        "loadError": "Unable to load the configuration.",
+        "master": {
+          "label": "Enable supervisor",
+          "description": "Shows the constellation in the planning view and lets agents propose actions."
+        },
+        "paused": {
+          "label": "Pause",
+          "description": "Temporarily suspends agents' automatic activity (the configuration is kept)."
+        },
+        "budget": {
+          "label": "Automatic scan cap",
+          "description": "Maximum number of automatic analyses per day for the organization (0 = no automatic analysis). Caps AI cost."
+        },
+        "modules": {
+          "title": "Modules"
+        },
+        "readOnly": "Read-only — only an administrator can change these settings.",
+        "saved": "Configuration saved",
+        "saveError": "Failed to save. Please try again."
       },
       "platform": {
         "title": "Platform configuration",
@@ -4418,8 +4462,11 @@
         "disconnect": "Disconnect",
         "configureProvider": "Configure {{provider}}",
         "apiKeyLabel": "API Key",
-        "modelOverrideLabel": "Custom model (optional)",
-        "modelOverrideHelper": "Leave empty to use the default model",
+        "modelOverrideLabel": "Model",
+        "modelOverrideHelper": "“Load models” to pick an available one, or leave empty for the default.",
+        "loadModels": "Load models",
+        "modelCatalogLoaded": "{{count}} models available — pick one.",
+        "modelCatalogError": "Catalog unavailable — enter the model ID manually.",
         "byokInfo": "With your own key, platform token limits are not enforced. Your usage will be billed directly by {{provider}}.",
         "cancel": "Cancel",
         "test": "Test",

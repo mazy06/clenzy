@@ -264,7 +264,9 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   };
 
   const handleTest = () => {
-    if (!apiKey.trim() || !provider || !modelId) return;
+    // Clé optionnelle si réutilisable (édition / clé déjà configurée) : le
+    // serveur réutilise alors la clé stockée pour le provider.
+    if ((!apiKey.trim() && !keyOptional) || !provider || !modelId) return;
     setTestResult(null);
     const data: TestPlatformModelRequest = {
       provider,
@@ -279,7 +281,9 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   };
 
   const handleSave = () => {
-    if (!name.trim() || !provider || !modelId || !apiKey.trim()) return;
+    // Clé vide acceptée si réutilisable (édition / clé déjà configurée) →
+    // le serveur conserve/réutilise la clé existante (cf. saveModel backend).
+    if (!name.trim() || !provider || !modelId || (!apiKey.trim() && !keyOptional)) return;
     const data: SavePlatformModelRequest = {
       id: editModel?.id ?? null,
       name: name.trim(),
@@ -392,58 +396,11 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
             ))}
           </TextField>
 
-          {/* Model */}
-          <TextField
-            label={t('settings.ai.platform.model')}
-            value={modelId}
-            onChange={(e) => applyModelSelection(e.target.value)}
-            fullWidth
-            size="small"
-            select={models.length > 0}
-            disabled={!provider}
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          >
-            {models.map((m) => (
-              <MenuItem key={m.id} value={m.id}>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
-                    {m.label}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.675rem' }}>
-                    {m.desc}
-                  </Typography>
-                </Box>
-              </MenuItem>
-            ))}
-          </TextField>
-
-          {/* Catalogue LIVE du provider (GET /models) — IDs réellement servis */}
+          {/* Model — sélecteur UNIQUE : catalogue live du provider si chargé,
+              sinon presets curés (pas de doublon). Le catalogue live n'est dispo
+              que pour les providers qui l'exposent (NVIDIA aujourd'hui). */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={!provider || catalogMutation.isPending}
-              startIcon={catalogMutation.isPending
-                ? <CircularProgress size={14} />
-                : <Refresh size={16} strokeWidth={1.75} />}
-              onClick={() => catalogMutation.mutate(
-                { provider, apiKey: apiKey.trim() || undefined, baseUrl: baseUrl.trim() || undefined },
-                { onSuccess: (ids) => setCatalog(ids) },
-              )}
-              sx={{ alignSelf: 'flex-start', textTransform: 'none', borderColor: accent, color: accent }}
-            >
-              {t('settings.ai.platform.loadCatalog', 'Charger le catalogue du provider')}
-            </Button>
-            {catalogMutation.isError && (
-              <Typography variant="caption" color="error">
-                {(catalogMutation.error as Error)?.message
-                  || t('settings.ai.platform.catalogError', 'Échec du chargement du catalogue.')}
-              </Typography>
-            )}
-            {catalog.length > 0 && (
+            {catalog.length > 0 ? (
               <Autocomplete
                 options={
                   modelId && !catalog.some((m) => m.id === modelId)
@@ -475,10 +432,62 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label={`${t('settings.ai.platform.catalogPick', 'Catalogue live')} (${catalog.length})`}
+                    label={`${t('settings.ai.platform.model')} (${catalog.length})`}
                   />
                 )}
               />
+            ) : (
+              <TextField
+                label={t('settings.ai.platform.model')}
+                value={modelId}
+                onChange={(e) => applyModelSelection(e.target.value)}
+                fullWidth
+                size="small"
+                select={models.length > 0}
+                disabled={!provider}
+                sx={{
+                  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
+                  '& .MuiInputLabel-root.Mui-focused': { color: accent },
+                }}
+              >
+                {models.map((m) => (
+                  <MenuItem key={m.id} value={m.id}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
+                        {m.label}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.675rem' }}>
+                        {m.desc}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+
+            {/* Charge le catalogue live → le sélecteur ci-dessus bascule dessus. */}
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={!provider || catalogMutation.isPending}
+              startIcon={catalogMutation.isPending
+                ? <CircularProgress size={14} />
+                : <Refresh size={16} strokeWidth={1.75} />}
+              onClick={() => catalogMutation.mutate(
+                { provider, apiKey: apiKey.trim() || undefined, baseUrl: baseUrl.trim() || undefined },
+                { onSuccess: (ids) => setCatalog(ids) },
+              )}
+              sx={{ alignSelf: 'flex-start', textTransform: 'none', borderColor: accent, color: accent }}
+            >
+              {catalog.length > 0
+                ? t('settings.ai.platform.reloadCatalog', 'Recharger le catalogue du provider')
+                : t('settings.ai.platform.loadCatalog', 'Charger le catalogue du provider')}
+            </Button>
+            {catalogMutation.isError && (
+              <Typography variant="caption" color="error">
+                {(catalogMutation.error as Error)?.message
+                  || t('settings.ai.platform.catalogError', 'Échec du chargement du catalogue.')}
+              </Typography>
             )}
             {catalog.length > 0 && (
               <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.45 }}>
@@ -580,7 +589,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
         <Button
           onClick={handleTest}
           startIcon={testMutation.isPending ? <CircularProgress size={14} /> : <Science />}
-          disabled={!apiKey.trim() || !provider || !modelId || testMutation.isPending}
+          disabled={(!apiKey.trim() && !keyOptional) || !provider || !modelId || testMutation.isPending}
           size="small"
           sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, color: accent }}
         >
@@ -859,6 +868,22 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
+  // Budget editable : etat local + commit au blur / Entree. Sans ca, l'input
+  // controle sur la valeur serveur sauvegardait a CHAQUE frappe et ecrasait la
+  // saisie (impossible de taper un nombre proprement).
+  const [budgetInput, setBudgetInput] = useState(String(budget));
+  useEffect(() => {
+    setBudgetInput(String(budget));
+  }, [budget]);
+  const commitBudget = () => {
+    const val = parseInt(budgetInput, 10);
+    if (!isNaN(val) && val >= 0 && val !== budget) {
+      onBudgetChange(feature.key, val);
+    } else {
+      setBudgetInput(String(budget));
+    }
+  };
+
   // Valeur encodee : 'provider:<p>' | 'model:<id>' | '__none__' (le selecteur melange
   // providers connectes ET modeles plateforme, mutuellement exclusifs cote backend).
   const selectValue = assignedProvider
@@ -1028,11 +1053,16 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
               <TextField
                 size="small"
                 type="number"
-                value={budget}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  if (!isNaN(val) && val >= 0) onBudgetChange(feature.key, val);
+                value={budgetInput}
+                onChange={(e) => setBudgetInput(e.target.value)}
+                onBlur={commitBudget}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    commitBudget();
+                    (e.target as HTMLInputElement).blur();
+                  }
                 }}
+                title={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
                 InputProps={{
                   endAdornment: (
                     <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 0.5, fontSize: '0.65rem', fontVariantNumeric: 'tabular-nums' }}>
@@ -1046,6 +1076,9 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
                     fontSize: '0.75rem',
                     bgcolor: 'transparent',
                     '& fieldset': { border: 'none' },
+                    // Affordance : bordure au survol/focus → signale que c'est éditable.
+                    '&:hover fieldset': { border: '1px solid', borderColor: 'divider' },
+                    '&.Mui-focused fieldset': { border: '1px solid', borderColor: feature.color },
                   },
                   '& .MuiInputBase-input': { position: 'relative', zIndex: 1 },
                 }}

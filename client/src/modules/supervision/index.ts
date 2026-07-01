@@ -13,6 +13,10 @@ export { useCanSuperviseAgents } from './useCanSuperviseAgents';
 export type { SupervisionAccess } from './useCanSuperviseAgents';
 export { SUPERVISION_OPERATOR_ROLES, SUPERVISION_VIEWER_ROLES } from './roles';
 
+// Config org-level (Settings > IA : master + modules + autonomie)
+export { useSupervisionConfig, useUpdateSupervisionConfig, runSupervisionScan } from './useSupervisionConfig';
+export type { SupervisionConfig, SupervisionModuleConfig, SupervisionScanResult } from './useSupervisionConfig';
+
 // Seam provider
 export type { SupervisionProvider } from './provider/SupervisionProvider';
 export {
