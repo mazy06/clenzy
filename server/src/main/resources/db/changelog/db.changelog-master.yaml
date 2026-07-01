@@ -2823,3 +2823,13 @@ databaseChangeLog:
       sqlFile:
         path: changes/0291__create_supervision_suggestion.sql
         relativeToChangelogFile: true
+
+  # Backfill des partitions mensuelles calendar_days + résorption de la default (2028).
+  - changeSet:
+      id: "0292-backfill-calendar-partitions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0292__backfill_calendar_partitions.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

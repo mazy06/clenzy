@@ -30,6 +30,20 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     })
     List<ServiceRequest> findByProperty(@Param("property") Property property, @Param("orgId") Long orgId);
 
+    /**
+     * Demandes de service NON RÉGLÉES d'un logement : coût &gt; 0, statut de paiement dû
+     * (null / PENDING / PARTIALLY_PAID / FAILED) et non annulée/refusée. Sert à la carte
+     * déterministe « demande de service impayée » du Superviseur.
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property WHERE sr.property.id = :propertyId " +
+           "AND sr.estimatedCost IS NOT NULL AND sr.estimatedCost > 0 AND sr.organizationId = :orgId " +
+           "AND (sr.paymentStatus IS NULL OR sr.paymentStatus IN (" +
+           "com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.PARTIALLY_PAID, " +
+           "com.clenzy.model.PaymentStatus.FAILED)) " +
+           "AND sr.status NOT IN (com.clenzy.model.RequestStatus.CANCELLED, com.clenzy.model.RequestStatus.REJECTED) " +
+           "ORDER BY sr.desiredDate")
+    List<ServiceRequest> findUnpaidByProperty(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user WHERE sr.status = :status AND sr.desiredDate BETWEEN :start AND :end AND sr.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")

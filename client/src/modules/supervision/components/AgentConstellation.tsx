@@ -9,7 +9,7 @@
    temps réel et les actions arrivent en Phase 3/4.
    ============================================================ */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { FramerConstellation } from '../renderers/FramerConstellation';
 import type {
   ConstellationAgentView,
@@ -25,6 +25,8 @@ export interface AgentConstellationProps {
   /** Surcharge l'état en ligne (sinon snapshot.online). Piloté par useSupervision. */
   online?: boolean;
   onSelectAgent?: (id: AgentId) => void;
+  /** Action posée dans le HUD (ex. bouton « Scanner » en icône). */
+  headerAction?: ReactNode;
 }
 
 interface NormalizedView {
@@ -75,6 +77,7 @@ export function AgentConstellation({
   renderer: Renderer = FramerConstellation,
   online,
   onSelectAgent,
+  headerAction,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
   const { agents, hud } = useMemo(() => normalize(snapshot), [snapshot]);
@@ -88,6 +91,7 @@ export function AgentConstellation({
       focused={focused}
       onToggleFocus={() => setFocused((f) => !f)}
       onSelectAgent={onSelectAgent}
+      headerAction={headerAction}
     />
   );
 }

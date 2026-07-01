@@ -98,7 +98,12 @@ export function useInfiniteTimeline({
     if (!el) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Convert vertical wheel to horizontal scroll
+      // Ne PAS détourner le scroll vertical quand le pointeur est au-dessus d'une zone
+      // à défilement vertical propre (colonne de cartes du Superviseur, etc.) : on laisse
+      // le scroll natif s'appliquer. Sinon (au-dessus de la grille/briques du planning),
+      // le scroll vertical de la molette pilote le défilement HORIZONTAL du calendrier.
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest('[data-vertical-scroll]')) return;
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         e.preventDefault();
         el.scrollLeft += e.deltaY;

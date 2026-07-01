@@ -187,12 +187,15 @@ public class SupervisionScanService {
                 + "Passe en revue : (1) les messages voyageurs en attente de réponse, "
                 + "(2) les tarifs et créneaux à faible demande à optimiser, "
                 + "(3) les ménages et interventions à planifier, "
-                + "(4) les réservations nécessitant une attention, "
-                + "(5) les ménages/interventions NON RÉGLÉS (impayés) à régler. "
+                + "(4) les réservations nécessitant une attention. "
+                // Les interventions IMPAYÉES sont surfacées de façon déterministe (carte de
+                // paiement dédiée, calcul serveur) → NE PAS les détecter ni proposer de
+                // règlement ici, pour éviter une suggestion doublon et économiser des tokens.
+                + "N'analyse PAS les paiements d'interventions impayées : ils sont gérés ailleurs. "
                 + "IMPORTANT : quand tu identifies un point actionnable, n'écris PAS seulement une "
                 + "recommandation — APPELLE le tool d'action correspondant pour la PROPOSER (il demandera "
-                + "confirmation avant tout effet). Exemple : interventions impayées → appelle "
-                + "detect_unpaid_interventions, puis si le total dû > 0, propose settle_intervention_payment. "
-                + "Si tout est en ordre, dis-le simplement. Sois concis.";
+                + "confirmation avant tout effet). Exemple : un message voyageur sans réponse → prépare la "
+                + "réponse via send_guest_message ; un créneau à faible demande → propose "
+                + "recommend_price_adjustments. Si tout est en ordre, dis-le simplement. Sois concis.";
     }
 }

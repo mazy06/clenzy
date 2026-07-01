@@ -75,6 +75,16 @@
       "unitHour": "h",
       "unitMin": "min"
     },
+    "reminder": {
+      "badge": "Reminder",
+      "ack": "Got it",
+      "mute": "Don't show again"
+    },
+    "payment": {
+      "badge": "To settle",
+      "settle": "Pay now",
+      "later": "Later"
+    },
     "approval": {
       "title": "Approval required",
       "reject": "Reject",

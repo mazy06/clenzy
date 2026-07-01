@@ -11,9 +11,11 @@
    métier ici : présentation pure, swappable.
    ============================================================ */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
+import { useTheme } from '@mui/material/styles';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { AGENT_META, STATUS } from '../constants';
@@ -22,7 +24,7 @@ import { useElementSize } from '../core/useElementSize';
 import { AgentIcon } from './agentIcon';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import type { ConstellationRendererProps } from './ConstellationRenderer';
-import type { AgentStatus } from '../types';
+import type { AgentId, AgentStatus } from '../types';
 
 // ─── Keyframes (ambiance — CSS) ──────────────────────────────────────────────
 
@@ -45,7 +47,16 @@ const beamFlow = keyframes`from { stroke-dashoffset: 0; } to { stroke-dashoffset
 
 const Root = styled.div`
   position: relative;
-  height: 560px;
+  /* Fluide : la constellation remplit la hauteur DISPONIBLE de son parent
+     (l'accordéon Planning est déjà responsive) au lieu d'une hauteur fixe qui
+     déborde en bas sur les petits écrans et laisse du vide en haut sur les
+     grands. La géométrie (computeConstellationLayout) se recalcule sur la
+     taille MESURÉE (useElementSize) → agents/anneaux/faisceaux se replacent.
+       • flex:1 1 auto → remplit la colonne flex du SupervisionPanel (Planning) ;
+       • min-height   → plancher pour les parents SANS hauteur définie
+                        (portefeuille, démos) où flex/height:100% ne résout pas. */
+  flex: 1 1 auto;
+  min-height: 380px;
   border-radius: 16px;
   overflow: hidden;
   background: radial-gradient(125% 100% at 50% 42%, #313a7e 0%, #1b2052 44%, #0c0e2a 100%);
@@ -54,7 +65,7 @@ const Root = styled.div`
     inset 0 0 160px -40px rgba(6, 7, 24, 0.5),
     0 18px 44px -20px rgba(13, 15, 44, 0.7);
   @media (max-width: 600px) {
-    height: 460px;
+    min-height: 340px;
   }
 
   &::before {
@@ -379,54 +390,12 @@ const Root = styled.div`
     background: rgba(255, 255, 255, 0.07);
     border-color: transparent;
   }
-  .sat__tip {
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 184px;
-    max-width: 234px;
-    background: #141833;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 11px;
-    padding: 11px 13px;
-    font-size: 11.5px;
-    line-height: 1.45;
-    text-align: left;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.15s;
-    z-index: 12;
-    box-shadow: 0 16px 38px -12px rgba(0, 0, 0, 0.75);
-  }
-  .sat__tip b {
-    font-weight: 800;
-  }
-  .sat__tip span {
-    display: block;
-    color: #c8cdf0;
-    margin-top: 4px;
-  }
-  .sat__tip em {
-    display: block;
-    color: #9aa1d6;
-    font-style: normal;
-    font-size: 10.5px;
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-  }
+  /* Le tooltip d'agent est PORTALISÉ dans <body> (cf. rendu React) pour passer
+     au-dessus du canvas (overflow) et du planning — plus de tooltip CSS ici. */
   .sat:hover,
   .sat:focus-visible {
     z-index: 11;
     outline: none;
-  }
-  .sat:hover .sat__tip,
-  .sat:focus-visible .sat__tip {
-    opacity: 1;
-    visibility: visible;
   }
   .sat:focus-visible .sat__av {
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
@@ -551,6 +520,12 @@ const Root = styled.div`
     font-size: 12px;
     font-weight: 800;
     color: #fff;
+  }
+  /* Bouton « Scanner » (icône) posé à droite du titre du HUD. */
+  .cst__hudaction {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
   }
   .cst__pulse {
     width: 8px;
@@ -693,15 +668,10 @@ const Root = styled.div`
   }
 
   /* Survol RÉEL d'un agent ou du cœur uniquement (pas l'espace vide autour) :
-     (1) on remonte la couche en orbite au-dessus du cœur/HUD (z-index 6) pour
-     que le tooltip de l'agent (z-index 12, confiné dans cette couche) passe au
-     PREMIER PLAN ; (2) on fige l'orbite pour lire le tooltip. Le survol de la
-     zone vide ne déclenche rien → la constellation continue de tourner.
+     on FIGE l'orbite → l'agent reste immobile, donc le tooltip portalisé (dont
+     la position est calculée à l'entrée du survol) reste bien ancré. Le survol
+     de la zone vide ne déclenche rien → la constellation continue de tourner.
      La pause explicite reste gérée par la classe .paused ci-dessus. */
-  &:has(.sat:hover) .cst__spin,
-  &:has(.sat:focus-visible) .cst__spin {
-    z-index: 20;
-  }
   &:has(.sat:hover) .cst__spin,
   &:has(.sat:hover) .sat__c,
   &:has(.sat:focus-visible) .cst__spin,
@@ -859,10 +829,24 @@ export function FramerConstellation({
   focused,
   onToggleFocus,
   onSelectAgent,
+  headerAction,
 }: ConstellationRendererProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const prefersReduced = useReducedMotion();
   const [ref, size] = useElementSize<HTMLDivElement>();
+
+  // Tooltip d'agent PORTALISÉ dans <body> : le canvas est en `overflow:hidden`
+  // et vit dans une pile z-index basse → un tooltip CSS interne serait rogné en
+  // haut ET passerait SOUS les cellules du planning. Le portail le sort du
+  // conteneur avec un z-index très élevé. La position est figée à l'entrée du
+  // survol (l'orbite se met en pause sur `:hover` → l'agent reste immobile).
+  const [tip, setTip] = useState<{ id: AgentId; x: number; y: number } | null>(null);
+  const openTip = (id: AgentId, el: HTMLElement) => {
+    const anchor = (el.querySelector('.sat__core') as HTMLElement | null) ?? el;
+    const r = anchor.getBoundingClientRect();
+    setTip({ id, x: r.left + r.width / 2, y: r.top });
+  };
 
   const byId = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
   const layout = useMemo(
@@ -882,8 +866,14 @@ export function FramerConstellation({
 
   return (
     <Root ref={ref} className={rootClass} data-supervision-constellation role="group" aria-label={t('supervision.title')}>
-      {/* anneaux d'autonomie étiquetés (statiques) */}
-      <div className="cst__rings" aria-hidden="true">
+      {/* anneaux d'autonomie étiquetés (statiques) — ancrés au centre VISUEL
+          (layout.cx/cy, remonté) et non au centre CSS 50% : sinon anneaux et
+          satellites/faisceaux (coords géométriques) se désalignent. */}
+      <div
+        className="cst__rings"
+        aria-hidden="true"
+        style={layout.width > 0 ? { left: layout.cx, top: layout.cy } : undefined}
+      >
         {layout.rings.map((ring) => (
           <span
             key={ring.autonomy}
@@ -896,8 +886,15 @@ export function FramerConstellation({
         ))}
       </div>
 
-      {/* couche en orbite : faisceaux + satellites */}
-      <div className="cst__spin">
+      {/* couche en orbite : faisceaux + satellites.
+          IMPORTANT : la rotation doit pivoter autour du centre VISUEL (cx, cy,
+          remonté), le MÊME que celui des anneaux — sinon les satellites orbitent
+          autour du centre CSS (height/2) tandis que les anneaux sont centrés plus
+          haut → les pastilles dérivent hors de leur anneau selon l'angle. */}
+      <div
+        className="cst__spin"
+        style={layout.width > 0 ? { transformOrigin: `${layout.cx}px ${layout.cy}px` } : undefined}
+      >
         <svg
           className="beams"
           viewBox={`0 0 ${layout.width} ${layout.height}`}
@@ -948,6 +945,10 @@ export function FramerConstellation({
                 style={{ left: s.x, top: s.y }}
                 aria-label={`${name} · ${statusLabel}`}
                 aria-describedby={`sat-tip-${s.id}`}
+                onMouseEnter={(e) => openTip(s.id, e.currentTarget)}
+                onMouseLeave={() => setTip(null)}
+                onFocus={(e) => openTip(s.id, e.currentTarget)}
+                onBlur={() => setTip(null)}
                 onClick={() => onSelectAgent?.(s.id)}
               >
                 <span className="sat__c">
@@ -980,13 +981,6 @@ export function FramerConstellation({
                     )}
                   </span>
                   <span className="sat__nm">{name}</span>
-                  <span className="sat__tip" role="tooltip" id={`sat-tip-${s.id}`}>
-                    <b>{name}</b> · {statusLabel}
-                    {view?.task ? <span>{view.task}</span> : null}
-                    <em>
-                      {t('supervision.autonomy.' + s.autonomy)}
-                    </em>
-                  </span>
                 </span>
               </button>
             );
@@ -999,6 +993,7 @@ export function FramerConstellation({
         type="button"
         className="cst__center"
         data-core
+        style={layout.width > 0 ? { left: layout.cx, top: layout.cy } : undefined}
         onClick={onToggleFocus}
         aria-pressed={focused}
         aria-label={t('supervision.hud.orchestrator')}
@@ -1013,11 +1008,14 @@ export function FramerConstellation({
         </span>
       </button>
 
-      {/* HUD résumé */}
+      {/* HUD résumé — le bouton « Scanner » (icône) est posé à droite du titre. */}
       <div className="cst__hud">
         <div className="cst__hudtop">
           <span className="cst__pulse" />
-          {t('supervision.hud.orchestrator')} · {online ? t('supervision.hud.active') : t('supervision.states.offline')}
+          <span className="cst__hudtitle">
+            {t('supervision.hud.orchestrator')} · {online ? t('supervision.hud.active') : t('supervision.states.offline')}
+          </span>
+          {headerAction ? <span className="cst__hudaction">{headerAction}</span> : null}
         </div>
         <div className="cst__hudrow">
           <b>{hud.agentsCount}</b> {t('supervision.hud.agents')}
@@ -1055,6 +1053,71 @@ export function FramerConstellation({
       </div>
 
       <div className="cst__focushint">{t('supervision.hud.focusHint')}</div>
+
+      {/* Tooltip PORTALISÉ dans <body> (position:fixed) → au-dessus du canvas
+          (overflow) ET du planning (z-index très élevé). Ancré au-dessus de
+          l'avatar survolé. */}
+      {tip &&
+        typeof document !== 'undefined' &&
+        (() => {
+          const meta = AGENT_META[tip.id];
+          const view = byId.get(tip.id);
+          if (!view) return null;
+          // Couleurs pilotées par le thème (le tooltip doit suivre le PMS :
+          // clair sur thème clair, sombre sur thème sombre).
+          const dark = theme.palette.mode === 'dark';
+          const tipBg = dark ? '#141833' : theme.palette.background.paper;
+          const tipFg = dark ? '#fff' : theme.palette.text.primary;
+          const tipBorder = dark ? 'rgba(255,255,255,.1)' : theme.palette.divider;
+          const tipSub = dark ? '#c8cdf0' : theme.palette.text.secondary;
+          const tipMeta = dark ? '#9aa1d6' : theme.palette.text.disabled;
+          const shadowAlpha = dark ? 0.75 : 0.28;
+          return createPortal(
+            <div
+              role="tooltip"
+              id={`sat-tip-${tip.id}`}
+              style={{
+                position: 'fixed',
+                left: tip.x,
+                top: tip.y - 12,
+                transform: 'translate(-50%, -100%)',
+                zIndex: 4000,
+                minWidth: 184,
+                maxWidth: 234,
+                background: tipBg,
+                color: tipFg,
+                border: `1px solid ${tipBorder}`,
+                borderRadius: 11,
+                padding: '11px 13px',
+                fontSize: 11.5,
+                lineHeight: 1.45,
+                textAlign: 'left',
+                pointerEvents: 'none',
+                boxShadow: `0 16px 38px -12px rgba(15,23,42,${shadowAlpha})`,
+              }}
+            >
+              <b style={{ fontWeight: 600 }}>{t(meta.nameKey)}</b>
+              {` · ${t(STATUS[view.status].labelKey)}`}
+              {view.task ? (
+                <span style={{ display: 'block', color: tipSub, marginTop: 4 }}>{view.task}</span>
+              ) : null}
+              <em
+                style={{
+                  display: 'block',
+                  color: tipMeta,
+                  fontStyle: 'normal',
+                  fontSize: 10.5,
+                  marginTop: 6,
+                  paddingTop: 6,
+                  borderTop: `1px solid ${tipBorder}`,
+                }}
+              >
+                {t('supervision.autonomy.' + view.autonomy)}
+              </em>
+            </div>,
+            document.body,
+          );
+        })()}
     </Root>
   );
 }
