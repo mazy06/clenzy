@@ -95,3 +95,10 @@
 - **Vision** (`ConversationHistoryMapper`) : images résolues (garde org + fetch S3 + base64 ~4k tokens) UNIQUEMENT pour le dernier message user ; anciennes → `PAST_IMAGE_PLACEHOLDER` textuel. Gain tokens + I/O storage à chaque tour. +2 tests (aucun appel storage pour image ancienne ; dernier message toujours résolu).
 - Vérification : `mvn package` BUILD SUCCESS. NON COMMITÉ (commit commun, 82 fichiers modifiés au total dans le working tree — inclut la refonte supervision antérieure non commitée).
 - Écart assumé : pas de tool `view_attachment` (YAGNI — l'analyse du tour 1 reste dans l'historique) ; ré-envoi intra-run de l'image du tour courant conservé (couvert à ~10 % du coût par le cache Anthropic, et retirer l'image en cours d'analyse serait risqué).
+
+## 2026-07-02 — Commits thématiques + push origin/main
+
+- `d493d4b6` feat(superviseur) : suggestions actionnables + analytics perf par logement (migration 0293) — lot pré-campagne, tsc vérifié.
+- `e70aae8f` docs(campagne) : dossier complet 8 phases + SYNTHESE.md.
+- `e10894ae` feat(assistant-ia) : optimisation tokens T-01→T-04.
+- Poussés sur origin/main (workflow main direct). PAS de PR main→production : le déploiement prod attend une demande explicite. Flags à activer pour bénéficier de T-02/T-03 : `clenzy.assistant.routing.enabled`, `clenzy.assistant.tiering.enabled` + maps small/strong.
