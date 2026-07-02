@@ -21,6 +21,8 @@ public class SupervisionSuggestion {
 
     public static final String STATUS_PENDING = "PENDING";
     public static final String STATUS_DISMISSED = "DISMISSED";
+    /** Suggestion dont l'action exécutable a été appliquée par l'opérateur. */
+    public static final String STATUS_APPLIED = "APPLIED";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,6 +48,29 @@ public class SupervisionSuggestion {
 
     @Column(name = "reservation_id")
     private Long reservationId;
+
+    /**
+     * Type d'action exécutable (ex. {@code PRICE_DROP}) ou {@code null} =
+     * informationnelle (l'opérateur lit + rejette, comportement historique).
+     */
+    @Column(name = "action_type", length = 40)
+    private String actionType;
+
+    /** Paramètres de l'action, petit payload JSON (from/to/percent…). */
+    @Column(name = "action_params", columnDefinition = "text")
+    private String actionParams;
+
+    /** Impact estimé en centimes de la devise de base (EUR), optionnel. */
+    @Column(name = "estimated_impact_cents")
+    private Long estimatedImpactCents;
+
+    /** Gravité indicative : {@code info} / {@code warning} / {@code critical}. */
+    @Column(name = "severity", length = 20)
+    private String severity;
+
+    /** Horodatage d'application de l'action (null tant que non appliquée). */
+    @Column(name = "applied_at")
+    private Instant appliedAt;
 
     @Column(nullable = false, length = 20)
     private String status = STATUS_PENDING;
@@ -93,6 +118,21 @@ public class SupervisionSuggestion {
 
     public Long getReservationId() { return reservationId; }
     public void setReservationId(Long reservationId) { this.reservationId = reservationId; }
+
+    public String getActionType() { return actionType; }
+    public void setActionType(String actionType) { this.actionType = actionType; }
+
+    public String getActionParams() { return actionParams; }
+    public void setActionParams(String actionParams) { this.actionParams = actionParams; }
+
+    public Long getEstimatedImpactCents() { return estimatedImpactCents; }
+    public void setEstimatedImpactCents(Long estimatedImpactCents) { this.estimatedImpactCents = estimatedImpactCents; }
+
+    public String getSeverity() { return severity; }
+    public void setSeverity(String severity) { this.severity = severity; }
+
+    public Instant getAppliedAt() { return appliedAt; }
+    public void setAppliedAt(Instant appliedAt) { this.appliedAt = appliedAt; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

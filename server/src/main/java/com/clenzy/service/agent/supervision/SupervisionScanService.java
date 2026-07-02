@@ -47,6 +47,7 @@ public class SupervisionScanService {
     private final SupervisionActivityService activityService;
     private final SupervisionSuggestionService suggestionService;
     private final SupervisionModuleRegistry moduleRegistry;
+    private final BusinessAnalyticsScanner businessAnalyticsScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -56,6 +57,7 @@ public class SupervisionScanService {
                                   SupervisionActivityService activityService,
                                   SupervisionSuggestionService suggestionService,
                                   SupervisionModuleRegistry moduleRegistry,
+                                  BusinessAnalyticsScanner businessAnalyticsScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -64,6 +66,7 @@ public class SupervisionScanService {
         this.activityService = activityService;
         this.suggestionService = suggestionService;
         this.moduleRegistry = moduleRegistry;
+        this.businessAnalyticsScanner = businessAnalyticsScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -123,6 +126,11 @@ public class SupervisionScanService {
      */
     private SupervisionScanResultDto runScan(Long orgId, Long propertyId, AgentContext context,
                                              boolean recordSuggestions) {
+        // Heuristiques analytics déterministes (Phase A) : émises AVANT le run LLM,
+        // sans coût token, best-effort (n'interrompt jamais le scan).
+        if (recordSuggestions) {
+            businessAnalyticsScanner.scanProperty(orgId, propertyId);
+        }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();
         StringBuilder reply = new StringBuilder();

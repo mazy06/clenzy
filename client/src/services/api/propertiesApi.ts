@@ -4,6 +4,25 @@ import { extractApiList } from '../../types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/** Score de performance d'un logement (fenêtre glissante), cf. backend PropertyPerformanceDto. */
+export interface PropertyPerformance {
+  propertyId: number;
+  /** Nom du logement (pour le classement du dashboard). */
+  name: string;
+  /** Score global 0–100. */
+  score: number;
+  /** Revenu par logement disponible = revenu / jours (devise de base EUR). */
+  revPan: number;
+  /** Taux d'occupation en % (0–100, plafonné). */
+  occupancyRate: number;
+  /** Revenu de la fenêtre, proraté aux nuits comprises (devise de base EUR). */
+  revenue: number;
+  /** Marge nette en % (0–100). */
+  netMargin: number;
+  /** Taille de la fenêtre glissante en jours. */
+  windowDays: number;
+}
+
 export interface Property {
   id: number;
   name: string;
@@ -296,5 +315,17 @@ export const propertiesApi = {
   /** Met à jour uniquement le statut (ACTIVE / INACTIVE / UNDER_MAINTENANCE / ARCHIVED) */
   updateStatus(id: number, status: string) {
     return apiClient.patch<Property>(`/properties/${id}/status`, { status });
+  },
+
+  /** Score de performance du logement sur une fenêtre glissante (défaut 90 j). */
+  getPerformance(id: number, days?: number) {
+    const query = days ? `?days=${days}` : '';
+    return apiClient.get<PropertyPerformance>(`/properties/${id}/performance${query}`);
+  },
+
+  /** Classement de performance des logements ACTIFS de l'org (trié par score décroissant). */
+  getPerformanceSummaries(days?: number) {
+    const query = days ? `?days=${days}` : '';
+    return apiClient.get<PropertyPerformance[]>(`/properties/performance-summaries${query}`);
   },
 };

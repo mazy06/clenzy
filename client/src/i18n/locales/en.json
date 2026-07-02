@@ -85,6 +85,10 @@
       "settle": "Pay now",
       "later": "Later"
     },
+    "apply": {
+      "action": "Apply",
+      "dismiss": "Dismiss"
+    },
     "approval": {
       "title": "Approval required",
       "reject": "Reject",

@@ -4,10 +4,10 @@
    Carte d'action posée sur le canvas. Compte à rebours d'expiration en
    direct, « Pourquoi ? » dépliable, Valider / Modifier.
 
-   THÈME : carte volontairement CLAIRE (crème) dans les deux modes — elle
-   « poppe » sur le canvas indigo en sombre, et reste une carte claire en
-   clair. Couleurs FIXES (pas de tokens) pour garantir un texte sombre
-   lisible sur le crème quel que soit le thème de l'app.
+   THÈME : la carte suit le thème de l'app (clair/sombre) via les tokens
+   signature (var(--card)/--line/--ink/--muted/--warn/--err…). Elle s'assombrit
+   donc en mode sombre au lieu de rester crème. Les couleurs d'agent (meta.color)
+   et l'accent (bouton primaire) restent des tokens/valeurs de marque.
 
    SÉCURITÉ : `reasoning`/`motif`/`title` rendus en TEXTE BRUT (jamais de
    HTML). Le serveur a déjà nettoyé le « Pourquoi ? » (aucun token / prompt
@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { Box, Button, Collapse, CircularProgress, IconButton } from '@mui/material';
 import { Check, Edit, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { Money } from '../../../components/Money';
 import { useCountdown, type Countdown } from '../core/useCountdown';
 import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
@@ -45,8 +46,10 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
   const meta = AGENT_META[action.agentId];
   const isReminder = action.kind === 'reminder';
   const isPayment = action.kind === 'payment';
-  // Un rappel/paiement ne « périme » pas : ses 2 boutons restent toujours actionnables.
-  const expired = !isReminder && !isPayment && cd.expired;
+  // Suggestion actionnable (ex. baisse de prix) : « Appliquer » exécute l'action serveur.
+  const isApply = !isPayment && !isReminder && Boolean(action.applyActionType);
+  // Un rappel/paiement/action applicable ne « périme » pas : boutons toujours actionnables.
+  const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const propertyName = 'propertyName' in action ? action.propertyName : undefined;
 
   const validate = () => {
@@ -64,8 +67,8 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
       data-expired={expired ? '1' : undefined}
       sx={{
         width: '100%',
-        bgcolor: '#FCFCFD',
-        border: '1px solid #E9E9EE',
+        bgcolor: 'var(--card)',
+        border: '1px solid var(--line)',
         borderRadius: '12px',
         p: '13px 14px',
         boxShadow: 'none',
@@ -95,7 +98,7 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
             flex: 1,
             fontSize: 12,
             fontWeight: 500,
-            color: '#1B2240',
+            color: 'var(--ink)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -107,8 +110,8 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
             pour paiement/rappel, sinon le compte à rebours d'expiration. */}
         {isPayment || isReminder ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#C6A15E', flexShrink: 0 }} />
-            <Box sx={{ fontSize: 10.5, fontWeight: 500, letterSpacing: '.01em', color: '#8A7250', whiteSpace: 'nowrap' }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warn)', flexShrink: 0 }} />
+            <Box sx={{ fontSize: 10.5, fontWeight: 500, letterSpacing: '.01em', color: 'var(--warn)', whiteSpace: 'nowrap' }}>
               {isPayment ? t('supervision.payment.badge', 'À régler') : t('supervision.reminder.badge', 'Rappel')}
             </Box>
           </Box>
@@ -121,8 +124,8 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
               px: 1,
               py: 0.5,
               borderRadius: '7px',
-              bgcolor: expired ? '#FBE3E3' : '#FBF0DF',
-              color: expired ? '#C0392B' : '#B97C28',
+              bgcolor: expired ? 'var(--err-soft)' : 'var(--warn-soft)',
+              color: expired ? 'var(--err)' : 'var(--warn)',
               fontSize: 10.5,
               fontWeight: 500,
               whiteSpace: 'nowrap',
@@ -137,23 +140,23 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
       </Box>
 
       {propertyName && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75, fontSize: 11.5, fontWeight: 400, color: '#6B7196' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75, fontSize: 11.5, fontWeight: 400, color: 'var(--muted)' }}>
           <HomeWork size={13} />
           {propertyName}
         </Box>
       )}
 
       {/* titre + motif (texte brut) — plus de gras (sobriété demandée) */}
-      <Box sx={{ fontSize: 12.5, fontWeight: 500, color: '#1B2240', lineHeight: 1.35, mb: isPayment ? 1.25 : 0.5 }}>
+      <Box sx={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.35, mb: isPayment ? 1.25 : 0.5 }}>
         {action.title}
       </Box>
       {/* En 'payment' : plus de ligne « Montant à régler » — le montant est
           affiché DIRECTEMENT dans le bouton « Régler ». */}
-      {!isPayment && <Box sx={{ fontSize: 11.5, color: '#6B7196', mb: 1.25 }}>{action.motif}</Box>}
+      {!isPayment && <Box sx={{ fontSize: 11.5, color: 'var(--muted)', mb: 1.25 }}>{action.motif}</Box>}
 
       {/* actions */}
       {expired ? (
-        <Box sx={{ fontSize: 12, fontWeight: 500, color: '#C0392B' }}>{t('supervision.hitl.expired')}</Box>
+        <Box sx={{ fontSize: 12, fontWeight: 500, color: 'var(--err)' }}>{t('supervision.hitl.expired')}</Box>
       ) : (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Button
@@ -177,18 +180,40 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
               textTransform: 'none',
               fontWeight: 500,
               fontSize: 12,
+              px: 1.5,
               boxShadow: 'none',
               bgcolor: 'var(--accent)',
               color: 'var(--on-accent)',
+              // Icône collée au bord gauche par la marge négative par défaut de
+              // MUI : on la neutralise pour un espacement icône/texte régulier.
+              '& .MuiButton-startIcon': { ml: 0, mr: 0.75 },
               '&:hover': { bgcolor: 'var(--accent-deep)', boxShadow: 'none' },
               '&.Mui-disabled': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
             }}
           >
-            {isPayment
-              ? `${t('supervision.payment.settle', 'Régler')}${action.amountLabel ? ` ${action.amountLabel}` : ''}`
-              : isReminder
-                ? t('supervision.reminder.ack', 'Info reçue')
-                : t('supervision.hitl.validate')}
+            {isPayment ? (
+              <>
+                {t('supervision.payment.settle', 'Régler')}
+                {action.amountEur != null && (
+                  <Box component="span" sx={{ ml: 0.5 }}>
+                    <Money value={action.amountEur} from="EUR" />
+                  </Box>
+                )}
+              </>
+            ) : isApply ? (
+              <>
+                {t('supervision.apply.action', 'Appliquer')}
+                {action.amountEur != null && (
+                  <Box component="span" sx={{ ml: 0.5 }}>
+                    +<Money value={action.amountEur} from="EUR" decimals={0} />
+                  </Box>
+                )}
+              </>
+            ) : isReminder ? (
+              t('supervision.reminder.ack', 'Info reçue')
+            ) : (
+              t('supervision.hitl.validate')
+            )}
           </Button>
           <Button
             size="small"
@@ -196,14 +221,16 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
             color="inherit"
             disabled={resolving}
             onClick={edit}
-            startIcon={isReminder ? <VisibilityOff size={14} /> : isPayment ? <Schedule size={14} /> : <Edit size={14} />}
-            sx={{ textTransform: 'none', fontWeight: 500, fontSize: 12, color: '#5A5F73', borderColor: '#E4E4EA', '&:hover': { borderColor: '#CFCFD8', bgcolor: 'transparent' } }}
+            startIcon={isReminder ? <VisibilityOff size={14} /> : isPayment ? <Schedule size={14} /> : isApply ? <VisibilityOff size={14} /> : <Edit size={14} />}
+            sx={{ textTransform: 'none', fontWeight: 500, fontSize: 12, color: 'var(--ink)', borderColor: 'var(--line-2)', '&:hover': { borderColor: 'var(--muted)', bgcolor: 'transparent' } }}
           >
             {isPayment
               ? t('supervision.payment.later', 'Plus tard')
               : isReminder
                 ? t('supervision.reminder.mute', 'Ne plus afficher')
-                : t('supervision.hitl.edit')}
+                : isApply
+                  ? t('supervision.apply.dismiss', 'Ignorer')
+                  : t('supervision.hitl.edit')}
           </Button>
           {/* « Pourquoi ? » réduit à la flèche seule, sur la MÊME ligne que les
               deux boutons (poussée à droite). Le libellé passe en aria-label. */}
@@ -221,7 +248,7 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
 
       {/* « Pourquoi ? » — raisonnement métier (texte brut, déjà nettoyé serveur) */}
       <Collapse in={why} unmountOnExit>
-        <Box sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid #ECECF1', fontSize: 11.5, lineHeight: 1.5, color: '#5A5F73' }}>
+        <Box sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid var(--line)', fontSize: 11.5, lineHeight: 1.5, color: 'var(--muted)' }}>
           {action.reasoning}
         </Box>
       </Collapse>

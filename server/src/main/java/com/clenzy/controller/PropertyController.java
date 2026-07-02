@@ -1,7 +1,9 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.PropertyDto;
+import com.clenzy.dto.PropertyPerformanceDto;
 import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
+import com.clenzy.service.PropertyPerformanceService;
 import com.clenzy.service.PropertyService;
 import com.clenzy.service.UserService;
 import com.clenzy.model.Property;
@@ -42,13 +44,16 @@ public class PropertyController {
     private final PropertyService propertyService;
     private final UserService userService;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final PropertyPerformanceService propertyPerformanceService;
 
     public PropertyController(PropertyService propertyService,
                               UserService userService,
-                              OrganizationAccessGuard organizationAccessGuard) {
+                              OrganizationAccessGuard organizationAccessGuard,
+                              PropertyPerformanceService propertyPerformanceService) {
         this.propertyService = propertyService;
         this.userService = userService;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.propertyPerformanceService = propertyPerformanceService;
     }
 
     /**
@@ -158,6 +163,15 @@ public class PropertyController {
     public PropertyDto get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         checkPropertyAccess(id, jwt);
         return propertyService.getById(id);
+    }
+
+    @GetMapping("/{id}/performance")
+    @Operation(summary = "Score de performance d'un logement (fenêtre glissante)")
+    public PropertyPerformanceDto performance(@PathVariable Long id,
+                                              @RequestParam(name = "days", required = false, defaultValue = "90") int days,
+                                              @AuthenticationPrincipal Jwt jwt) {
+        checkPropertyAccess(id, jwt);
+        return propertyPerformanceService.compute(id, days);
     }
 
     @PutMapping("/{id}")
