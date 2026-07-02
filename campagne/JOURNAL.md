@@ -177,3 +177,11 @@
 - **API** : `/api/ai/autonomy/trust-rules` (GET, accept/dismiss/revoke) — DTO (pas d'entité exposée), ownership org dans le service.
 - Tests : 11 (pattern pur, refus bloquant, blocklist ×2, re-suggestion, gate, fail-safe, transitions, cross-org, revoke). `mvn package` BUILD SUCCESS. NON COMMITÉ.
 - Écart assumé : panneau UI (liste/toggle des règles dans Paramètres→IA) = incrément frontend à venir — endpoints prêts.
+
+## 2026-07-02 — Exécution X3 : Grand Livre d'Autonomie (FAIT, vérifié, non commité)
+
+- Frontend PUR (endpoint `GET /api/agui/history/{runId}` déjà livré en T-05). Client `agentRunApi.ts` + `AgentRunReplayDialog.tsx` (replay d'un run : étapes LLM/TOOL/DELEGATION/PAUSE/SUMMARY, icônes lucide par type, tokens tabular-nums, statut coloré, skeleton).
+- Branchement : les lignes du ledger crédits (`AiCreditsSection`) portant un runId deviennent cliquables (curseur pointer + icône History) → ouvrent le replay. « Chaque action IA a un reçu rejouable » (signature feature n°1).
+- i18n fr/en/ar (agentReplay.* + aiCredits.ledger.replayHint), diff locales propre (24 lignes/locale, formatage préservé).
+- Vérification : tsc clean (pas de backend touché → pas de mvn). NON COMMITÉ.
+- Écart assumé : replay accessible depuis le ledger crédits (point d'entrée naturel : runId présent) ; l'intégration dans la Constellation (time-travel visuel) viendra avec la reprise du chantier supervision. Un run sans débit (ex. DIRECT smalltalk) n'a pas de ligne ledger donc pas d'entrée replay — acceptable (rien à rejouer d'intéressant).
