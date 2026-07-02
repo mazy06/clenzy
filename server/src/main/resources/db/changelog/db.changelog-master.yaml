@@ -2841,3 +2841,27 @@ databaseChangeLog:
       sqlFile:
         path: changes/0293__supervision_suggestion_actionable.sql
         relativeToChangelogFile: true
+
+  # Etat de run des agents persiste et rejouable (campagne T-05, ADR-002).
+  - changeSet:
+      id: "0294-create-agent-run-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0294__create_agent_run_tables.sql
+        relativeToChangelogFile: true
+
+  # Facturation IA a l'usage : rate card versionnee + ledger de credits (campagne T-06, ADR-005/006).
+  - changeSet:
+      id: "0295-create-ai-credit-ledger"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0295__create_ai_credit_ledger.sql
+        relativeToChangelogFile: true
+
+  # Poches de credits IA : SUBSCRIPTION (cycle) puis TOPUP 12 mois (campagne T-06b, ADR-005).
+  - changeSet:
+      id: "0296-create-ai-credit-grant"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0296__create_ai_credit_grant.sql
+        relativeToChangelogFile: true

@@ -491,13 +491,30 @@ public class OrchestratorAgent {
         // OrchestrationContext propage memoire + RAG aux specialists ;
         // apiKey assure que les specialists consomment sur la meme cle BYOK
         // que l'orchestrator (Fix bloquant #4).
-        return registry.find(args.specialist())
+        SpecialistResult result = registry.find(args.specialist())
                 .map(spec -> spec.handle(SpecialistRequest.of(args.query(), context,
                         orchestrationCtx, apiKey)))
                 .orElseGet(() -> SpecialistResult.error(
                         "Specialiste inconnu : '" + args.specialist() + "'. "
                                 + "Specialistes disponibles : " + registry.all().keySet()
                 ));
+        // Step DELEGATION du run persiste (T-05) : point unique couvrant les deux
+        // sites d'appel (flow initial + resume). Une pause HITL (exception) n'y
+        // passe pas — elle est tracee comme PAUSE par MultiAgentFlowRunner.
+        if (agentRunRecorder != null) {
+            agentRunRecorder.recordDelegationStep(args.specialist(), args.query(),
+                    result.promptTokens(), result.completionTokens(), result.error() == null);
+        }
+        return result;
+    }
+
+    // Trace de run (T-05). Setter optionnel (meme pattern que l'instrumentation
+    // des specialists) : null-safe en test, injecte par Spring en production.
+    private com.clenzy.service.agent.AgentRunRecorder agentRunRecorder;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setAgentRunRecorder(com.clenzy.service.agent.AgentRunRecorder agentRunRecorder) {
+        this.agentRunRecorder = agentRunRecorder;
     }
 
     /**

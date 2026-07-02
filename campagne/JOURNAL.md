@@ -102,3 +102,30 @@
 - `e70aae8f` docs(campagne) : dossier complet 8 phases + SYNTHESE.md.
 - `e10894ae` feat(assistant-ia) : optimisation tokens T-01→T-04.
 - Poussés sur origin/main (workflow main direct). PAS de PR main→production : le déploiement prod attend une demande explicite. Flags à activer pour bénéficier de T-02/T-03 : `clenzy.assistant.routing.enabled`, `clenzy.assistant.tiering.enabled` + maps small/strong.
+
+## 2026-07-02 — Exécution T-05 : agent_run/agent_step + replay (FAIT, vérifié, non commité)
+
+- **Migration 0294** (`agent_run` UUID app-assigned / `agent_step` seq unique par run, kinds LLM_CALL/TOOL_CALL/DELEGATION/PAUSE/SUMMARY, tokens par step — brique du ledger T-06). PII : `detail` sans arguments d'outils (audit masqué les garde).
+- **`AgentRunRecorder`** : ThreadLocal par run (streaming bloquant dans le thread appelant), écritures async mono-thread file bornée 512 + DiscardPolicy, échecs avalés debug — zéro latence chemin SSE. startRun réinitialise l'état du thread (run orphelin d'exception propagée reste RUNNING, sans pollution).
+- **Hooks** : orchestrateur start/finish après gates + run `chat_resume` à la reprise + SSE `run_started{runId}` (nouveau composant `runId` sur AgentSseEvent, translator AG-UI forward-compatible) ; boucle mono → LLM/TOOL/PAUSE steps ; `OrchestratorAgent.invokeSpecialist` → DELEGATION (point unique, 2 appelants couverts) ; `MultiAgentFlowRunner` → PAUSE + SUMMARY. Statut fin de run : ERROR > PAUSED (si pause enregistrée) > COMPLETED.
+- **Replay** : `GET /api/agui/history/{runId}` (AgUiController) → `AgentRunQueryService` — AgentRun SANS filtre tenant Hibernate ⇒ ownership validé explicitement (`OrganizationAccessGuard`), 404 `NotFoundException`, 403 cross-org. DTO `AgentRunReplayDto`.
+- Tests : 7 recorder + 3 query service. `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écarts assumés : pas de producteur Kafka `agents.*` (persistance async directe = mêmes garanties ; à ajouter avec le pont STOMP/Constellation Propriétaire) ; briefings/batch pas encore couverts par startRun (origines chat/chat_resume seulement en T-05).
+
+## 2026-07-02 — Exécution T-06 : rate card + ledger de crédits (FAIT, vérifié, non commité)
+
+- **Migration 0295** : `ai_credit_rate_card` versionnée append-only (fermer effective_to, jamais d'UPDATE) avec seed grille Phase 2 (markup ×5, millicredits/1k : Sonnet 750/4000, Haiku 200/1000, Opus 4000/20000, gpt-5-mini 65/500, embeddings 5) + `ai_usage_ledger` append-only (débit client millicredits + coût provider réel micro-USD par ligne, run_id/step_seq → tables T-05, unique idempotency_key).
+- **`CreditMeteringService`** : résolution par préfixe le plus long (convention LlmPricingService), cache 5 min, arrondi SUPÉRIEUR par 1k, facteur BYOK `clenzy.ai.credits.byok-factor:0.30` (ADR-008), doublon idempotence ignoré, modèle sans taux → 0 + WARN, best-effort (l'enforcement viendra du pré-vol T-06b, pas de cette écriture).
+- **Branchement** : entonnoir unique `recordUsageSafe` (signature Long orgId → AgentContext : attribution user au ledger ; 4 appelants mis à jour dont l'usage du routeur — oublié au 1er build, corrigé). Clé idempotence `runId:meter:N` (séquence dédiée AgentRunRecorder). `ai_token_usage` maintenu en parallèle (transition).
+- Tests : 7 (calcul + coût réel séparé, ceil, BYOK, préfixe, inconnu, doublon, no-ops). `mvn package` BUILD SUCCESS (2e run après fix compilation). NON COMMITÉ.
+- Écarts assumés : débit sur tokens d'entrée tels que livrés (déjà cache-ajustés) — sous le « tarif plein » strict ADR-006, favorable client, à affiner quand la décomposition brute sera plombée ; flag BYOK false aux points d'appel (source de clé non propagée — T-06b) ; buckets SOCLE/PREMIUM_AUTO avec le ticket autonomie.
+
+## 2026-07-02 — Exécution T-06b : poches + solde Redis + enforcement (FAIT, vérifié, non commité)
+
+- **Migration 0296** : `ai_credit_grant` (SUBSCRIPTION consommée d'abord puis TOPUP FIFO expiration — D-102, stripe_ref unique pour l'idempotence T-07, CHECK bornes).
+- **`CreditBalanceService`** : 3 scripts Lua atomiques (reserve avec seed SETNX depuis Postgres au cache-miss + retry unique, release-si-existe, forceDebit pouvant passer négatif), **fail-closed** Redis down ; `applyConsumptionToGrants` sous verrou pessimiste (`lockActiveGrants`, ordre JPQL SUBSCRIPTION→FIFO) — multi-runs et multi-instances safe ; `invalidate(org)` pour T-07 (GRANT/EXPIRY).
+- **`RunCreditGuard`** : ThreadLocal par run — pré-vol plancher (`floor-millicredits:2000`), rallonges par chunk (`chunk-millicredits:5000`) = re-check inter-tours anti-runaway, épuisement → arrêt propre (boucle mono sort vers le tour final sans outils), réconciliation endRun (release ou forceDebit de l'overshoot).
+- **Câblage** : metering→guard.onDebit ; orchestrateur pré-vol + hard cap SSE (run initial + reprise HITL — sur la reprise, le pending étant consommé, l'action devra être relancée après recharge) + endRun aux 4 retours ; boucle mono check inter-itérations.
+- **Flag `clenzy.ai.credits.enforcement.enabled` = FALSE par défaut** — l'activer sans dotations couperait tout à zéro ; allumage prévu après T-07.
+- Tests : 8 RunCreditGuard + 5 CreditBalanceService + adaptations. `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écart assumé : pas de check inter-délégations multi-agent (bornées ≤3, overshoot réconcilié par forceDebit) — à raffiner avec l'architecture C.

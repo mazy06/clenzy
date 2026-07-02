@@ -45,6 +45,12 @@ public class AgentToolLoopRunner {
     private final AiTokenBudgetService aiTokenBudgetService;
     private final AgentActionAuditService actionAuditService;
     private final AgentToolMetrics toolMetrics;
+    /** Trace de run (T-05) — null-safe (chemin legacy test-only sans instrumentation). */
+    private final AgentRunRecorder agentRunRecorder;
+    /** Metering credits (T-06) — null-safe (chemin legacy test-only sans instrumentation). */
+    private final com.clenzy.service.ai.CreditMeteringService creditMeteringService;
+    /** Garde de credits du run (T-06b) — null-safe ; arrete proprement la boucle si epuise. */
+    private final com.clenzy.service.ai.RunCreditGuard runCreditGuard;
 
     public AgentToolLoopRunner(ChatLLMProvider chatProvider,
                                 ToolRegistry toolRegistry,
@@ -53,7 +59,10 @@ public class AgentToolLoopRunner {
                                 ObjectMapper objectMapper,
                                 AiTokenBudgetService aiTokenBudgetService,
                                 AgentActionAuditService actionAuditService,
-                                AgentToolMetrics toolMetrics) {
+                                AgentToolMetrics toolMetrics,
+                                AgentRunRecorder agentRunRecorder,
+                                com.clenzy.service.ai.CreditMeteringService creditMeteringService,
+                                com.clenzy.service.ai.RunCreditGuard runCreditGuard) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.messageRepository = messageRepository;
@@ -62,6 +71,9 @@ public class AgentToolLoopRunner {
         this.aiTokenBudgetService = aiTokenBudgetService;
         this.actionAuditService = actionAuditService;
         this.toolMetrics = toolMetrics;
+        this.agentRunRecorder = agentRunRecorder;
+        this.creditMeteringService = creditMeteringService;
+        this.runCreditGuard = runCreditGuard;
     }
 
     public void runToolLoop(ChatRequest initialRequest,
@@ -72,6 +84,13 @@ public class AgentToolLoopRunner {
         ChatRequest request = initialRequest;
 
         for (int iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
+            // Re-check credits inter-tours (T-06b) : le budget du run est epuise
+            // en vol → on sort de la boucle pour le tour final SANS outils
+            // (synthese propre plutot qu'une coupure seche).
+            if (iter > 0 && runCreditGuard != null && runCreditGuard.isExhausted()) {
+                log.info("Budget credits epuise en vol — arret de la boucle a l'iteration {}", iter);
+                break;
+            }
             LoopOutcome outcome = streamOneTurn(request, apiKey, consumer);
 
             if (outcome.error != null) {
@@ -107,11 +126,16 @@ public class AgentToolLoopRunner {
                 log.info("[USAGE] Cache hit : {} tokens caches → {} tokens factures (prompt)",
                         outcome.cachedPromptTokens, outcome.promptTokens);
             }
-            recordUsageSafe(context.organizationId(),
+            recordUsageSafe(context,
                     request.provider() != null ? request.provider() : "anthropic",
                     AgentToolMetrics.AGENT_MONO,
                     outcome.promptTokens, outcome.completionTokens, outcome.cachedPromptTokens,
                     usedModel, outcome.finishReason);
+            if (agentRunRecorder != null) {
+                agentRunRecorder.recordLlmStep(AgentToolMetrics.AGENT_MONO, usedModel,
+                        outcome.promptTokens, outcome.completionTokens,
+                        outcome.cachedPromptTokens, outcome.finishReason);
+            }
 
             // No tool calls → done
             if (outcome.toolCalls == null || outcome.toolCalls.isEmpty()) {
@@ -146,6 +170,9 @@ public class AgentToolLoopRunner {
 
                     consumer.accept(AgentSseEvent.toolConfirmationRequest(
                             call.name(), call.id(), call.arguments(), description));
+                    if (agentRunRecorder != null) {
+                        agentRunRecorder.recordPause(AgentToolMetrics.AGENT_MONO, call.name());
+                    }
                     // Si plusieurs tools sont en confirmation, on les annonce tous —
                     // le frontend pourra les afficher et envoyer confirm pour chacun.
                 }
@@ -211,12 +238,17 @@ public class AgentToolLoopRunner {
 
         String finalModel = (request.model() != null && !request.model().isBlank())
                 ? request.model() : finalOutcome.model;
-        recordUsageSafe(context.organizationId(),
+        recordUsageSafe(context,
                 request.provider() != null ? request.provider() : "anthropic",
                 AgentToolMetrics.AGENT_MONO,
                 finalOutcome.promptTokens, finalOutcome.completionTokens,
                 finalOutcome.cachedPromptTokens,
                 finalModel, finalOutcome.finishReason);
+        if (agentRunRecorder != null) {
+            agentRunRecorder.recordLlmStep(AgentToolMetrics.AGENT_MONO, finalModel,
+                    finalOutcome.promptTokens, finalOutcome.completionTokens,
+                    finalOutcome.cachedPromptTokens, finalOutcome.finishReason);
+        }
         consumer.accept(AgentSseEvent.done(
                 finalOutcome.finishReason != null ? finalOutcome.finishReason : "stop"));
     }
@@ -270,7 +302,7 @@ public class AgentToolLoopRunner {
      * @param cachedPromptTokens tokens d'entree servis depuis le cache provider
      *                           (metrique seulement, deja deduits du facture)
      */
-    public void recordUsageSafe(Long organizationId, String providerName, String agent,
+    public void recordUsageSafe(AgentContext context, String providerName, String agent,
                                    int promptTokens, int completionTokens, int cachedPromptTokens,
                                    String model, String finishReason) {
         if (promptTokens <= 0 && completionTokens <= 0) {
@@ -283,6 +315,7 @@ public class AgentToolLoopRunner {
                     promptTokens, completionTokens);
             return;
         }
+        Long organizationId = context.organizationId();
         try {
             AiResponse resp = new AiResponse(
                     "",  // content non requis pour le tracking
@@ -302,6 +335,22 @@ public class AgentToolLoopRunner {
             if (toolMetrics != null) {
                 toolMetrics.recordLlmUsage(providerName, model, agent,
                         promptTokens, completionTokens, cachedPromptTokens);
+            }
+            // Ledger credits (T-06) : debit au taux de la rate card versionnee,
+            // idempotent par (runId, sequence de metering). ai_token_usage reste
+            // alimente en parallele (transition) — le ledger deviendra la seule
+            // verite avec l'enforcement (poches + pre-vol).
+            if (creditMeteringService != null) {
+                java.util.UUID runId = agentRunRecorder != null ? agentRunRecorder.currentRunId() : null;
+                int meterSeq = agentRunRecorder != null ? agentRunRecorder.nextMeterSeq() : -1;
+                creditMeteringService.meterLlmUsage(
+                        organizationId, context.keycloakId(),
+                        runId, meterSeq > 0 ? meterSeq : null,
+                        agent, AiFeature.ASSISTANT_CHAT.name(),
+                        providerName != null ? providerName : "anthropic", model,
+                        promptTokens, completionTokens, cachedPromptTokens,
+                        false, // BYOK : facteur applique quand la source de cle sera propagee (suivi T-06b)
+                        runId != null && meterSeq > 0 ? runId + ":meter:" + meterSeq : null);
             }
             log.info("[USAGE] Recorded ASSISTANT_CHAT : org={} provider={} model='{}' "
                     + "tokens={}/{}", organizationId, providerName, model,
@@ -382,10 +431,13 @@ public class AgentToolLoopRunner {
         }
     }
 
-    /** Compteur Micrometer d'execution d'outil (null-safe : instrumentation optionnelle). */
+    /** Compteur Micrometer + step de run (T-05) d'execution d'outil (null-safe). */
     private void recordMetric(String toolName, boolean success) {
         if (toolMetrics != null) {
             toolMetrics.recordExecution(toolName, success);
+        }
+        if (agentRunRecorder != null) {
+            agentRunRecorder.recordToolStep(AgentToolMetrics.AGENT_MONO, toolName, success);
         }
     }
 

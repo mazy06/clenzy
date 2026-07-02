@@ -1,0 +1,138 @@
+package com.clenzy.service.ai;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+/**
+ * Garde de credits d'un run d'agent (campagne T-06b, ADR-005 / levier L6) :
+ * sequence pre-vol → reservation → re-check inter-tours → reconciliation.
+ *
+ * <p><b>Cycle</b> (porte par ThreadLocal, comme {@code AgentRunRecorder} — le
+ * run s'execute dans le thread appelant) :</p>
+ * <ol>
+ *   <li>{@link #beginRun} : reserve un plancher conservateur. Refus = hard cap
+ *       — le run ne demarre pas (le PMS classique continue, D-101) ;</li>
+ *   <li>{@link #onDebit} (appele par le metering a chaque appel LLM) : cumule
+ *       la consommation reelle, applique aux poches Postgres, et re-reserve un
+ *       chunk quand le consomme depasse le reserve. Chunk refuse →
+ *       {@link #isExhausted()} passe true, les boucles s'arretent proprement ;</li>
+ *   <li>{@link #endRun} : reconciliation — release du reserve non consomme,
+ *       ou debit force de l'overshoot (borne par la granularite d'un tour).</li>
+ * </ol>
+ *
+ * <p><b>Flag {@code clenzy.ai.credits.enforcement.enabled} — defaut FALSE</b> :
+ * l'activer sans dotations ({@code ai_credit_grant}, T-07) couperait tout le
+ * monde a zero. Desactive = comportement historique strict (aucune reservation,
+ * jamais de refus).</p>
+ */
+@Component
+public class RunCreditGuard {
+
+    private static final Logger log = LoggerFactory.getLogger(RunCreditGuard.class);
+
+    private static final class RunBudget {
+        final Long orgId;
+        long reserved;
+        long consumed;
+        boolean exhausted;
+
+        RunBudget(Long orgId, long reserved) {
+            this.orgId = orgId;
+            this.reserved = reserved;
+        }
+    }
+
+    private final ThreadLocal<RunBudget> current = new ThreadLocal<>();
+
+    private final CreditBalanceService balanceService;
+    private final boolean enabled;
+    private final long floorMillicredits;
+    private final long chunkMillicredits;
+
+    public RunCreditGuard(CreditBalanceService balanceService,
+                          @Value("${clenzy.ai.credits.enforcement.enabled:false}") boolean enabled,
+                          @Value("${clenzy.ai.credits.enforcement.floor-millicredits:2000}") long floorMillicredits,
+                          @Value("${clenzy.ai.credits.enforcement.chunk-millicredits:5000}") long chunkMillicredits) {
+        this.balanceService = balanceService;
+        this.enabled = enabled;
+        this.floorMillicredits = floorMillicredits;
+        this.chunkMillicredits = chunkMillicredits;
+    }
+
+    /**
+     * Pre-vol : reserve le plancher. {@code true} = le run peut demarrer.
+     * Enforcement desactive → toujours true, aucun etat pose.
+     * beginRun reinitialise l'etat du thread (meme robustesse que le recorder).
+     */
+    public boolean beginRun(Long orgId) {
+        if (!enabled) {
+            current.remove();
+            return true;
+        }
+        if (!balanceService.tryReserve(orgId, floorMillicredits)) {
+            current.remove();
+            log.info("[CREDITS] Hard cap : reservation pre-vol refusee (org={}, plancher={}mc)",
+                    orgId, floorMillicredits);
+            return false;
+        }
+        current.set(new RunBudget(orgId, floorMillicredits));
+        return true;
+    }
+
+    /**
+     * Consommation reelle d'un appel LLM (appele par le metering). Applique aux
+     * poches Postgres, et re-reserve un chunk si le cumul depasse le reserve
+     * (re-check inter-tours — protege du runaway).
+     */
+    public void onDebit(Long orgId, long millicredits) {
+        if (millicredits <= 0) {
+            return;
+        }
+        RunBudget budget = current.get();
+        if (budget == null || !budget.orgId.equals(orgId)) {
+            return; // pas de run garde sur ce thread (enforcement off, ou usage hors run)
+        }
+        budget.consumed += millicredits;
+        balanceService.applyConsumptionToGrants(orgId, millicredits);
+        while (budget.consumed > budget.reserved && !budget.exhausted) {
+            if (balanceService.tryReserve(orgId, chunkMillicredits)) {
+                budget.reserved += chunkMillicredits;
+            } else {
+                budget.exhausted = true;
+                log.info("[CREDITS] Budget epuise en vol (org={}, consomme={}mc, reserve={}mc) "
+                        + "— arret propre demande", orgId, budget.consumed, budget.reserved);
+            }
+        }
+    }
+
+    /** True si le run doit s'arreter proprement (solde epuise en vol). */
+    public boolean isExhausted() {
+        RunBudget budget = current.get();
+        return budget != null && budget.exhausted;
+    }
+
+    /**
+     * Reconciliation de fin de run : release du reserve non consomme, ou debit
+     * force de l'overshoot (le solde peut passer negatif — le pre-vol suivant
+     * refusera). Detache le ThreadLocal. No-op sans run garde.
+     */
+    public void endRun() {
+        RunBudget budget = current.get();
+        if (budget == null) {
+            return;
+        }
+        current.remove();
+        long delta = budget.reserved - budget.consumed;
+        if (delta > 0) {
+            balanceService.release(budget.orgId, delta);
+        } else if (delta < 0) {
+            balanceService.forceDebit(budget.orgId, -delta);
+        }
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+}
