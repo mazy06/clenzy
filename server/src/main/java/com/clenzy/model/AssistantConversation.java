@@ -46,6 +46,14 @@ public class AssistantConversation {
     @Column(name = "archived_at")
     private LocalDateTime archivedAt;
 
+    /** Résumé structuré compact du début de conversation (X6) — hors fenêtre glissante. */
+    @Column(name = "rolling_summary", columnDefinition = "TEXT")
+    private String rollingSummary;
+
+    /** Nombre de messages les plus anciens déjà couverts par {@link #rollingSummary}. */
+    @Column(name = "summary_covers_count", nullable = false)
+    private int summaryCoversCount = 0;
+
     public AssistantConversation() {}
 
     public AssistantConversation(Long organizationId, String keycloakId) {
@@ -74,4 +82,8 @@ public class AssistantConversation {
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public LocalDateTime getArchivedAt() { return archivedAt; }
     public void setArchivedAt(LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
+    public String getRollingSummary() { return rollingSummary; }
+    public void setRollingSummary(String rollingSummary) { this.rollingSummary = rollingSummary; }
+    public int getSummaryCoversCount() { return summaryCoversCount; }
+    public void setSummaryCoversCount(int summaryCoversCount) { this.summaryCoversCount = summaryCoversCount; }
 }

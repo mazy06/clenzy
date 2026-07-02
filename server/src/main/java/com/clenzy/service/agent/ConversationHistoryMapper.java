@@ -48,10 +48,21 @@ public class ConversationHistoryMapper {
             "[Image jointe a ce message — deja analysee, voir la reponse qui suit]";
 
     public List<ChatMessage> toChatMessages(List<AssistantMessage> history) {
+        return toChatMessages(history, null);
+    }
+
+    /**
+     * Variante avec rolling summary (X6) : si l'historique est fenêtré (des
+     * messages anciens sont élagués) ET qu'un résumé existe, il est injecté en
+     * TÊTE comme message user de contexte — le début de conversation reste
+     * présent sans être renvoyé intégralement.
+     */
+    public List<ChatMessage> toChatMessages(List<AssistantMessage> history, String rollingSummary) {
         List<AssistantMessage> window = windowed(history);
         if (window == null) {
             return new ArrayList<>();
         }
+        boolean elided = history != null && window.size() < history.size();
         // Seul le DERNIER message user garde ses images (c'est le tour courant :
         // le modele doit pouvoir les regarder). Les plus anciens recoivent un
         // placeholder textuel — leur analyse est deja dans l'historique.
@@ -95,6 +106,11 @@ public class ConversationHistoryMapper {
                                 ContextBudget.capToolResult(m.getContent())));
                 default -> log.warn("Role inconnu dans l'historique : {}", m.getRole());
             }
+        }
+        // X6 : injecter le résumé du début élagué en tête (message user de contexte).
+        if (elided && rollingSummary != null && !rollingSummary.isBlank()) {
+            result.add(0, ChatMessage.user(
+                    "[Résumé du début de la conversation, pour contexte]\n" + rollingSummary));
         }
         return result;
     }
