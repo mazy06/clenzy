@@ -154,3 +154,10 @@
 - ToolScopeSelector : domaine propriétaire (stems proprietaire/reversement/releve/commission/mandat/payout/owner). Rôles opérationnels : refus par défaut (RoleToolPolicy inchangée).
 - Tests : 4 outil + 1 scoping. `mvn package` BUILD SUCCESS. NON COMMITÉ.
 - Écart assumé : get_commission_breakdown différé V2 (nouveau service d'agrégation requis ; la commission est déjà détaillée par get_owner_payout_summary).
+
+## 2026-07-02 — Exécution T-10 : initiate_refund (FAIT, vérifié, non commité)
+
+- `ReservationRefundService` : mouvement d'argent PUR (pas de mutation de statut — annulation = cancel_reservation ; geste partiel ≠ REFUNDED). Règles absolues : montant jamais client-trusted (CANCELLATION = politique serveur + cross-check strict ; GESTURE/DISPUTE = requis, plafonné au cash encaissé = total − crédit fidélité) ; Stripe HORS transaction, clé idempotence `agent-refund-{id}-{reason}-{amount}` ; ownership explicite post-findById ; garde déjà-remboursée ; réutilise refundCheckoutSessionPartial (circuit breaker + contre-passation ledger).
+- `InitiateRefundTool` (write, requiresConfirmation — invariant paiement), ajouté au FinanceSpecialist (10e outil, limite) + stems rembours/refund/geste/litige au scoping.
+- Tests : 8 tests argent (cross-org avant tout appel Stripe, OTA refusée, déjà remboursée, politique serveur, écart refusé, plafond cash crédit déduit, clé idempotence exacte, montant manquant). `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- **Backlog Now de la feuille de route : TERMINÉ** (T-01→T-10). Reste le Next : X1 pending_action unifié, X2 Règles de Confiance, X3 Grand Livre UI, X4 sous-budget autonomie, X5 grille forfaits prod, X6 rolling summary, X7 agents V2, X8 déclencheurs Kafka, X9 Constellation Propriétaire, X10 réconciliation double.
