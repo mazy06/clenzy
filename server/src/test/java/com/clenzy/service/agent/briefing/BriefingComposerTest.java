@@ -34,7 +34,7 @@ class BriefingComposerTest {
         convRepo = mock(AssistantConversationRepository.class);
         msgRepo = mock(AssistantMessageRepository.class);
         composer = new BriefingComposer(orchestrator, convRepo, msgRepo,
-                "claude-haiku-4-5-20251001");
+                null, "claude-haiku-4-5-20251001");
     }
 
     private static AssistantBriefingPref pref(AssistantBriefingPref.Frequency f) {

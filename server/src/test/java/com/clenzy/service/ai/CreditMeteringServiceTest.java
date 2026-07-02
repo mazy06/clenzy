@@ -39,12 +39,16 @@ class CreditMeteringServiceTest {
     }
 
     private CreditMeteringService service() {
+        return service(null);
+    }
+
+    private CreditMeteringService service(com.clenzy.service.ai.AutonomyContextHolder holder) {
         when(rateCardRepository.findByEffectiveToIsNull()).thenReturn(List.of(
                 rate("anthropic", "claude-sonnet-4", AiCreditRateCard.TYPE_INPUT, 3000, 750),
                 rate("anthropic", "claude-sonnet-4", AiCreditRateCard.TYPE_OUTPUT, 15000, 4000),
                 rate("anthropic", "claude-haiku-4", AiCreditRateCard.TYPE_INPUT, 800, 200),
                 rate("anthropic", "claude-haiku-4", AiCreditRateCard.TYPE_OUTPUT, 4000, 1000)));
-        return new CreditMeteringService(rateCardRepository, ledgerRepository, null, null, 0.30);
+        return new CreditMeteringService(rateCardRepository, ledgerRepository, null, holder, 0.30);
     }
 
     private AiUsageLedgerEntry lastSaved() {
@@ -78,6 +82,22 @@ class CreditMeteringServiceTest {
         assertThat(CreditMeteringService.ceilPer1k(1001, 750)).isEqualTo(751); // 750.75 → 751
         assertThat(CreditMeteringService.ceilPer1k(0, 750)).isZero();
         assertThat(CreditMeteringService.ceilPer1k(500, 0)).isZero();
+    }
+
+    @Test
+    void socleBucket_writesZeroDebit_butKeepsRealCost() {
+        // Bucket SOCLE (X4/X8) : le client n'est pas debite, mais le cout reel
+        // est trace (on pilote ce qu'on absorbe — D-105).
+        var holder = new com.clenzy.service.ai.AutonomyContextHolder();
+        holder.set(AiUsageLedgerEntry.BUCKET_SOCLE);
+
+        service(holder).meterLlmUsage(42L, "kc-1", null, null, "mono", "ASSISTANT_CHAT",
+                "anthropic", "claude-sonnet-4", 1000, 250, 0, false, null);
+
+        AiUsageLedgerEntry entry = lastSaved();
+        assertThat(entry.getMillicredits()).isZero();                 // client non debite
+        assertThat(entry.getProviderCostMicroUsd()).isEqualTo(6750L); // cout reel trace
+        assertThat(entry.getAutonomyBucket()).isEqualTo(AiUsageLedgerEntry.BUCKET_SOCLE);
     }
 
     @Test

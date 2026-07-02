@@ -194,3 +194,10 @@
 - **API** : GET/PUT `/api/ai/autonomy/budget` (config + jauge de conso), rôles gestionnaires.
 - Tests : 9. `mvn package` BUILD SUCCESS. NON COMMITÉ.
 - Écart assumé : les APPELANTS du gate (déclencheurs autonomes posant le bucket SOCLE/PREMIUM_AUTO) = ticket X8 (Kafka/cron) — X4 livre l'enveloppe, X8 la remplit. Panneau UI = incrément frontend (endpoint prêt).
+
+## 2026-07-02 — Exécution X8 (v1) : harnais des runs autonomes (FAIT, vérifié, non commité)
+
+- **`AutonomyRunScope`** : point d'entrée unique des déclencheurs autonomes — `runSocle` (bucket SOCLE posé/nettoyé en finally, débit 0 + coût tracé) ; `runPremium(org, behavior)` applique le gate X4 AVANT d'exécuter (CAPPED/DISABLED → run non parti, décision remontée à l'appelant). Jamais de fuite de bucket inter-runs.
+- **Premier câblage** : `BriefingComposer` → `runSocle` — les briefings deviennent de l'autonomie socle réelle de bout en bout (scheduler → handleMessage → metering SOCLE → ledger 0 débit + coût réel). Les 3 buckets sont désormais alimentés.
+- Tests : 4 harnais (pose/nettoyage, exception, premium autorisé/plafonné) + 1 metering SOCLE (débit 0, coût 6750 µ$ conservé). `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écarts assumés : consumer Kafka + sous-flux déterministes multi-agents (« nouvelle résa ») = chantier produit à construire PAR-DESSUS ce harnais (X8-b) ; `runPremium` prêt pour le premier scan proactif (candidat : scan tarifaire supervision).

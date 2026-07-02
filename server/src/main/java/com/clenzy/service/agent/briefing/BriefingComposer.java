@@ -81,14 +81,23 @@ public class BriefingComposer {
      * via {@code clenzy.assistant.briefing.model}.
      */
     private final String briefingModel;
+    /**
+     * Harnais d'autonomie (X8) : le briefing est de l'autonomie SOCLE — inclus,
+     * débité 0 crédit mais tracé (D-105). Nullable (chemin legacy test-only) :
+     * sans lui, l'appel reste direct (bucket INTERACTIVE par défaut).
+     */
+    private final com.clenzy.service.ai.AutonomyRunScope autonomyRunScope;
 
     public BriefingComposer(AgentOrchestrator orchestrator,
                               AssistantConversationRepository conversationRepository,
                               AssistantMessageRepository messageRepository,
+                              @org.springframework.beans.factory.annotation.Autowired(required = false)
+                              com.clenzy.service.ai.AutonomyRunScope autonomyRunScope,
                               @Value("${clenzy.assistant.briefing.model:claude-haiku-4-5-20251001}") String briefingModel) {
         this.orchestrator = orchestrator;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
+        this.autonomyRunScope = autonomyRunScope;
         this.briefingModel = briefingModel;
     }
 
@@ -118,17 +127,23 @@ public class BriefingComposer {
 
         // SSE consumer no-op : on lit le resultat en aval depuis la BDD (les
         // messages user/assistant sont persistes par l'orchestrateur a chaque tour).
+        // Briefing = autonomie SOCLE (X8) : le bucket SOCLE fait que le metering
+        // débite 0 crédit mais trace le coût réel (D-105). Le run tourne dans ce
+        // thread → le holder pose/retire le bucket autour de handleMessage.
+        java.util.function.Consumer<com.clenzy.service.agent.AgentSseEvent> sink = event -> {
+            if (event != null && "error".equals(event.type())) {
+                log.warn("Briefing compose failed for user {} : {}",
+                        pref.getKeycloakId(), event.error());
+            }
+        };
         Long conversationId;
         try {
-            conversationId = orchestrator.handleMessage(
-                    null, prompt, context, event -> {
-                        // Le scheduler ne consomme pas les events SSE — il lira l'historique
-                        // persiste apres execution pour recuperer le texte final.
-                        if (event != null && "error".equals(event.type())) {
-                            log.warn("Briefing compose failed for user {} : {}",
-                                    pref.getKeycloakId(), event.error());
-                        }
-                    });
+            if (autonomyRunScope != null) {
+                conversationId = autonomyRunScope.runSocle(
+                        () -> orchestrator.handleMessage(null, prompt, context, sink));
+            } else {
+                conversationId = orchestrator.handleMessage(null, prompt, context, sink);
+            }
         } catch (Exception e) {
             log.error("Briefing compose throw for user {}", pref.getKeycloakId(), e);
             return null;
