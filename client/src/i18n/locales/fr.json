@@ -1,4 +1,34 @@
 {
+  "aiCredits": {
+    "loadError": "Impossible de charger les crédits IA.",
+    "topupError": "Impossible de créer la session de paiement.",
+    "topupSuccess": "Paiement confirmé — vos crédits seront visibles dans quelques instants.",
+    "topupCancelled": "Rechargement annulé.",
+    "balanceTitle": "Crédits IA disponibles",
+    "expires": "expire le",
+    "noPockets": "Aucune poche active — rechargez ou attendez votre prochaine dotation mensuelle.",
+    "topupTitle": "Recharger (crédits valables 12 mois)",
+    "credits": "crédits",
+    "ledgerTitle": "Derniers mouvements",
+    "pocket": {
+      "SUBSCRIPTION": "Forfait",
+      "TOPUP": "Recharge",
+      "PROMO": "Offert"
+    },
+    "entry": {
+      "DEBIT": "Utilisation",
+      "GRANT": "Dotation",
+      "EXPIRY": "Expiration",
+      "ADJUSTMENT": "Ajustement",
+      "REFUND": "Remboursement"
+    },
+    "ledger": {
+      "date": "Date",
+      "type": "Type",
+      "agent": "Agent",
+      "amount": "Crédits"
+    }
+  },
   "supervision": {
     "title": "Centre de supervision",
     "subtitle": "Tes agents IA travaillent sur ce logement",

@@ -64,12 +64,13 @@ class StripeWebhookControllerTest {
     @Mock private UpsellService upsellService;
     @Mock private StripeGateway stripeGateway;
     @Mock private DirectBookingService directBookingService;
+    @Mock private com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService;
 
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService);
         setField("webhookSecret", "whsec_test_secret");
     }
 

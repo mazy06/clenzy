@@ -129,3 +129,20 @@
 - **Flag `clenzy.ai.credits.enforcement.enabled` = FALSE par défaut** — l'activer sans dotations couperait tout à zéro ; allumage prévu après T-07.
 - Tests : 8 RunCreditGuard + 5 CreditBalanceService + adaptations. `mvn package` BUILD SUCCESS. NON COMMITÉ.
 - Écart assumé : pas de check inter-délégations multi-agent (bornées ≤3, overshoot réconcilié par forceDebit) — à raffiner avec l'architecture C.
+
+## 2026-07-02 — Exécution T-07 : Stripe dotations + top-up + expiration (FAIT, vérifié, non commité)
+
+- **Dotations** : case `invoice.paid` → `AiCreditGrantService.grantForPaidInvoice` (payeur par stripeSubscriptionId, forfait→dotation configurable : essentiel 500k/confort 2M/premium 8M millicredits, poche SUBSCRIPTION +32 j). Invoices hors abonnement PMS ignorées.
+- **Top-up** : `POST /api/ai/credits/topup` → Checkout PAYMENT, packs 100 % serveur (500cr=12€, 2000=40€, 10000=160€), crédit uniquement au webhook `type=ai_credit_topup`, poche TOPUP 12 mois. `GET /balance` + `GET /packs` prêts pour l'UX T-08 (`AiCreditController` mince, @PreAuthorize).
+- **Idempotence** : existsByStripeRef + contrainte unique en filet ; retries natifs Stripe (500 → re-livraison, design Z3-BUGS-10 existant) = la file de re-livraison ; lignes GRANT/EXPIRY du ledger idempotentes ; invalidation Redis à chaque mouvement.
+- **Expiration** : `AiCreditExpiryScheduler` quotidien 04h10 → EXPIRY journalisées + poches soldées (D-102).
+- Tests : 6 AiCreditGrantServiceTest + constructeur test webhook adapté. `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- ⚠️ **ACTION INFRA (hors repo)** : ajouter l'événement `invoice.paid` à la liste du webhook endpoint Stripe (dashboard) — sans lui, pas de dotation mensuelle. Job « payé sans poche » (scan sessions Stripe) = backlog (les retries Stripe couvrent le cas nominal plusieurs jours).
+- Allumage réel du système : dotations existantes en DB (1er invoice.paid ou INSERT manuel de poche) PUIS `clenzy.ai.credits.enforcement.enabled=true`.
+
+## 2026-07-02 — Exécution T-08 : UX crédits (FAIT, vérifié, non commité)
+
+- Backend : `GET /api/ai/credits/ledger` (50 derniers mouvements org, libellés agent/type/modèle + runId → lien replay futur).
+- Frontend : `AiCreditsSection.tsx` dans Paramètres→IA→Consommation (au-dessus de la vue tokens) : solde tabular-nums coloré par seuils (épuisé/ambre <50/vert), chips des 2 poches avec expiration, packs → Checkout avec retour ?topup= géré, table ledger 10 lignes signée, skeleton, i18n fr/en/ar (JSON validés). Client `aiCreditsApi.ts`.
+- Vérification : tsc clean + mvn package BUILD SUCCESS. NON COMMITÉ (avec T-07).
+- Écarts assumés : jauge Constellation différée (SupervisionPanel fraîchement refondu — composant réutilisable prêt) ; alertes 80/95/100 nécessitent la dotation de référence serveur (suivi X4) ; estimation pré-action attend estimatedCredits des descriptors (Phase 4 §7).

@@ -50,6 +50,7 @@ public class StripeWebhookController {
     private final UpsellService upsellService;
     private final StripeGateway stripeGateway;
     private final DirectBookingService directBookingService;
+    private final com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -64,7 +65,8 @@ public class StripeWebhookController {
                                    PublicBookingService publicBookingService,
                                    UpsellService upsellService,
                                    StripeGateway stripeGateway,
-                                   DirectBookingService directBookingService) {
+                                   DirectBookingService directBookingService,
+                                   com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
@@ -76,6 +78,7 @@ public class StripeWebhookController {
         this.upsellService = upsellService;
         this.stripeGateway = stripeGateway;
         this.directBookingService = directBookingService;
+        this.aiCreditGrantService = aiCreditGrantService;
     }
 
     /**
@@ -144,6 +147,10 @@ public class StripeWebhookController {
                     handleTransferFailed(event);
                     break;
 
+                case "invoice.paid":
+                    handleInvoicePaid(event);
+                    break;
+
                 default:
                     logger.debug("Evenement Stripe non gere: {}", event.getType());
                     break;
@@ -156,6 +163,26 @@ public class StripeWebhookController {
         }
 
         return ResponseEntity.ok("Webhook traite avec succes");
+    }
+
+    /**
+     * invoice.paid (campagne T-07) : dotation mensuelle de credits IA de
+     * l'organisation du payeur, mappee sur son forfait. Idempotent (stripe_ref =
+     * invoice id). Les invoices sans abonnement PMS connu sont ignorees
+     * silencieusement (autres produits Stripe du compte).
+     */
+    private void handleInvoicePaid(Event event) {
+        com.stripe.model.Invoice invoice = (com.stripe.model.Invoice) event
+                .getDataObjectDeserializer().getObject().orElse(null);
+        if (invoice == null) {
+            logger.warn("invoice.paid indeserialisable (eventId={}) — ignore", event.getId());
+            return;
+        }
+        String subscriptionId = invoice.getSubscription();
+        if (subscriptionId == null || subscriptionId.isBlank()) {
+            return; // invoice hors abonnement (one-shot) : pas de dotation
+        }
+        aiCreditGrantService.grantForPaidInvoice(subscriptionId, invoice.getId());
     }
 
     /**
@@ -240,7 +267,17 @@ public class StripeWebhookController {
         // Z3-BUGS-10 : plus de try/catch avaleur par branche. Une exception de
         // confirmation remonte au handler principal qui retourne 500 → Stripe
         // re-livre l'evenement (les confirmations sont idempotentes).
-        if ("hardware_purchase".equals(type)) {
+        if ("ai_credit_topup".equals(type)) {
+            // Recharge de credits IA (campagne T-07) : credit idempotent de la poche
+            // TOPUP (stripe_ref = sessionId). Montant/credits issus des metadata
+            // posees SERVEUR par AiCreditPurchaseService — jamais du client.
+            Long orgId = Long.valueOf(session.getMetadata().get("org_id"));
+            long millicredits = Long.parseLong(session.getMetadata().get("millicredits"));
+            logger.info("Top-up credits IA reussi : session={}, org={}, {}mc",
+                    sessionId, orgId, millicredits);
+            aiCreditGrantService.grantTopUp(orgId, millicredits, sessionId);
+            return;
+        } else if ("hardware_purchase".equals(type)) {
             // Paiement d'achat de materiel IoT (shop)
             logger.info("Paiement hardware reussi pour session: {}", sessionId);
             shopService.completeOrder(sessionId);

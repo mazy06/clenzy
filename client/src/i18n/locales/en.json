@@ -1,4 +1,34 @@
 {
+  "aiCredits": {
+    "loadError": "Unable to load AI credits.",
+    "topupError": "Unable to create the payment session.",
+    "topupSuccess": "Payment confirmed — your credits will appear shortly.",
+    "topupCancelled": "Top-up cancelled.",
+    "balanceTitle": "Available AI credits",
+    "expires": "expires on",
+    "noPockets": "No active pocket — top up or wait for your next monthly allotment.",
+    "topupTitle": "Top up (credits valid 12 months)",
+    "credits": "credits",
+    "ledgerTitle": "Recent activity",
+    "pocket": {
+      "SUBSCRIPTION": "Plan",
+      "TOPUP": "Top-up",
+      "PROMO": "Bonus"
+    },
+    "entry": {
+      "DEBIT": "Usage",
+      "GRANT": "Allotment",
+      "EXPIRY": "Expiry",
+      "ADJUSTMENT": "Adjustment",
+      "REFUND": "Refund"
+    },
+    "ledger": {
+      "date": "Date",
+      "type": "Type",
+      "agent": "Agent",
+      "amount": "Credits"
+    }
+  },
   "supervision": {
     "title": "Supervision center",
     "subtitle": "Your AI agents are working on this property",
