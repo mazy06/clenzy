@@ -56,13 +56,17 @@ public class CreditMeteringService {
     private volatile List<AiCreditRateCard> cachedRates = List.of();
     private volatile long cacheLoadedAt = 0L;
 
+    private final AutonomyContextHolder autonomyContextHolder;
+
     public CreditMeteringService(AiCreditRateCardRepository rateCardRepository,
                                  AiUsageLedgerRepository ledgerRepository,
                                  RunCreditGuard runCreditGuard,
+                                 AutonomyContextHolder autonomyContextHolder,
                                  @Value("${clenzy.ai.credits.byok-factor:0.30}") double byokFactor) {
         this.rateCardRepository = rateCardRepository;
         this.ledgerRepository = ledgerRepository;
         this.runCreditGuard = runCreditGuard;
+        this.autonomyContextHolder = autonomyContextHolder;
         this.byokFactor = byokFactor;
     }
 
@@ -100,20 +104,28 @@ public class CreditMeteringService {
             long realCost = ceilPer1k(promptTokens, costOf(inputRate))
                     + ceilPer1k(completionTokens, costOf(outputRate));
 
+            // Bucket d'autonomie (X4) : INTERACTIVE (defaut) | SOCLE | PREMIUM_AUTO.
+            // SOCLE = autonomie de base incluse : debitee 0 credit mais TRACEE
+            // (coût reel conserve → on pilote ce qu'on absorbe). D-105.
+            String bucket = autonomyContextHolder != null
+                    ? autonomyContextHolder.current() : AiUsageLedgerEntry.BUCKET_INTERACTIVE;
+            boolean socle = AiUsageLedgerEntry.BUCKET_SOCLE.equals(bucket);
+            long clientDebit = socle ? 0L : debit;
+
             String key = idempotencyKey != null ? idempotencyKey
                     : "adhoc:" + UUID.randomUUID();
             ledgerRepository.save(new AiUsageLedgerEntry(
                     organizationId, keycloakUserId, runId, stepSeq, agent, feature,
-                    AiUsageLedgerEntry.TYPE_DEBIT, AiUsageLedgerEntry.BUCKET_INTERACTIVE,
+                    AiUsageLedgerEntry.TYPE_DEBIT, bucket,
                     provider, model,
                     promptTokens, completionTokens, cachedPromptTokens,
                     inputRate != null ? inputRate.getId() : null,
                     outputRate != null ? outputRate.getId() : null,
-                    -debit, realCost, key));
-            // Enforcement (T-06b) : consommation appliquee aux poches + re-check
-            // inter-tours. No-op si l'enforcement est off ou hors run garde.
-            if (runCreditGuard != null && debit > 0) {
-                runCreditGuard.onDebit(organizationId, debit);
+                    -clientDebit, realCost, key));
+            // Enforcement (T-06b) : le socle ne consomme pas de solde (inclus) ;
+            // interactif et premium appliquent aux poches + re-check inter-tours.
+            if (runCreditGuard != null && clientDebit > 0) {
+                runCreditGuard.onDebit(organizationId, clientDebit);
             }
         } catch (DataIntegrityViolationException e) {
             // Retry du meme debit : la contrainte unique fait son travail — pas de double comptage.

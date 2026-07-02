@@ -185,3 +185,12 @@
 - i18n fr/en/ar (agentReplay.* + aiCredits.ledger.replayHint), diff locales propre (24 lignes/locale, formatage préservé).
 - Vérification : tsc clean (pas de backend touché → pas de mvn). NON COMMITÉ.
 - Écart assumé : replay accessible depuis le ledger crédits (point d'entrée naturel : runId présent) ; l'intégration dans la Constellation (time-travel visuel) viendra avec la reprise du chantier supervision. Un run sans débit (ex. DIRECT smalltalk) n'a pas de ligne ledger donc pas d'entrée replay — acceptable (rien à rejouer d'intéressant).
+
+## 2026-07-02 — Exécution X4 : sous-budget d'autonomie premium (FAIT, vérifié, non commité)
+
+- **Migration 0299** : `ai_autonomy_budget` (plafond premium par org, on_cap_behavior PAUSE/NOTIFY_ONLY, toggles JSONB, cap 0 = premium désactivé par défaut).
+- **`AutonomyContextHolder`** (ThreadLocal) : bucket du run courant, lu par `CreditMeteringService` (fin du BUCKET_INTERACTIVE hardcodé). **SOCLE = débité 0 crédit + coût réel tracé** (D-105 : jamais puni pour le travail élémentaire, on pilote l'absorbé). Interactif/premium consomment le solde normalement.
+- **`AutonomyBudgetService.evaluate(org, behavior)`** → ALLOWED / CAPPED_PAUSE / CAPPED_NOTIFY_ONLY / DISABLED (comportement activé ET cumul cycle PREMIUM_AUTO < cap ; cumul = somme SQL ledger depuis le 1er du mois UTC, aligné dotation). L'interactif n'est JAMAIS consulté (pas de siphonnage).
+- **API** : GET/PUT `/api/ai/autonomy/budget` (config + jauge de conso), rôles gestionnaires.
+- Tests : 9. `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écart assumé : les APPELANTS du gate (déclencheurs autonomes posant le bucket SOCLE/PREMIUM_AUTO) = ticket X8 (Kafka/cron) — X4 livre l'enveloppe, X8 la remplit. Panneau UI = incrément frontend (endpoint prêt).

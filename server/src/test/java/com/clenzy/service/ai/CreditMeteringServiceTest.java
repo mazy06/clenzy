@@ -44,7 +44,7 @@ class CreditMeteringServiceTest {
                 rate("anthropic", "claude-sonnet-4", AiCreditRateCard.TYPE_OUTPUT, 15000, 4000),
                 rate("anthropic", "claude-haiku-4", AiCreditRateCard.TYPE_INPUT, 800, 200),
                 rate("anthropic", "claude-haiku-4", AiCreditRateCard.TYPE_OUTPUT, 4000, 1000)));
-        return new CreditMeteringService(rateCardRepository, ledgerRepository, null, 0.30);
+        return new CreditMeteringService(rateCardRepository, ledgerRepository, null, null, 0.30);
     }
 
     private AiUsageLedgerEntry lastSaved() {
@@ -123,7 +123,7 @@ class CreditMeteringServiceTest {
 
     @Test
     void zeroTokensOrNullOrg_isNoOp() {
-        CreditMeteringService svc = new CreditMeteringService(rateCardRepository, ledgerRepository, null, 0.30);
+        CreditMeteringService svc = new CreditMeteringService(rateCardRepository, ledgerRepository, null, null, 0.30);
 
         svc.meterLlmUsage(42L, "kc-1", null, null, "mono", "ASSISTANT_CHAT",
                 "anthropic", "claude-sonnet-4", 0, 0, 0, false, null);
