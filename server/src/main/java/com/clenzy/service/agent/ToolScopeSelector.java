@@ -125,8 +125,9 @@ public final class ToolScopeSelector {
                             "analyze_reviews", "reply_to_review")),
             new Domain(
                     Set.of("channel", "airbnb", "booking", "vrbo", "ical", "attribution", "canal",
-                            "synchro", "sync"),
-                    Set.of("get_channel_sync_status", "get_channel_attribution")),
+                            "synchro", "sync", "resynchro"),
+                    Set.of("get_channel_sync_status", "get_channel_attribution",
+                            "trigger_channel_sync")),
             new Domain(
                     // « temps » (« combien de temps... »), « local », « activite », « sortie »
                     // retires (T-04) : mots francais trop generiques → outils meteo exposes

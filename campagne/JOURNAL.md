@@ -216,3 +216,11 @@
 - **Rapport mensuel (le 2 à 06h00 + `GET /api/ai/credits/reconciliation?month=` SUPER_ADMIN/MANAGER)** : marge par provider (coût réel µ$/débit client mc/tokens — à rapprocher manuellement des factures providers, pas d'API de facturation), revenu par source de poche, **cross-check automatique ledger↔ai_token_usage** (divergence >5 % = warn, fuite de comptage).
 - Tests : 4. `mvn package` BUILD SUCCESS. NON COMMITÉ.
 - Écarts assumés : rapprochement factures providers = manuel (pas d'API) ; quota embeddings org différé (mécanique de budget du chemin embeddings à investiguer séparément).
+
+## 2026-07-02 — Exécution X7 (v1) : agents V2 Distribution + Maintenance (FAIT, vérifié, non commité)
+
+- **`DistributionSpecialist`** (12e, « distribution ») : sync/attribution/dispo + `TriggerChannelSyncTool` (61e outil) — push calendrier vers tous les canaux via `ChannelSyncService.syncProperty` (tenant-safe par construction : mappings filtrés org), requiresConfirmation=true, candidat naturel Règles de Confiance X2.
+- **`MaintenanceSpecialist`** (13e, « maintenance ») : prédiction pannes (historique+IoT), risques, préventif = create_intervention à date future (pas de doublon d'outil), affectation/suivi. Extrait d'operations.
+- Scoping : domaine channel += trigger_channel_sync + stem resynchro. Roster : 13 métier + 5 utilitaires.
+- `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écarts assumés (V2-b) : check_rate_parity, open_close_channel_availability, push_listing_content, manage_service_provider = nouveaux services métier requis (chantiers produit, pas des wrappers).
