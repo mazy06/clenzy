@@ -2889,3 +2889,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0299__create_ai_autonomy_budget.sql
         relativeToChangelogFile: true
+
+  # Rolling summary de conversation : contexte long preserve sans envoi integral (campagne X6).
+  - changeSet:
+      id: "0300-add-conversation-rolling-summary"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0300__add_conversation_rolling_summary.sql
+        relativeToChangelogFile: true

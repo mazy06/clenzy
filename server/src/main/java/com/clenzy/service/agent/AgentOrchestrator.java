@@ -105,6 +105,11 @@ public class AgentOrchestrator {
      * false). Null sur le chemin legacy test-only.
      */
     private final com.clenzy.service.ai.RunCreditGuard runCreditGuard;
+    /**
+     * Rolling summary (X6, flag {@code clenzy.assistant.rolling-summary.enabled}).
+     * Null sur le chemin legacy test-only.
+     */
+    private final ConversationSummaryService conversationSummaryService;
 
     /** Constructeur Spring : injection des collaborateurs extraits. */
     @Autowired
@@ -120,7 +125,8 @@ public class AgentOrchestrator {
                               AiTokenBudgetService tokenBudgetService,
                               IntentRouter intentRouter,
                               AgentRunRecorder agentRunRecorder,
-                              com.clenzy.service.ai.RunCreditGuard runCreditGuard) {
+                              com.clenzy.service.ai.RunCreditGuard runCreditGuard,
+                              ConversationSummaryService conversationSummaryService) {
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
@@ -134,6 +140,7 @@ public class AgentOrchestrator {
         this.intentRouter = intentRouter;
         this.agentRunRecorder = agentRunRecorder;
         this.runCreditGuard = runCreditGuard;
+        this.conversationSummaryService = conversationSummaryService;
     }
 
     /**
@@ -187,9 +194,10 @@ public class AgentOrchestrator {
                         platformAiFeatureProviderRepository, platformAiModelRepository, aiProperties),
                         toolRegistry, objectMapper, multiAgentEnabled),
                 aiTokenBudgetService,
-                // Routage d'intention + recorder de runs + garde credits = null sur ce
-                // chemin legacy test-only (null-safe : features desactivees,
-                // comportement historique).
+                // Routage d'intention + recorder de runs + garde credits + rolling
+                // summary = null sur ce chemin legacy test-only (null-safe : features
+                // desactivees, comportement historique).
+                null,
                 null,
                 null,
                 null);
@@ -257,7 +265,10 @@ public class AgentOrchestrator {
 
         // 3. Charger l'historique complet (post-insert du user message)
         List<AssistantMessage> history = messageRepository.findByConversation(conversation.getId());
-        List<ChatMessage> chatMessages = historyMapper.toChatMessages(history);
+        // X6 : au-dela de la fenetre, le rolling summary du debut est injecte en
+        // tete plutot qu'un elagage sec (null si feature off / pas encore genere).
+        List<ChatMessage> chatMessages =
+                historyMapper.toChatMessages(history, conversation.getRollingSummary());
 
         // 4. Pre-charge memoires + RAG + apiKey UNE SEULE FOIS, partagees entre
         //    multi-agent et mono-agent fallback. Evite la duplication d'appels
@@ -369,6 +380,7 @@ public class AgentOrchestrator {
                     if (runCreditGuard != null) {
                         runCreditGuard.endRun();
                     }
+                    refreshRollingSummarySafe(conversation, context, apiKey);
                     return conversation.getId();
                 }
             } catch (com.clenzy.service.agent.multiagent.ConfirmationRequiredException e) {
@@ -430,6 +442,7 @@ public class AgentOrchestrator {
         if (runCreditGuard != null) {
             runCreditGuard.endRun();
         }
+        refreshRollingSummarySafe(conversation, context, apiKey);
         return conversation.getId();
     }
 
@@ -543,10 +556,22 @@ public class AgentOrchestrator {
         if (runCreditGuard != null) {
             runCreditGuard.endRun();
         }
+        refreshRollingSummarySafe(conversation, context, target.apiKey());
         return conversation.getId();
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────
+
+    /**
+     * Rafraichit le rolling summary hors chemin critique (X6). Best-effort :
+     * null-safe (chemin legacy) et le service avale ses propres erreurs.
+     */
+    private void refreshRollingSummarySafe(AssistantConversation conversation,
+                                           AgentContext context, String apiKey) {
+        if (conversationSummaryService != null) {
+            conversationSummaryService.refreshIfNeeded(conversation, context, apiKey);
+        }
+    }
 
     /**
      * Construit le system prompt pour cette conversation (delegue a

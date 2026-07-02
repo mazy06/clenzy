@@ -201,3 +201,11 @@
 - **Premier câblage** : `BriefingComposer` → `runSocle` — les briefings deviennent de l'autonomie socle réelle de bout en bout (scheduler → handleMessage → metering SOCLE → ledger 0 débit + coût réel). Les 3 buckets sont désormais alimentés.
 - Tests : 4 harnais (pose/nettoyage, exception, premium autorisé/plafonné) + 1 metering SOCLE (débit 0, coût 6750 µ$ conservé). `mvn package` BUILD SUCCESS. NON COMMITÉ.
 - Écarts assumés : consumer Kafka + sous-flux déterministes multi-agents (« nouvelle résa ») = chantier produit à construire PAR-DESSUS ce harnais (X8-b) ; `runPremium` prêt pour le premier scan proactif (candidat : scan tarifaire supervision).
+
+## 2026-07-02 — Exécution X6 : rolling summary (FAIT, vérifié, non commité)
+
+- **Migration 0300** : `rolling_summary` + `summary_covers_count` sur assistant_conversation.
+- **`ConversationSummaryService`** : régénération PARESSEUSE (seuil `rolling-summary.refresh-threshold:10` messages hors-fenêtre depuis le dernier résumé — pas d'appel par tour), tier SMALL (TierModelResolver X3), prompt structuré (objectifs/décisions/préférences/en suspens, ≤150 mots), hors chemin critique (après la réponse, 3 chemins couverts : mono, multi, reprise), best-effort. Flag `clenzy.assistant.rolling-summary.enabled` défaut FALSE.
+- **Mapper** : overload `toChatMessages(history, rollingSummary)` — résumé préfixé en tête UNIQUEMENT quand l'historique est effectivement fenêtré. Orchestrateur lit `conversation.getRollingSummary()` au mapping.
+- Tests : 2 mapper + 4 service. `mvn package` BUILD SUCCESS (2e run — fix : `target.apiKey()` sur le chemin reprise + refresh manquant au retour mono). NON COMMITÉ.
+- **Clôture des leviers tokens Phase 1** : 6 originaux (bc98774e) + L1 routage (T-02) + L2 tiering (T-03) + L3/L4 scoping/vision (T-04) + L5 rolling summary (X6). Reste architecture C (deltas) = Later.

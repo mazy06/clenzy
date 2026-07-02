@@ -174,6 +174,38 @@ class ConversationHistoryMapperTest {
         verify(photoStorageService).retrieve("42");
     }
 
+    // ─── Rolling summary (X6) ────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("historique fenêtré + résumé → résumé injecté en tête (message user)")
+    void windowedHistory_withSummary_prependsSummary() {
+        List<AssistantMessage> history = new ArrayList<>();
+        for (int i = 0; i < ContextBudget.MAX_HISTORY_MESSAGES + 6; i++) {
+            history.add(AssistantMessage.user(1L, 7L, "msg-" + i));
+        }
+
+        List<ChatMessage> messages = mapper.toChatMessages(history, "Résumé : l'utilisateur gère 3 logements.");
+
+        // 1 message de résumé + la fenêtre.
+        assertThat(messages).hasSize(ContextBudget.MAX_HISTORY_MESSAGES + 1);
+        assertThat(messages.get(0).role()).isEqualTo(ChatMessage.ROLE_USER);
+        assertThat(messages.get(0).content()).contains("Résumé du début de la conversation");
+        assertThat(messages.get(0).content()).contains("3 logements");
+    }
+
+    @Test
+    @DisplayName("historique NON fenêtré → résumé ignoré (rien à résumer)")
+    void shortHistory_summaryIgnored() {
+        List<AssistantMessage> history = List.of(
+                AssistantMessage.user(1L, 7L, "bonjour"),
+                AssistantMessage.assistant(1L, 7L, "Bonjour !", null));
+
+        List<ChatMessage> messages = mapper.toChatMessages(history, "un résumé quelconque");
+
+        assertThat(messages).hasSize(2);
+        assertThat(messages.get(0).content()).isEqualTo("bonjour");
+    }
+
     @Test
     @DisplayName("résultat d'outil volumineux → tronqué via le mapper (copie LLM)")
     void oversizedToolResult_isCappedByMapper() {
