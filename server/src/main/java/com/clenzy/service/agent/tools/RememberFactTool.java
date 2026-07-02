@@ -115,7 +115,7 @@ public class RememberFactTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Enregistre une information dans la memoire long-terme de l'utilisateur (preference, fait, objectif, projet). A utiliser des que l'user donne une info qui sera utile dans les conversations futures, meme implicitement. La cle doit etre stable et explicite (snake_case) pour permettre la mise a jour future. Pas de confirmation requise.",
+                    "Enregistre une info en memoire long-terme user (preference, fait, objectif). Cle stable snake_case. Utiliser des qu'une info resservira ; pas de confirmation.",
                     schema
             );
         } catch (JsonProcessingException e) {

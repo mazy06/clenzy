@@ -115,7 +115,7 @@ public class UpdateReservationStatusTool implements ToolHandler {
                     """);
             return ToolDescriptor.write(
                     NAME,
-                    "Change le statut d'une reservation (confirmed / pending / cancelled). N'affecte aucun montant ni paiement. La synchronisation du calendrier (blocage/liberation des jours) est geree automatiquement. Confirmer obligatoirement.",
+                    "Change le statut d'une reservation (confirmed/pending/cancelled). N'affecte ni montant ni paiement ; calendrier sync automatiquement. Confirmer obligatoirement.",
                     schema
             );
         } catch (JsonProcessingException e) {

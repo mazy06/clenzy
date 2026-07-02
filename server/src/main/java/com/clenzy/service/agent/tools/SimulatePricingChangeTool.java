@@ -169,7 +169,7 @@ public class SimulatePricingChangeTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Simule l'impact d'un changement de prix (ex: -10% en juillet) sur le revenue projete d'une propriete. Modele d'elasticite simple (0.5). Retourne baseline vs scenario + delta revenue/occupancy + recommandation. Utiliser pour 'que se passe-t-il si je baisse de X%', 'simulation prix', 'scenario tarif'.",
+                    "Simule l'impact d'un changement de prix sur le revenue projete (elasticite 0.5) : baseline vs scenario, delta, reco. Pour 'si je baisse de X%'.",
                     schema
             );
         } catch (JsonProcessingException e) {

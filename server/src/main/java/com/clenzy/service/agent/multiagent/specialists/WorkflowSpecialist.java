@@ -28,6 +28,10 @@ public class WorkflowSpecialist extends AbstractAgentSpecialist {
     @Override
     public String name() { return "workflow"; }
 
+    /** Avancement mecanique de checklists : tier petit (T-03). */
+    @Override
+    public com.clenzy.service.agent.AgentTier tier() { return com.clenzy.service.agent.AgentTier.SMALL; }
+
     @Override
     public String domain() { return "Procedures guidees multi-etapes (onboarding, cloture, haute saison, incident, repricing, reporting, optimisation annonce)"; }
 

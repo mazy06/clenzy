@@ -151,7 +151,7 @@ public class GetOccupancyForecastTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "PREVISION (forecast) d'occupation d'une propriete sur les N prochains jours (defaut 30). Base sur saisonnalite, type de jour (weekend/weekday/holiday), et historique. Series : occupation % + confiance %. Utiliser pour 'prevision', 'quelle occupation aurai-je', 'previsionnel', 'forecast', 'futur', 'a venir'. Inclut stats : jours haute occupation, jours basse confiance, jours deja bookes.",
+                    "Prevision (forecast) d'occupation d'une propriete sur N jours (defaut 30) : % occupation + confiance, saisonnalite/historique. Pour 'prevision', 'forecast'.",
                     schema
             );
         } catch (JsonProcessingException e) {

@@ -109,7 +109,7 @@ public class ListGuestsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Liste les voyageurs (guests) de l'organisation avec leurs statistiques de fidelite (nombre de sejours, total depense, canal, langue). Filtres optionnels : search (nom/email), channel. Utiliser pour 'mes voyageurs', 'infos sur le client X', 'qui sont mes meilleurs clients'.",
+                    "Liste les voyageurs (guests) avec stats fidelite (sejours, total depense, canal, langue). Filtres search, channel. Pour 'mes voyageurs', 'meilleurs clients'.",
                     schema
             );
         } catch (JsonProcessingException e) {

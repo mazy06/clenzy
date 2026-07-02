@@ -131,7 +131,7 @@ public class SimulateCalendarBlockTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Estime la perte de revenue projete si une plage de dates est bloquee (renovation, sejour proprio, maintenance). Base le chiffrage sur l'occupancy de la meme periode l'annee precedente. Utiliser pour 'combien je perds si je bloque', 'cout opportunite blocage'.",
+                    "Estime la perte de revenue si une plage de dates est bloquee (renovation, sejour proprio), basee sur l'occupancy N-1. Pour 'combien je perds si je bloque'.",
                     schema
             );
         } catch (JsonProcessingException e) {

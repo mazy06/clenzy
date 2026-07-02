@@ -109,7 +109,7 @@ public class UpdateInterventionStatusTool implements ToolHandler {
                     """);
             return ToolDescriptor.write(
                     NAME,
-                    "Change le statut d'une intervention (menage/maintenance) : IN_PROGRESS, COMPLETED, CANCELLED, etc. Les transitions invalides sont rejetees par le service. Confirmer obligatoirement.",
+                    "Change le statut d'une intervention (menage/maintenance) : IN_PROGRESS, COMPLETED, CANCELLED. Transitions invalides rejetees. Confirmer obligatoirement.",
                     schema
             );
         } catch (JsonProcessingException e) {

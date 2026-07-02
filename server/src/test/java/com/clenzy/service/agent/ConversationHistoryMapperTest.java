@@ -133,6 +133,47 @@ class ConversationHistoryMapperTest {
         assertThat(messages).hasSize(ContextBudget.MAX_HISTORY_MESSAGES);
     }
 
+    // ─── Vision : image resolue UNIQUEMENT pour le dernier message user (T-04) ──
+
+    @Test
+    @DisplayName("image d'un ANCIEN message user → placeholder, pas de resolution storage")
+    void pastUserImage_replacedByPlaceholder_notResolved() {
+        String json = "[{\"storageKey\":\"42\",\"mediaType\":\"image/jpeg\"}]";
+        List<AssistantMessage> history = List.of(
+                AssistantMessage.user(1L, 7L, "voici le frigo", json),
+                AssistantMessage.assistant(1L, 7L, "Le joint est use, prevoyez un remplacement.", null),
+                AssistantMessage.user(1L, 7L, "et combien ca couterait ?"));
+
+        List<ChatMessage> messages = mapper.toChatMessages(history);
+
+        assertThat(messages).hasSize(3);
+        // L'ancien message garde son texte + placeholder, SANS bloc image.
+        assertThat(messages.get(0).content())
+                .startsWith("voici le frigo")
+                .contains(ConversationHistoryMapper.PAST_IMAGE_PLACEHOLDER);
+        assertThat(messages.get(0).attachments()).isNullOrEmpty();
+        // Aucun fetch storage : ni garde ni retrieve.
+        verify(photoStorageService, never()).assertReadableInCurrentOrg(org.mockito.ArgumentMatchers.anyString());
+        verify(photoStorageService, never()).retrieve(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("image du DERNIER message user → toujours resolue (tour courant)")
+    void lastUserImage_stillResolved() {
+        doNothing().when(photoStorageService).assertReadableInCurrentOrg("42");
+        when(photoStorageService.retrieve("42")).thenReturn(new byte[]{1, 2, 3});
+        String json = "[{\"storageKey\":\"42\",\"mediaType\":\"image/jpeg\"}]";
+        List<AssistantMessage> history = List.of(
+                AssistantMessage.user(1L, 7L, "bonjour"),
+                AssistantMessage.assistant(1L, 7L, "Bonjour !", null),
+                AssistantMessage.user(1L, 7L, "voici le frigo", json));
+
+        List<ChatMessage> messages = mapper.toChatMessages(history);
+
+        assertThat(messages.get(2).attachments()).hasSize(1);
+        verify(photoStorageService).retrieve("42");
+    }
+
     @Test
     @DisplayName("résultat d'outil volumineux → tronqué via le mapper (copie LLM)")
     void oversizedToolResult_isCappedByMapper() {

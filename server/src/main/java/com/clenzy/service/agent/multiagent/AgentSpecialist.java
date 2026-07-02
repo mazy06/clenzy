@@ -63,4 +63,15 @@ public interface AgentSpecialist {
      * retourne une synthese textuelle pour l'orchestrator.
      */
     SpecialistResult handle(SpecialistRequest request);
+
+    /**
+     * Tier de modele du specialiste (T-03, ADR-004). Defaut STANDARD = modele
+     * resolu du contexte (comportement historique). SMALL pour les utilitaires
+     * mecaniques, STRONG pour les mandats ou l'erreur coute des euros reels.
+     * Le mapping tier → modele est configure par provider
+     * ({@code clenzy.assistant.tiering.*}, cf. TierModelResolver).
+     */
+    default com.clenzy.service.agent.AgentTier tier() {
+        return com.clenzy.service.agent.AgentTier.STANDARD;
+    }
 }

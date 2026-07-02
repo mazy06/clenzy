@@ -132,7 +132,7 @@ public class BlockCalendarDayTool implements ToolHandler {
             // utilisateur explicite avant d'executer ce handler.
             return ToolDescriptor.write(
                     NAME,
-                    "Bloque une plage de dates sur le calendrier d'une propriete (rend les jours indisponibles a la reservation). Utiliser pour fermer le calendrier le temps d'une renovation, d'un sejour proprio, etc.",
+                    "Bloque une plage de dates du calendrier d'une propriete (jours indisponibles a la reservation). Utiliser pour renovation, sejour proprio, fermeture temporaire.",
                     schema
             );
         } catch (JsonProcessingException e) {

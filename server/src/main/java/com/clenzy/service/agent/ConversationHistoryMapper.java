@@ -39,17 +39,47 @@ public class ConversationHistoryMapper {
         this.photoStorageService = photoStorageService;
     }
 
+    /**
+     * Remplace les images des anciens messages user (T-04, levier vision) :
+     * l'analyse du modele est deja dans l'historique, re-envoyer le base64
+     * (~4k tokens/image + fetch storage) a chaque tour est du gaspillage pur.
+     */
+    static final String PAST_IMAGE_PLACEHOLDER =
+            "[Image jointe a ce message — deja analysee, voir la reponse qui suit]";
+
     public List<ChatMessage> toChatMessages(List<AssistantMessage> history) {
+        List<AssistantMessage> window = windowed(history);
+        if (window == null) {
+            return new ArrayList<>();
+        }
+        // Seul le DERNIER message user garde ses images (c'est le tour courant :
+        // le modele doit pouvoir les regarder). Les plus anciens recoivent un
+        // placeholder textuel — leur analyse est deja dans l'historique.
+        int lastUserIdx = -1;
+        for (int i = window.size() - 1; i >= 0; i--) {
+            if (AssistantMessage.ROLE_USER.equals(window.get(i).getRole())) {
+                lastUserIdx = i;
+                break;
+            }
+        }
         List<ChatMessage> result = new ArrayList<>();
-        for (AssistantMessage m : windowed(history)) {
+        for (int i = 0; i < window.size(); i++) {
+            AssistantMessage m = window.get(i);
             switch (m.getRole()) {
                 case AssistantMessage.ROLE_USER -> {
                     String content = m.getContent() != null ? m.getContent() : "";
-                    List<MessageAttachment> atts = resolveAttachmentsSafe(m.getAttachments());
-                    if (atts.isEmpty()) {
-                        result.add(ChatMessage.user(content));
+                    boolean hasAttachments = m.getAttachments() != null && !m.getAttachments().isBlank();
+                    if (hasAttachments && i == lastUserIdx) {
+                        List<MessageAttachment> atts = resolveAttachmentsSafe(m.getAttachments());
+                        result.add(atts.isEmpty()
+                                ? ChatMessage.user(content)
+                                : ChatMessage.user(content, atts));
+                    } else if (hasAttachments) {
+                        result.add(ChatMessage.user(content.isBlank()
+                                ? PAST_IMAGE_PLACEHOLDER
+                                : content + "\n" + PAST_IMAGE_PLACEHOLDER));
                     } else {
-                        result.add(ChatMessage.user(content, atts));
+                        result.add(ChatMessage.user(content));
                     }
                 }
                 case AssistantMessage.ROLE_ASSISTANT -> {

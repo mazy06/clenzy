@@ -98,8 +98,11 @@ public final class ToolScopeSelector {
                             "preview_batch_block_calendar", "simulate_calendar_block",
                             "get_occupancy_forecast")),
             new Domain(
+                    // « demande » retiré (T-04) : verbe francais ultra-courant (« je te
+                    // demande... ») → exposait les outils pricing hors sujet. La prevision
+                    // de demande reste couverte par « forecast » / « prevision ».
                     Set.of("prix", "tarif", "pricing", "tarification", "saison", "override", "augment",
-                            "baiss", "yield", "benchmark", "concurrent", "concurrence", "demande",
+                            "baiss", "yield", "benchmark", "concurrent", "concurrence", "prevision",
                             "upsell", "forecast"),
                     Set.of("recommend_price_adjustments", "simulate_pricing_change", "set_rate_override",
                             "get_price_quote", "benchmark_competition", "forecast_demand_longterm",
@@ -124,7 +127,12 @@ public final class ToolScopeSelector {
                             "synchro", "sync"),
                     Set.of("get_channel_sync_status", "get_channel_attribution")),
             new Domain(
-                    Set.of("meteo", "weather", "temps", "pluie", "evenement", "local", "activite", "sortie"),
+                    // « temps » (« combien de temps... »), « local », « activite », « sortie »
+                    // retires (T-04) : mots francais trop generiques → outils meteo exposes
+                    // hors sujet. Les intentions meteo/evenements restent couvertes par les
+                    // stems specifiques ci-dessous.
+                    Set.of("meteo", "weather", "pluie", "neige", "canicule", "evenement",
+                            "concert", "festival", "tourisme", "touristiq"),
                     Set.of("get_weather_forecast", "get_local_events")),
             new Domain(
                     Set.of("bruit", "noise", "sonore", "decibel", "capteur", "nuisance"),
@@ -194,10 +202,30 @@ public final class ToolScopeSelector {
         return capped;
     }
 
+    /**
+     * Longueur en-deca de laquelle un stem est trop court pour un match par
+     * prefixe fiable (T-04) : « prix » prefixerait « prixation »?, mais surtout
+     * « nuit » matcherait « nuitamment », « avis » → « aviser », etc.
+     */
+    private static final int MIN_PREFIX_STEM_LENGTH = 5;
+
+    /**
+     * Match token/stem (T-04, scoping V2) :
+     * <ul>
+     *   <li>stem long (≥{@value MIN_PREFIX_STEM_LENGTH}) → prefixe (« reserv » matche
+     *       « reservation », « reservations », « reserver ») ;</li>
+     *   <li>stem court → match EXACT ou pluriel simple (« kpi » matche « kpi »/« kpis »
+     *       mais plus « kpixyz ») — reduit les faux positifs des racines courtes.</li>
+     * </ul>
+     */
     private static boolean matches(Set<String> stems, Set<String> tokens) {
         for (String token : tokens) {
             for (String stem : stems) {
-                if (token.startsWith(stem)) {
+                if (stem.length() >= MIN_PREFIX_STEM_LENGTH) {
+                    if (token.startsWith(stem)) {
+                        return true;
+                    }
+                } else if (token.equals(stem) || token.equals(stem + "s")) {
                     return true;
                 }
             }

@@ -154,7 +154,7 @@ public class GetLocalEventsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Liste les evenements publics et jours feries impactant la demande dans une ville sur une plage de dates. Inclut : dataset interne (festivals, salons, evenements sportifs) + jours feries officiels via date.nager.at si parametre 'country' fourni. Utiliser pour expliquer des pics de demande ou suggerer des yield management strategies.",
+                    "Evenements publics et jours feries impactant la demande dans une ville sur des dates (feries si 'country'). Pour expliquer pics de demande, yield management.",
                     schema
             );
         } catch (JsonProcessingException e) {

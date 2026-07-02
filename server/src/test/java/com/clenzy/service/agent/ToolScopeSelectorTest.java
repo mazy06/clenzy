@@ -88,6 +88,44 @@ class ToolScopeSelectorTest {
         assertThat(names).contains("detect_unpaid_interventions", "settle_intervention_payment");
     }
 
+    // ─── Scoping V2 (T-04) : stems ambigus purges + stems courts en match exact ──
+
+    @Test
+    void commonVerbDemande_doesNotExposePricingTools() {
+        // « je te demande... » est du francais courant, pas une intention pricing.
+        List<String> names = namesOf(select("Je te demande de m'aider a retrouver un document"));
+
+        assertThat(names).doesNotContain("recommend_price_adjustments", "set_rate_override",
+                "benchmark_competition");
+    }
+
+    @Test
+    void combienDeTemps_doesNotExposeWeatherTools() {
+        // « combien de temps » n'est pas une question meteo.
+        List<String> names = namesOf(select("Combien de temps faut-il pour un menage complet ?"));
+
+        assertThat(names).doesNotContain("get_weather_forecast", "get_local_events");
+        // Le domaine interventions, lui, est bien detecte.
+        assertThat(names).contains("list_cleaning_tasks");
+    }
+
+    @Test
+    void weatherIntent_stillExposesWeatherTools() {
+        List<String> names = namesOf(select("Quelle meteo demain a Lyon pour mes voyageurs ?"));
+
+        assertThat(names).contains("get_weather_forecast", "get_local_events");
+    }
+
+    @Test
+    void shortStem_matchesExactAndPlural_only() {
+        // « prix » (stem court) en mot exact → pricing expose.
+        assertThat(namesOf(select("Quel est le prix moyen de la nuit en aout ?")))
+                .contains("recommend_price_adjustments", "get_price_quote");
+        // « kpis » (pluriel d'un stem court) → analytics expose.
+        assertThat(namesOf(select("Montre-moi les kpis du portefeuille")))
+                .contains("analyze_portfolio", "get_ops_analytics");
+    }
+
     @Test
     void vagueMessage_fallsBackToCorePlusStaples_notFullCatalog() {
         List<String> names = namesOf(select("Bonjour, tu peux m'aider ?"));

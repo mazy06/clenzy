@@ -150,7 +150,7 @@ public class ListInvoicesTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Liste les factures de l'organisation (numero, montants HT/TVA/TTC, devise, statut, dates, nature GUEST/COMMISSION, reservation liee), plus recentes d'abord. Filtres optionnels : status, limit (defaut 20). Utiliser pour 'mes factures', 'factures impayees/en retard', 'liste des factures', 'derniere facture'. Ne contient pas le nom du client.",
+                    "Liste les factures (montants HT/TVA/TTC, statut, nature GUEST/COMMISSION), recentes d'abord. Filtres status, limit (defaut 20). Pour 'factures impayees'.",
                     schema
             );
         } catch (JsonProcessingException e) {
