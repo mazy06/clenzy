@@ -146,3 +146,11 @@
 - Frontend : `AiCreditsSection.tsx` dans Paramètres→IA→Consommation (au-dessus de la vue tokens) : solde tabular-nums coloré par seuils (épuisé/ambre <50/vert), chips des 2 poches avec expiration, packs → Checkout avec retour ?topup= géré, table ledger 10 lignes signée, skeleton, i18n fr/en/ar (JSON validés). Client `aiCreditsApi.ts`.
 - Vérification : tsc clean + mvn package BUILD SUCCESS. NON COMMITÉ (avec T-07).
 - Écarts assumés : jauge Constellation différée (SupervisionPanel fraîchement refondu — composant réutilisable prêt) ; alertes 80/95/100 nécessitent la dotation de référence serveur (suivi X4) ; estimation pré-action attend estimatedCredits des descriptors (Phase 4 §7).
+
+## 2026-07-02 — Exécution T-09 : agent Propriétaire (FAIT, vérifié, non commité)
+
+- `OwnerRelationsSpecialist` (11e specialist, auto-enregistré OCP) : point de vue du PROPRIÉTAIRE d'un mandat (vs finance=trésorerie org) — relevés, reversements, commissions, P&L par bien. 5 outils, tier STANDARD.
+- `SendOwnerStatementTool` (write, requiresConfirmation) : relevé email via OwnerStatementService existant (PAID only, HTML échappé), org du contexte jamais des args, dates validées (ordre + ≤2 ans), email masqué PiiMasker dans le retour LLM.
+- ToolScopeSelector : domaine propriétaire (stems proprietaire/reversement/releve/commission/mandat/payout/owner). Rôles opérationnels : refus par défaut (RoleToolPolicy inchangée).
+- Tests : 4 outil + 1 scoping. `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écart assumé : get_commission_breakdown différé V2 (nouveau service d'agrégation requis ; la commission est déjà détaillée par get_owner_payout_summary).

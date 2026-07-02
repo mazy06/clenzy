@@ -32,7 +32,7 @@ class ToolScopeSelectorTest {
             "list_invoices", "list_properties", "list_reservations", "list_reviews",
             "predict_maintenance_needs", "preview_batch_block_calendar", "recommend_price_adjustments",
             "remember_fact", "reply_to_review", "search_knowledge_base", "segment_guests",
-            "send_guest_message", "set_rate_override", "settle_intervention_payment", "simulate_calendar_block",
+            "send_guest_message", "send_owner_statement", "set_rate_override", "settle_intervention_payment", "simulate_calendar_block",
             "simulate_pricing_change", "start_workflow", "suggest_navigation", "suggest_upsells",
             "update_intervention_status", "update_property_status", "update_reservation_status");
 
@@ -107,6 +107,14 @@ class ToolScopeSelectorTest {
         assertThat(names).doesNotContain("get_weather_forecast", "get_local_events");
         // Le domaine interventions, lui, est bien detecte.
         assertThat(names).contains("list_cleaning_tasks");
+    }
+
+    @Test
+    void ownerIntent_exposesOwnerRelationTools() {
+        // Domaine relation proprietaire (T-09).
+        List<String> names = namesOf(select("Envoie le relevé de reversements de juin au propriétaire Martin"));
+
+        assertThat(names).contains("send_owner_statement", "get_owner_payout_summary", "get_property_pnl");
     }
 
     @Test
