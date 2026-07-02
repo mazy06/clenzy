@@ -60,20 +60,32 @@ public class PendingToolStore {
     private final Map<String, PendingTool> store = new ConcurrentHashMap<>();
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    /**
+     * Journal durable des pauses (X1) : reprise mono post-reboot, fallback
+     * d'affichage si Redis est perdu, et donnee d'apprentissage X2 (outcomes).
+     * Nullable (tests) — toutes les ecritures sont best-effort.
+     */
+    private final com.clenzy.repository.AgentPendingActionRepository pendingActionRepository;
 
-    public PendingToolStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+    public PendingToolStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
+                            com.clenzy.repository.AgentPendingActionRepository pendingActionRepository) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.pendingActionRepository = pendingActionRepository;
+    }
+
+    /** Retro-compat (pre-X1) : sans journal durable. */
+    public PendingToolStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+        this(redisTemplate, objectMapper, null);
     }
 
     /**
-     * Constructeur "in-memory uniquement" (pas d'index Redis). Réservé aux tests
-     * qui ne couvrent que le flux pause/confirm/resume mono ou multi-agent : la
-     * persistance Redis "en attente" est désactivée (null = no-op) et
-     * {@link #listForUser} renvoie une liste vide.
+     * Constructeur "in-memory uniquement" (pas d'index Redis ni de journal
+     * durable). Réservé aux tests qui ne couvrent que le flux
+     * pause/confirm/resume mono ou multi-agent.
      */
     public PendingToolStore() {
-        this(null, null);
+        this(null, null, null);
     }
 
     private boolean redisEnabled() {
@@ -135,15 +147,18 @@ public class PendingToolStore {
                      String description) {
         cleanupExpired();
         Instant createdAt = Instant.now();
+        Instant expiresAt = createdAt.plusMillis(TTL_MS);
         store.put(toolCallId, new PendingTool(
                 toolCallId, conversationId, organizationId, keycloakId,
                 toolName, argsJson, pendingHistory, multiAgentContext,
-                createdAt.plusMillis(TTL_MS)
+                expiresAt
         ));
         indexInRedis(keycloakId, new PendingActionDto(
                 toolCallId, toolName, description, summarizeArgs(argsJson),
                 conversationId, createdAt,
                 multiAgentContext != null ? multiAgentContext.specialistName() : null));
+        persistDurable(toolCallId, conversationId, organizationId, keycloakId,
+                toolName, argsJson, description, pendingHistory, multiAgentContext, expiresAt);
         log.debug("PendingToolStore.put toolCallId={} tool={} multiAgent={} (store size={})",
                 toolCallId, toolName, multiAgentContext != null, store.size());
     }
@@ -158,6 +173,13 @@ public class PendingToolStore {
         cleanupExpired();
         PendingTool tool = store.remove(toolCallId);
         if (tool == null) {
+            // X1 : reprise post-reboot — le flux MONO est reconstruit depuis le
+            // journal durable (le multi porte un etat moteur volatil, non couvert).
+            Optional<PendingTool> recovered = recoverFromDatabase(toolCallId, requestKeycloakId);
+            if (recovered.isPresent()) {
+                removeFromRedis(requestKeycloakId, toolCallId);
+                return recovered;
+            }
             log.debug("PendingToolStore.consume miss for toolCallId={}", toolCallId);
             // Best-effort : nettoyer un eventuel residu Redis (resume apres reboot
             // ou entree orpheline) pour que le front ne re-affiche pas une action
@@ -190,13 +212,19 @@ public class PendingToolStore {
      * renvoie une liste vide plutot que de propager une erreur.</p>
      */
     public List<PendingActionDto> listForUser(String keycloakId) {
-        if (!redisEnabled() || keycloakId == null || keycloakId.isBlank()) {
+        if (keycloakId == null || keycloakId.isBlank()) {
             return List.of();
+        }
+        if (!redisEnabled()) {
+            // X1 : sans index Redis, le journal durable fait autorite.
+            return listFromDatabase(keycloakId);
         }
         try {
             Map<Object, Object> entries = redisTemplate.opsForHash().entries(redisKey(keycloakId));
             if (entries == null || entries.isEmpty()) {
-                return List.of();
+                // X1 : index Redis vide/perdu → fallback sur le journal durable
+                // (fin de la « perte silencieuse » relevee par l'audit Phase 0).
+                return listFromDatabase(keycloakId);
             }
             List<PendingActionDto> result = new ArrayList<>(entries.size());
             for (Object value : entries.values()) {
@@ -216,12 +244,146 @@ public class PendingToolStore {
         } catch (Exception e) {
             log.warn("PendingToolStore.listForUser: lecture Redis impossible (user={}) : {}",
                     keycloakId, e.getMessage());
-            return List.of();
+            return listFromDatabase(keycloakId);
+        }
+    }
+
+    /**
+     * Consigne la resolution d'une action (X1) : CONFIRMED/REFUSED au journal
+     * durable — la matiere premiere des Regles de Confiance (X2). Best-effort.
+     */
+    public void markResolved(String toolCallId, boolean confirmed) {
+        if (pendingActionRepository == null || toolCallId == null) {
+            return;
+        }
+        try {
+            pendingActionRepository.findById(toolCallId).ifPresent(action -> {
+                if (com.clenzy.model.AgentPendingAction.STATUS_PENDING.equals(action.getStatus())) {
+                    action.resolve(confirmed
+                            ? com.clenzy.model.AgentPendingAction.STATUS_CONFIRMED
+                            : com.clenzy.model.AgentPendingAction.STATUS_REFUSED);
+                    pendingActionRepository.save(action);
+                }
+            });
+        } catch (Exception e) {
+            log.warn("PendingToolStore.markResolved: journalisation impossible pour {} : {}",
+                    toolCallId, e.getMessage());
         }
     }
 
     /** Visible for testing. */
     int size() { return store.size(); }
+
+    // ─── Journal durable Postgres (X1, best-effort) ─────────────────────────
+
+    private void persistDurable(String toolCallId, Long conversationId, Long organizationId,
+                                String keycloakId, String toolName, String argsJson,
+                                String description, List<ChatMessage> pendingHistory,
+                                MultiAgentPendingContext multiAgentContext, Instant expiresAt) {
+        if (pendingActionRepository == null) {
+            return;
+        }
+        try {
+            boolean multiAgent = multiAgentContext != null;
+            // Le multi-agent porte un etat moteur + JWT non serialisables → pas
+            // de payload de reprise (journalise pour l'affichage + l'apprentissage X2).
+            String historyJson = multiAgent ? null : serializeHistoryStripped(pendingHistory);
+            pendingActionRepository.save(new com.clenzy.model.AgentPendingAction(
+                    toolCallId, organizationId, keycloakId, conversationId, toolName,
+                    argsJson, description,
+                    multiAgent ? multiAgentContext.specialistName() : null,
+                    multiAgent, historyJson, expiresAt));
+        } catch (Exception e) {
+            log.warn("PendingToolStore.persistDurable: journalisation impossible pour {} : {}",
+                    toolCallId, e.getMessage());
+        }
+    }
+
+    /**
+     * Reprise post-reboot (X1, flux MONO uniquement) : reconstruit le
+     * {@link PendingTool} depuis le journal durable. Ownership + expiration
+     * valides ici — memes garanties que le chemin memoire.
+     */
+    private Optional<PendingTool> recoverFromDatabase(String toolCallId, String requestKeycloakId) {
+        if (pendingActionRepository == null || objectMapper == null) {
+            return Optional.empty();
+        }
+        try {
+            var row = pendingActionRepository.findById(toolCallId).orElse(null);
+            if (row == null
+                    || !com.clenzy.model.AgentPendingAction.STATUS_PENDING.equals(row.getStatus())
+                    || Instant.now().isAfter(row.getExpiresAt())) {
+                return Optional.empty();
+            }
+            if (!row.getKeycloakUserId().equals(requestKeycloakId)) {
+                log.warn("PendingToolStore: ownership mismatch on DB recovery of toolCallId={}", toolCallId);
+                return Optional.empty();
+            }
+            if (row.isMultiAgent() || row.getPayloadHistoryJson() == null) {
+                log.info("PendingToolStore: reprise post-reboot impossible pour {} (multi-agent "
+                        + "ou payload absent) — l'action expirera", toolCallId);
+                return Optional.empty();
+            }
+            List<ChatMessage> history = objectMapper.readValue(row.getPayloadHistoryJson(),
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, ChatMessage.class));
+            log.info("PendingToolStore: reprise post-reboot du toolCallId={} depuis le journal durable",
+                    toolCallId);
+            return Optional.of(new PendingTool(
+                    row.getToolCallId(), row.getConversationId(), row.getOrganizationId(),
+                    row.getKeycloakUserId(), row.getToolName(), row.getArgsJson(),
+                    history, null, row.getExpiresAt()));
+        } catch (Exception e) {
+            log.warn("PendingToolStore.recoverFromDatabase: echec pour {} : {}",
+                    toolCallId, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private List<PendingActionDto> listFromDatabase(String keycloakId) {
+        if (pendingActionRepository == null) {
+            return List.of();
+        }
+        try {
+            return pendingActionRepository
+                    .findByKeycloakUserIdAndStatusAndExpiresAtAfterOrderByCreatedAtAsc(
+                            keycloakId, com.clenzy.model.AgentPendingAction.STATUS_PENDING, Instant.now())
+                    .stream()
+                    .map(a -> new PendingActionDto(a.getToolCallId(), a.getToolName(),
+                            a.getDescription(), summarizeArgs(a.getArgsJson()),
+                            a.getConversationId(), a.getCreatedAt(), a.getSpecialist()))
+                    .toList();
+        } catch (Exception e) {
+            log.warn("PendingToolStore.listFromDatabase: lecture impossible (user={}) : {}",
+                    keycloakId, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Serialise l'historique de reprise en strippant les images base64 (poids +
+     * PII) — remplacees par le placeholder etabli en T-04. La reprise mono
+     * post-reboot se fait alors sans le visuel, l'analyse du tour 1 etant deja
+     * dans l'historique.
+     */
+    private String serializeHistoryStripped(List<ChatMessage> pendingHistory) {
+        if (pendingHistory == null || objectMapper == null) {
+            return null;
+        }
+        try {
+            List<ChatMessage> stripped = pendingHistory.stream()
+                    .map(m -> (m.attachments() == null || m.attachments().isEmpty()) ? m
+                            : new ChatMessage(m.role(),
+                                    (m.content() == null || m.content().isBlank()
+                                            ? ConversationHistoryMapper.PAST_IMAGE_PLACEHOLDER
+                                            : m.content() + "\n" + ConversationHistoryMapper.PAST_IMAGE_PLACEHOLDER),
+                                    m.toolCalls(), m.toolCallId(), null))
+                    .toList();
+            return objectMapper.writeValueAsString(stripped);
+        } catch (Exception e) {
+            log.warn("PendingToolStore: serialisation de l'historique impossible : {}", e.getMessage());
+            return null;
+        }
+    }
 
     private void cleanupExpired() {
         Instant now = Instant.now();
