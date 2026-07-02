@@ -84,6 +84,14 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
         this.tierModelResolver = tierModelResolver;
     }
 
+    // Regles de Confiance (X2). Setter optionnel ; null-safe en test.
+    private com.clenzy.service.agent.AgentTrustRuleService trustRuleService;
+
+    @Autowired(required = false)
+    public void setTrustRuleService(com.clenzy.service.agent.AgentTrustRuleService trustRuleService) {
+        this.trustRuleService = trustRuleService;
+    }
+
     /**
      * Modele effectif du specialiste : le tier declare par {@link #tier()} si un
      * mapping est configure pour le provider courant, sinon le modele du contexte
@@ -453,10 +461,14 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
 
             // Garde-fou critique : detecter un tool a confirmation AVANT toute
             // execution. On suspend la boucle complete (pas d'execution partielle).
+            // X2 : une Regle de Confiance ACTIVE (acceptee par un humain) fait
+            // passer l'outil en « notifier » — pas de pause, execution tracee.
             for (ChatMessage.ToolCall tc : toolCalls) {
                 ToolHandler handler = toolRegistry.find(tc.name()).orElse(null);
                 if (handler != null && handler.descriptor() != null
-                        && handler.descriptor().requiresConfirmation()) {
+                        && handler.descriptor().requiresConfirmation()
+                        && (trustRuleService == null || !trustRuleService.isAutoApproved(
+                                request.context().organizationId(), tc.name()))) {
                     log.info("Specialist '{}' pausing on '{}' (requires user confirmation) — "
                             + "signaling resumable multi-agent pause", name(), tc.name());
                     // Historique a capturer = tout jusqu'au tour assistant inclus.

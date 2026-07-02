@@ -204,7 +204,7 @@ public class AgentOrchestrator {
             AssistantMessageRepository messageRepository, PendingToolStore pendingToolStore,
             ObjectMapper objectMapper, com.clenzy.service.AiTokenBudgetService aiTokenBudgetService) {
         return new AgentToolLoopRunner(chatProvider, toolRegistry, messageRepository,
-                pendingToolStore, objectMapper, aiTokenBudgetService, null, null, null, null, null);
+                pendingToolStore, objectMapper, aiTokenBudgetService, null, null, null, null, null, null);
     }
 
     /**

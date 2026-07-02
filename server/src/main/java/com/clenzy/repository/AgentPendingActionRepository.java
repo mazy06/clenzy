@@ -23,4 +23,24 @@ public interface AgentPendingActionRepository extends JpaRepository<AgentPending
             where a.status = 'PENDING' and a.expiresAt <= :now
             """)
     int expireOverdue(@Param("now") Instant now);
+
+    /**
+     * Candidats aux Regles de Confiance (X2) : couples (org, outil) ayant au
+     * moins {@code threshold} confirmations. Le filtrage fin (les N DERNIERES
+     * resolutions toutes CONFIRMED, sans refus ni expiration) est fait ensuite
+     * par le service sur la fenetre recente.
+     */
+    @Query("""
+            select a.organizationId, a.toolName
+            from AgentPendingAction a
+            where a.status = 'CONFIRMED'
+            group by a.organizationId, a.toolName
+            having count(a) >= :threshold
+            """)
+    List<Object[]> findTrustRuleCandidates(@Param("threshold") long threshold);
+
+    /** Dernieres resolutions (hors PENDING) d'un couple (org, outil), recentes d'abord. */
+    List<AgentPendingAction> findByOrganizationIdAndToolNameAndStatusNotOrderByResolvedAtDesc(
+            Long organizationId, String toolName, String status,
+            org.springframework.data.domain.Pageable pageable);
 }

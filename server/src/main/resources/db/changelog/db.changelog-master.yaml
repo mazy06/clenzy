@@ -2873,3 +2873,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0297__create_agent_pending_action.sql
         relativeToChangelogFile: true
+
+  # Regles de Confiance : autonomie apprise par (org, outil), visible et revocable (campagne X2).
+  - changeSet:
+      id: "0298-create-agent-trust-rule"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0298__create_agent_trust_rule.sql
+        relativeToChangelogFile: true

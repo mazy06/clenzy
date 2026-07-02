@@ -51,6 +51,8 @@ public class AgentToolLoopRunner {
     private final com.clenzy.service.ai.CreditMeteringService creditMeteringService;
     /** Garde de credits du run (T-06b) — null-safe ; arrete proprement la boucle si epuise. */
     private final com.clenzy.service.ai.RunCreditGuard runCreditGuard;
+    /** Regles de Confiance (X2) — null-safe ; une regle ACTIVE saute la pause de confirmation. */
+    private final AgentTrustRuleService trustRuleService;
 
     public AgentToolLoopRunner(ChatLLMProvider chatProvider,
                                 ToolRegistry toolRegistry,
@@ -62,7 +64,8 @@ public class AgentToolLoopRunner {
                                 AgentToolMetrics toolMetrics,
                                 AgentRunRecorder agentRunRecorder,
                                 com.clenzy.service.ai.CreditMeteringService creditMeteringService,
-                                com.clenzy.service.ai.RunCreditGuard runCreditGuard) {
+                                com.clenzy.service.ai.RunCreditGuard runCreditGuard,
+                                AgentTrustRuleService trustRuleService) {
         this.chatProvider = chatProvider;
         this.toolRegistry = toolRegistry;
         this.messageRepository = messageRepository;
@@ -74,6 +77,28 @@ public class AgentToolLoopRunner {
         this.agentRunRecorder = agentRunRecorder;
         this.creditMeteringService = creditMeteringService;
         this.runCreditGuard = runCreditGuard;
+        this.trustRuleService = trustRuleService;
+    }
+
+    /**
+     * Un tool demande-t-il une pause de confirmation pour CE tenant (X2) ?
+     * requiresConfirmation du descriptor, MOINS les Regles de Confiance ACTIVE
+     * (acceptees explicitement par un humain) : l'outil passe alors en
+     * « notifier » — execution directe, toujours tracee (audit, agent_step,
+     * SSE tool_call_executed). Les outils argent ne sont jamais auto-approuves
+     * (blocklist dans AgentTrustRuleService).
+     */
+    private boolean needsConfirmation(ToolHandler handler, AgentContext context) {
+        if (handler.descriptor() == null || !handler.descriptor().requiresConfirmation()) {
+            return false;
+        }
+        if (trustRuleService != null
+                && trustRuleService.isAutoApproved(context.organizationId(), handler.name())) {
+            log.info("Tool '{}' auto-approuve par Regle de Confiance (org={}) — execution en mode notifier",
+                    handler.name(), context.organizationId());
+            return false;
+        }
+        return true;
     }
 
     public void runToolLoop(ChatRequest initialRequest,
@@ -144,11 +169,10 @@ public class AgentToolLoopRunner {
             }
 
             // Check if any tool requires confirmation → suspend
+            // (X2 : une Regle de Confiance ACTIVE court-circuite la pause).
             for (ChatMessage.ToolCall call : outcome.toolCalls) {
                 Optional<ToolHandler> handler = toolRegistry.find(call.name());
-                if (handler.isPresent()
-                        && handler.get().descriptor() != null
-                        && handler.get().descriptor().requiresConfirmation()) {
+                if (handler.isPresent() && needsConfirmation(handler.get(), context)) {
                     // Build the "future history" : current request + this assistant turn
                     // (avec TOUS les tool_calls). Quand le user confirme/refuse, on
                     // appendera les tool results et reprendre la boucle.
@@ -183,8 +207,7 @@ public class AgentToolLoopRunner {
             // pour eviter une execution partielle ambigue.
             boolean anyRequiresConfirm = outcome.toolCalls.stream().anyMatch(c -> {
                 Optional<ToolHandler> h = toolRegistry.find(c.name());
-                return h.isPresent() && h.get().descriptor() != null
-                        && h.get().descriptor().requiresConfirmation();
+                return h.isPresent() && needsConfirmation(h.get(), context);
             });
             if (anyRequiresConfirm) {
                 consumer.accept(AgentSseEvent.pausedAwaitingConfirmation());
