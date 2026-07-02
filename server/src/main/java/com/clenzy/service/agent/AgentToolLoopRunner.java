@@ -109,7 +109,8 @@ public class AgentToolLoopRunner {
             }
             recordUsageSafe(context.organizationId(),
                     request.provider() != null ? request.provider() : "anthropic",
-                    outcome.promptTokens, outcome.completionTokens,
+                    AgentToolMetrics.AGENT_MONO,
+                    outcome.promptTokens, outcome.completionTokens, outcome.cachedPromptTokens,
                     usedModel, outcome.finishReason);
 
             // No tool calls → done
@@ -212,7 +213,9 @@ public class AgentToolLoopRunner {
                 ? request.model() : finalOutcome.model;
         recordUsageSafe(context.organizationId(),
                 request.provider() != null ? request.provider() : "anthropic",
+                AgentToolMetrics.AGENT_MONO,
                 finalOutcome.promptTokens, finalOutcome.completionTokens,
+                finalOutcome.cachedPromptTokens,
                 finalModel, finalOutcome.finishReason);
         consumer.accept(AgentSseEvent.done(
                 finalOutcome.finishReason != null ? finalOutcome.finishReason : "stop"));
@@ -255,13 +258,20 @@ public class AgentToolLoopRunner {
 
     /**
      * Enregistre la consommation tokens dans {@code ai_token_usage} (feature
-     * {@code ASSISTANT_CHAT}). Wrappee defensivement : ne propage JAMAIS
-     * d'exception au caller — un crash du tracking ne doit pas casser le chat.
+     * {@code ASSISTANT_CHAT}) + expose les metriques Grafana (tokens, cout USD,
+     * cache — T-01). Wrappee defensivement : ne propage JAMAIS d'exception au
+     * caller — un crash du tracking ne doit pas casser le chat.
      *
      * <p>Skip si tokens = 0 ou modele = null (rien d'utile a tracker).</p>
+     *
+     * @param agent              origine de l'appel pour le tag metrique —
+     *                           {@link AgentToolMetrics#AGENT_MONO} ou
+     *                           {@link AgentToolMetrics#AGENT_MULTI}
+     * @param cachedPromptTokens tokens d'entree servis depuis le cache provider
+     *                           (metrique seulement, deja deduits du facture)
      */
-    public void recordUsageSafe(Long organizationId, String providerName,
-                                   int promptTokens, int completionTokens,
+    public void recordUsageSafe(Long organizationId, String providerName, String agent,
+                                   int promptTokens, int completionTokens, int cachedPromptTokens,
                                    String model, String finishReason) {
         if (promptTokens <= 0 && completionTokens <= 0) {
             log.info("[USAGE] Skip recordUsage : tokens={}/{} model='{}' (zero)",
@@ -287,9 +297,11 @@ public class AgentToolLoopRunner {
                     providerName != null ? providerName : "anthropic",
                     resp
             );
-            // Exposition Grafana du cout (metrique seulement, pas de persistance).
+            // Exposition Grafana : tokens (prompt facture/completion/cache), cout USD,
+            // detection modele sans tarif (metrique seulement, pas de persistance).
             if (toolMetrics != null) {
-                toolMetrics.recordTokens(providerName, model, promptTokens, completionTokens);
+                toolMetrics.recordLlmUsage(providerName, model, agent,
+                        promptTokens, completionTokens, cachedPromptTokens);
             }
             log.info("[USAGE] Recorded ASSISTANT_CHAT : org={} provider={} model='{}' "
                     + "tokens={}/{}", organizationId, providerName, model,

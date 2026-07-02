@@ -75,6 +75,28 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
         this.toolMetrics = toolMetrics;
     }
 
+    // Tiering de modele par role (T-03). Injecte par setter (optionnel) pour la
+    // meme raison que l'instrumentation ci-dessus ; null-safe en test.
+    private com.clenzy.service.agent.TierModelResolver tierModelResolver;
+
+    @Autowired(required = false)
+    public void setTierModelResolver(com.clenzy.service.agent.TierModelResolver tierModelResolver) {
+        this.tierModelResolver = tierModelResolver;
+    }
+
+    /**
+     * Modele effectif du specialiste : le tier declare par {@link #tier()} si un
+     * mapping est configure pour le provider courant, sinon le modele du contexte
+     * (comportement historique — fallback strict).
+     */
+    private String resolveModelForTier(SpecialistRequest request) {
+        String contextModel = request.context().modelOverride();
+        if (tierModelResolver == null) {
+            return contextModel;
+        }
+        return tierModelResolver.resolveModel(tier(), request.context().aiProvider(), contextModel);
+    }
+
     protected AbstractAgentSpecialist(ChatLLMProvider chatProvider,
                                         ToolRegistry toolRegistry,
                                         ObjectMapper objectMapper,
@@ -269,7 +291,7 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 buildSystemPrompt(request),
                 List.of(ChatMessage.user(request.query())),
                 resolveTools(),
-                request.context().modelOverride(),   // modele resolu (Settings/BYOK) ou null = defaut provider
+                resolveModelForTier(request),        // tier du role (T-03) ou modele resolu (Settings/BYOK)
                 TEMPERATURE,
                 MAX_TOKENS,
                 null,                                 // system mono-bloc (pas de suffixe volatil)
@@ -313,7 +335,7 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                     buildSystemPrompt(request),
                     resumed,
                     resolveTools(),
-                    request.context().modelOverride(),
+                    resolveModelForTier(request),    // meme tier qu'au run initial (T-03)
                     TEMPERATURE,
                     MAX_TOKENS,
                     null,

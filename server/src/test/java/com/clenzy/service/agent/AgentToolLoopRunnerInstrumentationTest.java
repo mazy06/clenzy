@@ -42,7 +42,7 @@ class AgentToolLoopRunnerInstrumentationTest {
         toolRegistry = mock(ToolRegistry.class);
         auditService = mock(AgentActionAuditService.class);
         meterRegistry = new SimpleMeterRegistry();
-        toolMetrics = new AgentToolMetrics(meterRegistry);
+        toolMetrics = new AgentToolMetrics(meterRegistry, new com.clenzy.service.ai.LlmPricingService());
         runner = new AgentToolLoopRunner(
                 mock(ChatLLMProvider.class),
                 toolRegistry,

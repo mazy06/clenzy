@@ -391,7 +391,7 @@ public class AnalyzePortfolioTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Vue d'ensemble cross-property du portefeuille : KPI globaux, top performers, proprietes sous-performantes, patterns detectes (volatilite, satisfaction par ville), deltas vs periode precedente. Utiliser quand l'user demande 'vue d'ensemble', 'tout mon portfolio', 'compare mes proprietes', 'analyse globale', 'evolution'.",
+                    "Analyse cross-property du portefeuille : KPI globaux, top/sous-performers, patterns, deltas vs periode precedente. Pour 'vue d'ensemble', 'analyse globale'.",
                     schema
             );
         } catch (JsonProcessingException e) {

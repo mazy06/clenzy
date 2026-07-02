@@ -117,4 +117,18 @@ class LlmPricingServiceTest {
         assertThat(p.inputPerMillion()).isEqualByComparingTo("0.00");
         assertThat(p.outputPerMillion()).isEqualByComparingTo("0.00");
     }
+
+    @Test
+    void is_known_model_true_for_prefix_matched_models() {
+        assertThat(pricing.isKnownModel("claude-sonnet-4-20250514")).isTrue();
+        assertThat(pricing.isKnownModel("gpt-5-mini-2025-08-07")).isTrue();
+        assertThat(pricing.isKnownModel("voyage-3-lite")).isTrue();
+    }
+
+    @Test
+    void is_known_model_false_for_unknown_null_or_blank() {
+        assertThat(pricing.isKnownModel("totally-unknown")).isFalse();
+        assertThat(pricing.isKnownModel(null)).isFalse();
+        assertThat(pricing.isKnownModel("  ")).isFalse();
+    }
 }

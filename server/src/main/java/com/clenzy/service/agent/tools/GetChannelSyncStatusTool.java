@@ -149,7 +149,7 @@ public class GetChannelSyncStatusTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Retourne la sante de synchronisation des canaux (Airbnb, iCal Booking.com/Vrbo, autres PMS) pour chaque logement de l'organisation : nombre de canaux synchronises recemment sur le total, et un statut (OK = tout sync, STALE = au moins un canal en retard de plus de 24h, NO_CHANNELS = aucun canal connecte). Utiliser pour 'est-ce que la synchro est a jour', 'quels canaux sont en erreur', 'mes calendriers sont-ils synchronises', 'statut Airbnb/Booking'.",
+                    "Sante de synchro des canaux (Airbnb, iCal Booking/Vrbo) par logement : statut OK / STALE (>24h) / NO_CHANNELS. Pour 'synchro a jour', 'canaux en erreur'.",
                     schema
             );
         } catch (JsonProcessingException e) {

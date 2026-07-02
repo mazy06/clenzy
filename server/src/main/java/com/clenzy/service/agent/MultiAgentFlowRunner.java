@@ -365,7 +365,8 @@ public class MultiAgentFlowRunner {
         }
         toolLoopRunner.recordUsageSafe(context.organizationId(),
                 context.aiProvider() != null ? context.aiProvider() : "anthropic",
-                result.totalPromptTokens(), result.totalCompletionTokens(),
+                AgentToolMetrics.AGENT_MULTI,
+                result.totalPromptTokens(), result.totalCompletionTokens(), 0,
                 multiAgentModel, result.truncated() ? "length" : "end_turn");
 
         consumer.accept(AgentSseEvent.done(result.truncated() ? "length" : "end_turn"));

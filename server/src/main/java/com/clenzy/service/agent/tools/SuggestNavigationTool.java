@@ -134,7 +134,7 @@ public class SuggestNavigationTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Propose a l'utilisateur d'aller sur une page specifique du PMS avec un BOUTON CLIQUABLE qui le redirige (pas juste du texte). Utiliser pour guider l'utilisateur quand il demande 'ou faire X', 'comment configurer Y', 'ou voir Z'. Routes valides : /dashboard, /properties, /interventions, /reservations, /planning, /directory, /contact, /documents, /reports, /tarification, /billing, /contracts, /channels, /booking-engine, /shop, /settings, /monitoring, /assistant. Les query strings sont autorises (ex: /settings?tab=ai, /reports?tab=financial).",
+                    "Propose un BOUTON CLIQUABLE redirigeant vers une page du PMS (ex: /settings, /properties, /reports?tab=financial). Pour 'ou faire X', 'comment configurer Y'.",
                     schema
             );
         } catch (JsonProcessingException e) {

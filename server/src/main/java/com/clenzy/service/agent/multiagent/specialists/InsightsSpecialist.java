@@ -29,6 +29,10 @@ public class InsightsSpecialist extends AbstractAgentSpecialist {
     @Override
     public String name() { return "insights"; }
 
+    /** Yield/simulations : l'erreur coute des euros reels → tier fort (T-03). */
+    @Override
+    public com.clenzy.service.agent.AgentTier tier() { return com.clenzy.service.agent.AgentTier.STRONG; }
+
     @Override
     public String domain() { return "Insights strategiques (anomalies, recommandations) + simulations what-if pricing/calendrier"; }
 

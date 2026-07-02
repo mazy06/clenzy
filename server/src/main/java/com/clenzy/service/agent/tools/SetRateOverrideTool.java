@@ -140,7 +140,7 @@ public class SetRateOverrideTool implements ToolHandler {
             // utilisateur explicite avant d'executer ce handler.
             return ToolDescriptor.write(
                     NAME,
-                    "Force le prix par nuit d'un logement sur une date ou une plage (override = priorite maximale du PriceEngine). Configuration tarifaire, PAS un paiement. La date de fin est exclusive ; l'omettre applique le tarif sur une seule nuit.",
+                    "Force le prix/nuit d'un logement sur une date ou plage (override prioritaire PriceEngine). Config tarif, PAS un paiement. Date fin exclusive ; omise = 1 nuit.",
                     schema
             );
         } catch (JsonProcessingException e) {

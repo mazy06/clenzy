@@ -138,7 +138,7 @@ public class GetAvailabilityTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Disponibilite d'un logement jour par jour sur une periode (libre / reserve / bloque / maintenance) + nombre de nuits libres. Utiliser pour 'est-ce dispo du X au Y', 'quels jours sont libres', 'le logement est-il reserve'. Max 90 jours.",
+                    "Disponibilite jour par jour d'un logement (libre/reserve/bloque/maintenance) + nuits libres. Max 90 jours. Pour 'est-ce dispo du X au Y', 'quels jours libres'.",
                     schema
             );
         } catch (JsonProcessingException e) {

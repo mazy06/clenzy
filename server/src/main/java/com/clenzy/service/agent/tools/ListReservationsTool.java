@@ -163,7 +163,7 @@ public class ListReservationsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Liste les reservations sur une fenetre de dates avec filtres optionnels (propriete, statut). Defaut : aujourd'hui +30j. Utiliser pour repondre 'combien de resa', 'quelles resa cette semaine', 'qui arrive demain'.",
+                    "Liste les reservations sur une fenetre de dates, filtres propriete/statut. Defaut : aujourd'hui +30j. Pour 'combien de resa', 'qui arrive demain'.",
                     schema
             );
         } catch (JsonProcessingException e) {

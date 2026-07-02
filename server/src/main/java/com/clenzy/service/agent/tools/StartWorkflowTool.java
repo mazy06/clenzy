@@ -84,7 +84,7 @@ public class StartWorkflowTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Demarre un workflow guide multi-etapes et retourne le premier step (prompt + metadata). A utiliser quand l'user demande 'aide-moi a...', 'guide-moi pour...', 'comment je fais pour...'. Workflows disponibles : onboard_property (ajouter une propriete), end_of_month_closing (cloture mensuelle), prepare_high_season (preparation haute saison).",
+                    "Demarre un workflow guide multi-etapes, retourne le 1er step. Workflows : onboard_property, end_of_month_closing, prepare_high_season. Pour 'guide-moi pour...'.",
                     schema
             );
         } catch (JsonProcessingException e) {

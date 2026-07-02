@@ -94,7 +94,7 @@ public class SendGuestMessageTool implements ToolHandler {
                     """);
             return ToolDescriptor.write(
                     NAME,
-                    "Envoie un message au guest d'une reservation via un template existant (welcome, check-in, review request, etc.). Le canal (email/SMS/WhatsApp) est determine par le template + preferences. Confirmer obligatoirement avant l'envoi reel.",
+                    "Envoie un message au guest d'une reservation via template (welcome, check-in...). Canal email/SMS/WhatsApp selon template. Confirmer avant envoi reel.",
                     schema
             );
         } catch (JsonProcessingException e) {

@@ -116,7 +116,7 @@ public class GetBillingOverviewTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Vue d'ensemble facturation de l'organisation : revenu reserve par canal (Airbnb, Booking.com, Direct, Autre) sur le mois (defaut) ou l'annee en cours, avec part en % et comparaison periode precedente, plus le total. Utiliser pour 'revenus par canal', 'd'ou viennent mes reservations', 'CA Airbnb vs direct', 'repartition du chiffre d'affaires'.",
+                    "Facturation org : revenu reserve par canal (Airbnb, Booking, Direct), mois (defaut) ou annee, parts % + comparaison. Pour 'revenus par canal', 'repartition CA'.",
                     schema
             );
         } catch (JsonProcessingException e) {

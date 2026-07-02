@@ -88,6 +88,12 @@ public class AgentOrchestrator {
     private final MultiAgentFlowRunner multiAgentFlowRunner;
     /** Gate ASSISTANT_CHAT : toggle d'activation + budget, comme toutes les autres features IA. */
     private final AiTokenBudgetService tokenBudgetService;
+    /**
+     * Routeur d'intention pre-orchestration (T-02, flag
+     * {@code clenzy.assistant.routing.enabled}). Null sur le chemin legacy
+     * test-only (null-safe : null = routage desactive = comportement historique).
+     */
+    private final IntentRouter intentRouter;
 
     /** Constructeur Spring : injection des collaborateurs extraits. */
     @Autowired
@@ -100,7 +106,8 @@ public class AgentOrchestrator {
                               AgentToolLoopRunner toolLoopRunner,
                               ConversationHistoryMapper historyMapper,
                               MultiAgentFlowRunner multiAgentFlowRunner,
-                              AiTokenBudgetService tokenBudgetService) {
+                              AiTokenBudgetService tokenBudgetService,
+                              IntentRouter intentRouter) {
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
@@ -111,6 +118,7 @@ public class AgentOrchestrator {
         this.historyMapper = historyMapper;
         this.multiAgentFlowRunner = multiAgentFlowRunner;
         this.tokenBudgetService = tokenBudgetService;
+        this.intentRouter = intentRouter;
     }
 
     /**
@@ -163,7 +171,10 @@ public class AgentOrchestrator {
                         new AiTargetResolver(orgAiApiKeyRepository, platformAiFeatureModelRepository,
                         platformAiFeatureProviderRepository, platformAiModelRepository, aiProperties),
                         toolRegistry, objectMapper, multiAgentEnabled),
-                aiTokenBudgetService);
+                aiTokenBudgetService,
+                // Routage d'intention = null sur ce chemin legacy test-only
+                // (null-safe : routage desactive, comportement historique).
+                null);
     }
 
     /**
@@ -264,12 +275,34 @@ public class AgentOrchestrator {
             return conversation.getId();
         }
 
-        // 5. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts).
+        // 5-pre. Routage court-circuit (T-02, levier L1) : si le multi-agent est
+        //    eligible ET le routage actif, un appel de classification minuscule
+        //    (petit prompt, max_tokens=8, T=0) decide si la requete justifie
+        //    l'orchestration. SIMPLE/DIRECT → mono-agent directement (un tour
+        //    multi coute 5-10x un tour mono). Doute ou erreur → MULTI
+        //    (comportement historique, zero regression possible).
+        boolean multiAgentEligible = multiAgentFlowRunner.canUse(context, hasAttachments);
+        IntentRouter.Route route = null;
+        if (multiAgentEligible && intentRouter != null && intentRouter.isEnabled()) {
+            IntentRouter.RouteDecision decision = intentRouter.classify(effectiveMessage, target, apiKey);
+            toolLoopRunner.recordUsageSafe(context.organizationId(),
+                    target.provider(), AgentToolMetrics.AGENT_ROUTER,
+                    decision.promptTokens(), decision.completionTokens(), 0,
+                    decision.model(), "route");
+            route = decision.route();
+            if (route != IntentRouter.Route.MULTI) {
+                log.info("[ROUTING] Classification {} → court-circuit mono-agent", route);
+                multiAgentEligible = false;
+            }
+        }
+
+        // 5. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts
+        //    + routage non court-circuité).
         //    Attachments → fallback mono-agent car les spécialistes ne gerent pas
         //    encore les images Vision (TODO v2).
         //    Pas de spécialiste → impossible, fallback aussi.
         //    Si multi-agent throw, on log et fallback automatiquement.
-        if (multiAgentFlowRunner.canUse(context, hasAttachments)) {
+        if (multiAgentEligible) {
             try {
                 com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
                         new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
@@ -323,7 +356,11 @@ public class AgentOrchestrator {
         //   - Scoping par pertinence (ToolScopeSelector) : socle transverse + outils du
         //     domaine detecte dans la requete, au lieu des ~60 outils du catalogue complet.
         List<ToolDescriptor> roleTools = RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context);
-        List<ToolDescriptor> tools = ToolScopeSelector.select(roleTools, chatMessages);
+        // Route DIRECT (smalltalk/meta, T-02) : aucun outil necessaire → on economise
+        // aussi les definitions d'outils (~2-6k tokens par appel).
+        List<ToolDescriptor> tools = (route == IntentRouter.Route.DIRECT)
+                ? List.of()
+                : ToolScopeSelector.select(roleTools, chatMessages);
         ComposedSystemPrompt systemPrompt =
                 promptComposer.buildSegmentedSystemPrompt(context, effectiveMessage, memories, kbHits);
         ChatRequest request = new ChatRequest(

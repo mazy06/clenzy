@@ -107,7 +107,7 @@ public class GetDashboardSummaryTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Retourne le snapshot KPI courant de l'organisation (readiness score, KPI principaux : uptime, latence calendar, sync errors, double bookings, etc.). A utiliser quand l'utilisateur demande l'etat du systeme, les KPI, la sante de la plateforme.",
+                    "Snapshot KPI courant de l'organisation : readiness score, uptime, latence calendar, sync errors, double bookings. Pour l'etat du systeme, la sante plateforme.",
                     schema
             );
         } catch (JsonProcessingException e) {

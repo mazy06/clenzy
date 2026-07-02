@@ -28,6 +28,10 @@ public class NavigationSpecialist extends AbstractAgentSpecialist {
     @Override
     public String name() { return "navigation"; }
 
+    /** Utilitaire mecanique (suggestion de route) : tier petit (T-03). */
+    @Override
+    public com.clenzy.service.agent.AgentTier tier() { return com.clenzy.service.agent.AgentTier.SMALL; }
+
     @Override
     public String domain() { return "Navigation dans le PMS : suggerer la bonne page pour une action"; }
 

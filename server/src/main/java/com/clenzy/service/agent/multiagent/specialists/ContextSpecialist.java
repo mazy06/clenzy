@@ -28,6 +28,10 @@ public class ContextSpecialist extends AbstractAgentSpecialist {
     @Override
     public String name() { return "context"; }
 
+    /** Utilitaire factuel (meteo/evenements/KB) : tier petit (T-03). */
+    @Override
+    public com.clenzy.service.agent.AgentTier tier() { return com.clenzy.service.agent.AgentTier.SMALL; }
+
     @Override
     public String domain() { return "Contexte exterieur : meteo, evenements locaux, documentation Clenzy"; }
 
