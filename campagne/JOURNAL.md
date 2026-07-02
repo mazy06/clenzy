@@ -168,3 +168,12 @@
 - **PendingToolStore durci** : persist best-effort à la pause (historique mono sérialisé IMAGES STRIPPÉES — jamais de base64 en DB, placeholder T-04 ; multi = journalisé sans payload, état moteur+JWT non sérialisables → comportement volatil conservé) ; reprise post-reboot MONO au consume memory-miss (ownership+expiration re-validés) ; `listForUser` fallback journal si Redis vide/KO/absent (fin de la « perte silencieuse » dette Phase 0 n°3) ; `markResolved` appelé par l'orchestrateur (outcome = matière première X2) ; scheduler horaire EXPIRED (signal « action ignorée ≠ à automatiser »).
 - Tests : 6 (persistance strippée avec preuve anti-base64, recovery mono, refus cross-user, refus multi, outcomes sans double transition, fallback DB). Constructeurs rétro-compatibles. `mvn package` BUILD SUCCESS. NON COMMITÉ.
 - Écart assumé : reprise post-reboot multi-agent non couverte (contrainte du design d'origine — JWT/état moteur) ; l'unification de shape avec supervision_suggestion différée (déjà Postgres+CAS, cycle de vie différent) — le journal X1 suffit aux Règles de Confiance.
+
+## 2026-07-02 — Exécution X2 : Règles de Confiance (FAIT, vérifié, non commité)
+
+- **Migration 0298** : `agent_trust_rule` — cycle SUGGESTED (inerte) → ACTIVE (acceptation humaine explicite) → REVOKED/DISMISSED, unique (org, outil), décideur tracé.
+- **`AgentTrustRuleService`** : évaluation quotidienne (05h05) — N dernières résolutions du journal X1 toutes CONFIRMED (seuil `clenzy.assistant.trust-rules.threshold:5`, un refus/timeout invalide), jamais de re-suggestion après DISMISSED/REVOKED ; gate `isAutoApproved` (ACTIVE only, **fail-safe** : erreur DB = confirmation) ; **blocklist argent codée** (initiate_refund, settle_intervention_payment — jamais suggérés NI auto-approuvés, défense en profondeur).
+- **Effet** : règle ACTIVE = outil « confirmer » → « notifier » aux 2 sites de pause (mono `needsConfirmation()` + garde-fou specialists) ; exécution toujours tracée (audit/agent_step/ledger/SSE), révocation immédiate.
+- **API** : `/api/ai/autonomy/trust-rules` (GET, accept/dismiss/revoke) — DTO (pas d'entité exposée), ownership org dans le service.
+- Tests : 11 (pattern pur, refus bloquant, blocklist ×2, re-suggestion, gate, fail-safe, transitions, cross-org, revoke). `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écart assumé : panneau UI (liste/toggle des règles dans Paramètres→IA) = incrément frontend à venir — endpoints prêts.

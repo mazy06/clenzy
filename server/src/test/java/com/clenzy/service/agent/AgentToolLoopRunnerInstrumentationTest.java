@@ -54,6 +54,7 @@ class AgentToolLoopRunnerInstrumentationTest {
                 toolMetrics,
                 null,
                 null,
+                null,
                 null);
     }
 
