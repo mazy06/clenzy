@@ -14,7 +14,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { Coins } from 'lucide-react';
+import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -24,6 +24,7 @@ import {
   type CreditLedgerLine,
   type CreditPack,
 } from '../../services/api/aiCreditsApi';
+import AgentRunReplayDialog from './AgentRunReplayDialog';
 
 /**
  * Crédits IA (campagne T-08) : solde par poches, packs de recharge Stripe et
@@ -42,6 +43,7 @@ export default function AiCreditsSection() {
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [replayRunId, setReplayRunId] = useState<string | null>(null);
 
   const topupOutcome = searchParams.get('topup'); // success | cancelled | null
 
@@ -183,28 +185,49 @@ export default function AiCreditsSection() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {ledger.slice(0, 10).map((line, idx) => (
-                <TableRow key={idx} hover>
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                    {new Date(line.createdAt).toLocaleString()}
-                  </TableCell>
-                  <TableCell>{t(`aiCredits.entry.${line.entryType}`, line.entryType)}</TableCell>
-                  <TableCell>{line.agent}{line.model ? ` · ${line.model}` : ''}</TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{
-                      fontVariantNumeric: 'tabular-nums',
-                      color: line.millicredits >= 0 ? '#4A9B8E' : 'text.primary',
-                    }}
+              {ledger.slice(0, 10).map((line, idx) => {
+                const replayable = Boolean(line.runId);
+                return (
+                  <TableRow
+                    key={idx}
+                    hover
+                    onClick={replayable ? () => setReplayRunId(line.runId) : undefined}
+                    sx={{ cursor: replayable ? 'pointer' : 'default' }}
+                    title={replayable ? t('aiCredits.ledger.replayHint', 'Voir le replay du run') : undefined}
                   >
-                    {line.millicredits >= 0 ? '+' : ''}{toCredits(line.millicredits)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {new Date(line.createdAt).toLocaleString()}
+                    </TableCell>
+                    <TableCell>{t(`aiCredits.entry.${line.entryType}`, line.entryType)}</TableCell>
+                    <TableCell>
+                      {line.agent}{line.model ? ` · ${line.model}` : ''}
+                      {replayable && (
+                        <History size={13} style={{ marginLeft: 6, verticalAlign: 'middle', opacity: 0.6 }} aria-hidden />
+                      )}
+                    </TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{
+                        fontVariantNumeric: 'tabular-nums',
+                        color: line.millicredits >= 0 ? '#4A9B8E' : 'text.primary',
+                      }}
+                    >
+                      {line.millicredits >= 0 ? '+' : ''}{toCredits(line.millicredits)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </Paper>
       )}
+
+      {/* Grand Livre d'Autonomie (X3) : replay du run d'une ligne du ledger. */}
+      <AgentRunReplayDialog
+        runId={replayRunId}
+        open={replayRunId !== null}
+        onClose={() => setReplayRunId(null)}
+      />
     </Box>
   );
 }

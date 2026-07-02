@@ -26,7 +26,8 @@
       "date": "التاريخ",
       "type": "النوع",
       "agent": "الوكيل",
-      "amount": "الأرصدة"
+      "amount": "الأرصدة",
+      "replayHint": "عرض إعادة تشغيل المهمة"
     }
   },
   "supervision": {
@@ -5106,6 +5107,28 @@
       "colDiscount": "خصم",
       "colNet": "صافي",
       "colAvgPct": "متوسط %"
+    }
+  },
+  "agentReplay": {
+    "title": "إعادة تشغيل المهمة",
+    "loadError": "تعذر تحميل إعادة تشغيل هذه المهمة.",
+    "steps": "خطوات",
+    "origin": {
+      "chat": "محادثة",
+      "chat_resume": "استئناف بعد الموافقة"
+    },
+    "status": {
+      "RUNNING": "قيد التشغيل",
+      "COMPLETED": "مكتمل",
+      "PAUSED": "متوقف مؤقتًا",
+      "ERROR": "خطأ"
+    },
+    "kind": {
+      "LLM_CALL": "تفكير",
+      "TOOL_CALL": "إجراء",
+      "DELEGATION": "تفويض",
+      "PAUSE": "بانتظار الموافقة",
+      "SUMMARY": "ملخص"
     }
   }
 }

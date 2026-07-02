@@ -26,7 +26,8 @@
       "date": "Date",
       "type": "Type",
       "agent": "Agent",
-      "amount": "Credits"
+      "amount": "Credits",
+      "replayHint": "View run replay"
     }
   },
   "supervision": {
@@ -5387,6 +5388,28 @@
       "colDiscount": "Discount",
       "colNet": "Net",
       "colAvgPct": "Avg %"
+    }
+  },
+  "agentReplay": {
+    "title": "Run replay",
+    "loadError": "Unable to load this run's replay.",
+    "steps": "steps",
+    "origin": {
+      "chat": "Conversation",
+      "chat_resume": "Resumed after approval"
+    },
+    "status": {
+      "RUNNING": "Running",
+      "COMPLETED": "Completed",
+      "PAUSED": "Paused",
+      "ERROR": "Error"
+    },
+    "kind": {
+      "LLM_CALL": "Reasoning",
+      "TOOL_CALL": "Action",
+      "DELEGATION": "Delegation",
+      "PAUSE": "Awaiting approval",
+      "SUMMARY": "Summary"
     }
   }
 }
