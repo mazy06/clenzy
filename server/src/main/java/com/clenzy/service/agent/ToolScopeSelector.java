@@ -89,9 +89,10 @@ public final class ToolScopeSelector {
                             "predict_maintenance_needs", "detect_operational_risks")),
             new Domain(
                     Set.of("reserv", "resa", "sejour", "arrivee", "depart", "voyageur",
-                            "booking", "nuitee", "nuit"),
+                            "booking", "nuitee", "nuit", "rembours", "refund", "geste", "litige"),
                     Set.of("list_reservations", "get_reservation_details", "create_reservation",
-                            "cancel_reservation", "update_reservation_status", "get_reservation_trend")),
+                            "cancel_reservation", "update_reservation_status", "get_reservation_trend",
+                            "initiate_refund")),
             new Domain(
                     Set.of("calendrier", "dispo", "disponib", "occupation", "bloqu", "planning", "agenda"),
                     Set.of("get_availability", "block_calendar_day", "batch_block_calendar",
