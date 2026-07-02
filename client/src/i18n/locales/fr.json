@@ -85,6 +85,10 @@
       "settle": "Régler",
       "later": "Plus tard"
     },
+    "apply": {
+      "action": "Appliquer",
+      "dismiss": "Ignorer"
+    },
     "approval": {
       "title": "Validation requise",
       "reject": "Refuser",

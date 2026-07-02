@@ -91,6 +91,12 @@ interface SuggestionShape {
   reservationId?: number | null;
   createdAt: string;
   expiresAt?: string;
+  /** Type d'action exécutable (ex. PRICE_DROP), ou absent = informationnelle. */
+  actionType?: string | null;
+  /** Impact estimé en centimes EUR (optionnel). */
+  estimatedImpactCents?: number | null;
+  /** Gravité indicative (info/warning/critical), optionnel. */
+  severity?: string | null;
 }
 
 /** Rappel J-1 de reversement (GET /api/ai/supervision/payout-reminder, cf. PayoutReminderDto). */
@@ -117,15 +123,6 @@ interface UnpaidSrCardShape {
 
 /** Préfixe d'id d'une carte de paiement de demande de service. */
 const SERVICE_REQUEST_PREFIX = 'service-request';
-
-/** Montant € sans décimales superflues (95 → « 95 € », 95.5 → « 95,50 € »). */
-function formatEuro(amount: number): string {
-  const fractionDigits = Number.isInteger(amount) ? 0 : 2;
-  return `${amount.toLocaleString('fr-FR', {
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: 2,
-  })} €`;
-}
 
 export interface AgUiProviderOptions {
   /**
@@ -160,6 +157,11 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   private currentInterruptId: string | null = null;
   /** Dernier runId reçu du backend (RUN_STARTED), renvoyé tel quel au resume. */
   private currentRunId: string | null = null;
+  /**
+   * Ids des suggestions ACTIONNABLES de la file courante (actionType présent).
+   * « Valider » sur ces cartes = appliquer l'action serveur, pas rejeter.
+   */
+  private readonly applicableSuggestionIds = new Set<string>();
 
   constructor(
     private readonly propertyId: string,
@@ -202,9 +204,9 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         createdAt: new Date().toISOString(),
         expiresAt: new Date().toISOString(),
         kind: 'payment',
-        // Montant formaté → affiché DANS le bouton « Régler » (la ligne
-        // « Montant à régler » est supprimée de la carte).
-        amountLabel: formatEuro(sr.amount),
+        // Montant BRUT en EUR → formaté dans la devise de l'opérateur au rendu
+        // (PendingActionCard/useCurrency) et affiché DANS le bouton « Régler ».
+        amountEur: sr.amount,
       });
     }
     if (payoutReminder) {
@@ -220,17 +222,24 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         kind: 'reminder',
       });
     }
+    this.applicableSuggestionIds.clear();
     pendingQueue.push(
-      ...suggestions.map((s) => ({
-        id: s.id,
-        agentId: s.agentId as AgentId,
-        title: s.title,
-        motif: s.motif ?? '',
-        reasoning: s.motif ?? '',
-        reservationId: s.reservationId != null ? String(s.reservationId) : null,
-        createdAt: s.createdAt,
-        expiresAt: s.expiresAt ?? s.createdAt,
-      })),
+      ...suggestions.map((s) => {
+        // Suggestion actionnable : mémorise l'id → « Valider » = Appliquer (exécution serveur).
+        if (s.actionType) this.applicableSuggestionIds.add(s.id);
+        return {
+          id: s.id,
+          agentId: s.agentId as AgentId,
+          title: s.title,
+          motif: s.motif ?? '',
+          reasoning: s.motif ?? '',
+          reservationId: s.reservationId != null ? String(s.reservationId) : null,
+          createdAt: s.createdAt,
+          expiresAt: s.expiresAt ?? s.createdAt,
+          applyActionType: s.actionType ?? undefined,
+          amountEur: s.estimatedImpactCents != null ? s.estimatedImpactCents / 100 : undefined,
+        };
+      }),
     );
 
     // Agents en attente : HITL (specialist) + suggestions (module).
@@ -446,6 +455,27 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       return;
     }
     if (!this.disposed) this.emit({ type: 'pending.resolved', actionId: cardId, outcome: 'validated' });
+  }
+
+  /**
+   * Applique l'action d'une suggestion actionnable côté serveur. En cas d'échec
+   * réseau/serveur, la carte reste (l'opérateur pourra réessayer) — pas de retrait
+   * optimiste (l'action a un effet métier réel, on ne fait pas « comme si »).
+   */
+  private async applySuggestion(id: string): Promise<void> {
+    try {
+      const token = getAccessToken();
+      const response = await fetch(buildApiUrl(`/ai/supervision/suggestions/${id}/apply`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!response.ok) return; // 400/409 → la carte reste
+    } catch {
+      return; // réseau → la carte reste, réessai possible
+    }
+    this.applicableSuggestionIds.delete(id);
+    if (!this.disposed) this.emit({ type: 'pending.resolved', actionId: id, outcome: 'validated' });
   }
 
   /** Rejette une suggestion côté serveur (best-effort) + retire de la file. */
@@ -748,6 +778,11 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     }
     if (actionId.startsWith(PAYOUT_REMINDER_PREFIX)) {
       await this.postReminderAction(actionId, 'ack');
+      return;
+    }
+    // Suggestion actionnable → applique l'action serveur (au lieu de rejeter).
+    if (this.applicableSuggestionIds.has(actionId)) {
+      await this.applySuggestion(actionId);
       return;
     }
     await this.dismissSuggestion(actionId, 'validated');

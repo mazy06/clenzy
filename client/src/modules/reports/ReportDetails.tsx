@@ -852,7 +852,7 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
       <Grid container spacing={1.5}>
         <Grid item xs={12} md={6}>
           <DashboardErrorBoundary widgetName="Performance par Logement">
-            <AnalyticsPropertyPerformance data={analytics?.properties ?? null} loading={analyticsLoading} />
+            <AnalyticsPropertyPerformance period={period} />
           </DashboardErrorBoundary>
         </Grid>
         <Grid item xs={12} md={6}>

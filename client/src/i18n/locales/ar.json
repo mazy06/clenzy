@@ -85,6 +85,10 @@
       "settle": "الدفع",
       "later": "لاحقًا"
     },
+    "apply": {
+      "action": "تطبيق",
+      "dismiss": "تجاهل"
+    },
     "approval": {
       "title": "مطلوب موافقة",
       "reject": "رفض",

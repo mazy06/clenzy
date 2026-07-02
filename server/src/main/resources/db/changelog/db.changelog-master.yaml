@@ -2833,3 +2833,11 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # Suggestions actionnables de la constellation (action_type + params + impact).
+  - changeSet:
+      id: "0293-supervision-suggestion-actionable"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0293__supervision_suggestion_actionable.sql
+        relativeToChangelogFile: true

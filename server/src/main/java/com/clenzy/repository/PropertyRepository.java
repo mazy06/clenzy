@@ -15,6 +15,9 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     List<Property> findByOwner(User owner);
     List<Property> findByOwnerId(Long ownerId);
 
+    /** Logements d'une org dans un statut donné (ex. ACTIVE) — classement performance. */
+    List<Property> findByOrganizationIdAndStatus(Long organizationId, com.clenzy.model.PropertyStatus status);
+
     /**
      * Proprietes sans coordonnees GPS — utilise par le service de retro-geocodage
      * pour combler les donnees manquantes (creees avant l'introduction de Nominatim).
