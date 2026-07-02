@@ -2881,3 +2881,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0298__create_agent_trust_rule.sql
         relativeToChangelogFile: true
+
+  # Sous-budget d'autonomie premium plafonne, par organisation (campagne X4, ADR-007).
+  - changeSet:
+      id: "0299-create-ai-autonomy-budget"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0299__create_ai_autonomy_budget.sql
+        relativeToChangelogFile: true
