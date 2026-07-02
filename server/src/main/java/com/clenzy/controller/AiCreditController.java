@@ -33,13 +33,16 @@ public class AiCreditController {
 
     private final AiCreditGrantService grantService;
     private final AiCreditPurchaseService purchaseService;
+    private final com.clenzy.service.ai.CreditReconciliationService reconciliationService;
     private final TenantContext tenantContext;
 
     public AiCreditController(AiCreditGrantService grantService,
                               AiCreditPurchaseService purchaseService,
+                              com.clenzy.service.ai.CreditReconciliationService reconciliationService,
                               TenantContext tenantContext) {
         this.grantService = grantService;
         this.purchaseService = purchaseService;
+        this.reconciliationService = reconciliationService;
         this.tenantContext = tenantContext;
     }
 
@@ -59,6 +62,21 @@ public class AiCreditController {
     @GetMapping("/ledger")
     public List<Map<String, Object>> ledger() {
         return grantService.getRecentLedger(tenantContext.getRequiredOrganizationId());
+    }
+
+    /**
+     * Rapport de reconciliation mensuel (X10) — plateforme uniquement : marge
+     * par provider (a rapprocher des factures Anthropic/OpenAI), revenu par
+     * source de poche, cross-check interne ledger ↔ ai_token_usage.
+     */
+    @GetMapping("/reconciliation")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public Map<String, Object> reconciliation(
+            @org.springframework.web.bind.annotation.RequestParam(name = "month", required = false) String month) {
+        java.time.YearMonth target = month != null
+                ? java.time.YearMonth.parse(month)
+                : java.time.YearMonth.now(java.time.ZoneOffset.UTC).minusMonths(1);
+        return reconciliationService.monthlyReport(target);
     }
 
     /** Cree une session Stripe Checkout pour un pack. Retourne {checkoutUrl}. */

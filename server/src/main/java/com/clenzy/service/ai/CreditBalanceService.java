@@ -164,6 +164,28 @@ public class CreditBalanceService {
         return applied;
     }
 
+    /**
+     * Lit le compteur chaud Redis tel quel (reconciliation X10). {@code null} si
+     * absent (cache froid) ou Redis indisponible — l'appelant ne peut alors rien
+     * comparer, ce n'est pas une derive.
+     */
+    public Long readHotBalance(Long orgId) {
+        if (orgId == null) {
+            return null;
+        }
+        try {
+            String value = redisTemplate.opsForValue().get(key(orgId));
+            return value != null ? Long.parseLong(value) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Solde froid (somme des poches actives) — expose pour la reconciliation X10. */
+    public long coldBalance(Long orgId) {
+        return grantRepository.availableMillicredits(orgId, java.time.Instant.now());
+    }
+
     /** Invalide le compteur Redis (apres GRANT/EXPIRY — T-07) pour forcer une recharge DB. */
     public void invalidate(Long orgId) {
         if (orgId == null) {
