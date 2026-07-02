@@ -33,6 +33,7 @@ class ToolScopeSelectorTest {
             "predict_maintenance_needs", "preview_batch_block_calendar", "recommend_price_adjustments",
             "remember_fact", "reply_to_review", "search_knowledge_base", "segment_guests",
             "send_guest_message", "send_owner_statement", "set_rate_override", "settle_intervention_payment", "simulate_calendar_block",
+            "trigger_channel_sync",
             "simulate_pricing_change", "start_workflow", "suggest_navigation", "suggest_upsells",
             "update_intervention_status", "update_property_status", "update_reservation_status");
 
