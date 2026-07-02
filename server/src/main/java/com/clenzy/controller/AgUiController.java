@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -85,12 +86,27 @@ public class AgUiController {
                           TenantContext tenantContext,
                           ObjectMapper objectMapper,
                           PendingToolStore pendingToolStore,
-                          com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService) {
+                          com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService,
+                          com.clenzy.service.agent.AgentRunQueryService agentRunQueryService) {
         this.orchestrator = orchestrator;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
         this.pendingToolStore = pendingToolStore;
         this.supervisionActivityService = supervisionActivityService;
+        this.agentRunQueryService = agentRunQueryService;
+    }
+
+    private final com.clenzy.service.agent.AgentRunQueryService agentRunQueryService;
+
+    /**
+     * Replay d'un run d'agent (campagne T-05, ADR-002) : le run + ses etapes
+     * ordonnees (appels LLM, outils, delegations, pauses HITL) pour le
+     * time-travel Constellation. Ownership org valide dans le service
+     * (AgentRunQueryService — 403 cross-org, 404 inconnu).
+     */
+    @GetMapping("/history/{runId}")
+    public com.clenzy.dto.AgentRunReplayDto history(@PathVariable java.util.UUID runId) {
+        return agentRunQueryService.getReplay(runId);
     }
 
     /** Découverte AG-UI : liste les agents exposés par ce serveur. */

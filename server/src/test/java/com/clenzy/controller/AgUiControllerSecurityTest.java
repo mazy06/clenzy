@@ -52,7 +52,8 @@ class AgUiControllerSecurityTest {
                                   ObjectMapper objectMapper, PendingToolStore pendingToolStore,
                                   com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService) {
             return new AgUiController(orchestrator, tenantContext, objectMapper, pendingToolStore,
-                    supervisionActivityService);
+                    supervisionActivityService,
+                    org.mockito.Mockito.mock(com.clenzy.service.agent.AgentRunQueryService.class));
         }
     }
 
