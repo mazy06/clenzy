@@ -26,4 +26,21 @@ public interface AiUsageLedgerRepository extends JpaRepository<AiUsageLedgerEntr
     long sumBucketDebitSince(@org.springframework.data.repository.query.Param("orgId") Long orgId,
                              @org.springframework.data.repository.query.Param("bucket") String bucket,
                              @org.springframework.data.repository.query.Param("since") java.time.Instant since);
+
+    /**
+     * Agregat par provider sur une periode (reconciliation X10) : cout provider
+     * reel (micro-USD), debit client (millicredits, valeur positive), tokens.
+     */
+    @org.springframework.data.jpa.repository.Query("""
+            select e.provider,
+                   coalesce(sum(e.providerCostMicroUsd), 0),
+                   coalesce(-sum(case when e.entryType = 'DEBIT' then e.millicredits else 0 end), 0),
+                   coalesce(sum(e.promptTokens + e.completionTokens), 0)
+            from AiUsageLedgerEntry e
+            where e.createdAt >= :from and e.createdAt < :to and e.provider is not null
+            group by e.provider
+            """)
+    java.util.List<Object[]> aggregateUsageByProvider(
+            @org.springframework.data.repository.query.Param("from") java.time.Instant from,
+            @org.springframework.data.repository.query.Param("to") java.time.Instant to);
 }

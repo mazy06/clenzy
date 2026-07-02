@@ -50,4 +50,17 @@ public interface AiCreditGrantRepository extends JpaRepository<AiCreditGrant, Lo
     /** Poches actives d'une org (lecture solde detaille, sans verrou). */
     List<AiCreditGrant> findByOrganizationIdAndExpiresAtAfterOrderByExpiresAtAsc(
             Long organizationId, Instant now);
+
+    /** Orgs ayant des poches actives (reconciliation du solde chaud, X10). */
+    @Query("select distinct g.organizationId from AiCreditGrant g where g.expiresAt > :now")
+    List<Long> findOrganizationsWithActiveGrants(@Param("now") Instant now);
+
+    /** Total accorde par source sur une periode (controle du revenu, X10). */
+    @Query("""
+            select g.source, coalesce(sum(g.millicreditsGranted), 0), count(g)
+            from AiCreditGrant g
+            where g.grantedAt >= :from and g.grantedAt < :to
+            group by g.source
+            """)
+    List<Object[]> sumGrantedBySource(@Param("from") Instant from, @Param("to") Instant to);
 }

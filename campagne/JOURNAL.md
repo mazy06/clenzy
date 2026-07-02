@@ -209,3 +209,10 @@
 - **Mapper** : overload `toChatMessages(history, rollingSummary)` — résumé préfixé en tête UNIQUEMENT quand l'historique est effectivement fenêtré. Orchestrateur lit `conversation.getRollingSummary()` au mapping.
 - Tests : 2 mapper + 4 service. `mvn package` BUILD SUCCESS (2e run — fix : `target.apiKey()` sur le chemin reprise + refresh manquant au retour mono). NON COMMITÉ.
 - **Clôture des leviers tokens Phase 1** : 6 originaux (bc98774e) + L1 routage (T-02) + L2 tiering (T-03) + L3/L4 scoping/vision (T-04) + L5 rolling summary (X6). Reste architecture C (deltas) = Later.
+
+## 2026-07-02 — Exécution X10 : réconciliation double (FAIT, vérifié, non commité)
+
+- **Solde chaud quotidien (05h45, auto-correcteur)** : Redis vs Σ poches par org active, tolérance 1 crédit (réservations en vol), dérive → invalidate + compteur `assistant.credits.balance_drift`.
+- **Rapport mensuel (le 2 à 06h00 + `GET /api/ai/credits/reconciliation?month=` SUPER_ADMIN/MANAGER)** : marge par provider (coût réel µ$/débit client mc/tokens — à rapprocher manuellement des factures providers, pas d'API de facturation), revenu par source de poche, **cross-check automatique ledger↔ai_token_usage** (divergence >5 % = warn, fuite de comptage).
+- Tests : 4. `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écarts assumés : rapprochement factures providers = manuel (pas d'API) ; quota embeddings org différé (mécanique de budget du chemin embeddings à investiguer séparément).
