@@ -35,4 +35,19 @@ public interface AiCreditGrantRepository extends JpaRepository<AiCreditGrant, Lo
             where g.organizationId = :orgId and g.expiresAt > :now
             """)
     long availableMillicredits(@Param("orgId") Long orgId, @Param("now") Instant now);
+
+    /** Idempotence des webhooks de dotation (T-07). */
+    boolean existsByStripeRef(String stripeRef);
+
+    /** Poches echues avec du restant a journaliser en EXPIRY (job quotidien T-07). */
+    @Query("""
+            select g from AiCreditGrant g
+            where g.expiresAt <= :now
+              and g.millicreditsConsumed < g.millicreditsGranted
+            """)
+    List<AiCreditGrant> findExpiredWithRemaining(@Param("now") Instant now);
+
+    /** Poches actives d'une org (lecture solde detaille, sans verrou). */
+    List<AiCreditGrant> findByOrganizationIdAndExpiresAtAfterOrderByExpiresAtAsc(
+            Long organizationId, Instant now);
 }

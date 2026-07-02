@@ -45,6 +45,7 @@ import { aiApi } from '../../services/api/aiApi';
 import type { AiApiKeyStatus, AiCatalogModel, SaveAiApiKeyRequest } from '../../services/api/aiApi';
 import PlatformAiConfigSection from './PlatformAiConfigSection';
 import AiUsageTrendSection from './AiUsageTrendSection';
+import AiCreditsSection from './AiCreditsSection';
 import AssistantBriefingPrefs from './AssistantBriefingPrefs';
 import KnowledgeBaseAdmin from './KnowledgeBaseAdmin';
 import AgentSupervisionSection from './AgentSupervisionSection';
@@ -771,7 +772,12 @@ export default function AiSettingsSection() {
         </>
       )}
 
-      {activeTab === 'consumption' && <AiUsageTrendSection />}
+      {activeTab === 'consumption' && (
+        <>
+          <AiCreditsSection />
+          <AiUsageTrendSection />
+        </>
+      )}
 
       {activeTab === 'supervision' && <AgentSupervisionSection />}
 
