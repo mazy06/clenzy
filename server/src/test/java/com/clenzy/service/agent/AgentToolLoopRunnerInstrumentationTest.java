@@ -51,7 +51,10 @@ class AgentToolLoopRunnerInstrumentationTest {
                 objectMapper,
                 mock(AiTokenBudgetService.class),
                 auditService,
-                toolMetrics);
+                toolMetrics,
+                null,
+                null,
+                null);
     }
 
     private ToolHandler writeHandler(String name, ToolResult result) {

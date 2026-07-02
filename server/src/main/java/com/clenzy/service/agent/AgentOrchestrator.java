@@ -94,6 +94,17 @@ public class AgentOrchestrator {
      * test-only (null-safe : null = routage desactive = comportement historique).
      */
     private final IntentRouter intentRouter;
+    /**
+     * Persistance de l'etat de run (T-05, ADR-002 — replay Constellation +
+     * futur ledger). Best-effort async ; null sur le chemin legacy test-only.
+     */
+    private final AgentRunRecorder agentRunRecorder;
+    /**
+     * Enforcement credits (T-06b, ADR-005) : pre-vol → reservation → re-check →
+     * reconciliation. Flag {@code clenzy.ai.credits.enforcement.enabled} (defaut
+     * false). Null sur le chemin legacy test-only.
+     */
+    private final com.clenzy.service.ai.RunCreditGuard runCreditGuard;
 
     /** Constructeur Spring : injection des collaborateurs extraits. */
     @Autowired
@@ -107,7 +118,9 @@ public class AgentOrchestrator {
                               ConversationHistoryMapper historyMapper,
                               MultiAgentFlowRunner multiAgentFlowRunner,
                               AiTokenBudgetService tokenBudgetService,
-                              IntentRouter intentRouter) {
+                              IntentRouter intentRouter,
+                              AgentRunRecorder agentRunRecorder,
+                              com.clenzy.service.ai.RunCreditGuard runCreditGuard) {
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
@@ -119,6 +132,8 @@ public class AgentOrchestrator {
         this.multiAgentFlowRunner = multiAgentFlowRunner;
         this.tokenBudgetService = tokenBudgetService;
         this.intentRouter = intentRouter;
+        this.agentRunRecorder = agentRunRecorder;
+        this.runCreditGuard = runCreditGuard;
     }
 
     /**
@@ -172,8 +187,11 @@ public class AgentOrchestrator {
                         platformAiFeatureProviderRepository, platformAiModelRepository, aiProperties),
                         toolRegistry, objectMapper, multiAgentEnabled),
                 aiTokenBudgetService,
-                // Routage d'intention = null sur ce chemin legacy test-only
-                // (null-safe : routage desactive, comportement historique).
+                // Routage d'intention + recorder de runs + garde credits = null sur ce
+                // chemin legacy test-only (null-safe : features desactivees,
+                // comportement historique).
+                null,
+                null,
                 null);
     }
 
@@ -186,7 +204,7 @@ public class AgentOrchestrator {
             AssistantMessageRepository messageRepository, PendingToolStore pendingToolStore,
             ObjectMapper objectMapper, com.clenzy.service.AiTokenBudgetService aiTokenBudgetService) {
         return new AgentToolLoopRunner(chatProvider, toolRegistry, messageRepository,
-                pendingToolStore, objectMapper, aiTokenBudgetService, null, null);
+                pendingToolStore, objectMapper, aiTokenBudgetService, null, null, null, null, null);
     }
 
     /**
@@ -275,6 +293,29 @@ public class AgentOrchestrator {
             return conversation.getId();
         }
 
+        // 4-bis-2. Pre-vol credits (T-06b, ADR-005) : reservation atomique du
+        //    plancher AVANT de demarrer quoi que ce soit de facturable. Refus =
+        //    hard cap — message clair, le PMS classique continue (D-101).
+        //    Enforcement off (defaut) → beginRun retourne toujours true.
+        if (runCreditGuard != null && !runCreditGuard.beginRun(context.organizationId())) {
+            consumer.accept(AgentSseEvent.error(
+                    "Crédits IA épuisés — l'assistant reprendra après rechargement ou au "
+                            + "renouvellement de votre forfait. Le reste de la plateforme "
+                            + "fonctionne normalement."));
+            return conversation.getId();
+        }
+
+        // 4-ter. Run persiste (T-05, ADR-002) : demarre le run APRES les gates
+        //    (un refus de gate n'est pas un run) et emet son id en SSE — le front
+        //    peut relier le stream au replay. Best-effort : startRun reinitialise
+        //    l'etat du thread (un run precedent non clos par exception propagee
+        //    reste RUNNING en base, sans polluer le run suivant).
+        if (agentRunRecorder != null) {
+            java.util.UUID runId = agentRunRecorder.startRun(
+                    context.organizationId(), context.keycloakId(), conversation.getId(), "chat");
+            consumer.accept(AgentSseEvent.runStarted(runId.toString()));
+        }
+
         // 5-pre. Routage court-circuit (T-02, levier L1) : si le multi-agent est
         //    eligible ET le routage actif, un appel de classification minuscule
         //    (petit prompt, max_tokens=8, T=0) decide si la requete justifie
@@ -285,7 +326,7 @@ public class AgentOrchestrator {
         IntentRouter.Route route = null;
         if (multiAgentEligible && intentRouter != null && intentRouter.isEnabled()) {
             IntentRouter.RouteDecision decision = intentRouter.classify(effectiveMessage, target, apiKey);
-            toolLoopRunner.recordUsageSafe(context.organizationId(),
+            toolLoopRunner.recordUsageSafe(context,
                     target.provider(), AgentToolMetrics.AGENT_ROUTER,
                     decision.promptTokens(), decision.completionTokens(), 0,
                     decision.model(), "route");
@@ -322,6 +363,12 @@ public class AgentOrchestrator {
                         conversation.setTitle(deriveTitle(effectiveMessage));
                     }
                     conversationRepository.save(conversation);
+                    if (agentRunRecorder != null) {
+                        agentRunRecorder.finishRun(null);
+                    }
+                    if (runCreditGuard != null) {
+                        runCreditGuard.endRun();
+                    }
                     return conversation.getId();
                 }
             } catch (com.clenzy.service.agent.multiagent.ConfirmationRequiredException e) {
@@ -377,6 +424,12 @@ public class AgentOrchestrator {
         }
         conversationRepository.save(conversation);
 
+        if (agentRunRecorder != null) {
+            agentRunRecorder.finishRun(null);
+        }
+        if (runCreditGuard != null) {
+            runCreditGuard.endRun();
+        }
         return conversation.getId();
     }
 
@@ -411,6 +464,24 @@ public class AgentOrchestrator {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Conversation " + pending.conversationId() + " introuvable"));
 
+        // Pre-vol credits de la reprise (T-06b) : la reprise est un nouveau run
+        // facturable. Refus = hard cap (l'action confirmee n'est PAS executee —
+        // le pending est deja consomme, l'utilisateur devra relancer apres recharge).
+        if (runCreditGuard != null && !runCreditGuard.beginRun(context.organizationId())) {
+            consumer.accept(AgentSseEvent.error(
+                    "Crédits IA épuisés — impossible de reprendre cette action. "
+                            + "Rechargez vos crédits puis relancez-la."));
+            return conversation.getId();
+        }
+
+        // Run persiste dedie a la reprise (T-05) : le run initial a fini PAUSED ;
+        // la reprise est un nouveau run (nouveau thread HTTP), lie par la conversation.
+        if (agentRunRecorder != null) {
+            java.util.UUID runId = agentRunRecorder.startRun(
+                    context.organizationId(), context.keycloakId(), conversation.getId(), "chat_resume");
+            consumer.accept(AgentSseEvent.runStarted(runId.toString()));
+        }
+
         // Construire le tool result : execution reelle OU "annule par user".
         // Partage entre les deux flux (mono + multi-agent).
         ToolResult result = confirmed
@@ -433,6 +504,12 @@ public class AgentOrchestrator {
             multiAgentFlowRunner.resumeAfterConfirmation(pending, result, context, conversation, consumer);
             conversation.setUpdatedAt(LocalDateTime.now());
             conversationRepository.save(conversation);
+            if (agentRunRecorder != null) {
+                agentRunRecorder.finishRun(null);
+            }
+            if (runCreditGuard != null) {
+                runCreditGuard.endRun();
+            }
             return conversation.getId();
         }
 
@@ -456,6 +533,12 @@ public class AgentOrchestrator {
 
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
+        if (agentRunRecorder != null) {
+            agentRunRecorder.finishRun(null);
+        }
+        if (runCreditGuard != null) {
+            runCreditGuard.endRun();
+        }
         return conversation.getId();
     }
 
