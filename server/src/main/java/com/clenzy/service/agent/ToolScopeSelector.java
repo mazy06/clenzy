@@ -138,6 +138,11 @@ public final class ToolScopeSelector {
                     Set.of("bruit", "noise", "sonore", "decibel", "capteur", "nuisance"),
                     Set.of("get_noise_alerts")),
             new Domain(
+                    // Relation proprietaire (T-09) : releves, reversements, commissions, mandats.
+                    Set.of("proprietaire", "owner", "reversement", "releve", "commission",
+                            "mandat", "payout"),
+                    Set.of("send_owner_statement", "get_owner_payout_summary", "get_property_pnl")),
+            new Domain(
                     // Pas de stem générique « comment » (aimant à faux positifs : toute
                     // question française « comment… » + « commentaire »).
                     Set.of("workflow", "procedure", "guide", "etape", "checklist"),
