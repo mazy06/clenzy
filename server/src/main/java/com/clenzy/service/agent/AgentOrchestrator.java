@@ -456,6 +456,10 @@ public class AgentOrchestrator {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Tool en attente " + toolCallId + " introuvable / expire / non autorise"));
 
+        // Journal des resolutions (X1) : l'outcome CONFIRMED/REFUSED nourrit les
+        // Regles de Confiance (X2). Best-effort, hors chemin critique.
+        pendingToolStore.markResolved(toolCallId, confirmed);
+
         // Recharger la conv pour update updatedAt en fin de boucle. La validation
         // d'ownership est double : consume() (keycloakId du pending) + findByIdAndUser
         // (conversation scopee au user).

@@ -2865,3 +2865,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0296__create_ai_credit_grant.sql
         relativeToChangelogFile: true
+
+  # pending_action HITL durci : journal durable + reprise mono post-reboot + donnee X2 (campagne X1).
+  - changeSet:
+      id: "0297-create-agent-pending-action"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0297__create_agent_pending_action.sql
+        relativeToChangelogFile: true

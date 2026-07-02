@@ -161,3 +161,10 @@
 - `InitiateRefundTool` (write, requiresConfirmation — invariant paiement), ajouté au FinanceSpecialist (10e outil, limite) + stems rembours/refund/geste/litige au scoping.
 - Tests : 8 tests argent (cross-org avant tout appel Stripe, OTA refusée, déjà remboursée, politique serveur, écart refusé, plafond cash crédit déduit, clé idempotence exacte, montant manquant). `mvn package` BUILD SUCCESS. NON COMMITÉ.
 - **Backlog Now de la feuille de route : TERMINÉ** (T-01→T-10). Reste le Next : X1 pending_action unifié, X2 Règles de Confiance, X3 Grand Livre UI, X4 sous-budget autonomie, X5 grille forfaits prod, X6 rolling summary, X7 agents V2, X8 déclencheurs Kafka, X9 Constellation Propriétaire, X10 réconciliation double.
+
+## 2026-07-02 — Exécution X1 : pending_action durci (FAIT, vérifié, non commité)
+
+- **Migration 0297** : `agent_pending_action` — journal durable des pauses HITL, cycle PENDING→CONFIRMED/REFUSED/EXPIRED, index (org, tool_name, status) pour X2.
+- **PendingToolStore durci** : persist best-effort à la pause (historique mono sérialisé IMAGES STRIPPÉES — jamais de base64 en DB, placeholder T-04 ; multi = journalisé sans payload, état moteur+JWT non sérialisables → comportement volatil conservé) ; reprise post-reboot MONO au consume memory-miss (ownership+expiration re-validés) ; `listForUser` fallback journal si Redis vide/KO/absent (fin de la « perte silencieuse » dette Phase 0 n°3) ; `markResolved` appelé par l'orchestrateur (outcome = matière première X2) ; scheduler horaire EXPIRED (signal « action ignorée ≠ à automatiser »).
+- Tests : 6 (persistance strippée avec preuve anti-base64, recovery mono, refus cross-user, refus multi, outcomes sans double transition, fallback DB). Constructeurs rétro-compatibles. `mvn package` BUILD SUCCESS. NON COMMITÉ.
+- Écart assumé : reprise post-reboot multi-agent non couverte (contrainte du design d'origine — JWT/état moteur) ; l'unification de shape avec supervision_suggestion différée (déjà Postgres+CAS, cycle de vie différent) — le journal X1 suffit aux Règles de Confiance.
