@@ -194,12 +194,32 @@ public class PropertyService {
 
     @Transactional(readOnly = true)
     public List<PropertyDto> list() {
-        return propertyRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
+        // Isolation tenant EXPLICITE, même raison que search() : findAll() ne passe
+        // PAS par le @Filter Hibernate organizationFilter (inactif hors requête HTTP
+        // et sur le thread sseExecutor). AnalyzePortfolioTool (tool assistant
+        // analyze_portfolio) appelle cette méthode → sans garde, un HOST analysait
+        // le parc de TOUTES les organisations. Garde fail-closed (bypass platform staff).
+        Long tenantOrgId = tenantOrgIdOrNullForPlatformStaff();
+        List<Property> properties = tenantOrgId != null
+                ? propertyRepository.findAll((root, query, cb) -> cb.equal(root.get("organizationId"), tenantOrgId))
+                : propertyRepository.findAll();
+        return properties.stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Page<PropertyDto> list(Pageable pageable) {
-        return propertyRepository.findAll(pageable).map(this::toDto);
+        Long tenantOrgId = tenantOrgIdOrNullForPlatformStaff();
+        return (tenantOrgId != null
+                ? propertyRepository.findAll(
+                        (root, query, cb) -> cb.equal(root.get("organizationId"), tenantOrgId), pageable)
+                : propertyRepository.findAll(pageable)).map(this::toDto);
+    }
+
+    /** Org du tenant courant, ou null pour le platform staff (superAdmin / org SYSTEM) — bypass légitime. */
+    private Long tenantOrgIdOrNullForPlatformStaff() {
+        return (!tenantContext.isSuperAdmin() && !tenantContext.isSystemOrg())
+                ? tenantContext.getOrganizationId()
+                : null;
     }
 
     @Transactional(readOnly = true)
