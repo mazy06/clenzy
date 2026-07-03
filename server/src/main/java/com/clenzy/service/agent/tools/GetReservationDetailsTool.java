@@ -106,7 +106,7 @@ public class GetReservationDetailsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Detail d'une reservation : voyageur, dates d'arrivee/depart, nombre de voyageurs, prix total, devise, statut, canal (Airbnb/Booking/direct), statut de paiement, code de confirmation, logement. Utiliser pour 'detail de la reservation', 'qui arrive', 'combien a paye ce sejour'.",
+                    "Detail d'une reservation : voyageur, dates, prix total, statut, canal, paiement, code de confirmation, logement. Pour 'detail reservation', 'qui arrive'.",
                     schema
             );
         } catch (JsonProcessingException e) {

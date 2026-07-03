@@ -214,6 +214,35 @@ class InscriptionServiceTest {
         }
 
         @Test
+        @DisplayName("inclut le supplément IA du forfait choisi dans le montant Stripe (X5)")
+        void whenInitiate_thenAmountIncludesAiSurcharge() throws Exception {
+            // Arrange
+            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
+            dto.setFullName("Jean Dupont");
+            dto.setEmail("x5@test.com");
+            dto.setForfait("confort");
+            dto.setBillingPeriod("MONTHLY");
+            dto.setAcceptedTerms(true);
+
+            String emailHash = StringUtils.computeEmailHash("x5@test.com");
+            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
+            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
+            when(pricingConfigService.getAiMonthlySurchargeCents("confort")).thenReturn(2900);
+            when(pendingInscriptionRepository.findByEmailAndStatus("x5@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
+                    .thenReturn(Optional.empty());
+
+            // Act (le gateway mocke retourne null -> exception apres la creation de session)
+            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
+                    .isInstanceOf(Exception.class);
+
+            // Assert : montant = 30 € PMS + 29 € supplément IA Confort
+            ArgumentCaptor<SessionCreateParams> captor = ArgumentCaptor.forClass(SessionCreateParams.class);
+            verify(stripeGateway).createSession(captor.capture());
+            assertThat(captor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
+                    .isEqualTo(5900L);
+        }
+
+        @Test
         @DisplayName("when organizationType is SYSTEM then throws RuntimeException")
         void whenSystemOrgType_thenThrows() {
             // Arrange

@@ -119,7 +119,7 @@ const DashboardAnalyticsContent: React.FC<DashboardAnalyticsContentProps> = Reac
             {subTab === 3 && (
               <>
                 <DashboardErrorBoundary widgetName="Performance par Logement">
-                  <AnalyticsPropertyPerformance data={analytics?.properties ?? null} loading={analyticsLoading} />
+                  <AnalyticsPropertyPerformance period={period} />
                 </DashboardErrorBoundary>
 
                 <DashboardErrorBoundary widgetName="Benchmark">

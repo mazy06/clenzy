@@ -21,6 +21,16 @@ spring:
         format_sql: true
         jdbc:
           time_zone: UTC
+        # Le container dev force ddl-auto=update (docker-compose.dev.yml) → Hibernate
+        # tente au boot d'ALTER les colonnes d'après les annotations Bean Validation.
+        # @Size(max=50) (validation du texte CLAIR sur User.firstName/lastName) écrase
+        # alors @Column(length=500) et Hibernate essaie de rétrécir first_name/last_name
+        # en varchar(50) → échec « value too long » (valeurs chiffrées AES > 50, cf.
+        # EncryptedFieldConverter + migration 0039). WARN non bloquant mais bruyant.
+        # apply_to_ddl=false : le DDL suit @Column (length 500) ; @Size continue de
+        # valider les saisies au runtime. Aligné sur application-test.yml.
+        validator:
+          apply_to_ddl: false
     open-in-view: false
   liquibase:
     enabled: true
@@ -205,6 +215,13 @@ clenzy:
     # des fixes pré-prod (cf. AgentOrchestrator.multiAgentEnabled javadoc).
     # En prod : valeur par défaut du code = false (opt-in explicite requis).
     multi-agent:
+      enabled: true
+    # Routage court-circuit (T-02) : classification SIMPLE/MULTI en amont, les
+    # requêtes simples évitent l'orchestration multi-agent complète.
+    # Pas de routing.model : le classifieur retombe sur le tier SMALL.
+    # Le tiering de modèles (T-03) se configure EN BASE : assigner un modèle aux
+    # features ASSISTANT_SMALL / ASSISTANT_STRONG (Paramètres > IA > Modèles).
+    routing:
       enabled: true
   channex:
     base-url: ${CHANNEX_BASE_URL:https://staging.channex.io/api/v1}

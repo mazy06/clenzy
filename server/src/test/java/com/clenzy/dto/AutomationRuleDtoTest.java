@@ -26,6 +26,7 @@ class AutomationRuleDtoTest {
                 "09:00",
                 "{\"channel\":[\"AIRBNB\"]}",
                 AutomationAction.SEND_MESSAGE,
+                "{\"graceHours\":4}",
                 100L,
                 "tpl-pre-checkin",
                 MessageChannelType.EMAIL,
@@ -41,6 +42,7 @@ class AutomationRuleDtoTest {
         assertEquals("09:00", dto.triggerTime());
         assertEquals("{\"channel\":[\"AIRBNB\"]}", dto.conditions());
         assertEquals(AutomationAction.SEND_MESSAGE, dto.actionType());
+        assertEquals("{\"graceHours\":4}", dto.actionConfig());
         assertEquals(100L, dto.templateId());
         assertEquals("tpl-pre-checkin", dto.templateName());
         assertEquals(MessageChannelType.EMAIL, dto.deliveryChannel());

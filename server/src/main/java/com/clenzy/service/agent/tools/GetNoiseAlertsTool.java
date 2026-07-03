@@ -155,7 +155,7 @@ public class GetNoiseAlertsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Retourne les alertes de bruit recentes (capteurs Minut) de l'organisation : logement, niveau de bruit mesure et seuil, severite (WARNING/CRITICAL), creneau horaire, source et statut d'acquittement. Filtrable par propertyId et severity. Utiliser pour 'y a-t-il eu du bruit', 'alertes de nuisance sonore', 'quels logements ont declenche une alerte bruit', 'depassements de seuil sonore'.",
+                    "Alertes de bruit recentes (capteurs Minut) : logement, niveau vs seuil, severite WARNING/CRITICAL, acquittement. Filtres propertyId, severity.",
                     schema
             );
         } catch (JsonProcessingException e) {

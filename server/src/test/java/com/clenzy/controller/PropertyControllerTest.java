@@ -40,6 +40,7 @@ class PropertyControllerTest {
     @Mock private PropertyService propertyService;
     @Mock private UserService userService;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.PropertyPerformanceService propertyPerformanceService;
 
     private PropertyController controller;
 
@@ -56,7 +57,8 @@ class PropertyControllerTest {
     @BeforeEach
     void setUp() {
         controller = new PropertyController(propertyService, userService,
-                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
+                new com.clenzy.service.access.OrganizationAccessGuard(tenantContext),
+                propertyPerformanceService);
     }
 
     @Nested

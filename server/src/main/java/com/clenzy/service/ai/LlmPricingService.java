@@ -1,5 +1,7 @@
 package com.clenzy.service.ai;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -31,6 +33,8 @@ import java.util.Map;
  */
 @Service
 public class LlmPricingService {
+
+    private static final Logger log = LoggerFactory.getLogger(LlmPricingService.class);
 
     /** Tarifs : prefix modele → (input $/Mtok, output $/Mtok). Ordre = priorite de match (plus specifique d'abord). */
     private static final Map<String, ModelPrice> PRICES = new LinkedHashMap<>();
@@ -89,17 +93,38 @@ public class LlmPricingService {
 
     /**
      * Resout le prix d'un modele par prefix-match (le plus long match gagne).
-     * Si aucun match, retourne {@link #ZERO} (display "$0.00" plutot que crash).
+     * Si aucun match, retourne {@link #ZERO} (display "$0.00" plutot que crash)
+     * avec un log warn — un ZERO silencieux = cout sous-compte sans que personne
+     * ne le voie (piege identifie par l'audit campagne, ticket T-01).
      */
     public ModelPrice priceOf(String model) {
         if (model == null || model.isBlank()) return ZERO;
+        String best = matchPrefix(model);
+        if (best == null) {
+            log.warn("[PRICING] Modele inconnu de la grille tarifaire : '{}' → cout $0.00 "
+                    + "(ajouter le prefix dans LlmPricingService.PRICES)", model);
+            return ZERO;
+        }
+        return PRICES.get(best);
+    }
+
+    /**
+     * True si le modele a un tarif dans la grille (prefix-match). Sert a
+     * l'observabilite (metrique {@code assistant.pricing.unknown_model}) pour
+     * alerter quand un cout est compte a zero faute de tarif.
+     */
+    public boolean isKnownModel(String model) {
+        return model != null && !model.isBlank() && matchPrefix(model) != null;
+    }
+
+    private String matchPrefix(String model) {
         String best = null;
         for (String prefix : PRICES.keySet()) {
             if (model.startsWith(prefix) && (best == null || prefix.length() > best.length())) {
                 best = prefix;
             }
         }
-        return best == null ? ZERO : PRICES.get(best);
+        return best;
     }
 
     /**

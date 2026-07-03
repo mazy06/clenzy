@@ -20,6 +20,7 @@ import Privacy from './legal/Privacy';
 import AcceptInvitationPage from './invitations/AcceptInvitationPage';
 import PublicKeyVerification from '../pages/PublicKeyVerification';
 import PublicGuide from './welcome-guide/PublicGuide';
+import PublicOwnerConstellation from './owner-portal/PublicOwnerConstellation';
 import ContractSignPage from './contracts/public/ContractSignPage';
 import PublicBookingPage from './booking-engine/public/PublicBookingPage';
 import { SupervisionDemo } from './supervision';
@@ -79,7 +80,7 @@ function HardRedirectToLogin(): null {
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation', '/supervision-demo'];
 
 // Routes publiques avec paramètres (prefix match)
-const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/'];
+const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/', '/owner-view/'];
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -341,6 +342,9 @@ const App: React.FC = () => {
 
           {/* Route publique pour le livret d'accueil numerique (guest) */}
           <Route path="/guide/:token" element={<PublicGuide />} />
+
+          {/* Constellation Propriétaire — lecture seule white-label (campagne X9) */}
+          <Route path="/owner-view/:token" element={<PublicOwnerConstellation />} />
 
           {/* Route publique de signature electronique du contrat de gestion (proprietaire) */}
           <Route path="/sign/:token" element={<ContractSignPage />} />

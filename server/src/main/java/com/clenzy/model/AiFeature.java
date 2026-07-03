@@ -25,6 +25,21 @@ public enum AiFeature {
      */
     ASSISTANT_CHAT,
     /**
+     * Tier PETIT de l'assistant (T-03/ADR-004, pilote en base depuis 2026-07-02) :
+     * modele economique des roles utilitaires (classification IntentRouter,
+     * rolling summary X6, specialists SMALL). Assigner un modele plateforme a
+     * cette feature ACTIVE le tiering ; non assignee = comportement inchange
+     * (modele du contexte). Garde meme-provider : le tier ne s'applique que si
+     * son provider correspond a celui resolu — la cle du contexte (BYOK incluse)
+     * est reutilisee telle quelle, jamais celle du modele tier.
+     */
+    ASSISTANT_SMALL,
+    /**
+     * Tier FORT de l'assistant (T-03/ADR-004) : modele haut de gamme des roles
+     * d'analyse (Insights). Memes regles qu'{@link #ASSISTANT_SMALL}.
+     */
+    ASSISTANT_STRONG,
+    /**
      * Embeddings RAG (recherche semantique de la knowledge base).
      * Modele PLATFORM-GLOBAL : la dimension de l'index pgvector {@code kb_chunk} est figee
      * (1024d), donc pas de BYOK org (qui melangerait des modeles de dimensions differentes).

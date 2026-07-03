@@ -274,6 +274,14 @@ public class MultiAgentFlowRunner {
      * avec le mono — la reprise multi-agent s'appuie sur le
      * {@link com.clenzy.service.agent.multiagent.MultiAgentPendingContext}.</p>
      */
+    // Trace de run (T-05). Setter optionnel (null-safe test / injecte par Spring).
+    private AgentRunRecorder agentRunRecorder;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setAgentRunRecorder(AgentRunRecorder agentRunRecorder) {
+        this.agentRunRecorder = agentRunRecorder;
+    }
+
     private void pauseMultiAgentForConfirmation(
             com.clenzy.service.agent.multiagent.MultiAgentPendingContext pending,
             List<ChatMessage> chatHistory,
@@ -282,6 +290,9 @@ public class MultiAgentFlowRunner {
             Consumer<AgentSseEvent> consumer) {
 
         ChatMessage.ToolCall toolCall = pending.pendingToolCall();
+        if (agentRunRecorder != null) {
+            agentRunRecorder.recordPause(AgentToolMetrics.AGENT_MULTI, toolCall.name());
+        }
 
         String description = toolRegistry.find(toolCall.name())
                 .map(h -> h.descriptor() != null ? h.descriptor().description() : null)
@@ -363,10 +374,18 @@ public class MultiAgentFlowRunner {
         if (conversation.getModel() == null && multiAgentModel != null) {
             conversation.setModel(multiAgentModel);
         }
-        toolLoopRunner.recordUsageSafe(context.organizationId(),
+        toolLoopRunner.recordUsageSafe(context,
                 context.aiProvider() != null ? context.aiProvider() : "anthropic",
-                result.totalPromptTokens(), result.totalCompletionTokens(),
+                AgentToolMetrics.AGENT_MULTI,
+                result.totalPromptTokens(), result.totalCompletionTokens(), 0,
                 multiAgentModel, result.truncated() ? "length" : "end_turn");
+        // Step SUMMARY du run persiste (T-05) : totaux agreges du tour multi-agent
+        // (les tokens par specialist sont deja portes par les steps DELEGATION).
+        if (agentRunRecorder != null) {
+            agentRunRecorder.recordSummaryStep(AgentToolMetrics.AGENT_MULTI, multiAgentModel,
+                    result.totalPromptTokens(), result.totalCompletionTokens(),
+                    result.truncated() ? "tour tronque (cap delegations)" : "tour complet");
+        }
 
         consumer.accept(AgentSseEvent.done(result.truncated() ? "length" : "end_turn"));
     }

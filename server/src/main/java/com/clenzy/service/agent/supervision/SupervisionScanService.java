@@ -47,6 +47,7 @@ public class SupervisionScanService {
     private final SupervisionActivityService activityService;
     private final SupervisionSuggestionService suggestionService;
     private final SupervisionModuleRegistry moduleRegistry;
+    private final BusinessAnalyticsScanner businessAnalyticsScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -56,6 +57,7 @@ public class SupervisionScanService {
                                   SupervisionActivityService activityService,
                                   SupervisionSuggestionService suggestionService,
                                   SupervisionModuleRegistry moduleRegistry,
+                                  BusinessAnalyticsScanner businessAnalyticsScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -64,6 +66,7 @@ public class SupervisionScanService {
         this.activityService = activityService;
         this.suggestionService = suggestionService;
         this.moduleRegistry = moduleRegistry;
+        this.businessAnalyticsScanner = businessAnalyticsScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -118,11 +121,26 @@ public class SupervisionScanService {
     }
 
     /**
+     * Mode dégradé « plafond premium atteint » (X8-b, scénario S4 D-105) :
+     * heuristiques analytics déterministes SEULES — zéro appel LLM, zéro crédit.
+     * Les suggestions restent alimentées, l'exécution proactive attend le cycle
+     * suivant (ou un relèvement du plafond).
+     */
+    public void deterministicScanOnly(Long orgId, Long propertyId) {
+        businessAnalyticsScanner.scanProperty(orgId, propertyId);
+    }
+
+    /**
      * Boucle commune : exécute l'orchestrateur, journalise l'activité observée et
      * (si {@code recordSuggestions}) route les propositions vers la file org-scopée.
      */
     private SupervisionScanResultDto runScan(Long orgId, Long propertyId, AgentContext context,
                                              boolean recordSuggestions) {
+        // Heuristiques analytics déterministes (Phase A) : émises AVANT le run LLM,
+        // sans coût token, best-effort (n'interrompt jamais le scan).
+        if (recordSuggestions) {
+            businessAnalyticsScanner.scanProperty(orgId, propertyId);
+        }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();
         StringBuilder reply = new StringBuilder();

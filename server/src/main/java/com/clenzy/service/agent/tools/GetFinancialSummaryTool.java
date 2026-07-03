@@ -212,7 +212,7 @@ public class GetFinancialSummaryTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Affiche un graphique en barres (bar chart) du bilan financier par mois sur N mois (defaut 6). Series : Revenus (reservations), Depenses (interventions), Profit. Utiliser pour 'bilan', 'CA', 'revenue', 'depenses', 'profit', 'rentabilite', comparaisons inter-mois. Inclut totaux en footer du payload.",
+                    "Bar chart du bilan financier mensuel sur N mois (defaut 6) : revenus, depenses, profit + totaux. Pour 'bilan', 'CA', 'depenses', 'profit', 'rentabilite'.",
                     schema
             );
         } catch (JsonProcessingException e) {

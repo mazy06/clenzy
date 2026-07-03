@@ -72,6 +72,7 @@ public class AutomationRuleService {
         rule.setTriggerTime(request.triggerTime() != null ? request.triggerTime() : "09:00");
         rule.setConditions(request.conditions());
         rule.setActionType(request.actionType() != null ? request.actionType() : AutomationAction.SEND_MESSAGE);
+        rule.setActionConfig(request.actionConfig());
         if (request.templateId() != null) {
             rule.setTemplate(templateRepository.findByIdAndOrganizationId(request.templateId(), orgId).orElse(null));
         }
@@ -91,6 +92,7 @@ public class AutomationRuleService {
         if (request.triggerTime() != null) rule.setTriggerTime(request.triggerTime());
         rule.setConditions(request.conditions());
         if (request.actionType() != null) rule.setActionType(request.actionType());
+        rule.setActionConfig(request.actionConfig());
         if (request.templateId() != null) {
             rule.setTemplate(templateRepository.findByIdAndOrganizationId(request.templateId(), orgId).orElse(null));
         }

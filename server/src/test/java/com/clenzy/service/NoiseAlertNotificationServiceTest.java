@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.model.NoiseAlert.AlertSeverity;
 import com.clenzy.model.NoiseAlert.AlertSource;
+import com.clenzy.repository.NoiseAlertRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.WhatsAppConfigRepository;
@@ -17,8 +18,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,6 +41,9 @@ class NoiseAlertNotificationServiceTest {
     @Mock private WhatsAppProviderResolver whatsAppProviderResolver;
     @Mock private WhatsAppConfigRepository whatsAppConfigRepository;
     @Mock private WhatsAppProvider whatsAppProvider;
+    @Mock private NoiseAlertRepository noiseAlertRepository;
+    @Mock private StringRedisTemplate redisTemplate;
+    @Mock private ValueOperations<String, String> valueOperations;
 
     // Pas un mock — service pur sans IO, on l'instancie avec un TranslationService
     // mock car on n'invoque pas interpolateAndTranslate dans NoiseAlert flow.
@@ -60,7 +68,15 @@ class NoiseAlertNotificationServiceTest {
             notificationService, emailService, propertyRepository, reservationRepository,
             systemEmailTemplateService, templateInterpolationService,
             new com.clenzy.service.messaging.EmailWrapperService(),
-            whatsAppProviderResolver, whatsAppConfigRepository);
+            whatsAppProviderResolver, whatsAppConfigRepository,
+            noiseAlertRepository, redisTemplate);
+
+        // Idempotence F6a : claim Redis accorde par defaut (lenient — seuls les
+        // tests guest-message passent par le claim).
+        org.mockito.Mockito.lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        org.mockito.Mockito.lenient()
+            .when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+            .thenReturn(true);
 
         // Config WhatsApp active par defaut (lenient — seuls les tests guest-message
         // l'utilisent). Re-stubbable a Optional.empty() pour le cas "non configure".
@@ -330,5 +346,86 @@ class NoiseAlertNotificationServiceTest {
 
         verify(whatsAppProvider).sendTextMessage(any(), eq("+33612345678"), anyString());
         assertTrue(alert.isNotifiedWhatsapp());
+    }
+
+    // ─── Idempotence F6a : 1 avertissement voyageur max / sejour / 24 h ─────────
+
+    @Test
+    void whenGuestAlreadyWarnedWithin24h_thenSkipsWithoutSending() {
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        Reservation reservation = reservationWithGuest("marie@guest.com", "+33612345678");
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+        // Claim refuse : un avertissement est deja parti pour ce sejour < 24 h.
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+            .thenReturn(false);
+
+        var outcome = service.sendGuestWarning(alert);
+
+        assertFalse(outcome.sent());
+        assertNotNull(outcome.skipReason());
+        verify(whatsAppProvider, never()).sendTemplateMessage(any(), anyString(), anyString(), anyString(), anyList());
+        verify(emailService, never()).sendContactMessage(anyString(), any(), any(), any(), anyString(), anyString(), anyList());
+    }
+
+    @Test
+    void whenRedisDown_thenFallsBackToDbDedup() {
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        Reservation reservation = reservationWithGuest("marie@guest.com", null);
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+            .thenThrow(new RuntimeException("Redis down"));
+        // La base atteste qu'un message voyageur est deja parti dans les 24 h.
+        when(noiseAlertRepository.existsGuestNotifiedSince(eq(100L), any(LocalDateTime.class)))
+            .thenReturn(true);
+
+        var outcome = service.sendGuestWarning(alert);
+
+        assertFalse(outcome.sent());
+        verify(emailService, never()).sendContactMessage(anyString(), any(), any(), any(), anyString(), anyString(), anyList());
+    }
+
+    @Test
+    void whenNoChannelAvailable_thenReleasesClaim() {
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        // Voyageur sans telephone ni email : aucun canal possible.
+        Reservation reservation = reservationWithGuest(null, null);
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+
+        var outcome = service.sendGuestWarning(alert);
+
+        assertFalse(outcome.sent());
+        // Le claim est relache pour ne pas bloquer la prochaine alerte du sejour.
+        verify(redisTemplate).delete(NoiseAlertNotificationService.GUEST_WARNING_KEY_PREFIX + "50");
+    }
+
+    @Test
+    void whenWhatsAppSent_thenOutcomeChannelIsWhatsappAndAlertSaved() {
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
+        Reservation reservation = reservationWithGuest(null, "+33612345678");
+        when(reservationRepository.findActiveByPropertyIdAndDate(eq(100L), any(LocalDate.class), eq(10L)))
+            .thenReturn(Optional.of(reservation));
+
+        var outcome = service.sendGuestWarning(alert);
+
+        assertTrue(outcome.sent());
+        assertEquals("whatsapp", outcome.channel());
+        assertTrue(alert.isNotifiedWhatsapp());
+        verify(noiseAlertRepository).save(alert);
+    }
+
+    private Reservation reservationWithGuest(String email, String phone) {
+        Guest guest = new Guest();
+        guest.setFirstName("Marie");
+        guest.setLastName("Martin");
+        guest.setEmail(email);
+        guest.setPhone(phone);
+
+        Reservation reservation = new Reservation();
+        reservation.setId(50L);
+        reservation.setGuest(guest);
+        return reservation;
     }
 }

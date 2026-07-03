@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Charge {@code resources/patterns/portfolio.yaml} au boot. Le fichier
@@ -40,6 +41,9 @@ public class PortfolioPatternRegistry {
     private final ResourcePatternResolver resourceResolver;
     private Map<String, PortfolioPatternTemplate> templatesById = Collections.emptyMap();
 
+    // Constructeur Spring voulu (defauts autosuffisants) — @Autowired explicite car
+    // la classe declare aussi un constructeur de test (regle ArchUnit 2026-07-02).
+    @Autowired
     public PortfolioPatternRegistry() {
         this.yamlMapper = new YAMLMapper();
         this.resourceResolver = new PathMatchingResourcePatternResolver(

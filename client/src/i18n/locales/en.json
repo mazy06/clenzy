@@ -1,4 +1,35 @@
 {
+  "aiCredits": {
+    "loadError": "Unable to load AI credits.",
+    "topupError": "Unable to create the payment session.",
+    "topupSuccess": "Payment confirmed — your credits will appear shortly.",
+    "topupCancelled": "Top-up cancelled.",
+    "balanceTitle": "Available AI credits",
+    "expires": "expires on",
+    "noPockets": "No active pocket — top up or wait for your next monthly allotment.",
+    "topupTitle": "Top up (credits valid 12 months)",
+    "credits": "credits",
+    "ledgerTitle": "Recent activity",
+    "pocket": {
+      "SUBSCRIPTION": "Plan",
+      "TOPUP": "Top-up",
+      "PROMO": "Bonus"
+    },
+    "entry": {
+      "DEBIT": "Usage",
+      "GRANT": "Allotment",
+      "EXPIRY": "Expiry",
+      "ADJUSTMENT": "Adjustment",
+      "REFUND": "Refund"
+    },
+    "ledger": {
+      "date": "Date",
+      "type": "Type",
+      "agent": "Agent",
+      "amount": "Credits",
+      "replayHint": "View run replay"
+    }
+  },
   "supervision": {
     "title": "Supervision center",
     "subtitle": "Your AI agents are working on this property",
@@ -84,6 +115,10 @@
       "badge": "To settle",
       "settle": "Pay now",
       "later": "Later"
+    },
+    "apply": {
+      "action": "Apply",
+      "dismiss": "Dismiss"
     },
     "approval": {
       "title": "Approval required",
@@ -3080,6 +3115,60 @@
       "cancelled": "Cancelled"
     }
   },
+  "aiAutonomy": {
+    "loadError": "Unable to load the autonomy configuration.",
+    "saveError": "Unable to save the configuration.",
+    "ruleActionError": "Unable to apply the decision.",
+    "invalidCap": "Invalid cap.",
+    "budgetTitle": "Premium autonomy budget",
+    "budgetSubtitle": "Monthly cap for premium proactive actions. Core autonomy (auto-replies, alerts, briefings) stays included and is never metered. Cap of 0 = premium autonomy disabled.",
+    "consumedThisCycle": "Consumed this cycle",
+    "credits": "credits",
+    "capLabel": "Cap (credits / month)",
+    "onCapLabel": "When capped",
+    "onCapNotify": "Notify only (suggestions without execution)",
+    "onCapPause": "Pause autonomy",
+    "save": "Save",
+    "noBehaviors": "No premium behavior wired yet — switches will appear here (e.g. proactive pricing optimization).",
+    "trustTitle": "Trust Rules",
+    "trustSubtitle": "When you confirm the same action several times, the assistant offers to stop asking. Every rule is visible and revocable here — money actions are never eligible.",
+    "noRules": "No rules yet — they appear after several confirmations of the same action.",
+    "rule": { "tool": "Action", "status": "Status", "confirmations": "Confirmations", "actions": "" },
+    "status": { "SUGGESTED": "Suggested", "ACTIVE": "Active", "DISMISSED": "Dismissed", "REVOKED": "Revoked" },
+    "accept": "Accept",
+    "dismiss": "Dismiss",
+    "revoke": "Revoke",
+    "behavior": { "supervision_scan": "Proactive supervision scan (LLM analysis of properties after an event)" }
+  },
+  "ownerPortal": {
+    "constellationLink": "Share owner tracking link",
+    "constellationLinkCopied": "Link copied!",
+    "constellationLinkError": "Failed — retry",
+    "branding": {
+      "open": "Customize the owner page",
+      "title": "Owner page — your brand",
+      "subtitle": "Logo and color shown on the tracking links shared with your owners. No platform branding.",
+      "logoUrl": "Logo URL (HTTPS)",
+      "logoHelp": "Leave empty to show no logo",
+      "primaryColor": "Accent color (#RRGGBB)",
+      "saveError": "Could not save"
+    }
+  },
+  "ownerConstellation": {
+    "subtitle": "Owner area",
+    "readOnly": "View only",
+    "invalidTitle": "Invalid or expired link",
+    "invalidBody": "This tracking link is no longer active. Contact your property manager to get a new one.",
+    "grossRevenue": "Gross revenue",
+    "commissions": "Commissions",
+    "netRevenue": "Owner net",
+    "occupancy": "Occupancy",
+    "agentActivityTitle": "What our agents did for your properties (last 30 days)",
+    "noActivity": "No recent activity to display.",
+    "counters": "{{actions}} actions · {{suggestions}} suggestions",
+    "noPropertyActivity": "Nothing to report on this property.",
+    "footer": "Report prepared by {{name}}."
+  },
   "tarification": {
     "title": "Pricing Configuration",
     "subtitle": "Manage coefficient weights, base prices and subscriptions",
@@ -3258,7 +3347,15 @@
       "perSeat": "Price per user",
       "perSeatHelp": "Monthly cost per additional user",
       "freeSeats": "Included users",
-      "freeSeatsHelp": "Number of users included in the base price"
+      "freeSeatsHelp": "Number of users included in the base price",
+      "aiTitle": "AI surcharge per plan",
+      "aiSubtitle": "Monthly subscription surcharge carrying the included AI credits",
+      "aiEssentiel": "AI surcharge — Essentiel",
+      "aiEssentielHelp": "500 AI credits included per month",
+      "aiConfort": "AI surcharge — Confort",
+      "aiConfortHelp": "2,000 AI credits included per month",
+      "aiPremium": "AI surcharge — Premium",
+      "aiPremiumHelp": "8,000 AI credits included per month"
     },
     "automation": {
       "title": "Automation Surcharges",
@@ -5353,6 +5450,36 @@
       "colDiscount": "Discount",
       "colNet": "Net",
       "colAvgPct": "Avg %"
+    }
+  },
+  "agentReplay": {
+    "whatIf": {
+      "title": "What if…? (replay with a hypothesis)",
+      "subtitle": "The re-analysis prompt is copied — paste it into the assistant chat to run the what-if.",
+      "placeholder": "E.g.: with a nightly rate of €95 instead of €120",
+      "copy": "Copy the prompt",
+      "copied": "Copied!",
+      "error": "Failed"
+    },
+    "title": "Run replay",
+    "loadError": "Unable to load this run's replay.",
+    "steps": "steps",
+    "origin": {
+      "chat": "Conversation",
+      "chat_resume": "Resumed after approval"
+    },
+    "status": {
+      "RUNNING": "Running",
+      "COMPLETED": "Completed",
+      "PAUSED": "Paused",
+      "ERROR": "Error"
+    },
+    "kind": {
+      "LLM_CALL": "Reasoning",
+      "TOOL_CALL": "Action",
+      "DELEGATION": "Delegation",
+      "PAUSE": "Awaiting approval",
+      "SUMMARY": "Summary"
     }
   }
 }

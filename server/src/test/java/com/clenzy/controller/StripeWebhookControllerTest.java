@@ -64,12 +64,14 @@ class StripeWebhookControllerTest {
     @Mock private UpsellService upsellService;
     @Mock private StripeGateway stripeGateway;
     @Mock private DirectBookingService directBookingService;
+    @Mock private com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService;
+    @Mock private com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService;
 
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService, stripeConnectService, shopService, publicBookingService, upsellService, stripeGateway, directBookingService, aiCreditGrantService, paymentFailedTriggerService);
         setField("webhookSecret", "whsec_test_secret");
     }
 
@@ -714,6 +716,9 @@ class StripeWebhookControllerTest {
 
                 assertThat(response.getStatusCode().value()).isEqualTo(200);
                 verify(stripeService).markPaymentAsFailed("pi_3");
+                // F5c : le declencheur PAYMENT_FAILED du moteur est notifie
+                verify(paymentFailedTriggerService).fireForFailedPaymentIntent(
+                        "pi_3", Map.of("type", "mobile_intervention", "interventionId", "5"));
             }
         }
 
@@ -733,6 +738,9 @@ class StripeWebhookControllerTest {
 
                 assertThat(response.getStatusCode().value()).isEqualTo(200);
                 verify(stripeService, never()).markPaymentAsFailed(any());
+                // F5c : le capteur est appele meme sans action mobile (resolution org en aval)
+                verify(paymentFailedTriggerService).fireForFailedPaymentIntent(
+                        "pi_4", Map.of("type", "mobile_upgrade"));
             }
         }
     }

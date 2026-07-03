@@ -93,7 +93,7 @@ public class AdvanceWorkflowTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Avance un workflow en cours : stocke la reponse de l'user au step courant et retourne le step suivant (ou le statut COMPLETED). Si le step venant d'etre complete declare une action, le payload inclut une suggestedAction que tu peux invoquer ensuite.",
+                    "Avance un workflow en cours : stocke la reponse user du step courant, retourne le step suivant (ou COMPLETED) et une suggestedAction eventuelle a invoquer.",
                     schema
             );
         } catch (JsonProcessingException e) {

@@ -148,7 +148,7 @@ public class GetReservationTrendTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Affiche une courbe (line chart) du nombre de reservations par mois sur les N derniers mois (defaut 6). Series : total + confirmed (+ cancelled si > 0). Utiliser pour 'evolution', 'tendance', 'historique' des reservations, comparer mois apres mois, detecter saisonnalite.",
+                    "Line chart des reservations par mois sur N mois (defaut 6) : total, confirmed, cancelled. Pour 'evolution', 'tendance', 'historique', saisonnalite.",
                     schema
             );
         } catch (JsonProcessingException e) {

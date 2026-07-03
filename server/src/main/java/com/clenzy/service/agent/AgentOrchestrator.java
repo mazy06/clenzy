@@ -88,6 +88,28 @@ public class AgentOrchestrator {
     private final MultiAgentFlowRunner multiAgentFlowRunner;
     /** Gate ASSISTANT_CHAT : toggle d'activation + budget, comme toutes les autres features IA. */
     private final AiTokenBudgetService tokenBudgetService;
+    /**
+     * Routeur d'intention pre-orchestration (T-02, flag
+     * {@code clenzy.assistant.routing.enabled}). Null sur le chemin legacy
+     * test-only (null-safe : null = routage desactive = comportement historique).
+     */
+    private final IntentRouter intentRouter;
+    /**
+     * Persistance de l'etat de run (T-05, ADR-002 — replay Constellation +
+     * futur ledger). Best-effort async ; null sur le chemin legacy test-only.
+     */
+    private final AgentRunRecorder agentRunRecorder;
+    /**
+     * Enforcement credits (T-06b, ADR-005) : pre-vol → reservation → re-check →
+     * reconciliation. Flag {@code clenzy.ai.credits.enforcement.enabled} (defaut
+     * false). Null sur le chemin legacy test-only.
+     */
+    private final com.clenzy.service.ai.RunCreditGuard runCreditGuard;
+    /**
+     * Rolling summary (X6, flag {@code clenzy.assistant.rolling-summary.enabled}).
+     * Null sur le chemin legacy test-only.
+     */
+    private final ConversationSummaryService conversationSummaryService;
 
     /** Constructeur Spring : injection des collaborateurs extraits. */
     @Autowired
@@ -100,7 +122,11 @@ public class AgentOrchestrator {
                               AgentToolLoopRunner toolLoopRunner,
                               ConversationHistoryMapper historyMapper,
                               MultiAgentFlowRunner multiAgentFlowRunner,
-                              AiTokenBudgetService tokenBudgetService) {
+                              AiTokenBudgetService tokenBudgetService,
+                              IntentRouter intentRouter,
+                              AgentRunRecorder agentRunRecorder,
+                              com.clenzy.service.ai.RunCreditGuard runCreditGuard,
+                              ConversationSummaryService conversationSummaryService) {
         this.toolRegistry = toolRegistry;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
@@ -111,6 +137,10 @@ public class AgentOrchestrator {
         this.historyMapper = historyMapper;
         this.multiAgentFlowRunner = multiAgentFlowRunner;
         this.tokenBudgetService = tokenBudgetService;
+        this.intentRouter = intentRouter;
+        this.agentRunRecorder = agentRunRecorder;
+        this.runCreditGuard = runCreditGuard;
+        this.conversationSummaryService = conversationSummaryService;
     }
 
     /**
@@ -163,7 +193,14 @@ public class AgentOrchestrator {
                         new AiTargetResolver(orgAiApiKeyRepository, platformAiFeatureModelRepository,
                         platformAiFeatureProviderRepository, platformAiModelRepository, aiProperties),
                         toolRegistry, objectMapper, multiAgentEnabled),
-                aiTokenBudgetService);
+                aiTokenBudgetService,
+                // Routage d'intention + recorder de runs + garde credits + rolling
+                // summary = null sur ce chemin legacy test-only (null-safe : features
+                // desactivees, comportement historique).
+                null,
+                null,
+                null,
+                null);
     }
 
     /**
@@ -175,7 +212,7 @@ public class AgentOrchestrator {
             AssistantMessageRepository messageRepository, PendingToolStore pendingToolStore,
             ObjectMapper objectMapper, com.clenzy.service.AiTokenBudgetService aiTokenBudgetService) {
         return new AgentToolLoopRunner(chatProvider, toolRegistry, messageRepository,
-                pendingToolStore, objectMapper, aiTokenBudgetService, null, null);
+                pendingToolStore, objectMapper, aiTokenBudgetService, null, null, null, null, null, null);
     }
 
     /**
@@ -228,7 +265,10 @@ public class AgentOrchestrator {
 
         // 3. Charger l'historique complet (post-insert du user message)
         List<AssistantMessage> history = messageRepository.findByConversation(conversation.getId());
-        List<ChatMessage> chatMessages = historyMapper.toChatMessages(history);
+        // X6 : au-dela de la fenetre, le rolling summary du debut est injecte en
+        // tete plutot qu'un elagage sec (null si feature off / pas encore genere).
+        List<ChatMessage> chatMessages =
+                historyMapper.toChatMessages(history, conversation.getRollingSummary());
 
         // 4. Pre-charge memoires + RAG + apiKey UNE SEULE FOIS, partagees entre
         //    multi-agent et mono-agent fallback. Evite la duplication d'appels
@@ -264,12 +304,58 @@ public class AgentOrchestrator {
             return conversation.getId();
         }
 
-        // 5. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts).
+        // 4-bis-2. Pre-vol credits (T-06b, ADR-005) : reservation atomique du
+        //    plancher AVANT de demarrer quoi que ce soit de facturable. Refus =
+        //    hard cap — message clair, le PMS classique continue (D-101).
+        //    Enforcement off (defaut) → beginRun retourne toujours true.
+        if (runCreditGuard != null && !runCreditGuard.beginRun(context.organizationId())) {
+            consumer.accept(AgentSseEvent.error(
+                    "Crédits IA épuisés — l'assistant reprendra après rechargement ou au "
+                            + "renouvellement de votre forfait. Le reste de la plateforme "
+                            + "fonctionne normalement."));
+            return conversation.getId();
+        }
+
+        // 4-ter. Run persiste (T-05, ADR-002) : demarre le run APRES les gates
+        //    (un refus de gate n'est pas un run) et emet son id en SSE — le front
+        //    peut relier le stream au replay. Best-effort : startRun reinitialise
+        //    l'etat du thread (un run precedent non clos par exception propagee
+        //    reste RUNNING en base, sans polluer le run suivant).
+        if (agentRunRecorder != null) {
+            java.util.UUID runId = agentRunRecorder.startRun(
+                    context.organizationId(), context.keycloakId(), conversation.getId(), "chat",
+                    effectiveMessage);
+            consumer.accept(AgentSseEvent.runStarted(runId.toString()));
+        }
+
+        // 5-pre. Routage court-circuit (T-02, levier L1) : si le multi-agent est
+        //    eligible ET le routage actif, un appel de classification minuscule
+        //    (petit prompt, max_tokens=8, T=0) decide si la requete justifie
+        //    l'orchestration. SIMPLE/DIRECT → mono-agent directement (un tour
+        //    multi coute 5-10x un tour mono). Doute ou erreur → MULTI
+        //    (comportement historique, zero regression possible).
+        boolean multiAgentEligible = multiAgentFlowRunner.canUse(context, hasAttachments);
+        IntentRouter.Route route = null;
+        if (multiAgentEligible && intentRouter != null && intentRouter.isEnabled()) {
+            IntentRouter.RouteDecision decision = intentRouter.classify(effectiveMessage, target, apiKey);
+            toolLoopRunner.recordUsageSafe(context,
+                    target.provider(), AgentToolMetrics.AGENT_ROUTER,
+                    decision.promptTokens(), decision.completionTokens(), 0,
+                    decision.model(), "route");
+            route = decision.route();
+            if (route != IntentRouter.Route.MULTI) {
+                log.info("[ROUTING] Classification {} → court-circuit mono-agent", route);
+                multiAgentEligible = false;
+            }
+        }
+
+        // 5. Tentative multi-agent (si flag on + sans attachments + spécialistes prêts
+        //    + routage non court-circuité).
         //    Attachments → fallback mono-agent car les spécialistes ne gerent pas
         //    encore les images Vision (TODO v2).
         //    Pas de spécialiste → impossible, fallback aussi.
         //    Si multi-agent throw, on log et fallback automatiquement.
-        if (multiAgentFlowRunner.canUse(context, hasAttachments)) {
+        if (multiAgentEligible) {
             try {
                 com.clenzy.service.agent.multiagent.OrchestrationContext orchestrationCtx =
                         new com.clenzy.service.agent.multiagent.OrchestrationContext(memories, kbHits);
@@ -289,6 +375,13 @@ public class AgentOrchestrator {
                         conversation.setTitle(deriveTitle(effectiveMessage));
                     }
                     conversationRepository.save(conversation);
+                    if (agentRunRecorder != null) {
+                        agentRunRecorder.finishRun(null);
+                    }
+                    if (runCreditGuard != null) {
+                        runCreditGuard.endRun();
+                    }
+                    refreshRollingSummarySafe(conversation, context, apiKey);
                     return conversation.getId();
                 }
             } catch (com.clenzy.service.agent.multiagent.ConfirmationRequiredException e) {
@@ -323,7 +416,11 @@ public class AgentOrchestrator {
         //   - Scoping par pertinence (ToolScopeSelector) : socle transverse + outils du
         //     domaine detecte dans la requete, au lieu des ~60 outils du catalogue complet.
         List<ToolDescriptor> roleTools = RoleToolPolicy.filterForRole(toolRegistry.listDescriptors(), context);
-        List<ToolDescriptor> tools = ToolScopeSelector.select(roleTools, chatMessages);
+        // Route DIRECT (smalltalk/meta, T-02) : aucun outil necessaire → on economise
+        // aussi les definitions d'outils (~2-6k tokens par appel).
+        List<ToolDescriptor> tools = (route == IntentRouter.Route.DIRECT)
+                ? List.of()
+                : ToolScopeSelector.select(roleTools, chatMessages);
         ComposedSystemPrompt systemPrompt =
                 promptComposer.buildSegmentedSystemPrompt(context, effectiveMessage, memories, kbHits);
         ChatRequest request = new ChatRequest(
@@ -340,6 +437,13 @@ public class AgentOrchestrator {
         }
         conversationRepository.save(conversation);
 
+        if (agentRunRecorder != null) {
+            agentRunRecorder.finishRun(null);
+        }
+        if (runCreditGuard != null) {
+            runCreditGuard.endRun();
+        }
+        refreshRollingSummarySafe(conversation, context, apiKey);
         return conversation.getId();
     }
 
@@ -366,6 +470,10 @@ public class AgentOrchestrator {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Tool en attente " + toolCallId + " introuvable / expire / non autorise"));
 
+        // Journal des resolutions (X1) : l'outcome CONFIRMED/REFUSED nourrit les
+        // Regles de Confiance (X2). Best-effort, hors chemin critique.
+        pendingToolStore.markResolved(toolCallId, confirmed);
+
         // Recharger la conv pour update updatedAt en fin de boucle. La validation
         // d'ownership est double : consume() (keycloakId du pending) + findByIdAndUser
         // (conversation scopee au user).
@@ -373,6 +481,24 @@ public class AgentOrchestrator {
                 .findByIdAndUser(pending.conversationId(), context.keycloakId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Conversation " + pending.conversationId() + " introuvable"));
+
+        // Pre-vol credits de la reprise (T-06b) : la reprise est un nouveau run
+        // facturable. Refus = hard cap (l'action confirmee n'est PAS executee —
+        // le pending est deja consomme, l'utilisateur devra relancer apres recharge).
+        if (runCreditGuard != null && !runCreditGuard.beginRun(context.organizationId())) {
+            consumer.accept(AgentSseEvent.error(
+                    "Crédits IA épuisés — impossible de reprendre cette action. "
+                            + "Rechargez vos crédits puis relancez-la."));
+            return conversation.getId();
+        }
+
+        // Run persiste dedie a la reprise (T-05) : le run initial a fini PAUSED ;
+        // la reprise est un nouveau run (nouveau thread HTTP), lie par la conversation.
+        if (agentRunRecorder != null) {
+            java.util.UUID runId = agentRunRecorder.startRun(
+                    context.organizationId(), context.keycloakId(), conversation.getId(), "chat_resume");
+            consumer.accept(AgentSseEvent.runStarted(runId.toString()));
+        }
 
         // Construire le tool result : execution reelle OU "annule par user".
         // Partage entre les deux flux (mono + multi-agent).
@@ -396,6 +522,12 @@ public class AgentOrchestrator {
             multiAgentFlowRunner.resumeAfterConfirmation(pending, result, context, conversation, consumer);
             conversation.setUpdatedAt(LocalDateTime.now());
             conversationRepository.save(conversation);
+            if (agentRunRecorder != null) {
+                agentRunRecorder.finishRun(null);
+            }
+            if (runCreditGuard != null) {
+                runCreditGuard.endRun();
+            }
             return conversation.getId();
         }
 
@@ -419,10 +551,28 @@ public class AgentOrchestrator {
 
         conversation.setUpdatedAt(LocalDateTime.now());
         conversationRepository.save(conversation);
+        if (agentRunRecorder != null) {
+            agentRunRecorder.finishRun(null);
+        }
+        if (runCreditGuard != null) {
+            runCreditGuard.endRun();
+        }
+        refreshRollingSummarySafe(conversation, context, target.apiKey());
         return conversation.getId();
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────
+
+    /**
+     * Rafraichit le rolling summary hors chemin critique (X6). Best-effort :
+     * null-safe (chemin legacy) et le service avale ses propres erreurs.
+     */
+    private void refreshRollingSummarySafe(AssistantConversation conversation,
+                                           AgentContext context, String apiKey) {
+        if (conversationSummaryService != null) {
+            conversationSummaryService.refreshIfNeeded(conversation, context, apiKey);
+        }
+    }
 
     /**
      * Construit le system prompt pour cette conversation (delegue a

@@ -3,9 +3,13 @@ package com.clenzy.integration.nuki.service;
 import com.clenzy.integration.nuki.model.NukiConnection;
 import com.clenzy.integration.nuki.model.NukiConnection.NukiConnectionStatus;
 import com.clenzy.integration.nuki.repository.NukiConnectionRepository;
+import com.clenzy.model.AutomationTrigger;
 import com.clenzy.model.SmartLockDevice;
 import com.clenzy.model.SmartLockDevice.LockState;
 import com.clenzy.repository.SmartLockDeviceRepository;
+import com.clenzy.service.automation.AutomationEngine;
+import com.clenzy.service.automation.AutomationSubject;
+import com.clenzy.service.automation.CreateMaintenanceInterventionExecutor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +38,9 @@ class NukiWebhookServiceTest {
 
     @Mock
     private NukiConnectionRepository connectionRepository;
+
+    @Mock
+    private AutomationEngine automationEngine;
 
     @InjectMocks
     private NukiWebhookService service;
@@ -165,5 +172,77 @@ class NukiWebhookServiceTest {
 
         assertThat(result).isFalse();
         verify(deviceRepository, never()).save(any());
+    }
+
+    // ─── F7a : batteryCritical → declencheur LOCK_BATTERY_CRITICAL ──────────
+
+    @Test
+    @DisplayName("F7a — batteryCritical=true -> fireTrigger LOCK_BATTERY_CRITICAL avec le device en sujet")
+    void batteryCritical_firesTrigger() {
+        SmartLockDevice device = deviceWith(LockState.LOCKED, 90);
+        device.setPropertyId(7L);
+        device.setName("Entree");
+        when(deviceRepository.findByExternalDeviceId("12345")).thenReturn(Optional.of(device));
+
+        Map<String, Object> p = payload(12345, null, 5);
+        p.put("batteryCritical", true);
+        service.applyBridgeEvent(p, ORG_ID);
+
+        org.mockito.ArgumentCaptor<AutomationSubject> captor =
+                org.mockito.ArgumentCaptor.forClass(AutomationSubject.class);
+        verify(automationEngine).fireTrigger(
+                org.mockito.ArgumentMatchers.eq(AutomationTrigger.LOCK_BATTERY_CRITICAL),
+                org.mockito.ArgumentMatchers.eq(ORG_ID),
+                captor.capture());
+        assertThat(captor.getValue().subjectType())
+                .isEqualTo(CreateMaintenanceInterventionExecutor.SUBJECT_SMART_LOCK_DEVICE);
+        assertThat(captor.getValue().subjectId()).isEqualTo(device.getId());
+        assertThat(captor.getValue().data())
+                .containsEntry(AutomationSubject.DATA_PROPERTY_ID, 7L);
+    }
+
+    @Test
+    @DisplayName("F7a — batteryCritical='true' (String) -> declenche aussi")
+    void batteryCriticalAsString_firesTrigger() {
+        SmartLockDevice device = deviceWith(LockState.LOCKED, 90);
+        when(deviceRepository.findByExternalDeviceId("12345")).thenReturn(Optional.of(device));
+
+        Map<String, Object> p = payload(12345, null, null);
+        p.put("batteryCritical", "true");
+        service.applyBridgeEvent(p, ORG_ID);
+
+        verify(automationEngine).fireTrigger(
+                org.mockito.ArgumentMatchers.eq(AutomationTrigger.LOCK_BATTERY_CRITICAL),
+                org.mockito.ArgumentMatchers.eq(ORG_ID),
+                any(AutomationSubject.class));
+    }
+
+    @Test
+    @DisplayName("F7a — batteryCritical absent ou false -> aucun declenchement")
+    void noBatteryCritical_noTrigger() {
+        SmartLockDevice device = deviceWith(LockState.LOCKED, 90);
+        when(deviceRepository.findByExternalDeviceId("12345")).thenReturn(Optional.of(device));
+
+        service.applyBridgeEvent(payload(12345, 1, 50), ORG_ID);
+
+        Map<String, Object> p = payload(12345, null, null);
+        p.put("batteryCritical", false);
+        service.applyBridgeEvent(p, ORG_ID);
+
+        verify(automationEngine, never()).fireTrigger(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("F7a — serrure hors org -> aucun declenchement (ownership avant trigger)")
+    void batteryCriticalCrossOrg_noTrigger() {
+        SmartLockDevice device = deviceWith(LockState.LOCKED, 90);
+        device.setOrganizationId(999L);
+        when(deviceRepository.findByExternalDeviceId("12345")).thenReturn(Optional.of(device));
+
+        Map<String, Object> p = payload(12345, null, null);
+        p.put("batteryCritical", true);
+        service.applyBridgeEvent(p, ORG_ID);
+
+        verify(automationEngine, never()).fireTrigger(any(), any(), any());
     }
 }

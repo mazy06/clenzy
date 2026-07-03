@@ -32,7 +32,8 @@ class ToolScopeSelectorTest {
             "list_invoices", "list_properties", "list_reservations", "list_reviews",
             "predict_maintenance_needs", "preview_batch_block_calendar", "recommend_price_adjustments",
             "remember_fact", "reply_to_review", "search_knowledge_base", "segment_guests",
-            "send_guest_message", "set_rate_override", "settle_intervention_payment", "simulate_calendar_block",
+            "send_guest_message", "send_owner_statement", "set_rate_override", "settle_intervention_payment", "simulate_calendar_block",
+            "trigger_channel_sync",
             "simulate_pricing_change", "start_workflow", "suggest_navigation", "suggest_upsells",
             "update_intervention_status", "update_property_status", "update_reservation_status");
 
@@ -86,6 +87,52 @@ class ToolScopeSelectorTest {
         List<String> names = namesOf(select("J'ai un ménage impayé, je veux le régler"));
 
         assertThat(names).contains("detect_unpaid_interventions", "settle_intervention_payment");
+    }
+
+    // ─── Scoping V2 (T-04) : stems ambigus purges + stems courts en match exact ──
+
+    @Test
+    void commonVerbDemande_doesNotExposePricingTools() {
+        // « je te demande... » est du francais courant, pas une intention pricing.
+        List<String> names = namesOf(select("Je te demande de m'aider a retrouver un document"));
+
+        assertThat(names).doesNotContain("recommend_price_adjustments", "set_rate_override",
+                "benchmark_competition");
+    }
+
+    @Test
+    void combienDeTemps_doesNotExposeWeatherTools() {
+        // « combien de temps » n'est pas une question meteo.
+        List<String> names = namesOf(select("Combien de temps faut-il pour un menage complet ?"));
+
+        assertThat(names).doesNotContain("get_weather_forecast", "get_local_events");
+        // Le domaine interventions, lui, est bien detecte.
+        assertThat(names).contains("list_cleaning_tasks");
+    }
+
+    @Test
+    void ownerIntent_exposesOwnerRelationTools() {
+        // Domaine relation proprietaire (T-09).
+        List<String> names = namesOf(select("Envoie le relevé de reversements de juin au propriétaire Martin"));
+
+        assertThat(names).contains("send_owner_statement", "get_owner_payout_summary", "get_property_pnl");
+    }
+
+    @Test
+    void weatherIntent_stillExposesWeatherTools() {
+        List<String> names = namesOf(select("Quelle meteo demain a Lyon pour mes voyageurs ?"));
+
+        assertThat(names).contains("get_weather_forecast", "get_local_events");
+    }
+
+    @Test
+    void shortStem_matchesExactAndPlural_only() {
+        // « prix » (stem court) en mot exact → pricing expose.
+        assertThat(namesOf(select("Quel est le prix moyen de la nuit en aout ?")))
+                .contains("recommend_price_adjustments", "get_price_quote");
+        // « kpis » (pluriel d'un stem court) → analytics expose.
+        assertThat(namesOf(select("Montre-moi les kpis du portefeuille")))
+                .contains("analyze_portfolio", "get_ops_analytics");
     }
 
     @Test

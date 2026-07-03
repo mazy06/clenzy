@@ -13,6 +13,7 @@ public record AutomationRuleDto(
     String triggerTime,
     String conditions,
     AutomationAction actionType,
+    String actionConfig,
     Long templateId,
     String templateName,
     MessageChannelType deliveryChannel,
@@ -22,7 +23,7 @@ public record AutomationRuleDto(
         return new AutomationRuleDto(
             r.getId(), r.getName(), r.isEnabled(), r.getSortOrder(),
             r.getTriggerType(), r.getTriggerOffsetDays(), r.getTriggerTime(),
-            r.getConditions(), r.getActionType(),
+            r.getConditions(), r.getActionType(), r.getActionConfig(),
             r.getTemplate() != null ? r.getTemplate().getId() : null,
             r.getTemplate() != null ? r.getTemplate().getName() : null,
             r.getDeliveryChannel(), r.getCreatedAt()

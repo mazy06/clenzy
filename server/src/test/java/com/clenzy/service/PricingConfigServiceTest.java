@@ -81,6 +81,40 @@ class PricingConfigServiceTest {
         }
     }
 
+    // ===== SUPPLEMENT IA PAR FORFAIT (campagne X5) =====
+
+    @Nested
+    class AiMonthlySurcharge {
+
+        @Test
+        void whenNoConfigInDb_thenReturnsGridDefaultsPerForfait() {
+            when(repository.findTopByOrganizationIdOrderByIdDesc(ORG_ID)).thenReturn(Optional.empty());
+
+            assertThat(service.getAiMonthlySurchargeCents("essentiel")).isEqualTo(900);
+            assertThat(service.getAiMonthlySurchargeCents("confort")).isEqualTo(2900);
+            assertThat(service.getAiMonthlySurchargeCents("premium")).isEqualTo(7900);
+        }
+
+        @Test
+        void whenForfaitNullOrUnknown_thenFallsBackToEssentiel() {
+            when(repository.findTopByOrganizationIdOrderByIdDesc(ORG_ID)).thenReturn(Optional.empty());
+
+            assertThat(service.getAiMonthlySurchargeCents(null)).isEqualTo(900);
+            assertThat(service.getAiMonthlySurchargeCents("inconnu")).isEqualTo(900);
+        }
+
+        @Test
+        void whenConfigOverridesSurcharge_thenDbValueWins() {
+            PricingConfig config = new PricingConfig();
+            config.setAiSurchargeConfortCents(1900);
+            when(repository.findTopByOrganizationIdOrderByIdDesc(ORG_ID)).thenReturn(Optional.of(config));
+
+            assertThat(service.getAiMonthlySurchargeCents("confort")).isEqualTo(1900);
+            // Colonnes NULL → defaut grille conserve
+            assertThat(service.getAiMonthlySurchargeCents("premium")).isEqualTo(7900);
+        }
+    }
+
     // ===== ORG SCOPING (Z5-BUGS-06) =====
 
     @Nested

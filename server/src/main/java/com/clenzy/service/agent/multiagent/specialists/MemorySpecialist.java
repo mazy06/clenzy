@@ -28,6 +28,10 @@ public class MemorySpecialist extends AbstractAgentSpecialist {
     @Override
     public String name() { return "memory"; }
 
+    /** Utilitaire mecanique (upsert/delete de faits) : tier petit (T-03). */
+    @Override
+    public com.clenzy.service.agent.AgentTier tier() { return com.clenzy.service.agent.AgentTier.SMALL; }
+
     @Override
     public String domain() { return "Memoire long-terme : enregistrer ou oublier des faits, preferences, objectifs"; }
 

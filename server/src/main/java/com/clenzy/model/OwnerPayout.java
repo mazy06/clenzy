@@ -84,6 +84,14 @@ public class OwnerPayout {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    /**
+     * Date d'envoi de la relance « en attente d'approbation » (flux F9b,
+     * executeur NOTIFY_STAFF). NULL = jamais relance. Posee par UPDATE
+     * conditionnel (CAS) : une seule relance par payout.
+     */
+    @Column(name = "approval_reminder_sent_at")
+    private Instant approvalReminderSentAt;
+
     @Column(name = "created_at")
     private Instant createdAt;
 
@@ -136,6 +144,8 @@ public class OwnerPayout {
     public void setRetryCount(int retryCount) { this.retryCount = retryCount; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public Instant getApprovalReminderSentAt() { return approvalReminderSentAt; }
+    public void setApprovalReminderSentAt(Instant approvalReminderSentAt) { this.approvalReminderSentAt = approvalReminderSentAt; }
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
     public PayoutMethod getPayoutMethod() { return payoutMethod; }

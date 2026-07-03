@@ -72,4 +72,21 @@ public interface NoiseAlertRepository extends JpaRepository<NoiseAlert, Long> {
         @Param("propertyId") Long propertyId,
         @Param("severity") NoiseAlert.AlertSeverity severity,
         @Param("since") LocalDateTime since);
+
+    /**
+     * F6b — nombre d'alertes (toutes severites) sur la propriete depuis {@code since}.
+     * Sert au seuil d'escalade (>=3 alertes / 24 h).
+     */
+    long countByPropertyIdAndCreatedAtAfter(Long propertyId, LocalDateTime since);
+
+    /**
+     * F6a — repli DB de l'idempotence Redis : un message voyageur (email ou
+     * WhatsApp) a-t-il deja ete envoye pour cette propriete depuis {@code since} ?
+     */
+    @Query("SELECT COUNT(a) > 0 FROM NoiseAlert a " +
+           "WHERE a.propertyId = :propertyId AND a.createdAt > :since " +
+           "AND (a.notifiedGuest = true OR a.notifiedWhatsapp = true)")
+    boolean existsGuestNotifiedSince(
+        @Param("propertyId") Long propertyId,
+        @Param("since") LocalDateTime since);
 }

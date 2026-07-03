@@ -105,7 +105,7 @@ public class SearchKnowledgeBaseTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Recherche dans la documentation officielle Clenzy + les notes internes de l'organisation via embeddings (RAG). Utiliser pour repondre 'selon la doc Clenzy...' avec citations sourcees. Renvoie une liste de snippets pertinents avec leur titre, source et score de relevance.",
+                    "Recherche RAG (embeddings) dans la doc officielle Baitly + notes internes de l'org. Renvoie des snippets avec source et score. Pour citer la doc avec sources.",
                     schema
             );
         } catch (JsonProcessingException e) {

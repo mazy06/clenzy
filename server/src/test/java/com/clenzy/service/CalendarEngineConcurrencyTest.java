@@ -5,7 +5,6 @@ import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.Disabled;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -28,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * Les donnees sont creees dans des transactions committees via TransactionTemplate,
  * et nettoyees en @AfterEach.
  */
-@Disabled("Test d'integration — necessite Docker/Testcontainers, skip pour build unitaire")
 class CalendarEngineConcurrencyTest extends AbstractIntegrationTest {
 
     @Autowired

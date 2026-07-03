@@ -29,9 +29,9 @@ export function PendingQueue({ actions, onValidate, onEdit, variant = 'floating'
     return (
       <Box
         data-pending-empty
-        sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: '14px 8px', color: '#6B7196' }}
+        sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: '14px 8px', color: 'var(--muted)' }}
       >
-        <CheckCircle size={28} style={{ color: '#4A9B8E', flexShrink: 0 }} />
+        <CheckCircle size={28} style={{ color: 'var(--ok)', flexShrink: 0 }} />
         <Box>
           <Box sx={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink, #1b2240)' }}>{t('supervision.hitl.empty')}</Box>
         </Box>

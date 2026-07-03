@@ -1,7 +1,10 @@
 package com.clenzy.scheduler;
 
+import com.clenzy.model.AiAutonomyBudget;
 import com.clenzy.model.SupervisionSettings;
 import com.clenzy.repository.SupervisionSettingsRepository;
+import com.clenzy.service.ai.AutonomyBudgetService;
+import com.clenzy.service.ai.AutonomyRunScope;
 import com.clenzy.service.agent.supervision.SupervisionScanQuota;
 import com.clenzy.service.agent.supervision.SupervisionScanService;
 import com.clenzy.service.agent.supervision.SupervisionTriggerService;
@@ -32,6 +35,13 @@ import java.util.Set;
  * <p>v1 = balayage des logements de l'org borné par le budget. Le déclenchement
  * <i>event-driven</i> (Outbox/Kafka → marquage « dirty » par propriété) est
  * l'affinage suivant (prioriser les logements ayant reçu un événement).</p>
+ *
+ * <p><b>Gate premium (X8-b, ADR-007)</b> : le scan LLM autonome est un
+ * comportement premium — chaque scan passe par
+ * {@link AutonomyRunScope#runPremium} (comportement
+ * {@code supervision_scan} activé + plafond de cycle). Au plafond en
+ * NOTIFY_ONLY : mode dégradé déterministe (0 LLM, scénario S4 D-105) ;
+ * PAUSE ou comportement désactivé : rien.</p>
  */
 @Component
 public class SupervisionAutonomousScanner {
@@ -44,6 +54,7 @@ public class SupervisionAutonomousScanner {
     private final SupervisionScanQuota quota;
     private final SupervisionScanService scanService;
     private final TenantScopedExecutor tenantScopedExecutor;
+    private final AutonomyRunScope autonomyRunScope;
 
     public SupervisionAutonomousScanner(
             @Value("${clenzy.supervision.autonomous.enabled:false}") boolean enabled,
@@ -51,13 +62,15 @@ public class SupervisionAutonomousScanner {
             SupervisionTriggerService triggerService,
             SupervisionScanQuota quota,
             SupervisionScanService scanService,
-            TenantScopedExecutor tenantScopedExecutor) {
+            TenantScopedExecutor tenantScopedExecutor,
+            AutonomyRunScope autonomyRunScope) {
         this.enabled = enabled;
         this.settingsRepository = settingsRepository;
         this.triggerService = triggerService;
         this.quota = quota;
         this.scanService = scanService;
         this.tenantScopedExecutor = tenantScopedExecutor;
+        this.autonomyRunScope = autonomyRunScope;
     }
 
     @Scheduled(fixedDelayString = "${clenzy.supervision.autonomous.interval-ms:3600000}",
@@ -99,8 +112,21 @@ public class SupervisionAutonomousScanner {
                 break; // budget du jour épuisé
             }
             try {
-                scanService.autonomousScan(orgId, propertyId);
-                scanned++;
+                // X8-b : scan LLM = comportement premium gated (bucket PREMIUM_AUTO au ledger).
+                AutonomyBudgetService.Decision decision = autonomyRunScope.runPremium(
+                        orgId, AiAutonomyBudget.BEHAVIOR_SUPERVISION_SCAN,
+                        () -> scanService.autonomousScan(orgId, propertyId));
+                switch (decision.outcome()) {
+                    case ALLOWED -> scanned++;
+                    case CAPPED_NOTIFY_ONLY ->
+                        // Plafond atteint, mode notifier : heuristiques déterministes
+                        // seules (0 LLM, 0 crédit) — les suggestions continuent d'arriver.
+                        scanService.deterministicScanOnly(orgId, propertyId);
+                    case CAPPED_PAUSE, DISABLED -> {
+                        // PAUSE : autonomie suspendue jusqu'au cycle suivant.
+                        // DISABLED : comportement non activé (panneau autonomie) ou plafond 0.
+                    }
+                }
             } catch (Exception e) {
                 log.warn("Autonomous scan failed org={} property={}: {}",
                         orgId, propertyId, e.getMessage());

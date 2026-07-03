@@ -73,8 +73,19 @@ SELECT id, organization_id, property_id, date, status,
 FROM calendar_days_old;
 
 -- 6. Reattacher la sequence
-SELECT setval('calendar_days_id_seq',
-    COALESCE((SELECT MAX(id) FROM calendar_days), 0) + 1);
+-- REVISION 2026-07 (chantier 0000-baseline, replay sur base vierge) : le
+-- `SELECT setval(...)` nu est enveloppe dans DO/PERFORM. Avec
+-- splitStatements:false, pgjdbc execute tout le fichier en un seul
+-- Statement : le portal du SELECT (une ligne retournee) restait ouvert
+-- pendant le CREATE INDEX suivant sur les partitions qu'il venait de
+-- scanner -> "cannot CREATE INDEX ... because it is being used by active
+-- queries in this session". PERFORM ne retourne rien : meme effet, pas de
+-- portal. Fichier deja applique partout (protege par validCheckSum).
+DO $$
+BEGIN
+    PERFORM setval('calendar_days_id_seq',
+        COALESCE((SELECT MAX(id) FROM calendar_days), 0) + 1);
+END $$;
 
 -- 7. Recreer les index
 CREATE INDEX idx_calendar_days_property_date_status

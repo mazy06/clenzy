@@ -140,7 +140,7 @@ class AutomationRuleControllerTest {
             when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
             CreateAutomationRuleRequest request = new CreateAutomationRuleRequest(
                 "New rule", AutomationTrigger.RESERVATION_CONFIRMED, 0, null,
-                null, null, null, null);
+                null, null, null, null, null);
 
             when(ruleRepository.save(any(AutomationRule.class))).thenAnswer(inv -> {
                 AutomationRule r = inv.getArgument(0);
@@ -170,7 +170,7 @@ class AutomationRuleControllerTest {
 
             CreateAutomationRuleRequest request = new CreateAutomationRuleRequest(
                 "Full rule", AutomationTrigger.CHECK_OUT_DAY, 2, "12:30",
-                "{\"propertyId\":1}", AutomationAction.SEND_CHECKIN_LINK, 50L,
+                "{\"propertyId\":1}", AutomationAction.SEND_CHECKIN_LINK, null, 50L,
                 MessageChannelType.WHATSAPP);
 
             when(ruleRepository.save(any(AutomationRule.class))).thenAnswer(inv -> {
@@ -197,7 +197,7 @@ class AutomationRuleControllerTest {
 
             CreateAutomationRuleRequest request = new CreateAutomationRuleRequest(
                 "Rule", AutomationTrigger.RESERVATION_CONFIRMED, 0, null,
-                null, null, 999L, null);
+                null, null, null, 999L, null);
 
             when(ruleRepository.save(any())).thenAnswer(inv -> {
                 AutomationRule r = inv.getArgument(0);
@@ -224,7 +224,7 @@ class AutomationRuleControllerTest {
 
             CreateAutomationRuleRequest request = new CreateAutomationRuleRequest(
                 "Updated", AutomationTrigger.CHECK_OUT_PASSED, 5, "08:00",
-                "{}", AutomationAction.SEND_GUIDE, null, MessageChannelType.SMS);
+                "{}", AutomationAction.SEND_GUIDE, null, null, MessageChannelType.SMS);
 
             when(ruleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -247,7 +247,7 @@ class AutomationRuleControllerTest {
 
             CreateAutomationRuleRequest request = new CreateAutomationRuleRequest(
                 "Updated", AutomationTrigger.RESERVATION_CONFIRMED, 0, null,
-                null, null, null, null);
+                null, null, null, null, null);
 
             assertThatThrownBy(() -> controller.update(99L, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -268,7 +268,7 @@ class AutomationRuleControllerTest {
 
             CreateAutomationRuleRequest request = new CreateAutomationRuleRequest(
                 "Updated", AutomationTrigger.RESERVATION_CONFIRMED, 0, null,
-                null, null, 7L, null);
+                null, null, null, 7L, null);
 
             when(ruleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -290,7 +290,7 @@ class AutomationRuleControllerTest {
 
             CreateAutomationRuleRequest request = new CreateAutomationRuleRequest(
                 "Updated", AutomationTrigger.RESERVATION_CONFIRMED, 0, null,
-                null, null, null, null);
+                null, null, null, null, null);
 
             when(ruleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 

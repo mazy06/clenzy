@@ -199,4 +199,30 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
            "WHERE sr.status = 'PENDING' AND sr.assignedToId IS NULL " +
            "AND COALESCE(sr.autoAssignRetryCount, 0) < :maxRetries")
     List<Long> findOrganizationIdsWithPendingUnassigned(@Param("maxRetries") int maxRetries);
+
+    // ── Flux deterministes (consumer Kafka / scheduler — pas de TenantContext) ──
+
+    /**
+     * SR creee par un flux automatique, retrouvee par sa cle d'idempotence
+     * (ex. AUTO_CLEANING:propertyId:checkIn:checkOut). orgId explicite : hors
+     * requete HTTP le filtre Hibernate n'est pas garanti actif.
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
+           "WHERE sr.autoFlowKey = :autoFlowKey AND sr.organizationId = :orgId")
+    Optional<ServiceRequest> findByAutoFlowKey(
+        @Param("autoFlowKey") String autoFlowKey, @Param("orgId") Long orgId);
+
+    /**
+     * Verrou advisory TRANSACTIONNEL sur la cle de menage auto : serialise les
+     * createurs concurrents du MEME sejour (2 fireTrigger simultanes, ou course
+     * moteur x filet backfill). Le perdant attend le commit du gagnant, voit sa
+     * demande au check d'existence et sort en skip propre — au lieu de percuter
+     * l'index unique 0307, ce qui marquerait sa transaction rollback-only (le
+     * catch de DataIntegrityViolationException en aval ne peut alors plus rien
+     * sauver : UnexpectedRollbackException au commit — bug revele par
+     * AutomationConcurrencyIT, strategie de tests vague T3). Relache
+     * automatiquement en fin de transaction.
+     */
+    @Query(value = "SELECT pg_advisory_xact_lock(hashtext(:autoFlowKey))", nativeQuery = true)
+    Object acquireAutoFlowKeyLock(@Param("autoFlowKey") String autoFlowKey);
 }

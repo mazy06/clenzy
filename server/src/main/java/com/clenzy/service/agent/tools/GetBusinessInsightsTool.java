@@ -128,7 +128,7 @@ public class GetBusinessInsightsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Genere des INSIGHTS STRATEGIQUES (powered AI) sur une propriete : anomalies detectees, tendances, recommandations, warnings. Chaque insight a type (ANOMALY/TREND/RECOMMENDATION/WARNING), severity (LOW/MEDIUM/HIGH/CRITICAL), titre, description et recommandation actionnable. Utiliser pour 'que dois-je faire', 'donne-moi des conseils', 'analyse ma performance', 'qu'est-ce qui va / ne va pas', 'strategie pour ameliorer'.",
+                    "Insights strategiques IA d'une propriete : anomalies, tendances, recommandations, warnings (severite). Pour 'conseils', 'que dois-je faire', 'analyse ma perf'.",
                     schema
             );
         } catch (JsonProcessingException e) {
