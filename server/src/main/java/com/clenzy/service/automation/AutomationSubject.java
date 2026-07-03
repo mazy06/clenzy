@@ -20,6 +20,8 @@ public record AutomationSubject(String subjectType, Long subjectId, Map<String, 
     public static final String TYPE_NOISE_ALERT = "NOISE_ALERT";
     /** Capteur IoT (F7b device offline, Minut) — subjectId = id du NoiseDevice. */
     public static final String TYPE_IOT_DEVICE = "IOT_DEVICE";
+    /** Propriete (S2 rate parity) — subjectId = id de la Property. */
+    public static final String TYPE_PROPERTY = "PROPERTY";
 
     // ── Cles de donnees standard ────────────────────────────────────────────
     public static final String DATA_PROPERTY_ID = "propertyId";

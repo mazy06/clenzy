@@ -98,6 +98,31 @@ public interface ChannelConnector {
     }
 
     /**
+     * Pousse une FERMETURE DE VENTE forcee vers CE canal uniquement (OUTBOUND).
+     *
+     * <p>Contrairement a {@link #pushCalendarUpdate}, qui reflete l'etat reel du
+     * CalendarEngine, cette methode force {@code available=false} (equivalent
+     * stop-sell) sur la plage donnee, quel que soit l'etat du calendrier — les
+     * autres canaux ne sont pas affectes. La reouverture ne necessite pas de
+     * methode dediee : re-pousser la verite via {@link #pushCalendarUpdate}
+     * annule la fermeture forcee (idempotent).</p>
+     *
+     * <p>Implementation optionnelle — retourne UNSUPPORTED par defaut (iCal
+     * notamment est pull-based : le feed exporte ne peut pas etre ferme par
+     * canal).</p>
+     *
+     * @param propertyId propriete PMS
+     * @param from       debut de la plage (inclus)
+     * @param to         fin de la plage (exclus)
+     * @param orgId      organisation
+     * @return resultat de la synchronisation
+     */
+    default SyncResult pushAvailabilityClosure(Long propertyId, LocalDate from,
+                                                LocalDate to, Long orgId) {
+        return SyncResult.unsupported("Availability closure not supported by " + getChannelName());
+    }
+
+    /**
      * Pousse une mise a jour reservation vers le channel (OUTBOUND).
      * Implementation optionnelle — retourne UNSUPPORTED par defaut.
      *

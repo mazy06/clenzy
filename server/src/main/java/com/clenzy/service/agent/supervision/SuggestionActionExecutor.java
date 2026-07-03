@@ -5,9 +5,11 @@ import com.clenzy.model.RateOverride;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.SecurityDepositStatus;
 import com.clenzy.model.SupervisionSuggestion;
+import com.clenzy.model.YieldAdjustment;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.SecurityDepositRepository;
+import com.clenzy.repository.YieldAdjustmentRepository;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.SearchCacheInvalidator;
@@ -21,7 +23,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 /**
  * Exécute l'action portée par une suggestion actionnable (Phase B + vague 3).
@@ -51,6 +55,12 @@ public class SuggestionActionExecutor {
     static final String CALENDAR_BLOCK_SOURCE = "SUPERVISION";
     static final int DEFAULT_BLOCK_DAYS = 7;
     static final int MAX_BLOCK_DAYS = 30;
+    /** Source des overrides yield v1 (partagée avec {@code YieldRuleEngine}). */
+    static final String YIELD_OVERRIDE_SOURCE = "YIELD_RULE";
+    /** Garde-fou dur à l'apply yield : |percent| borné, fenêtre bornée. */
+    static final BigDecimal MAX_YIELD_PERCENT = BigDecimal.valueOf(50);
+    static final int MAX_YIELD_WINDOW_DAYS = 366;
+    static final ZoneId DEFAULT_PROPERTY_ZONE = ZoneId.of("Europe/Paris");
 
     private final PriceEngine priceEngine;
     private final RateOverrideRepository rateOverrideRepository;
@@ -59,6 +69,7 @@ public class SuggestionActionExecutor {
     private final SecurityDepositRepository securityDepositRepository;
     private final SecurityDepositPaymentService securityDepositPaymentService;
     private final CalendarEngine calendarEngine;
+    private final YieldAdjustmentRepository yieldAdjustmentRepository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -69,6 +80,7 @@ public class SuggestionActionExecutor {
                                     SecurityDepositRepository securityDepositRepository,
                                     SecurityDepositPaymentService securityDepositPaymentService,
                                     CalendarEngine calendarEngine,
+                                    YieldAdjustmentRepository yieldAdjustmentRepository,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -78,6 +90,7 @@ public class SuggestionActionExecutor {
         this.securityDepositRepository = securityDepositRepository;
         this.securityDepositPaymentService = securityDepositPaymentService;
         this.calendarEngine = calendarEngine;
+        this.yieldAdjustmentRepository = yieldAdjustmentRepository;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -103,6 +116,7 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.DEPOSIT_REFUND, SupervisionActionType.DEPOSIT_RELEASE ->
                     releaseDeposit(suggestion);
             case SupervisionActionType.CALENDAR_BLOCK -> applyCalendarBlock(suggestion);
+            case SupervisionActionType.YIELD_PRICE_ADJUST -> applyYieldAdjust(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
     }
@@ -209,6 +223,110 @@ public class SuggestionActionExecutor {
         searchCacheInvalidator.onAvailabilityOrPriceChanged();
         log.info("PRICE_DROP appliqué org={} property={} {}→{} −{}% ({} jour(s))",
                 orgId, propertyId, from, to, percent, applied);
+    }
+
+    /**
+     * F8a (yield v1, mode SUGGEST) — applique l'ajustement yield approuvé par
+     * l'opérateur. Écritures DB uniquement (RateOverride + journal) : exécuté
+     * dans la transaction d'application.
+     *
+     * <p>Garanties (règle audit n°1 + garde-fous F8a) :</p>
+     * <ul>
+     *   <li>prix RE-résolus à l'apply — le montant de la suggestion n'est
+     *       jamais appliqué aveuglément ;</li>
+     *   <li>plancher/plafond yield du bien OBLIGATOIRES (sinon échec explicite) ;</li>
+     *   <li>cap « un apply par bien et par jour calendaire » (timezone du bien)
+     *       via le journal — l'index unique partiel DB couvre la course ;</li>
+     *   <li>les overrides d'une autre source (MANUAL, OTA…) ne sont jamais écrasés ;</li>
+     *   <li>chaque nuit ajustée est journalisée APPLIED avec le lien suggestion.</li>
+     * </ul>
+     */
+    private void applyYieldAdjust(SupervisionSuggestion suggestion) {
+        final JsonNode params = parseParams(suggestion.getActionParams());
+        final LocalDate from = LocalDate.parse(params.path("from").asText());
+        final LocalDate to = LocalDate.parse(params.path("to").asText()); // exclusif
+        final BigDecimal percent = new BigDecimal(params.path("percent").asText("0"));
+        if (!from.isBefore(to) || from.plusDays(MAX_YIELD_WINDOW_DAYS).isBefore(to)) {
+            throw new IllegalStateException("Plage yield invalide : " + from + " → " + to);
+        }
+        if (percent.signum() == 0 || percent.abs().compareTo(MAX_YIELD_PERCENT) > 0) {
+            throw new IllegalStateException("Pourcentage yield hors bornes : " + percent);
+        }
+
+        final Long propertyId = suggestion.getPropertyId();
+        final Long orgId = suggestion.getOrganizationId();
+        final Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new IllegalStateException("Logement introuvable : " + propertyId));
+        final BigDecimal floor = property.getYieldPriceFloor();
+        final BigDecimal ceiling = property.getYieldPriceCeiling();
+        if (floor == null || ceiling == null) {
+            throw new IllegalStateException(
+                    "Plancher/plafond yield absents sur le logement " + propertyId
+                            + " — configurez les bornes avant d'appliquer");
+        }
+
+        final LocalDate today = LocalDate.ofInstant(clock.instant(), propertyZone(property));
+        if (yieldAdjustmentRepository.existsByPropertyIdAndAdjustmentDayAndModeAndSkipReasonIsNull(
+                propertyId, today, YieldAdjustment.Mode.APPLIED)) {
+            throw new IllegalStateException(
+                    "Un ajustement yield a déjà été appliqué aujourd'hui sur ce logement (cap journalier)");
+        }
+
+        final String currency = property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR";
+        final BigDecimal factor = BigDecimal.ONE.add(
+                percent.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+        final Long ruleId = params.path("ruleId").isNumber() ? params.path("ruleId").asLong() : null;
+
+        int applied = 0;
+        for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
+            final LocalDate d = date;
+            final var existing = rateOverrideRepository.findByPropertyIdAndDate(propertyId, d, orgId);
+            if (existing.isPresent() && !YIELD_OVERRIDE_SOURCE.equals(existing.get().getSource())) {
+                continue; // jamais d'écrasement d'un override MANUAL / OTA / externe
+            }
+            final BigDecimal current = priceEngine.resolvePrice(propertyId, d, orgId);
+            if (current == null || current.signum() <= 0) {
+                continue;
+            }
+            final BigDecimal target = current.multiply(factor).setScale(2, RoundingMode.HALF_UP)
+                    .max(floor).min(ceiling);
+            if (target.compareTo(current) == 0) {
+                continue;
+            }
+            final RateOverride override = existing
+                    .orElseGet(() -> new RateOverride(property, d, target, YIELD_OVERRIDE_SOURCE, orgId));
+            override.setNightlyPrice(target);
+            override.setSource(YIELD_OVERRIDE_SOURCE);
+            override.setCurrency(currency);
+            override.setCreatedBy("system:yield");
+            rateOverrideRepository.save(override);
+
+            final YieldAdjustment journal = new YieldAdjustment(
+                    orgId, propertyId, today, YieldAdjustment.Mode.APPLIED);
+            journal.setRuleId(ruleId);
+            journal.setTargetDate(d);
+            journal.setPriceBefore(current);
+            journal.setPriceAfter(target);
+            journal.setSuggestionId(suggestion.getId());
+            journal.setReason(suggestion.getTitle());
+            yieldAdjustmentRepository.save(journal);
+            applied++;
+        }
+        searchCacheInvalidator.onAvailabilityOrPriceChanged();
+        log.info("YIELD_PRICE_ADJUST appliqué org={} property={} {}→{} {}% ({} nuit(s))",
+                orgId, propertyId, from, to, percent, applied);
+    }
+
+    private static ZoneId propertyZone(Property property) {
+        final String timezone = property.getTimezone();
+        if (timezone == null || timezone.isBlank()) {
+            return DEFAULT_PROPERTY_ZONE;
+        }
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException e) {
+            return DEFAULT_PROPERTY_ZONE;
+        }
     }
 
     private JsonNode parseParams(String json) {

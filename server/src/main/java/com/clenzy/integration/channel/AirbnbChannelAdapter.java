@@ -214,6 +214,54 @@ public class AirbnbChannelAdapter implements ChannelConnector {
     }
 
     /**
+     * Fermeture de vente ciblee Airbnb (S3) : pousse {@code available=false}
+     * jour par jour sur le listing, sans toucher au CalendarEngine ni aux
+     * autres canaux. Meme convention que {@link #pushCalendarUpdate} : les
+     * dates sans prix resolvable sont ignorees (le payload Airbnb exige
+     * {@code daily_price}).
+     */
+    @Override
+    public SyncResult pushAvailabilityClosure(Long propertyId, LocalDate from,
+                                               LocalDate to, Long orgId) {
+        long startTime = System.currentTimeMillis();
+
+        Optional<ChannelMapping> mappingOpt = resolveMapping(propertyId, orgId);
+        if (mappingOpt.isEmpty()) {
+            return SyncResult.skipped("Aucun mapping Airbnb pour propriete " + propertyId);
+        }
+        String listingId = mappingOpt.get().getExternalId();
+
+        String accessToken = resolveDecryptedAccessToken();
+        if (accessToken == null) {
+            return SyncResult.failed("Pas de token OAuth Airbnb valide");
+        }
+
+        try {
+            Map<LocalDate, BigDecimal> prices = priceEngine.resolvePriceRange(propertyId, from, to, orgId);
+            int pushed = 0;
+            for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
+                BigDecimal price = prices.get(date);
+                if (price == null) continue;
+                try {
+                    pushSingleDayToAirbnb(listingId, date, price, null, accessToken, false);
+                    pushed++;
+                } catch (Exception e) {
+                    log.warn("Failed to push closure for listing {} date {}: {}",
+                            listingId, date, e.getMessage());
+                }
+            }
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("Fermeture Airbnb poussee pour propriete {} : {} jour(s) [{}, {})",
+                    propertyId, pushed, from, to);
+            return SyncResult.success("Fermeture poussee sur " + pushed + " jour(s)", pushed, duration);
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            log.error("Erreur push fermeture Airbnb pour propriete {}: {}", propertyId, e.getMessage());
+            return SyncResult.failed("Erreur API Airbnb: " + e.getMessage(), duration);
+        }
+    }
+
+    /**
      * Pousse une promotion vers Airbnb.
      */
     @Override

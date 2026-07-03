@@ -38,19 +38,22 @@ public class GuestChatService {
     private final GuideConfig guideConfig;
     private final AiTokenBudgetService tokenBudgetService;
     private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
+    private final AssistantOutcomeTracker outcomeTracker;
 
     public GuestChatService(WelcomeGuideService welcomeGuideService,
                             AiProviderRouter aiProviderRouter,
                             StringRedisTemplate redisTemplate,
                             GuideConfig guideConfig,
                             AiTokenBudgetService tokenBudgetService,
-                            io.micrometer.core.instrument.MeterRegistry meterRegistry) {
+                            io.micrometer.core.instrument.MeterRegistry meterRegistry,
+                            AssistantOutcomeTracker outcomeTracker) {
         this.welcomeGuideService = welcomeGuideService;
         this.aiProviderRouter = aiProviderRouter;
         this.redisTemplate = redisTemplate;
         this.guideConfig = guideConfig;
         this.tokenBudgetService = tokenBudgetService;
         this.meterRegistry = meterRegistry;
+        this.outcomeTracker = outcomeTracker;
     }
 
     /**
@@ -99,6 +102,9 @@ public class GuestChatService {
                 log.debug("recordUsage chatbot échoué (token={}): {}", token, e.getMessage());
             }
             recordOutcome(ctx.orgId(), Status.OK);
+            // WHY: seule une vraie réponse IA (OK) ouvre la fenêtre « reprise humaine » 24 h —
+            // les replis RATE_LIMITED/UNAVAILABLE invitent déjà le guest à contacter l'hôte.
+            outcomeTracker.recordAutoReply(ctx.orgId(), ctx.reservationId());
             return new GuestChatResult(Status.OK, reply.trim());
         } catch (Exception e) {
             // IA non configurée pour l'org, budget épuisé, ou erreur réseau → repli gracieux.

@@ -102,12 +102,16 @@ public final class ToolScopeSelector {
                     // « demande » retiré (T-04) : verbe francais ultra-courant (« je te
                     // demande... ») → exposait les outils pricing hors sujet. La prevision
                     // de demande reste couverte par « forecast » / « prevision ».
+                    // « sejour » volontairement absent (T-04) : mot ultra-courant du chat
+                    // PMS (« le séjour de M. X ») — la taxe de séjour est couverte par
+                    // « taxe » ; la parité tarifaire par « parite »/« disparite ».
                     Set.of("prix", "tarif", "pricing", "tarification", "saison", "override", "augment",
                             "baiss", "yield", "benchmark", "concurrent", "concurrence", "prevision",
-                            "upsell", "forecast"),
+                            "upsell", "forecast", "taxe", "parite", "disparite"),
                     Set.of("recommend_price_adjustments", "simulate_pricing_change", "set_rate_override",
                             "get_price_quote", "benchmark_competition", "forecast_demand_longterm",
-                            "suggest_upsells", "get_occupancy_forecast")),
+                            "suggest_upsells", "get_occupancy_forecast", "compute_tourist_tax",
+                            "check_rate_parity")),
             new Domain(
                     Set.of("logement", "propriete", "appartement", "studio", "amenity", "equipement",
                             "photo", "adresse"),
@@ -127,7 +131,8 @@ public final class ToolScopeSelector {
                     Set.of("channel", "airbnb", "booking", "vrbo", "ical", "attribution", "canal",
                             "synchro", "sync", "resynchro"),
                     Set.of("get_channel_sync_status", "get_channel_attribution",
-                            "trigger_channel_sync")),
+                            "trigger_channel_sync", "open_close_channel_availability",
+                            "check_rate_parity")),
             new Domain(
                     // « temps » (« combien de temps... »), « local », « activite », « sortie »
                     // retires (T-04) : mots francais trop generiques → outils meteo exposes

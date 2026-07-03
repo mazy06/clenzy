@@ -108,6 +108,32 @@ public class SupervisionSuggestionService {
                                           Long reservationId, String title, String motif,
                                           String actionType, String actionParams,
                                           Long estimatedImpactCents, String severity) {
+        return createActionable(organizationId, propertyId, moduleKey, reservationId,
+                title, motif, actionType, actionParams, estimatedImpactCents, severity)
+                .isPresent();
+    }
+
+    /**
+     * Variante de {@link #recordActionableStrict} qui retourne l'ID de la
+     * suggestion creee (yield v1 F8a : le journal {@code yield_adjustments}
+     * lie chaque ligne SUGGESTED a sa suggestion). Vide si une proposition
+     * identique est deja en attente (deduplication par intitule).
+     */
+    @Transactional
+    public java.util.Optional<Long> recordActionableWithId(Long organizationId, Long propertyId,
+                                                           String moduleKey, Long reservationId,
+                                                           String title, String motif,
+                                                           String actionType, String actionParams,
+                                                           Long estimatedImpactCents, String severity) {
+        return createActionable(organizationId, propertyId, moduleKey, reservationId,
+                title, motif, actionType, actionParams, estimatedImpactCents, severity)
+                .map(SupervisionSuggestion::getId);
+    }
+
+    private java.util.Optional<SupervisionSuggestion> createActionable(
+            Long organizationId, Long propertyId, String moduleKey, Long reservationId,
+            String title, String motif, String actionType, String actionParams,
+            Long estimatedImpactCents, String severity) {
         if (organizationId == null || propertyId == null || moduleKey == null
                 || title == null || title.isBlank()) {
             throw new IllegalArgumentException(
@@ -117,7 +143,7 @@ public class SupervisionSuggestionService {
         boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
                 organizationId, propertyId, moduleKey, safeTitle, SupervisionSuggestion.STATUS_PENDING);
         if (dup) {
-            return false;
+            return java.util.Optional.empty();
         }
         SupervisionSuggestion s = new SupervisionSuggestion(
                 organizationId, propertyId, moduleKey, null, safeTitle,
@@ -128,7 +154,7 @@ public class SupervisionSuggestionService {
         s.setEstimatedImpactCents(estimatedImpactCents);
         s.setSeverity(severity);
         repository.save(s);
-        return true;
+        return java.util.Optional.of(s);
     }
 
     /** Suggestions en attente non expirées d'un logement (org du requester). */

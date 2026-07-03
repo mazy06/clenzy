@@ -6,14 +6,24 @@ import org.hibernate.annotations.Filter;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+/**
+ * Barème de taxe de séjour saisi par l'organisation (v1 Baitly : pas d'API
+ * DGFiP, la conciergerie saisit ses barèmes communaux).
+ *
+ * <p>{@code propertyId} null = barème PAR DÉFAUT de l'org ; sinon override par
+ * bien. Résolution : override par bien &gt; défaut org &gt; absent.</p>
+ */
 @Entity
 @Table(name = "tourist_tax_configs")
 @Filter(name = "organizationFilter", condition = "organization_id = :orgId")
 public class TouristTaxConfig {
 
     public enum TaxCalculationMode {
+        /** Hébergement classé : montant fixe €/personne/nuit. */
         PER_PERSON_PER_NIGHT,
+        /** Non classé « au réel » : % du prix de la nuitée par personne, plafonné par {@link #capPerPersonNight}. */
         PERCENTAGE_OF_RATE,
+        /** Forfait €/nuit (indépendant du nombre de personnes). */
         FLAT_PER_NIGHT
     }
 
@@ -24,7 +34,8 @@ public class TouristTaxConfig {
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
-    @Column(name = "property_id", nullable = false)
+    /** Null = barème par défaut de l'org, sinon override par bien. */
+    @Column(name = "property_id")
     private Long propertyId;
 
     @Column(name = "commune_name", nullable = false)
@@ -40,8 +51,29 @@ public class TouristTaxConfig {
     @Column(name = "rate_per_person", precision = 6, scale = 2)
     private BigDecimal ratePerPerson;
 
+    /** Fraction (0.05 = 5 %) du prix de la nuitée — mode PERCENTAGE_OF_RATE. */
     @Column(name = "percentage_rate", precision = 5, scale = 4)
     private BigDecimal percentageRate;
+
+    /** Plafond €/personne/nuit du mode PERCENTAGE_OF_RATE (« au réel » plafonné). Null = pas de plafond. */
+    @Column(name = "cap_per_person_night", precision = 6, scale = 2)
+    private BigDecimal capPerPersonNight;
+
+    /** Taxe additionnelle départementale en % (typiquement 10). Null = 0. */
+    @Column(name = "departmental_surcharge_pct", precision = 6, scale = 2)
+    private BigDecimal departmentalSurchargePct;
+
+    /** Taxe additionnelle régionale en % (ex. Île-de-France). Null = 0. */
+    @Column(name = "regional_surcharge_pct", precision = 6, scale = 2)
+    private BigDecimal regionalSurchargePct;
+
+    /**
+     * Exonération légale des mineurs (&lt;18 ans). v1 : sans effet de calcul tant
+     * que Reservation ne porte que {@code guestCount} (pas de ventilation
+     * adultes/enfants) — champ posé pour la suite.
+     */
+    @Column(name = "exempt_minors", nullable = false)
+    private Boolean exemptMinors = true;
 
     @Column(name = "max_nights")
     private Integer maxNights;
@@ -86,6 +118,14 @@ public class TouristTaxConfig {
     public void setRatePerPerson(BigDecimal ratePerPerson) { this.ratePerPerson = ratePerPerson; }
     public BigDecimal getPercentageRate() { return percentageRate; }
     public void setPercentageRate(BigDecimal percentageRate) { this.percentageRate = percentageRate; }
+    public BigDecimal getCapPerPersonNight() { return capPerPersonNight; }
+    public void setCapPerPersonNight(BigDecimal capPerPersonNight) { this.capPerPersonNight = capPerPersonNight; }
+    public BigDecimal getDepartmentalSurchargePct() { return departmentalSurchargePct; }
+    public void setDepartmentalSurchargePct(BigDecimal departmentalSurchargePct) { this.departmentalSurchargePct = departmentalSurchargePct; }
+    public BigDecimal getRegionalSurchargePct() { return regionalSurchargePct; }
+    public void setRegionalSurchargePct(BigDecimal regionalSurchargePct) { this.regionalSurchargePct = regionalSurchargePct; }
+    public Boolean getExemptMinors() { return exemptMinors; }
+    public void setExemptMinors(Boolean exemptMinors) { this.exemptMinors = exemptMinors; }
     public Integer getMaxNights() { return maxNights; }
     public void setMaxNights(Integer maxNights) { this.maxNights = maxNights; }
     public Integer getChildrenExemptUnder() { return childrenExemptUnder; }

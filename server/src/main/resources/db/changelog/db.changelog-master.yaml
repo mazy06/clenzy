@@ -3015,3 +3015,31 @@ databaseChangeLog:
       sqlFile:
         path: changes/0310__backfill_ddl_auto_drift_columns.sql
         relativeToChangelogFile: true
+
+  # S1 taxe de sejour : barème par défaut org (property_id nullable), plafond
+  # au réel, surtaxes départementale/régionale, exonération mineurs, unicité
+  # partielle (un barème par bien, un défaut par org).
+  - changeSet:
+      id: "0311-tourist-tax-configs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0311__tourist_tax_configs.sql
+        relativeToChangelogFile: true
+
+  # Yield v1 : extension yield_rules (comparaison/seuil/fenetre/ajustement/cap),
+  # config par org (kill-switch + mode SIMULATION/SUGGEST/AUTO), bornes par bien.
+  - changeSet:
+      id: "0312-yield-rules-v1"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0312__yield_rules_v1.sql
+        relativeToChangelogFile: true
+
+  # Yield v1 : journal des ajustements (replay) + index unique partiel
+  # « un APPLIED par bien/jour » (protection concurrence).
+  - changeSet:
+      id: "0313-yield-adjustments-journal"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0313__yield_adjustments_journal.sql
+        relativeToChangelogFile: true

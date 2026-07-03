@@ -6,6 +6,7 @@ import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.SecurityDepositRepository;
+import com.clenzy.repository.YieldAdjustmentRepository;
 import com.clenzy.service.CalendarEngine;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.SearchCacheInvalidator;
@@ -51,6 +52,7 @@ class SuggestionActionExecutorTest {
     @Mock private SecurityDepositRepository securityDepositRepository;
     @Mock private SecurityDepositPaymentService securityDepositPaymentService;
     @Mock private CalendarEngine calendarEngine;
+    @Mock private YieldAdjustmentRepository yieldAdjustmentRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -60,7 +62,8 @@ class SuggestionActionExecutorTest {
     void setUp() {
         executor = new SuggestionActionExecutor(priceEngine, rateOverrideRepository,
                 propertyRepository, searchCacheInvalidator, securityDepositRepository,
-                securityDepositPaymentService, calendarEngine, new ObjectMapper(), clock);
+                securityDepositPaymentService, calendarEngine, yieldAdjustmentRepository,
+                new ObjectMapper(), clock);
     }
 
     private static SupervisionSuggestion suggestion(String actionType, String params) {

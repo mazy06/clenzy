@@ -30,6 +30,22 @@ public interface YieldRuleRepository extends JpaRepository<YieldRule, Long> {
     List<YieldRule> findActiveGlobal(@Param("orgId") Long orgId);
 
     /**
+     * Regles v1 (F8a) ACTIVES d'une org — comparaison BELOW/ABOVE renseignee.
+     * Inclut les regles org-wide (property null) et par bien, priorite decroissante.
+     */
+    @Query("SELECT yr FROM YieldRule yr WHERE yr.organizationId = :orgId " +
+           "AND yr.isActive = true AND yr.comparison IS NOT NULL " +
+           "ORDER BY yr.priority DESC, yr.id ASC")
+    List<YieldRule> findActiveV1ByOrganization(@Param("orgId") Long orgId);
+
+    /**
+     * Toutes les regles v1 (F8a) d'une org, actives et inactives (ecran d'admin).
+     */
+    @Query("SELECT yr FROM YieldRule yr WHERE yr.organizationId = :orgId " +
+           "AND yr.comparison IS NOT NULL ORDER BY yr.priority DESC, yr.id ASC")
+    List<YieldRule> findAllV1ByOrganization(@Param("orgId") Long orgId);
+
+    /**
      * Toutes les regles pour une propriete (actives et inactives).
      */
     @Query("SELECT yr FROM YieldRule yr WHERE " +

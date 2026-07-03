@@ -36,7 +36,11 @@ public enum AutomationAction {
     /** F6c : escalade bruit → suggestion de blocage du calendrier (HITL). */
     SUGGEST_CALENDAR_BLOCK("SUGGEST_CALENDAR_BLOCK"),
     /** F4b : revocation auto du code d'acces apres check-out + grace (pas de suggestion). */
-    REVOKE_ACCESS_CODE("REVOKE_ACCESS_CODE");
+    REVOKE_ACCESS_CODE("REVOKE_ACCESS_CODE"),
+
+    // ── S2 — rate parity (prix canal ≠ prix attendu) ─────────────────────────
+    /** S2 : notification staff d'une disparite de prix local ↔ canaux (Channex). */
+    NOTIFY_RATE_PARITY("NOTIFY_RATE_PARITY");
 
     private final String value;
     AutomationAction(String value) { this.value = value; }

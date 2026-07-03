@@ -9,11 +9,9 @@ import java.time.Instant;
 /**
  * DTO de sortie de {@link TouristTaxConfig}.
  *
- * <p>Shape JSON strictement identique a l'ancienne serialisation directe de
- * l'entite (audit regle n°5 — pas d'entite JPA exposee par un endpoint REST) :
- * id, organizationId, propertyId, communeName, communeCode, calculationMode,
- * ratePerPerson, percentageRate, maxNights, childrenExemptUnder, enabled,
- * createdAt, updatedAt.</p>
+ * <p>Mapping explicite champ à champ (audit règle n°5 — pas d'entité JPA
+ * exposée par un endpoint REST). {@code propertyId} null = barème par défaut
+ * de l'org. {@code percentageRate} est une fraction (0.05 = 5 %).</p>
  */
 public record TouristTaxConfigDto(
     Long id,
@@ -24,6 +22,10 @@ public record TouristTaxConfigDto(
     TaxCalculationMode calculationMode,
     BigDecimal ratePerPerson,
     BigDecimal percentageRate,
+    BigDecimal capPerPersonNight,
+    BigDecimal departmentalSurchargePct,
+    BigDecimal regionalSurchargePct,
+    Boolean exemptMinors,
     Integer maxNights,
     Integer childrenExemptUnder,
     Boolean enabled,
@@ -40,6 +42,10 @@ public record TouristTaxConfigDto(
             c.getCalculationMode(),
             c.getRatePerPerson(),
             c.getPercentageRate(),
+            c.getCapPerPersonNight(),
+            c.getDepartmentalSurchargePct(),
+            c.getRegionalSurchargePct(),
+            c.getExemptMinors(),
             c.getMaxNights(),
             c.getChildrenExemptUnder(),
             c.getEnabled(),
