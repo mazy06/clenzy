@@ -56,10 +56,22 @@ class RevokeAccessCodeExecutorTest {
     @Mock private AccessCodeGenerator accessCodeGenerator;
     @Mock private NotificationService notificationService;
 
-    private RevokeAccessCodeExecutor executorAt(LocalTime wallTime) {
+    // Déterminisme CI (échec 2026-07-03 : vert en local Paris, rouge en CI UTC) :
+    // Property.timezone a un DÉFAUT D'ENTITÉ "Europe/Paris" — l'exécuteur calcule
+    // donc en Paris quel que soit le fuseau machine. Le test fige date ET fuseau.
+    private static final ZoneId PROPERTY_ZONE = ZoneId.of("Europe/Paris");
+    private static final LocalDate CHECKOUT_DATE = LocalDate.of(2026, 7, 3);
+
+    /** Heure murale PARIS convertie dans le fuseau système (format de rescheduledAt/rotatedAt). */
+    private static LocalDateTime systemWallTime(LocalTime parisTime) {
+        return CHECKOUT_DATE.atTime(parisTime).atZone(PROPERTY_ZONE)
+                .withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+    }
+
+    private RevokeAccessCodeExecutor executorAt(LocalTime propertyWallTime) {
         Clock clock = Clock.fixed(
-                LocalDate.now().atTime(wallTime).atZone(ZoneId.systemDefault()).toInstant(),
-                ZoneId.systemDefault());
+                CHECKOUT_DATE.atTime(propertyWallTime).atZone(PROPERTY_ZONE).toInstant(),
+                PROPERTY_ZONE);
         return new RevokeAccessCodeExecutor(accessCodeRepository, accessCodeService,
                 instructionsRepository, accessCodeGenerator, notificationService, clock);
     }
@@ -73,16 +85,17 @@ class RevokeAccessCodeExecutorTest {
         return rule;
     }
 
-    /** Reservation partie AUJOURD'HUI a 11:00 (fuseau systeme = pas de timezone logement). */
+    /** Reservation partie le 2026-07-03 a 11:00, fuseau logement Europe/Paris (explicite). */
     private static Reservation reservationCheckedOutTodayAt11() {
         Property property = new Property();
         property.setId(PROPERTY_ID);
         property.setOrganizationId(ORG_ID);
+        property.setTimezone(PROPERTY_ZONE.getId());
         Reservation reservation = new Reservation();
         reservation.setId(RESERVATION_ID);
         reservation.setOrganizationId(ORG_ID);
         reservation.setProperty(property);
-        reservation.setCheckOut(LocalDate.now());
+        reservation.setCheckOut(CHECKOUT_DATE);
         reservation.setCheckOutTime("11:00");
         reservation.setStatus("confirmed");
         return reservation;
@@ -108,7 +121,7 @@ class RevokeAccessCodeExecutorTest {
                 .execute(rule(), ctx(reservationCheckedOutTodayAt11()));
 
         assertThat(result.rescheduledAt())
-                .isEqualTo(LocalDate.now().atTime(15, 0));
+                .isEqualTo(systemWallTime(LocalTime.of(15, 0)));
         assertThat(result.skipped()).isFalse();
         verifyNoInteractions(accessCodeService, instructionsRepository, notificationService);
     }
@@ -123,7 +136,7 @@ class RevokeAccessCodeExecutorTest {
         ExecutionResult result = executorAt(LocalTime.of(16, 0))
                 .execute(rule, ctx(reservationCheckedOutTodayAt11()));
 
-        assertThat(result.rescheduledAt()).isEqualTo(LocalDate.now().atTime(17, 0));
+        assertThat(result.rescheduledAt()).isEqualTo(systemWallTime(LocalTime.of(17, 0)));
     }
 
     @Test
@@ -174,7 +187,7 @@ class RevokeAccessCodeExecutorTest {
         CheckInInstructions instructions = new CheckInInstructions();
         instructions.setAccessCode("1234");
         // Rotation posterieure au check-out (11:00) : deja couverte (scheduler opt-in).
-        instructions.setAccessCodeRotatedAt(LocalDate.now().atTime(12, 0));
+        instructions.setAccessCodeRotatedAt(systemWallTime(LocalTime.of(12, 0)));
         when(instructionsRepository.findByPropertyIdAndOrganizationId(PROPERTY_ID, ORG_ID))
                 .thenReturn(Optional.of(instructions));
 
