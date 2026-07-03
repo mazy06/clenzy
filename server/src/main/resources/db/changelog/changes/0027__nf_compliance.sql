@@ -40,8 +40,13 @@ CREATE INDEX idx_doc_num_seq_type_year ON document_number_sequences(document_typ
 
 -- ─── 3. Mentions legales obligatoires ───────────────────────
 
+-- REVISION 2026-07 (chantier 0000-baseline, replay sur base vierge) :
+-- ajout de country_code, colonne portee par l'entite (creee a l'epoque par
+-- ddl-auto=update, jamais capturee dans un changeset) et requise par les
+-- INSERT de 0275. Fichier deja applique partout (protege par validCheckSum).
 CREATE TABLE document_legal_requirements (
     id                BIGSERIAL PRIMARY KEY,
+    country_code      VARCHAR(3)   NOT NULL DEFAULT 'FR',
     document_type     VARCHAR(50)  NOT NULL,
     requirement_key   VARCHAR(100) NOT NULL,
     label             VARCHAR(255) NOT NULL,

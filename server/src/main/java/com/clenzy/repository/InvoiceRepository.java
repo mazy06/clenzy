@@ -83,4 +83,11 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
         @Param("statuses") List<InvoiceStatus> statuses,
         @Param("today") LocalDate today
     );
+
+    /**
+     * Factures OVERDUE avec budget de relance restant (moins de {@code max} relances
+     * envoyees). Utilisee par InvoiceOverdueScheduler pour re-tirer le trigger
+     * INVOICE_OVERDUE quotidien (cross-tenant, pas de filtre org — F5a).
+     */
+    List<Invoice> findByStatusAndOverdueReminderCountLessThan(InvoiceStatus status, int maxReminders);
 }

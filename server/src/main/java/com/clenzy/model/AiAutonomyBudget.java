@@ -24,6 +24,12 @@ import java.time.Instant;
 @Table(name = "ai_autonomy_budget")
 public class AiAutonomyBudget {
 
+    /**
+     * Comportement premium X8-b : scan de supervision proactif (LLM) — gate via
+     * AutonomyBudgetService, toggle dans le panneau autonomie (behaviors JSON).
+     */
+    public static final String BEHAVIOR_SUPERVISION_SCAN = "supervision_scan";
+
     public static final String ON_CAP_PAUSE = "PAUSE";
     public static final String ON_CAP_NOTIFY_ONLY = "NOTIFY_ONLY";
 

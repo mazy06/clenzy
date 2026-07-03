@@ -372,6 +372,13 @@
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Broker Kafka reel pour KafkaFlowIT uniquement (le socle IT partage
+             garde un KafkaTemplate mocke) — strategie de tests vague T1 -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Awaitility — assertions asynchrones (outbox relay) (Niveau 9) -->
         <dependency>
@@ -494,6 +501,16 @@
                         --add-opens java.base/java.lang.reflect=ALL-UNNAMED
                         --add-opens java.base/java.util=ALL-UNNAMED
                     </argLine>
+                    <!-- Defauts surefire + classes *IT (tests d'integration gates par
+                         CLENZY_IT=true : sans la variable ils sont skippes proprement,
+                         donc les inclure ne change rien au build standard) -->
+                    <includes>
+                        <include>**/Test*.java</include>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                        <include>**/*TestCase.java</include>
+                        <include>**/*IT.java</include>
+                    </includes>
                 </configuration>
             </plugin>
 

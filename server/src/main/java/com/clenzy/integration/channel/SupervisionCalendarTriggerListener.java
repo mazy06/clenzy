@@ -70,6 +70,13 @@ public class SupervisionCalendarTriggerListener {
         if (payload instanceof Map<?, ?> map) {
             return (Map<String, Object>) map;
         }
+        if (payload instanceof org.apache.kafka.clients.consumer.ConsumerRecord<?, ?> consumerRecord) {
+            // Avec un parametre @KafkaListener de type Object, Spring Kafka passe le
+            // ConsumerRecord ENTIER (pas sa value) : sans cet unwrap, TOUS les events
+            // etaient silencieusement ignores (bug reel attrape par KafkaFlowIT,
+            // 2026-07-03 — meme unwrap que ChannelSyncService.coerceToEventMap).
+            return coerceToMap(consumerRecord.value());
+        }
         if (payload instanceof String s && !s.isBlank()) {
             try {
                 return objectMapper.readValue(s, Map.class);

@@ -37,17 +37,36 @@ public class GuestChatService {
     private final StringRedisTemplate redisTemplate;
     private final GuideConfig guideConfig;
     private final AiTokenBudgetService tokenBudgetService;
+    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     public GuestChatService(WelcomeGuideService welcomeGuideService,
                             AiProviderRouter aiProviderRouter,
                             StringRedisTemplate redisTemplate,
                             GuideConfig guideConfig,
-                            AiTokenBudgetService tokenBudgetService) {
+                            AiTokenBudgetService tokenBudgetService,
+                            io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.welcomeGuideService = welcomeGuideService;
         this.aiProviderRouter = aiProviderRouter;
         this.redisTemplate = redisTemplate;
         this.guideConfig = guideConfig;
         this.tokenBudgetService = tokenBudgetService;
+        this.meterRegistry = meterRegistry;
+    }
+
+    /**
+     * Benchmark per-outcome (campagne L4) : compte chaque issue de reponse
+     * automatique guest — numerateur du taux « resolu sans humain » (gate du
+     * pilote pricing per-outcome, arbitrage a venir : le signal « reprise
+     * humaine » n'existe pas encore cote produit).
+     */
+    private void recordOutcome(Long orgId, Status status) {
+        try {
+            meterRegistry.counter("assistant.outcome.guest_auto_reply",
+                    "org", String.valueOf(orgId),
+                    "status", status.name().toLowerCase(java.util.Locale.ROOT)).increment();
+        } catch (Exception e) {
+            log.debug("recordOutcome ignore : {}", e.getMessage());
+        }
     }
 
     public GuestChatResult answer(UUID token, String message) {
@@ -58,6 +77,7 @@ public class GuestChatService {
         GuestChatContext ctx = ctxOpt.get();
 
         if (!withinRateLimit(token)) {
+            recordOutcome(ctx.orgId(), Status.RATE_LIMITED);
             return new GuestChatResult(Status.RATE_LIMITED, fallback(ctx.language(), true));
         }
 
@@ -68,6 +88,7 @@ public class GuestChatService {
                 ctx.orgId(), guideConfig.getChatProvider(), AiFeature.ASSISTANT_CHAT, request);
             String reply = routed.response() != null ? routed.response().content() : null;
             if (reply == null || reply.isBlank()) {
+                recordOutcome(ctx.orgId(), Status.UNAVAILABLE);
                 return new GuestChatResult(Status.UNAVAILABLE, fallback(ctx.language(), false));
             }
             // Débite l'usage IA sur le budget de l'org (best-effort, ne bloque pas la réponse).
@@ -77,10 +98,12 @@ public class GuestChatService {
             } catch (Exception e) {
                 log.debug("recordUsage chatbot échoué (token={}): {}", token, e.getMessage());
             }
+            recordOutcome(ctx.orgId(), Status.OK);
             return new GuestChatResult(Status.OK, reply.trim());
         } catch (Exception e) {
             // IA non configurée pour l'org, budget épuisé, ou erreur réseau → repli gracieux.
             log.warn("Chatbot guest indisponible (token={}): {}", token, e.getMessage());
+            recordOutcome(ctx.orgId(), Status.UNAVAILABLE);
             return new GuestChatResult(Status.UNAVAILABLE, fallback(ctx.language(), false));
         }
     }

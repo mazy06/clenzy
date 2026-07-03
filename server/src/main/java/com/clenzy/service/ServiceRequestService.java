@@ -4,7 +4,11 @@ import com.clenzy.dto.ServiceRequestDto;
 import com.clenzy.dto.InterventionDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.UnauthorizedException;
+import com.clenzy.model.CleaningFrequency;
+import com.clenzy.model.Priority;
+import com.clenzy.model.Property;
 import com.clenzy.model.ServiceRequest;
+import com.clenzy.model.ServiceType;
 import com.clenzy.model.User;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionType;
@@ -27,13 +31,16 @@ import com.clenzy.model.Team;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.config.KafkaConfig;
 import com.clenzy.tenant.TenantContext;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +58,10 @@ public class ServiceRequestService {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceRequestService.class);
     public static final int MAX_AUTO_ASSIGN_RETRIES = 10;
+
+    /** Prefixe de la cle d'idempotence des menages auto post-checkout (fiche 08, F1a). */
+    public static final String AUTO_CLEANING_KEY_PREFIX = "AUTO_CLEANING";
+    private static final LocalTime DEFAULT_CLEANING_START = LocalTime.of(11, 0);
 
     private final ServiceRequestRepository serviceRequestRepository;
     private final UserRepository userRepository;
@@ -789,6 +800,208 @@ public class ServiceRequestService {
             log.warn("Auto-assignment scheduler failed for SR {}: {}", sr.getId(), e.getMessage());
             return false;
         }
+    }
+
+    // ── Flux deterministe : menage automatique post-checkout (fiche 08, F1a/F2a/F4d) ──
+
+    /**
+     * Resultat explicite d'un flux automatique de menage : demande creee/annulee,
+     * ou saut avec raison lisible (consommee par l'ExecutionResult du SPI moteur).
+     */
+    public record AutoCleaningOutcome(ServiceRequest request, String skipReason) {
+        public boolean executed() { return request != null; }
+
+        static AutoCleaningOutcome done(ServiceRequest request) {
+            return new AutoCleaningOutcome(request, null);
+        }
+
+        static AutoCleaningOutcome skipped(String reason) {
+            return new AutoCleaningOutcome(null, reason);
+        }
+    }
+
+    /**
+     * Cree la demande de menage automatique planifiee a la date de check-out
+     * (heure de checkout de la propriete, dans son fuseau — les dates de sejour
+     * sont deja en heure locale propriete). Appelee par l'executeur
+     * CREATE_CLEANING_REQUEST du moteur AutomationRule et par le filet quotidien
+     * (CleaningBackfillScheduler).
+     *
+     * <p>Contexte hors HTTP : orgId explicite partout, aucune dependance au
+     * TenantContext. Idempotence metier : cle unique {@code AUTO_CLEANING:
+     * propertyId:checkIn:checkOut} (index unique en base) — une re-livraison
+     * Kafka, un double evenement BOOKED ou la course moteur/filet ne creent
+     * qu'UNE demande.</p>
+     */
+    public AutoCleaningOutcome createAutomaticCleaningRequest(Long orgId, Long propertyId,
+                                                              LocalDate checkIn, LocalDate checkOut,
+                                                              Long reservationId) {
+        if (orgId == null || propertyId == null || checkOut == null) {
+            log.warn("Menage auto: parametres incomplets (orgId={}, propertyId={}, checkOut={}) — ignore",
+                orgId, propertyId, checkOut);
+            return AutoCleaningOutcome.skipped("parametres incomplets (orgId/propertyId/checkOut)");
+        }
+
+        Property property = propertyRepository.findById(propertyId).orElse(null);
+        if (property == null) {
+            log.warn("Menage auto: propriete {} introuvable — ignore", propertyId);
+            return AutoCleaningOutcome.skipped("propriete " + propertyId + " introuvable");
+        }
+        // findById contourne le filtre Hibernate : validation d'organisation explicite.
+        if (!orgId.equals(property.getOrganizationId())) {
+            log.warn("Menage auto: propriete {} hors organisation {} — ignore", propertyId, orgId);
+            return AutoCleaningOutcome.skipped("propriete " + propertyId + " hors organisation");
+        }
+        // AFTER_EACH_STAY = « apres chaque sejour » (pas de valeur AFTER_CHECKOUT dans l'enum).
+        if (property.getCleaningFrequency() != CleaningFrequency.AFTER_EACH_STAY) {
+            log.debug("Menage auto: propriete {} en frequence {} — ignore",
+                propertyId, property.getCleaningFrequency());
+            return AutoCleaningOutcome.skipped("frequence menage " + property.getCleaningFrequency()
+                + " (AFTER_EACH_STAY requis)");
+        }
+
+        String autoFlowKey = buildAutoCleaningKey(propertyId, checkIn, checkOut);
+        // Course 2 declenchements simultanes (re-livraison Kafka parallele, moteur x
+        // filet backfill) : verrou advisory transactionnel AVANT le check d'existence.
+        // Sans lui, les deux passent le check, le perdant percute l'index unique et sa
+        // transaction — marquee rollback-only par le save() — n'est plus commitable :
+        // le catch ci-dessous ne peut pas la sauver (UnexpectedRollbackException au
+        // commit, bug revele par AutomationConcurrencyIT vague T3).
+        serviceRequestRepository.acquireAutoFlowKeyLock(autoFlowKey);
+        if (serviceRequestRepository.findByAutoFlowKey(autoFlowKey, orgId).isPresent()) {
+            log.debug("Menage auto: demande deja existante pour {} — idempotent", autoFlowKey);
+            return AutoCleaningOutcome.skipped("demande deja existante (cle " + autoFlowKey + ")");
+        }
+
+        User owner = property.getOwner();
+        if (owner == null) {
+            log.warn("Menage auto: propriete {} sans proprietaire (user_id obligatoire) — ignore", propertyId);
+            return AutoCleaningOutcome.skipped("propriete sans proprietaire");
+        }
+
+        LocalDateTime desiredDate = checkOut.atTime(resolveCleaningStartTime(property));
+
+        ServiceRequest sr = new ServiceRequest();
+        sr.setOrganizationId(orgId);
+        sr.setTitle(truncate("Menage apres depart - " + property.getName(), 100));
+        sr.setDescription("Demande creee automatiquement (flux menage post-checkout) pour le sejour du "
+            + (checkIn != null ? checkIn : "?") + " au " + checkOut + "."
+            + (reservationId != null ? " Reservation #" + reservationId + "." : ""));
+        sr.setServiceType(ServiceType.CLEANING);
+        sr.setPriority(Priority.NORMAL);
+        sr.setStatus(RequestStatus.PENDING);
+        sr.setDesiredDate(desiredDate);
+        sr.setGuestCheckoutTime(desiredDate);
+        sr.setEstimatedDurationHours((int) Math.ceil(ServiceType.CLEANING.getEstimatedHours()));
+        sr.setEstimatedCost(property.getCleaningBasePrice());
+        sr.setUser(owner);
+        sr.setProperty(property);
+        sr.setReservationId(reservationId);
+        sr.setAutoFlowKey(autoFlowKey);
+
+        try {
+            sr = serviceRequestRepository.save(sr);
+        } catch (DataIntegrityViolationException e) {
+            // Dernier filet (createur passe HORS du verrou advisory ci-dessus, ex.
+            // insertion manuelle) : l'index unique tranche. Attention : la transaction
+            // englobante est alors deja marquee rollback-only par le save() — ce retour
+            // "skipped" n'empeche pas un UnexpectedRollbackException au commit englobant.
+            log.info("Menage auto: creation concurrente detectee pour {} — idempotent", autoFlowKey);
+            return AutoCleaningOutcome.skipped("creation concurrente (cle " + autoFlowKey + ")");
+        }
+
+        log.info("Menage auto: demande {} creee (propriete {}, checkout {}, reservation {})",
+            sr.getId(), propertyId, checkOut, reservationId);
+
+        try {
+            notificationService.notifyAdminsAndManagersByOrgId(orgId,
+                NotificationKey.SERVICE_REQUEST_CREATED,
+                "Menage post-checkout planifie",
+                "Demande de menage creee automatiquement pour \"" + property.getName()
+                    + "\" (depart du " + checkOut + ")",
+                "/interventions?tab=service-requests&highlight=" + sr.getId());
+        } catch (Exception e) {
+            log.warn("Notification error menage auto SR {}: {}", sr.getId(), e.getMessage());
+        }
+
+        // Auto-assignation : meme garde-fou d'org que le flux web (workflow settings).
+        WorkflowSettings ws = workflowSettingsRepository.findByOrganizationId(orgId).orElse(null);
+        if (ws == null || ws.isAutoAssignInterventions()) {
+            attemptAutoAssignByOrgId(sr, orgId);
+        }
+
+        return AutoCleaningOutcome.done(sr);
+    }
+
+    /**
+     * Annule la demande de menage automatique liee a un sejour (event CANCELLED),
+     * si elle existe et n'est pas deja commencee. La cle d'idempotence est
+     * suffixee a l'annulation pour permettre une re-creation si les memes dates
+     * sont re-reservees ensuite ; une re-livraison de l'annulation ne retrouve
+     * plus la cle et devient un no-op.
+     */
+    public AutoCleaningOutcome cancelAutomaticCleaningRequest(Long orgId, Long propertyId,
+                                                              LocalDate checkIn, LocalDate checkOut) {
+        if (orgId == null || propertyId == null || checkOut == null) {
+            return AutoCleaningOutcome.skipped("parametres incomplets (orgId/propertyId/checkOut)");
+        }
+        String autoFlowKey = buildAutoCleaningKey(propertyId, checkIn, checkOut);
+        ServiceRequest sr = serviceRequestRepository.findByAutoFlowKey(autoFlowKey, orgId).orElse(null);
+        if (sr == null) {
+            log.debug("Annulation menage auto: aucune demande pour {} — no-op", autoFlowKey);
+            return AutoCleaningOutcome.skipped("aucune demande de menage auto pour ce sejour");
+        }
+        if (RequestStatus.IN_PROGRESS.equals(sr.getStatus())) {
+            log.info("Annulation menage auto: demande {} deja commencee — laissee en l'etat", sr.getId());
+            return AutoCleaningOutcome.skipped("demande " + sr.getId() + " deja commencee");
+        }
+        if (!sr.getStatus().canTransitionTo(RequestStatus.CANCELLED)) {
+            log.info("Annulation menage auto: demande {} en statut {} — non annulable", sr.getId(), sr.getStatus());
+            return AutoCleaningOutcome.skipped("demande " + sr.getId() + " en statut " + sr.getStatus());
+        }
+
+        sr.setStatus(RequestStatus.CANCELLED);
+        // Libere la cle : une re-reservation des memes dates recree un menage.
+        sr.setAutoFlowKey(truncate(autoFlowKey + ":CANCELLED:" + sr.getId(), 120));
+        serviceRequestRepository.save(sr);
+
+        log.info("Annulation menage auto: demande {} annulee (propriete {}, checkout {})",
+            sr.getId(), propertyId, checkOut);
+
+        try {
+            notificationService.notifyAdminsAndManagersByOrgId(orgId,
+                NotificationKey.SERVICE_REQUEST_CANCELLED,
+                "Menage post-checkout annule",
+                "La reservation liee a ete annulee : la demande de menage \"" + sr.getTitle()
+                    + "\" a ete annulee automatiquement.",
+                "/interventions?tab=service-requests&highlight=" + sr.getId());
+        } catch (Exception e) {
+            log.warn("Notification error annulation menage auto SR {}: {}", sr.getId(), e.getMessage());
+        }
+        return AutoCleaningOutcome.done(sr);
+    }
+
+    /** Cle d'idempotence metier : propriete x dates de sejour. */
+    public static String buildAutoCleaningKey(Long propertyId, LocalDate checkIn, LocalDate checkOut) {
+        return AUTO_CLEANING_KEY_PREFIX + ":" + propertyId + ":" + (checkIn != null ? checkIn : "NA")
+            + ":" + checkOut;
+    }
+
+    /** Heure de debut du menage : heure de checkout de la propriete, repli 11:00. */
+    private static LocalTime resolveCleaningStartTime(Property property) {
+        String raw = property.getDefaultCheckOutTime();
+        if (raw == null || raw.isBlank()) {
+            return DEFAULT_CLEANING_START;
+        }
+        try {
+            return LocalTime.parse(raw.trim());
+        } catch (DateTimeParseException e) {
+            return DEFAULT_CLEANING_START;
+        }
+    }
+
+    private static String truncate(String value, int max) {
+        return value != null && value.length() > max ? value.substring(0, max) : value;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────

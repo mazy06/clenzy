@@ -80,6 +80,16 @@ public class Organization {
     @Column(name = "mfa_required", nullable = false)
     private boolean mfaRequired = false;
 
+    // --- Branding white-label (X9-b) : Constellation Proprietaire ---
+
+    /** Logo affiche sur la page proprietaire publique (HTTPS uniquement, valide au PUT). */
+    @Column(name = "branding_logo_url", length = 500)
+    private String brandingLogoUrl;
+
+    /** Couleur d'accent hex #RRGGBB de la page proprietaire publique. */
+    @Column(name = "branding_primary_color", length = 7)
+    private String brandingPrimaryColor;
+
     // --- Booking engine : croissance (org-level, defaut active) ---
 
     /** Autorise la capture de leads (newsletter / waitlist) sur les booking engines de l'org : gate l'endpoint /leads. */
@@ -165,6 +175,12 @@ public class Organization {
 
     public boolean isHasVoucherContract() { return hasVoucherContract; }
     public void setHasVoucherContract(boolean hasVoucherContract) { this.hasVoucherContract = hasVoucherContract; }
+
+    public String getBrandingLogoUrl() { return brandingLogoUrl; }
+    public void setBrandingLogoUrl(String brandingLogoUrl) { this.brandingLogoUrl = brandingLogoUrl; }
+
+    public String getBrandingPrimaryColor() { return brandingPrimaryColor; }
+    public void setBrandingPrimaryColor(String brandingPrimaryColor) { this.brandingPrimaryColor = brandingPrimaryColor; }
 
     public boolean isMfaRequired() { return mfaRequired; }
     public void setMfaRequired(boolean mfaRequired) { this.mfaRequired = mfaRequired; }

@@ -49,6 +49,7 @@ import AiCreditsSection from './AiCreditsSection';
 import AssistantBriefingPrefs from './AssistantBriefingPrefs';
 import KnowledgeBaseAdmin from './KnowledgeBaseAdmin';
 import AgentSupervisionSection from './AgentSupervisionSection';
+import AiAutonomySection from './AiAutonomySection';
 
 // ─── Provider Brand Config ──────────────────────────────────────────────────
 
@@ -779,7 +780,12 @@ export default function AiSettingsSection() {
         </>
       )}
 
-      {activeTab === 'supervision' && <AgentSupervisionSection />}
+      {activeTab === 'supervision' && (
+        <>
+          <AgentSupervisionSection />
+          <AiAutonomySection />
+        </>
+      )}
 
       {activeTab === 'briefings' && <AssistantBriefingPrefs />}
 

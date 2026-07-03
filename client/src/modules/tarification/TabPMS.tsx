@@ -7,7 +7,7 @@ import {
   InputAdornment,
   Divider,
 } from '@mui/material';
-import { Devices, Computer, People } from '../../icons';
+import { Devices, Computer, People, AutoAwesome } from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -67,6 +67,70 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             }}
             disabled={!canEdit}
             helperText={t('tarification.pms.syncHelp')}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
+          />
+        </Grid>
+      </Grid>
+
+      <Divider sx={{ my: 2.5 }} />
+
+      {/* ─── Supplément IA par forfait (campagne X5) ─────────────────── */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><AutoAwesome size={20} strokeWidth={1.75} /></Box>
+        <Typography variant="subtitle1" fontWeight={600}>
+          {t('tarification.pms.aiTitle')}
+        </Typography>
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {t('tarification.pms.aiSubtitle')}
+      </Typography>
+
+      <Grid container spacing={1.5}>
+        <Grid item xs={4}>
+          <TextField
+            label={t('tarification.pms.aiEssentiel')}
+            type="number"
+            size="small"
+            fullWidth
+            value={(config.aiSurchargeEssentielCents / 100).toFixed(0)}
+            onChange={(e) => {
+              const euros = parseInt(e.target.value, 10);
+              if (!isNaN(euros)) onUpdate({ aiSurchargeEssentielCents: euros * 100 });
+            }}
+            disabled={!canEdit}
+            helperText={t('tarification.pms.aiEssentielHelp')}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
+          />
+        </Grid>
+        <Grid item xs={4}>
+          <TextField
+            label={t('tarification.pms.aiConfort')}
+            type="number"
+            size="small"
+            fullWidth
+            value={(config.aiSurchargeConfortCents / 100).toFixed(0)}
+            onChange={(e) => {
+              const euros = parseInt(e.target.value, 10);
+              if (!isNaN(euros)) onUpdate({ aiSurchargeConfortCents: euros * 100 });
+            }}
+            disabled={!canEdit}
+            helperText={t('tarification.pms.aiConfortHelp')}
+            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
+          />
+        </Grid>
+        <Grid item xs={4}>
+          <TextField
+            label={t('tarification.pms.aiPremium')}
+            type="number"
+            size="small"
+            fullWidth
+            value={(config.aiSurchargePremiumCents / 100).toFixed(0)}
+            onChange={(e) => {
+              const euros = parseInt(e.target.value, 10);
+              if (!isNaN(euros)) onUpdate({ aiSurchargePremiumCents: euros * 100 });
+            }}
+            disabled={!canEdit}
+            helperText={t('tarification.pms.aiPremiumHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
           />
         </Grid>

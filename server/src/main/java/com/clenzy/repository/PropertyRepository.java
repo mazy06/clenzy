@@ -76,7 +76,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     /**
      * Liste les identifiants distincts des proprietaires qui possedent au moins
      * une propriete dans l'organisation. Utilise pour la generation batch de
-     * reversements en fin de mois.
+     * reversements en fin de mois et le releve proprietaire mensuel automatique
+     * (OwnerStatementScheduler, F9a).
      */
     @Query("SELECT DISTINCT p.owner.id FROM Property p WHERE p.organizationId = :orgId AND p.owner IS NOT NULL")
     List<Long> findDistinctOwnerIdsByOrgId(@Param("orgId") Long orgId);

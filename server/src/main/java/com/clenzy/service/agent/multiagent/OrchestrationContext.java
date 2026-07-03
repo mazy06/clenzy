@@ -32,11 +32,27 @@ import java.util.Objects;
  */
 public record OrchestrationContext(
         List<AssistantMemory> memories,
-        List<KbSearchHit> kbHits
+        List<KbSearchHit> kbHits,
+        String blackboardDigest
 ) {
     public OrchestrationContext {
         memories = (memories == null) ? List.of() : List.copyOf(memories);
         kbHits = (kbHits == null) ? List.of() : List.copyOf(kbHits);
+    }
+
+    /** Constructeur historique (sans blackboard) — l'immense majorite des usages. */
+    public OrchestrationContext(List<AssistantMemory> memories, List<KbSearchHit> kbHits) {
+        this(memories, kbHits, null);
+    }
+
+    /**
+     * Copie avec le digest blackboard (L1, architecture C v1) : constats des
+     * delegations PRECEDENTES du meme run, injectes mecaniquement dans le
+     * prompt du specialist suivant — l'orchestrateur n'a plus a les recopier
+     * dans ses mandats. Null/blank = section absente.
+     */
+    public OrchestrationContext withBlackboardDigest(String digest) {
+        return new OrchestrationContext(memories, kbHits, digest);
     }
 
     /** Contexte vide : aucune memoire ni hit RAG (degradation gracieuse). */

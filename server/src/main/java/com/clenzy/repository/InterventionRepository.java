@@ -364,4 +364,19 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     List<Intervention> findActiveByPropertyIds(@Param("propertyIds") List<Long> propertyIds,
             @Param("statuses") List<InterventionStatus> statuses,
             @Param("orgId") Long orgId);
+
+    /**
+     * Existe-t-il une intervention OUVERTE portant un marqueur donne dans ses
+     * specialInstructions, sur cette propriete/org ? Idempotence des
+     * interventions auto-generees (ex. batterie serrure critique F7a : marqueur
+     * {@code [lock-battery:<deviceId>]} — pas de nouvelle intervention tant
+     * qu'une intervention batterie est ouverte pour ce device).
+     */
+    @Query("SELECT COUNT(i) > 0 FROM Intervention i WHERE i.property.id = :propertyId " +
+           "AND i.organizationId = :orgId AND i.status IN :openStatuses " +
+           "AND i.specialInstructions LIKE CONCAT('%', :marker, '%')")
+    boolean existsOpenByPropertyAndMarker(@Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId,
+            @Param("openStatuses") List<InterventionStatus> openStatuses,
+            @Param("marker") String marker);
 }

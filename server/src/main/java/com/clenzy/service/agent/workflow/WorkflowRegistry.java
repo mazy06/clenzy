@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Registre des workflows charges au boot depuis {@code resources/workflows/*.yaml}.
@@ -36,6 +37,9 @@ public class WorkflowRegistry {
     private final ResourcePatternResolver resourceResolver;
     private Map<String, WorkflowDefinition> definitionsById = Collections.emptyMap();
 
+    // Constructeur Spring voulu (defauts autosuffisants) — @Autowired explicite car
+    // la classe declare aussi un constructeur de test (regle ArchUnit 2026-07-02).
+    @Autowired
     public WorkflowRegistry() {
         this.yamlMapper = new YAMLMapper();
         this.resourceResolver = new PathMatchingResourcePatternResolver(

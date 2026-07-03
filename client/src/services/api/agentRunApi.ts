@@ -26,6 +26,7 @@ export interface AgentRunReplay {
   origin: string;
   status: 'RUNNING' | 'COMPLETED' | 'PAUSED' | 'ERROR';
   error: string | null;
+  userQuery: string | null;
   startedAt: string;
   finishedAt: string | null;
   steps: AgentRunStep[];
@@ -34,4 +35,10 @@ export interface AgentRunReplay {
 export const agentRunApi = {
   getReplay: (runId: string): Promise<AgentRunReplay> =>
     apiClient.get<AgentRunReplay>(`/agui/history/${encodeURIComponent(runId)}`),
+
+  // What-if replay (campagne L3) : le backend compose le prompt de re-analyse,
+  // à envoyer ensuite par le chat normal (routage/crédits/HITL inchangés).
+  whatIf: (runId: string, hypothesis: string): Promise<{ prompt: string }> =>
+    apiClient.post<{ prompt: string }>(
+      `/agui/history/${encodeURIComponent(runId)}/what-if`, { hypothesis }),
 };

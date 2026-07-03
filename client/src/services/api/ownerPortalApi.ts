@@ -45,11 +45,40 @@ export interface OwnerStatement {
   lines: StatementLine[];
 }
 
+// Lien public Constellation Propriétaire (campagne X9)
+export interface OwnerPortalLink {
+  id: number;
+  url: string;
+  expiresAt: string;
+  revoked: boolean;
+  createdAt: string;
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const ownerPortalApi = {
   async getDashboard(ownerId: number): Promise<OwnerDashboard> {
     return apiClient.get<OwnerDashboard>(`/owner-portal/dashboard/${ownerId}`);
+  },
+
+  async createConstellationLink(ownerId: number): Promise<OwnerPortalLink> {
+    return apiClient.post<OwnerPortalLink>(`/owner-portal/constellation-links/${ownerId}`, {});
+  },
+
+  async listConstellationLinks(ownerId: number): Promise<OwnerPortalLink[]> {
+    return apiClient.get<OwnerPortalLink[]>(`/owner-portal/constellation-links/${ownerId}`);
+  },
+
+  async revokeConstellationLink(linkId: number): Promise<void> {
+    return apiClient.post<void>(`/owner-portal/constellation-links/${linkId}/revoke`, {});
+  },
+
+  async getBranding(): Promise<{ logoUrl: string | null; primaryColor: string | null }> {
+    return apiClient.get(`/owner-portal/branding`);
+  },
+
+  async updateBranding(logoUrl: string, primaryColor: string): Promise<{ logoUrl: string | null; primaryColor: string | null }> {
+    return apiClient.put(`/owner-portal/branding`, { logoUrl, primaryColor });
   },
 
   async getStatement(

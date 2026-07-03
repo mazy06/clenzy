@@ -1,78 +1,113 @@
 package com.clenzy.service.agent;
 
+import com.clenzy.model.AiModelAvailability;
+import com.clenzy.model.PlatformAiFeatureModel;
+import com.clenzy.model.PlatformAiModel;
+import com.clenzy.repository.PlatformAiFeatureModelRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 /**
- * Tests de la resolution tier → modele (T-03, ADR-004). Invariant central :
- * fallback strict = modele du contexte (comportement historique) des que le
- * tiering est desactive, le tier STANDARD, le provider inconnu ou le mapping absent.
+ * Tests de la resolution tier → modele (T-03, ADR-004 — pilotee par la config
+ * dynamique en base depuis 2026-07-02). Invariant central : fallback strict =
+ * modele du contexte des que la feature tier n'est pas assignee, que le
+ * provider differe ou que le modele tier est indisponible.
  */
+@ExtendWith(MockitoExtension.class)
 class TierModelResolverTest {
 
-    private TierModelResolver resolver(boolean enabled) {
-        TierModelResolver r = new TierModelResolver();
-        r.setEnabled(enabled);
-        r.setSmall(Map.of("anthropic", "claude-haiku-4-5", "openai", "gpt-5-mini"));
-        r.setStrong(Map.of("anthropic", "claude-opus-4-1"));
-        return r;
+    @Mock private PlatformAiFeatureModelRepository featureModelRepository;
+
+    private TierModelResolver resolver;
+
+    @BeforeEach
+    void setUp() {
+        resolver = new TierModelResolver(featureModelRepository);
+    }
+
+    private void assign(String feature, String provider, String modelId, AiModelAvailability status) {
+        PlatformAiModel model = new PlatformAiModel();
+        model.setProvider(provider);
+        model.setModelId(modelId);
+        model.setAvailabilityStatus(status);
+        PlatformAiFeatureModel assignment = new PlatformAiFeatureModel();
+        assignment.setFeature(feature);
+        assignment.setModel(model);
+        when(featureModelRepository.findByFeature(feature)).thenReturn(Optional.of(assignment));
     }
 
     @Test
-    void disabled_alwaysReturnsContextModel() {
-        assertThat(resolver(false).resolveModel(AgentTier.SMALL, "anthropic", "claude-sonnet-4"))
+    @DisplayName("tier null ou STANDARD -> modele du contexte, sans lookup")
+    void standardOrNullTier_returnsContextModel() {
+        assertThat(resolver.resolveModel(null, "anthropic", "claude-sonnet-4"))
                 .isEqualTo("claude-sonnet-4");
-        assertThat(resolver(false).resolveModel(AgentTier.STRONG, "anthropic", "claude-sonnet-4"))
-                .isEqualTo("claude-sonnet-4");
-    }
-
-    @Test
-    void standardTier_returnsContextModel_evenWhenEnabled() {
-        assertThat(resolver(true).resolveModel(AgentTier.STANDARD, "anthropic", "claude-sonnet-4"))
+        assertThat(resolver.resolveModel(AgentTier.STANDARD, "anthropic", "claude-sonnet-4"))
                 .isEqualTo("claude-sonnet-4");
     }
 
     @Test
-    void nullTier_returnsContextModel() {
-        assertThat(resolver(true).resolveModel(null, "anthropic", "claude-sonnet-4"))
+    @DisplayName("feature tier non assignee en base -> modele du contexte (tiering inactif)")
+    void whenNoAssignment_thenContextModel() {
+        when(featureModelRepository.findByFeature("ASSISTANT_SMALL")).thenReturn(Optional.empty());
+
+        assertThat(resolver.resolveModel(AgentTier.SMALL, "anthropic", "claude-sonnet-4"))
                 .isEqualTo("claude-sonnet-4");
     }
 
     @Test
-    void smallTier_resolvesPerProvider() {
-        assertThat(resolver(true).resolveModel(AgentTier.SMALL, "anthropic", "claude-sonnet-4"))
+    @DisplayName("SMALL assigne (meme provider) -> modele tier ; STRONG -> feature ASSISTANT_STRONG")
+    void whenAssignedSameProvider_thenTierModel() {
+        assign("ASSISTANT_SMALL", "anthropic", "claude-haiku-4-5", AiModelAvailability.AVAILABLE);
+        assign("ASSISTANT_STRONG", "anthropic", "claude-opus-4-1", AiModelAvailability.AVAILABLE);
+
+        assertThat(resolver.resolveModel(AgentTier.SMALL, "anthropic", "claude-sonnet-4"))
                 .isEqualTo("claude-haiku-4-5");
-        assertThat(resolver(true).resolveModel(AgentTier.SMALL, "openai", "gpt-5"))
-                .isEqualTo("gpt-5-mini");
-    }
-
-    @Test
-    void strongTier_resolvesPerProvider() {
-        assertThat(resolver(true).resolveModel(AgentTier.STRONG, "anthropic", "claude-sonnet-4"))
+        assertThat(resolver.resolveModel(AgentTier.STRONG, "anthropic", "claude-sonnet-4"))
                 .isEqualTo("claude-opus-4-1");
     }
 
     @Test
-    void providerCaseInsensitive() {
-        assertThat(resolver(true).resolveModel(AgentTier.SMALL, "Anthropic", "claude-sonnet-4"))
+    @DisplayName("garde meme-provider : contexte NVIDIA + tier anthropic -> modele du contexte")
+    void whenProviderMismatch_thenContextModel() {
+        assign("ASSISTANT_SMALL", "anthropic", "claude-haiku-4-5", AiModelAvailability.AVAILABLE);
+
+        assertThat(resolver.resolveModel(AgentTier.SMALL, "nvidia", "meta/llama-3.1-8b-instruct"))
+                .isEqualTo("meta/llama-3.1-8b-instruct");
+    }
+
+    @Test
+    @DisplayName("provider null -> traite comme anthropic (defaut historique)")
+    void whenProviderNull_thenDefaultsToAnthropic() {
+        assign("ASSISTANT_SMALL", "anthropic", "claude-haiku-4-5", AiModelAvailability.AVAILABLE);
+
+        assertThat(resolver.resolveModel(AgentTier.SMALL, null, "claude-sonnet-4"))
                 .isEqualTo("claude-haiku-4-5");
     }
 
     @Test
-    void unknownProvider_fallsBackToContextModel() {
-        // Provider sans mapping (ex. org BYOK NVIDIA) : jamais d'id de modele invalide.
-        assertThat(resolver(true).resolveModel(AgentTier.SMALL, "nvidia", "meta/llama-3"))
-                .isEqualTo("meta/llama-3");
-        assertThat(resolver(true).resolveModel(AgentTier.STRONG, "openai", "gpt-5"))
-                .isEqualTo("gpt-5");
+    @DisplayName("modele tier UNAVAILABLE (probe dispo) -> modele du contexte")
+    void whenTierModelUnavailable_thenContextModel() {
+        assign("ASSISTANT_SMALL", "anthropic", "claude-haiku-4-5", AiModelAvailability.UNAVAILABLE);
+
+        assertThat(resolver.resolveModel(AgentTier.SMALL, "anthropic", "claude-sonnet-4"))
+                .isEqualTo("claude-sonnet-4");
     }
 
     @Test
-    void nullProvider_defaultsToAnthropicMapping() {
-        assertThat(resolver(true).resolveModel(AgentTier.SMALL, null, "claude-sonnet-4"))
+    @DisplayName("casse du provider ignoree (Anthropic == ANTHROPIC)")
+    void providerComparisonIsCaseInsensitive() {
+        assign("ASSISTANT_SMALL", "Anthropic", "claude-haiku-4-5", AiModelAvailability.AVAILABLE);
+
+        assertThat(resolver.resolveModel(AgentTier.SMALL, "ANTHROPIC", "claude-sonnet-4"))
                 .isEqualTo("claude-haiku-4-5");
     }
 }

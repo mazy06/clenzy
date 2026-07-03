@@ -18,5 +18,8 @@ public interface AutomationRuleRepository extends JpaRepository<AutomationRule, 
     List<AutomationRule> findByOrganizationIdAndTriggerTypeAndEnabledTrue(
         Long organizationId, AutomationTrigger triggerType);
 
+    /** Toutes orgs confondues — reserve au sweep du scheduler (regroupe ensuite par org). */
+    List<AutomationRule> findByEnabledTrue();
+
     Optional<AutomationRule> findByIdAndOrganizationId(Long id, Long organizationId);
 }

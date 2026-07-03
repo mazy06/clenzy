@@ -51,6 +51,7 @@ public class StripeWebhookController {
     private final StripeGateway stripeGateway;
     private final DirectBookingService directBookingService;
     private final com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService;
+    private final com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -66,7 +67,8 @@ public class StripeWebhookController {
                                    UpsellService upsellService,
                                    StripeGateway stripeGateway,
                                    DirectBookingService directBookingService,
-                                   com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService) {
+                                   com.clenzy.service.ai.AiCreditGrantService aiCreditGrantService,
+                                   com.clenzy.service.automation.PaymentFailedTriggerService paymentFailedTriggerService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
@@ -79,6 +81,7 @@ public class StripeWebhookController {
         this.stripeGateway = stripeGateway;
         this.directBookingService = directBookingService;
         this.aiCreditGrantService = aiCreditGrantService;
+        this.paymentFailedTriggerService = paymentFailedTriggerService;
     }
 
     /**
@@ -525,6 +528,13 @@ public class StripeWebhookController {
             }
         }
         // Pour mobile_upgrade, pas d'action speciale (la subscription reste incomplete)
+
+        // F5c — declencheur PAYMENT_FAILED du moteur AutomationRule (notification
+        // interne aux admins/managers si l'org a une regle active). Le capteur
+        // resout l'org depuis les metadata ; un echec remonte au handler principal
+        // (500 → re-livraison, le moteur est idempotent).
+        paymentFailedTriggerService.fireForFailedPaymentIntent(
+                paymentIntent.getId(), paymentIntent.getMetadata());
     }
 
     /**

@@ -36,6 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -279,6 +280,8 @@ public class PlatformAiConfigService {
         PlatformAiModel model = modelRepository.findById(modelId)
                 .orElseThrow(() -> new IllegalArgumentException("Model not found: " + modelId));
 
+        enforceSameProviderForAssistantTiers(feature, model.getProvider());
+
         // Exclusivite mutuelle : une feature a soit un modele plateforme, soit un provider connecte.
         featureProviderRepository.deleteByFeature(feature);
 
@@ -303,6 +306,11 @@ public class PlatformAiConfigService {
             throw new IllegalArgumentException("Provider non connectable: " + provider
                     + ". Valeurs acceptees: " + CONNECTABLE_PROVIDERS);
         }
+        if (ASSISTANT_TIER_FEATURES.contains(feature)) {
+            throw new IllegalArgumentException(
+                    "Les tiers assistant (" + feature + ") prennent un modele plateforme, pas un provider connecte");
+        }
+        enforceSameProviderForAssistantTiers(feature, provider);
 
         // Exclusivite mutuelle : une feature a soit un modele plateforme, soit un provider connecte.
         featureModelRepository.deleteByFeature(feature);
@@ -344,6 +352,53 @@ public class PlatformAiConfigService {
             result.put(fp.getFeature(), fp.getProvider());
         }
         return result;
+    }
+
+    /** Features "tier" de l'assistant (T-03) : modele du MEME provider que la reference ASSISTANT_CHAT. */
+    private static final Set<String> ASSISTANT_TIER_FEATURES =
+            Set.of(AiFeature.ASSISTANT_SMALL.name(), AiFeature.ASSISTANT_STRONG.name());
+
+    /**
+     * Regle tiers assistant (2026-07-02) : un modele assigne a ASSISTANT_SMALL/STRONG
+     * DOIT etre du meme provider que la reference ASSISTANT_CHAT (modele plateforme ou
+     * provider connecte) — sinon le tier serait silencieusement ignore au runtime
+     * (garde meme-provider de TierModelResolver). Reciproque : changer le provider
+     * d'ASSISTANT_CHAT exige de desassigner d'abord les tiers divergents.
+     */
+    private void enforceSameProviderForAssistantTiers(String feature, String newProvider) {
+        if (ASSISTANT_TIER_FEATURES.contains(feature)) {
+            String reference = assistantChatProvider().orElseThrow(() -> new IllegalArgumentException(
+                    "Assignez d'abord un modele ou un provider a ASSISTANT_CHAT : "
+                            + "les tiers doivent etre du meme provider que l'assistant"));
+            if (!reference.equalsIgnoreCase(newProvider)) {
+                throw new IllegalArgumentException("Le modele du tier doit etre du provider '" + reference
+                        + "' (celui de l'Assistant IA) — recu : '" + newProvider + "'");
+            }
+            return;
+        }
+        if (AiFeature.ASSISTANT_CHAT.name().equals(feature)) {
+            for (String tier : ASSISTANT_TIER_FEATURES) {
+                String tierProvider = featureModelRepository.findByFeature(tier)
+                        .map(fm -> fm.getModel().getProvider())
+                        .orElse(null);
+                if (tierProvider != null && !tierProvider.equalsIgnoreCase(newProvider)) {
+                    throw new IllegalArgumentException("Le tier " + tier + " est assigne a un modele '"
+                            + tierProvider + "' : desassignez-le avant de passer l'Assistant IA sur '"
+                            + newProvider + "' (les tiers doivent etre du meme provider)");
+                }
+            }
+        }
+    }
+
+    /** Provider de reference de l'assistant : modele plateforme assigne, sinon provider connecte. */
+    private Optional<String> assistantChatProvider() {
+        Optional<String> byModel = featureModelRepository.findByFeature(AiFeature.ASSISTANT_CHAT.name())
+                .map(fm -> fm.getModel().getProvider());
+        if (byModel.isPresent()) {
+            return byModel;
+        }
+        return featureProviderRepository.findByFeature(AiFeature.ASSISTANT_CHAT.name())
+                .map(PlatformAiFeatureProvider::getProvider);
     }
 
     private void validateFeature(String feature) {
