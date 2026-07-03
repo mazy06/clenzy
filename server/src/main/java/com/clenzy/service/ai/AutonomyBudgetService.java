@@ -2,8 +2,10 @@ package com.clenzy.service.ai;
 
 import com.clenzy.model.AiAutonomyBudget;
 import com.clenzy.model.AiUsageLedgerEntry;
+import com.clenzy.model.Organization;
 import com.clenzy.repository.AiAutonomyBudgetRepository;
 import com.clenzy.repository.AiUsageLedgerRepository;
+import com.clenzy.repository.OrganizationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,15 +40,27 @@ public class AutonomyBudgetService {
         public boolean allowed() { return outcome == Outcome.ALLOWED; }
     }
 
+    // Defauts du plafond premium PAR FORFAIT (grille campagne §9, validee avec X5) :
+    // essentiel 0 (activable via top-up), confort 500 credits, premium 2 500 credits.
+    // Appliques UNIQUEMENT quand l'org n'a pas de config explicite — les behaviors
+    // restant OFF par defaut, rien ne s'execute tant que l'org n'active pas un toggle ;
+    // mais quand elle le fait, le plafond de son forfait est deja en place.
+    private static final long DEFAULT_CAP_ESSENTIEL_MC = 0L;
+    private static final long DEFAULT_CAP_CONFORT_MC = 500_000L;
+    private static final long DEFAULT_CAP_PREMIUM_MC = 2_500_000L;
+
     private final AiAutonomyBudgetRepository budgetRepository;
     private final AiUsageLedgerRepository ledgerRepository;
+    private final OrganizationRepository organizationRepository;
     private final ObjectMapper objectMapper;
 
     public AutonomyBudgetService(AiAutonomyBudgetRepository budgetRepository,
                                  AiUsageLedgerRepository ledgerRepository,
+                                 OrganizationRepository organizationRepository,
                                  ObjectMapper objectMapper) {
         this.budgetRepository = budgetRepository;
         this.ledgerRepository = ledgerRepository;
+        this.organizationRepository = organizationRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -59,9 +73,10 @@ public class AutonomyBudgetService {
      */
     @Transactional(readOnly = true)
     public Decision evaluate(Long organizationId, String behaviorKey) {
-        AiAutonomyBudget budget = budgetRepository.findById(organizationId).orElse(null);
-        long cap = budget != null ? budget.getPremiumCapMillicredits() : 0L;
-        if (budget == null || cap <= 0 || !isBehaviorEnabled(budget, behaviorKey)) {
+        AiAutonomyBudget budget = budgetRepository.findById(organizationId)
+                .orElseGet(() -> defaultBudgetFor(organizationId));
+        long cap = budget.getPremiumCapMillicredits();
+        if (cap <= 0 || !isBehaviorEnabled(budget, behaviorKey)) {
             return new Decision(Outcome.DISABLED, cap, 0L);
         }
         long consumed = ledgerRepository.sumBucketDebitSince(
@@ -80,7 +95,32 @@ public class AutonomyBudgetService {
     @Transactional(readOnly = true)
     public AiAutonomyBudget getConfig(Long organizationId) {
         return budgetRepository.findById(organizationId)
-                .orElseGet(() -> new AiAutonomyBudget(organizationId));
+                .orElseGet(() -> defaultBudgetFor(organizationId));
+    }
+
+    /**
+     * Config TRANSIENTE par defaut d'une org sans ligne explicite : plafond de
+     * la grille selon le forfait de l'org (behaviors vides = tout OFF). La ligne
+     * n'est persistee qu'au premier updateConfig — une org qui ne touche a rien
+     * suit automatiquement les evolutions de la grille et de son forfait.
+     */
+    private AiAutonomyBudget defaultBudgetFor(Long organizationId) {
+        AiAutonomyBudget budget = new AiAutonomyBudget(organizationId);
+        budget.setPremiumCapMillicredits(defaultCapForOrganization(organizationId));
+        return budget;
+    }
+
+    /** Plafond de la grille §9 par forfait — repli essentiel (0), comme la dotation T-07. */
+    private long defaultCapForOrganization(Long organizationId) {
+        String forfait = organizationRepository.findById(organizationId)
+                .map(Organization::getForfait)
+                .orElse(null);
+        String normalized = forfait == null ? "essentiel" : forfait.toLowerCase(java.util.Locale.ROOT);
+        return switch (normalized) {
+            case "premium" -> DEFAULT_CAP_PREMIUM_MC;
+            case "confort" -> DEFAULT_CAP_CONFORT_MC;
+            default -> DEFAULT_CAP_ESSENTIEL_MC;
+        };
     }
 
     /** Met a jour le plafond, le comportement au plafond et les toggles. */
