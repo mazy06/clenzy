@@ -73,6 +73,19 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
 
     Optional<GuestReview> findByExternalReviewIdAndOrganizationId(String externalReviewId, Long organizationId);
 
+    // ─── Relance d'avis automatique (SendReviewRequestExecutor, F4a) ────────────
+
+    /** Vrai si un avis est deja rattache a la reservation (lien direct). */
+    boolean existsByReservationIdAndOrganizationId(Long reservationId, Long organizationId);
+
+    /**
+     * Vrai si le logement a recu un avis a partir de la date donnee (repli quand les avis
+     * importes des OTA n'ont pas de lien reservation : un avis poste apres le check-out
+     * du sejour compte comme recu).
+     */
+    boolean existsByPropertyIdAndOrganizationIdAndReviewDateGreaterThanEqual(
+        Long propertyId, Long organizationId, LocalDate reviewDate);
+
     @Query("SELECT r FROM GuestReview r WHERE r.id = :id AND r.organizationId = :orgId")
     Optional<GuestReview> findByIdAndOrgId(@Param("id") Long id, @Param("orgId") Long orgId);
 

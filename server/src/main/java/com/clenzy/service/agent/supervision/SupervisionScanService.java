@@ -121,6 +121,16 @@ public class SupervisionScanService {
     }
 
     /**
+     * Mode dégradé « plafond premium atteint » (X8-b, scénario S4 D-105) :
+     * heuristiques analytics déterministes SEULES — zéro appel LLM, zéro crédit.
+     * Les suggestions restent alimentées, l'exécution proactive attend le cycle
+     * suivant (ou un relèvement du plafond).
+     */
+    public void deterministicScanOnly(Long orgId, Long propertyId) {
+        businessAnalyticsScanner.scanProperty(orgId, propertyId);
+    }
+
+    /**
      * Boucle commune : exécute l'orchestrateur, journalise l'activité observée et
      * (si {@code recordSuggestions}) route les propositions vers la file org-scopée.
      */

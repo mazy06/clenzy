@@ -57,6 +57,11 @@ public class AgentRunRecorder {
     private final AgentStepRepository stepRepository;
     private final Executor writer;
 
+    // @Autowired OBLIGATOIRE : la classe a 2 constructeurs (celui de test
+    // ci-dessous) — sans l'annotation, Spring cherche un constructeur no-arg
+    // inexistant et le boot echoue (constate au 1er boot reel du 2026-07-02,
+    // invisible en mvn package qui ne monte pas le contexte complet).
+    @org.springframework.beans.factory.annotation.Autowired
     public AgentRunRecorder(AgentRunRepository runRepository, AgentStepRepository stepRepository) {
         this(runRepository, stepRepository, defaultWriter());
     }
@@ -87,10 +92,24 @@ public class AgentRunRecorder {
      */
     public UUID startRun(Long organizationId, String keycloakUserId,
                          Long conversationId, String origin) {
+        return startRun(organizationId, keycloakUserId, conversationId, origin, null);
+    }
+
+    /**
+     * Variante avec la question utilisateur d'origine (L3, what-if replay) —
+     * tronquee a 500 chars. Null OK (reprise, run autonome).
+     */
+    public UUID startRun(Long organizationId, String keycloakUserId,
+                         Long conversationId, String origin, String userQuery) {
         UUID runId = UUID.randomUUID();
         current.set(new ActiveRun(runId));
-        submit(() -> runRepository.save(
-                new AgentRun(runId, organizationId, keycloakUserId, conversationId, origin)));
+        String truncatedQuery = userQuery == null ? null
+                : (userQuery.length() <= 500 ? userQuery : userQuery.substring(0, 500));
+        submit(() -> {
+            AgentRun run = new AgentRun(runId, organizationId, keycloakUserId, conversationId, origin);
+            run.setUserQuery(truncatedQuery);
+            runRepository.save(run);
+        });
         return runId;
     }
 

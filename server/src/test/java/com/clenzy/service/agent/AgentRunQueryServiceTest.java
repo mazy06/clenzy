@@ -40,6 +40,52 @@ class AgentRunQueryServiceTest {
         return new AgentRunQueryService(runRepository, stepRepository, organizationAccessGuard);
     }
 
+    // ─── What-if replay (campagne L3) ───────────────────────────────────────
+
+    @Test
+    void whatIf_composesPromptWithOriginalQueryAndHypothesis() {
+        UUID runId = UUID.randomUUID();
+        AgentRun run = new AgentRun(runId, 1L, "kc", 7L, "chat");
+        run.setUserQuery("analyse mes performances de juillet");
+        when(runRepository.findById(runId)).thenReturn(Optional.of(run));
+
+        String prompt = service().composeWhatIfPrompt(runId, "avec un tarif nuit a 95 EUR");
+
+        assertThat(prompt).contains("analyse mes performances de juillet");
+        assertThat(prompt).contains("avec un tarif nuit a 95 EUR");
+        assertThat(prompt).contains("hypothese");
+    }
+
+    @Test
+    void whatIf_blankHypothesis_rejected() {
+        assertThatThrownBy(() -> service().composeWhatIfPrompt(UUID.randomUUID(), "  "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void whatIf_runWithoutCapturedQuery_rejected() {
+        UUID runId = UUID.randomUUID();
+        AgentRun run = new AgentRun(runId, 1L, "kc", 7L, "briefing");
+        when(runRepository.findById(runId)).thenReturn(Optional.of(run));
+
+        assertThatThrownBy(() -> service().composeWhatIfPrompt(runId, "hypothese"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("question capturee");
+    }
+
+    @Test
+    void whatIf_crossOrg_throwsAccessDenied() {
+        UUID runId = UUID.randomUUID();
+        AgentRun run = new AgentRun(runId, 99L, "kc", 7L, "chat");
+        run.setUserQuery("q");
+        when(runRepository.findById(runId)).thenReturn(Optional.of(run));
+        doThrow(new AccessDeniedException("cross-org"))
+                .when(organizationAccessGuard).requireSameOrganization(eq(99L), anyString());
+
+        assertThatThrownBy(() -> service().composeWhatIfPrompt(runId, "hypothese"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
     @Test
     void unknownRun_throwsNotFound() {
         UUID runId = UUID.randomUUID();

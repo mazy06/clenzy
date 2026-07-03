@@ -35,13 +35,19 @@ public class KbSearchService {
     private final EmbeddingService embeddingService;
     private final KbChunkRepository chunkRepository;
     private final RerankService rerankService;
+    private final EmbeddingOrgQuota embeddingOrgQuota;
+    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     public KbSearchService(EmbeddingService embeddingService,
                             KbChunkRepository chunkRepository,
-                            RerankService rerankService) {
+                            RerankService rerankService,
+                            EmbeddingOrgQuota embeddingOrgQuota,
+                            io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.embeddingService = embeddingService;
         this.chunkRepository = chunkRepository;
         this.rerankService = rerankService;
+        this.embeddingOrgQuota = embeddingOrgQuota;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -65,6 +71,15 @@ public class KbSearchService {
     @Transactional(readOnly = true)
     public List<KbSearchHit> search(String query, Long organizationId, int topK) {
         if (query == null || query.isBlank()) return List.of();
+        // Quota mensuel org (X10) : au plafond, degradation propre = recherche
+        // vide (le chat continue sans contexte kb), compteur pour le monitoring.
+        if (!embeddingOrgQuota.tryConsume(organizationId)) {
+            meterRegistry.counter("assistant.embeddings.quota_exceeded",
+                    "org", String.valueOf(organizationId)).increment();
+            log.warn("KbSearchService : quota embeddings mensuel atteint (org={}) — recherche kb sautee",
+                    organizationId);
+            return List.of();
+        }
         int safeTopK = Math.max(1, Math.min(20, topK));
         int fetchK = computeFetchSize(safeTopK);
 

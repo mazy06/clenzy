@@ -65,6 +65,12 @@ public class PricingConfigService {
     private static final int DEFAULT_PMS_PER_SEAT_CENTS = 1000; // 10€/mois par siège supplémentaire
     private static final int DEFAULT_PMS_FREE_SEATS = 1;        // 1 siège inclus (propriétaire)
 
+    // Supplément IA mensuel par forfait (campagne X5, grille §9 : +9/+29/+79 €
+    // pour 500/2 000/8 000 crédits inclus — dotations dans AiCreditGrantService)
+    private static final int DEFAULT_AI_SURCHARGE_ESSENTIEL_CENTS = 900;
+    private static final int DEFAULT_AI_SURCHARGE_CONFORT_CENTS = 2900;
+    private static final int DEFAULT_AI_SURCHARGE_PREMIUM_CENTS = 7900;
+
     // NOTE: DEFAULT_FORFAIT_CONFIGS, DEFAULT_TRAVAUX_CONFIG, DEFAULT_EXTERIEUR_CONFIG,
     // DEFAULT_BLANCHISSERIE_CONFIG, DEFAULT_COMMISSION_CONFIGS have been removed.
     // These are now seeded directly in the database via V36 migration.
@@ -158,6 +164,15 @@ public class PricingConfigService {
         }
         if (dto.getPmsFreeSeats() != null && (dto.getPmsFreeSeats() < 0 || dto.getPmsFreeSeats() > 1000)) {
             throw new IllegalArgumentException("pmsFreeSeats hors limites (0-1000)");
+        }
+        if (dto.getAiSurchargeEssentielCents() != null && (dto.getAiSurchargeEssentielCents() < 0 || dto.getAiSurchargeEssentielCents() > 10_000_00)) {
+            throw new IllegalArgumentException("aiSurchargeEssentielCents hors limites (0-1000000)");
+        }
+        if (dto.getAiSurchargeConfortCents() != null && (dto.getAiSurchargeConfortCents() < 0 || dto.getAiSurchargeConfortCents() > 10_000_00)) {
+            throw new IllegalArgumentException("aiSurchargeConfortCents hors limites (0-1000000)");
+        }
+        if (dto.getAiSurchargePremiumCents() != null && (dto.getAiSurchargePremiumCents() < 0 || dto.getAiSurchargePremiumCents() > 10_000_00)) {
+            throw new IllegalArgumentException("aiSurchargePremiumCents hors limites (0-1000000)");
         }
         // Validate coefficients are positive and reasonable (0.01 to 100.0)
         validateCoeffMap(dto.getPropertyTypeCoeffs(), "propertyTypeCoeffs");
@@ -393,6 +408,25 @@ public class PricingConfigService {
     }
 
     /**
+     * Supplément IA mensuel (centimes) du forfait — grille X5 : la dotation de
+     * crédits IA incluse (500/2 000/8 000, cf. AiCreditGrantService) est portée
+     * par cette majoration du prix d'abonnement. Forfait inconnu/null → essentiel
+     * (même repli que la dotation).
+     */
+    public int getAiMonthlySurchargeCents(String forfait) {
+        PricingConfigDto dto = getCurrentConfig();
+        String f = forfait == null ? "essentiel" : forfait.toLowerCase(Locale.ROOT);
+        return switch (f) {
+            case "premium" -> dto.getAiSurchargePremiumCents() != null
+                    ? dto.getAiSurchargePremiumCents() : DEFAULT_AI_SURCHARGE_PREMIUM_CENTS;
+            case "confort" -> dto.getAiSurchargeConfortCents() != null
+                    ? dto.getAiSurchargeConfortCents() : DEFAULT_AI_SURCHARGE_CONFORT_CENTS;
+            default -> dto.getAiSurchargeEssentielCents() != null
+                    ? dto.getAiSurchargeEssentielCents() : DEFAULT_AI_SURCHARGE_ESSENTIEL_CENTS;
+        };
+    }
+
+    /**
      * Calcule le coût mensuel PMS total en centimes pour un nombre de sièges donné.
      * total = base + max(0, seatCount - freeSeats) × perSeatPrice
      */
@@ -422,6 +456,10 @@ public class PricingConfigService {
         dto.setPmsSyncPriceCents(entity.getPmsSyncPriceCents() != null ? entity.getPmsSyncPriceCents() : DEFAULT_PMS_SYNC_CENTS);
         dto.setPmsPerSeatPriceCents(entity.getPmsPerSeatPriceCents() != null ? entity.getPmsPerSeatPriceCents() : DEFAULT_PMS_PER_SEAT_CENTS);
         dto.setPmsFreeSeats(entity.getPmsFreeSeats() != null ? entity.getPmsFreeSeats() : DEFAULT_PMS_FREE_SEATS);
+
+        dto.setAiSurchargeEssentielCents(entity.getAiSurchargeEssentielCents() != null ? entity.getAiSurchargeEssentielCents() : DEFAULT_AI_SURCHARGE_ESSENTIEL_CENTS);
+        dto.setAiSurchargeConfortCents(entity.getAiSurchargeConfortCents() != null ? entity.getAiSurchargeConfortCents() : DEFAULT_AI_SURCHARGE_CONFORT_CENTS);
+        dto.setAiSurchargePremiumCents(entity.getAiSurchargePremiumCents() != null ? entity.getAiSurchargePremiumCents() : DEFAULT_AI_SURCHARGE_PREMIUM_CENTS);
 
         dto.setAutomationBasicSurcharge(entity.getAutomationBasicSurcharge() != null ? entity.getAutomationBasicSurcharge() : 0);
         dto.setAutomationFullSurcharge(entity.getAutomationFullSurcharge() != null ? entity.getAutomationFullSurcharge() : 0);
@@ -469,6 +507,10 @@ public class PricingConfigService {
         if (dto.getPmsPerSeatPriceCents() != null) entity.setPmsPerSeatPriceCents(dto.getPmsPerSeatPriceCents());
         if (dto.getPmsFreeSeats() != null) entity.setPmsFreeSeats(dto.getPmsFreeSeats());
 
+        if (dto.getAiSurchargeEssentielCents() != null) entity.setAiSurchargeEssentielCents(dto.getAiSurchargeEssentielCents());
+        if (dto.getAiSurchargeConfortCents() != null) entity.setAiSurchargeConfortCents(dto.getAiSurchargeConfortCents());
+        if (dto.getAiSurchargePremiumCents() != null) entity.setAiSurchargePremiumCents(dto.getAiSurchargePremiumCents());
+
         if (dto.getAutomationBasicSurcharge() != null) entity.setAutomationBasicSurcharge(dto.getAutomationBasicSurcharge());
         if (dto.getAutomationFullSurcharge() != null) entity.setAutomationFullSurcharge(dto.getAutomationFullSurcharge());
 
@@ -512,6 +554,9 @@ public class PricingConfigService {
         dto.setPmsSyncPriceCents(DEFAULT_PMS_SYNC_CENTS);
         dto.setPmsPerSeatPriceCents(DEFAULT_PMS_PER_SEAT_CENTS);
         dto.setPmsFreeSeats(DEFAULT_PMS_FREE_SEATS);
+        dto.setAiSurchargeEssentielCents(DEFAULT_AI_SURCHARGE_ESSENTIEL_CENTS);
+        dto.setAiSurchargeConfortCents(DEFAULT_AI_SURCHARGE_CONFORT_CENTS);
+        dto.setAiSurchargePremiumCents(DEFAULT_AI_SURCHARGE_PREMIUM_CENTS);
         dto.setAutomationBasicSurcharge(0);
         dto.setAutomationFullSurcharge(0);
         // DB-driven lists — return empty (data will be seeded on first save)

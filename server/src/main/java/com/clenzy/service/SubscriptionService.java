@@ -81,8 +81,10 @@ public class SubscriptionService {
 
         log.info("Upgrade forfait demande pour user {} : {} -> {}", user.getEmail(), currentForfait, target);
 
-        // Prix PMS mensuel en centimes (source unique : PricingConfig)
-        int priceInCents = pricingConfigService.getPmsMonthlyPriceCents();
+        // Prix PMS mensuel + supplément IA du forfait cible (campagne X5) —
+        // source unique : PricingConfig
+        int priceInCents = pricingConfigService.getPmsMonthlyPriceCents()
+                + pricingConfigService.getAiMonthlySurchargeCents(target);
 
         // Annuler l'ancien abonnement Stripe si existant
         if (user.getStripeSubscriptionId() != null && !user.getStripeSubscriptionId().isEmpty()) {
@@ -121,7 +123,7 @@ public class SubscriptionService {
                                                 )
                                                 .setProductData(
                                                         SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                .setName("Clenzy - Upgrade " + forfaitDisplayName)
+                                                                .setName("Baitly - Upgrade " + forfaitDisplayName)
                                                                 .setDescription("Mise a niveau vers le forfait " + forfaitDisplayName
                                                                         + " - Acces au planning, import iCal et interventions automatiques")
                                                                 .build()

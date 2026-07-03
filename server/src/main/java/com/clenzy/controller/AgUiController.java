@@ -109,6 +109,22 @@ public class AgUiController {
         return agentRunQueryService.getReplay(runId);
     }
 
+    /** Corps du POST what-if (campagne L3). */
+    public record WhatIfRequest(String hypothesis) {}
+
+    /**
+     * What-if replay (campagne L3) : compose le prompt de re-analyse de la
+     * question d'origine du run sous une hypothese differente. Le front envoie
+     * le prompt retourne par le CHAT NORMAL (routage/credits/HITL inchanges —
+     * aucun chemin d'execution parallele).
+     */
+    @PostMapping("/history/{runId}/what-if")
+    public Map<String, String> whatIf(@PathVariable java.util.UUID runId,
+                                      @RequestBody WhatIfRequest request) {
+        return Map.of("prompt",
+                agentRunQueryService.composeWhatIfPrompt(runId, request.hypothesis()));
+    }
+
     /** Découverte AG-UI : liste les agents exposés par ce serveur. */
     @GetMapping("/info")
     public Map<String, Object> info() {

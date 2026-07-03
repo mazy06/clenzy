@@ -32,4 +32,15 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     @Query("UPDATE SupervisionSuggestion s SET s.status = 'APPLIED', s.appliedAt = :now "
             + "WHERE s.id = :id AND s.organizationId = :orgId AND s.status = 'PENDING'")
     int markApplied(@Param("id") Long id, @Param("orgId") Long orgId, @Param("now") Instant now);
+
+    /**
+     * Compensation d'une action a EFFET EXTERNE (Stripe) echouee : la transition
+     * {@code PENDING → APPLIED} a ete committee AVANT l'appel externe (jamais d'appel
+     * Stripe en transaction DB) — si l'effet echoue, la suggestion redevient PENDING
+     * (CAS, meme garantie anti-course que {@link #markApplied}).
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE SupervisionSuggestion s SET s.status = 'PENDING', s.appliedAt = NULL "
+            + "WHERE s.id = :id AND s.organizationId = :orgId AND s.status = 'APPLIED'")
+    int revertApplied(@Param("id") Long id, @Param("orgId") Long orgId);
 }

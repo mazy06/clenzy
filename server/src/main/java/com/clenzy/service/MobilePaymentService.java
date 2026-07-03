@@ -255,8 +255,10 @@ public class MobilePaymentService {
         // Annuler l'ancien abonnement Stripe si existant
         cancelExistingSubscription(user);
 
-        // Prix PMS mensuel en centimes (source unique : PricingConfig)
-        long priceInCents = pricingConfigService.getPmsMonthlyPriceCents();
+        // Prix PMS mensuel + supplément IA du forfait cible (campagne X5) —
+        // source unique : PricingConfig
+        long priceInCents = pricingConfigService.getPmsMonthlyPriceCents()
+                + pricingConfigService.getAiMonthlySurchargeCents(target);
         String forfaitDisplayName = target.substring(0, 1).toUpperCase() + target.substring(1);
 
         // Creer un Price inline (avec Product inline)
@@ -267,7 +269,7 @@ public class MobilePaymentService {
                         .setInterval(PriceCreateParams.Recurring.Interval.MONTH)
                         .build())
                 .setProductData(PriceCreateParams.ProductData.builder()
-                        .setName("Clenzy - Forfait " + forfaitDisplayName)
+                        .setName("Baitly - Forfait " + forfaitDisplayName)
                         .build())
                 .build();
 

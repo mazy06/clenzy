@@ -14,6 +14,7 @@ public record AgentRunReplayDto(
         String origin,
         String status,
         String error,
+        String userQuery,
         Instant startedAt,
         Instant finishedAt,
         List<StepDto> steps

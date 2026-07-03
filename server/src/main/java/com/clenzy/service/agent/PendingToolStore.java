@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Store des executions de tools en attente de confirmation user (HITL).
@@ -67,6 +68,7 @@ public class PendingToolStore {
      */
     private final com.clenzy.repository.AgentPendingActionRepository pendingActionRepository;
 
+    @Autowired
     public PendingToolStore(StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
                             com.clenzy.repository.AgentPendingActionRepository pendingActionRepository) {
         this.redisTemplate = redisTemplate;

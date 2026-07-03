@@ -101,4 +101,16 @@ public interface OwnerPayoutRepository extends JpaRepository<OwnerPayout, Long> 
                             @Param("failed") PayoutStatus failed,
                             @Param("reason") String reason,
                             @Param("paid") PayoutStatus paid);
+
+    /**
+     * Pose la date de relance « en attente d'approbation » si elle est encore
+     * NULL (CAS — regle audit n°8). Cle d'idempotence metier du flux F9b :
+     * une seule relance par payout, quelles que soient les re-executions.
+     *
+     * @return 1 si la relance vient d'etre reclamee, 0 si deja relance.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE OwnerPayout p SET p.approvalReminderSentAt = :now "
+         + "WHERE p.id = :id AND p.approvalReminderSentAt IS NULL")
+    int markApprovalReminderSent(@Param("id") Long id, @Param("now") Instant now);
 }

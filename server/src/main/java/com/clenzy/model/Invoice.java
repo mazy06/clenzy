@@ -144,6 +144,17 @@ public class Invoice {
     @Column(name = "overdue_notified_at")
     private LocalDateTime overdueNotifiedAt;
 
+    /**
+     * F5a — relances impayes : nombre de relances envoyees apres passage OVERDUE
+     * (J+3 puis J+7, maximum 2). L'idempotence des relances est portee par ce
+     * compteur en base.
+     */
+    @Column(name = "overdue_reminder_count", nullable = false)
+    private int overdueReminderCount = 0;
+
+    @Column(name = "overdue_last_reminder_at")
+    private LocalDateTime overdueLastReminderAt;
+
     // --- End B2B Payment fields ---
 
     // --- Pennylane sync tracking ---
@@ -271,6 +282,12 @@ public class Invoice {
 
     public LocalDateTime getOverdueNotifiedAt() { return overdueNotifiedAt; }
     public void setOverdueNotifiedAt(LocalDateTime overdueNotifiedAt) { this.overdueNotifiedAt = overdueNotifiedAt; }
+
+    public int getOverdueReminderCount() { return overdueReminderCount; }
+    public void setOverdueReminderCount(int overdueReminderCount) { this.overdueReminderCount = overdueReminderCount; }
+
+    public LocalDateTime getOverdueLastReminderAt() { return overdueLastReminderAt; }
+    public void setOverdueLastReminderAt(LocalDateTime overdueLastReminderAt) { this.overdueLastReminderAt = overdueLastReminderAt; }
 
     public String getPennylaneInvoiceId() { return pennylaneInvoiceId; }
     public void setPennylaneInvoiceId(String pennylaneInvoiceId) { this.pennylaneInvoiceId = pennylaneInvoiceId; }

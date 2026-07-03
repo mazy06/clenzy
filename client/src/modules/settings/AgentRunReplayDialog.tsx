@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   Dialog,
   DialogContent,
   DialogTitle,
   IconButton,
   Skeleton,
+  TextField,
   Typography,
   useTheme,
 } from '@mui/material';
@@ -40,6 +42,9 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
   const [replay, setReplay] = useState<AgentRunReplay | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // What-if (campagne L3) : hypothèse → prompt composé serveur → presse-papier.
+  const [hypothesis, setHypothesis] = useState('');
+  const [whatIfStatus, setWhatIfStatus] = useState<'idle' | 'busy' | 'copied' | 'error'>('idle');
 
   useEffect(() => {
     if (!open || !runId) return;
@@ -159,6 +164,50 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                 );
               })}
             </Box>
+            {replay.userQuery && (
+              <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                  {t('agentReplay.whatIf.title', 'Et si… ? (rejouer avec une hypothèse)')}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  {t('agentReplay.whatIf.subtitle',
+                    'Le prompt de re-analyse est copié — collez-le dans le chat de l\u2019assistant pour lancer le what-if.')}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    value={hypothesis}
+                    onChange={(e) => setHypothesis(e.target.value)}
+                    placeholder={t('agentReplay.whatIf.placeholder', 'Ex. : avec un tarif nuit à 95 € au lieu de 120 €')}
+                  />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={whatIfStatus === 'busy' || !hypothesis.trim()}
+                    onClick={async () => {
+                      setWhatIfStatus('busy');
+                      try {
+                        const { prompt } = await agentRunApi.whatIf(replay.runId, hypothesis.trim());
+                        await navigator.clipboard.writeText(prompt);
+                        setWhatIfStatus('copied');
+                        setTimeout(() => setWhatIfStatus('idle'), 4000);
+                      } catch {
+                        setWhatIfStatus('error');
+                        setTimeout(() => setWhatIfStatus('idle'), 4000);
+                      }
+                    }}
+                    sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                  >
+                    {whatIfStatus === 'copied'
+                      ? t('agentReplay.whatIf.copied', 'Copié !')
+                      : whatIfStatus === 'error'
+                        ? t('agentReplay.whatIf.error', 'Échec')
+                        : t('agentReplay.whatIf.copy', 'Copier le prompt')}
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </>
         )}
       </DialogContent>

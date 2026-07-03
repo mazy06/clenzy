@@ -699,6 +699,84 @@ class OrchestratorAgentTest {
         assertThat(r.delegationsLog()).isEmpty();
     }
 
+    // ─── L1 (architecture C v1) : blackboard de run ─────────────────────────
+
+    /** Stub : 2 délégations successives puis texte final. */
+    private void stubTwoDelegationsThenText() {
+        ChatMessage.ToolCall first = new ChatMessage.ToolCall(
+                "tc1", "delegate_to",
+                "{\"specialist\":\"data_analyst\",\"query\":\"kpis juillet\"}");
+        ChatMessage.ToolCall second = new ChatMessage.ToolCall(
+                "tc2", "delegate_to",
+                "{\"specialist\":\"data_analyst\",\"query\":\"compare avec aout\"}");
+        AtomicInteger callCount = new AtomicInteger();
+        doAnswer(inv -> {
+            Consumer<ChatEvent> consumer = inv.getArgument(1);
+            int call = callCount.getAndIncrement();
+            if (call == 0) {
+                consumer.accept(new ChatEvent.ToolCallRequest(List.of(first)));
+                consumer.accept(new ChatEvent.Done(40, 5, "claude", "tool_use", ""));
+            } else if (call == 1) {
+                consumer.accept(new ChatEvent.ToolCallRequest(List.of(second)));
+                consumer.accept(new ChatEvent.Done(40, 5, "claude", "tool_use", ""));
+            } else {
+                consumer.accept(new ChatEvent.TextDelta("Voila la comparaison."));
+                consumer.accept(new ChatEvent.Done(60, 10, "claude", "end_turn", "Voila la comparaison."));
+            }
+            return null;
+        }).when(chatProvider).streamChat(any(ChatRequest.class), any());
+    }
+
+    @Test
+    void blackboardEnabled_secondDelegationReceivesPriorFindingsDigest() {
+        OrchestratorAgent withBlackboard = new OrchestratorAgent(
+                chatProvider, registry, objectMapper, new SimpleMeterRegistry(), true, true);
+        when(dataAnalyst.handle(any(SpecialistRequest.class))).thenReturn(
+                SpecialistResult.success("Revenu juillet : 12 000 EUR", List.of(), 30, 15));
+        stubTwoDelegationsThenText();
+
+        OrchestratorAgent.OrchestrationResult r =
+                withBlackboard.orchestrate("compare juillet et aout", AgentContext.minimal(1L, "kc"));
+
+        assertThat(r.isSuccess()).isTrue();
+        ArgumentCaptor<SpecialistRequest> captor = ArgumentCaptor.forClass(SpecialistRequest.class);
+        verify(dataAnalyst, org.mockito.Mockito.times(2)).handle(captor.capture());
+        // 1re delegation : pas de constat anterieur → pas de digest
+        assertThat(captor.getAllValues().get(0).orchestrationCtx().blackboardDigest()).isNull();
+        // 2e delegation : digest = constat de la 1re (mecanique, sans re-redaction LLM)
+        assertThat(captor.getAllValues().get(1).orchestrationCtx().blackboardDigest())
+                .contains("[data_analyst]")
+                .contains("Revenu juillet : 12 000 EUR");
+    }
+
+    @Test
+    void blackboardDisabled_noDigestEverPassed() {
+        // Orchestrateur par defaut (flag off) : comportement historique strict.
+        when(dataAnalyst.handle(any(SpecialistRequest.class))).thenReturn(
+                SpecialistResult.success("Revenu juillet : 12 000 EUR", List.of(), 30, 15));
+        stubTwoDelegationsThenText();
+
+        OrchestratorAgent.OrchestrationResult r =
+                orchestrator.orchestrate("compare juillet et aout", AgentContext.minimal(1L, "kc"));
+
+        assertThat(r.isSuccess()).isTrue();
+        ArgumentCaptor<SpecialistRequest> captor = ArgumentCaptor.forClass(SpecialistRequest.class);
+        verify(dataAnalyst, org.mockito.Mockito.times(2)).handle(captor.capture());
+        assertThat(captor.getAllValues().get(0).orchestrationCtx().blackboardDigest()).isNull();
+        assertThat(captor.getAllValues().get(1).orchestrationCtx().blackboardDigest()).isNull();
+    }
+
+    @Test
+    void blackboardEnabled_orchestratorPromptTellsQueriesStayShort() {
+        OrchestratorAgent withBlackboard = new OrchestratorAgent(
+                chatProvider, registry, objectMapper, new SimpleMeterRegistry(), true, true);
+
+        assertThat(withBlackboard.buildOrchestratorSystemPrompt())
+                .contains("AUTOMATIQUEMENT les constats");
+        assertThat(orchestrator.buildOrchestratorSystemPrompt())
+                .doesNotContain("AUTOMATIQUEMENT les constats");
+    }
+
     /** Stub generique : LLM renvoie texte + done. */
     private void stubLlm(String text, List<ChatMessage.ToolCall> toolCalls, int promptTokens, int completionTokens) {
         doAnswer(inv -> {

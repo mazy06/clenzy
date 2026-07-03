@@ -89,6 +89,11 @@ public class QuoteController {
         info.put("pmsMonthlyPriceCents", config.getPmsMonthlyPriceCents());
         info.put("pmsSyncPriceCents", config.getPmsSyncPriceCents());
 
+        // Supplément IA mensuel par forfait (centimes) — campagne X5
+        info.put("aiSurchargeEssentielCents", config.getAiSurchargeEssentielCents());
+        info.put("aiSurchargeConfortCents", config.getAiSurchargeConfortCents());
+        info.put("aiSurchargePremiumCents", config.getAiSurchargePremiumCents());
+
         // Coefficients
         info.put("propertyTypeCoeffs", config.getPropertyTypeCoeffs());
         info.put("propertyCountCoeffs", config.getPropertyCountCoeffs());

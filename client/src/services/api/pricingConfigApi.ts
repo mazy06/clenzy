@@ -71,6 +71,10 @@ export interface PricingConfig {
   pmsSyncPriceCents: number;
   pmsPerSeatPriceCents: number;
   pmsFreeSeats: number;
+  // Supplement IA mensuel par forfait (cents) — campagne X5
+  aiSurchargeEssentielCents: number;
+  aiSurchargeConfortCents: number;
+  aiSurchargePremiumCents: number;
   automationBasicSurcharge: number;
   automationFullSurcharge: number;
   forfaitConfigs: ForfaitConfig[];

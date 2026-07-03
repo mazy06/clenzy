@@ -36,7 +36,8 @@ class GuestChatServiceTest {
     @BeforeEach
     void setUp() {
         service = new GuestChatService(
-            welcomeGuideService, aiProviderRouter, redisTemplate, new GuideConfig(), tokenBudgetService);
+            welcomeGuideService, aiProviderRouter, redisTemplate, new GuideConfig(), tokenBudgetService,
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }
 
     @Test

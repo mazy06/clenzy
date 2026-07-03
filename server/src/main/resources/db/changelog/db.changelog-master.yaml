@@ -29,6 +29,27 @@ databaseChangeLog:
   #     dans le titre PR uniquement pour les cas exceptionnels documentes).
   # ============================================================================
 
+  # --- 0000 : Baseline du schema pre-Liquibase (ere Flyway V1 / ddl-auto) ---
+  # Le changelog a ete converti depuis Flyway V2 : le schema INITIAL n'existait
+  # dans aucun changeset et un replay sur base VIERGE echouait des 0001
+  # (relation "users" does not exist). Ce changeset recree ce schema manquant.
+  # Precondition : sur tout environnement EXISTANT (table users presente), il
+  # est marque MARK_RAN sans rien executer — aucun impact au boot (prod incluse).
+  # Il ne s'execute que sur une base vierge (DR, staging neuf, replay de test).
+  # Preuve : LiquibaseVirginReplayIT (replay integral 0000->fin + validation
+  # Hibernate, et chemin MARK_RAN sur base non vierge).
+  - changeSet:
+      id: "0000-baseline-schema"
+      author: clenzy-team
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: users
+      sqlFile:
+        path: changes/0000__baseline_schema.sql
+        relativeToChangelogFile: true
+
   # --- 0001 : Add keycloak_id to users (ex V2a) ---
   - changeSet:
       id: "0001-add-keycloak-id-to-users"
@@ -73,9 +94,15 @@ databaseChangeLog:
         relativeToChangelogFile: true
 
   # --- 0006 : Refactor users table (ex V8) ---
+  # validCheckSum : fichier revise en 2026-07 (chantier 0000-baseline) pour le
+  # rendre rejouable sur base vierge (retrait `\d users;`, des DROP de colonnes
+  # PII encore portees par l'entite, et du RENAME keycloak_id->external_id —
+  # etats historiquement retablis par ddl-auto=update). Deja applique partout
+  # via changelog-sync : le nouveau checksum ne doit pas bloquer les boots.
   - changeSet:
       id: "0006-refactor-users-table"
       author: clenzy-team
+      validCheckSum: "1:any"
       sqlFile:
         path: changes/0006__refactor_users_table.sql
         relativeToChangelogFile: true
@@ -268,6 +295,11 @@ databaseChangeLog:
   - changeSet:
       id: "0027-nf-compliance"
       author: clenzy-team
+      # validCheckSum : revision 2026-07 (chantier 0000-baseline) — ajout de
+      # document_legal_requirements.country_code (colonne entite creee par
+      # ddl-auto a l'epoque, requise par 0275 lors d'un replay sur base
+      # vierge). Deja applique partout via changelog-sync.
+      validCheckSum: "1:any"
       sqlFile:
         path: changes/0027__nf_compliance.sql
         relativeToChangelogFile: true
@@ -464,6 +496,10 @@ databaseChangeLog:
   - changeSet:
       id: "0050-partition-calendar-days-by-month"
       author: clenzy-team
+      # validCheckSum : revision 2026-07 (chantier 0000-baseline) — setval
+      # enveloppe dans DO/PERFORM pour rendre le fichier rejouable via pgjdbc
+      # sur base vierge. Deja applique partout via changelog-sync.
+      validCheckSum: "1:any"
       changes:
         - sqlFile:
             path: changes/0050__partition_calendar_days_by_month.sql
@@ -2896,4 +2932,86 @@ databaseChangeLog:
       author: clenzy-team
       sqlFile:
         path: changes/0300__add_conversation_rolling_summary.sql
+        relativeToChangelogFile: true
+
+  # Supplement IA mensuel par forfait sur l'abonnement PMS (campagne X5, grille +9/+29/+79 EUR).
+  - changeSet:
+      id: "0301-add-ai-surcharge-to-pricing-configs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0301__add_ai_surcharge_to_pricing_configs.sql
+        relativeToChangelogFile: true
+
+  # Constellation Proprietaire : lien public lecture seule par proprietaire (campagne X9 v1).
+  - changeSet:
+      id: "0302-create-owner-portal-token"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0302__create_owner_portal_token.sql
+        relativeToChangelogFile: true
+
+  # Branding white-label org (logo + couleur) pour la Constellation Proprietaire (campagne X9-b).
+  - changeSet:
+      id: "0303-add-organization-branding"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0303__add_organization_branding.sql
+        relativeToChangelogFile: true
+
+  # Question d'origine sur agent_run pour le what-if replay (campagne L3).
+  - changeSet:
+      id: "0304-add-agent-run-user-query"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0304__add_agent_run_user_query.sql
+        relativeToChangelogFile: true
+
+  # Moteur d'automatisations central : idempotence generalisee (regle x sujet) + action_type 40 (vague 1).
+  - changeSet:
+      id: "0305-generalize-automation-executions-subject"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0305__generalize_automation_executions_subject.sql
+        relativeToChangelogFile: true
+
+  # Idempotence des executeurs : dispatch releve proprietaire + relance payout (vague 1).
+  - changeSet:
+      id: "0306-automation-executor-idempotence"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0306__automation_executor_idempotence.sql
+        relativeToChangelogFile: true
+
+  # Menage automatique post-checkout : cle d'idempotence sur service_requests (vague 2, F1a).
+  - changeSet:
+      id: "0307-add-auto-cleaning-flow"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0307__add_auto_cleaning_flow.sql
+        relativeToChangelogFile: true
+
+  # Relances factures impayees : compteur + horodatage sur invoices (vague 2, F5a).
+  - changeSet:
+      id: "0308-add-invoice-overdue-reminders"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0308__add_invoice_overdue_reminders.sql
+        relativeToChangelogFile: true
+
+  # Config JSON d'action des regles d'automatisation (vague 3 : graceHours de REVOKE_ACCESS_CODE).
+  - changeSet:
+      id: "0309-add-automation-rule-action-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0309__add_automation_rule_action_config.sql
+        relativeToChangelogFile: true
+
+  # Backfill des colonnes issues de la derive ddl-auto pre-gel (chantier
+  # 0000-baseline) : defensif (IF NOT EXISTS), no-op sur les environnements
+  # existants, complete le schema en fin de replay sur base vierge.
+  - changeSet:
+      id: "0310-backfill-ddl-auto-drift-columns"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0310__backfill_ddl_auto_drift_columns.sql
         relativeToChangelogFile: true

@@ -65,6 +65,16 @@ public class PricingConfig {
     @Column(name = "pms_free_seats")
     private Integer pmsFreeSeats;
 
+    // Supplement IA mensuel par forfait, en centimes (campagne X5 : +9/+29/+79 EUR)
+    @Column(name = "ai_surcharge_essentiel_cents")
+    private Integer aiSurchargeEssentielCents;
+
+    @Column(name = "ai_surcharge_confort_cents")
+    private Integer aiSurchargeConfortCents;
+
+    @Column(name = "ai_surcharge_premium_cents")
+    private Integer aiSurchargePremiumCents;
+
     // Automation surcharges (EUR)
     @Column(name = "automation_basic_surcharge")
     private Integer automationBasicSurcharge;
@@ -152,6 +162,15 @@ public class PricingConfig {
 
     public Integer getPmsFreeSeats() { return pmsFreeSeats; }
     public void setPmsFreeSeats(Integer pmsFreeSeats) { this.pmsFreeSeats = pmsFreeSeats; }
+
+    public Integer getAiSurchargeEssentielCents() { return aiSurchargeEssentielCents; }
+    public void setAiSurchargeEssentielCents(Integer aiSurchargeEssentielCents) { this.aiSurchargeEssentielCents = aiSurchargeEssentielCents; }
+
+    public Integer getAiSurchargeConfortCents() { return aiSurchargeConfortCents; }
+    public void setAiSurchargeConfortCents(Integer aiSurchargeConfortCents) { this.aiSurchargeConfortCents = aiSurchargeConfortCents; }
+
+    public Integer getAiSurchargePremiumCents() { return aiSurchargePremiumCents; }
+    public void setAiSurchargePremiumCents(Integer aiSurchargePremiumCents) { this.aiSurchargePremiumCents = aiSurchargePremiumCents; }
 
     public Integer getAutomationBasicSurcharge() { return automationBasicSurcharge; }
     public void setAutomationBasicSurcharge(Integer automationBasicSurcharge) { this.automationBasicSurcharge = automationBasicSurcharge; }

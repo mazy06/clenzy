@@ -159,6 +159,10 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
 
             String kbSection = renderKbSection(request.orchestrationCtx().kbHits());
             if (!kbSection.isEmpty()) sb.append(kbSection).append("\n\n");
+
+            String priorFindings = renderPriorFindingsSection(
+                    request.orchestrationCtx().blackboardDigest());
+            if (!priorFindings.isEmpty()) sb.append(priorFindings).append("\n\n");
         }
 
         sb.append("""
@@ -225,6 +229,19 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
     }
 
     /** Render XML de la memoire user (vide si rien). */
+    /**
+     * L1 (architecture C v1) : constats deja etablis par les specialists
+     * precedents du MEME run — evite la re-collecte et permet des mandats
+     * courts cote orchestrateur.
+     */
+    private String renderPriorFindingsSection(String blackboardDigest) {
+        if (blackboardDigest == null || blackboardDigest.isBlank()) return "";
+        return "<prior_findings>\n"
+                + "Constats deja etablis par les autres specialistes sur CETTE demande "
+                + "(appuie-toi dessus, ne re-collecte pas ces donnees) :\n"
+                + blackboardDigest + "\n</prior_findings>";
+    }
+
     private String renderMemorySection(java.util.List<com.clenzy.model.AssistantMemory> memories) {
         if (memories == null || memories.isEmpty()) return "";
         StringBuilder sb = new StringBuilder(256);

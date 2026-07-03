@@ -44,6 +44,10 @@ const DEFAULT_CONFIG: PricingConfig = {
   pmsSyncPriceCents: 1000,
   pmsPerSeatPriceCents: 1000,
   pmsFreeSeats: 1,
+  // Supplement IA mensuel par forfait (campagne X5 : +9/+29/+79 €)
+  aiSurchargeEssentielCents: 900,
+  aiSurchargeConfortCents: 2900,
+  aiSurchargePremiumCents: 7900,
   automationBasicSurcharge: 0,
   automationFullSurcharge: 0,
   forfaitConfigs: [],

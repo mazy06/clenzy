@@ -3,9 +3,14 @@ package com.clenzy.integration.nuki.service;
 import com.clenzy.integration.nuki.model.NukiConnection;
 import com.clenzy.integration.nuki.model.NukiConnection.NukiConnectionStatus;
 import com.clenzy.integration.nuki.repository.NukiConnectionRepository;
+import com.clenzy.model.AutomationTrigger;
 import com.clenzy.model.SmartLockDevice;
 import com.clenzy.model.SmartLockDevice.LockState;
 import com.clenzy.repository.SmartLockDeviceRepository;
+import com.clenzy.service.automation.AutomationEngine;
+import com.clenzy.service.automation.AutomationSubject;
+import com.clenzy.service.automation.CreateMaintenanceInterventionExecutor;
+import com.clenzy.service.automation.NotifyStaffExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -14,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -34,11 +40,14 @@ public class NukiWebhookService {
 
     private final SmartLockDeviceRepository deviceRepository;
     private final NukiConnectionRepository connectionRepository;
+    private final AutomationEngine automationEngine;
 
     public NukiWebhookService(SmartLockDeviceRepository deviceRepository,
-                              NukiConnectionRepository connectionRepository) {
+                              NukiConnectionRepository connectionRepository,
+                              AutomationEngine automationEngine) {
         this.deviceRepository = deviceRepository;
         this.connectionRepository = connectionRepository;
+        this.automationEngine = automationEngine;
     }
 
     /**
@@ -119,7 +128,38 @@ public class NukiWebhookService {
             log.info("Webhook Nuki : serrure {} mise a jour (lockState={}, battery={}%)",
                     device.getId(), device.getLockState(), device.getBatteryLevel());
         }
+
+        // F7a — batterie critique : declencheur LOCK_BATTERY_CRITICAL du moteur
+        // AutomationRule (action typique : intervention de maintenance preventive).
+        // Le capteur ne cree RIEN lui-meme ; l'idempotence par episode (pas de
+        // doublon tant qu'une intervention batterie est ouverte) est portee par
+        // l'executeur CREATE_MAINTENANCE_INTERVENTION.
+        if (Boolean.TRUE.equals(asBoolean(payload.get("batteryCritical")))) {
+            fireBatteryCriticalTrigger(device);
+        }
         return true;
+    }
+
+    private void fireBatteryCriticalTrigger(SmartLockDevice device) {
+        Map<String, Object> data = new HashMap<>();
+        if (device.getPropertyId() != null) {
+            data.put(AutomationSubject.DATA_PROPERTY_ID, device.getPropertyId());
+        }
+        if (device.getBatteryLevel() != null) {
+            data.put(CreateMaintenanceInterventionExecutor.DATA_BATTERY_LEVEL, device.getBatteryLevel());
+        }
+        if (device.getName() != null) {
+            data.put(NotifyStaffExecutor.DATA_DEVICE_NAME, device.getName());
+        }
+        // Declencheur recurrent (dedupePerSubject=false) : les executeurs portent
+        // leur cle metier (intervention batterie ouverte, dedup notification).
+        automationEngine.fireTrigger(
+                AutomationTrigger.LOCK_BATTERY_CRITICAL,
+                device.getOrganizationId(),
+                new AutomationSubject(
+                        CreateMaintenanceInterventionExecutor.SUBJECT_SMART_LOCK_DEVICE,
+                        device.getId(),
+                        data));
     }
 
     /**
@@ -142,6 +182,16 @@ public class NukiWebhookService {
 
     private static String asString(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private static Boolean asBoolean(Object value) {
+        if (value instanceof Boolean b) {
+            return b;
+        }
+        if (value instanceof String s) {
+            return Boolean.parseBoolean(s.trim());
+        }
+        return null;
     }
 
     private static Integer asInt(Object value) {

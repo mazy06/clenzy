@@ -323,7 +323,8 @@ public class AgentOrchestrator {
         //    reste RUNNING en base, sans polluer le run suivant).
         if (agentRunRecorder != null) {
             java.util.UUID runId = agentRunRecorder.startRun(
-                    context.organizationId(), context.keycloakId(), conversation.getId(), "chat");
+                    context.organizationId(), context.keycloakId(), conversation.getId(), "chat",
+                    effectiveMessage);
             consumer.accept(AgentSseEvent.runStarted(runId.toString()));
         }
 

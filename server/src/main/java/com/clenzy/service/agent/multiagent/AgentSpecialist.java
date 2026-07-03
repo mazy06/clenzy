@@ -68,8 +68,9 @@ public interface AgentSpecialist {
      * Tier de modele du specialiste (T-03, ADR-004). Defaut STANDARD = modele
      * resolu du contexte (comportement historique). SMALL pour les utilitaires
      * mecaniques, STRONG pour les mandats ou l'erreur coute des euros reels.
-     * Le mapping tier → modele est configure par provider
-     * ({@code clenzy.assistant.tiering.*}, cf. TierModelResolver).
+     * Le mapping tier → modele est configure EN BASE : features
+     * {@code ASSISTANT_SMALL}/{@code ASSISTANT_STRONG} de la config plateforme
+     * (cf. TierModelResolver).
      */
     default com.clenzy.service.agent.AgentTier tier() {
         return com.clenzy.service.agent.AgentTier.STANDARD;

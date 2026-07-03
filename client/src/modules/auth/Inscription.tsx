@@ -302,6 +302,8 @@ export default function Inscription() {
   // Prix PMS charges depuis l'API (pas de fallback — toujours depuis /pricing-info)
   const [pmsMonthlyPriceCents, setPmsMonthlyPriceCents] = useState<number | null>(null);
   const [pmsSyncPriceCents, setPmsSyncPriceCents] = useState<number | null>(null);
+  // Supplement IA mensuel par forfait (centimes) — campagne X5
+  const [aiSurchargeCentsByForfait, setAiSurchargeCentsByForfait] = useState<Record<string, number>>({});
 
   // Consentement RGPD + attribution (4 nouveaux champs)
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -312,12 +314,22 @@ export default function Inscription() {
   // Determiner si l'utilisateur a choisi la synchronisation calendrier (venant de la landing page)
   const isSyncMode = prefill.calendarSync === 'sync';
 
-  // Prix de base effectif selon le mode (sync ou standard)
-  const pmsBaseCents = isSyncMode ? pmsSyncPriceCents : pmsMonthlyPriceCents;
+  // Prix de base effectif selon le mode (sync ou standard) + supplement IA du
+  // forfait selectionne — aligne sur le montant facture par Stripe (backend X5)
+  const pmsCoreCents = isSyncMode ? pmsSyncPriceCents : pmsMonthlyPriceCents;
+  const pmsBaseCents = pmsCoreCents === null
+    ? null
+    : pmsCoreCents + (aiSurchargeCentsByForfait[forfait] ?? 0);
 
   useEffect(() => {
     apiClient
-      .get<{ pmsMonthlyPriceCents?: number; pmsSyncPriceCents?: number }>(
+      .get<{
+        pmsMonthlyPriceCents?: number;
+        pmsSyncPriceCents?: number;
+        aiSurchargeEssentielCents?: number;
+        aiSurchargeConfortCents?: number;
+        aiSurchargePremiumCents?: number;
+      }>(
         '/public/pricing-info',
         { skipAuth: true },
       )
@@ -328,6 +340,11 @@ export default function Inscription() {
         if (data.pmsSyncPriceCents) {
           setPmsSyncPriceCents(data.pmsSyncPriceCents);
         }
+        setAiSurchargeCentsByForfait({
+          essentiel: data.aiSurchargeEssentielCents ?? 0,
+          confort: data.aiSurchargeConfortCents ?? 0,
+          premium: data.aiSurchargePremiumCents ?? 0,
+        });
       })
       .catch(() => {});
   }, []);

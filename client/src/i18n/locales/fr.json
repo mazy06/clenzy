@@ -3139,6 +3139,60 @@
       "cancelled": "Annulé"
     }
   },
+  "aiAutonomy": {
+    "loadError": "Impossible de charger la configuration d'autonomie.",
+    "saveError": "Impossible d'enregistrer la configuration.",
+    "ruleActionError": "Impossible d'appliquer la décision.",
+    "invalidCap": "Plafond invalide.",
+    "budgetTitle": "Budget d'autonomie premium",
+    "budgetSubtitle": "Plafond mensuel des actions proactives premium. L'autonomie socle (auto-réponses, alertes, briefings) reste incluse et n'est jamais décomptée. Plafond à 0 = autonomie premium désactivée.",
+    "consumedThisCycle": "Consommé ce cycle",
+    "credits": "crédits",
+    "capLabel": "Plafond (crédits / mois)",
+    "onCapLabel": "Au plafond",
+    "onCapNotify": "Notifier seulement (suggestions sans exécution)",
+    "onCapPause": "Mettre l'autonomie en pause",
+    "save": "Enregistrer",
+    "noBehaviors": "Aucun comportement premium branché pour le moment — les interrupteurs apparaîtront ici (ex. optimisation tarifaire proactive).",
+    "trustTitle": "Règles de Confiance",
+    "trustSubtitle": "Quand vous confirmez plusieurs fois la même action, l'assistant propose de ne plus demander. Chaque règle est visible et révocable ici — les actions d'argent ne sont jamais éligibles.",
+    "noRules": "Aucune règle pour le moment — elles apparaissent après plusieurs confirmations de la même action.",
+    "rule": { "tool": "Action", "status": "Statut", "confirmations": "Confirmations", "actions": "" },
+    "status": { "SUGGESTED": "Proposée", "ACTIVE": "Active", "DISMISSED": "Ignorée", "REVOKED": "Révoquée" },
+    "accept": "Accepter",
+    "dismiss": "Ignorer",
+    "revoke": "Révoquer",
+    "behavior": { "supervision_scan": "Scan de supervision proactif (analyse LLM des logements après un événement)" }
+  },
+  "ownerPortal": {
+    "constellationLink": "Partager le suivi propriétaire",
+    "constellationLinkCopied": "Lien copié !",
+    "constellationLinkError": "Échec — réessayer",
+    "branding": {
+      "open": "Personnaliser la page propriétaire",
+      "title": "Page propriétaire — votre marque",
+      "subtitle": "Logo et couleur affichés sur les liens de suivi partagés à vos propriétaires. Aucune mention de la plateforme.",
+      "logoUrl": "URL du logo (HTTPS)",
+      "logoHelp": "Laisser vide pour ne pas afficher de logo",
+      "primaryColor": "Couleur d'accent (#RRGGBB)",
+      "saveError": "Enregistrement impossible"
+    }
+  },
+  "ownerConstellation": {
+    "subtitle": "Espace propriétaire",
+    "readOnly": "Consultation seule",
+    "invalidTitle": "Lien invalide ou expiré",
+    "invalidBody": "Ce lien de suivi n'est plus actif. Contactez votre conciergerie pour en obtenir un nouveau.",
+    "grossRevenue": "Revenus bruts",
+    "commissions": "Commissions",
+    "netRevenue": "Net propriétaire",
+    "occupancy": "Occupation",
+    "agentActivityTitle": "Ce que nos agents ont fait pour vos biens (30 derniers jours)",
+    "noActivity": "Aucune activité récente à afficher.",
+    "counters": "{{actions}} actions · {{suggestions}} suggestions",
+    "noPropertyActivity": "Rien à signaler sur ce bien.",
+    "footer": "Rapport préparé par {{name}}."
+  },
   "tarification": {
     "title": "Configuration tarifaire",
     "subtitle": "Gérez les coefficients de pondération, les prix de base et les abonnements",
@@ -3317,7 +3371,15 @@
       "perSeat": "Prix par utilisateur",
       "perSeatHelp": "Coût mensuel par utilisateur supplémentaire",
       "freeSeats": "Utilisateurs inclus",
-      "freeSeatsHelp": "Nombre d'utilisateurs inclus dans le prix de base"
+      "freeSeatsHelp": "Nombre d'utilisateurs inclus dans le prix de base",
+      "aiTitle": "Supplément IA par forfait",
+      "aiSubtitle": "Majoration mensuelle de l'abonnement portant les crédits IA inclus",
+      "aiEssentiel": "Supplément IA — Essentiel",
+      "aiEssentielHelp": "500 crédits IA inclus par mois",
+      "aiConfort": "Supplément IA — Confort",
+      "aiConfortHelp": "2 000 crédits IA inclus par mois",
+      "aiPremium": "Supplément IA — Premium",
+      "aiPremiumHelp": "8 000 crédits IA inclus par mois"
     },
     "automation": {
       "title": "Surcharges automatisation",
@@ -5449,6 +5511,14 @@
     }
   },
   "agentReplay": {
+    "whatIf": {
+      "title": "Et si… ? (rejouer avec une hypothèse)",
+      "subtitle": "Le prompt de re-analyse est copié — collez-le dans le chat de l'assistant pour lancer le what-if.",
+      "placeholder": "Ex. : avec un tarif nuit à 95 € au lieu de 120 €",
+      "copy": "Copier le prompt",
+      "copied": "Copié !",
+      "error": "Échec"
+    },
     "title": "Replay du run",
     "loadError": "Impossible de charger le replay de ce run.",
     "steps": "étapes",

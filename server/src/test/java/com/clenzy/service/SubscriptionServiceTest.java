@@ -305,6 +305,25 @@ class SubscriptionServiceTest {
         }
 
         @Test
+        @DisplayName("inclut le supplément IA du forfait cible dans le montant Stripe (X5)")
+        void whenUpgrade_thenUnitAmountIncludesAiSurcharge() throws Exception {
+            User user = buildUser("kc-1", "essentiel");
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
+            when(pricingConfigService.getAiMonthlySurchargeCents("confort")).thenReturn(2900);
+            Session session = mock(Session.class);
+            when(session.getUrl()).thenReturn("https://stripe.test/checkout");
+            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
+
+            subscriptionService.createUpgradeCheckout("kc-1", "confort");
+
+            ArgumentCaptor<SessionCreateParams> captor = ArgumentCaptor.forClass(SessionCreateParams.class);
+            verify(stripeGateway).createSession(captor.capture());
+            assertThat(captor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
+                    .isEqualTo(5900L); // 30 € PMS + 29 € supplément IA Confort
+        }
+
+        @Test
         @DisplayName("user lookup via Keycloak ID")
         void whenLookup_thenUsesKeycloakId() {
             User user = buildUser("kc-special", "essentiel");

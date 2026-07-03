@@ -206,6 +206,13 @@ clenzy:
     # En prod : valeur par défaut du code = false (opt-in explicite requis).
     multi-agent:
       enabled: true
+    # Routage court-circuit (T-02) : classification SIMPLE/MULTI en amont, les
+    # requêtes simples évitent l'orchestration multi-agent complète.
+    # Pas de routing.model : le classifieur retombe sur le tier SMALL.
+    # Le tiering de modèles (T-03) se configure EN BASE : assigner un modèle aux
+    # features ASSISTANT_SMALL / ASSISTANT_STRONG (Paramètres > IA > Modèles).
+    routing:
+      enabled: true
   channex:
     base-url: ${CHANNEX_BASE_URL:https://staging.channex.io/api/v1}
     api-key: ${CHANNEX_API_KEY:}

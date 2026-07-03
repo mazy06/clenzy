@@ -1,50 +1,40 @@
 package com.clenzy.service.agent;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import com.clenzy.model.AiFeature;
+import com.clenzy.model.AiModelAvailability;
+import com.clenzy.model.PlatformAiModel;
+import com.clenzy.repository.PlatformAiFeatureModelRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Resolution du modele LLM effectif pour un {@link AgentTier} donne
- * (ticket T-03, ADR-004).
+ * (ticket T-03, ADR-004) — pilote par la CONFIG DYNAMIQUE EN BASE depuis le
+ * 2026-07-02 (decision utilisateur : plus de map en properties Spring).
  *
- * <p>Configuration ({@code application.yml} / env — mapping PAR PROVIDER,
- * un id de modele n'etant valide que chez son provider) :</p>
- * <pre>
- * clenzy:
- *   assistant:
- *     tiering:
- *       enabled: true
- *       small:
- *         anthropic: claude-haiku-4-5
- *         openai: gpt-5-mini
- *       strong:
- *         anthropic: claude-opus-4-1
- * </pre>
+ * <p>Les tiers sont deux features du systeme de config plateforme existant
+ * ({@code platform_ai_feature_model}, UI Parametres > IA > Modeles) :
+ * {@link AiFeature#ASSISTANT_SMALL} et {@link AiFeature#ASSISTANT_STRONG}.
+ * Assigner un modele a la feature ACTIVE le tier ; pas d'assignation = pas de
+ * tiering (fallback strict = comportement actuel). Le probe de disponibilite
+ * quotidien s'applique : un modele tier UNAVAILABLE est ignore.</p>
  *
- * <p><b>Fallback strict = comportement actuel</b> : tiering desactive, tier
- * {@link AgentTier#STANDARD}, provider inconnu ou mapping absent → le modele
- * du contexte (resolu pour ASSISTANT_CHAT via AiTargetResolver) est retourne
- * tel quel. Aucun changement de comportement tant que la config n'est pas
- * posee — deploiement sans risque, activation mesuree via les metriques T-01
- * ({@code assistant.tokens{model}} / {@code assistant.cost.usd}).</p>
- *
- * <p>Note BYOK : le modele tier est envoye avec la cle deja resolue (BYOK ou
- * plateforme) du provider courant — le mapping par provider garantit la
- * validite de l'id, la cle reste inchangee.</p>
+ * <p><b>Garde meme-provider (note BYOK, ADR-004)</b> : le modele tier n'est
+ * retenu que si son provider correspond au provider deja resolu du contexte
+ * (Settings/BYOK via AiTargetResolver) — l'appel repart avec la cle du
+ * contexte, jamais celle du modele tier. Provider different (ex. contexte
+ * NVIDIA, tier configure anthropic) → modele du contexte inchange.</p>
  */
 @Component
-@ConfigurationProperties(prefix = "clenzy.assistant.tiering")
 public class TierModelResolver {
 
-    private boolean enabled = false;
-    /** provider (minuscules) → model id du tier petit. */
-    private Map<String, String> small = new HashMap<>();
-    /** provider (minuscules) → model id du tier fort. */
-    private Map<String, String> strong = new HashMap<>();
+    private final PlatformAiFeatureModelRepository featureModelRepository;
+
+    public TierModelResolver(PlatformAiFeatureModelRepository featureModelRepository) {
+        this.featureModelRepository = featureModelRepository;
+    }
 
     /**
      * Resout le modele a utiliser pour un tier et un provider donnes.
@@ -52,23 +42,29 @@ public class TierModelResolver {
      * @param tier         tier demande par le role d'agent (null = STANDARD)
      * @param provider     provider effectif du contexte (ex. "anthropic") ; null = defaut anthropic
      * @param contextModel modele resolu du contexte (Settings/BYOK) — fallback systematique
-     * @return le modele du tier si configure, sinon {@code contextModel}
+     * @return le modele du tier si configure en base (meme provider, non UNAVAILABLE),
+     *         sinon {@code contextModel}
      */
+    @Transactional(readOnly = true)
     public String resolveModel(AgentTier tier, String provider, String contextModel) {
-        if (!enabled || tier == null || tier == AgentTier.STANDARD) {
+        if (tier == null || tier == AgentTier.STANDARD) {
             return contextModel;
         }
-        Map<String, String> mapping = (tier == AgentTier.SMALL) ? small : strong;
-        String key = provider != null && !provider.isBlank()
+        AiFeature feature = (tier == AgentTier.SMALL)
+                ? AiFeature.ASSISTANT_SMALL
+                : AiFeature.ASSISTANT_STRONG;
+        PlatformAiModel tierModel = featureModelRepository.findByFeature(feature.name())
+                .map(assignment -> assignment.getModel())
+                .orElse(null);
+        if (tierModel == null
+                || tierModel.getModelId() == null || tierModel.getModelId().isBlank()
+                || tierModel.getAvailabilityStatus() == AiModelAvailability.UNAVAILABLE) {
+            return contextModel;
+        }
+        String contextProvider = provider != null && !provider.isBlank()
                 ? provider.toLowerCase(Locale.ROOT) : "anthropic";
-        String tierModel = mapping.get(key);
-        return (tierModel != null && !tierModel.isBlank()) ? tierModel : contextModel;
+        String tierProvider = tierModel.getProvider() != null
+                ? tierModel.getProvider().toLowerCase(Locale.ROOT) : "";
+        return contextProvider.equals(tierProvider) ? tierModel.getModelId() : contextModel;
     }
-
-    public boolean isEnabled() { return enabled; }
-    public void setEnabled(boolean enabled) { this.enabled = enabled; }
-    public Map<String, String> getSmall() { return small; }
-    public void setSmall(Map<String, String> small) { this.small = small; }
-    public Map<String, String> getStrong() { return strong; }
-    public void setStrong(Map<String, String> strong) { this.strong = strong; }
 }

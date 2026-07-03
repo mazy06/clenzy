@@ -52,6 +52,13 @@ public class AgentRun {
     @Column(columnDefinition = "TEXT")
     private String error;
 
+    /**
+     * Question utilisateur d'origine (L3, what-if replay) — tronquee a 500 chars.
+     * Null : run anterieur a la capture, reprise post-HITL ou run autonome.
+     */
+    @Column(name = "user_query", length = 500)
+    private String userQuery;
+
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
 
@@ -78,6 +85,8 @@ public class AgentRun {
     public String getOrigin() { return origin; }
     public String getStatus() { return status; }
     public String getError() { return error; }
+    public String getUserQuery() { return userQuery; }
+    public void setUserQuery(String userQuery) { this.userQuery = userQuery; }
     public Instant getStartedAt() { return startedAt; }
     public Instant getFinishedAt() { return finishedAt; }
 
