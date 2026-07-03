@@ -16,6 +16,7 @@ import {
   LocalLaundryService,
   VolumeUp,
   Euro,
+  Gavel,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTarification } from '../../hooks/useTarification';
@@ -34,6 +35,7 @@ import TabTravaux from './TabTravaux';
 import TabExterieur from './TabExterieur';
 import TabBlanchisserie from './TabBlanchisserie';
 import TabMonitoring from './TabMonitoring';
+import TabTaxeSejour from './TabTaxeSejour';
 
 // ─── Tab config ──────────────────────────────────────────────────────────────
 
@@ -44,6 +46,7 @@ const TAB_DEFS = [
   { key: 'exterieur',     icon: <Yard /> },
   { key: 'blanchisserie', icon: <LocalLaundryService /> },
   { key: 'monitoring',    icon: <VolumeUp /> },
+  { key: 'taxeSejour',    icon: <Gavel /> },
 ] as const;
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
@@ -76,8 +79,12 @@ export default function Tarification() {
 
   // Source de verite des tabs — utilisee pour PageTabs ET pour la resolution
   // {title, subtitle} via resolveTabHeader (indexe par label).
+  // Le tab taxe de séjour porte un libellé par défaut inline (clé i18n en attente
+  // de merge — cf. campagne/i18n-pending-touristtax.json).
   const tabs = TAB_DEFS.map((tab) => ({
-    label: t(`tarification.tabs.${tab.key}`),
+    label: tab.key === 'taxeSejour'
+      ? t('tarification.tabs.taxeSejour', 'Taxe de séjour')
+      : t(`tarification.tabs.${tab.key}`),
     icon: tab.icon,
   }));
   // Mapping label → subtitle reconstruit a chaque render pour suivre la langue.
@@ -99,6 +106,9 @@ export default function Tarification() {
     },
     [t('tarification.tabs.monitoring')]: {
       subtitle: t('tabHeaders.tarification.subtitle.monitoring', 'Tarifs des offres de monitoring sonore (Minut, Roomonitor) propagés aux clients.'),
+    },
+    [t('tarification.tabs.taxeSejour', 'Taxe de séjour')]: {
+      subtitle: t('tabHeaders.tarification.subtitle.taxeSejour', 'Barèmes de taxe de séjour de l’organisation, rapport et export par période.'),
     },
   };
   const { title, subtitle } = resolveTabHeader(
@@ -128,7 +138,8 @@ export default function Tarification() {
           actions={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {headerActionsPortal}
-              {canEdit && (
+              {/* Save/Reset pilotent la config pricing — sans objet sur le tab taxe de séjour (sauvegarde autonome). */}
+              {canEdit && tabs[activeTab]?.label !== t('tarification.tabs.taxeSejour', 'Taxe de séjour') && (
                 <>
                   <Button
                     variant="outlined"
@@ -188,6 +199,9 @@ export default function Tarification() {
           )}
           {activeTab === 5 && (
             <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+          )}
+          {activeTab === 6 && (
+            <TabTaxeSejour canEdit={canEdit} />
           )}
         </Box>
 

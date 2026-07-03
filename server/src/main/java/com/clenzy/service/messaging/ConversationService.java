@@ -35,6 +35,7 @@ public class ConversationService {
     private final ReservationRepository reservationRepository;
     private final GuestRepository guestRepository;
     private final com.clenzy.repository.UserRepository userRepository;
+    private final com.clenzy.service.AssistantOutcomeTracker outcomeTracker;
 
     public ConversationService(ConversationRepository conversationRepository,
                                ConversationMessageRepository messageRepository,
@@ -43,7 +44,8 @@ public class ConversationService {
                                WhatsAppChannel whatsAppChannel,
                                ReservationRepository reservationRepository,
                                GuestRepository guestRepository,
-                               com.clenzy.repository.UserRepository userRepository) {
+                               com.clenzy.repository.UserRepository userRepository,
+                               com.clenzy.service.AssistantOutcomeTracker outcomeTracker) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.eventPublisher = eventPublisher;
@@ -52,6 +54,7 @@ public class ConversationService {
         this.reservationRepository = reservationRepository;
         this.guestRepository = guestRepository;
         this.userRepository = userRepository;
+        this.outcomeTracker = outcomeTracker;
     }
 
     /**
@@ -182,6 +185,17 @@ public class ConversationService {
         updateConversationOnNewMessage(conversation, content, false);
 
         eventPublisher.publishNewMessage(conversation, msg);
+
+        // Instrumentation « reprise humaine » : sendOutboundMessage n'est appelé que par
+        // l'action utilisateur du PMS (POST /conversations/{id}/messages) — jamais par les
+        // envois automatiques/templates, qui passent par recordOutboundDelivered ou
+        // GuestMessagingService. On compte la reprise dès l'action manuelle, indépendamment
+        // du statut de livraison canal. La conversation reçue du controller peut être
+        // détachée (reservation LAZY) : on relit l'id de réservation de façon managée.
+        Long reservationId = conversationRepository.findById(conversation.getId())
+            .map(c -> c.getReservation() != null ? c.getReservation().getId() : null)
+            .orElse(null);
+        outcomeTracker.recordManualMessage(conversation.getOrganizationId(), reservationId);
 
         // Envoi reel via WhatsApp (compte global) si la conversation est sur ce canal.
         if (conversation.getChannel() == ConversationChannel.WHATSAPP) {

@@ -224,6 +224,64 @@ public class BookingChannelAdapter implements ChannelConnector {
     }
 
     /**
+     * Fermeture de vente ciblee Booking.com (S3) : pousse {@code available=false}
+     * sur la plage via l'API XML OTA, sans toucher au CalendarEngine ni aux
+     * autres canaux. Seule la disponibilite est poussee (pas de push tarifs :
+     * une fermeture ne modifie pas les prix).
+     */
+    @Override
+    public SyncResult pushAvailabilityClosure(Long propertyId, LocalDate from,
+                                               LocalDate to, Long orgId) {
+        long startTime = System.currentTimeMillis();
+
+        Optional<ChannelMapping> mappingOpt = resolveMapping(propertyId, orgId);
+        if (mappingOpt.isEmpty()) {
+            return SyncResult.skipped("Aucun mapping Booking.com pour propriete " + propertyId);
+        }
+        ChannelMapping mapping = mappingOpt.get();
+        String roomId = mapping.getExternalId();
+
+        if (!bookingConfig.isConfigured()) {
+            return SyncResult.failed("Configuration Booking.com incomplete");
+        }
+
+        try {
+            Map<LocalDate, BigDecimal> prices = priceEngine.resolvePriceRange(propertyId, from, to, orgId);
+            String hotelId = resolveHotelId(mapping);
+
+            List<BookingCalendarEventDto> events = new ArrayList<>();
+            for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
+                BigDecimal price = prices.get(date);
+                events.add(new BookingCalendarEventDto(
+                        hotelId, roomId, date,
+                        false,
+                        price != null ? price : BigDecimal.ZERO,
+                        "EUR", 1, 365, false, false));
+            }
+            if (events.isEmpty()) {
+                return SyncResult.skipped("Plage vide pour propriete " + propertyId);
+            }
+
+            boolean availSuccess = bookingApiClient.updateAvailability(events);
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (availSuccess) {
+                log.info("Fermeture Booking.com poussee pour propriete {} : {} jour(s) [{}, {})",
+                        propertyId, events.size(), from, to);
+                return SyncResult.success("Fermeture poussee sur " + events.size() + " jour(s)",
+                        events.size(), duration);
+            }
+            return SyncResult.failed("Echec push fermeture Booking.com", duration);
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            log.error("Erreur push fermeture Booking.com pour propriete {}: {}",
+                    propertyId, e.getMessage());
+            return SyncResult.failed("Erreur API Booking.com: " + e.getMessage(), duration);
+        }
+    }
+
+    /**
      * Pousse une promotion vers Booking.com.
      * Booking.com gere les programmes (Genius, Preferred Partner) via leur extranet,
      * mais certaines promotions (flash sales, early bird) peuvent etre pushees via API XML.

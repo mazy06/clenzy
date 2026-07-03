@@ -42,6 +42,17 @@ public class YieldRule {
         FIXED_AMOUNT
     }
 
+    /**
+     * Sens de comparaison de l'occupation au seuil (v1, F8a).
+     * BELOW = occupation sous le seuil → baisse ; ABOVE = au-dessus → hausse.
+     * Une règle avec {@code comparison} NON NULL est une règle « v1 » évaluée
+     * par {@code YieldRuleEngine} (les anciens types restent sur l'ancien moteur).
+     */
+    public enum Comparison {
+        BELOW,
+        ABOVE
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -76,6 +87,28 @@ public class YieldRule {
 
     @Column(name = "max_price", precision = 10, scale = 2)
     private BigDecimal maxPrice;
+
+    // ── Colonnes v1 (F8a) — règles déclaratives d'occupation ────────────────
+    // Renseignées uniquement pour les règles créées via l'API /api/yield ;
+    // l'ampleur de l'ajustement est stockée POSITIVE, le sens est déduit de
+    // comparison (BELOW → baisse, ABOVE → hausse).
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "comparison", length = 10)
+    private Comparison comparison;
+
+    @Column(name = "occupancy_threshold_pct", precision = 5, scale = 2)
+    private BigDecimal occupancyThresholdPct;
+
+    @Column(name = "window_days_ahead")
+    private Integer windowDaysAhead;
+
+    @Column(name = "adjustment_pct", precision = 5, scale = 2)
+    private BigDecimal adjustmentPct;
+
+    /** Cap de variation par jour calendaire (garde-fou absolu, défaut 10 %). */
+    @Column(name = "max_daily_change_pct", precision = 5, scale = 2, nullable = false)
+    private BigDecimal maxDailyChangePct = BigDecimal.TEN;
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
@@ -134,6 +167,21 @@ public class YieldRule {
 
     public BigDecimal getMaxPrice() { return maxPrice; }
     public void setMaxPrice(BigDecimal maxPrice) { this.maxPrice = maxPrice; }
+
+    public Comparison getComparison() { return comparison; }
+    public void setComparison(Comparison comparison) { this.comparison = comparison; }
+
+    public BigDecimal getOccupancyThresholdPct() { return occupancyThresholdPct; }
+    public void setOccupancyThresholdPct(BigDecimal occupancyThresholdPct) { this.occupancyThresholdPct = occupancyThresholdPct; }
+
+    public Integer getWindowDaysAhead() { return windowDaysAhead; }
+    public void setWindowDaysAhead(Integer windowDaysAhead) { this.windowDaysAhead = windowDaysAhead; }
+
+    public BigDecimal getAdjustmentPct() { return adjustmentPct; }
+    public void setAdjustmentPct(BigDecimal adjustmentPct) { this.adjustmentPct = adjustmentPct; }
+
+    public BigDecimal getMaxDailyChangePct() { return maxDailyChangePct; }
+    public void setMaxDailyChangePct(BigDecimal maxDailyChangePct) { this.maxDailyChangePct = maxDailyChangePct; }
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }

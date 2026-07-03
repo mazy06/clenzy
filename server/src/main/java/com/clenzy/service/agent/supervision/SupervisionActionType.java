@@ -38,5 +38,15 @@ public final class SupervisionActionType {
      */
     public static final String CALENDAR_BLOCK = "CALENDAR_BLOCK";
 
+    /**
+     * Ajustement yield v1 (F8a, mode SUGGEST) : applique un pourcentage SIGNE
+     * ({@code percent} &lt; 0 = baisse, &gt; 0 = hausse) sur la plage
+     * [{@code from}, {@code to}) — {@code ruleId} indicatif. Les prix sont
+     * RE-resolus a l'apply et bornes par le plancher/plafond yield du bien
+     * (regle audit n°1) ; cap « un apply par bien et par jour » via le journal
+     * yield_adjustments (+ index unique partiel DB).
+     */
+    public static final String YIELD_PRICE_ADJUST = "YIELD_PRICE_ADJUST";
+
     private SupervisionActionType() {}
 }
