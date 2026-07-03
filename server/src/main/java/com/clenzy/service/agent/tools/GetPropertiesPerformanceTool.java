@@ -197,7 +197,7 @@ public class GetPropertiesPerformanceTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Affiche un bar chart des Top N proprietes les plus performantes (revenus + nombre d'interventions) sur une fenetre temporelle. Utiliser pour 'meilleures proprietes', 'classement', 'ranking', 'top performers', 'quelle propriete genere le plus'.",
+                    "Bar chart des Top N proprietes les plus performantes (revenus + interventions) sur une fenetre. Pour 'classement', 'top performers', 'meilleures proprietes'.",
                     schema
             );
         } catch (JsonProcessingException e) {

@@ -1,9 +1,12 @@
 import React from 'react';
 import { Box, Typography, Card, CardContent, LinearProgress, Grid } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
-import type { PropertyPerformanceItem } from '../../../hooks/useAnalyticsEngine';
+import { propertiesApi } from '../../../services/api/propertiesApi';
+import { periodToDays } from '../../../hooks/analyticsUtils';
+import type { DashboardPeriod } from '../DashboardDateFilter';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -34,12 +37,21 @@ const VALUE_SX = {
 } as const;
 
 interface Props {
-  data: PropertyPerformanceItem[] | null;
-  loading: boolean;
+  /** Fenêtre d'analyse dérivée de la période sélectionnée (défaut « mois »). */
+  period?: DashboardPeriod;
 }
 
-const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ data, loading }) => {
+const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'month' }) => {
   const { t } = useTranslation();
+
+  // Source de vérité serveur (occupation plafonnée, marge avec coûts réels) —
+  // remplace le calcul front (interventions=[] → marge 100 %, occupation > 100 %).
+  const days = periodToDays(period);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['property-performance-summaries', days],
+    queryFn: () => propertiesApi.getPerformanceSummaries(days),
+    staleTime: 60_000,
+  });
 
   const items = data || [];
 
@@ -134,11 +146,11 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ data, loadin
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.375 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={LABEL_SX}>RevPAN</Typography>
-                      <Typography sx={VALUE_SX}><Money value={prop.revPAN} from="EUR" decimals={2} /></Typography>
+                      <Typography sx={VALUE_SX}><Money value={prop.revPan} from="EUR" decimals={2} /></Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.occupancyRate')}</Typography>
-                      <Typography sx={VALUE_SX}>{prop.occupancyRate}%</Typography>
+                      <Typography sx={VALUE_SX}>{Math.round(prop.occupancyRate)}%</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.totalRevenue')}</Typography>
@@ -147,7 +159,7 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ data, loadin
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Typography sx={LABEL_SX}>{t('dashboard.analytics.netMargin')}</Typography>
                       <Typography sx={{ ...VALUE_SX, color: prop.netMargin >= 60 ? 'success.main' : prop.netMargin >= 40 ? 'warning.main' : 'error.main' }}>
-                        {prop.netMargin}%
+                        {Math.round(prop.netMargin)}%
                       </Typography>
                     </Box>
                   </Box>

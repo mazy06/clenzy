@@ -213,7 +213,9 @@ class AiTokenBudgetServiceTest {
             // EMBEDDINGS ajoute (P1-A, RAG via config DB) — meme defaut 100k
             assertEquals(0L, stats.usageByFeature().get("EMBEDDINGS"));
             assertEquals(11_000L, stats.totalUsed());
-            assertEquals(900_000L, stats.totalBudget()); // 9 features * 100k default
+            // 11 features * 100k default (ASSISTANT_SMALL/STRONG ajoutees le 2026-07-02 :
+            // tiers de l'assistant pilotes par la config DB — cf. TierModelResolver)
+            assertEquals(AiFeature.values().length * 100_000L, stats.totalBudget());
             assertEquals("2026-03", stats.monthYear());
         }
     }

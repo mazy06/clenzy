@@ -75,6 +75,36 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
         this.toolMetrics = toolMetrics;
     }
 
+    // Tiering de modele par role (T-03). Injecte par setter (optionnel) pour la
+    // meme raison que l'instrumentation ci-dessus ; null-safe en test.
+    private com.clenzy.service.agent.TierModelResolver tierModelResolver;
+
+    @Autowired(required = false)
+    public void setTierModelResolver(com.clenzy.service.agent.TierModelResolver tierModelResolver) {
+        this.tierModelResolver = tierModelResolver;
+    }
+
+    // Regles de Confiance (X2). Setter optionnel ; null-safe en test.
+    private com.clenzy.service.agent.AgentTrustRuleService trustRuleService;
+
+    @Autowired(required = false)
+    public void setTrustRuleService(com.clenzy.service.agent.AgentTrustRuleService trustRuleService) {
+        this.trustRuleService = trustRuleService;
+    }
+
+    /**
+     * Modele effectif du specialiste : le tier declare par {@link #tier()} si un
+     * mapping est configure pour le provider courant, sinon le modele du contexte
+     * (comportement historique — fallback strict).
+     */
+    private String resolveModelForTier(SpecialistRequest request) {
+        String contextModel = request.context().modelOverride();
+        if (tierModelResolver == null) {
+            return contextModel;
+        }
+        return tierModelResolver.resolveModel(tier(), request.context().aiProvider(), contextModel);
+    }
+
     protected AbstractAgentSpecialist(ChatLLMProvider chatProvider,
                                         ToolRegistry toolRegistry,
                                         ObjectMapper objectMapper,
@@ -129,6 +159,10 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
 
             String kbSection = renderKbSection(request.orchestrationCtx().kbHits());
             if (!kbSection.isEmpty()) sb.append(kbSection).append("\n\n");
+
+            String priorFindings = renderPriorFindingsSection(
+                    request.orchestrationCtx().blackboardDigest());
+            if (!priorFindings.isEmpty()) sb.append(priorFindings).append("\n\n");
         }
 
         sb.append("""
@@ -195,6 +229,19 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
     }
 
     /** Render XML de la memoire user (vide si rien). */
+    /**
+     * L1 (architecture C v1) : constats deja etablis par les specialists
+     * precedents du MEME run — evite la re-collecte et permet des mandats
+     * courts cote orchestrateur.
+     */
+    private String renderPriorFindingsSection(String blackboardDigest) {
+        if (blackboardDigest == null || blackboardDigest.isBlank()) return "";
+        return "<prior_findings>\n"
+                + "Constats deja etablis par les autres specialistes sur CETTE demande "
+                + "(appuie-toi dessus, ne re-collecte pas ces donnees) :\n"
+                + blackboardDigest + "\n</prior_findings>";
+    }
+
     private String renderMemorySection(java.util.List<com.clenzy.model.AssistantMemory> memories) {
         if (memories == null || memories.isEmpty()) return "";
         StringBuilder sb = new StringBuilder(256);
@@ -269,7 +316,7 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                 buildSystemPrompt(request),
                 List.of(ChatMessage.user(request.query())),
                 resolveTools(),
-                request.context().modelOverride(),   // modele resolu (Settings/BYOK) ou null = defaut provider
+                resolveModelForTier(request),        // tier du role (T-03) ou modele resolu (Settings/BYOK)
                 TEMPERATURE,
                 MAX_TOKENS,
                 null,                                 // system mono-bloc (pas de suffixe volatil)
@@ -313,7 +360,7 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
                     buildSystemPrompt(request),
                     resumed,
                     resolveTools(),
-                    request.context().modelOverride(),
+                    resolveModelForTier(request),    // meme tier qu'au run initial (T-03)
                     TEMPERATURE,
                     MAX_TOKENS,
                     null,
@@ -431,10 +478,14 @@ public abstract class AbstractAgentSpecialist implements AgentSpecialist {
 
             // Garde-fou critique : detecter un tool a confirmation AVANT toute
             // execution. On suspend la boucle complete (pas d'execution partielle).
+            // X2 : une Regle de Confiance ACTIVE (acceptee par un humain) fait
+            // passer l'outil en « notifier » — pas de pause, execution tracee.
             for (ChatMessage.ToolCall tc : toolCalls) {
                 ToolHandler handler = toolRegistry.find(tc.name()).orElse(null);
                 if (handler != null && handler.descriptor() != null
-                        && handler.descriptor().requiresConfirmation()) {
+                        && handler.descriptor().requiresConfirmation()
+                        && (trustRuleService == null || !trustRuleService.isAutoApproved(
+                                request.context().organizationId(), tc.name()))) {
                     log.info("Specialist '{}' pausing on '{}' (requires user confirmation) — "
                             + "signaling resumable multi-agent pause", name(), tc.name());
                     // Historique a capturer = tout jusqu'au tour assistant inclus.

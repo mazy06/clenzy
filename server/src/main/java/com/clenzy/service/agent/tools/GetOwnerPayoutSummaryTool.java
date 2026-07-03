@@ -172,7 +172,7 @@ public class GetOwnerPayoutSummaryTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Resume des reversements aux proprietaires de l'organisation : a venir (en attente / approuves) et recents (verses). Chaque ligne : proprietaire, montant net, devise, periode, statut. Inclut les totaux. Utiliser pour 'reversements proprietaires', 'payouts a venir', 'combien doit-on verser', 'derniers versements'.",
+                    "Reversements proprietaires : a venir (en attente/approuves) et recents (verses), montants nets + totaux. Pour 'payouts', 'combien doit-on verser'.",
                     schema
             );
         } catch (JsonProcessingException e) {

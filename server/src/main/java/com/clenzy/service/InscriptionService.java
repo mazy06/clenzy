@@ -149,9 +149,13 @@ public class InscriptionService {
         // Prix de base de l'abonnement PMS en centimes (source unique : PricingConfig)
         // Utiliser le prix "synchro auto" si l'utilisateur a choisi la synchronisation calendrier
         boolean isSyncMode = "sync".equalsIgnoreCase(dto.getCalendarSync());
-        int priceInCents = isSyncMode
+        int basePmsCents = isSyncMode
                 ? pricingConfigService.getPmsSyncPriceCents()
                 : pricingConfigService.getPmsMonthlyPriceCents();
+        // Supplément IA mensuel du forfait choisi (campagne X5) : porte la dotation
+        // de crédits IA incluse — le prix PMS de base reste inchangé.
+        int priceInCents = basePmsCents
+                + pricingConfigService.getAiMonthlySurchargeCents(dto.getForfait());
 
         // Determiner l'intervalle Stripe et le montant selon la periode de facturation
         BillingPeriod period = dto.getBillingPeriodEnum();
@@ -209,8 +213,8 @@ public class InscriptionService {
                                                 )
                                                 .setProductData(
                                                         SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                .setName("Clenzy - Abonnement plateforme" + (isSyncMode ? " + Synchro auto" : ""))
-                                                                .setDescription(billingDescription + " a la plateforme de gestion Clenzy - Forfait " + dto.getForfaitDisplayName() + (isSyncMode ? " (avec synchronisation calendrier automatique)" : ""))
+                                                                .setName("Baitly - Abonnement plateforme" + (isSyncMode ? " + Synchro auto" : ""))
+                                                                .setDescription(billingDescription + " a la plateforme de gestion Baitly - Forfait " + dto.getForfaitDisplayName() + (isSyncMode ? " (avec synchronisation calendrier automatique)" : ""))
                                                                 .build()
                                                 )
                                                 .build()

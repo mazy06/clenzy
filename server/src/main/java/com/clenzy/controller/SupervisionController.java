@@ -88,6 +88,18 @@ public class SupervisionController {
     }
 
     /**
+     * POST /api/ai/supervision/suggestions/{id}/apply — applique l'action portée
+     * par une suggestion actionnable (ex. baisse de prix). Org-scopé, idempotent
+     * (CAS PENDING→APPLIED côté service). 400 si non actionnable / déjà traitée.
+     */
+    @PostMapping("/suggestions/{id}/apply")
+    public ResponseEntity<Void> applySuggestion(@PathVariable Long id) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        suggestionService.apply(orgId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * GET /api/ai/supervision/payout-reminder — rappel J-1 de génération d'un lot
      * de reversement (module Finance de la constellation), ou 204 si rien à afficher.
      * Par utilisateur (opt-out + accusé propres au demandeur).

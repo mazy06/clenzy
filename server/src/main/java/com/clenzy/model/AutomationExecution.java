@@ -21,8 +21,23 @@ public class AutomationExecution {
     @JoinColumn(name = "automation_rule_id", nullable = false)
     private AutomationRule automationRule;
 
+    /**
+     * Sujet generique de l'execution : cle d'idempotence (regle x subject_type x subject_id).
+     * Type libre (constantes TYPE_* de {@code AutomationSubject}) : un nouveau module ajoute
+     * son type sans toucher au modele. Migration 0305 : lignes historiques = RESERVATION.
+     */
+    @Column(name = "subject_type", nullable = false, length = 30)
+    private String subjectType = "RESERVATION";
+
+    @Column(name = "subject_id", nullable = false)
+    private Long subjectId;
+
+    /**
+     * Lien reservation conserve pour l'affichage UI des executions du cycle de vie
+     * reservation ; null pour les sujets non-reservation (facture, payout, device...).
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reservation_id", nullable = false)
+    @JoinColumn(name = "reservation_id")
     private Reservation reservation;
 
     @Enumerated(EnumType.STRING)
@@ -48,6 +63,10 @@ public class AutomationExecution {
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
     public AutomationRule getAutomationRule() { return automationRule; }
     public void setAutomationRule(AutomationRule automationRule) { this.automationRule = automationRule; }
+    public String getSubjectType() { return subjectType; }
+    public void setSubjectType(String subjectType) { this.subjectType = subjectType; }
+    public Long getSubjectId() { return subjectId; }
+    public void setSubjectId(Long subjectId) { this.subjectId = subjectId; }
     public Reservation getReservation() { return reservation; }
     public void setReservation(Reservation reservation) { this.reservation = reservation; }
     public AutomationExecutionStatus getStatus() { return status; }

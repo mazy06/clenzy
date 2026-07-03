@@ -1,0 +1,75 @@
+# ===========================================
+# Baitly — Tests d'integration nightly (Testcontainers)
+# ===========================================
+# Strategie de tests vague T3 : les ITs (classes *IT, gate CLENZY_IT=true)
+# tournent en NIGHTLY + a la demande (workflow_dispatch) — jamais dans le job
+# de build principal (ci-backend.yml), qui reste inchange et rapide.
+#
+# Pourquoi un workflow SEPARE et pas un job dans ci-backend.yml : ajouter un
+# trigger `schedule` a ci-backend.yml declencherait AUSSI ses jobs existants
+# (build, scans, docker-push gates) chaque nuit. Un fichier dedie garde le
+# perimetre exact : un seul job, deux triggers.
+#
+# Les containers (Postgres pgvector, Redis, Kafka) sont demarres par
+# Testcontainers directement sur le Docker du runner ubuntu-latest — aucun
+# `services:` requis (contrairement au job de build qui utilise des services
+# pour les tests unitaires).
+
+name: IT Nightly
+
+on:
+  schedule:
+    # 02:30 UTC chaque nuit (creux CI).
+    - cron: '30 2 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    name: Integration Tests (Testcontainers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-it-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-it-
+            ${{ runner.os }}-maven-
+
+      - name: Run integration tests (CLENZY_IT=true)
+        working-directory: server
+        env:
+          # Ouvre le gate IntegrationTestGate / @EnabledIfEnvironmentVariable :
+          # sans cette variable, toutes les classes *IT sont skippees proprement.
+          CLENZY_IT: "true"
+          SPRING_PROFILES_ACTIVE: test
+          # Ryuk (reaper Testcontainers) inutile en CI : le runner detruit tout.
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+        run: mvn test -Dtest='*IT' -DfailIfNoTests=false -B
+
+      - name: Upload test results
+        if: always()
+        # Quota d'artefacts GitHub : ne JAMAIS bloquer le job la-dessus
+        # (meme convention que ci-backend.yml).
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: it-nightly-results
+          path: server/target/surefire-reports/
+          retention-days: 7

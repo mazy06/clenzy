@@ -4,7 +4,6 @@ import com.clenzy.AbstractIntegrationTest;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.Disabled;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Transactional
 @Rollback
-@Disabled("Test d'integration — necessite Docker/Testcontainers, skip pour build unitaire")
 class RestrictionEngineIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired

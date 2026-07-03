@@ -116,7 +116,7 @@ public class GetPropertyAmenitiesTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Retourne les equipements (amenities) d'un logement. Avec propertyId : ce logement precis ; sans : tous les logements de l'organisation (limite). Utiliser pour 'quels equipements', 'le logement a-t-il une piscine/wifi', 'detail des equipements du logement'.",
+                    "Equipements (amenities) d'un logement, ou de tous les logements de l'org sans propertyId. Pour 'quels equipements', 'y a-t-il piscine/wifi'.",
                     schema
             );
         } catch (JsonProcessingException e) {

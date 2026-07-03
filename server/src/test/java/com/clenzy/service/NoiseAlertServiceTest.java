@@ -5,8 +5,11 @@ import com.clenzy.model.NoiseAlert.AlertSeverity;
 import com.clenzy.model.NoiseAlert.AlertSource;
 import com.clenzy.model.NoiseAlertConfig;
 import com.clenzy.model.NoiseAlertTimeWindow;
+import com.clenzy.model.AutomationTrigger;
 import com.clenzy.repository.NoiseAlertConfigRepository;
 import com.clenzy.repository.NoiseAlertRepository;
+import com.clenzy.service.automation.AutomationEngine;
+import com.clenzy.service.automation.AutomationSubject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +32,11 @@ class NoiseAlertServiceTest {
     @Mock private NoiseAlertConfigRepository configRepository;
     @Mock private NoiseAlertRepository alertRepository;
     @Mock private NoiseAlertNotificationService notificationService;
+    @Mock private AutomationEngine automationEngine;
+    // Requis par le TransactionTemplate REQUIRES_NEW du fireTrigger post-commit
+    // (fix vague T2 : ecritures moteur perdues dans afterCommit). Le mock rend
+    // le template inerte : getTransaction -> null, commit(null) no-op.
+    @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     @InjectMocks
     private NoiseAlertService service;
@@ -418,5 +426,55 @@ class NoiseAlertServiceTest {
         // Org 20 doesn't own this alert (it belongs to 10)
         assertThrows(IllegalArgumentException.class,
             () -> service.acknowledge(1L, 20L, "user", "notes"));
+    }
+
+    // ─── Moteur AutomationRule : trigger NOISE_ALERT (fiche 08) ─────────────────
+
+    @Test
+    void whenAlertCreated_thenFiresNoiseAlertTriggerWithSubjectData() {
+        config.getTimeWindows().clear();
+        NoiseAlertTimeWindow allDay = new NoiseAlertTimeWindow();
+        allDay.setLabel("24h");
+        allDay.setStartTime(LocalTime.of(0, 0));
+        allDay.setEndTime(LocalTime.of(0, 0));
+        allDay.setWarningThresholdDb(70);
+        allDay.setCriticalThresholdDb(85);
+        allDay.setConfig(config);
+        config.getTimeWindows().add(allDay);
+
+        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
+            .thenReturn(Optional.of(config));
+        when(alertRepository.existsRecentAlert(anyLong(), any(AlertSeverity.class), any()))
+            .thenReturn(false);
+        when(alertRepository.save(any(NoiseAlert.class)))
+            .thenAnswer(inv -> {
+                NoiseAlert a = inv.getArgument(0);
+                a.setId(42L);
+                return a;
+            });
+        // 3e alerte en 24 h : donnee d'escalade F6b exposee aux conditions des regles.
+        when(alertRepository.countByPropertyIdAndCreatedAtAfter(eq(100L), any()))
+            .thenReturn(3L);
+
+        service.evaluateNoiseLevel(10L, 100L, 1L, 75.0, AlertSource.WEBHOOK);
+
+        ArgumentCaptor<AutomationSubject> subjectCaptor = ArgumentCaptor.forClass(AutomationSubject.class);
+        verify(automationEngine).fireTrigger(eq(AutomationTrigger.NOISE_ALERT), eq(10L), subjectCaptor.capture());
+        AutomationSubject subject = subjectCaptor.getValue();
+        assertEquals(AutomationSubject.TYPE_NOISE_ALERT, subject.subjectType());
+        assertEquals(42L, subject.subjectId());
+        assertEquals(100L, subject.data().get(AutomationSubject.DATA_PROPERTY_ID));
+        assertEquals(3L, subject.data().get(AutomationSubject.DATA_ALERTS_LAST_24H));
+        assertEquals("WARNING", subject.data().get(AutomationSubject.DATA_SEVERITY));
+    }
+
+    @Test
+    void whenNoAlertCreated_thenNoTriggerFired() {
+        when(configRepository.findByOrgAndPropertyWithTimeWindows(10L, 100L))
+            .thenReturn(Optional.empty());
+
+        service.evaluateNoiseLevel(10L, 100L, 1L, 80.0, AlertSource.WEBHOOK);
+
+        verifyNoInteractions(automationEngine);
     }
 }

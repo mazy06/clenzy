@@ -46,7 +46,9 @@ public class FinanceSpecialist extends AbstractAgentSpecialist {
                 - "Ai-je des menages / interventions NON REGLES (impayes) ?" → detect_unpaid_interventions
                 - "Regle le menage / paie mes interventions impayees" → settle_intervention_payment (propose un
                   lien de paiement Stripe, confirmation requise — c'est la carte HITL de reglement)
-                Lecture seule SAUF settle_intervention_payment (write, avec confirmation).""";
+                - "Rembourse la resa 123", "Fais un geste commercial de 50 EUR sur la resa X" → initiate_refund
+                  (montant calcule/borne SERVEUR, confirmation requise)
+                Lecture seule SAUF settle_intervention_payment et initiate_refund (write, avec confirmation).""";
     }
 
     @Override
@@ -60,7 +62,8 @@ public class FinanceSpecialist extends AbstractAgentSpecialist {
                 "get_channel_attribution",
                 "get_property_pnl",
                 "detect_unpaid_interventions",
-                "settle_intervention_payment"
+                "settle_intervention_payment",
+                "initiate_refund"
         );
     }
 }

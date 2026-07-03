@@ -156,6 +156,24 @@ class AbstractAgentSpecialistTest {
     }
 
     @Test
+    void buildSystemPrompt_withBlackboardDigest_includesPriorFindingsSection() {
+        // L1 (architecture C v1) : les constats des delegations precedentes
+        // arrivent mecaniquement dans le prompt du specialist.
+        OrchestrationContext octx = OrchestrationContext.empty()
+                .withBlackboardDigest("[data_analyst] Revenu juillet : 12 000 EUR");
+        AgentContext ctx = new AgentContext(1L, "kc-1", null, "fr", null, null);
+        SpecialistRequest req = SpecialistRequest.of("Q", ctx, octx);
+        String prompt = defaultSpec().buildSystemPrompt(req);
+        assertThat(prompt).contains("<prior_findings>");
+        assertThat(prompt).contains("Revenu juillet : 12 000 EUR");
+
+        // Sans digest : section absente (comportement historique).
+        String withoutDigest = defaultSpec().buildSystemPrompt(
+                SpecialistRequest.of("Q", ctx, OrchestrationContext.empty()));
+        assertThat(withoutDigest).doesNotContain("<prior_findings>");
+    }
+
+    @Test
     void handle_returnsTextSynthesis_whenNoToolCalls() {
         when(toolRegistry.listDescriptors()).thenReturn(List.of());
         doAnswer(inv -> {

@@ -139,7 +139,7 @@ public class ListPropertiesTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Liste les proprietes de l'organisation avec filtres optionnels (ville, statut, type, limit). Utiliser quand l'utilisateur demande quelles proprietes il a, ou pour filtrer un sous-ensemble.",
+                    "Liste les proprietes de l'organisation avec filtres optionnels (ville, statut, type, limit). Pour 'quelles proprietes ai-je', filtrer un sous-ensemble.",
                     schema
             );
         } catch (JsonProcessingException e) {

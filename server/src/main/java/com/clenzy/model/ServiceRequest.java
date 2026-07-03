@@ -93,6 +93,15 @@ public class ServiceRequest {
     @Column(name = "reservation_id")
     private Long reservationId;
 
+    /**
+     * Cle d'idempotence des demandes creees par un flux deterministe
+     * (ex. {@code AUTO_CLEANING:propertyId:checkIn:checkOut}). Index UNIQUE en
+     * base : une re-livraison Kafka ne peut pas creer de doublon. NULL pour les
+     * demandes creees manuellement.
+     */
+    @Column(name = "auto_flow_key", length = 120, unique = true)
+    private String autoFlowKey;
+
     // Relations
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -357,6 +366,9 @@ public class ServiceRequest {
 
     public Long getReservationId() { return reservationId; }
     public void setReservationId(Long reservationId) { this.reservationId = reservationId; }
+
+    public String getAutoFlowKey() { return autoFlowKey; }
+    public void setAutoFlowKey(String autoFlowKey) { this.autoFlowKey = autoFlowKey; }
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }

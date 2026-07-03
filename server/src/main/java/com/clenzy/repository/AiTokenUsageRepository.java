@@ -30,6 +30,11 @@ public interface AiTokenUsageRepository extends JpaRepository<AiTokenUsage, Long
      */
     List<AiTokenUsage> findByOrganizationIdAndMonthYear(Long organizationId, String monthYear);
 
+    /** Tokens totaux par provider pour un mois — cross-check reconciliation (X10). */
+    @Query("SELECT u.provider, COALESCE(SUM(u.totalTokens), 0) FROM AiTokenUsage u "
+            + "WHERE u.monthYear = :monthYear GROUP BY u.provider")
+    List<Object[]> sumTokensByProviderForMonth(@Param("monthYear") String monthYear);
+
     /**
      * Tous les usages d'une org/feature pour un mois (detail par appel).
      */

@@ -151,7 +151,7 @@ public class ListCleaningTasksTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Liste les taches de menage (interventions type=HOUSEKEEPING) avec filtres optionnels (propriete, statut, priorite, dates). Utiliser pour repondre 'quels menages sont prevus', 'qui s'occupe du menage', 'menages en retard'.",
+                    "Liste les taches de menage (interventions HOUSEKEEPING), filtres propriete/statut/priorite/dates. Pour 'menages prevus', 'menages en retard'.",
                     schema
             );
         } catch (JsonProcessingException e) {

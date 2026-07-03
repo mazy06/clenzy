@@ -75,8 +75,19 @@ public class OrchestratorAgent {
      */
     private final boolean hitlEnabled;
 
-    // @Autowired explicite : 2 constructeurs publics existent (5-arg Spring +
-    // 4-arg retro-compat tests) → sans cette annotation Spring cherche un
+    /**
+     * Feature flag L1 (architecture C v1) : blackboard de run. Si {@code true},
+     * les constats des delegations precedentes du MEME run sont injectes
+     * mecaniquement dans le prompt des specialists suivants (section
+     * {@code <prior_findings>}) — l'orchestrateur garde des mandats courts.
+     * Defaut {@code false} = comportement historique strict.
+     *
+     * <p>Override : {@code clenzy.assistant.blackboard.enabled=true}</p>
+     */
+    private final boolean blackboardEnabled;
+
+    // @Autowired explicite : plusieurs constructeurs publics existent (6-arg
+    // Spring + retro-compat tests) → sans cette annotation Spring cherche un
     // constructeur no-arg et echoue au boot ("No default constructor found").
     @org.springframework.beans.factory.annotation.Autowired
     public OrchestratorAgent(ChatLLMProvider chatProvider,
@@ -85,16 +96,29 @@ public class OrchestratorAgent {
                                MeterRegistry meterRegistry,
                                @org.springframework.beans.factory.annotation.Value(
                                        "${clenzy.assistant.multi-agent.hitl.enabled:true}")
-                               boolean hitlEnabled) {
+                               boolean hitlEnabled,
+                               @org.springframework.beans.factory.annotation.Value(
+                                       "${clenzy.assistant.blackboard.enabled:false}")
+                               boolean blackboardEnabled) {
         this.chatProvider = chatProvider;
         this.registry = registry;
         this.objectMapper = objectMapper;
         this.meterRegistry = meterRegistry;
         this.hitlEnabled = hitlEnabled;
+        this.blackboardEnabled = blackboardEnabled;
         this.orchestrateTimer = Timer.builder("assistant.orchestrator.handle")
                 .description("Latence d'une orchestration complete (orchestrator + N specialists)")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(meterRegistry);
+    }
+
+    /** Constructeur retro-compatible 5-arg (flag blackboard = off). */
+    public OrchestratorAgent(ChatLLMProvider chatProvider,
+                               SpecialistRegistry registry,
+                               ObjectMapper objectMapper,
+                               MeterRegistry meterRegistry,
+                               boolean hitlEnabled) {
+        this(chatProvider, registry, objectMapper, meterRegistry, hitlEnabled, false);
     }
 
     /**
@@ -106,7 +130,7 @@ public class OrchestratorAgent {
                                SpecialistRegistry registry,
                                ObjectMapper objectMapper,
                                MeterRegistry meterRegistry) {
-        this(chatProvider, registry, objectMapper, meterRegistry, true);
+        this(chatProvider, registry, objectMapper, meterRegistry, true, false);
     }
 
     /**
@@ -248,6 +272,9 @@ public class OrchestratorAgent {
         );
 
         List<String> delegationsLog = new ArrayList<>();
+        // L1 (architecture C v1) : constats des delegations abouties de CE run,
+        // propages mecaniquement aux specialists suivants (si flag blackboard).
+        List<String> blackboardEntries = new ArrayList<>();
         List<ToolInvocationSnapshot> aggregatedToolInvocations = new ArrayList<>();
         AtomicInteger totalPromptTokens = new AtomicInteger();
         AtomicInteger totalCompletionTokens = new AtomicInteger();
@@ -350,7 +377,8 @@ public class OrchestratorAgent {
                 emitActivity(activitySink, args.specialist(), "thinking", null, args.query());
                 SpecialistResult result;
                 try {
-                    result = invokeSpecialist(args, context, orchestrationCtx, apiKey);
+                    result = invokeSpecialist(args, context,
+                            withBlackboard(orchestrationCtx, blackboardEntries), apiKey);
                 } catch (ConfirmationRequiredException e) {
                     // Le specialist a rencontre un tool a confirmation.
                     if (hitlEnabled && e.hasResumeContext()) {
@@ -392,6 +420,9 @@ public class OrchestratorAgent {
                 String toolResultContent = toolResultFor(result, args.specialist());
                 if (result.isSuccess()) {
                     lastSpecialistSynthesis = result.synthesis();
+                    // L1 : constat verse au blackboard du run pour les delegations suivantes.
+                    blackboardEntries.add("[" + args.specialist() + "] "
+                            + truncateForBlackboard(result.synthesis()));
                 }
                 delegationCache.put(args.specialist() + "::" + args.query(), toolResultContent);
                 req = req.withAppendedMessage(ChatMessage.tool(tc.id(), toolResultContent));
@@ -481,6 +512,23 @@ public class OrchestratorAgent {
                 + "sans detailler l'erreur technique.";
     }
 
+    /**
+     * L1 (architecture C v1) : contexte enrichi du digest des constats du run
+     * quand le blackboard est actif et qu'au moins une delegation a abouti.
+     */
+    private OrchestrationContext withBlackboard(OrchestrationContext ctx, List<String> entries) {
+        if (!blackboardEnabled || entries.isEmpty()) {
+            return ctx;
+        }
+        return ctx.withBlackboardDigest(String.join("\n", entries));
+    }
+
+    /** Borne un constat a ~400 chars (le digest reste compact, c'est son interet). */
+    private static String truncateForBlackboard(String synthesis) {
+        String cleaned = synthesis == null ? "" : synthesis.strip();
+        return cleaned.length() <= 400 ? cleaned : cleaned.substring(0, 400) + "…";
+    }
+
     private SpecialistResult invokeSpecialist(DelegateArgs args, AgentContext context,
                                                  OrchestrationContext orchestrationCtx,
                                                  String apiKey) {
@@ -491,13 +539,30 @@ public class OrchestratorAgent {
         // OrchestrationContext propage memoire + RAG aux specialists ;
         // apiKey assure que les specialists consomment sur la meme cle BYOK
         // que l'orchestrator (Fix bloquant #4).
-        return registry.find(args.specialist())
+        SpecialistResult result = registry.find(args.specialist())
                 .map(spec -> spec.handle(SpecialistRequest.of(args.query(), context,
                         orchestrationCtx, apiKey)))
                 .orElseGet(() -> SpecialistResult.error(
                         "Specialiste inconnu : '" + args.specialist() + "'. "
                                 + "Specialistes disponibles : " + registry.all().keySet()
                 ));
+        // Step DELEGATION du run persiste (T-05) : point unique couvrant les deux
+        // sites d'appel (flow initial + resume). Une pause HITL (exception) n'y
+        // passe pas — elle est tracee comme PAUSE par MultiAgentFlowRunner.
+        if (agentRunRecorder != null) {
+            agentRunRecorder.recordDelegationStep(args.specialist(), args.query(),
+                    result.promptTokens(), result.completionTokens(), result.error() == null);
+        }
+        return result;
+    }
+
+    // Trace de run (T-05). Setter optionnel (meme pattern que l'instrumentation
+    // des specialists) : null-safe en test, injecte par Spring en production.
+    private com.clenzy.service.agent.AgentRunRecorder agentRunRecorder;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setAgentRunRecorder(com.clenzy.service.agent.AgentRunRecorder agentRunRecorder) {
+        this.agentRunRecorder = agentRunRecorder;
     }
 
     /**
@@ -851,8 +916,16 @@ public class OrchestratorAgent {
                 .append("5. Si une autre delegation est necessaire, recommence (max ")
                 .append(MAX_DELEGATIONS).append(").\n")
                 .append("6. Quand tu as toutes les infos, produis la reponse user finale ")
-                .append("(2-4 phrases, conversationnel professionnel).\n")
-                .append("</workflow>\n\n");
+                .append("(2-4 phrases, conversationnel professionnel).\n");
+        if (blackboardEnabled) {
+            // L1 : les specialists voient deja les constats precedents du run
+            // (section <prior_findings> injectee mecaniquement) — inutile de les
+            // recopier dans les mandats, c'est le but du gain de tokens.
+            sb.append("NOTE : les specialistes voient AUTOMATIQUEMENT les constats des ")
+                    .append("delegations precedentes de ce run. Garde tes queries COURTES ")
+                    .append("(la tache seule) — ne recopie jamais les syntheses precedentes dedans.\n");
+        }
+        sb.append("</workflow>\n\n");
 
         sb.append("<output_format>\n")
                 .append("- Reponse finale : courte (2-4 phrases), ton conversationnel professionnel.\n")

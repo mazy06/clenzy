@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -392,6 +393,82 @@ class PlatformAiConfigServiceTest {
             assertThatThrownBy(() -> service.assignModelToFeature(99L, "DESIGN"))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("not found");
+        }
+    }
+
+    // ─── Regle tiers assistant : meme provider que ASSISTANT_CHAT ──────────
+
+    @Nested
+    @DisplayName("assignModelToFeature - tiers assistant (regle meme-provider)")
+    class AssignAssistantTiers {
+
+        @Test
+        @DisplayName("tier d'un provider different de ASSISTANT_CHAT -> refuse")
+        void whenTierProviderDiffersFromChat_thenRejected() {
+            PlatformAiModel chatModel = buildModel(1L, "sonnet", "anthropic", "claude-sonnet-4-6", "k");
+            when(featureModelRepository.findByFeature("ASSISTANT_CHAT"))
+                    .thenReturn(Optional.of(new PlatformAiFeatureModel("ASSISTANT_CHAT", chatModel)));
+            PlatformAiModel tierModel = buildModel(2L, "mini", "openai", "gpt-5-mini", "k");
+            when(modelRepository.findById(2L)).thenReturn(Optional.of(tierModel));
+
+            assertThatThrownBy(() -> service.assignModelToFeature(2L, "ASSISTANT_SMALL"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("anthropic");
+            verify(featureModelRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("tier du meme provider que ASSISTANT_CHAT -> accepte")
+        void whenTierProviderMatchesChat_thenAssigned() {
+            PlatformAiModel chatModel = buildModel(1L, "sonnet", "anthropic", "claude-sonnet-4-6", "k");
+            when(featureModelRepository.findByFeature("ASSISTANT_CHAT"))
+                    .thenReturn(Optional.of(new PlatformAiFeatureModel("ASSISTANT_CHAT", chatModel)));
+            PlatformAiModel tierModel = buildModel(2L, "haiku", "anthropic", "claude-haiku-4-5", "k");
+            when(modelRepository.findById(2L)).thenReturn(Optional.of(tierModel));
+            when(featureModelRepository.findByFeature("ASSISTANT_SMALL")).thenReturn(Optional.empty());
+
+            service.assignModelToFeature(2L, "ASSISTANT_SMALL");
+
+            verify(featureModelRepository).save(any(PlatformAiFeatureModel.class));
+        }
+
+        @Test
+        @DisplayName("tier sans reference ASSISTANT_CHAT assignee -> refuse (assigner l'assistant d'abord)")
+        void whenNoChatReference_thenRejected() {
+            when(featureModelRepository.findByFeature("ASSISTANT_CHAT")).thenReturn(Optional.empty());
+            when(featureProviderRepository.findByFeature("ASSISTANT_CHAT")).thenReturn(Optional.empty());
+            PlatformAiModel tierModel = buildModel(2L, "haiku", "anthropic", "claude-haiku-4-5", "k");
+            when(modelRepository.findById(2L)).thenReturn(Optional.of(tierModel));
+
+            assertThatThrownBy(() -> service.assignModelToFeature(2L, "ASSISTANT_SMALL"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("ASSISTANT_CHAT");
+        }
+
+        @Test
+        @DisplayName("changer ASSISTANT_CHAT vers un provider divergent des tiers assignes -> refuse")
+        void whenChatMovesToOtherProviderWithTierAssigned_thenRejected() {
+            PlatformAiModel tierModel = buildModel(2L, "haiku", "anthropic", "claude-haiku-4-5", "k");
+            when(featureModelRepository.findByFeature("ASSISTANT_SMALL"))
+                    .thenReturn(Optional.of(new PlatformAiFeatureModel("ASSISTANT_SMALL", tierModel)));
+            // lenient : la boucle verifie les 2 tiers dans un ordre non deterministe (Set) —
+            // selon l'ordre, STRONG peut ne pas etre consulte (rejet des le tier SMALL).
+            org.mockito.Mockito.lenient().when(featureModelRepository.findByFeature("ASSISTANT_STRONG"))
+                    .thenReturn(Optional.empty());
+            PlatformAiModel nvidiaModel = buildModel(3L, "llama", "nvidia", "meta/llama-3.1-8b-instruct", "k");
+            when(modelRepository.findById(3L)).thenReturn(Optional.of(nvidiaModel));
+
+            assertThatThrownBy(() -> service.assignModelToFeature(3L, "ASSISTANT_CHAT"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("ASSISTANT_SMALL");
+        }
+
+        @Test
+        @DisplayName("provider connecte sur un tier -> refuse (les tiers prennent un modele)")
+        void whenConnectedProviderOnTier_thenRejected() {
+            assertThatThrownBy(() -> service.assignProviderToFeature("ASSISTANT_SMALL", "anthropic"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("modele plateforme");
         }
     }
 

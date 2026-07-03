@@ -12,18 +12,23 @@ public record AutomationExecutionDto(
     AutomationExecutionStatus status,
     String errorMessage,
     LocalDateTime scheduledAt,
-    LocalDateTime executedAt
+    LocalDateTime executedAt,
+    String subjectType,
+    Long subjectId
 ) {
     public static AutomationExecutionDto from(AutomationExecution e) {
         return new AutomationExecutionDto(
             e.getId(),
             e.getAutomationRule().getId(),
             e.getAutomationRule().getName(),
-            e.getReservation().getId(),
+            // Null pour les sujets non-reservation (facture, payout, device...).
+            e.getReservation() != null ? e.getReservation().getId() : null,
             e.getStatus(),
             e.getErrorMessage(),
             e.getScheduledAt(),
-            e.getExecutedAt()
+            e.getExecutedAt(),
+            e.getSubjectType(),
+            e.getSubjectId()
         );
     }
 }

@@ -150,7 +150,7 @@ public class ListReviewsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Liste les avis voyageurs les plus recents de l'organisation : note (1-5), commentaire tronque, canal, logement, date. Filtre optionnel par canal. Utiliser pour 'derniers avis', 'commentaires des voyageurs', 'notes recues', 'avis Airbnb'.",
+                    "Liste les avis voyageurs recents : note (1-5), commentaire, canal, logement, date. Filtre canal optionnel. Pour 'derniers avis', 'notes recues', 'avis Airbnb'.",
                     schema
             );
         } catch (JsonProcessingException e) {

@@ -145,7 +145,7 @@ public class CreateInterventionTool implements ToolHandler {
                     """);
             return ToolDescriptor.write(
                     NAME,
-                    "Cree une intervention (menage, maintenance, check-in/out, etc.) sur une propriete. Le requestor est automatiquement l'utilisateur connecte. Confirmer avant d'executer.",
+                    "Cree une intervention (menage, maintenance, check-in/out) sur une propriete. Requestor = utilisateur connecte. Confirmer avant d'executer.",
                     schema
             );
         } catch (JsonProcessingException e) {

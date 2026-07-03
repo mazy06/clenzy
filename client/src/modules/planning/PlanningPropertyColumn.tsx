@@ -1,7 +1,20 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Box, Typography, Tooltip } from '@mui/material';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PropertyPopover from './PropertyPopover';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import type { PlanningProperty, DensityMode } from './types';
+
+// Options de la requête performance — partagées entre le préchargement (survol)
+// et la requête d'ouverture, source unique de la clé/queryFn.
+const PERF_STALE_MS = 5 * 60 * 1000;
+function perfQueryOptions(propertyId: number) {
+  return {
+    queryKey: ['property-performance', propertyId] as const,
+    queryFn: () => propertiesApi.getPerformance(propertyId),
+    staleTime: PERF_STALE_MS,
+  };
+}
 import { Label as TagIcon, Wifi as ChannelIcon, ChevronDown } from '../../icons';
 import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
 
@@ -50,6 +63,25 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   const popoverProperty = popover
     ? properties.find((p) => p.id === popover.propertyId) ?? null
     : null;
+
+  // Le parent orchestre la donnée du popover : il précharge au survol, récupère
+  // la performance du logement ouvert, et ne monte le popover QUE lorsque tout
+  // est prêt → PropertyPopover est présentationnel et rend tout en une fois.
+  const isMock = propertiesApi.isMockMode();
+  const queryClient = useQueryClient();
+  const prefetchPerformance = useCallback((propertyId: number) => {
+    if (isMock) return;
+    queryClient.prefetchQuery(perfQueryOptions(propertyId));
+  }, [queryClient, isMock]);
+
+  const perfQuery = useQuery({
+    ...perfQueryOptions(popover?.propertyId ?? 0),
+    enabled: !!popover && !isMock,
+    retry: false,
+  });
+  // Prêt à afficher : logement trouvé ET (mode démo OU perf résolue). Avec le
+  // préchargement au survol, la perf est déjà en cache → prêt instantanément.
+  const perfReady = !!popover && (isMock || perfQuery.isFetched);
   // ── Drag handle pour redimensionner la colonne ───────────────────────────
   const resizeStartRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -148,6 +180,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
           <React.Fragment key={property.id}>
           <Box
             onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })}
+            onMouseEnter={() => prefetchPerformance(property.id)}
             sx={{
               position: 'relative',
               height: effectiveRowHeight,
@@ -337,11 +370,13 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         />
       ))}
 
-      {/* Popover logement (clic sur le nom) */}
-      {popover && popoverProperty && (
+      {/* Popover logement (clic sur le nom) — monté seulement quand la perf est
+          prête → il s'affiche complet, en une fois (pas de rendu progressif). */}
+      {popover && popoverProperty && perfReady && (
         <PropertyPopover
           anchorEl={popover.anchorEl}
           property={popoverProperty}
+          performance={isMock ? null : (perfQuery.data ?? null)}
           onClose={() => setPopover(null)}
         />
       )}

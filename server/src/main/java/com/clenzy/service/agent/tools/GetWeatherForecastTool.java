@@ -195,7 +195,7 @@ public class GetWeatherForecastTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Recupere les previsions meteo jour par jour (1 a 7 jours) pour une ville ou la ville d'une propriete. Source : Open-Meteo (gratuit). A utiliser pour contextualiser des recos pricing/promo (ex: pluie samedi → suggestion last-minute -10%).",
+                    "Previsions meteo jour par jour (1-7 jours) pour une ville ou la ville d'une propriete (Open-Meteo). Pour contextualiser des recos pricing/promo last-minute.",
                     schema
             );
         } catch (JsonProcessingException e) {

@@ -109,7 +109,7 @@ public class GetPropertyDetailsTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Fiche complete d'un logement : adresse, capacite (chambres, salles de bain, voyageurs max), surface, prix de base/nuit, nuits minimum, type, statut, fuseau horaire. Utiliser pour 'details du logement', 'capacite', 'adresse', 'combien de chambres'.",
+                    "Fiche complete d'un logement : adresse, capacite, surface, prix de base/nuit, nuits minimum, type, statut, timezone. Pour 'details', 'combien de chambres'.",
                     schema
             );
         } catch (JsonProcessingException e) {

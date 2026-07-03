@@ -4,6 +4,7 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Tabs, Tab, TextField, FormControl, InputLabel, Select, MenuItem,
   Card, CardContent, Grid,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import {
   Home as HomeIcon,
@@ -20,6 +21,7 @@ import { SPACING } from '../../theme/spacing';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { useOwnerDashboard, useOwnerStatement } from '../../hooks/useOwnerPortal';
+import { ownerPortalApi } from '../../services/api/ownerPortalApi';
 import type { OwnerDashboard, OwnerStatement } from '../../services/api/ownerPortalApi';
 import { useQuery } from '@tanstack/react-query';
 import { Money } from '../../components/Money';
@@ -63,6 +65,19 @@ const OwnerPortalPage: React.FC = () => {
     staleTime: 120_000,
   });
 
+  // Proprietaires distincts derives des biens. Fix : l'ancien selecteur passait
+  // l'id du BIEN comme ownerId au dashboard/releve (donnees fausses des que les
+  // ids divergent) — on selectionne desormais un vrai Property.ownerId.
+  const owners = useMemo(() => {
+    const byId = new Map<number, string>();
+    properties.forEach((p: Property) => {
+      if (p.ownerId != null && !byId.has(p.ownerId)) {
+        byId.set(p.ownerId, p.ownerName || `#${p.ownerId}`);
+      }
+    });
+    return Array.from(byId, ([id, name]) => ({ id, name }));
+  }, [properties]);
+
   const ownerId = selectedOwnerId === '' ? undefined : selectedOwnerId;
 
   return (
@@ -86,13 +101,15 @@ const OwnerPortalPage: React.FC = () => {
             label={t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
             sx={{ fontSize: '0.8125rem' }}
           >
-            {properties.map((p: Property) => (
-              <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-                {p.name} (#{p.id})
+            {owners.map((owner) => (
+              <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
+                {owner.name}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
+        {ownerId !== undefined && <ConstellationLinkButton ownerId={ownerId} />}
+        <BrandingButton />
       </Paper>
 
       <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
@@ -120,6 +137,135 @@ const OwnerPortalPage: React.FC = () => {
         </>
       )}
     </Box>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Lien Constellation Propriétaire (campagne X9) — génère + copie le lien
+//  public lecture seule à partager au propriétaire.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ConstellationLinkButton: React.FC<{ ownerId: number }> = ({ ownerId }) => {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<'idle' | 'busy' | 'copied' | 'error'>('idle');
+
+  const handleShare = async () => {
+    setStatus('busy');
+    try {
+      const link = await ownerPortalApi.createConstellationLink(ownerId);
+      await navigator.clipboard.writeText(link.url);
+      setStatus('copied');
+      setTimeout(() => setStatus('idle'), 4000);
+    } catch {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 4000);
+    }
+  };
+
+  return (
+    <Button
+      variant="outlined"
+      size="small"
+      onClick={handleShare}
+      disabled={status === 'busy'}
+      sx={{ textTransform: 'none', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
+    >
+      {status === 'copied'
+        ? t('ownerPortal.constellationLinkCopied', 'Lien copié !')
+        : status === 'error'
+          ? t('ownerPortal.constellationLinkError', 'Échec — réessayer')
+          : t('ownerPortal.constellationLink', 'Partager le suivi propriétaire')}
+    </Button>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Branding white-label de la page propriétaire (campagne X9-b) : logo HTTPS
+//  + couleur d'accent affichés sur /owner-view/:token.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const BrandingButton: React.FC = () => {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleOpen = async () => {
+    setOpen(true);
+    setError(null);
+    try {
+      const branding = await ownerPortalApi.getBranding();
+      setLogoUrl(branding.logoUrl ?? '');
+      setPrimaryColor(branding.primaryColor ?? '');
+    } catch {
+      /* formulaire vide en cas d'échec de lecture */
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await ownerPortalApi.updateBranding(logoUrl.trim(), primaryColor.trim());
+      setOpen(false);
+    } catch (e) {
+      setError((e as { message?: string })?.message
+        || t('ownerPortal.branding.saveError', 'Enregistrement impossible'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="text"
+        size="small"
+        onClick={handleOpen}
+        sx={{ textTransform: 'none', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
+      >
+        {t('ownerPortal.branding.open', 'Personnaliser la page propriétaire')}
+      </Button>
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: '1rem' }}>
+          {t('ownerPortal.branding.title', 'Page propriétaire — votre marque')}
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+          <Typography variant="body2" color="text.secondary">
+            {t('ownerPortal.branding.subtitle',
+              'Logo et couleur affichés sur les liens de suivi partagés à vos propriétaires. Aucune mention de la plateforme.')}
+          </Typography>
+          {error && <Alert severity="warning">{error}</Alert>}
+          <TextField
+            label={t('ownerPortal.branding.logoUrl', 'URL du logo (HTTPS)')}
+            size="small"
+            fullWidth
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://…/logo.png"
+            helperText={t('ownerPortal.branding.logoHelp', 'Laisser vide pour ne pas afficher de logo')}
+          />
+          <TextField
+            label={t('ownerPortal.branding.primaryColor', "Couleur d'accent (#RRGGBB)")}
+            size="small"
+            fullWidth
+            value={primaryColor}
+            onChange={(e) => setPrimaryColor(e.target.value)}
+            placeholder="#4A9B8E"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none' }}>
+            {t('common.cancel', 'Annuler')}
+          </Button>
+          <Button onClick={handleSave} disabled={saving} variant="contained" sx={{ textTransform: 'none' }}>
+            {t('common.save', 'Enregistrer')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

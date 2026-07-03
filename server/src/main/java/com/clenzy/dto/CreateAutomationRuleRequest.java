@@ -13,6 +13,8 @@ public record CreateAutomationRuleRequest(
     String triggerTime,
     String conditions,
     AutomationAction actionType,
+    /** Config JSON de l'action (ex. {"graceHours": 4} pour REVOKE_ACCESS_CODE), optionnelle. */
+    String actionConfig,
     Long templateId,
     MessageChannelType deliveryChannel
 ) {}

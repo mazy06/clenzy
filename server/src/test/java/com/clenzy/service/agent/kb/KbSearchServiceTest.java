@@ -18,6 +18,7 @@ class KbSearchServiceTest {
     private EmbeddingService embeddingService;
     private KbChunkRepository chunkRepository;
     private RerankService rerankService;
+    private EmbeddingOrgQuota embeddingOrgQuota;
     private KbSearchService service;
 
     @BeforeEach
@@ -25,10 +26,23 @@ class KbSearchServiceTest {
         embeddingService = mock(EmbeddingService.class);
         chunkRepository = mock(KbChunkRepository.class);
         rerankService = mock(RerankService.class);
+        embeddingOrgQuota = mock(EmbeddingOrgQuota.class);
         // Defaut : rerank desactive → preserve le comportement initial des tests
         when(rerankService.isActive()).thenReturn(false);
         when(rerankService.getOverFetchFactor()).thenReturn(1);
-        service = new KbSearchService(embeddingService, chunkRepository, rerankService);
+        // Defaut : quota accorde (comportement historique)
+        when(embeddingOrgQuota.tryConsume(any())).thenReturn(true);
+        service = new KbSearchService(embeddingService, chunkRepository, rerankService,
+                embeddingOrgQuota, new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+    }
+
+    @Test
+    void quotaExceeded_returnsEmptyWithoutEmbedding() {
+        when(embeddingOrgQuota.tryConsume(1L)).thenReturn(false);
+
+        assertTrue(service.search("une question", 1L, 5).isEmpty());
+        verifyNoInteractions(embeddingService);
+        verifyNoInteractions(chunkRepository);
     }
 
     @Test

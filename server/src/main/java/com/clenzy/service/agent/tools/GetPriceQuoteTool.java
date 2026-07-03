@@ -126,7 +126,7 @@ public class GetPriceQuoteTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Devis du prix d'un logement pour un sejour (prix par nuit via le PriceEngine + total). Utiliser pour 'combien coute le logement du X au Y', 'quel est le prix', 'devis'. Lecture seule (ne reserve rien).",
+                    "Devis du prix d'un logement pour un sejour (prix/nuit via PriceEngine + total). Lecture seule, ne reserve rien. Pour 'combien coute du X au Y', 'devis'.",
                     schema
             );
         } catch (JsonProcessingException e) {

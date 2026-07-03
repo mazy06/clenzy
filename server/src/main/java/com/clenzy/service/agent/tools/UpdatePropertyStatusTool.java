@@ -95,7 +95,7 @@ public class UpdatePropertyStatusTool implements ToolHandler {
                     """);
             return ToolDescriptor.write(
                     NAME,
-                    "Change le statut d'une propriete : ACTIVE (visible/reservable), INACTIVE (cachee mais conservee), UNDER_MAINTENANCE (travaux en cours), ARCHIVED (sortie du portfolio). Confirmer obligatoirement.",
+                    "Change le statut d'une propriete : ACTIVE, INACTIVE (cachee), UNDER_MAINTENANCE, ARCHIVED. Confirmer obligatoirement.",
                     schema
             );
         } catch (JsonProcessingException e) {

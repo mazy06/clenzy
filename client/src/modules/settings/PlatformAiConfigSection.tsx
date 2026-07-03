@@ -178,6 +178,8 @@ const PROVIDER_IDS = Object.keys(PROVIDER_LABELS);
 // En hex littéral (non var()) car consommés via MUI alpha() (qui rejette var()).
 const AI_FEATURES = [
   { key: 'ASSISTANT_CHAT', label: 'Assistant IA', desc: 'Orchestrator multi-agent + specialists du chat + briefings', icon: <AutoAwesome />, color: '#6B8A9A' }, // slate
+  { key: 'ASSISTANT_SMALL', label: 'Assistant IA — tier éco', desc: "Modèle économique des rôles utilitaires (classification, résumés). Non assigné = tiering inactif ; ne s'applique que si le provider correspond au modèle résolu", icon: <AutoAwesome />, color: '#7BA3C2' }, // info
+  { key: 'ASSISTANT_STRONG', label: 'Assistant IA — tier fort', desc: "Modèle haut de gamme des rôles d'analyse (Insights). Mêmes règles que le tier éco", icon: <AutoAwesome />, color: '#5A7684' }, // slate foncé
   { key: 'DESIGN', label: 'Design IA', desc: 'Generation CSS/JS du booking engine', icon: <Palette />, color: '#9A7FA3' }, // mauve (= PLANNING_DEPARTURE_VIOLET)
   { key: 'PRICING', label: 'Tarification IA', desc: 'Recommandations de prix', icon: <AttachMoney />, color: '#4A9B8E' }, // = --ok
   { key: 'MESSAGING', label: 'Messagerie IA', desc: 'Detection intention + reponses', icon: <Chat />, color: '#7BA3C2' }, // = --info
@@ -1106,6 +1108,8 @@ export default function PlatformAiConfigSection() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editModel, setEditModel] = useState<PlatformAiModel | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  // Erreur d'assignation feature (ex. règle même-provider des tiers assistant)
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   const { data: models, isLoading: modelsLoading, error: modelsError } = usePlatformModels();
   const { data: assignments, isLoading: assignmentsLoading } = useFeatureAssignments();
@@ -1186,7 +1190,19 @@ export default function PlatformAiConfigSection() {
   };
 
   const handleAssign = (feature: string, modelId: number) => {
-    assignMutation.mutate({ feature, modelId });
+    setAssignError(null);
+    assignMutation.mutate({ feature, modelId }, {
+      onError: (e: unknown) =>
+        setAssignError((e as { message?: string })?.message || t('settings.ai.platform.assignError', 'Assignation refusée')),
+    });
+  };
+
+  const handleAssignProvider = (feature: string, provider: string) => {
+    setAssignError(null);
+    assignProviderMutation.mutate({ feature, provider }, {
+      onError: (e: unknown) =>
+        setAssignError((e as { message?: string })?.message || t('settings.ai.platform.assignError', 'Assignation refusée')),
+    });
   };
 
   const handleUnassign = (feature: string) => {
@@ -1274,6 +1290,12 @@ export default function PlatformAiConfigSection() {
         </Typography>
       </Box>
 
+      {assignError && (
+        <Alert severity="warning" onClose={() => setAssignError(null)} sx={{ mb: 1 }}>
+          {assignError}
+        </Alert>
+      )}
+
       <Box
         sx={{
           mx: { xs: -2, md: -3 },
@@ -1296,7 +1318,7 @@ export default function PlatformAiConfigSection() {
               usageBreakdown={usageBreakdown?.breakdownByFeature?.[feat.key] ?? []}
               enabled={featureToggles?.find(ft => ft.feature === feat.key)?.enabled ?? true}
               onAssign={handleAssign}
-              onAssignProvider={(f, p) => assignProviderMutation.mutate({ feature: f, provider: p })}
+              onAssignProvider={handleAssignProvider}
               onUnassign={handleUnassign}
               onBudgetChange={(f, limit) => setBudgetMutation.mutate({ feature: f, limit })}
               onToggle={(f, enabled) => toggleMutation.mutate({ feature: f, enabled })}

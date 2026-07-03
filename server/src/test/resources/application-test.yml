@@ -21,6 +21,12 @@ spring:
         jdbc:
           time_zone: UTC
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        validator:
+          # Ne PAS deriver le DDL des annotations Bean Validation : @Size(max=50)
+          # ecraserait @Column(length=500) (champs PII chiffres — first_name/last_name
+          # de User : ciphertext AES > 50) et produirait un schema create-drop plus
+          # etroit que le schema Liquibase reel (varchar(500), migration 0039).
+          apply_to_ddl: false
     open-in-view: false
   liquibase:
     enabled: false   # Tests utilisent Hibernate create-drop via Testcontainers

@@ -204,7 +204,19 @@ public class PropertyService {
 
     @Transactional(readOnly = true)
     public Page<PropertyDto> search(Pageable pageable, Long ownerId, com.clenzy.model.PropertyStatus status, com.clenzy.model.PropertyType type, String city) {
+        // Isolation tenant EXPLICITE (fuite cross-org revelee par MultiAgentOrchestrationIT,
+        // vague T2 2026-07) : le @Filter Hibernate organizationFilter n'est PAS actif ici —
+        // avec open-in-view=false (tous profils), TenantFilter ne peut pas l'activer (cf. javadoc
+        // TenantFilter#enableHibernateOrgFilter), et les tools assistant (list_properties,
+        // get_property_details, ...) invoquent cette methode depuis le thread sseExecutor,
+        // hors de tout TenantScopedExecutor. Sans ce predicat, un HOST voyait les biens de
+        // TOUTES les organisations via l'assistant. Garde fail-closed alignee sur la regle
+        // d'audit n°3 : org du TenantContext, bypass platform staff (superAdmin / org SYSTEM).
+        final Long tenantOrgId = (!tenantContext.isSuperAdmin() && !tenantContext.isSystemOrg())
+                ? tenantContext.getOrganizationId()
+                : null;
         return propertyRepository.findAll((root, query, cb) -> cb.and(
+                tenantOrgId != null ? cb.equal(root.get("organizationId"), tenantOrgId) : cb.conjunction(),
                 ownerId != null ? cb.equal(root.get("owner").get("id"), ownerId) : cb.conjunction(),
                 status != null ? cb.equal(root.get("status"), status) : cb.conjunction(),
                 type != null ? cb.equal(root.get("type"), type) : cb.conjunction(),
@@ -214,7 +226,14 @@ public class PropertyService {
 
     @Transactional(readOnly = true)
     public Page<PropertyDto> searchWithManagers(Pageable pageable, String ownerKeycloakId) {
+        // Meme garde fail-closed que search() ci-dessus (trou jumeau signale par la
+        // vague T2 2026-07) : sans predicat org explicite, ce chemin dependait du
+        // seul @Filter Hibernate, non garanti actif.
+        final Long tenantOrgId = (!tenantContext.isSuperAdmin() && !tenantContext.isSystemOrg())
+                ? tenantContext.getOrganizationId()
+                : null;
         return propertyRepository.findAll((root, query, cb) -> cb.and(
+                tenantOrgId != null ? cb.equal(root.get("organizationId"), tenantOrgId) : cb.conjunction(),
                 ownerKeycloakId != null ? cb.equal(root.get("owner").get("keycloakId"), ownerKeycloakId) : cb.conjunction()
         ), pageable).map(this::toDtoWithManager);
     }

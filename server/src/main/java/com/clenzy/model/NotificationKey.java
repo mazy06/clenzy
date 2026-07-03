@@ -229,7 +229,14 @@ public enum NotificationKey {
     // ─── OBJETS CONNECTES — capteurs d'environnement ────────────────────────────
 
     IOT_SMOKE_DETECTED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
-    IOT_MOTION_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true);
+    IOT_MOTION_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+
+    // ─── AUTOMATISATIONS (flux deterministes) ────────────────────────────────
+    // Cle generique de l'action NOTIFY_STAFF du moteur AutomationRule pour les
+    // declencheurs sans cle metier dediee (ex. LOCK_BATTERY_CRITICAL). Les
+    // declencheurs paiement/payout reutilisent PAYMENT_FAILED et
+    // PAYOUT_PENDING_APPROVAL.
+    AUTOMATION_STAFF_ALERT(NotificationType.WARNING, NotificationCategory.SYSTEM, true);
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

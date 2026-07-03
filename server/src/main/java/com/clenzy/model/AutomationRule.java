@@ -41,9 +41,20 @@ public class AutomationRule {
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String conditions;
 
+    // length 40 : CREATE_MAINTENANCE_INTERVENTION (31 chars) depasse l'ancien 30
+    // (colonne elargie par la migration 0305).
     @Enumerated(EnumType.STRING)
-    @Column(name = "action_type", nullable = false, length = 30)
+    @Column(name = "action_type", nullable = false, length = 40)
     private AutomationAction actionType = AutomationAction.SEND_MESSAGE;
+
+    /**
+     * Config JSON de l'ACTION (migration 0309) — distincte de {@code conditions}
+     * (criteres de matching). Ex. REVOKE_ACCESS_CODE : {@code {"graceHours": 4}}.
+     * Null = defauts de l'executeur.
+     */
+    @Column(name = "action_config", columnDefinition = "JSONB")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private String actionConfig;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "template_id")
@@ -81,6 +92,8 @@ public class AutomationRule {
     public void setConditions(String conditions) { this.conditions = conditions; }
     public AutomationAction getActionType() { return actionType; }
     public void setActionType(AutomationAction actionType) { this.actionType = actionType; }
+    public String getActionConfig() { return actionConfig; }
+    public void setActionConfig(String actionConfig) { this.actionConfig = actionConfig; }
     public MessageTemplate getTemplate() { return template; }
     public void setTemplate(MessageTemplate template) { this.template = template; }
     public MessageChannelType getDeliveryChannel() { return deliveryChannel; }

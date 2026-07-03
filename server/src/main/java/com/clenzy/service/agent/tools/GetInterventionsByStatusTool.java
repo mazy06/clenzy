@@ -131,7 +131,7 @@ public class GetInterventionsByStatusTool implements ToolHandler {
                     """);
             return ToolDescriptor.readOnly(
                     NAME,
-                    "Affiche un graphique camembert (pie chart) de la distribution des interventions par statut (PENDING / IN_PROGRESS / COMPLETED / CANCELLED / ...) sur une periode donnee. Utiliser pour 'distribution', 'repartition', 'breakdown' des interventions, ou pour analyser la performance operationnelle.",
+                    "Pie chart de la distribution des interventions par statut (PENDING/IN_PROGRESS/COMPLETED...) sur une periode. Pour 'repartition', 'breakdown' des interventions.",
                     schema
             );
         } catch (JsonProcessingException e) {

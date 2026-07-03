@@ -66,10 +66,19 @@ export interface PendingAction {
    */
   kind?: 'action' | 'reminder' | 'payment';
   /**
-   * Montant formaté (ex. « 95 € »), pour les cartes 'payment' : affiché
-   * directement DANS le bouton « Régler » (plus de ligne « Montant à régler »).
+   * Montant BRUT en EUR (devise de base), pour les cartes 'payment' ET pour
+   * l'impact estimé d'une suggestion actionnable. Formaté dans la devise choisie
+   * par l'opérateur au rendu (cf. PendingActionCard + useCurrency), puis affiché
+   * directement DANS le bouton d'action.
    */
-  amountLabel?: string;
+  amountEur?: number;
+  /**
+   * Type d'action exécutable (ex. {@code PRICE_DROP}) pour une suggestion
+   * actionnable : la carte affiche « Appliquer » (au lieu de « Valider ») et la
+   * validation déclenche l'exécution serveur ({@code POST /suggestions/{id}/apply}).
+   * Absent = suggestion informationnelle (Valider = rejet, comportement historique).
+   */
+  applyActionType?: string;
 }
 
 // ─── Approbation inline (interrupt AG-UI, chemin live) ───────────────────────

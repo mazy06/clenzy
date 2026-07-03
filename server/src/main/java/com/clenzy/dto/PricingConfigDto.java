@@ -28,6 +28,11 @@ public class PricingConfigDto {
     private Integer pmsPerSeatPriceCents;
     private Integer pmsFreeSeats;
 
+    // Supplement IA mensuel par forfait (cents) — campagne X5
+    private Integer aiSurchargeEssentielCents;
+    private Integer aiSurchargeConfortCents;
+    private Integer aiSurchargePremiumCents;
+
     // Automation surcharges (EUR)
     private Integer automationBasicSurcharge;
     private Integer automationFullSurcharge;
@@ -304,6 +309,15 @@ public class PricingConfigDto {
 
     public Integer getPmsPerSeatPriceCents() { return pmsPerSeatPriceCents; }
     public void setPmsPerSeatPriceCents(Integer pmsPerSeatPriceCents) { this.pmsPerSeatPriceCents = pmsPerSeatPriceCents; }
+
+    public Integer getAiSurchargeEssentielCents() { return aiSurchargeEssentielCents; }
+    public void setAiSurchargeEssentielCents(Integer aiSurchargeEssentielCents) { this.aiSurchargeEssentielCents = aiSurchargeEssentielCents; }
+
+    public Integer getAiSurchargeConfortCents() { return aiSurchargeConfortCents; }
+    public void setAiSurchargeConfortCents(Integer aiSurchargeConfortCents) { this.aiSurchargeConfortCents = aiSurchargeConfortCents; }
+
+    public Integer getAiSurchargePremiumCents() { return aiSurchargePremiumCents; }
+    public void setAiSurchargePremiumCents(Integer aiSurchargePremiumCents) { this.aiSurchargePremiumCents = aiSurchargePremiumCents; }
 
     public Integer getPmsFreeSeats() { return pmsFreeSeats; }
     public void setPmsFreeSeats(Integer pmsFreeSeats) { this.pmsFreeSeats = pmsFreeSeats; }
