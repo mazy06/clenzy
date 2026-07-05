@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
   Chip,
   Divider,
   Button,
+  TextField,
+  IconButton,
   LinearProgress,
   CircularProgress,
   Alert,
@@ -22,9 +24,12 @@ import {
   CheckCircle,
   ExpandMore,
   AttachMoney,
+  Edit,
+  EnterKey,
 } from '../../../icons';
 import type { PlanningEvent, PanelView } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
+import { interventionsApi } from '../../../services/api/interventionsApi';
 import PanelPhotoGallery from './PanelPhotoGallery';
 import { Money } from '../../../components/Money';
 
@@ -84,6 +89,38 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ─── Édition du montant (nouveau montant / remise € / remise %) ───
+  const [amountOverride, setAmountOverride] = useState<number | null>(null);
+  const [amountEditOpen, setAmountEditOpen] = useState(false);
+  const [amountMode, setAmountMode] = useState<'SET' | 'DISCOUNT_AMOUNT' | 'DISCOUNT_PERCENT'>('SET');
+  const [amountValue, setAmountValue] = useState('');
+  const [amountSaving, setAmountSaving] = useState(false);
+
+  // Réinitialise l'override quand on change d'intervention.
+  useEffect(() => {
+    setAmountOverride(null);
+    setAmountEditOpen(false);
+    setAmountValue('');
+    setAmountMode('SET');
+  }, [interventionId]);
+
+  const applyAmount = useCallback(async () => {
+    const num = parseFloat(amountValue);
+    if (isNaN(num) || num < 0) return;
+    setAmountSaving(true);
+    setError(null);
+    try {
+      const updated = await interventionsApi.updateAmount(interventionId, amountMode, num);
+      setAmountOverride(updated.actualCost ?? updated.estimatedCost ?? 0);
+      setAmountEditOpen(false);
+      setAmountValue('');
+    } catch {
+      setError("Impossible de mettre à jour le montant");
+    } finally {
+      setAmountSaving(false);
+    }
+  }, [amountValue, amountMode, interventionId]);
+
   // Find the intervention
   const intervention = interventions?.find((i) => i.id === interventionId)
     || (event.intervention?.id === interventionId ? event.intervention : null);
@@ -107,9 +144,9 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
   if (completedSteps.has('rooms')) progress += 33;
   if (completedSteps.has('after_photos')) progress += 34;
 
-  const estimatedCost = intervention.estimatedDurationHours
-    ? intervention.estimatedDurationHours * 25
-    : 0;
+  // Montant RÉEL de l'intervention (devis/travaux), pas une estimation fabriquée.
+  const realAmount = intervention.actualCost ?? intervention.estimatedCost ?? 0;
+  const displayAmount = amountOverride ?? realAmount;
 
   const beforePhotos = intervention.beforePhotosUrls
     ? (typeof intervention.beforePhotosUrls === 'string'
@@ -182,15 +219,73 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
             sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
         )}
-        {estimatedCost > 0 && (
-          <Chip
-            icon={<AttachMoney size={12} strokeWidth={1.75} color="#4A9B8E" />}
-            label={<Money value={estimatedCost} from="EUR" decimals={0} />}
-            size="small"
-            sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-          />
-        )}
+        <Chip
+          icon={<AttachMoney size={12} strokeWidth={1.75} color="#4A9B8E" />}
+          label={<Money value={displayAmount} from="EUR" decimals={0} />}
+          onClick={() => setAmountEditOpen((o) => !o)}
+          onDelete={() => setAmountEditOpen((o) => !o)}
+          deleteIcon={<Edit size={11} strokeWidth={1.75} />}
+          size="small"
+          sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', cursor: 'pointer', '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-deleteIcon': { color: '#4A9B8E', fontSize: 12 } }}
+        />
       </Box>
+
+      {/* Édition du montant : nouveau montant / remise € / remise % */}
+      {amountEditOpen && (
+        <Box sx={{ mb: 1.5, p: 1.25, borderRadius: '10px', border: '1px solid var(--line)', bgcolor: 'var(--field)' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+            {([
+              ['SET', 'Nouveau montant'],
+              ['DISCOUNT_AMOUNT', 'Remise €'],
+              ['DISCOUNT_PERCENT', 'Remise %'],
+            ] as const).map(([mode, label]) => {
+              const active = amountMode === mode;
+              return (
+                <Chip
+                  key={mode}
+                  label={label}
+                  onClick={() => setAmountMode(mode)}
+                  size="small"
+                  sx={{
+                    height: 24, fontSize: '0.625rem', fontWeight: 600, cursor: 'pointer',
+                    border: '1px solid', borderColor: active ? 'var(--accent)' : 'var(--line-2)',
+                    bgcolor: active ? 'var(--accent-soft)' : 'var(--card)',
+                    color: active ? 'var(--accent)' : 'var(--body)',
+                    '& .MuiChip-label': { px: 0.75 },
+                  }}
+                />
+              );
+            })}
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <TextField
+              type="number"
+              size="small"
+              value={amountValue}
+              onChange={(e) => setAmountValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyAmount(); } }}
+              placeholder={amountMode === 'DISCOUNT_PERCENT' ? '10' : '0'}
+              disabled={amountSaving}
+              inputProps={{ min: 0, step: amountMode === 'DISCOUNT_PERCENT' ? 1 : 5, style: { textAlign: 'right' } }}
+              InputProps={{ endAdornment: (
+                <Typography sx={{ fontSize: '0.75rem', color: 'var(--faint)', pl: 0.5 }}>
+                  {amountMode === 'DISCOUNT_PERCENT' ? '%' : '€'}
+                </Typography>
+              ) }}
+              sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', bgcolor: 'var(--card)' } }}
+            />
+            <IconButton
+              size="small"
+              onClick={applyAmount}
+              disabled={amountSaving || !amountValue.trim()}
+              aria-label="Appliquer"
+              sx={{ color: 'var(--accent)' }}
+            >
+              {amountSaving ? <CircularProgress size={16} /> : <EnterKey size={16} strokeWidth={1.75} />}
+            </IconButton>
+          </Box>
+        </Box>
+      )}
 
       {/* Dates */}
       <Box sx={{ display: 'flex', gap: 2, mb: 1.5, alignItems: 'center' }}>

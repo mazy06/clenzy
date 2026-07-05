@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, CircularProgress, Alert, Typography, Button, Tooltip, IconButton } from '@mui/material';
+import { Box, CircularProgress, Alert, Typography, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { CalendarMonth, Add, CloudDownload, Lock, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
@@ -102,7 +102,6 @@ const PlanningPage: React.FC = () => {
   // Filters
   const {
     filters,
-    setStatusFilter,
     setShowInterventions,
     setShowPrices,
     setSearchQuery,
@@ -140,6 +139,14 @@ const PlanningPage: React.FC = () => {
     });
   }, []);
 
+  // « Effacer tous les filtres » : réinitialise AUSSI les toggles légende
+  // (canaux/statuts) qui sont session-scoped hors du hook usePlanningFilters.
+  const handleClearFilters = useCallback(() => {
+    clearFilters();
+    setActiveChannels(new Set(PLANNING_CHANNEL_KEYS));
+    setActiveStatuses(new Set(PLANNING_STATUS_KEYS));
+  }, [clearFilters]);
+
   // Masquage client-side des briques réservation selon les toggles légende.
   // S'applique APRÈS usePlanningFilters (hooks de données inchangés) et AVANT
   // le layout/rendu de la grille. Seul l'affichage est filtré : sélection,
@@ -162,6 +169,13 @@ const PlanningPage: React.FC = () => {
   // en 1ʳᵉ position ; la pagination (firstItemAlone) l'isole alors sur sa propre
   // page (panneau plein écran) et fait glisser les autres logements en pages 2+.
   const supervisorExpanded = canSupervise && expandedPropertyId != null;
+
+  // La rangée de chips légende (canaux/statuts/interventions) migre dans la
+  // modale de filtres quand la toolbar ne peut pas l'afficher : viewport
+  // compact OU constellation d'agents déployée. Source unique, jamais dupliquée.
+  const theme = useTheme();
+  const isCompactViewport = useMediaQuery(theme.breakpoints.down('lg'));
+  const legendInModal = isCompactViewport || supervisorExpanded;
   const orderedProperties = useMemo(() => {
     if (!supervisorExpanded) return filteredProperties;
     const idx = filteredProperties.findIndex((p) => p.id === expandedPropertyId);
@@ -527,10 +541,14 @@ const PlanningPage: React.FC = () => {
                   onDensityChange={nav.setDensity}
                   onShowInterventionsChange={setShowInterventions}
                   onShowPricesChange={setShowPrices}
-                  onStatusFilter={setStatusFilter}
-                  onClearFilters={clearFilters}
+                  onClearFilters={handleClearFilters}
                   urgencyAnimation={urgencyAnimation}
                   onUrgencyAnimationChange={setUrgencyAnimation}
+                  showLegendChips={legendInModal}
+                  activeChannels={activeChannels}
+                  onToggleChannel={toggleChannel}
+                  activeStatuses={activeStatuses}
+                  onToggleStatus={toggleStatus}
                 />
                 <Tooltip title="Bloquer une période (indisponible)" arrow>
                   <IconButton
@@ -583,7 +601,7 @@ const PlanningPage: React.FC = () => {
             zoom={nav.zoom}
             isFullscreen={nav.isFullscreen}
             filters={filters}
-            hasActiveFilters={hasActiveFilters}
+            legendInModal={legendInModal}
             onGoPrev={nav.goPrev}
             onGoToday={handleGoToday}
             onGoNext={nav.goNext}

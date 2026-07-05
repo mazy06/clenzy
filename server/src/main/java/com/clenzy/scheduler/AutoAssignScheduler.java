@@ -16,8 +16,8 @@ import java.util.List;
 /**
  * Job planifie pour re-tenter l'auto-assignation des SR PENDING non-assignees.
  *
- * Suit le pattern GuestMessagingScheduler : itere par organizationId,
- * pas de TenantContext (hors web request).
+ * Suit le pattern des schedulers par organisation (ex. ICalSyncScheduler) :
+ * itere par organizationId, pas de TenantContext (hors web request).
  *
  * Frequence : toutes les 15 minutes.
  */

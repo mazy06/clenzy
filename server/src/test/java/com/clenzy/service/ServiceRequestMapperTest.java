@@ -40,7 +40,7 @@ class ServiceRequestMapperTest {
 
     @BeforeEach
     void setUp() {
-        mapper = new ServiceRequestMapper(userRepository, propertyRepository, teamRepository);
+        mapper = new ServiceRequestMapper(userRepository, propertyRepository, teamRepository, new com.fasterxml.jackson.databind.ObjectMapper());
     }
 
     private User createUser(Long id, String firstName, String lastName) {

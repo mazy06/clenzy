@@ -30,7 +30,7 @@ import TouristTaxBaremeDialog from './TouristTaxBaremeDialog';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
-interface TabTaxeSejourProps {
+interface TouristTaxSectionProps {
   canEdit: boolean;
 }
 
@@ -52,7 +52,7 @@ function today(): string {
  * Taxe de séjour Baitly : saisie des barèmes de l'organisation (défaut org +
  * overrides par bien) et rapport/export CSV par période (par date de check-out).
  */
-export default function TabTaxeSejour({ canEdit }: TabTaxeSejourProps) {
+export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 

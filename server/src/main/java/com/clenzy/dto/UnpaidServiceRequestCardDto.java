@@ -10,19 +10,22 @@ import java.math.BigDecimal;
  * de paiement existant de la demande de service
  * ({@code POST /service-requests/{serviceRequestId}/create-payment-session}).</p>
  *
+ * <p>i18n : ce DTO ne transporte AUCUN texte destiné à l'utilisateur (pas de
+ * français en dur). Il expose des données structurées ({@code title} = titre brut
+ * de la demande, {@code category} = famille) ; le front construit les libellés
+ * traduits (préfixe « Maintenance », motif, raisonnement) via i18next.</p>
+ *
  * @param id               id stable (dédup front) : {@code service-request-<serviceRequestId>}
  * @param serviceRequestId id de la demande de service à régler
- * @param title            titre (ex. « Ménage Airbnb »)
- * @param motif            montant à régler
- * @param reasoning        explication « pourquoi ? »
+ * @param title            titre brut de la demande (donnée, non traduite)
+ * @param category         famille : {@code "cleaning"} ou {@code "maintenance"} (pour le préfixe i18n front)
  * @param amount           montant dû (estimatedCost)
  */
 public record UnpaidServiceRequestCardDto(
         String id,
         Long serviceRequestId,
         String title,
-        String motif,
-        String reasoning,
+        String category,
         BigDecimal amount
 ) {
 }

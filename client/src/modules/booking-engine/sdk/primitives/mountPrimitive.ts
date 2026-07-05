@@ -392,6 +392,7 @@ function addCurrentStayToCart(state: BaitlyBookingCore['state']): void {
       checkIn: s.checkIn,
       checkOut: s.checkOut,
       guests: s.adults + s.children,
+      children: s.children,
       total: s.pricing.total,
       currency: s.pricing.currency,
     }],

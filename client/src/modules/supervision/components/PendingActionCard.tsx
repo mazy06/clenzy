@@ -52,6 +52,20 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
   const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const propertyName = 'propertyName' in action ? action.propertyName : undefined;
 
+  // i18n des cartes de paiement (demande de service) : le backend ne renvoie que
+  // des données (titre brut + catégorie), le libellé et le raisonnement sont
+  // construits ici et se re-traduisent au changement de langue.
+  const rawTitle = action.title?.trim() || t('supervision.payment.fallbackTitle', 'Demande de service');
+  const displayTitle = isPayment && action.serviceCategory === 'maintenance'
+    ? `${t('supervision.payment.maintenancePrefix', 'Maintenance')} - ${rawTitle}`
+    : (isPayment ? rawTitle : action.title);
+  const displayReasoning = isPayment
+    ? t('supervision.payment.reason', {
+        title: displayTitle,
+        defaultValue: 'Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé — aucun débit sans ta validation sur la page Stripe.',
+      })
+    : action.reasoning;
+
   const validate = () => {
     setResolving(true);
     onValidate(action.id);
@@ -148,7 +162,7 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
 
       {/* titre + motif (texte brut) — plus de gras (sobriété demandée) */}
       <Box sx={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.35, mb: isPayment ? 1.25 : 0.5 }}>
-        {action.title}
+        {displayTitle}
       </Box>
       {/* En 'payment' : plus de ligne « Montant à régler » — le montant est
           affiché DIRECTEMENT dans le bouton « Régler ». */}
@@ -249,7 +263,7 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
       {/* « Pourquoi ? » — raisonnement métier (texte brut, déjà nettoyé serveur) */}
       <Collapse in={why} unmountOnExit>
         <Box sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid var(--line)', fontSize: 11.5, lineHeight: 1.5, color: 'var(--muted)' }}>
-          {action.reasoning}
+          {displayReasoning}
         </Box>
       </Collapse>
     </Box>

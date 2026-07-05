@@ -501,17 +501,34 @@ const Root = styled.div`
   }
 
   /* HUD résumé (haut-gauche) */
-  .cst__hud {
+  /* Colonne haut-gauche : empile le HUD et le flux « En direct » dessous. */
+  .cst__topleft {
     position: absolute;
     top: 16px;
     left: 16px;
     z-index: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(300px, calc(100% - 32px));
+    max-height: calc(100% - 32px);
+  }
+  .cst__hud {
+    position: relative;
     background: rgba(20, 24, 58, 0.66);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 13px;
     padding: 11px 15px;
     backdrop-filter: blur(8px);
     box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.6);
+    flex-shrink: 0;
+  }
+  /* Flux « En direct » sous le HUD : carte translucide, hauteur bornée + scroll. */
+  .cst__belowhud {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   .cst__hudtop {
     display: flex;
@@ -600,19 +617,33 @@ const Root = styled.div`
   }
 
   /* légende + indice focus */
+  /* Légende = tooltip révélé au survol du HUD, ancré juste dessous. */
   .cst__legend {
     position: absolute;
-    bottom: 14px;
-    left: 16px;
-    z-index: 6;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 8;
     display: flex;
     align-items: center;
     gap: 14px;
-    background: rgba(12, 14, 42, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    white-space: nowrap;
+    background: #14183a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
     padding: 7px 16px;
-    backdrop-filter: blur(6px);
+    box-shadow: 0 12px 30px -14px rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  }
+  .cst__hud:hover .cst__legend,
+  .cst__hud:focus-within .cst__legend {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
   }
   .cst__lg {
     display: flex;
@@ -716,6 +747,11 @@ const Root = styled.div`
     background: rgba(255, 255, 255, 0.85);
     border-color: rgba(43, 63, 73, 0.1);
   }
+  /* Tooltip légende : fond OPAQUE (surcharge la règle glass ci-dessus). */
+  html:not([data-theme='dark']) & .cst__legend {
+    background: #ffffff;
+    border-color: rgba(43, 63, 73, 0.14);
+  }
   html:not([data-theme='dark']) & .cst__hudtop,
   html:not([data-theme='dark']) & .cst__hudrow b {
     color: #1c2b33;
@@ -753,43 +789,55 @@ const Root = styled.div`
     color: #1c2b33;
   }
   html:not([data-theme='dark']) & .wire.idle {
-    stroke: rgba(43, 63, 73, 0.22);
+    stroke: rgba(43, 63, 73, 0.42);
+    stroke-width: 1.5;
+    stroke-dasharray: 2 6;
   }
+  /* Faisceaux actifs (thème clair) : ligne de base FINE et nette = « rail ». */
   html:not([data-theme='dark']) & .wire.act {
     stroke: #1f9e8d;
     filter: none;
-    stroke-width: 2.4;
+    stroke-width: 2;
   }
   html:not([data-theme='dark']) & .wire.think {
     stroke: #7c5ce0;
     filter: none;
+    stroke-width: 1.8;
   }
   html:not([data-theme='dark']) & .wire.wait {
     stroke: #c77d2e;
     filter: none;
+    stroke-width: 2;
   }
   html:not([data-theme='dark']) & .wire.esc {
     stroke: #d8453d;
     filter: none;
+    stroke-width: 2;
   }
   html:not([data-theme='dark']) & .wire.err {
     stroke: #c0392b;
     filter: none;
+    stroke-width: 2;
+  }
+  /* Paquet « en transit » (thème clair) : trait CLAIR et FIN qui file sur le
+     rail — nettement distinct de la couleur de base → lisible et net. */
+  html:not([data-theme='dark']) & .wire-flow {
+    stroke-width: 1.4;
   }
   html:not([data-theme='dark']) & .wire-flow.act {
-    stroke: #15b083;
+    stroke: #baf5e0;
   }
   html:not([data-theme='dark']) & .wire-flow.think {
-    stroke: #8a6ef0;
+    stroke: #e0d6ff;
   }
   html:not([data-theme='dark']) & .wire-flow.wait {
-    stroke: #d98c2e;
+    stroke: #ffe4bd;
   }
   html:not([data-theme='dark']) & .wire-flow.esc {
-    stroke: #ff5a5f;
+    stroke: #ffd3d1;
   }
   html:not([data-theme='dark']) & .wire-flow.err {
-    stroke: #dc2626;
+    stroke: #ffd0cb;
   }
   html:not([data-theme='dark']) & .cst__attention {
     background: rgba(220, 38, 38, 0.1);
@@ -830,6 +878,7 @@ export function FramerConstellation({
   onToggleFocus,
   onSelectAgent,
   headerAction,
+  belowHud,
 }: ConstellationRendererProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -1008,48 +1057,52 @@ export function FramerConstellation({
         </span>
       </button>
 
-      {/* HUD résumé — le bouton « Scanner » (icône) est posé à droite du titre. */}
-      <div className="cst__hud">
-        <div className="cst__hudtop">
-          <span className="cst__pulse" />
-          <span className="cst__hudtitle">
-            {t('supervision.hud.orchestrator')} · {online ? t('supervision.hud.active') : t('supervision.states.offline')}
-          </span>
-          {headerAction ? <span className="cst__hudaction">{headerAction}</span> : null}
-        </div>
-        <div className="cst__hudrow">
-          <b>{hud.agentsCount}</b> {t('supervision.hud.agents')}
-          <i />
-          <b>{hud.actingCount}</b> {t('supervision.hud.acting')}
-          <i />
-          <b className="amber">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
-        </div>
-        {attentionCount > 0 && (
-          <div className="cst__attention">
-            <span className="cst__attentiondot" />
-            {t('supervision.attention', { count: attentionCount })}
+      {/* Colonne haut-gauche : HUD résumé (« Orchestrateur · actif ») + flux
+          « En direct » empilé juste dessous (slot belowHud). */}
+      <div className="cst__topleft">
+        {/* HUD résumé — le bouton « Scanner » (icône) est posé à droite du titre. */}
+        <div className="cst__hud">
+          <div className="cst__hudtop">
+            <span className="cst__pulse" />
+            <span className="cst__hudtitle">
+              {t('supervision.hud.orchestrator')} · {online ? t('supervision.hud.active') : t('supervision.states.offline')}
+            </span>
+            {headerAction ? <span className="cst__hudaction">{headerAction}</span> : null}
           </div>
-        )}
-      </div>
-
-      {/* légende */}
-      <div className="cst__legend" aria-hidden="true">
-        <span className="cst__lg">
-          <i className="dotsmall act" />
-          {t('supervision.legend.acting')}
-        </span>
-        <span className="cst__lg">
-          <i className="dotsmall wait" />
-          {t('supervision.legend.awaiting')}
-        </span>
-        <span className="cst__lg">
-          <i className="dotsmall think" />
-          {t('supervision.legend.thinking')}
-        </span>
-        <span className="cst__lg">
-          <i className="dotsmall veil" />
-          {t('supervision.legend.idle')}
-        </span>
+          <div className="cst__hudrow">
+            <b>{hud.agentsCount}</b> {t('supervision.hud.agents')}
+            <i />
+            <b>{hud.actingCount}</b> {t('supervision.hud.acting')}
+            <i />
+            <b className="amber">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
+          </div>
+          {attentionCount > 0 && (
+            <div className="cst__attention">
+              <span className="cst__attentiondot" />
+              {t('supervision.attention', { count: attentionCount })}
+            </div>
+          )}
+          {/* Légende des statuts — révélée en tooltip au SURVOL du HUD. */}
+          <div className="cst__legend" role="tooltip">
+            <span className="cst__lg">
+              <i className="dotsmall act" />
+              {t('supervision.legend.acting')}
+            </span>
+            <span className="cst__lg">
+              <i className="dotsmall wait" />
+              {t('supervision.legend.awaiting')}
+            </span>
+            <span className="cst__lg">
+              <i className="dotsmall think" />
+              {t('supervision.legend.thinking')}
+            </span>
+            <span className="cst__lg">
+              <i className="dotsmall veil" />
+              {t('supervision.legend.idle')}
+            </span>
+          </div>
+        </div>
+        {belowHud ? <div className="cst__belowhud">{belowHud}</div> : null}
       </div>
 
       <div className="cst__focushint">{t('supervision.hud.focusHint')}</div>

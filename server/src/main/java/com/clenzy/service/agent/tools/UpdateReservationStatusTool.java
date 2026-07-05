@@ -77,7 +77,8 @@ public class UpdateReservationStatusTool implements ToolHandler {
             ReservationDto statusOnly = new ReservationDto(
                     reservationId, null, null, null, null, null, null, null,
                     null, null, null, null, status, null, null, null, null,
-                    null, null, null, null, null, null, null, null, null, null);
+                    null, null, null, null, null, null, null, null, null, null,
+                    null, null);
 
             Reservation updated = reservationService.update(reservationId, statusOnly, context.keycloakId());
 

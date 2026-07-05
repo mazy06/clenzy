@@ -93,6 +93,10 @@ public class PermissionInitializer {
         anyCreated |= ensurePermission("properties:delete", "Supprimer des proprietes", "properties",
                 List.of("SUPER_ADMIN"));
 
+        // --- Automatisations (écran en lecture seule pour les orgs ; écriture = plateforme) ---
+        anyCreated |= ensurePermission("automation:view", "Voir les automatisations", "automation",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+
         // --- Service Requests ---
         anyCreated |= ensurePermission("service-requests:view", "Voir les demandes de service", "service-requests",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "SUPERVISOR"));
@@ -182,6 +186,11 @@ public class PermissionInitializer {
                 List.of("SUPER_ADMIN", "SUPER_MANAGER"));
         anyCreated |= ensurePermission("tarification:edit", "Modifier la configuration tarifaire", "tarification",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER"));
+        // Surcouche travaux par technicien : chacun gère SES propres prestations.
+        // Réservé aux exécutants (les admins gèrent le catalogue org, pas une
+        // surcouche perso) → évite le doublon d'écrans côté admin.
+        anyCreated |= ensurePermission("technician-prestations:manage", "Gerer ses propres tarifs travaux", "tarification",
+                List.of("TECHNICIAN", "EXTERIOR_TECH"));
 
         // --- Payments ---
         anyCreated |= ensurePermission("payments:view", "Voir l'historique des paiements", "payments",

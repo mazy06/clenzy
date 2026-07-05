@@ -44,6 +44,8 @@ export interface ServiceRequestFormAssignmentProps {
   isEditMode: boolean;
   disabled?: boolean;
   eligibleTeamIds?: number[];
+  /** Ids des techniciens qui PROPOSENT les prestations du devis (mis en avant). */
+  matchingUserIds?: number[];
 }
 
 // ─── Assignment type chip config (tokens — actif = texte couleur + fond -soft) ──
@@ -81,14 +83,23 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
     isEditMode,
     disabled = false,
     eligibleTeamIds,
+    matchingUserIds = [],
   }) => {
     const { t } = useTranslation();
 
+    const matchingSet = React.useMemo(() => new Set(matchingUserIds), [matchingUserIds]);
+
     const getAssignableUsers = useCallback(() => {
-      return users.filter((user) =>
+      const assignable = users.filter((user) =>
         ['housekeeper', 'technician', 'supervisor', 'manager'].includes(user.role.toLowerCase())
       );
-    }, [users]);
+      // Techniciens qui proposent les prestations du devis d'abord (P2).
+      return [...assignable].sort((a, b) => {
+        const am = matchingSet.has(a.id) ? 0 : 1;
+        const bm = matchingSet.has(b.id) ? 0 : 1;
+        return am - bm;
+      });
+    }, [users, matchingSet]);
 
     const getInterventionTypeLabel = useCallback(
       (type: string) => {
@@ -264,9 +275,9 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                       {watchedAssignedToType === 'user'
                         ? getAssignableUsers().map((user) => (
                             <MenuItem key={user.id} value={user.id}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                                <Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: '100%' }}>
+                                <Box component="span" sx={{ display: 'inline-flex', color: matchingSet.has(user.id) ? 'var(--ok)' : 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
                                   <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
                                     {user.firstName} {user.lastName}
                                   </Typography>
@@ -274,6 +285,13 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                                     {user.role} • {user.email}
                                   </Typography>
                                 </Box>
+                                {matchingSet.has(user.id) && (
+                                  <Chip
+                                    label="Propose"
+                                    size="small"
+                                    sx={{ height: 18, fontSize: '9.5px', fontWeight: 700, color: 'var(--ok)', bgcolor: 'var(--ok-soft)', '& .MuiChip-label': { px: 0.75 } }}
+                                  />
+                                )}
                               </Box>
                             </MenuItem>
                           ))

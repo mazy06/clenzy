@@ -63,7 +63,21 @@ public class ServiceRequest {
     
     @Column(name = "estimated_cost")
     private BigDecimal estimatedCost;
-    
+
+    // Devis structure (maintenance) serialise en JSON : [{label, quantity, unitPrice}].
+    // NULL = pas de devis (ex. menage, cout issu du forfait).
+    @Column(name = "quote_lines", columnDefinition = "TEXT")
+    private String quoteLines;
+
+    // Mode de chiffrage maintenance : NULL/"DIRECT" = devis direct ;
+    // "DIAGNOSTIC" = l'artisan facture d'abord un diagnostic (visite sur place).
+    @Column(name = "pricing_mode", length = 20)
+    private String pricingMode;
+
+    // Montant du diagnostic (facture en premier quand pricing_mode = DIAGNOSTIC).
+    @Column(name = "diagnostic_fee")
+    private BigDecimal diagnosticFee;
+
     @Column(name = "actual_cost")
     private BigDecimal actualCost;
     
@@ -240,7 +254,31 @@ public class ServiceRequest {
     public void setEstimatedCost(BigDecimal estimatedCost) {
         this.estimatedCost = estimatedCost;
     }
-    
+
+    public String getQuoteLines() {
+        return quoteLines;
+    }
+
+    public void setQuoteLines(String quoteLines) {
+        this.quoteLines = quoteLines;
+    }
+
+    public String getPricingMode() {
+        return pricingMode;
+    }
+
+    public void setPricingMode(String pricingMode) {
+        this.pricingMode = pricingMode;
+    }
+
+    public BigDecimal getDiagnosticFee() {
+        return diagnosticFee;
+    }
+
+    public void setDiagnosticFee(BigDecimal diagnosticFee) {
+        this.diagnosticFee = diagnosticFee;
+    }
+
     public BigDecimal getActualCost() {
         return actualCost;
     }

@@ -49,6 +49,7 @@ const Settings = lazy(() => import('./settings/Settings'));
 
 // Tarification
 const Tarification = lazy(() => import('./tarification/Tarification'));
+const TechnicianTravaux = lazy(() => import('./tarification/TechnicianTravaux'));
 
 // Permissions
 const PermissionConfig = lazy(() => import('../components/PermissionConfig'));
@@ -374,6 +375,12 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/mes-tarifs-travaux" element={
+          <ProtectedRoute requiredPermission="technician-prestations:manage">
+            <TechnicianTravaux />
+          </ProtectedRoute>
+        } />
+
         <Route path="/permissions-test" element={
           <ProtectedRoute requiredPermission="users:manage">
             <PermissionConfig />
@@ -562,7 +569,7 @@ const AuthenticatedApp: React.FC = () => {
         } />
 
         <Route path="/automation-rules" element={
-          <ProtectedRoute requiredPermission="settings:view">
+          <ProtectedRoute requiredPermission="automation:view">
             <ErrorBoundary>
               <AutomationRulesPage />
             </ErrorBoundary>

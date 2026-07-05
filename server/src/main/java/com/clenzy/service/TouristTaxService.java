@@ -29,9 +29,10 @@ import java.util.Optional;
  *
  * <p><b>Formule v1</b> (volontairement simple, documentée) :</p>
  * <ul>
- *   <li>nuits = checkOut - checkIn ; personnes taxables = {@code guestCount}
- *       (la réservation ne ventile pas adultes/enfants en v1 →
- *       {@code exemptMinors} est SANS EFFET de calcul, champ posé pour la suite) ;</li>
+ *   <li>nuits = checkOut - checkIn ; personnes taxables = adultes seuls quand la
+ *       ventilation est connue ({@code adultsCount} non nul) et {@code exemptMinors}
+ *       actif, sinon repli sur {@code guestCount} (total) — voir
+ *       {@link com.clenzy.model.Reservation#taxablePersons(boolean)} ;</li>
  *   <li>prix de la nuitée = {@code totalPrice} / nuits (HALF_UP, 2 déc.) ;</li>
  *   <li>PER_PERSON_PER_NIGHT : {@code ratePerPerson} × personnes × nuits ;</li>
  *   <li>PERCENTAGE_OF_RATE : min(prixNuitée / personnes × {@code percentageRate},
@@ -161,10 +162,10 @@ public class TouristTaxService {
         }
 
         TouristTaxConfig config = configOpt.get();
-        // Personnes taxables = guestCount (v1 : pas de ventilation adultes/enfants,
-        // exemptMinors sans effet — documenté).
-        int taxablePersons = reservation.getGuestCount() != null && reservation.getGuestCount() > 0
-            ? reservation.getGuestCount() : 1;
+        // Personnes taxables : adultes seuls si la ventilation est connue et
+        // l'exoneration des mineurs active (0314), sinon repli sur le total.
+        boolean exemptMinors = Boolean.TRUE.equals(config.getExemptMinors());
+        int taxablePersons = reservation.taxablePersons(exemptMinors);
         long taxedNights = config.getMaxNights() != null
             ? Math.min(nights, config.getMaxNights()) : nights;
 

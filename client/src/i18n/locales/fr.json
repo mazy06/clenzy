@@ -114,7 +114,10 @@
     "payment": {
       "badge": "À régler",
       "settle": "Régler",
-      "later": "Plus tard"
+      "later": "Plus tard",
+      "maintenancePrefix": "Maintenance",
+      "fallbackTitle": "Demande de service",
+      "reason": "Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé — aucun débit sans ta validation sur la page Stripe."
     },
     "apply": {
       "action": "Appliquer",
@@ -160,6 +163,14 @@
       "inputLabel": "Message aux agents",
       "send": "Envoyer",
       "thinking": "Les agents travaillent…"
+    },
+    "deck": {
+      "count": "{{count}} carte(s)",
+      "sortDue": "Échéance",
+      "sortAmount": "Montant",
+      "bulk": "Tout traiter",
+      "undo": "Annuler",
+      "undoBulk": "Traité — {{count}} carte(s)"
     }
   },
   "channexGuided": {
@@ -701,7 +712,9 @@
     "contactsHub": "Contacts",
     "finances": "Finances",
     "distribution": "Distribution",
-    "platformTools": "Outils plateforme"
+    "platformTools": "Outils plateforme",
+    "automationRules": "Automatisations",
+    "technicianPrestations": "Mes tarifs travaux"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -2060,7 +2073,9 @@
       "notes": "Notes",
       "property": "Propriété",
       "source": "Source",
-      "status": "Statut"
+      "status": "Statut",
+      "childrenCount": "dont enfants (mineurs)",
+      "childrenCountHelp": "Exonérés de la taxe de séjour"
     },
     "status": {
       "confirmed": "Confirmée",
@@ -3878,7 +3893,10 @@
         "hoursBefore": "Heures avant",
         "hoursBeforeDesc": "Delai avant le check-out pour l'envoi",
         "template": "Template check-out"
-      }
+      },
+      "movedTitle": "Messages automatiques (check-in / check-out)",
+      "movedBody": "La messagerie automatique est désormais gérée dans Automatisations, avec les autres règles.",
+      "movedCta": "Ouvrir les automatisations"
     },
     "templates": {
       "title": "Templates de messages",
@@ -4165,7 +4183,13 @@
       "retry": "Reessayer",
       "noRules": "Aucune regle fiscale configuree pour ce pays. Ajoutez-en pour pouvoir generer des factures.",
       "deleteConfirmTitle": "Supprimer la regle fiscale ?",
-      "deleteConfirmMessage": "Etes-vous sur de vouloir supprimer la regle \"{{name}}\" ({{category}}) ? Cette action est irreversible."
+      "deleteConfirmMessage": "Etes-vous sur de vouloir supprimer la regle \"{{name}}\" ({{category}}) ? Cette action est irreversible.",
+      "categories": {
+        "ACCOMMODATION": "Hebergement",
+        "STANDARD": "Standard",
+        "CLEANING": "Menage",
+        "FOOD": "Restauration"
+      }
     },
     "reporting": {
       "title": "Rapport Fiscal",
@@ -5686,5 +5710,18 @@
     "above": "Supérieure à (→ hausse)",
     "adjustmentHelpDown": "Appliqué en baisse",
     "adjustmentHelpUp": "Appliqué en hausse"
+  },
+  "automation": {
+    "seedRecommended": "Activer les règles recommandées",
+    "system": {
+      "title": "Automatisations système",
+      "readOnly": "Lecture seule",
+      "subtitle": "Automatisations gérées ailleurs dans le produit (hors règles). Affichées ici pour visibilité — leur statut reflète l’état réel."
+    },
+    "view": {
+      "list": "Vue liste",
+      "card": "Vue cartes"
+    },
+    "emptyDesc": "Les règles d'automatisation apparaîtront ici."
   }
 }

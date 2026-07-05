@@ -140,6 +140,41 @@ public class PricingConfigService {
         return toDto(config);
     }
 
+    /** Tarifs travaux (maintenance) uniquement — accessible aux techniciens. */
+    @Transactional(readOnly = true)
+    public List<PricingConfigDto.ServicePriceConfig> getTravaux() {
+        return getCurrentConfig().getTravauxConfig();
+    }
+
+    /**
+     * Met à jour UNIQUEMENT les tarifs travaux (endpoint dédié technicien) : les
+     * autres sections de la config sont préservées. Si aucune config n'existe, on
+     * part des défauts pour ne pas vider les autres sections.
+     */
+    @Caching(evict = {
+            @CacheEvict(value = "pricingConfig", key = "#root.target.currentTenantCacheKey()"),
+            @CacheEvict(value = "pricingConfig", key = "'" + PLATFORM_CACHE_KEY + "'")
+    })
+    public List<PricingConfigDto.ServicePriceConfig> updateTravaux(List<PricingConfigDto.ServicePriceConfig> travaux) {
+        List<PricingConfigDto.ServicePriceConfig> items = travaux != null ? travaux : new ArrayList<>();
+        for (PricingConfigDto.ServicePriceConfig item : items) {
+            if (item.getBasePrice() != null && (item.getBasePrice() < 0 || item.getBasePrice() > 1_000_000)) {
+                throw new IllegalArgumentException("basePrice travaux hors limites (0-1000000)");
+            }
+        }
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        PricingConfig config = repository.findTopByOrganizationIdOrderByIdDesc(orgId).orElse(null);
+        if (config == null) {
+            config = new PricingConfig();
+            applyFromDto(config, buildDefaultDto());
+        }
+        config.setTravauxConfig(toJson(items));
+        config.setOrganizationId(orgId);
+        config = repository.save(config);
+        log.info("Tarifs travaux mis a jour (id={}, orgId={}, count={})", config.getId(), orgId, items.size());
+        return toDto(config).getTravauxConfig();
+    }
+
     private void validatePricingBounds(PricingConfigDto dto) {
         if (dto.getBasePriceEssentiel() != null && (dto.getBasePriceEssentiel() < 0 || dto.getBasePriceEssentiel() > 100_000)) {
             throw new IllegalArgumentException("basePriceEssentiel hors limites (0-100000)");
@@ -559,7 +594,8 @@ public class PricingConfigService {
         dto.setAiSurchargePremiumCents(DEFAULT_AI_SURCHARGE_PREMIUM_CENTS);
         dto.setAutomationBasicSurcharge(0);
         dto.setAutomationFullSurcharge(0);
-        // DB-driven lists — return empty (data will be seeded on first save)
+        // DB-driven lists — return empty (les defauts sont seedes en base, pas en
+        // dur dans le code : cf. changeset de seed/backfill du catalogue travaux).
         dto.setForfaitConfigs(new ArrayList<>());
         dto.setTravauxConfig(new ArrayList<>());
         dto.setExterieurConfig(new ArrayList<>());

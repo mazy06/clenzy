@@ -327,16 +327,51 @@ class TouristTaxServiceTest {
     }
 
     @Test
-    void computeForReservation_exemptMinors_noEffectWithGuestCountOnly() {
-        // v1 : Reservation ne porte que guestCount (pas de ventilation
-        // adultes/enfants) → exemptMinors est documenté SANS EFFET : les
-        // personnes taxables restent guestCount.
+    void computeForReservation_exemptMinors_fallsBackToGuestCountWhenVentilationUnknown() {
+        // Ventilation inconnue (adultsCount null) → repli sur guestCount, meme
+        // avec exemptMinors actif (comportement historique preserve, 0314).
         TouristTaxConfig config = createConfig(TaxCalculationMode.PER_PERSON_PER_NIGHT);
         config.setRatePerPerson(new BigDecimal("1.00"));
         config.setExemptMinors(true);
         when(configRepository.findByPropertyId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(config));
 
         Reservation reservation = createReservation(2, 4, "400.00");
+        TouristTaxReportLineDto line = service.computeForReservation(reservation).orElseThrow();
+
+        assertEquals(4, line.taxablePersons());
+        assertEquals(0, new BigDecimal("8.00").compareTo(line.taxAmount()));
+    }
+
+    @Test
+    void computeForReservation_exemptMinors_taxesOnlyAdultsWhenVentilationKnown() {
+        // Ventilation connue (2 adultes + 2 enfants) + exemptMinors → seuls les
+        // 2 adultes sont taxes (0314). base 1.00 × 2 adultes × 2 nuits = 4.00.
+        TouristTaxConfig config = createConfig(TaxCalculationMode.PER_PERSON_PER_NIGHT);
+        config.setRatePerPerson(new BigDecimal("1.00"));
+        config.setExemptMinors(true);
+        when(configRepository.findByPropertyId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(config));
+
+        Reservation reservation = createReservation(2, 4, "400.00");
+        reservation.setAdultsCount(2);
+        reservation.setChildrenCount(2);
+        TouristTaxReportLineDto line = service.computeForReservation(reservation).orElseThrow();
+
+        assertEquals(2, line.taxablePersons());
+        assertEquals(0, new BigDecimal("4.00").compareTo(line.taxAmount()));
+    }
+
+    @Test
+    void computeForReservation_ventilationKnownButExemptDisabled_taxesEveryone() {
+        // Ventilation connue mais exemptMinors=false → tout le monde est taxe
+        // (repli sur guestCount). base 1.00 × 4 × 2 = 8.00.
+        TouristTaxConfig config = createConfig(TaxCalculationMode.PER_PERSON_PER_NIGHT);
+        config.setRatePerPerson(new BigDecimal("1.00"));
+        config.setExemptMinors(false);
+        when(configRepository.findByPropertyId(PROPERTY_ID, ORG_ID)).thenReturn(Optional.of(config));
+
+        Reservation reservation = createReservation(2, 4, "400.00");
+        reservation.setAdultsCount(2);
+        reservation.setChildrenCount(2);
         TouristTaxReportLineDto line = service.computeForReservation(reservation).orElseThrow();
 
         assertEquals(4, line.taxablePersons());

@@ -6,6 +6,7 @@
    ============================================================ */
 
 import { Box } from '@mui/material';
+import { AutoAwesome } from '../../../icons';
 import { AGENT_META } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
 import type { FeedEntry, PortfolioFeedEntry } from '../types';
@@ -19,6 +20,8 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
   return (
     <Box data-activity-feed sx={{ display: 'flex', flexDirection: 'column' }}>
       {entries.map((entry) => {
+        // Entrée orchestrateur (réponse chat) : identité d'accent + icône assistant.
+        const isOrchestrator = 'orchestrator' in entry && entry.orchestrator;
         const meta = AGENT_META[entry.agentId];
         const propertyName = 'propertyName' in entry ? entry.propertyName : undefined;
         return (
@@ -31,7 +34,7 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
                 width: 26,
                 height: 26,
                 borderRadius: '8px',
-                background: meta.color,
+                background: isOrchestrator ? 'var(--accent)' : meta.color,
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
@@ -39,7 +42,7 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
                 flexShrink: 0,
               }}
             >
-              <AgentIcon token={meta.icon} size={14} />
+              {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : <AgentIcon token={meta.icon} size={14} />}
             </Box>
             <Box sx={{ minWidth: 0 }}>
               <Box sx={{ fontSize: 11, color: 'var(--muted, #6b7196)', fontVariantNumeric: 'tabular-nums' }}>

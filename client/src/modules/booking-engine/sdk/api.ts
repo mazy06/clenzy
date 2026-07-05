@@ -414,6 +414,8 @@ export class BookingApi {
     checkIn: string;
     checkOut: string;
     guests: number;
+    /** Enfants/mineurs parmi guests (0314) — exonérés de la taxe de séjour. */
+    children?: number;
     guest: ReserveGuestInfo;
     notes?: string;
     voucherCode?: string;
@@ -458,7 +460,7 @@ export class BookingApi {
 
   /** Panier multi-séjours : crée N réservations PENDING (paiement item par item ensuite). */
   reserveBatch(params: {
-    items: { propertyId: number; checkIn: string; checkOut: string; guests: number; notes?: string }[];
+    items: { propertyId: number; checkIn: string; checkOut: string; guests: number; children?: number; notes?: string }[];
     guest: ReserveGuestInfo;
   }, guestToken?: string): Promise<ApiBatchReserveResult> {
     return this.request('/reserve-batch', { method: 'POST', body: JSON.stringify(params) }, guestToken);

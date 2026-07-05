@@ -70,7 +70,7 @@ class ReservationControllerTest {
     private ReservationDto sampleDto(String status) {
         return new ReservationDto(1L, 1L, "Apt A", "Jean", null, null, null, 2, "2026-03-01", "2026-03-04",
                 "14:00", "11:00", status, "direct", null, 150.0, "ABC123", "notes",
-                null, null, null, null, null, false, null, null, null);
+                null, null, null, null, null, false, null, null, null, null, null);
     }
 
     private Property createOwnedProperty(String ownerKeycloakId) {
@@ -214,7 +214,7 @@ class ReservationControllerTest {
 
             ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", null, null, null, 2,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null, null);
+                    null, null, null, null, null, false, null, null, null, null, null);
             ResponseEntity<ReservationDto> response = controller.create(inputDto, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -228,7 +228,7 @@ class ReservationControllerTest {
 
             ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null, null);
+                    null, null, null, null, null, false, null, null, null, null, null);
 
             assertThatThrownBy(() -> controller.create(dto, jwt))
                     .isInstanceOf(AccessDeniedException.class);
@@ -242,7 +242,7 @@ class ReservationControllerTest {
 
             ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null, null);
+                    null, null, null, null, null, false, null, null, null, null, null);
 
             assertThatThrownBy(() -> controller.create(dto, jwt))
                     .isInstanceOf(AccessDeniedException.class);
@@ -256,7 +256,7 @@ class ReservationControllerTest {
 
             ReservationDto dto = new ReservationDto(null, 99L, null, "G", null, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null, null);
+                    null, null, null, null, null, false, null, null, null, null, null);
 
             assertThatThrownBy(() -> controller.create(dto, jwt))
                     .isInstanceOf(NotFoundException.class);
@@ -274,7 +274,7 @@ class ReservationControllerTest {
 
             ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null, null);
+                    null, null, null, null, null, false, null, null, null, null, null);
             ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
         }
@@ -412,7 +412,7 @@ class ReservationControllerTest {
 
             ReservationDto dto = new ReservationDto(null, 1L, null, "G", 50L, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null, null);
+                    null, null, null, null, null, false, null, null, null, null, null);
 
             assertThatThrownBy(() -> controller.create(dto, jwt))
                     .isInstanceOf(NotFoundException.class);
@@ -630,7 +630,7 @@ class ReservationControllerTest {
             // createCleaning is the 21st field (index 20)
             ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, true, null, null, null, null, null, null);
+                    null, null, true, null, null, null, null, null, null, null, null);
 
             ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -649,7 +649,7 @@ class ReservationControllerTest {
 
             ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null, null);
+                    null, null, null, null, null, false, null, null, null, null, null);
 
             controller.create(dto, jwt);
             verify(reservationService, never()).createCleaningForReservation(any(), any());
@@ -669,7 +669,7 @@ class ReservationControllerTest {
 
             ReservationDto dto = new ReservationDto(null, 1L, null, "G", null, null, null, 1,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null, null);
+                    null, null, null, null, null, false, null, null, null, null, null);
 
             ResponseEntity<ReservationDto> response = controller.create(dto, jwt);
             assertThat(response.getStatusCode().value()).isEqualTo(200);

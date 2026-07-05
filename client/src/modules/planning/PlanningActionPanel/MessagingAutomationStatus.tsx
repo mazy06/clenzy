@@ -3,7 +3,12 @@ import { Box, IconButton, Tooltip } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bolt, CheckCircle, Close, Settings, Warning, AccessTime } from '../../../icons';
-import { guestMessagingApi } from '../../../services/api/guestMessagingApi';
+import { automationRulesApi, isMessagingAction, type AutomationTrigger } from '../../../services/api/automationRulesApi';
+
+// Déclencheurs de messagerie « autour de l'arrivée » / « autour du départ » : une
+// règle active de messagerie sur l'un d'eux = envoi automatique côté hub.
+const CHECK_IN_TRIGGERS: AutomationTrigger[] = ['RESERVATION_CONFIRMED', 'CHECK_IN_APPROACHING', 'CHECK_IN_DAY'];
+const CHECK_OUT_TRIGGERS: AutomationTrigger[] = ['CHECK_OUT_DAY', 'CHECK_OUT_PASSED'];
 
 // ─── Messagerie automatique (maquette Signature — onglet Opérations) ─────────
 //
@@ -27,9 +32,9 @@ interface MessagingAutomationStatusProps {
 
 const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ guestEmail, source }) => {
   const navigate = useNavigate();
-  const { data: config, isLoading } = useQuery({
-    queryKey: ['messaging-automation-config'],
-    queryFn: () => guestMessagingApi.getConfig(),
+  const { data: rules, isLoading } = useQuery({
+    queryKey: ['automation-rules'],
+    queryFn: () => automationRulesApi.getAll(),
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
@@ -38,8 +43,12 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
     || (source || '').toLowerCase() === 'booking'
     || (source || '').toLowerCase().includes('ical');
 
-  const checkInOk = config?.autoSendCheckIn && config?.checkInTemplateId != null;
-  const checkOutOk = config?.autoSendCheckOut && config?.checkOutTemplateId != null;
+  // Source de vérité = le hub d'automatisation : une règle active de messagerie
+  // sur un déclencheur d'arrivée / de départ = envoi automatique.
+  const checkInOk = Boolean(rules?.some((r) =>
+    r.enabled && CHECK_IN_TRIGGERS.includes(r.triggerType) && isMessagingAction(r.actionType)));
+  const checkOutOk = Boolean(rules?.some((r) =>
+    r.enabled && CHECK_OUT_TRIGGERS.includes(r.triggerType) && isMessagingAction(r.actionType)));
 
   const Row = ({ ok, label, detail }: { ok: boolean; label: string; detail: string }) => (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: '5px' }}>
@@ -74,10 +83,10 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
           <Bolt size={13} strokeWidth={1.75} />
         </Box>
         <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>Messagerie automatique</Box>
-        <Tooltip title="Configurer dans Paramètres">
+        <Tooltip title="Configurer dans Automatisations">
           <IconButton
             size="small"
-            onClick={() => navigate('/settings?section=messaging')}
+            onClick={() => navigate('/automation-rules')}
             sx={{ p: 0.375, color: 'var(--muted)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}
           >
             <Settings size={13} strokeWidth={1.75} />
@@ -90,17 +99,17 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
       ) : (
         <Box>
           <Row
-            ok={Boolean(checkInOk)}
+            ok={checkInOk}
             label="Check-in"
             detail={checkInOk
-              ? `automatique · J–${config?.hoursBeforeCheckIn ?? 24}h`
+              ? 'automatique · règle active'
               : 'désactivé (envoi manuel uniquement)'}
           />
           <Row
-            ok={Boolean(checkOutOk)}
+            ok={checkOutOk}
             label="Check-out"
             detail={checkOutOk
-              ? `automatique · ${config?.hoursBeforeCheckOut ?? 12}h avant départ`
+              ? 'automatique · règle active'
               : 'désactivé (envoi manuel uniquement)'}
           />
 
@@ -124,7 +133,7 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
               )}
               {hasEmail && !checkInOk && !checkOutOk && (
                 <Box component="span" sx={{ display: 'block', fontSize: '0.625rem', color: 'var(--muted)', mt: 0.25, lineHeight: 1.35 }}>
-                  Active l'automation dans Paramètres › Messagerie pour que les emails partent sans intervention.
+                  Active une règle de messagerie dans Automatisations pour que les emails partent sans intervention.
                 </Box>
               )}
             </Box>

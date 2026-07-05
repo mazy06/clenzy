@@ -27,6 +27,7 @@ import {
   Security,
   AdminPanelSettings,
   CalendarViewWeek,
+  Bolt,
 } from '../icons';
 import { tabRoutePrefixes, type ScreenIdentity } from '../config/navigationHubs';
 
@@ -64,6 +65,7 @@ const SCREEN_ICON: Record<string, React.ReactNode> = {
   '/dashboard': <Dashboard />,
   '/reports': <Assessment />,
   '/settings': <Settings />,
+  '/automation-rules': <Bolt />,
   '/permissions-test': <AdminPanelSettings />,
   '/admin/monitoring': <Security />,
 };

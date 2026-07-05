@@ -26,12 +26,14 @@ export interface TaxRuleRequest {
 
 // ─── Tax categories (aligned with backend TaxCategory enum) ──────────────────
 
+// TOURIST_TAX retiré (consolidation 0315) : la taxe de séjour est gérée par le
+// système dédié tourist_tax_configs (section Réglages > Fiscal), pas par les
+// règles de TVA — un taux % ne peut pas exprimer un montant fixe par commune.
 export const TAX_CATEGORIES = [
   'ACCOMMODATION',
   'STANDARD',
   'CLEANING',
   'FOOD',
-  'TOURIST_TAX',
 ] as const;
 
 export type TaxCategoryType = (typeof TAX_CATEGORIES)[number];

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -19,39 +19,61 @@ import {
   DialogActions,
 } from '@mui/material';
 import { Build, Add, Delete } from '../../icons';
-import type { PricingConfig, ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
+import type { ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import { CurrencySymbol } from '../../components/Money';
 import CommissionSection from './CommissionSection';
 
 interface TabTravauxProps {
-  config: PricingConfig;
+  /** Liste éditée (catalogue org OU surcouche technicien). */
+  items: ServicePriceConfig[];
   canEdit: boolean;
-  onUpdate: (partial: Partial<PricingConfig>) => void;
+  onItemsChange: (items: ServicePriceConfig[]) => void;
   currencySymbol: string;
+  /** Commission org (admin uniquement). Absente en mode technicien. */
+  commission?: CommissionConfig;
+  onCommissionChange?: (c: CommissionConfig) => void;
+  /** Titre/sous-titre optionnels (mode technicien : « Mes prestations »). */
+  title?: string;
+  subtitle?: string;
 }
 
-export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }: TabTravauxProps) {
+export default function TabTravaux({ items, canEdit, onItemsChange, currencySymbol, commission, onCommissionChange, title, subtitle }: TabTravauxProps) {
   const { t } = useTranslation();
   const { currency } = useCurrency();
-
-  const items = config.travauxConfig || [];
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState(0);
+  const [newItemDomain, setNewItemDomain] = useState('');
+
+  // Libellé affiché : porté par la donnée, repli i18n puis clé brute.
+  const labelOf = useCallback(
+    (item: ServicePriceConfig) => item.label || t(`tarification.travaux.types.${item.interventionType}`, item.interventionType),
+    [t],
+  );
+
+  // Groupement par domaine (en conservant l'index d'origine pour l'édition).
+  const grouped = useMemo(() => {
+    const map = new Map<string, { item: ServicePriceConfig; index: number }[]>();
+    items.forEach((item, index) => {
+      const domain = item.domain || t('tarification.travaux.otherDomain', 'Autre');
+      if (!map.has(domain)) map.set(domain, []);
+      map.get(domain)!.push({ item, index });
+    });
+    return Array.from(map.entries());
+  }, [items, t]);
 
   const updateItem = useCallback((index: number, partial: Partial<ServicePriceConfig>) => {
     const updated = [...items];
     updated[index] = { ...updated[index], ...partial };
-    onUpdate({ travauxConfig: updated });
-  }, [items, onUpdate]);
+    onItemsChange(updated);
+  }, [items, onItemsChange]);
 
   const removeItem = useCallback((index: number) => {
-    const updated = items.filter((_, i) => i !== index);
-    onUpdate({ travauxConfig: updated });
-  }, [items, onUpdate]);
+    onItemsChange(items.filter((_, i) => i !== index));
+  }, [items, onItemsChange]);
 
   const handleAdd = useCallback(() => {
     if (!newItemName.trim()) return;
@@ -60,36 +82,26 @@ export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }
       interventionType: key,
       basePrice: newItemPrice,
       enabled: true,
+      label: newItemName.trim(),
+      domain: newItemDomain.trim() || undefined,
     };
-    onUpdate({ travauxConfig: [...items, newItem] });
+    onItemsChange([...items, newItem]);
     setNewItemName('');
     setNewItemPrice(0);
+    setNewItemDomain('');
     setAddDialogOpen(false);
-  }, [newItemName, newItemPrice, items, onUpdate]);
-
-  const commission = (config.commissionConfigs || []).find((c) => c.category === 'travaux');
-
-  const handleCommissionChange = useCallback((updated: CommissionConfig) => {
-    const configs = [...(config.commissionConfigs || [])];
-    const idx = configs.findIndex((c) => c.category === 'travaux');
-    if (idx >= 0) {
-      configs[idx] = updated;
-    } else {
-      configs.push(updated);
-    }
-    onUpdate({ commissionConfigs: configs });
-  }, [config.commissionConfigs, onUpdate]);
+  }, [newItemName, newItemPrice, newItemDomain, items, onItemsChange]);
 
   return (
     <Box sx={{ pt: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Build size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600}>
-          {t('tarification.travaux.title')}
+          {title ?? t('tarification.travaux.title')}
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {t('tarification.travaux.subtitle')}
+        {subtitle ?? t('tarification.travaux.subtitle')}
       </Typography>
 
       <TableContainer>
@@ -103,42 +115,55 @@ export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }
             </TableRow>
           </TableHead>
           <TableBody>
-            {items.map((item, index) => (
-              <TableRow key={item.interventionType}>
-                <TableCell>
-                  {t(`tarification.travaux.types.${item.interventionType}`, item.interventionType)}
-                </TableCell>
-                <TableCell align="center">
-                  <Switch
-                    checked={item.enabled}
-                    onChange={(e) => updateItem(index, { enabled: e.target.checked })}
-                    disabled={!canEdit}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell align="right" sx={{ width: 140 }}>
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={item.basePrice}
-                    onChange={(e) => {
-                      const num = parseFloat(e.target.value);
-                      if (!isNaN(num)) updateItem(index, { basePrice: num });
-                    }}
-                    disabled={!canEdit || !item.enabled}
-                    inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                    sx={{ width: 120 }}
-                  />
-                </TableCell>
-                {canEdit && (
-                  <TableCell align="center">
-                    <IconButton size="small" onClick={() => removeItem(index)} color="error">
-                      <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+            {grouped.map(([domain, entries]) => (
+              <React.Fragment key={domain}>
+                {/* En-tête de domaine */}
+                <TableRow>
+                  <TableCell
+                    colSpan={canEdit ? 4 : 3}
+                    sx={{ py: 0.75, borderBottom: '1px solid var(--line)', bgcolor: 'var(--field)' }}
+                  >
+                    <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+                      {domain}
+                    </Typography>
                   </TableCell>
-                )}
-              </TableRow>
+                </TableRow>
+                {entries.map(({ item, index }) => (
+                  <TableRow key={item.interventionType}>
+                    <TableCell>{labelOf(item)}</TableCell>
+                    <TableCell align="center">
+                      <Switch
+                        checked={item.enabled}
+                        onChange={(e) => updateItem(index, { enabled: e.target.checked })}
+                        disabled={!canEdit}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="right" sx={{ width: 140 }}>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={item.basePrice}
+                        onChange={(e) => {
+                          const num = parseFloat(e.target.value);
+                          if (!isNaN(num)) updateItem(index, { basePrice: num });
+                        }}
+                        disabled={!canEdit || !item.enabled}
+                        inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
+                        InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
+                        sx={{ width: 120 }}
+                      />
+                    </TableCell>
+                    {canEdit && (
+                      <TableCell align="center">
+                        <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                          <Delete size={16} strokeWidth={1.75} />
+                        </IconButton>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </React.Fragment>
             ))}
           </TableBody>
         </Table>
@@ -172,6 +197,14 @@ export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }
             autoFocus
           />
           <TextField
+            label={t('tarification.newItem.domain', 'Domaine')}
+            value={newItemDomain}
+            onChange={(e) => setNewItemDomain(e.target.value)}
+            size="small"
+            fullWidth
+            placeholder={t('tarification.travaux.otherDomain', 'Autre')}
+          />
+          <TextField
             label={t('tarification.newItem.price')}
             type="number"
             value={newItemPrice}
@@ -189,12 +222,12 @@ export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }
         </DialogActions>
       </Dialog>
 
-      {/* ─── Commission ──────────────────────────────────────────────── */}
-      {commission && (
+      {/* ─── Commission (admin uniquement) ───────────────────────────── */}
+      {commission && onCommissionChange && (
         <CommissionSection
           commission={commission}
           canEdit={canEdit}
-          onChange={handleCommissionChange}
+          onChange={onCommissionChange}
         />
       )}
     </Box>
