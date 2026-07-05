@@ -78,7 +78,7 @@ interface PendingActionDtoShape {
 
 /** Réponse de GET /api/ai/supervision/activity/{id} (feed + métriques réels). */
 interface ActivitySnapshotShape {
-  feed: Array<{ id: string; agentId: string; at: string; text: string }>;
+  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string }>;
   autoActions: number;
 }
 
@@ -267,11 +267,13 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     }));
 
     // Feed réel (activité persistée). agentId backend = clé module = AgentId.
+    // toolName = clé i18n stable (traduite au rendu ; text = repli).
     const feed = (activity?.feed ?? []).map((e) => ({
       id: e.id,
       agentId: e.agentId as AgentId,
       at: e.at,
       text: e.text,
+      toolName: e.toolName,
     }));
 
     const awaiting = hitlPending.length + pendingQueue.length;

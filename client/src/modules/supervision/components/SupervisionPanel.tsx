@@ -174,7 +174,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
           ) : undefined
         }
         belowHud={
-          propertySnapshot && propertySnapshot.feed.length > 0 ? (
+          propertySnapshot ? (
             <Box
               sx={{
                 display: 'flex',
@@ -197,7 +197,13 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
                 data-vertical-scroll
                 sx={{ px: 1, pb: 1, overflowY: 'auto', minHeight: 0, overscrollBehavior: 'contain' }}
               >
-                <ActivityFeed entries={propertySnapshot.feed} />
+                {propertySnapshot.feed.length > 0 ? (
+                  <ActivityFeed entries={propertySnapshot.feed} />
+                ) : (
+                  <Box sx={{ px: 1, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                    {t('supervision.feed.empty', 'Aucune action récente des agents')}
+                  </Box>
+                )}
               </Box>
             </Box>
           ) : undefined
