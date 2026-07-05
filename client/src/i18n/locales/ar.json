@@ -123,6 +123,27 @@
       "action": "تطبيق",
       "dismiss": "تجاهل"
     },
+    "tools": {
+      "assign_intervention": "تم إسناد التدخل",
+      "batch_block_calendar": "حظر التقويم (دفعة)",
+      "block_calendar_day": "تم حظر يوم في التقويم",
+      "cancel_reservation": "تم إلغاء الحجز",
+      "create_intervention": "تم إنشاء تدخل",
+      "create_invoice": "تم إنشاء فاتورة",
+      "create_reservation": "تم إنشاء حجز",
+      "forget_fact": "تم تحديث الذاكرة",
+      "initiate_refund": "تم بدء استرداد",
+      "open_close_channel_availability": "تم تحديث توفر القناة",
+      "reply_to_review": "تم نشر رد على تقييم",
+      "send_guest_message": "تم إرسال رسالة للضيف",
+      "send_owner_statement": "تم إرسال كشف المالك",
+      "set_rate_override": "تم تعديل السعر",
+      "settle_intervention_payment": "تمت تسوية دفع التدخل",
+      "trigger_channel_sync": "تم تشغيل مزامنة القناة",
+      "update_intervention_status": "تم تحديث حالة التدخل",
+      "update_property_status": "تم تحديث حالة العقار",
+      "update_reservation_status": "تم تحديث حالة الحجز"
+    },
     "approval": {
       "title": "مطلوب موافقة",
       "reject": "رفض",
@@ -147,7 +168,8 @@
       "title": "بانتظار موافقتك"
     },
     "feed": {
-      "title": "مباشر"
+      "title": "مباشر",
+      "empty": "لا توجد إجراءات حديثة للوكلاء"
     },
     "drawer": {
       "ventilation": "تفاصيل حسب العقار",

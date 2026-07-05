@@ -110,7 +110,9 @@ export interface FeedEntry {
   id: string;
   agentId: AgentId;
   at: string; // ISO (affiché HH:MM)
-  text: string; // "Revenue a ajusté le tarif du 14–17 juil. (+8 %)"
+  text: string; // libellé de repli (résumé porté par l'outil, ou mock)
+  /** Nom stable de l'outil → clé i18n `supervision.tools.<toolName>` (feed réel). */
+  toolName?: string;
   /**
    * Entrée issue de l'orchestrateur (réponse à une demande opérateur dans le
    * chat), pas d'un agent métier : rendu avec l'identité orchestrateur (icône +

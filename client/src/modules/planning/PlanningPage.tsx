@@ -45,6 +45,7 @@ import {
   useSupervisionConfig,
   type SupervisionScope,
 } from '../supervision';
+import { isMockEnabled } from '../../services/storageService';
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -697,12 +698,15 @@ const PlanningPage: React.FC = () => {
                     return (
                       <SupervisionPanel
                         createProvider={() =>
-                          isSupervisionLiveEnabled()
-                            ? new AgUiSupervisionProvider(String(property.id), {
+                          // Mode démo planning OU live désactivé → provider MOCK
+                          // (constellation + « En direct » alimentés par des données
+                          // fictives variées par logement). Sinon → moteur réel.
+                          isMockEnabled('planning') || !isSupervisionLiveEnabled()
+                            ? new MockSupervisionProvider(String(property.id), { cometReservationId }, 'demo')
+                            : new AgUiSupervisionProvider(String(property.id), {
                                 selectedPropertyId: Number(property.id),
                                 currentPage: '/planning',
                               })
-                            : new MockSupervisionProvider(String(property.id), { cometReservationId })
                         }
                         deps={[property.id, cometReservationId]}
                         propertyId={property.id}

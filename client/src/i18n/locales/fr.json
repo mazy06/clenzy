@@ -123,6 +123,27 @@
       "action": "Appliquer",
       "dismiss": "Ignorer"
     },
+    "tools": {
+      "assign_intervention": "Intervention assignée",
+      "batch_block_calendar": "Blocage calendrier (lot)",
+      "block_calendar_day": "Jour bloqué au calendrier",
+      "cancel_reservation": "Réservation annulée",
+      "create_intervention": "Intervention créée",
+      "create_invoice": "Facture créée",
+      "create_reservation": "Réservation créée",
+      "forget_fact": "Mémoire mise à jour",
+      "initiate_refund": "Remboursement initié",
+      "open_close_channel_availability": "Disponibilité canal mise à jour",
+      "reply_to_review": "Réponse à un avis publiée",
+      "send_guest_message": "Message voyageur envoyé",
+      "send_owner_statement": "Relevé propriétaire envoyé",
+      "set_rate_override": "Tarif ajusté",
+      "settle_intervention_payment": "Paiement d'intervention réglé",
+      "trigger_channel_sync": "Synchronisation canal lancée",
+      "update_intervention_status": "Statut d'intervention mis à jour",
+      "update_property_status": "Statut du logement mis à jour",
+      "update_reservation_status": "Statut de réservation mis à jour"
+    },
     "approval": {
       "title": "Validation requise",
       "reject": "Refuser",
@@ -147,7 +168,8 @@
       "title": "Attend ta validation"
     },
     "feed": {
-      "title": "En direct"
+      "title": "En direct",
+      "empty": "Aucune action récente des agents"
     },
     "drawer": {
       "ventilation": "Détail par logement",

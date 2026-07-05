@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { isMockEnabled } from '../storageService';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -81,10 +82,38 @@ export interface CalendarBlockedDay {
   notes: string | null;
 }
 
+// ─── Mock (démo planning) ─────────────────────────────────────────────────────
+
+/**
+ * Tarifs à la nuitée de démo pour un logement (mode mock planning uniquement).
+ * Prix de base déterministe par logement + majoration week-end (ven/sam), arrondi
+ * à 5 €. Chaque logement a donc SES tarifs sur toute la plage affichée.
+ */
+function generateMockPricing(propertyId: number, from: string, to: string): CalendarPricingDay[] {
+  const base = 90 + ((propertyId * 37) % 8) * 20; // 90 → 230 €, varié par logement
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  const cur = new Date(fy, (fm ?? 1) - 1, fd);
+  const last = new Date(ty, (tm ?? 1) - 1, td);
+  const out: CalendarPricingDay[] = [];
+  while (cur <= last) {
+    const dow = cur.getDay(); // 0 = dim … 6 = sam
+    const weekend = dow === 5 || dow === 6;
+    const price = Math.round((base * (weekend ? 1.25 : 1)) / 5) * 5;
+    const date = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+    out.push({ date, nightlyPrice: price, priceSource: 'MOCK', status: 'AVAILABLE', currency: 'EUR' });
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const calendarPricingApi = {
   async getPricing(propertyId: number, from: string, to: string): Promise<CalendarPricingDay[]> {
+    if (isMockEnabled('planning')) {
+      return Promise.resolve(generateMockPricing(propertyId, from, to));
+    }
     return apiClient.get<CalendarPricingDay[]>(`/calendar/${propertyId}/pricing`, {
       params: { from, to },
     });

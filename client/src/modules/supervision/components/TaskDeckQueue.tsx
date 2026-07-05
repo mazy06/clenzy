@@ -70,6 +70,7 @@ function TaskCard({
 
   return (
     <Box
+      data-pending-action={action.id}
       sx={{
         display: 'flex', flexDirection: 'column',
         bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '16px',
@@ -225,6 +226,19 @@ function TaskStack({
     );
   }
 
+  // Carte seule (aucune pile) : rendu EN FLUX, hauteur ajustée au contenu — pas de
+  // deck à hauteur fixe (évite l'espace vide réservé pour une pile inexistante).
+  if (n === 1) {
+    return (
+      <Box sx={{
+        filter: dimmed ? 'blur(4px)' : 'none', opacity: dimmed ? 0.45 : 1,
+        transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s',
+      }}>
+        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} />
+      </Box>
+    );
+  }
+
   // Deck replié : carte du dessus + jusqu'à 3 tranches derrière + pastille de comptage.
   const behind = Math.min(n - 1, 3);
   const deckHeight = 146 + behind * 12;
@@ -349,7 +363,7 @@ export function TaskDeckQueue({ actions, onValidate, onEdit, variant = 'floating
       data-pending-queue
       data-vertical-scroll
       sx={{
-        display: 'flex', flexDirection: 'column', gap: '26px',
+        display: 'flex', flexDirection: 'column', gap: '14px',
         width: variant === 'floating' ? 320 : '100%',
         pt: '10px', pr: '9px', pb: '12px',
         ...(variant === 'floating'

@@ -7,13 +7,14 @@ describe('<ScopeSwitch>', () => {
   it('notifie le changement de portée', () => {
     const onChange = vi.fn();
     render(<ScopeSwitch value="property" onChange={onChange} />);
-    fireEvent.click(screen.getByText("Vue d'ensemble"));
+    // Boutons icône-seule : le libellé est porté par aria-label / title.
+    fireEvent.click(screen.getByRole('button', { name: "Vue d'ensemble" }));
     expect(onChange).toHaveBeenCalledWith('portfolio');
   });
 
   it('marque la portée active via aria-pressed', () => {
     render(<ScopeSwitch value="property" onChange={() => {}} />);
-    const active = screen.getByText('Par logement').closest('button');
-    expect(active?.getAttribute('aria-pressed')).toBe('true');
+    const active = screen.getByRole('button', { name: 'Par logement' });
+    expect(active.getAttribute('aria-pressed')).toBe('true');
   });
 });

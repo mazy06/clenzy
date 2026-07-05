@@ -123,6 +123,27 @@
       "action": "Apply",
       "dismiss": "Dismiss"
     },
+    "tools": {
+      "assign_intervention": "Intervention assigned",
+      "batch_block_calendar": "Calendar blocked (batch)",
+      "block_calendar_day": "Calendar day blocked",
+      "cancel_reservation": "Reservation cancelled",
+      "create_intervention": "Intervention created",
+      "create_invoice": "Invoice created",
+      "create_reservation": "Reservation created",
+      "forget_fact": "Memory updated",
+      "initiate_refund": "Refund initiated",
+      "open_close_channel_availability": "Channel availability updated",
+      "reply_to_review": "Review reply posted",
+      "send_guest_message": "Guest message sent",
+      "send_owner_statement": "Owner statement sent",
+      "set_rate_override": "Rate adjusted",
+      "settle_intervention_payment": "Intervention payment settled",
+      "trigger_channel_sync": "Channel sync triggered",
+      "update_intervention_status": "Intervention status updated",
+      "update_property_status": "Property status updated",
+      "update_reservation_status": "Reservation status updated"
+    },
     "approval": {
       "title": "Approval required",
       "reject": "Reject",
@@ -147,7 +168,8 @@
       "title": "Awaiting your approval"
     },
     "feed": {
-      "title": "Live"
+      "title": "Live",
+      "empty": "No recent agent actions"
     },
     "drawer": {
       "ventilation": "Breakdown by property",
