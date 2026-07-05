@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.PropertyDto;
+import com.clenzy.dto.QuoteLineDto;
 import com.clenzy.dto.ServiceRequestDto;
 import com.clenzy.dto.TeamDto;
 import com.clenzy.dto.UserDto;
@@ -12,21 +13,35 @@ import com.clenzy.model.User;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 
 @Service
 public class ServiceRequestMapper {
 
+    private static final Logger log = LoggerFactory.getLogger(ServiceRequestMapper.class);
+
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
     private final TeamRepository teamRepository;
+    private final ObjectMapper objectMapper;
 
     public ServiceRequestMapper(UserRepository userRepository,
                                 PropertyRepository propertyRepository,
-                                TeamRepository teamRepository) {
+                                TeamRepository teamRepository,
+                                ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.teamRepository = teamRepository;
+        this.objectMapper = objectMapper;
     }
 
     public void apply(ServiceRequestDto dto, ServiceRequest e) {
@@ -39,6 +54,31 @@ public class ServiceRequestMapper {
         e.setPreferredTimeSlot(dto.preferredTimeSlot);
         e.setEstimatedDurationHours(dto.estimatedDurationHours);
         e.setEstimatedCost(dto.estimatedCost);
+        e.setPricingMode(dto.pricingMode);
+        e.setDiagnosticFee(dto.diagnosticFee);
+        // Chiffrage maintenance : le serveur est autoritatif sur le montant a regler
+        // (invariant : ne jamais faire confiance au montant client).
+        if ("DIAGNOSTIC".equals(dto.pricingMode)) {
+            // Diagnostic prealable : c'est le diagnostic qui est facture d'abord ;
+            // le devis sera elabore apres la visite sur place.
+            e.setEstimatedCost(dto.diagnosticFee);
+        } else if (dto.quoteLines != null) {
+            // Devis direct : serialiser les lignes ET recalculer le total serveur.
+            try {
+                e.setQuoteLines(objectMapper.writeValueAsString(dto.quoteLines));
+            } catch (JsonProcessingException ex) {
+                throw new IllegalArgumentException("Devis illisible", ex);
+            }
+            BigDecimal total = dto.quoteLines.stream()
+                    .map(l -> {
+                        BigDecimal q = l.quantity() != null ? l.quantity() : BigDecimal.ZERO;
+                        BigDecimal u = l.unitPrice() != null ? l.unitPrice() : BigDecimal.ZERO;
+                        return q.multiply(u);
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .setScale(2, RoundingMode.HALF_UP);
+            e.setEstimatedCost(total);
+        }
         e.setActualCost(dto.actualCost);
         e.setSpecialInstructions(dto.specialInstructions);
         e.setAccessNotes(dto.accessNotes);
@@ -72,6 +112,16 @@ public class ServiceRequestMapper {
         dto.preferredTimeSlot = e.getPreferredTimeSlot();
         dto.estimatedDurationHours = e.getEstimatedDurationHours();
         dto.estimatedCost = e.getEstimatedCost();
+        if (e.getQuoteLines() != null && !e.getQuoteLines().isBlank()) {
+            try {
+                dto.quoteLines = objectMapper.readValue(e.getQuoteLines(), new TypeReference<List<QuoteLineDto>>() {});
+            } catch (JsonProcessingException ex) {
+                log.warn("Devis illisible pour la demande {} : {}", e.getId(), ex.getMessage());
+                dto.quoteLines = null;
+            }
+        }
+        dto.pricingMode = e.getPricingMode();
+        dto.diagnosticFee = e.getDiagnosticFee();
         dto.actualCost = e.getActualCost();
         dto.specialInstructions = e.getSpecialInstructions();
         dto.accessNotes = e.getAccessNotes();

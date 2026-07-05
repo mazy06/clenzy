@@ -47,6 +47,7 @@ class AutomationRuleControllerTest {
     @Mock private AutomationExecutionRepository executionRepository;
     @Mock private MessageTemplateRepository templateRepository;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.SystemAutomationService systemAutomationService;
 
     private AutomationRuleController controller;
 
@@ -56,7 +57,8 @@ class AutomationRuleControllerTest {
     void setUp() {
         // Service REEL construit au-dessus des repositories mockes (pattern Vague A)
         controller = new AutomationRuleController(new AutomationRuleService(
-            ruleRepository, executionRepository, templateRepository, tenantContext));
+            ruleRepository, executionRepository, templateRepository, tenantContext),
+            systemAutomationService);
     }
 
     private AutomationRule buildRule(Long id, String name, boolean enabled) {

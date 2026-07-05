@@ -115,9 +115,10 @@ const PAYOUT_REMINDER_PREFIX = 'payout-reminder';
 interface UnpaidSrCardShape {
   id: string;
   serviceRequestId: number;
+  /** Titre BRUT de la demande (donnée). Le préfixe traduit est ajouté au rendu. */
   title: string;
-  motif: string;
-  reasoning: string;
+  /** Famille : "cleaning" | "maintenance" → préfixe i18n côté composant. */
+  category?: string;
   amount: number;
 }
 
@@ -147,6 +148,8 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   private runStarted = false;
   /** id du tour orchestrateur en cours (un par run) → accumulation des deltas texte. */
   private currentReplyId: string | null = null;
+  /** Texte de la réponse orchestrateur en cours d'accumulation (pour le journal « En direct »). */
+  private replyBuffer = '';
   /**
    * Historique de messages du fil courant (RunAgentInput.messages). On le
    * conserve pour pouvoir REPRENDRE le run après une pause (interrupt) avec le
@@ -197,9 +200,15 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       pendingQueue.push({
         id: sr.id,
         agentId: 'fin',
+        // Titre BRUT + catégorie : le libellé affiché (préfixe « Maintenance »…) et
+        // le raisonnement sont construits/traduits au rendu (PendingActionCard).
         title: sr.title,
-        motif: sr.motif,
-        reasoning: sr.reasoning,
+        // Ne préfixe QUE si le backend indique explicitement la famille (sinon
+        // undefined → titre brut). Robuste si l'image backend n'a pas encore le champ.
+        serviceCategory: sr.category === 'maintenance' ? 'maintenance'
+          : sr.category === 'cleaning' ? 'cleaning' : undefined,
+        motif: '',
+        reasoning: '',
         reservationId: null,
         createdAt: new Date().toISOString(),
         expiresAt: new Date().toISOString(),
@@ -684,20 +693,48 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       case 'TEXT_MESSAGE_START':
         // Nouveau message assistant : on (ré)ouvre un tour orchestrateur.
         this.currentReplyId = `orch-${Date.now()}`;
+        this.replyBuffer = '';
         return;
       case 'TEXT_MESSAGE_CONTENT': {
         if (typeof frame.delta !== 'string' || frame.delta.length === 0) return;
         // Repli : si aucun START reçu (selon le moteur), on crée le tour à la volée.
         if (!this.currentReplyId) this.currentReplyId = `orch-${Date.now()}`;
+        this.replyBuffer += frame.delta;
         this.emit({ type: 'conversation.delta', id: this.currentReplyId, delta: frame.delta });
         return;
       }
       case 'TEXT_MESSAGE_END':
+        // La réponse à la demande opérateur s'ajoute AUSSI au journal « En direct »,
+        // sous forme d'entrée orchestrateur (en plus du fil de conversation).
+        this.emitOrchestratorFeed(this.replyBuffer);
+        this.replyBuffer = '';
         this.currentReplyId = null;
         return;
       default:
         return;
     }
+  }
+
+  /**
+   * Ajoute la réponse de l'orchestrateur au journal « En direct » (entrée
+   * orchestrateur, en plus du fil de conversation). Texte compacté sur une ligne
+   * et borné pour rester lisible dans la carte.
+   */
+  private emitOrchestratorFeed(text: string): void {
+    const clean = text.replace(/\s+/g, ' ').trim();
+    if (!clean) return;
+    const MAX = 140;
+    const shown = clean.length > MAX ? `${clean.slice(0, MAX - 1)}…` : clean;
+    this.emit({
+      type: 'feed.added',
+      entry: {
+        id: `orch-feed-${Date.now()}`,
+        agentId: 'com', // ignoré au rendu (orchestrator=true)
+        at: new Date().toISOString(),
+        text: shown,
+        orchestrator: true,
+      },
+    });
   }
 
   /** agentActivity → StreamEvent(s) constellation (via mapping specialist→agent). */

@@ -114,7 +114,10 @@
     "payment": {
       "badge": "To settle",
       "settle": "Pay now",
-      "later": "Later"
+      "later": "Later",
+      "maintenancePrefix": "Maintenance",
+      "fallbackTitle": "Service request",
+      "reason": "This service request ({{title}}) is unpaid. “Pay now” opens secure Stripe checkout — no charge without your confirmation on the Stripe page."
     },
     "apply": {
       "action": "Apply",
@@ -160,6 +163,14 @@
       "inputLabel": "Message to the agents",
       "send": "Send",
       "thinking": "The agents are working…"
+    },
+    "deck": {
+      "count": "{{count}} card(s)",
+      "sortDue": "Due date",
+      "sortAmount": "Amount",
+      "bulk": "Process all",
+      "undo": "Undo",
+      "undoBulk": "Processed — {{count}} card(s)"
     }
   },
   "channexGuided": {
@@ -701,7 +712,8 @@
     "contactsHub": "Contacts",
     "finances": "Finance",
     "distribution": "Distribution",
-    "platformTools": "Platform tools"
+    "platformTools": "Platform tools",
+    "automationRules": "Automations"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -2036,7 +2048,9 @@
       "notes": "Notes",
       "property": "Property",
       "source": "Source",
-      "status": "Status"
+      "status": "Status",
+      "childrenCount": "of which children (minors)",
+      "childrenCountHelp": "Exempt from tourist tax"
     },
     "status": {
       "confirmed": "Confirmed",
@@ -2066,7 +2080,8 @@
     "propertiesCount": "property(ies)",
     "tabs": {
       "byProperty": "By property",
-      "overview": "Overview"
+      "overview": "Overview",
+      "yield": "Yield"
     },
     "ratePlan": {
       "title": "Rate Plans",
@@ -3133,12 +3148,24 @@
     "trustTitle": "Trust Rules",
     "trustSubtitle": "When you confirm the same action several times, the assistant offers to stop asking. Every rule is visible and revocable here — money actions are never eligible.",
     "noRules": "No rules yet — they appear after several confirmations of the same action.",
-    "rule": { "tool": "Action", "status": "Status", "confirmations": "Confirmations", "actions": "" },
-    "status": { "SUGGESTED": "Suggested", "ACTIVE": "Active", "DISMISSED": "Dismissed", "REVOKED": "Revoked" },
+    "rule": {
+      "tool": "Action",
+      "status": "Status",
+      "confirmations": "Confirmations",
+      "actions": ""
+    },
+    "status": {
+      "SUGGESTED": "Suggested",
+      "ACTIVE": "Active",
+      "DISMISSED": "Dismissed",
+      "REVOKED": "Revoked"
+    },
     "accept": "Accept",
     "dismiss": "Dismiss",
     "revoke": "Revoke",
-    "behavior": { "supervision_scan": "Proactive supervision scan (LLM analysis of properties after an event)" }
+    "behavior": {
+      "supervision_scan": "Proactive supervision scan (LLM analysis of properties after an event)"
+    }
   },
   "ownerPortal": {
     "constellationLink": "Share owner tracking link",
@@ -3185,7 +3212,8 @@
       "travaux": "Maintenance",
       "exterieur": "Outdoor",
       "blanchisserie": "Laundry",
-      "monitoring": "Monitoring"
+      "monitoring": "Monitoring",
+      "taxeSejour": "Tourist tax"
     },
     "monitoring": {
       "title": "Property Noise Monitoring",
@@ -3840,7 +3868,10 @@
         "hoursBefore": "Hours before",
         "hoursBeforeDesc": "Delay before check-out for sending",
         "template": "Check-out template"
-      }
+      },
+      "movedTitle": "Automated messages (check-in / check-out)",
+      "movedBody": "Automated messaging is now managed in Automations, alongside the other rules.",
+      "movedCta": "Open Automations"
     },
     "templates": {
       "title": "Message templates",
@@ -4114,6 +4145,44 @@
       "taxAmount": "Tax amount",
       "lineCount": "Lines",
       "noData": "No fiscal data for this period"
+    },
+    "taxRules": {
+      "title": "Tax rules",
+      "add": "Add",
+      "addTitle": "New tax rule",
+      "editTitle": "Edit tax rule",
+      "category": "Category",
+      "taxName": "Tax name",
+      "rate": "Rate",
+      "ratePercent": "Rate (%)",
+      "rateHelp": "Enter the rate as a percentage (e.g. 20 for 20%)",
+      "countryLabel": "Country",
+      "from": "From",
+      "to": "Until",
+      "toHelp": "Leave empty if the rule is still in force",
+      "description": "Description",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "created": "Tax rule created successfully",
+      "updated": "Tax rule updated successfully",
+      "deleted": "Tax rule deleted",
+      "deleting": "Deleting...",
+      "error": "An error occurred during the operation",
+      "loadError": "Unable to load tax rules",
+      "retry": "Retry",
+      "noRules": "No tax rule configured for this country. Add one to be able to generate invoices.",
+      "deleteConfirmTitle": "Delete tax rule?",
+      "deleteConfirmMessage": "Are you sure you want to delete the rule \"{{name}}\" ({{category}})? This action is irreversible.",
+      "categories": {
+        "ACCOMMODATION": "Accommodation",
+        "STANDARD": "Standard",
+        "CLEANING": "Cleaning",
+        "FOOD": "Food & beverage"
+      }
     }
   },
   "bookingEngine": {
@@ -5063,7 +5132,8 @@
         "travaux": "Pricing grid for works and technical interventions by job category.",
         "exterieur": "Outdoor services pricing: gardening, pool, green spaces.",
         "blanchisserie": "Linen pricing: packages per item type, washing and delivery.",
-        "monitoring": "Noise monitoring offers pricing (Minut, Roomonitor) propagated to clients."
+        "monitoring": "Noise monitoring offers pricing (Minut, Roomonitor) propagated to clients.",
+        "taxeSejour": "Organization tourist tax rates, report and export by period."
       }
     },
     "billing": {
@@ -5481,5 +5551,150 @@
       "PAUSE": "Awaiting approval",
       "SUMMARY": "Summary"
     }
+  },
+  "touristTax": {
+    "baremes": {
+      "title": "Tourist tax rates",
+      "subtitle": "Enter your municipal rates: one organization-wide default, plus property-specific overrides if needed.",
+      "add": "Add a rate",
+      "empty": "No rate configured: tourist tax is not computed for any reservation.",
+      "property": "Property",
+      "commune": "Municipality",
+      "mode": "Mode",
+      "rate": "Rate",
+      "surcharges": "Surcharges",
+      "status": "Status",
+      "orgDefault": "Organization default",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "mode": {
+      "perPersonPerNight": "Classified — fixed amount / person / night",
+      "percentageOfRate": "Unclassified — % of price, capped",
+      "flatPerNight": "Flat / night",
+      "perPersonPerNightShort": "Fixed / pers. / night",
+      "percentageOfRateShort": "% capped",
+      "flatPerNightShort": "Flat / night"
+    },
+    "dialog": {
+      "createTitle": "New tourist tax rate",
+      "editTitle": "Edit rate",
+      "property": "Property",
+      "propertyHelp": "The default rate applies to every property without its own rate.",
+      "orgDefault": "Default rate (whole organization)",
+      "communeName": "Municipality",
+      "communeCode": "INSEE code",
+      "mode": "Calculation mode",
+      "ratePerPerson": "Amount per person per night",
+      "ratePerNight": "Amount per night",
+      "percentageRate": "Rate (% of nightly price / pers.)",
+      "cap": "Cap / person / night",
+      "departmentalSurcharge": "Departmental additional tax",
+      "departmentalHelp": "Typically 10%",
+      "regionalSurcharge": "Regional additional tax",
+      "maxNights": "Max taxed nights (optional)",
+      "exemptMinors": "Exempt minors (<18)",
+      "enabled": "Rate active"
+    },
+    "report": {
+      "title": "Report by period",
+      "subtitle": "Tourist tax of confirmed reservations whose check-out falls within the period (for your declaration).",
+      "from": "From",
+      "to": "To",
+      "generate": "Generate",
+      "exportCsv": "Export CSV",
+      "missingConfigs": "Some reservations in the period have no applicable rate and are not counted:",
+      "empty": "No taxable reservation in the period.",
+      "property": "Property",
+      "guest": "Guest",
+      "checkOut": "Check-out",
+      "nights": "Nights",
+      "persons": "Pers.",
+      "commune": "Municipality",
+      "tax": "Tax",
+      "total": "Total collected"
+    },
+    "errors": {
+      "save": "Could not save the rate.",
+      "delete": "Could not delete the rate.",
+      "report": "Could not generate the report.",
+      "export": "Could not export the CSV."
+    }
+  },
+  "yieldRules": {
+    "loadError": "Unable to load the yield configuration.",
+    "saveError": "Save failed, please retry.",
+    "boundsError": "Invalid bounds: floor < ceiling, both positive (or neither).",
+    "killSwitch": "Automatic yield enabled",
+    "mode": {
+      "simulation": "Simulation",
+      "suggest": "Suggestion",
+      "auto": "Automatic"
+    },
+    "modeHelp": {
+      "simulation": "Report of what would have changed — no pricing writes.",
+      "suggest": "Suggestions to approve: amounts are recomputed when applied.",
+      "auto": "Automatic application, bounded by each property's floor/ceiling."
+    },
+    "rulesTitle": "Occupancy rules",
+    "addRule": "Add a rule",
+    "noRules": "No rules yet. Example: \"if occupancy < 40% within 30 days, drop by 5%\".",
+    "col": {
+      "name": "Name",
+      "scope": "Scope",
+      "condition": "Condition",
+      "adjustment": "Adjustment",
+      "dailyCap": "Daily cap",
+      "status": "Status",
+      "property": "Property",
+      "floor": "Floor (€)",
+      "ceiling": "Ceiling (€)",
+      "day": "Evaluated on",
+      "targetDate": "Night",
+      "mode": "Mode",
+      "before": "Before",
+      "after": "After",
+      "occupancy": "Occupancy",
+      "detail": "Detail"
+    },
+    "scopeAll": "All properties",
+    "conditionBelow": "Occupancy < {{pct}}% within {{days}}d",
+    "conditionAbove": "Occupancy > {{pct}}% within {{days}}d",
+    "active": "Active",
+    "inactive": "Inactive",
+    "boundsTitle": "Per-property guardrails",
+    "boundsSubtitle": "Floor and ceiling are required: without both, yield skips the property (journaled as NO_BOUNDS).",
+    "saveBounds": "Save bounds",
+    "journalTitle": "Adjustments journal",
+    "journalEmpty": "No adjustment journaled yet.",
+    "editRule": "Edit rule",
+    "newRule": "New yield rule",
+    "field": {
+      "name": "Name",
+      "scope": "Scope",
+      "comparison": "If occupancy",
+      "threshold": "Threshold (%)",
+      "window": "Window (d)",
+      "adjustment": "Adjustment (%)",
+      "dailyCap": "Daily cap (%)",
+      "active": "Active"
+    },
+    "below": "Below (→ decrease)",
+    "above": "Above (→ increase)",
+    "adjustmentHelpDown": "Applied as a decrease",
+    "adjustmentHelpUp": "Applied as an increase"
+  },
+  "automation": {
+    "seedRecommended": "Enable recommended rules",
+    "system": {
+      "title": "System automations",
+      "readOnly": "Read-only",
+      "subtitle": "Automations managed elsewhere in the product (outside rules). Shown here for visibility — their status reflects the real state."
+    },
+    "view": {
+      "list": "List view",
+      "card": "Card view"
+    },
+    "emptyDesc": "Automation rules will appear here."
   }
 }

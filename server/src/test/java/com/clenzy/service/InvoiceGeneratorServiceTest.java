@@ -51,6 +51,9 @@ class InvoiceGeneratorServiceTest {
     private FiscalEngine fiscalEngine;
 
     @Mock
+    private TouristTaxService touristTaxService;
+
+    @Mock
     private InvoiceNumberingService numberingService;
 
     @Mock
@@ -68,8 +71,8 @@ class InvoiceGeneratorServiceTest {
     void setUp() {
         service = new InvoiceGeneratorService(
             invoiceRepository, reservationRepository, interventionRepository,
-            fiscalProfileRepository, fiscalEngine, numberingService, tenantContext,
-            entityManager);
+            fiscalProfileRepository, fiscalEngine, touristTaxService, numberingService,
+            tenantContext, entityManager);
     }
 
     /**

@@ -65,4 +65,23 @@ public record ChannexBookingDto(
             + (o.children() != null ? o.children() : 0)
             + (o.infants() != null ? o.infants() : 0);
     }
+
+    private ChannexOccupancy firstOccupancy() {
+        if (rooms == null || rooms.isEmpty()) return null;
+        return rooms.get(0).occupancy();
+    }
+
+    /** Ventilation adultes (taxables) — null si l'occupation n'est pas fournie. */
+    public Integer adults() {
+        ChannexOccupancy o = firstOccupancy();
+        return o != null ? o.adults() : null;
+    }
+
+    /** Ventilation enfants + nourrissons (exoneres) — null si occupation absente. */
+    public Integer taxableChildren() {
+        ChannexOccupancy o = firstOccupancy();
+        if (o == null) return null;
+        return (o.children() != null ? o.children() : 0)
+            + (o.infants() != null ? o.infants() : 0);
+    }
 }

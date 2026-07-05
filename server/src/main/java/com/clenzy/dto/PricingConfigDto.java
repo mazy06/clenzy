@@ -125,6 +125,10 @@ public class PricingConfigDto {
         private String interventionType;
         private Double basePrice;
         private boolean enabled;
+        /** Libellé affiché (optionnel — sinon i18n/clé). Porté par la donnée. */
+        private String label;
+        /** Domaine de classement (ex. « Plomberie »). Optionnel. */
+        private String domain;
 
         public ServicePriceConfig() {}
 
@@ -142,6 +146,12 @@ public class PricingConfigDto {
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public String getLabel() { return label; }
+        public void setLabel(String label) { this.label = label; }
+
+        public String getDomain() { return domain; }
+        public void setDomain(String domain) { this.domain = domain; }
     }
 
     // ─── Inner class for blanchisserie items ──────────────────────────

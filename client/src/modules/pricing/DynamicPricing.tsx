@@ -29,6 +29,7 @@ import PricingOverviewView from './PricingOverviewView';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 import AiPricingRecommendations from './AiPricingRecommendations';
+import YieldRulesPanel from './YieldRulesPanel';
 import { useIsAiFeatureEnabled } from '../../hooks/useAi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
@@ -314,6 +315,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
       >
         <Tab label={t('dynamicPricing.tabs.byProperty')} />
         <Tab label={t('dynamicPricing.tabs.overview')} />
+        <Tab label={t('dynamicPricing.tabs.yield', 'Yield')} />
       </Tabs>
 
       {/* ─── Tab: Par propriété ─── */}
@@ -386,6 +388,9 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
           onNextMonth={goToNextMonth}
         />
       )}
+
+      {/* ─── Tab: Yield (règles d'occupation, F8a) ─── */}
+      {activeTab === 2 && <YieldRulesPanel />}
     </Box>
   );
 };

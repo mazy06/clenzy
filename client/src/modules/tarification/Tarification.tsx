@@ -178,7 +178,19 @@ export default function Tarification() {
             <TabEntretien config={config} teams={teams} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
           {activeTab === 2 && (
-            <TabTravaux config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+            <TabTravaux
+              items={config.travauxConfig || []}
+              canEdit={canEdit}
+              onItemsChange={(items) => updateConfig({ travauxConfig: items })}
+              currencySymbol={currencySymbol}
+              commission={(config.commissionConfigs || []).find((c) => c.category === 'travaux')}
+              onCommissionChange={(updated) => {
+                const configs = [...(config.commissionConfigs || [])];
+                const idx = configs.findIndex((c) => c.category === 'travaux');
+                if (idx >= 0) configs[idx] = updated; else configs.push(updated);
+                updateConfig({ commissionConfigs: configs });
+              }}
+            />
           )}
           {activeTab === 3 && (
             <TabExterieur config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />

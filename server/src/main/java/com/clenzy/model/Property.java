@@ -97,6 +97,18 @@ public class Property {
     @Column(name = "nightly_price", precision = 10, scale = 2)
     private BigDecimal nightlyPrice;
 
+    /**
+     * Plancher tarifaire du yield v1 (F8a) : le moteur ne descend jamais sous
+     * ce prix. Si plancher OU plafond est absent, le yield SKIPPE le bien
+     * (journal NO_BOUNDS) — jamais d'ajustement sans les deux garde-fous.
+     */
+    @Column(name = "yield_price_floor", precision = 10, scale = 2)
+    private BigDecimal yieldPriceFloor;
+
+    /** Plafond tarifaire du yield v1 (F8a) — cf. {@link #yieldPriceFloor}. */
+    @Column(name = "yield_price_ceiling", precision = 10, scale = 2)
+    private BigDecimal yieldPriceCeiling;
+
     @Column(name = "minimum_nights")
     private Integer minimumNights;
 
@@ -449,6 +461,22 @@ public class Property {
     
     public void setNightlyPrice(BigDecimal nightlyPrice) {
         this.nightlyPrice = nightlyPrice;
+    }
+
+    public BigDecimal getYieldPriceFloor() {
+        return yieldPriceFloor;
+    }
+
+    public void setYieldPriceFloor(BigDecimal yieldPriceFloor) {
+        this.yieldPriceFloor = yieldPriceFloor;
+    }
+
+    public BigDecimal getYieldPriceCeiling() {
+        return yieldPriceCeiling;
+    }
+
+    public void setYieldPriceCeiling(BigDecimal yieldPriceCeiling) {
+        this.yieldPriceCeiling = yieldPriceCeiling;
     }
 
     public Integer getMinimumNights() {

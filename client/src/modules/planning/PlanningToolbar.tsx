@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -7,36 +7,29 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Tooltip,
-  Menu,
-  Badge,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
   TodayOutlined,
   FullscreenExit,
-  TuneOutlined,
-  Public as GlobeIcon,
-  BroomFill,
-  WrenchFill,
 } from '../../icons';
 import type { ZoomLevel, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
-import { ZOOM_LABELS, RESERVATION_STATUS_TOKEN_COLORS, INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
+import { ZOOM_LABELS } from './constants';
 import type { PlanningChannelKey } from './constants';
-import { RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../services/api/reservationsApi';
-import { getSourceLogo } from './utils/sourceLogos';
 import { formatMonthYear } from './utils/dateUtils';
+import { ChannelLegendChips, StatusLegendChips, InterventionLegendChip } from './LegendChips';
 
 interface PlanningToolbarProps {
   currentDate: Date;
   zoom: ZoomLevel;
   isFullscreen: boolean;
   filters: PlanningFilters;
-  /** Sert au point indicateur (badge dot) du menu compact Canaux. */
-  hasActiveFilters: boolean;
+  /** Quand vrai, la rangée légende (canaux/statuts/interventions) est hébergée
+   *  par la modale de filtres (viewport compact OU constellation déployée) :
+   *  on ne la rend PAS ici pour éviter le doublon. */
+  legendInModal: boolean;
   onGoPrev: () => void;
   onGoToday: () => void;
   onGoNext: () => void;
@@ -51,119 +44,6 @@ interface PlanningToolbarProps {
   onToggleStatus: (status: ReservationStatus) => void;
 }
 
-const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
-  { value: 'confirmed', label: RESERVATION_STATUS_LABELS.confirmed },
-  { value: 'pending', label: RESERVATION_STATUS_LABELS.pending },
-  { value: 'checked_in', label: RESERVATION_STATUS_LABELS.checked_in },
-  { value: 'checked_out', label: RESERVATION_STATUS_LABELS.checked_out },
-  { value: 'cancelled', label: RESERVATION_STATUS_LABELS.cancelled },
-];
-
-// ─── Styles partagés (langage Signature) ────────────────────────────────────
-
-/** Chip pilule Signature (spec .pl-chip) : carte hairline, padding 5px 10px,
- *  11.5px fw600 var(--body) ; état actif accent-soft. */
-const sigChipSx = (active: boolean) => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 0.75,
-  fontSize: '0.71875rem',
-  fontWeight: 600,
-  lineHeight: 1,
-  color: active ? 'var(--accent)' : 'var(--body)',
-  backgroundColor: active ? 'var(--accent-soft)' : 'var(--card)',
-  border: '1px solid',
-  borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-  borderRadius: '8px',
-  padding: '5px 10px',
-  cursor: 'pointer',
-  userSelect: 'none' as const,
-  whiteSpace: 'nowrap' as const,
-  transition: 'border-color 160ms cubic-bezier(.16,1,.3,1), background-color 160ms cubic-bezier(.16,1,.3,1), color 160ms cubic-bezier(.16,1,.3,1)',
-  '&:hover': { borderColor: active ? 'var(--accent)' : 'var(--faint)' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-});
-
-/**
- * Chip-bouton togglable des rangées légende (Canaux / Statuts).
- * Spec .pl-chip / .pl-chip.off : sélectionné = look hairline normal ;
- * désélectionné = chip entière à opacity .4 (fond, bordure, puce inchangés).
- */
-const legendToggleSx = (selected: boolean) => ({
-  ...sigChipSx(false),
-  appearance: 'none' as const,
-  fontFamily: 'inherit',
-  // Hauteur uniforme : les chips canaux (logo 15px) et statuts (puce 9px)
-  // doivent etre identiques — on fixe la hauteur du contenu le plus haut.
-  boxSizing: 'border-box' as const,
-  minHeight: '27px',
-  opacity: selected ? 1 : 0.4,
-  transition: 'opacity .12s, border-color .12s',
-  '&:hover': { borderColor: 'var(--faint)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-});
-
-/** Overline des sections du popover de filtres. */
-const OVERLINE_SX = {
-  fontSize: '0.5625rem',
-  fontWeight: 700,
-  color: 'var(--faint)',
-  letterSpacing: '0.08em',
-  mb: 0.75,
-  display: 'block',
-};
-
-// ─── Canaux (maquette : chips avec LOGO de canal, togglables) ────────────────
-//
-// Les briques encodent le canal via la pastille logo ; cette rangée sert de
-// légende ET de filtre : un canal désélectionné masque ses briques.
-// « Direct » n'a pas de logo (vente en direct) → globe accent.
-const CHANNEL_LEGEND: { key: PlanningChannelKey; label: string; logo: string | null }[] = [
-  { key: 'airbnb', label: RESERVATION_SOURCE_LABELS.airbnb, logo: getSourceLogo('airbnb') },
-  { key: 'booking', label: RESERVATION_SOURCE_LABELS.booking, logo: getSourceLogo('booking') },
-  { key: 'direct', label: RESERVATION_SOURCE_LABELS.direct, logo: null },
-];
-
-// ─── Shared sub-components for desktop & menu ────────────────────────────────
-
-/** Chips togglables de la rangée Statuts : un statut désélectionné masque
- *  les briques de ce statut (état local page, non persisté). */
-const StatusToggleChips: React.FC<{
-  activeStatuses: ReadonlySet<ReservationStatus>;
-  onToggleStatus: (status: ReservationStatus) => void;
-}> = ({ activeStatuses, onToggleStatus }) => (
-  <>
-    {STATUS_OPTIONS.map((opt) => {
-      const selected = activeStatuses.has(opt.value);
-      return (
-        <Box
-          key={opt.value}
-          component="button"
-          type="button"
-          aria-pressed={selected}
-          onClick={() => onToggleStatus(opt.value)}
-          sx={legendToggleSx(selected)}
-        >
-          {/* Puce 9px radius 3 (spec .s-dot) = couleur exacte du statut,
-              mêmes constantes que les briques */}
-          <Box
-            component="span"
-            sx={{
-              width: 9,
-              height: 9,
-              borderRadius: '3px',
-              flexShrink: 0,
-              backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)',
-            }}
-          />
-          {opt.label}
-        </Box>
-      );
-    })}
-  </>
-);
-
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
@@ -171,7 +51,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   zoom,
   isFullscreen,
   filters,
-  hasActiveFilters,
+  legendInModal,
   onGoPrev,
   onGoToday,
   onGoNext,
@@ -183,14 +63,6 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   activeStatuses,
   onToggleStatus,
 }) => {
-  const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down('lg'));
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const menuOpen = Boolean(menuAnchor);
-
-  // Point indicateur du menu compact Canaux : filtres actifs OU recherche en cours.
-  const hasBadge = hasActiveFilters || filters.searchQuery.length > 0;
-
   return (
     <Box
       sx={{
@@ -333,66 +205,6 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
 
         <Box sx={{ flex: 1, minWidth: 8 }} />
 
-        {/* ════════════════════════════════════════════════════════════════
-            COMPACT: burger menu — canaux uniquement.
-            (filtres/statuts/affichage/bloquer/plein écran remontés dans le
-            PageHeader ; les canaux n'ont pas de rangée légende en compact, on
-            les conserve donc ici.)
-            ════════════════════════════════════════════════════════════════ */}
-        {isCompact && (
-          <>
-            <Tooltip title="Canaux">
-              <IconButton
-                size="small"
-                onClick={(e) => setMenuAnchor(e.currentTarget)}
-                sx={{ width: 22, height: 22, color: 'var(--muted)', '&:hover': { color: 'var(--accent)' } }}
-              >
-                <Badge
-                  variant="dot"
-                  invisible={!hasBadge}
-                  sx={{
-                    '& .MuiBadge-dot': { width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--accent)' },
-                  }}
-                >
-                  <TuneOutlined size={14} strokeWidth={1.75} />
-                </Badge>
-              </IconButton>
-            </Tooltip>
-
-            <Menu
-              anchorEl={menuAnchor}
-              open={menuOpen}
-              onClose={() => setMenuAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              slotProps={{
-                paper: {
-                  sx: {
-                    width: 320,
-                    borderRadius: 'var(--radius-lg)',
-                    border: '1px solid var(--line-2)',
-                    backgroundColor: 'var(--card)',
-                    boxShadow: 'var(--shadow-pop)',
-                    mt: 0.5,
-                  },
-                },
-              }}
-            >
-              <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {/* Canaux (toggle masque/affiche) */}
-                <Box>
-                  <Typography variant="overline" sx={OVERLINE_SX}>
-                    Canaux
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    <ChannelToggleChips activeChannels={activeChannels} onToggleChannel={onToggleChannel} />
-                  </Box>
-                </Box>
-              </Box>
-            </Menu>
-          </>
-        )}
-
         {/* Plein écran — escape hatch : seul moment où le PageHeader (qui porte
             désormais le toggle) est masqué, donc on le réaffiche ici pour
             pouvoir TOUJOURS ressortir du plein écran. */}
@@ -416,81 +228,25 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
       </Box>
 
       {/* ── Rangée 2 (desktop) : filtres togglables fusionnés — canaux,
-          statuts puis Interventions, sans libellés de rangée ─────────────── */}
-      {!isCompact && (
+          statuts puis Interventions, sans libellés de rangée. Migrée dans la
+          modale de filtres quand `legendInModal` (viewport compact OU
+          constellation d'agents déployée) pour ne jamais dupliquer les chips. */}
+      {!legendInModal && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {/* Canaux : LOGO de canal (la pastille des briques), toggle masque/affiche */}
-          <ChannelToggleChips activeChannels={activeChannels} onToggleChannel={onToggleChannel} />
+          <ChannelLegendChips activeChannels={activeChannels} onToggleChannel={onToggleChannel} />
           {/* Statuts : puce colorée = couleur de brique, toggle masque/affiche */}
-          <StatusToggleChips activeStatuses={activeStatuses} onToggleStatus={onToggleStatus} />
-          {/* Ménage & maintenance sur la grille : même chip .pl-chip que les
-              autres (icône balai 15px à la place du logo/dot), off = opacity .4 */}
-          <Box
-            component="button"
-            type="button"
-            aria-pressed={filters.showInterventions}
-            onClick={() => onShowInterventionsChange(!filters.showInterventions)}
-            sx={legendToggleSx(filters.showInterventions)}
-          >
-            {/* Balai (ménage) + outil (maintenance) : la chip couvre les DEUX
-                types d'intervention, chacun à sa couleur token. */}
-            <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
-              <BroomFill size={16} />
-            </Box>
-            <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
-              <WrenchFill size={15} />
-            </Box>
-            Interventions
-          </Box>
+          <StatusLegendChips activeStatuses={activeStatuses} onToggleStatus={onToggleStatus} />
+          {/* Ménage & maintenance sur la grille : même chip .pl-chip que les autres */}
+          <InterventionLegendChip
+            active={filters.showInterventions}
+            onToggle={() => onShowInterventionsChange(!filters.showInterventions)}
+          />
         </Box>
       )}
     </Box>
   );
 });
-
-/** Chips togglables des canaux : logo + nom. Un canal désélectionné masque
- *  les briques de ce canal (état local page, non persisté). */
-const ChannelToggleChips: React.FC<{
-  activeChannels: ReadonlySet<PlanningChannelKey>;
-  onToggleChannel: (key: PlanningChannelKey) => void;
-}> = ({ activeChannels, onToggleChannel }) => (
-  <>
-    {CHANNEL_LEGEND.map((ch) => {
-      const selected = activeChannels.has(ch.key);
-      return (
-        <Tooltip key={ch.key} title={selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`} arrow>
-          <Box
-            component="button"
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onToggleChannel(ch.key)}
-            sx={legendToggleSx(selected)}
-          >
-            {ch.logo ? (
-              <Box
-                component="img"
-                src={ch.logo}
-                alt=""
-                sx={{
-                  width: 15,
-                  height: 15,
-                  objectFit: 'contain',
-                  display: 'block',
-                  flexShrink: 0,
-                }}
-              />
-            ) : (
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
-                <GlobeIcon size={15} strokeWidth={1.75} />
-              </Box>
-            )}
-            {ch.label}
-          </Box>
-        </Tooltip>
-      );
-    })}
-  </>
-);
 
 PlanningToolbar.displayName = 'PlanningToolbar';
 export default PlanningToolbar;

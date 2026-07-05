@@ -114,7 +114,10 @@
     "payment": {
       "badge": "À régler",
       "settle": "Régler",
-      "later": "Plus tard"
+      "later": "Plus tard",
+      "maintenancePrefix": "Maintenance",
+      "fallbackTitle": "Demande de service",
+      "reason": "Cette demande de service ({{title}}) n’est pas réglée. « Régler » ouvre le paiement Stripe sécurisé — aucun débit sans ta validation sur la page Stripe."
     },
     "apply": {
       "action": "Appliquer",
@@ -160,6 +163,14 @@
       "inputLabel": "Message aux agents",
       "send": "Envoyer",
       "thinking": "Les agents travaillent…"
+    },
+    "deck": {
+      "count": "{{count}} carte(s)",
+      "sortDue": "Échéance",
+      "sortAmount": "Montant",
+      "bulk": "Tout traiter",
+      "undo": "Annuler",
+      "undoBulk": "Traité — {{count}} carte(s)"
     }
   },
   "channexGuided": {
@@ -701,7 +712,9 @@
     "contactsHub": "Contacts",
     "finances": "Finances",
     "distribution": "Distribution",
-    "platformTools": "Outils plateforme"
+    "platformTools": "Outils plateforme",
+    "automationRules": "Automatisations",
+    "technicianPrestations": "Mes tarifs travaux"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -2060,7 +2073,9 @@
       "notes": "Notes",
       "property": "Propriété",
       "source": "Source",
-      "status": "Statut"
+      "status": "Statut",
+      "childrenCount": "dont enfants (mineurs)",
+      "childrenCountHelp": "Exonérés de la taxe de séjour"
     },
     "status": {
       "confirmed": "Confirmée",
@@ -2090,7 +2105,8 @@
     "propertiesCount": "propriété(s)",
     "tabs": {
       "byProperty": "Par propriété",
-      "overview": "Vue d'ensemble"
+      "overview": "Vue d'ensemble",
+      "yield": "Yield"
     },
     "ratePlan": {
       "title": "Plans tarifaires",
@@ -3157,12 +3173,24 @@
     "trustTitle": "Règles de Confiance",
     "trustSubtitle": "Quand vous confirmez plusieurs fois la même action, l'assistant propose de ne plus demander. Chaque règle est visible et révocable ici — les actions d'argent ne sont jamais éligibles.",
     "noRules": "Aucune règle pour le moment — elles apparaissent après plusieurs confirmations de la même action.",
-    "rule": { "tool": "Action", "status": "Statut", "confirmations": "Confirmations", "actions": "" },
-    "status": { "SUGGESTED": "Proposée", "ACTIVE": "Active", "DISMISSED": "Ignorée", "REVOKED": "Révoquée" },
+    "rule": {
+      "tool": "Action",
+      "status": "Statut",
+      "confirmations": "Confirmations",
+      "actions": ""
+    },
+    "status": {
+      "SUGGESTED": "Proposée",
+      "ACTIVE": "Active",
+      "DISMISSED": "Ignorée",
+      "REVOKED": "Révoquée"
+    },
     "accept": "Accepter",
     "dismiss": "Ignorer",
     "revoke": "Révoquer",
-    "behavior": { "supervision_scan": "Scan de supervision proactif (analyse LLM des logements après un événement)" }
+    "behavior": {
+      "supervision_scan": "Scan de supervision proactif (analyse LLM des logements après un événement)"
+    }
   },
   "ownerPortal": {
     "constellationLink": "Partager le suivi propriétaire",
@@ -3209,7 +3237,8 @@
       "travaux": "Travaux",
       "exterieur": "Extérieur",
       "blanchisserie": "Blanchisserie",
-      "monitoring": "Monitoring"
+      "monitoring": "Monitoring",
+      "taxeSejour": "Taxe de séjour"
     },
     "monitoring": {
       "title": "Monitoring sonore des propriétés",
@@ -3864,7 +3893,10 @@
         "hoursBefore": "Heures avant",
         "hoursBeforeDesc": "Delai avant le check-out pour l'envoi",
         "template": "Template check-out"
-      }
+      },
+      "movedTitle": "Messages automatiques (check-in / check-out)",
+      "movedBody": "La messagerie automatique est désormais gérée dans Automatisations, avec les autres règles.",
+      "movedCta": "Ouvrir les automatisations"
     },
     "templates": {
       "title": "Templates de messages",
@@ -4151,7 +4183,13 @@
       "retry": "Reessayer",
       "noRules": "Aucune regle fiscale configuree pour ce pays. Ajoutez-en pour pouvoir generer des factures.",
       "deleteConfirmTitle": "Supprimer la regle fiscale ?",
-      "deleteConfirmMessage": "Etes-vous sur de vouloir supprimer la regle \"{{name}}\" ({{category}}) ? Cette action est irreversible."
+      "deleteConfirmMessage": "Etes-vous sur de vouloir supprimer la regle \"{{name}}\" ({{category}}) ? Cette action est irreversible.",
+      "categories": {
+        "ACCOMMODATION": "Hebergement",
+        "STANDARD": "Standard",
+        "CLEANING": "Menage",
+        "FOOD": "Restauration"
+      }
     },
     "reporting": {
       "title": "Rapport Fiscal",
@@ -5121,7 +5159,8 @@
         "travaux": "Grille tarifaire des travaux et interventions techniques par typologie de chantier.",
         "exterieur": "Tarifs des prestations extérieures : jardinage, piscine, espaces verts.",
         "blanchisserie": "Tarification du linge : forfaits par type de pièce, lavage et livraison.",
-        "monitoring": "Tarifs des offres de monitoring sonore (Minut, Roomonitor) propagés aux clients."
+        "monitoring": "Tarifs des offres de monitoring sonore (Minut, Roomonitor) propagés aux clients.",
+        "taxeSejour": "Barèmes de taxe de séjour de l’organisation, rapport et export par période."
       }
     },
     "billing": {
@@ -5539,5 +5578,150 @@
       "PAUSE": "Attente de validation",
       "SUMMARY": "Synthèse"
     }
+  },
+  "touristTax": {
+    "baremes": {
+      "title": "Barèmes de taxe de séjour",
+      "subtitle": "Saisis tes barèmes communaux : un barème par défaut pour l’organisation, et des barèmes spécifiques par logement si besoin.",
+      "add": "Ajouter un barème",
+      "empty": "Aucun barème configuré : la taxe de séjour n’est calculée pour aucune réservation.",
+      "property": "Logement",
+      "commune": "Commune",
+      "mode": "Mode",
+      "rate": "Tarif",
+      "surcharges": "Surtaxes",
+      "status": "Statut",
+      "orgDefault": "Défaut organisation",
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "mode": {
+      "perPersonPerNight": "Classé — montant fixe / personne / nuit",
+      "percentageOfRate": "Non classé « au réel » — % du prix, plafonné",
+      "flatPerNight": "Forfait / nuit",
+      "perPersonPerNightShort": "Fixe / pers. / nuit",
+      "percentageOfRateShort": "% plafonné",
+      "flatPerNightShort": "Forfait / nuit"
+    },
+    "dialog": {
+      "createTitle": "Nouveau barème de taxe de séjour",
+      "editTitle": "Modifier le barème",
+      "property": "Logement",
+      "propertyHelp": "Le barème par défaut s’applique à tous les logements sans barème propre.",
+      "orgDefault": "Barème par défaut (toute l’organisation)",
+      "communeName": "Commune",
+      "communeCode": "Code INSEE",
+      "mode": "Mode de calcul",
+      "ratePerPerson": "Montant par personne et par nuit",
+      "ratePerNight": "Montant par nuit",
+      "percentageRate": "Taux (% du prix de la nuitée / pers.)",
+      "cap": "Plafond / personne / nuit",
+      "departmentalSurcharge": "Taxe additionnelle départementale",
+      "departmentalHelp": "Typiquement 10 %",
+      "regionalSurcharge": "Taxe additionnelle régionale",
+      "maxNights": "Nuits taxées max (optionnel)",
+      "exemptMinors": "Exonérer les mineurs (<18 ans)",
+      "enabled": "Barème actif"
+    },
+    "report": {
+      "title": "Rapport par période",
+      "subtitle": "Taxe de séjour des réservations confirmées dont le départ tombe dans la période (pour ta déclaration).",
+      "from": "Du",
+      "to": "Au",
+      "generate": "Générer",
+      "exportCsv": "Exporter CSV",
+      "missingConfigs": "Certaines réservations de la période n’ont aucun barème applicable et ne sont pas comptées :",
+      "empty": "Aucune réservation taxable sur la période.",
+      "property": "Logement",
+      "guest": "Voyageur",
+      "checkOut": "Départ",
+      "nights": "Nuits",
+      "persons": "Pers.",
+      "commune": "Commune",
+      "tax": "Taxe",
+      "total": "Total collecté"
+    },
+    "errors": {
+      "save": "Impossible d’enregistrer le barème.",
+      "delete": "Impossible de supprimer le barème.",
+      "report": "Impossible de générer le rapport.",
+      "export": "Impossible d’exporter le CSV."
+    }
+  },
+  "yieldRules": {
+    "loadError": "Impossible de charger la configuration yield.",
+    "saveError": "Enregistrement impossible, réessayez.",
+    "boundsError": "Bornes invalides : plancher < plafond, tous deux positifs (ou aucun).",
+    "killSwitch": "Yield automatique activé",
+    "mode": {
+      "simulation": "Simulation",
+      "suggest": "Suggestion",
+      "auto": "Automatique"
+    },
+    "modeHelp": {
+      "simulation": "Rapport de ce qui aurait changé — aucune écriture tarifaire.",
+      "suggest": "Suggestions à approuver : les montants sont recalculés à l'application.",
+      "auto": "Application automatique, bornée par le plancher/plafond de chaque bien."
+    },
+    "rulesTitle": "Règles d'occupation",
+    "addRule": "Ajouter une règle",
+    "noRules": "Aucune règle. Exemple : « si occupation < 40 % à 30 jours, baisser de 5 % ».",
+    "col": {
+      "name": "Nom",
+      "scope": "Périmètre",
+      "condition": "Condition",
+      "adjustment": "Ajustement",
+      "dailyCap": "Cap / jour",
+      "status": "Statut",
+      "property": "Bien",
+      "floor": "Plancher (€)",
+      "ceiling": "Plafond (€)",
+      "day": "Évalué le",
+      "targetDate": "Nuit",
+      "mode": "Mode",
+      "before": "Avant",
+      "after": "Après",
+      "occupancy": "Occupation",
+      "detail": "Détail"
+    },
+    "scopeAll": "Tous les biens",
+    "conditionBelow": "Occupation < {{pct}} % à {{days}} j",
+    "conditionAbove": "Occupation > {{pct}} % à {{days}} j",
+    "active": "Active",
+    "inactive": "Inactive",
+    "boundsTitle": "Garde-fous par bien",
+    "boundsSubtitle": "Plancher et plafond obligatoires : sans les deux, le yield ignore le bien (journalisé NO_BOUNDS).",
+    "saveBounds": "Enregistrer les bornes",
+    "journalTitle": "Journal des ajustements",
+    "journalEmpty": "Aucun ajustement journalisé pour le moment.",
+    "editRule": "Modifier la règle",
+    "newRule": "Nouvelle règle de yield",
+    "field": {
+      "name": "Nom",
+      "scope": "Périmètre",
+      "comparison": "Si occupation",
+      "threshold": "Seuil (%)",
+      "window": "Fenêtre (j)",
+      "adjustment": "Ajustement (%)",
+      "dailyCap": "Cap / jour (%)",
+      "active": "Active"
+    },
+    "below": "Inférieure à (→ baisse)",
+    "above": "Supérieure à (→ hausse)",
+    "adjustmentHelpDown": "Appliqué en baisse",
+    "adjustmentHelpUp": "Appliqué en hausse"
+  },
+  "automation": {
+    "seedRecommended": "Activer les règles recommandées",
+    "system": {
+      "title": "Automatisations système",
+      "readOnly": "Lecture seule",
+      "subtitle": "Automatisations gérées ailleurs dans le produit (hors règles). Affichées ici pour visibilité — leur statut reflète l’état réel."
+    },
+    "view": {
+      "list": "Vue liste",
+      "card": "Vue cartes"
+    },
+    "emptyDesc": "Les règles d'automatisation apparaîtront ici."
   }
 }

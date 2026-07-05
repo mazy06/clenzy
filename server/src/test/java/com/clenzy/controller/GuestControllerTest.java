@@ -63,7 +63,8 @@ class GuestControllerTest {
         // Services REELS au-dessus des repositories mockes (pattern Vague A) ;
         // spy pour stubber findOrCreate/recalculateAllStats au niveau service.
         OrganizationService organizationService =
-            new OrganizationService(organizationRepository, memberRepository, userRepository);
+            new OrganizationService(organizationRepository, memberRepository, userRepository,
+                org.mockito.Mockito.mock(com.clenzy.service.AutomationRuleService.class));
         guestService = spy(new GuestService(guestRepository, reservationRepository, organizationService));
         controller = new GuestController(guestService, tenantContext);
     }

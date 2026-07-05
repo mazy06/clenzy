@@ -145,6 +145,8 @@ export interface CartStay {
   checkIn: string;
   checkOut: string;
   guests: number;
+  /** Enfants/mineurs parmi guests (0314) — exonérés de la taxe de séjour. */
+  children: number;
   total: number;
   currency: string;
 }

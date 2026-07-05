@@ -171,7 +171,7 @@ class PublicBookingServiceMockModeTest {
                 DEMO_PROPERTY_ID, checkIn, checkOut, 2,
                 new BookingReserveRequestDto.GuestInfo("Jane Démo", "jane@example.com", "+33600000000"),
                 "Notes démo",
-                null);
+                null, null);
 
         // Act
         BookingReserveResponseDto resp = service.reserve(buildMockCtx(), req);

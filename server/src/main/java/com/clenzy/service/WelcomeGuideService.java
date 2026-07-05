@@ -489,7 +489,7 @@ public class WelcomeGuideService {
             .map(ci -> photoStorageService.retrieve(key));
     }
 
-    /** Contexte du chatbot guest : org (résolution IA), langue, et contenu du livret sérialisé. */
+    /** Contexte du chatbot guest : org (résolution IA), réservation, langue, et contenu du livret sérialisé. */
     @Transactional(readOnly = true)
     public Optional<GuestChatContext> getChatContext(UUID token) {
         return tokenRepository.findByToken(token)
@@ -499,13 +499,16 @@ public class WelcomeGuideService {
                 if (guide == null || !guide.isPublished() || !guide.isChatbotEnabled()) {
                     return Optional.empty();
                 }
+                Reservation reservation = t.getReservation() != null ? t.getReservation() : guide.getReservation();
+                Long reservationId = reservation != null ? reservation.getId() : null;
                 return buildPublicPayload(t).map(dto ->
-                    new GuestChatContext(guide.getOrganizationId(), guide.getLanguage(), serializeForChat(dto)));
+                    new GuestChatContext(guide.getOrganizationId(), reservationId,
+                        guide.getLanguage(), serializeForChat(dto)));
             });
     }
 
     /** Données nécessaires au chatbot guest pour répondre de façon grounded. */
-    public record GuestChatContext(Long orgId, String language, String content) {}
+    public record GuestChatContext(Long orgId, Long reservationId, String language, String content) {}
 
     private String serializeForChat(WelcomeGuidePublicDto d) {
         StringBuilder sb = new StringBuilder();

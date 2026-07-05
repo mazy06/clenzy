@@ -58,7 +58,8 @@ class SepaDebtorSettingsControllerTest {
     @BeforeEach
     void setUp() {
         OrganizationService organizationService =
-                new OrganizationService(organizationRepository, memberRepository, userRepository);
+                new OrganizationService(organizationRepository, memberRepository, userRepository,
+                        org.mockito.Mockito.mock(com.clenzy.service.AutomationRuleService.class));
         controller = new SepaDebtorSettingsController(organizationService, tenantContext);
     }
 

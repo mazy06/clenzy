@@ -99,7 +99,8 @@ export const DEFAULT_AUTONOMY: AutonomyLevel = 'notify';
 
 /**
  * Rayon d'orbite normalisé (× R) par niveau d'autonomie.
- * Handoff §8 : `r = R · RAD[autonomie]`, et `wait → R · RAD.full` (tiré au centre).
+ * `r = R · RAD[autonomie]` : l'orbite reflète TOUJOURS l'autonomie (le statut
+ * `wait` ne déplace plus l'agent — il est signalé par la couleur/HUD/carte).
  * AUTO proche du centre, NOTIFIE au milieu, SUGGÈRE loin.
  */
 export const RAD: Record<AutonomyLevel, number> = {

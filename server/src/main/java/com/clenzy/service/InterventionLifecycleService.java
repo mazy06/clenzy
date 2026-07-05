@@ -297,6 +297,52 @@ public class InterventionLifecycleService {
      * Valider une intervention et definir le cout estime (Manager uniquement).
      * Change le statut de AWAITING_VALIDATION a AWAITING_PAYMENT.
      */
+    /**
+     * Édite le montant d'une intervention à tout moment : nouveau montant (SET),
+     * remise en euros (DISCOUNT_AMOUNT) ou en pourcentage (DISCOUNT_PERCENT). Le
+     * montant final (actualCost) est recalculé côté SERVEUR à partir de la
+     * référence (estimatedCost) — jamais de confiance au montant client. Autorisé
+     * au staff plateforme et au propriétaire du logement.
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public InterventionResponse updateAmount(Long id, String mode, java.math.BigDecimal value, Jwt jwt) {
+        Intervention intervention = interventionRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
+
+        UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
+        String ownerKc = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
+                ? intervention.getProperty().getOwner().getKeycloakId() : null;
+        if (!userRole.isPlatformStaff() && (ownerKc == null || !ownerKc.equals(jwt.getSubject()))) {
+            throw new UnauthorizedException("Non autorise a modifier le montant de cette intervention");
+        }
+
+        if (value == null || value.compareTo(java.math.BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Le montant / la remise doit etre positif");
+        }
+
+        java.math.BigDecimal base = intervention.getEstimatedCost() != null
+                ? intervention.getEstimatedCost() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal finalAmount;
+        switch (mode == null ? "" : mode.toUpperCase()) {
+            case "SET" -> {
+                finalAmount = value;
+                intervention.setEstimatedCost(value); // nouvelle reference
+            }
+            case "DISCOUNT_AMOUNT" -> finalAmount = base.subtract(value).max(java.math.BigDecimal.ZERO);
+            case "DISCOUNT_PERCENT" -> {
+                if (value.compareTo(java.math.BigDecimal.valueOf(100)) > 0) {
+                    throw new IllegalArgumentException("La remise en pourcentage ne peut pas depasser 100");
+                }
+                finalAmount = base.multiply(java.math.BigDecimal.ONE
+                        .subtract(value.divide(java.math.BigDecimal.valueOf(100)))).max(java.math.BigDecimal.ZERO);
+            }
+            default -> throw new IllegalArgumentException("Mode invalide: " + mode);
+        }
+        intervention.setActualCost(finalAmount.setScale(2, java.math.RoundingMode.HALF_UP));
+        intervention = interventionRepository.save(intervention);
+        return interventionMapper.convertToResponse(intervention);
+    }
+
     public InterventionResponse validateIntervention(Long id, java.math.BigDecimal estimatedCost, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));

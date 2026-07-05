@@ -398,7 +398,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   for (const linked of linkedInterventions ?? []) {
     const isCleaning = linked.type === 'cleaning';
     const typeLabel = INTERVENTION_TYPE_LABELS[(isCleaning ? 'cleaning' : 'maintenance') as PlanningInterventionType];
-    const rawFee = linked.intervention?.actualCost || linked.intervention?.estimatedCost || 0;
+    const rawFee = linked.intervention?.actualCost || linked.intervention?.estimatedCost || linked.serviceRequest?.estimatedCost || 0;
     const feeLabel = rawFee > 0 ? compactMoney(convertAndFormat(rawFee, srcCurrency)) : undefined;
     indicators.push({
       key: linked.id,

@@ -54,7 +54,15 @@ public enum AutomationTrigger {
      * re-fire tant que le device n'est pas repasse online) + filet dedup memoire
      * 24 h de NotifyStaffExecutor.
      */
-    IOT_DEVICE_OFFLINE("IOT_DEVICE_OFFLINE", false);
+    IOT_DEVICE_OFFLINE("IOT_DEVICE_OFFLINE", false),
+    /**
+     * S2 : disparite de prix entre le prix attendu (PriceEngine local) et le prix
+     * publie sur les canaux OTA via Channex. Sujet stable (propertyId) → recurrent
+     * (dedupePerSubject=false) : la disparite peut reapparaitre chaque jour. La cle
+     * metier bien+jour est portee par l'executeur (NotifyRateParityExecutor, dedup
+     * memoire par jour calendaire) — le capteur quotidien re-presente le sujet.
+     */
+    RATE_PARITY_DISPARITY("RATE_PARITY_DISPARITY", false);
 
     /**
      * Declencheurs amorces a la creation d'une reservation (et re-evalues par le sweep).

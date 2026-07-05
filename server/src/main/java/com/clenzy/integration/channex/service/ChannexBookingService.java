@@ -196,6 +196,9 @@ public class ChannexBookingService {
         }
 
         if (booking.totalGuests() > 0) reservation.setGuestCount(booking.totalGuests());
+        // Ventilation adultes/enfants (0314) : Channex fournit l'occupation par chambre.
+        if (booking.adults() != null) reservation.setAdultsCount(booking.adults());
+        if (booking.taxableChildren() != null) reservation.setChildrenCount(booking.taxableChildren());
         if (booking.amount() != null) reservation.setTotalPrice(booking.amount());
 
         reservationRepository.save(reservation);
@@ -324,6 +327,8 @@ public class ChannexBookingService {
         r.setGuestName((guest.getFirstName() != null ? guest.getFirstName() : "")
             + " " + (guest.getLastName() != null ? guest.getLastName() : "").trim());
         r.setGuestCount(booking.totalGuests());
+        r.setAdultsCount(booking.adults());
+        r.setChildrenCount(booking.taxableChildren());
         r.setCheckIn(booking.arrivalDate());
         r.setCheckOut(booking.departureDate());
         r.setCheckInTime(property.getDefaultCheckInTime());

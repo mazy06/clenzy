@@ -54,12 +54,22 @@ public class SupervisionActivityService {
     @Transactional
     public void recordAct(Long organizationId, Long propertyId, String specialist,
                           String toolName, String summary) {
-        if (organizationId == null || propertyId == null) {
+        // Un specialist technique masqué (→ module null) n'est pas journalisé.
+        recordModuleAct(organizationId, propertyId,
+                registry.moduleForSpecialist(specialist), toolName, summary);
+    }
+
+    /**
+     * Journalise une action déjà rattachée à un module de la constellation
+     * (com/rev/ops/fin/rep) — utilisé par le moteur d'automatisation déterministe
+     * pour que la constellation reflète aussi les flux SANS IA. Best-effort :
+     * un échec ne casse jamais l'exécution en cours.
+     */
+    @Transactional
+    public void recordModuleAct(Long organizationId, Long propertyId, String moduleKey,
+                                String toolName, String summary) {
+        if (organizationId == null || propertyId == null || moduleKey == null) {
             return;
-        }
-        String moduleKey = registry.moduleForSpecialist(specialist);
-        if (moduleKey == null) {
-            return; // specialist technique masqué / inconnu → pas de ligne
         }
         try {
             activityRepository.save(new SupervisionActivity(

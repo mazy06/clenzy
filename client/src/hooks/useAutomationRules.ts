@@ -29,6 +29,14 @@ export function useCreateRule() {
   });
 }
 
+export function useSystemAutomations() {
+  return useQuery({
+    queryKey: ['automation-rules-system'],
+    queryFn: () => automationRulesApi.getSystemAutomations(),
+    staleTime: 60_000,
+  });
+}
+
 export function useUpdateRule() {
   const queryClient = useQueryClient();
   return useMutation({

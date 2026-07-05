@@ -15,6 +15,7 @@ export type SupervisionScope = 'property' | 'portfolio';
 export function ScopeSwitch({ value, onChange }: { value: SupervisionScope; onChange: (scope: SupervisionScope) => void }) {
   const { t } = useTranslation();
 
+  // Icône seule : le libellé passe en aria-label + title (tooltip natif).
   const option = (scope: SupervisionScope, icon: ReactNode, label: string) => {
     const active = value === scope;
     return (
@@ -23,17 +24,17 @@ export function ScopeSwitch({ value, onChange }: { value: SupervisionScope; onCh
         type="button"
         onClick={() => onChange(scope)}
         aria-pressed={active}
+        aria-label={label}
+        title={label}
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0.75,
-          px: 2,
+          justifyContent: 'center',
+          px: 1.25,
           py: 1,
           borderRadius: '9px',
           border: 'none',
           cursor: 'pointer',
-          fontSize: 13,
-          fontWeight: 700,
           background: active ? 'var(--card, #fff)' : 'transparent',
           color: active ? 'var(--accent, #5453D6)' : 'var(--muted, #6b7196)',
           boxShadow: active ? 'var(--sh-sm, 0 1px 2px rgba(20,24,58,.1))' : 'none',
@@ -42,7 +43,6 @@ export function ScopeSwitch({ value, onChange }: { value: SupervisionScope; onCh
         }}
       >
         {icon}
-        {label}
       </Box>
     );
   };

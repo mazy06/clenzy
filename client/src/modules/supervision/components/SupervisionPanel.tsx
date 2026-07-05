@@ -19,7 +19,8 @@ import { spawnComet } from '../core/spawnComet';
 import { AGENT_META } from '../constants';
 import { ConstellationSkeleton } from './ConstellationSkeleton';
 import { AgentConstellation } from './AgentConstellation';
-import { PendingQueue } from './PendingQueue';
+import { ActivityFeed } from './ActivityFeed';
+import { TaskDeckQueue } from './TaskDeckQueue';
 import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
 import { SupervisionChatBar } from './SupervisionChatBar';
@@ -172,6 +173,35 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
             </Tooltip>
           ) : undefined
         }
+        belowHud={
+          propertySnapshot && propertySnapshot.feed.length > 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 0,
+                bgcolor: 'var(--card)',
+                border: '1px solid var(--line)',
+                borderRadius: '13px',
+                boxShadow: '0 10px 28px -18px rgba(0, 0, 0, 0.35)',
+                overflow: 'hidden',
+              }}
+            >
+              <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75, fontWeight: 800, fontSize: 12.5, color: 'var(--ink)' }}>
+                {t('supervision.feed.title')}
+              </Box>
+              {/* data-vertical-scroll : le planning ne détourne PAS la molette
+                  au-dessus de cette zone (cf. useInfiniteTimeline) ; overscroll
+                  contain : le scroll ne chaîne pas non plus à la page au bord. */}
+              <Box
+                data-vertical-scroll
+                sx={{ px: 1, pb: 1, overflowY: 'auto', minHeight: 0, overscrollBehavior: 'contain' }}
+              >
+                <ActivityFeed entries={propertySnapshot.feed} />
+              </Box>
+            </Box>
+          ) : undefined
+        }
       />
 
       {/* Entrée de chat opérateur (chemin live) : un message déclenche un run du
@@ -220,7 +250,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
             <SupervisionPendingAction action={propertySnapshot.pendingAction} onResolve={handleResolvePending} />
           )}
           {propertySnapshot.pending.length > 0 && (
-            <PendingQueue
+            <TaskDeckQueue
               actions={propertySnapshot.pending}
               onValidate={handleValidate}
               onEdit={handleEdit}
@@ -233,7 +263,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
       {/* file HITL flottante (vue portefeuille / autres scopes) */}
       {!propertySnapshot && snapshot.pending.length > 0 && (
         <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 7, maxWidth: 'calc(100% - 32px)', display: 'flex', flexDirection: 'column' }}>
-          <PendingQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} variant="floating" />
+          <TaskDeckQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} variant="floating" />
         </Box>
       )}
 

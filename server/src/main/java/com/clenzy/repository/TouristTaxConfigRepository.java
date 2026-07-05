@@ -15,4 +15,12 @@ public interface TouristTaxConfigRepository extends JpaRepository<TouristTaxConf
 
     @Query("SELECT t FROM TouristTaxConfig t WHERE t.organizationId = :orgId")
     List<TouristTaxConfig> findByOrgId(@Param("orgId") Long orgId);
+
+    /** Barème par défaut de l'org ({@code propertyId} null). */
+    @Query("SELECT t FROM TouristTaxConfig t WHERE t.propertyId IS NULL AND t.organizationId = :orgId")
+    Optional<TouristTaxConfig> findDefaultForOrg(@Param("orgId") Long orgId);
+
+    /** Chargement par id borné à l'org (jamais de findById nu dans un flux utilisateur). */
+    @Query("SELECT t FROM TouristTaxConfig t WHERE t.id = :id AND t.organizationId = :orgId")
+    Optional<TouristTaxConfig> findByIdAndOrganizationId(@Param("id") Long id, @Param("orgId") Long orgId);
 }

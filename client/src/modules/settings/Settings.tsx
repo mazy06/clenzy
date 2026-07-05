@@ -43,7 +43,7 @@ import { useNoiseMonitoring } from '../../hooks/useNoiseMonitoring';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';
 import storageService, { STORAGE_KEYS, isMockEnabled } from '../../services/storageService';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useOnboarding } from '../../hooks/useOnboarding';
@@ -67,13 +67,13 @@ import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import MarketingPreferencesCard from './MarketingPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
-import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
 import WhatsAppStatusBanner from '../messaging/WhatsAppStatusBanner';
 import FiscalProfileSection from './FiscalProfileSection';
 import type { FiscalProfileHandle } from './FiscalProfileSection';
 import SepaDebtorSettings, { type SepaDebtorHandle } from './SepaDebtorSettings';
 import PayoutScheduleSettings, { type PayoutScheduleHandle } from './PayoutScheduleSettings';
 import TaxRulesSection from './TaxRulesSection';
+import TouristTaxSection from './TouristTaxSection';
 import PaymentSettings from './PaymentSettings';
 import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
@@ -133,6 +133,7 @@ export default function Settings() {
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const { mode: themeMode, setMode: setThemeMode, isDark } = useThemeMode();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // ─── Etat tab Integrations (hoiste depuis IntegrationsSection) ──────────
   // Permet d'injecter la barre de recherche + filtre categorie dans le slot
@@ -1045,7 +1046,32 @@ export default function Settings() {
               par la plateforme depuis l'onglet Organisation. Le HOST voit ici un
               statut read-only + ses automatisations de messages voyageurs. */}
           <WhatsAppStatusBanner />
-          <MessagingAutomationSection />
+          {/* La messagerie automatique check-in/check-out est désormais gérée dans
+              le hub Automatisations (source de vérité unique). */}
+          <Box
+            sx={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 2, p: 2, borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--hairline)', backgroundColor: 'var(--field)',
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>
+                {t('messaging.automation.movedTitle', 'Messages automatiques (check-in / check-out)')}
+              </Typography>
+              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.5 }}>
+                {t('messaging.automation.movedBody', 'La messagerie automatique est désormais gérée dans Automatisations, avec les autres règles.')}
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => navigate('/automation-rules')}
+              sx={{ flexShrink: 0 }}
+            >
+              {t('messaging.automation.movedCta', 'Ouvrir les automatisations')}
+            </Button>
+          </Box>
         </Box>
       </TabPanel>
 
@@ -1072,6 +1098,8 @@ export default function Settings() {
           />
           <Box sx={{ mt: 3 }} />
           <TaxRulesSection />
+          <Box sx={{ mt: 3 }} />
+          <TouristTaxSection canEdit={hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])} />
         </TabPanel>
       )}
 

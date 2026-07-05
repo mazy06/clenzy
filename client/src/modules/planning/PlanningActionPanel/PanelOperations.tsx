@@ -26,8 +26,9 @@ import {
   ListSubheader,
 } from '@mui/material';
 import {
-  AutoAwesome,
   Handyman,
+  BroomFill,
+  WrenchFill,
   Groups,
   PriorityHigh,
   CheckCircleOutline,
@@ -40,12 +41,10 @@ import {
   Schedule,
   SwapHoriz,
   Edit,
-  CheckCircle,
   ChevronRight,
   Search as InspectIcon,
   MeetingRoom,
   CameraAlt,
-  Send,
   OpenInNew,
   CleaningServices,
   Payment,
@@ -294,6 +293,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   // ── Dialog states ──────────────────────────────────────────────────────────
   const [srDialogOpen, setSrDialogOpen] = useState(false);
   const [srDialogDefaultType, setSrDialogDefaultType] = useState<string | undefined>(undefined);
+  const [editingSrId, setEditingSrId] = useState<number | null>(null);
 
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [assignTarget, setAssignTarget] = useState<PlanningIntervention | null>(null);
@@ -513,19 +513,29 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
   // 1. Demande de menage → open CreateServiceRequestDialog with type='CLEANING'
   const handleCleaningRequestClick = () => {
+    setEditingSrId(null);
     setSrDialogDefaultType('CLEANING');
     setSrDialogOpen(true);
   };
 
   // 2. Demande de maintenance → open CreateServiceRequestDialog with type='PREVENTIVE_MAINTENANCE'
   const handleMaintenanceRequestClick = () => {
+    setEditingSrId(null);
     setSrDialogDefaultType('PREVENTIVE_MAINTENANCE');
     setSrDialogOpen(true);
   };
 
   // 3. Nouvelle demande de service → open CreateServiceRequestDialog with type='OTHER'
   const handleNewServiceRequestClick = () => {
+    setEditingSrId(null);
     setSrDialogDefaultType('OTHER');
+    setSrDialogOpen(true);
+  };
+
+  // 3-bis. Éditer une demande de service existante → rouvre le même modal pré-rempli
+  const handleEditServiceRequest = (srId: number) => {
+    setSrDialogDefaultType(undefined);
+    setEditingSrId(srId);
     setSrDialogOpen(true);
   };
 
@@ -948,9 +958,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <Box component="span" sx={{ display: 'inline-flex', color: intervention.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
               {intervention.type === 'cleaning' ? (
-                <AutoAwesome size={20} strokeWidth={1.75} />
+                <BroomFill size={20} />
               ) : (
-                <Handyman size={20} strokeWidth={1.75} />
+                <WrenchFill size={19} />
               )}
             </Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
@@ -1055,6 +1065,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                 {serviceRequests.map((sr) => {
                   const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, tokens: NEUTRAL_TOKENS };
                   const typeLabel = SERVICE_TYPE_LABELS[sr.serviceType] || sr.serviceType;
+                  const isCleaningSr = sr.serviceType.includes('CLEANING');
+                  const srTypeColor = isCleaningSr ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance;
                   const isReadyForPayment = sr.status === 'AWAITING_PAYMENT';
                   const isPending = sr.status === 'PENDING';
                   const isValidating = validatingId === sr.id;
@@ -1066,70 +1078,85 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       key={sr.id}
                       sx={{
                         mb: 0.75,
-                        p: 1,
-                        borderRadius: 1.5,
+                        p: 1.25,
+                        borderRadius: 2,
                         border: '1px solid',
                         borderColor: 'divider',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      {/* Header: title + open link */}
+                      {/* Header: icône type + titre + assigné en sous-ligne + lien */}
                       <Box
                         onClick={() => navigate(`/service-requests/${sr.id}`)}
                         sx={{
-                          display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
+                          display: 'flex', alignItems: 'flex-start', gap: 0.875,
                           cursor: 'pointer',
                           '&:hover .sr-arrow': { opacity: 1, transform: 'translateX(2px)' },
                         }}
                       >
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Send size={12} strokeWidth={1.75} /></Box>
-                        <Typography variant="caption" sx={{ flex: 1, fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {sr.title}
-                        </Typography>
+                        <Box component="span" sx={{ display: 'inline-flex', mt: '2px', color: srTypeColor }}>
+                          {isCleaningSr ? <BroomFill size={14} /> : <WrenchFill size={13} />}
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {sr.title}
+                          </Typography>
+                          {assigneeName && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.125 }}>
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
+                                <Groups size={11} strokeWidth={1.75} />
+                              </Box>
+                              <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {assigneeName}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
                         <Box
                           component="span"
                           className="sr-arrow"
-                          sx={{ display: 'inline-flex', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
+                          sx={{ display: 'inline-flex', mt: '2px', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
                         >
                           <OpenInNew size={14} strokeWidth={1.75} />
                         </Box>
                       </Box>
-                      {/* Status chips row */}
-                      <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5, flexWrap: 'wrap' }}>
+                      {/* Méta : type + montant + statut (icône↔libellé espacés) */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.875, mb: 0.25, flexWrap: 'wrap' }}>
                         <Chip
+                          icon={isCleaningSr ? <BroomFill size={11} /> : <WrenchFill size={11} />}
                           label={typeLabel}
                           size="small"
                           sx={{
-                            fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: NEUTRAL_TOKENS.bg, color: NEUTRAL_TOKENS.color,
+                            fontSize: '0.5625rem', height: 21, fontWeight: 700,
+                            backgroundColor: `color-mix(in srgb, ${srTypeColor} 14%, transparent)`,
+                            color: srTypeColor,
                             borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.5 },
+                            '& .MuiChip-icon': { fontSize: 11, ml: 0.5, mr: 0.125, color: srTypeColor },
+                            '& .MuiChip-label': { pl: 0.375, pr: 0.625 },
                           }}
                         />
+                        {typeof sr.estimatedCost === 'number' && sr.estimatedCost > 0 && (
+                          <Chip
+                            label={<Money value={sr.estimatedCost} from="EUR" decimals={0} />}
+                            size="small"
+                            sx={{
+                              fontSize: '0.5625rem', height: 21, fontWeight: 700,
+                              backgroundColor: 'action.hover', color: 'text.primary',
+                              borderRadius: '6px', fontVariantNumeric: 'tabular-nums',
+                              '& .MuiChip-label': { px: 0.625 },
+                            }}
+                          />
+                        )}
                         <Chip
                           label={statusCfg.label}
                           size="small"
                           sx={{
-                            fontSize: '0.5625rem', height: 20, fontWeight: 600,
+                            fontSize: '0.5625rem', height: 21, fontWeight: 700, letterSpacing: '0.01em',
                             backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
                             borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.5 },
+                            '& .MuiChip-label': { px: 0.625 },
                           }}
                         />
-                        {assigneeName && (
-                          <Chip
-                            icon={<Groups size={10} strokeWidth={1.75} />}
-                            label={assigneeName}
-                            size="small"
-                            sx={{
-                              fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                              backgroundColor: INFO_TOKENS.bg, color: INFO_TOKENS.color,
-                              borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: INFO_TOKENS.color },
-                              '& .MuiChip-label': { px: 0.5 },
-                            }}
-                          />
-                        )}
                       </Box>
                       {/* Actions selon le statut */}
                       <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
@@ -1226,6 +1253,24 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                             Réassigner
                           </Button>
                         )}
+                        {/* Éditer la demande (admin/manager) — rouvre le modal pré-rempli */}
+                        {canEditIntervention && sr.status !== 'COMPLETED' && sr.status !== 'PAID' && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<Edit size={14} strokeWidth={1.75} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditServiceRequest(sr.id);
+                            }}
+                            sx={{
+                              fontSize: '0.6875rem', textTransform: 'none',
+                              py: 0.25, px: 1.5, borderRadius: 1,
+                            }}
+                          >
+                            Éditer
+                          </Button>
+                        )}
                         {/* Supprimer (PENDING, REJECTED, CANCELLED uniquement) */}
                         {canDeleteSr(sr) && (
                           <IconButton
@@ -1290,103 +1335,90 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                       key={li.id}
                       sx={{
                         mb: 0.75,
-                        p: 1,
-                        borderRadius: 1.5,
+                        p: 1.25,
+                        borderRadius: 2,
                         border: '1px solid',
-                        borderColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'divider',
-                        backgroundColor: isOnPlanning ? 'var(--ok-soft)' : 'transparent',
+                        borderColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 22%, transparent)' : 'divider',
+                        backgroundColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 6%, transparent)' : 'transparent',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      {/* Header: icon + title + drill arrow */}
+                      {/* Header: icône type + titre + assigné en sous-ligne + flèche */}
                       <Box
                         onClick={() => onNavigate?.({ type: 'intervention-detail', interventionId: li.id })}
                         sx={{
-                          display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75,
+                          display: 'flex', alignItems: 'flex-start', gap: 0.875,
                           cursor: onNavigate ? 'pointer' : 'default',
                           '&:hover .drill-arrow': { opacity: 1, transform: 'translateX(2px)' },
                         }}
                       >
-                        <Box component="span" sx={{ display: 'inline-flex', color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
-                          {li.type === 'cleaning' ? (
-                            <AutoAwesome size={14} strokeWidth={1.75} />
-                          ) : (
-                            <Handyman size={14} strokeWidth={1.75} />
-                          )}
+                        <Box component="span" sx={{ display: 'inline-flex', mt: '2px', color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+                          {li.type === 'cleaning' ? <BroomFill size={15} /> : <WrenchFill size={14} />}
                         </Box>
-                        <Typography variant="caption" sx={{ flex: 1, fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {li.title}
-                        </Typography>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {li.title}
+                          </Typography>
+                          {/* Assigné : sous-ligne discrète (libère la place, plus de chip vert) */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.125 }}>
+                            <Box component="span" sx={{ display: 'inline-flex', color: isAssigned ? 'var(--muted)' : 'var(--warn)' }}>
+                              {isAssigned ? <Groups size={11} strokeWidth={1.75} /> : <HourglassEmpty size={11} strokeWidth={1.75} />}
+                            </Box>
+                            <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: isAssigned ? 'var(--muted)' : 'var(--warn)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {isAssigned ? li.assigneeName : 'Non assigné'}
+                            </Typography>
+                          </Box>
+                        </Box>
                         <Box
                           component="span"
                           className="drill-arrow"
-                          sx={{ display: 'inline-flex', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
+                          sx={{ display: 'inline-flex', mt: '2px', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
                         >
                           <ChevronRight size={16} strokeWidth={1.75} />
                         </Box>
                       </Box>
 
-                      {/* Status chips row */}
-                      <Box sx={{ display: 'flex', gap: 0.5, mb: 0.5, flexWrap: 'wrap' }}>
+                      {/* Méta : statut + montant/paiement ; indicateur planning à droite */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.875, flexWrap: 'wrap' }}>
                         <Chip
                           label={statusCfg.label}
                           size="small"
                           sx={{
-                            fontSize: '0.5625rem', height: 20, fontWeight: 600,
+                            fontSize: '0.5625rem', height: 21, fontWeight: 700, letterSpacing: '0.01em',
                             backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
                             borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.5 },
+                            '& .MuiChip-label': { px: 0.625 },
                           }}
                         />
-                        {/* Assignment status */}
-                        <Chip
-                          icon={isAssigned
-                            ? <CheckCircle size={10} strokeWidth={1.75} />
-                            : <HourglassEmpty size={10} strokeWidth={1.75} />}
-                          label={isAssigned ? li.assigneeName : 'Non assigne'}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                            backgroundColor: isAssigned ? OK_TOKENS.bg : WARN_TOKENS.bg,
-                            color: isAssigned ? OK_TOKENS.color : WARN_TOKENS.color,
-                            borderRadius: '6px',
-                            '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: isAssigned ? OK_TOKENS.color : WARN_TOKENS.color },
-                            '& .MuiChip-label': { px: 0.5 },
-                          }}
-                        />
-                        {/* Payment status (only if cost > 0) */}
+                        {/* Montant + paiement (montant mis en avant) */}
                         {cost > 0 && payStatusCfg && (
                           <Chip
                             icon={<Payment size={10} strokeWidth={1.75} />}
-                            label={<>{payStatusCfg.label} (<Money value={cost} from="EUR" decimals={0} />)</>}
+                            label={
+                              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.375 }}>
+                                <Box component="span" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}><Money value={cost} from="EUR" decimals={0} /></Box>
+                                <Box component="span" sx={{ opacity: 0.5 }}>·</Box>
+                                <span>{payStatusCfg.label}</span>
+                              </Box>
+                            }
                             size="small"
                             sx={{
-                              fontSize: '0.5625rem', height: 20, fontWeight: 600,
+                              fontSize: '0.5625rem', height: 21, fontWeight: 600,
                               backgroundColor: payStatusCfg.tokens.bg, color: payStatusCfg.tokens.color,
                               borderRadius: '6px',
-                              fontVariantNumeric: 'tabular-nums',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: payStatusCfg.tokens.color },
-                              '& .MuiChip-label': { px: 0.5 },
+                              '& .MuiChip-icon': { fontSize: 10, ml: 0.5, mr: 0.125, color: payStatusCfg.tokens.color },
+                              '& .MuiChip-label': { pl: 0.375, pr: 0.625 },
                             }}
                           />
                         )}
-                        {/* Planning visibility indicator */}
+                        {/* Visibilité planning : icône seule, poussée à droite */}
                         <Tooltip title={isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}>
-                          <Chip
-                            icon={isOnPlanning
-                              ? <Visibility size={10} strokeWidth={1.75} />
-                              : <VisibilityOff size={10} strokeWidth={1.75} />}
-                            label={isOnPlanning ? 'Planning' : 'Masque'}
-                            size="small"
-                            sx={{
-                              fontSize: '0.5625rem', height: 20, fontWeight: 600,
-                              backgroundColor: isOnPlanning ? OK_TOKENS.bg : NEUTRAL_TOKENS.bg,
-                              color: isOnPlanning ? OK_TOKENS.color : NEUTRAL_TOKENS.color,
-                              borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.25, color: isOnPlanning ? OK_TOKENS.color : NEUTRAL_TOKENS.color },
-                              '& .MuiChip-label': { px: 0.5 },
-                            }}
-                          />
+                          <Box
+                            component="span"
+                            sx={{ ml: 'auto', display: 'inline-flex', alignItems: 'center', color: isOnPlanning ? 'var(--ok)' : 'var(--faint)' }}
+                          >
+                            {isOnPlanning ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
+                          </Box>
                         </Tooltip>
                       </Box>
 
@@ -1546,14 +1578,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       {/* Create Service Request Dialog */}
       <CreateServiceRequestDialog
         open={srDialogOpen}
-        onClose={() => setSrDialogOpen(false)}
+        onClose={() => { setSrDialogOpen(false); setEditingSrId(null); }}
         propertyId={propertyId}
         propertyName={propertyName}
         reservationId={currentReservationId}
         defaultServiceType={srDialogDefaultType}
         defaultDesiredDate={isReservation ? reservation?.checkOut : intervention?.startDate}
+        editingServiceRequestId={editingSrId}
         onCreated={() => {
-          showSnackbar('Demande de service créée avec succès');
+          showSnackbar(editingSrId ? 'Demande de service enregistrée' : 'Demande de service créée avec succès');
           // Refetch service requests so they appear in the sidebar
           queryClient.invalidateQueries({ queryKey: ['planning', 'service-requests', currentReservationId] });
           // Also refresh interventions in case auto-assign created one

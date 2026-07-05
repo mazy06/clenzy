@@ -38,6 +38,8 @@ export interface ConstellationRendererProps {
   onSelectAgent?: (id: AgentId) => void;
   /** Action posée DANS le HUD (haut-gauche), ex. bouton « Scanner » en icône. */
   headerAction?: ReactNode;
+  /** Contenu empilé JUSTE SOUS le HUD (haut-gauche), ex. flux « En direct ». */
+  belowHud?: ReactNode;
 }
 
 export type ConstellationRenderer = ComponentType<ConstellationRendererProps>;
