@@ -3,7 +3,7 @@
 
    Port fidèle de layoutConstellation + drawBeams (demo variants.js) :
      angle = -π/2 + i·(2π/n) + 0.18
-     r     = R · RAD[autonomie]   (wait → R · RAD.full, tiré au centre)
+     r     = R · RAD[autonomie]   (l'orbite reflète toujours l'autonomie)
      R     = min(w, h) / 2
    Faisceaux : du bord du cœur (34 px) au bord de l'avatar (28 px).
 
@@ -111,8 +111,11 @@ export function computeConstellationLayout(
 
   const satellites: SatelliteLayout[] = ordered.map((agent, i) => {
     const angle = -Math.PI / 2 + i * ((2 * Math.PI) / n) + ANGLE_OFFSET;
-    // wait → tiré au centre (urgence), quel que soit son niveau d'autonomie.
-    const r = agent.status === 'wait' ? R * RAD.full : R * RAD[agent.autonomy];
+    // L'orbite reflète TOUJOURS le niveau d'autonomie de l'agent (cohérence avec
+    // les labels d'anneaux SUGGÈRE/NOTIFIE/AUTO). Le statut `wait` (« Attend ta
+    // validation ») est signalé par ailleurs (couleur ambre, HUD « en attente »,
+    // carte HITL) — il ne déplace plus l'agent sur l'anneau AUTO (label trompeur).
+    const r = R * RAD[agent.autonomy];
     return {
       id: agent.id,
       x: cx + r * Math.cos(angle),

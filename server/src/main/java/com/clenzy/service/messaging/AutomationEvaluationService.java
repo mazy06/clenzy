@@ -16,6 +16,7 @@ import com.clenzy.service.automation.AutomationActionRegistry;
 import com.clenzy.service.automation.AutomationEngine;
 import com.clenzy.service.automation.AutomationSubject;
 import com.clenzy.service.automation.RevokeAccessCodeExecutor;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.tenant.TenantScopedExecutor;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -63,6 +64,30 @@ public class AutomationEvaluationService implements AutomationEngine {
     private static final Logger log = LoggerFactory.getLogger(AutomationEvaluationService.class);
     private static final LocalTime DEFAULT_TRIGGER_TIME = LocalTime.of(9, 0);
 
+    /**
+     * Mapping action déterministe → domaine de la constellation (com/rev/ops/fin/rep).
+     * Permet à la constellation de refléter les flux SANS IA (feed + statut de domaine),
+     * pas seulement le scan LLM. Une action absente = pas de ligne dans la constellation.
+     */
+    private static final Map<AutomationAction, String> ACTION_MODULE = Map.ofEntries(
+        Map.entry(AutomationAction.SEND_MESSAGE, "com"),
+        Map.entry(AutomationAction.SEND_GUIDE, "com"),
+        Map.entry(AutomationAction.SEND_CHECKIN_LINK, "com"),
+        Map.entry(AutomationAction.SEND_NOISE_WARNING, "com"),
+        Map.entry(AutomationAction.SEND_REVIEW_REQUEST, "rep"),
+        Map.entry(AutomationAction.CREATE_CLEANING_REQUEST, "ops"),
+        Map.entry(AutomationAction.CANCEL_LINKED_CLEANING_REQUEST, "ops"),
+        Map.entry(AutomationAction.CREATE_MAINTENANCE_INTERVENTION, "ops"),
+        Map.entry(AutomationAction.NOTIFY_STAFF, "ops"),
+        Map.entry(AutomationAction.REVOKE_ACCESS_CODE, "ops"),
+        Map.entry(AutomationAction.SEND_INVOICE_REMINDER, "fin"),
+        Map.entry(AutomationAction.SEND_OWNER_STATEMENT, "fin"),
+        Map.entry(AutomationAction.SUGGEST_DEPOSIT_REFUND, "fin"),
+        Map.entry(AutomationAction.SUGGEST_DEPOSIT_RELEASE, "fin"),
+        Map.entry(AutomationAction.NOTIFY_RATE_PARITY, "rev"),
+        Map.entry(AutomationAction.SUGGEST_CALENDAR_BLOCK, "rev")
+    );
+
     private final AutomationRuleRepository ruleRepository;
     private final AutomationExecutionRepository executionRepository;
     private final AutomationConditionEvaluator conditionEvaluator;
@@ -71,6 +96,7 @@ public class AutomationEvaluationService implements AutomationEngine {
     private final TenantScopedExecutor tenantScopedExecutor;
     private final TenantContext tenantContext;
     private final MeterRegistry meterRegistry;
+    private final SupervisionActivityService supervisionActivityService;
     private final Clock clock;
 
     public AutomationEvaluationService(AutomationRuleRepository ruleRepository,
@@ -81,6 +107,7 @@ public class AutomationEvaluationService implements AutomationEngine {
                                         TenantScopedExecutor tenantScopedExecutor,
                                         TenantContext tenantContext,
                                         MeterRegistry meterRegistry,
+                                        SupervisionActivityService supervisionActivityService,
                                         Clock clock) {
         this.ruleRepository = ruleRepository;
         this.executionRepository = executionRepository;
@@ -90,6 +117,7 @@ public class AutomationEvaluationService implements AutomationEngine {
         this.tenantScopedExecutor = tenantScopedExecutor;
         this.tenantContext = tenantContext;
         this.meterRegistry = meterRegistry;
+        this.supervisionActivityService = supervisionActivityService;
         this.clock = clock;
     }
 
@@ -270,6 +298,7 @@ public class AutomationEvaluationService implements AutomationEngine {
                 execution.setStatus(AutomationExecutionStatus.EXECUTED);
                 execution.setExecutedAt(now());
                 meterRegistry.counter(EXECUTED_METRIC, "action", rule.getActionType().name()).increment();
+                recordConstellationActivity(rule, context);
                 log.info("Automation {} ({}) executee pour sujet {}/{}",
                     rule.getName(), rule.getActionType(), context.subjectType(), context.subjectId());
             }
@@ -283,6 +312,35 @@ public class AutomationEvaluationService implements AutomationEngine {
                 rule.getName(), context.subjectType(), context.subjectId(), e.getMessage(), e);
         }
         executionRepository.save(execution);
+    }
+
+    /**
+     * Reflète un flux déterministe EXÉCUTÉ dans la constellation (journal + statut du
+     * domaine), pour que le superviseur ne montre pas QUE l'activité du scan LLM.
+     * Best-effort et per-propriété : on écrit seulement quand le sujet résout une
+     * propriété (réservation ou sujet PROPERTY) — les sujets org-level (relevé,
+     * payout) restent hors constellation. {@code recordModuleAct} avale ses erreurs.
+     */
+    private void recordConstellationActivity(AutomationRule rule, AutomationActionContext context) {
+        String module = ACTION_MODULE.get(rule.getActionType());
+        if (module == null) {
+            return;
+        }
+        Long propertyId = null;
+        try {
+            if (context.reservation() != null && context.reservation().getProperty() != null) {
+                propertyId = context.reservation().getProperty().getId();
+            } else if (AutomationSubject.TYPE_PROPERTY.equals(context.subjectType())) {
+                propertyId = context.subjectId();
+            }
+        } catch (Exception ignore) {
+            propertyId = null; // propriété LAZY non résoluble → pas de ligne, best-effort
+        }
+        if (propertyId == null) {
+            return;
+        }
+        supervisionActivityService.recordModuleAct(
+            context.orgId(), propertyId, module, rule.getActionType().name(), rule.getName());
     }
 
     /**

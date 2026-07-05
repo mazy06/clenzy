@@ -33,13 +33,16 @@ public class OrganizationService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository memberRepository;
     private final UserRepository userRepository;
+    private final AutomationRuleService automationRuleService;
 
     public OrganizationService(OrganizationRepository organizationRepository,
                                 OrganizationMemberRepository memberRepository,
-                                UserRepository userRepository) {
+                                UserRepository userRepository,
+                                AutomationRuleService automationRuleService) {
         this.organizationRepository = organizationRepository;
         this.memberRepository = memberRepository;
         this.userRepository = userRepository;
+        this.automationRuleService = automationRuleService;
     }
 
     /**
@@ -68,6 +71,9 @@ public class OrganizationService {
         // Mettre a jour l'organization_id sur l'utilisateur
         user.setOrganizationId(org.getId());
         userRepository.save(user);
+
+        // Règles d'automatisation recommandées, actives par défaut (idempotent).
+        automationRuleService.seedRecommendedForOrg(org.getId());
 
         logger.info("Organisation creee : id={}, slug={}, user={}", org.getId(), org.getSlug(), user.getEmail());
         return org;
@@ -315,6 +321,9 @@ public class OrganizationService {
         org.setType(type);
         org.setSlug(generateUniqueSlug(name));
         org = organizationRepository.save(org);
+
+        // Règles d'automatisation recommandées, actives par défaut (idempotent).
+        automationRuleService.seedRecommendedForOrg(org.getId());
 
         logger.info("Organisation standalone creee : id={}, slug={}", org.getId(), org.getSlug());
         return org;

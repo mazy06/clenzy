@@ -30,6 +30,7 @@ class GuestChatServiceTest {
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private ValueOperations<String, String> valueOps;
     @Mock private AiTokenBudgetService tokenBudgetService;
+    @Mock private AssistantOutcomeTracker outcomeTracker;
 
     private GuestChatService service;
 
@@ -37,14 +38,14 @@ class GuestChatServiceTest {
     void setUp() {
         service = new GuestChatService(
             welcomeGuideService, aiProviderRouter, redisTemplate, new GuideConfig(), tokenBudgetService,
-                new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry(), outcomeTracker);
     }
 
     @Test
     void answer_validToken_returnsReply() {
         UUID token = UUID.randomUUID();
         when(welcomeGuideService.getChatContext(token))
-            .thenReturn(Optional.of(new GuestChatContext(1L, "fr", "Wi-Fi (réseau) : Maison")));
+            .thenReturn(Optional.of(new GuestChatContext(1L, 42L, "fr", "Wi-Fi (réseau) : Maison")));
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(valueOps.increment(anyString())).thenReturn(1L);
         when(aiProviderRouter.route(eq(1L), anyString(), any(), any()))
@@ -72,7 +73,7 @@ class GuestChatServiceTest {
     void answer_aiUnavailable_returnsGracefulFallback() {
         UUID token = UUID.randomUUID();
         when(welcomeGuideService.getChatContext(token))
-            .thenReturn(Optional.of(new GuestChatContext(1L, "fr", "x")));
+            .thenReturn(Optional.of(new GuestChatContext(1L, 42L, "fr", "x")));
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(valueOps.increment(anyString())).thenReturn(1L);
         when(aiProviderRouter.route(eq(1L), anyString(), any(), any()))

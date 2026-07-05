@@ -8,7 +8,7 @@ import {
   Typography,
   IconButton,
   Button,
-  TextField,
+  InputBase,
   CircularProgress,
   Alert,
   Link,
@@ -24,19 +24,6 @@ import {
   ArrowForward,
   Home,
   Person,
-  Bed,
-  Bathtub,
-  SquareFoot,
-  Layers,
-  Deck,
-  LocalLaundryService,
-  People,
-  Category,
-  Window,
-  DoorSliding,
-  Iron,
-  Kitchen,
-  AutoAwesome,
   Warning as WarningIcon,
   Timer,
   Euro,
@@ -45,18 +32,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTranslation } from '../../../hooks/useTranslation';
 import apiClient from '../../../services/apiClient';
-import { propertiesApi, usersApi, teamsApi, reservationsApi } from '../../../services/api';
+import { propertiesApi, usersApi, teamsApi, reservationsApi, serviceRequestsApi } from '../../../services/api';
 import type { Reservation } from '../../../services/api';
 import { interventionsApi } from '../../../services/api/interventionsApi';
 import type { TeamMemberAvailability, UserAvailabilityResponse } from '../../../services/api/interventionsApi';
 import { pricingConfigApi } from '../../../services/api/pricingConfigApi';
-import type { ForfaitConfig } from '../../../services/api/pricingConfigApi';
+import type { ForfaitConfig, ServicePriceConfig } from '../../../services/api/pricingConfigApi';
+import { technicianPrestationsApi } from '../../../services/api/technicianPrestationsApi';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { serviceRequestSchema } from '../../../schemas';
 import type { ServiceRequestFormValues } from '../../../schemas';
 import { INTERVENTION_TYPE_OPTIONS } from '../../../types/interventionTypes';
-import { getPropertyTypeLabel } from '../../../utils/statusUtils';
 import { computeEstimatedDuration, formatDuration, computeRangeFromForfait } from '../../service-requests/ServiceRequestPriceEstimate';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { Money } from '../../../components/Money';
@@ -65,6 +52,8 @@ import { Money } from '../../../components/Money';
 import ServiceRequestFormInfo from '../../service-requests/ServiceRequestFormInfo';
 import ServiceRequestFormPlanning from '../../service-requests/ServiceRequestFormPlanning';
 import ServiceRequestFormAssignment from '../../service-requests/ServiceRequestFormAssignment';
+import ServiceRequestMaintenancePricing from '../../service-requests/ServiceRequestMaintenancePricing';
+import type { MaintenancePricingState } from '../../service-requests/ServiceRequestMaintenancePricing';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 interface Property {
@@ -113,7 +102,7 @@ interface Team {
 }
 
 // ── Steps ───────────────────────────────────────────────────────────────────
-const STEPS = ['Service', 'Planification', 'Assignation'];
+const STEPS = ['Service', 'Chiffrage', 'Planification', 'Assignation'];
 
 // ── Props ───────────────────────────────────────────────────────────────────
 interface CreateServiceRequestDialogProps {
@@ -127,22 +116,11 @@ interface CreateServiceRequestDialogProps {
   defaultServiceType?: string;
   /** Pre-fill desired date (e.g. reservation checkOut) */
   defaultDesiredDate?: string;
-  /** Callback after successful creation */
+  /** Édition d'une demande existante : le modal se pré-remplit et enregistre (PUT) au lieu de créer. */
+  editingServiceRequestId?: number | null;
+  /** Callback after successful creation / édition */
   onCreated?: (serviceRequestId: number) => void;
 }
-
-// ── Tag chip styles ─────────────────────────────────────────────────────────
-const TAG_SX = {
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 500,
-  color: 'var(--muted)',
-  borderWidth: 1,
-  borderColor: 'var(--line-2)',
-  backgroundColor: 'var(--card)',
-  '& .MuiChip-icon': { fontSize: 12, ml: 0.25, color: 'var(--accent)' },
-  '& .MuiChip-label': { px: 0.5 },
-} as const;
 
 const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   open,
@@ -152,8 +130,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   reservationId,
   defaultServiceType,
   defaultDesiredDate,
+  editingServiceRequestId,
   onCreated,
 }) => {
+  const isEditMode = !!editingServiceRequestId;
   const navigate = useNavigate();
   const { user, isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
@@ -167,6 +147,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [forfaitConfigs, setForfaitConfigs] = useState<ForfaitConfig[]>([]);
+  // Catalogue « travaux » (config tarifaire) : prestations maintenance chiffrées.
+  const [travauxConfig, setTravauxConfig] = useState<ServicePriceConfig[]>([]);
+  // P2 — ids des techniciens qui proposent les types de prestation du devis.
+  const [matchingTechnicianIds, setMatchingTechnicianIds] = useState<number[]>([]);
   const [propertyReservations, setPropertyReservations] = useState<Reservation[]>([]);
   const [canAssignForProperty, setCanAssignForProperty] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -175,6 +159,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<number | null>(null);
+  // Édition : DTO complet récupéré au chargement, réutilisé au submit pour ne pas
+  // nuller les champs non exposés par le formulaire (accessNotes, urgent, actualCost…).
+  const [editingRaw, setEditingRaw] = useState<Record<string, unknown> | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   // ── Conflict detection state ────────────────────────────────────────────
   const [conflictMembers, setConflictMembers] = useState<TeamMemberAvailability[]>([]);
@@ -186,7 +174,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   const isAdminOrManager = isAdmin() || isManager();
 
   // ── React Hook Form ─────────────────────────────────────────────────────
-  const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ServiceRequestFormValues>({
+  const { control, handleSubmit: rhfHandleSubmit, watch, setValue, getValues, reset, formState: { errors } } = useForm<ServiceRequestFormValues>({
     resolver: zodResolver(serviceRequestSchema),
     defaultValues: {
       title: '',
@@ -200,6 +188,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       assignedToId: undefined,
       assignedToType: undefined,
       status: undefined,
+      estimatedCost: undefined,
+      quoteLines: [],
+      pricingMode: 'DIRECT',
+      diagnosticFee: undefined,
     },
   });
 
@@ -208,13 +200,17 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   const watchedAssignedToId = watch('assignedToId');
   const watchedDesiredDate = watch('desiredDate');
   const watchedEstimatedDuration = watch('estimatedDurationHours');
+  const watchedQuoteLines = watch('quoteLines');
+  const watchedPricingMode = watch('pricingMode');
+  const watchedDiagnosticFee = watch('diagnosticFee');
 
-  // ── Reset form when dialog opens ────────────────────────────────────────
+  // ── Reset form when dialog opens (création uniquement) ──────────────────
   useEffect(() => {
-    if (open) {
+    if (open && !editingServiceRequestId) {
       setActiveStep(0);
       setError(null);
       setCreatedId(null);
+      setEditingRaw(null);
       setConflictMembers([]);
       setConflictInfo(null);
       setUserConflictInfo(null);
@@ -242,9 +238,61 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         assignedToId: undefined,
         assignedToType: undefined,
         status: undefined,
+        estimatedCost: undefined,
+        quoteLines: [],
+        pricingMode: 'DIRECT',
+        diagnosticFee: undefined,
       });
     }
-  }, [open, defaultServiceType, defaultDesiredDate, propertyId, user?.databaseId, reset]);
+  }, [open, defaultServiceType, defaultDesiredDate, propertyId, user?.databaseId, reset, editingServiceRequestId]);
+
+  // ── Pré-remplissage en mode édition ─────────────────────────────────────
+  useEffect(() => {
+    if (!open || !editingServiceRequestId) return;
+    let cancelled = false;
+    setActiveStep(0);
+    setError(null);
+    setCreatedId(null);
+    setConflictMembers([]);
+    setConflictInfo(null);
+    setUserConflictInfo(null);
+    setHasConflict(false);
+    setLoadingEdit(true);
+    serviceRequestsApi.getById(editingServiceRequestId)
+      .then((sr) => {
+        if (cancelled) return;
+        setEditingRaw(sr as unknown as Record<string, unknown>);
+        reset({
+          title: sr.title || '',
+          description: sr.description || '',
+          propertyId,
+          serviceType: sr.serviceType || 'CLEANING',
+          priority: sr.priority || 'NORMAL',
+          estimatedDurationHours: sr.estimatedDurationHours || 1,
+          desiredDate: sr.desiredDate ? sr.desiredDate.slice(0, 16) : '',
+          userId: sr.userId || user?.databaseId || undefined,
+          assignedToId: sr.assignedToId ?? undefined,
+          assignedToType: sr.assignedToType ?? undefined,
+          status: sr.status,
+          estimatedCost: sr.estimatedCost ?? undefined,
+          quoteLines: (sr.quoteLines || []).map((l) => ({
+            label: l.label,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            interventionType: l.interventionType,
+          })),
+          pricingMode: sr.pricingMode || 'DIRECT',
+          diagnosticFee: sr.diagnosticFee ?? undefined,
+        });
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement de la demande');
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingEdit(false);
+      });
+    return () => { cancelled = true; };
+  }, [open, editingServiceRequestId, propertyId, user?.databaseId, reset]);
 
   // ── Load properties (for characteristics) ───────────────────────────────
   useEffect(() => {
@@ -323,6 +371,9 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         const data = await pricingConfigApi.get();
         if (data.forfaitConfigs?.length) {
           setForfaitConfigs(data.forfaitConfigs);
+        }
+        if (data.travauxConfig) {
+          setTravauxConfig(data.travauxConfig.filter((t) => t.enabled));
         }
       } catch {
         // silent
@@ -480,8 +531,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   // est systématiquement la personne qui crée la demande.
 
   // ── Auto-generate title ─────────────────────────────────────────────────
+  // « Autre » (OTHER) = type personnalisé : le titre est saisi par l'utilisateur,
+  // on ne l'écrase pas.
   useEffect(() => {
-    if (!watchedServiceType) return;
+    if (!watchedServiceType || watchedServiceType === 'OTHER') return;
     const option = INTERVENTION_TYPE_OPTIONS.find(o => o.value === watchedServiceType);
     const label = option?.label || watchedServiceType;
     setValue('title', `${label} - ${propertyName}`);
@@ -503,6 +556,119 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     if (!selectedForfait || !selectedForfait.eligibleTeamIds?.length) return undefined;
     return selectedForfait.eligibleTeamIds;
   }, [selectedForfait]);
+
+  // Catalogue des prestations « travaux » (config) présenté comme chips en
+  // maintenance : label résolu + prix de base. Un clic ajoute une ligne de devis.
+  const workPrestations = useMemo(
+    () => travauxConfig.map((t) => ({
+      interventionType: t.interventionType,
+      label: t.label
+        ?? INTERVENTION_TYPE_OPTIONS.find(o => o.value === t.interventionType)?.label
+        ?? t.interventionType.replace(/_/g, ' '),
+      basePrice: t.basePrice ?? 0,
+      domain: t.domain,
+    })),
+    [travauxConfig],
+  );
+
+  // Types de prestation catalogue présents dans le devis (chips surlignés).
+  const selectedWorkTypes = useMemo(
+    () => (watchedQuoteLines ?? []).map((l) => l.interventionType).filter((t): t is string => !!t),
+    [watchedQuoteLines],
+  );
+
+  // Toggle d'une prestation du catalogue : ajoute la ligne si absente, la retire
+  // si déjà présente (multi-sélection). Bascule en « devis direct », recalcule le
+  // total (le serveur reste autoritatif à la création).
+  const handleToggleWorkPrestation = useCallback((label: string, unitPrice: number, interventionType?: string) => {
+    const current = getValues('quoteLines') ?? [];
+    const already = !!interventionType && current.some((l) => l.interventionType === interventionType);
+    const next = already
+      ? current.filter((l) => l.interventionType !== interventionType)
+      : [...current, { label, quantity: 1, unitPrice, interventionType }];
+    setValue('pricingMode', 'DIRECT');
+    setValue('quoteLines', next);
+    const total = next.reduce(
+      (sum, l) => sum + (Number.isFinite(l.quantity) ? l.quantity : 0) * (Number.isFinite(l.unitPrice) ? l.unitPrice : 0),
+      0,
+    );
+    setValue('estimatedCost', Math.round(total * 100) / 100);
+  }, [getValues, setValue]);
+
+  // P2 — clé stable des types de prestation présents dans le devis.
+  const quoteTypesKey = useMemo(() => {
+    const types = Array.from(new Set(
+      (watchedQuoteLines ?? [])
+        .map((l) => l.interventionType)
+        .filter((t): t is string => !!t),
+    ));
+    return types.sort().join(',');
+  }, [watchedQuoteLines]);
+
+  // P2 — charge les techniciens qui proposent ces types (mise en avant à l'assignation).
+  useEffect(() => {
+    const types = quoteTypesKey ? quoteTypesKey.split(',') : [];
+    if (types.length === 0) {
+      setMatchingTechnicianIds([]);
+      return;
+    }
+    let cancelled = false;
+    technicianPrestationsApi.offering(types)
+      .then((ids) => { if (!cancelled) setMatchingTechnicianIds(ids); })
+      .catch(() => { if (!cancelled) setMatchingTechnicianIds([]); });
+    return () => { cancelled = true; };
+  }, [quoteTypesKey]);
+
+  // P3 — à l'assignation d'un technicien, applique SES prix sur les lignes du
+  // devis dont le type correspond (le serveur reste autoritatif à la création).
+  useEffect(() => {
+    if (watchedAssignedToType !== 'user' || !watchedAssignedToId) return;
+    let cancelled = false;
+    technicianPrestationsApi.forUser(watchedAssignedToId)
+      .then((prestations) => {
+        if (cancelled) return;
+        const priceByType = new Map<string, number>();
+        for (const p of prestations) {
+          if (p.enabled && p.basePrice != null && p.interventionType) {
+            priceByType.set(p.interventionType, p.basePrice);
+          }
+        }
+        if (priceByType.size === 0) return;
+        const current = getValues('quoteLines') ?? [];
+        let changed = false;
+        const next = current.map((l) => {
+          if (l.interventionType && priceByType.has(l.interventionType)) {
+            const tp = priceByType.get(l.interventionType)!;
+            if (tp !== l.unitPrice) { changed = true; return { ...l, unitPrice: tp }; }
+          }
+          return l;
+        });
+        if (changed) {
+          setValue('quoteLines', next);
+          const total = next.reduce(
+            (sum, l) => sum + (Number.isFinite(l.quantity) ? l.quantity : 0) * (Number.isFinite(l.unitPrice) ? l.unitPrice : 0),
+            0,
+          );
+          setValue('estimatedCost', Math.round(total * 100) / 100);
+        }
+      })
+      .catch(() => { /* pas de droits ou pas de tarifs : on garde les prix de base */ });
+    return () => { cancelled = true; };
+  }, [watchedAssignedToType, watchedAssignedToId, getValues, setValue]);
+
+  // Ménage = estimation par forfait (m²/chambres) ; maintenance/autre = devis
+  // structuré saisi par l'opérateur. Pilote l'affichage de l'étape « Service ».
+  const isCleaningCategory = useMemo(
+    () => INTERVENTION_TYPE_OPTIONS.find(o => o.value === watchedServiceType)?.category === 'cleaning',
+    [watchedServiceType],
+  );
+
+  const handlePricingChange = useCallback((next: MaintenancePricingState) => {
+    setValue('pricingMode', next.pricingMode);
+    setValue('quoteLines', next.quoteLines);
+    setValue('diagnosticFee', next.diagnosticFee);
+    setValue('estimatedCost', next.estimatedCost);
+  }, [setValue]);
 
   // ── Dynamic estimation (prix + durée) ────────────────────────────────
   const estimatedDuration = useMemo(() => {
@@ -540,45 +706,6 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     return '';
   }, [user, isAdmin, isManager, isHost]);
 
-  // ── Property tags (characteristics) ─────────────────────────────────────
-  const propertyTags = useMemo(() => {
-    if (!selectedProperty) return [];
-    const tags: { icon: React.ReactElement; label: string }[] = [];
-
-    if (selectedProperty.type) {
-      tags.push({ icon: <Category size={12} strokeWidth={1.75} />, label: getPropertyTypeLabel(selectedProperty.type, t) });
-    }
-    if (selectedProperty.squareMeters && selectedProperty.squareMeters > 0) {
-      tags.push({ icon: <SquareFoot size={12} strokeWidth={1.75} />, label: `${selectedProperty.squareMeters} m²` });
-    }
-    if (selectedProperty.bedroomCount && selectedProperty.bedroomCount > 0) {
-      tags.push({ icon: <Bed size={12} strokeWidth={1.75} />, label: `${selectedProperty.bedroomCount} ${selectedProperty.bedroomCount > 1 ? 'chambres' : 'chambre'}` });
-    }
-    if (selectedProperty.bathroomCount && selectedProperty.bathroomCount > 0) {
-      tags.push({ icon: <Bathtub size={12} strokeWidth={1.75} />, label: `${selectedProperty.bathroomCount} SDB` });
-    }
-    if (selectedProperty.maxGuests && selectedProperty.maxGuests > 0) {
-      tags.push({ icon: <People size={12} strokeWidth={1.75} />, label: `${selectedProperty.maxGuests} voyageurs` });
-    }
-    if (selectedProperty.hasExterior) {
-      tags.push({ icon: <Deck size={12} strokeWidth={1.75} />, label: 'Extérieur' });
-    }
-    if (selectedProperty.hasLaundry) {
-      tags.push({ icon: <LocalLaundryService size={12} strokeWidth={1.75} />, label: 'Linge' });
-    }
-    if (selectedProperty.windowCount && selectedProperty.windowCount > 0) {
-      tags.push({ icon: <Window size={12} strokeWidth={1.75} />, label: `${selectedProperty.windowCount} fenêtres` });
-    }
-    if (selectedProperty.frenchDoorCount && selectedProperty.frenchDoorCount > 0) {
-      tags.push({ icon: <DoorSliding size={12} strokeWidth={1.75} />, label: `${selectedProperty.frenchDoorCount} portes-fenêtres` });
-    }
-    if (selectedProperty.slidingDoorCount && selectedProperty.slidingDoorCount > 0) {
-      tags.push({ icon: <DoorSliding size={12} strokeWidth={1.75} />, label: `${selectedProperty.slidingDoorCount} baies vitrées` });
-    }
-
-    return tags;
-  }, [selectedProperty, t]);
-
   // ── Step validation ─────────────────────────────────────────────────────
   const canGoNext = useCallback(() => {
     if (activeStep === 0) {
@@ -608,7 +735,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       // qui re-serialiserait en UTC et decalerait l'heure.
       const desiredDate = formData.desiredDate || null;
 
-      const backendData: Record<string, string | number | boolean | null> = {
+      // En édition on repart du DTO complet pour préserver les champs non exposés
+      // par le formulaire (accessNotes, urgent, actualCost…) et le statut courant.
+      const backendData: Record<string, unknown> = {
+        ...(isEditMode && editingRaw ? editingRaw : {}),
         title: formData.title,
         description: formData.description,
         propertyId,
@@ -618,26 +748,52 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         estimatedDurationHours: formData.estimatedDurationHours,
         desiredDate,
         userId: formData.userId ?? user?.databaseId ?? null,
-        status: 'PENDING',
+        status: isEditMode ? (formData.status ?? (editingRaw?.status as string | undefined) ?? 'PENDING') : 'PENDING',
       };
+
+      // Chiffrage maintenance : le serveur est autoritatif sur le montant à régler.
+      if (!isCleaningCategory) {
+        const mode = formData.pricingMode ?? 'DIRECT';
+        backendData.pricingMode = mode;
+        if (mode === 'DIAGNOSTIC') {
+          backendData.diagnosticFee = formData.diagnosticFee ?? null;
+          backendData.estimatedCost = formData.diagnosticFee ?? null;
+          backendData.quoteLines = [];
+        } else {
+          backendData.quoteLines = formData.quoteLines ?? [];
+          backendData.estimatedCost = formData.estimatedCost ?? null;
+          backendData.diagnosticFee = null;
+        }
+      } else {
+        // Bascule vers ménage : purger tout résidu de devis maintenance.
+        backendData.pricingMode = null;
+        backendData.quoteLines = [];
+        backendData.diagnosticFee = null;
+      }
 
       if (canAssignForProperty) {
         backendData.assignedToId = formData.assignedToId || null;
         backendData.assignedToType = formData.assignedToType || null;
       }
 
-      const result = await apiClient.post<{ id: number }>('/service-requests', backendData);
-      const newId = result?.id;
-      setCreatedId(newId || null);
-      onCreated?.(newId);
+      let savedId: number | undefined;
+      if (isEditMode && editingServiceRequestId) {
+        const updated = await serviceRequestsApi.update(editingServiceRequestId, backendData as never);
+        savedId = updated?.id ?? editingServiceRequestId;
+      } else {
+        const result = await apiClient.post<{ id: number }>('/service-requests', backendData);
+        savedId = result?.id;
+      }
+      setCreatedId(savedId || null);
+      onCreated?.(savedId as number);
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création';
+      const message = err instanceof Error ? err.message : (isEditMode ? 'Erreur lors de l\'enregistrement' : 'Erreur lors de la création');
       setError(message);
     } finally {
       setSaving(false);
     }
-  }, [propertyId, user?.databaseId, canAssignForProperty, onCreated, onClose]);
+  }, [propertyId, reservationId, user?.databaseId, canAssignForProperty, isCleaningCategory, isEditMode, editingServiceRequestId, editingRaw, onCreated, onClose]);
 
   const handleConfirm = useCallback(() => {
     rhfHandleSubmit(onSubmit)();
@@ -653,14 +809,31 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       PaperProps={{ sx: { maxHeight: '85vh' } }}
     >
       {/* ── Title ── */}
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 1, pt: 2, px: 2.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
           <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Send size={20} strokeWidth={1.75} /></Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-            Nouvelle demande de service
+            {isEditMode ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onClose}>
+        {/* Stepper à droite, sur la même ligne que le titre */}
+        <Stepper
+          activeStep={activeStep}
+          sx={{
+            ml: 'auto',
+            flex: '0 1 480px',
+            minWidth: 0,
+            '& .MuiStepLabel-label': { fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' },
+            '& .MuiStep-root': { px: 0.5 },
+          }}
+        >
+          {STEPS.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+        <IconButton size="small" onClick={onClose} sx={{ flexShrink: 0 }}>
           <Close size={18} strokeWidth={1.75} />
         </IconButton>
       </DialogTitle>
@@ -681,34 +854,44 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
             )}
           </Box>
 
-          {/* Property tags */}
-          {propertyTags.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
-              {propertyTags.map((tag, idx) => (
-                <Chip key={idx} icon={tag.icon} label={tag.label} size="small" variant="outlined" sx={TAG_SX} />
-              ))}
-            </Box>
-          )}
-
           {/* Title + Requestor row */}
           <Box sx={{ display: 'flex', gap: 1.5 }}>
-            {/* Title */}
+            {/* Title — aligné visuellement sur le bloc « Demandeur » (libellé
+                majuscule au-dessus + champ encadré). */}
             <Box sx={{ flex: 7 }}>
+              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, ml: 0.25 }}>
+                Titre de la demande *
+              </Typography>
               <Controller
                 name="title"
                 control={control}
                 render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    size="small"
-                    label="Titre de la demande *"
-                    placeholder="Ex: Nettoyage après départ"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-                  />
+                  <>
+                    <Box sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                      px: 1.25,
+                      py: 0.75,
+                      borderRadius: '11px',
+                      bgcolor: 'var(--field)',
+                      border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}`,
+                      minHeight: 40,
+                    }}>
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Send size={16} strokeWidth={1.75} /></Box>
+                      <InputBase
+                        {...field}
+                        fullWidth
+                        placeholder="Ex: Détartrage ballon d'eau chaude"
+                        sx={{ fontSize: '0.8125rem', color: 'var(--ink)', '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
+                      />
+                    </Box>
+                    {fieldState.error && (
+                      <Typography sx={{ fontSize: '0.6875rem', color: 'var(--err)', mt: 0.25, ml: 0.25 }}>
+                        {fieldState.error.message}
+                      </Typography>
+                    )}
+                  </>
                 )}
               />
             </Box>
@@ -752,21 +935,6 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
           </Box>
         </Box>
 
-        {/* ── Stepper ── */}
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
-          {STEPS.map((label) => (
-            <Step key={label}>
-              <StepLabel
-                sx={{
-                  '& .MuiStepLabel-label': { fontSize: '0.75rem', fontWeight: 600 },
-                }}
-              >
-                {label}
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
         {/* ── Step Content ── */}
         {loadingData ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -776,97 +944,68 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
           <Box sx={{ minHeight: 250 }}>
             {/* Step 1: Service */}
             {activeStep === 0 && (
-              <>
-                <ServiceRequestFormInfo
-                  control={control}
-                  errors={errors}
-                  setValue={setValue}
-                  watchedServiceType={watchedServiceType}
-                  disabled={false}
-                  propertyDescription={selectedProperty?.description}
-                  cleaningNotes={selectedProperty?.cleaningNotes}
-                  selectedProperty={selectedProperty}
-                  includedPrestations={selectedForfait?.includedPrestations}
-                  extraPrestations={selectedForfait?.extraPrestations}
-                />
-
-                {/* ── Estimation dynamique prix + durée ── */}
-                {selectedProperty && (
-                  <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    mt: 2,
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: '10px',
-                    border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
-                    bgcolor: 'var(--accent-soft)',
-                  }}>
-                    {/* Durée estimée */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
-                      <Box>
-                        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
-                          Durée estimée
-                        </Typography>
-                        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
-                          {formatDuration(estimatedDuration)}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {/* Séparateur */}
-                    <Box sx={{ width: 1, height: 28, bgcolor: 'color-mix(in srgb, var(--accent) 25%, transparent)', borderRadius: 1, flexShrink: 0 }} />
-
-                    {/* Prix estimé */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Euro size={18} strokeWidth={1.75} /></Box>
-                      <Box>
-                        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>
-                          Prix estimé
-                        </Typography>
-                        {priceRange ? (
-                          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
-                            {priceRange.min === priceRange.max
-                              ? <Money value={priceRange.min} from="EUR" />
-                              : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
-                          </Typography>
-                        ) : (
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--faint)', lineHeight: 1.3 }}>
-                            Non disponible
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-
-                    {/* Forfait sélectionné */}
-                    {selectedForfait && (
-                      <>
-                        <Box sx={{ width: 1, height: 28, bgcolor: 'color-mix(in srgb, var(--accent) 25%, transparent)', borderRadius: 1, flexShrink: 0 }} />
-                        <Chip
-                          label={selectedForfait.label}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            height: 22,
-                            fontSize: '0.625rem',
-                            fontWeight: 600,
-                            color: 'var(--accent)',
-                            borderColor: 'var(--accent)',
-                            backgroundColor: 'var(--card)',
-                            '& .MuiChip-label': { px: 1 },
-                          }}
-                        />
-                      </>
-                    )}
-                  </Box>
-                )}
-              </>
+              <ServiceRequestFormInfo
+                control={control}
+                errors={errors}
+                setValue={setValue}
+                watchedServiceType={watchedServiceType}
+                disabled={false}
+                cleaningNotes={selectedProperty?.cleaningNotes}
+                selectedProperty={selectedProperty}
+                includedPrestations={selectedForfait?.includedPrestations}
+                extraPrestations={selectedForfait?.extraPrestations}
+                workPrestations={workPrestations}
+                selectedWorkTypes={selectedWorkTypes}
+                onToggleWorkPrestation={handleToggleWorkPrestation}
+                framed
+              />
             )}
 
-            {/* Step 2: Planning */}
+            {/* Step 2: Chiffrage */}
             {activeStep === 1 && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {/* Chiffrage ménage : estimation forfait (durée + prix), en colonne */}
+                    {selectedProperty && isCleaningCategory && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 1.5, py: 1.25, borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', bgcolor: 'var(--accent-soft)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
+                          <Box>
+                            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>Durée estimée</Typography>
+                            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>{formatDuration(estimatedDuration)}</Typography>
+                          </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Euro size={18} strokeWidth={1.75} /></Box>
+                          <Box>
+                            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>Prix estimé</Typography>
+                            {priceRange ? (
+                              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
+                                {priceRange.min === priceRange.max ? <Money value={priceRange.min} from="EUR" /> : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
+                              </Typography>
+                            ) : (
+                              <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--faint)', lineHeight: 1.3 }}>Non disponible</Typography>
+                            )}
+                          </Box>
+                        </Box>
+                        {selectedForfait && (
+                          <Chip label={selectedForfait.label} size="small" variant="outlined" sx={{ alignSelf: 'flex-start', height: 22, fontSize: '0.625rem', fontWeight: 600, color: 'var(--accent)', borderColor: 'var(--accent)', backgroundColor: 'var(--card)', '& .MuiChip-label': { px: 1 } }} />
+                        )}
+                      </Box>
+                    )}
+                    {/* Chiffrage maintenance : devis direct ou diagnostic préalable */}
+                    {!isCleaningCategory && (
+                      <ServiceRequestMaintenancePricing
+                        pricingMode={watchedPricingMode ?? 'DIRECT'}
+                        quoteLines={watchedQuoteLines ?? []}
+                        diagnosticFee={watchedDiagnosticFee}
+                        onChange={handlePricingChange}
+                      />
+                    )}
+              </Box>
+            )}
+
+            {/* Step 3: Planning */}
+            {activeStep === 2 && (
               <ServiceRequestFormPlanning
                 control={control}
                 errors={errors}
@@ -877,8 +1016,8 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               />
             )}
 
-            {/* Step 3: Assignment */}
-            {activeStep === 2 && (
+            {/* Step 4: Assignment */}
+            {activeStep === 3 && (
               <Box>
                 <ServiceRequestFormAssignment
                   control={control}
@@ -892,6 +1031,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   isEditMode={false}
                   disabled={false}
                   eligibleTeamIds={eligibleTeamIds}
+                  matchingUserIds={matchingTechnicianIds}
                 />
 
                 {/* ── Conflict detection panel ────────────────────────────── */}
@@ -1047,12 +1187,12 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               onClick={handleConfirm}
               variant="contained"
               size="small"
-              disabled={saving || hasConflict || conflictLoading}
+              disabled={saving || hasConflict || conflictLoading || loadingEdit}
               startIcon={saving ? <CircularProgress size={14} /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
               color={hasConflict ? 'error' : 'primary'}
               sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
-              {hasConflict ? 'Conflit détecté' : 'Créer la demande'}
+              {hasConflict ? 'Conflit détecté' : isEditMode ? 'Enregistrer' : 'Créer la demande'}
             </Button>
           )}
         </Box>

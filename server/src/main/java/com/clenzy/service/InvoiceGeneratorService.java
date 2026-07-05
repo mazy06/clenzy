@@ -45,6 +45,7 @@ public class InvoiceGeneratorService {
     private final InterventionRepository interventionRepository;
     private final FiscalProfileRepository fiscalProfileRepository;
     private final FiscalEngine fiscalEngine;
+    private final TouristTaxService touristTaxService;
     private final InvoiceNumberingService numberingService;
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
@@ -54,6 +55,7 @@ public class InvoiceGeneratorService {
                                     InterventionRepository interventionRepository,
                                     FiscalProfileRepository fiscalProfileRepository,
                                     FiscalEngine fiscalEngine,
+                                    TouristTaxService touristTaxService,
                                     InvoiceNumberingService numberingService,
                                     TenantContext tenantContext,
                                     EntityManager entityManager) {
@@ -62,6 +64,7 @@ public class InvoiceGeneratorService {
         this.interventionRepository = interventionRepository;
         this.fiscalProfileRepository = fiscalProfileRepository;
         this.fiscalEngine = fiscalEngine;
+        this.touristTaxService = touristTaxService;
         this.numberingService = numberingService;
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
@@ -755,6 +758,16 @@ public class InvoiceGeneratorService {
      */
     private void addTouristTaxLine(Invoice invoice, Reservation reservation,
                                    String countryCode, BigDecimal touristTaxRatePerPerson) {
+        // Source PRIMAIRE : le barème par bien/org (tourist_tax_configs), qui alimente
+        // deja le booking engine — barème fixe/pourcentage plafonné, surtaxes,
+        // exoneration des mineurs. Source unique de la taxe de sejour quand elle existe.
+        if (addTouristTaxLineFromConfig(invoice, reservation)) {
+            return;
+        }
+
+        // Repli : taux manuel par personne (flux de facturation manuel) via le
+        // FiscalEngine — couvre notamment les pays a taux % (Arabie Saoudite) sans
+        // barème par bien configure.
         if (touristTaxRatePerPerson == null
                 || touristTaxRatePerPerson.compareTo(BigDecimal.ZERO) <= 0) {
             return;
@@ -779,6 +792,29 @@ public class InvoiceGeneratorService {
             TaxCategory.TOURIST_TAX.name(),
             BigDecimal.ZERO, BigDecimal.ZERO,
             touristTax.amount(), touristTax.amount()));
+    }
+
+    /**
+     * Ajoute la ligne de taxe de sejour depuis le barème par bien si un barème
+     * s'applique et produit un montant &gt; 0. Retourne true si une ligne a ete
+     * ajoutee (la source par bien fait autorite et court-circuite le repli).
+     */
+    private boolean addTouristTaxLineFromConfig(Invoice invoice, Reservation reservation) {
+        var lineOpt = touristTaxService.computeForReservation(reservation);
+        if (lineOpt.isEmpty()) {
+            return false;
+        }
+        BigDecimal amount = lineOpt.get().taxAmount();
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        invoice.addLine(createLine(invoice.getLines().size() + 1,
+            "Taxe de sejour",
+            BigDecimal.ONE, amount,
+            TaxCategory.TOURIST_TAX.name(),
+            BigDecimal.ZERO, BigDecimal.ZERO,
+            amount, amount));
+        return true;
     }
 
     private long stayNights(Reservation reservation) {

@@ -264,25 +264,48 @@ class PropertyServiceTest {
     class ListProperties {
 
         @Test
-        void whenListAll_thenReturnsDtoList() {
+        void whenListAll_thenScopedToTenantOrg() {
+            // Tenant non-staff : list() DOIT filtrer par org (findAll(Specification)),
+            // jamais findAll() nu — sinon fuite cross-org via analyze_portfolio.
             User owner = buildOwner(1L);
             Property p1 = buildProperty(1L, owner);
             Property p2 = buildProperty(2L, owner);
-            when(propertyRepository.findAll()).thenReturn(List.of(p1, p2));
+            when(propertyRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class)))
+                    .thenReturn(List.of(p1, p2));
 
             List<PropertyDto> results = propertyService.list();
+
             assertThat(results).hasSize(2);
+            verify(propertyRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class));
+            verify(propertyRepository, never()).findAll();
         }
 
         @Test
-        void whenListWithPagination_thenReturnsPage() {
+        void whenListAllAsSuperAdmin_thenNoOrgFilter() {
+            tenantContext.setSuperAdmin(true);
+            when(propertyRepository.findAll()).thenReturn(List.of());
+
+            propertyService.list();
+
+            verify(propertyRepository).findAll();
+            verify(propertyRepository, never())
+                    .findAll(any(org.springframework.data.jpa.domain.Specification.class));
+        }
+
+        @Test
+        void whenListWithPagination_thenScopedToTenantOrg() {
             User owner = buildOwner(1L);
             Property p = buildProperty(1L, owner);
             Page<Property> page = new PageImpl<>(List.of(p), PageRequest.of(0, 10), 1);
-            when(propertyRepository.findAll(any(PageRequest.class))).thenReturn(page);
+            when(propertyRepository.findAll(
+                    any(org.springframework.data.jpa.domain.Specification.class), any(PageRequest.class)))
+                    .thenReturn(page);
 
             Page<PropertyDto> result = propertyService.list(PageRequest.of(0, 10));
+
             assertThat(result.getContent()).hasSize(1);
+            verify(propertyRepository).findAll(
+                    any(org.springframework.data.jpa.domain.Specification.class), any(PageRequest.class));
         }
     }
 

@@ -41,8 +41,12 @@ public class DistributionSpecialist extends AbstractAgentSpecialist {
                 - "Quel canal me rapporte le plus ?", "Repartition de mes resas par canal ?" → get_channel_attribution
                 - "Resynchronise l'appartement X", "Force la synchro des calendriers" → trigger_channel_sync
                   (push reel vers les OTAs, confirmation requise)
+                - "Les prix affiches sur mes canaux sont-ils coherents ?" → check_rate_parity
+                - "Ferme Airbnb du 10 au 15 aout" → open_close_channel_availability
+                  (fermeture/ouverture ciblee sur UN canal, confirmation requise)
                 - "Le logement est-il disponible du X au Y ?" → get_availability (verif anti-overbooking)
-                Lecture seule SAUF trigger_channel_sync (write, avec confirmation).""";
+                Lecture seule SAUF trigger_channel_sync et open_close_channel_availability
+                (write, avec confirmation).""";
     }
 
     @Override
@@ -51,6 +55,8 @@ public class DistributionSpecialist extends AbstractAgentSpecialist {
                 "get_channel_sync_status",
                 "get_channel_attribution",
                 "trigger_channel_sync",
+                "open_close_channel_availability",
+                "check_rate_parity",
                 "get_availability",
                 "list_properties"
         );

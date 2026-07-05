@@ -58,9 +58,9 @@ describe('computeConstellationLayout', () => {
     expect(dist(fin, layout.cx, layout.cy)).toBeCloseTo(R * RAD.suggest);
   });
 
-  it('wait est tiré au centre (R·RAD.full) malgré son autonomie notify', () => {
-    const rev = layout.satellites.find((s) => s.id === 'rev')!;
-    expect(dist(rev, layout.cx, layout.cy)).toBeCloseTo(R * RAD.full);
+  it('wait ne déplace PAS l\'agent : l\'orbite reste celle de son autonomie (notify)', () => {
+    const rev = layout.satellites.find((s) => s.id === 'rev')!; // wait, autonomy notify
+    expect(dist(rev, layout.cx, layout.cy)).toBeCloseTo(R * RAD.notify);
   });
 
   it('premier satellite au-dessus du centre (angle -π/2 + offset)', () => {

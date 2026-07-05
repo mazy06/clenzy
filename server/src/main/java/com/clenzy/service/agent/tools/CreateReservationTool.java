@@ -103,6 +103,8 @@ public class CreateReservationTool implements ToolHandler {
             throw new ToolExecutionException(NAME, "checkOut (depart) doit etre apres checkIn (arrivee).");
         }
         Integer guestCount = args.hasNonNull("guestCount") ? args.path("guestCount").asInt() : null;
+        Integer adultsCount = args.hasNonNull("adultsCount") ? args.path("adultsCount").asInt() : null;
+        Integer childrenCount = args.hasNonNull("childrenCount") ? args.path("childrenCount").asInt() : null;
         String source = args.path("source").asText(DEFAULT_SOURCE);
         if (source.isBlank()) {
             source = DEFAULT_SOURCE;
@@ -146,6 +148,8 @@ public class CreateReservationTool implements ToolHandler {
             reservation.setProperty(property);
             reservation.setGuestName(guestName);
             reservation.setGuestCount(guestCount);
+            reservation.setAdultsCount(adultsCount);
+            reservation.setChildrenCount(childrenCount);
             reservation.setCheckIn(checkIn);
             reservation.setCheckOut(checkOut);
             reservation.setSource(source);
@@ -199,7 +203,9 @@ public class CreateReservationTool implements ToolHandler {
                         "checkIn":    {"type":"string","format":"date","description":"REQUIS : date d'arrivee, format AAAA-MM-JJ."},
                         "checkOut":   {"type":"string","format":"date","description":"REQUIS : date de depart (non facturee), format AAAA-MM-JJ."},
                         "guestName":  {"type":"string","minLength":1,"maxLength":120,"description":"REQUIS : nom du voyageur."},
-                        "guestCount": {"type":"integer","minimum":1,"description":"Nombre de voyageurs (optionnel)."},
+                        "guestCount": {"type":"integer","minimum":1,"description":"Nombre total de voyageurs (optionnel)."},
+                        "adultsCount":   {"type":"integer","minimum":0,"description":"Nombre d'adultes taxables a la taxe de sejour (optionnel). Renseigner permet d'exonerer les mineurs."},
+                        "childrenCount": {"type":"integer","minimum":0,"description":"Nombre d'enfants/mineurs exoneres (optionnel)."},
                         "source":     {"type":"string","description":"Canal de la reservation (optionnel, defaut 'direct')."}
                       },
                       "required": ["propertyId","checkIn","checkOut","guestName"],

@@ -14,6 +14,7 @@ import {
   Hub,
   CalendarViewWeek,
   Contacts,
+  Bolt,
 } from '../icons';
 import {
   NAVIGATION_HUBS,
@@ -137,6 +138,28 @@ const MENU_ENTRIES: MenuEntryConfig[] = [
   {
     kind: 'item',
     item: {
+      icon: <Bolt />,
+      path: '/automation-rules',
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+      permission: 'automation:view',
+      translationKey: 'navigation.automationRules',
+      group: 'admin',
+    },
+  },
+  {
+    kind: 'item',
+    item: {
+      icon: <Build />,
+      path: '/mes-tarifs-travaux',
+      roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'TECHNICIAN', 'EXTERIOR_TECH'],
+      permission: 'technician-prestations:manage',
+      translationKey: 'navigation.technicianPrestations',
+      group: 'management',
+    },
+  },
+  {
+    kind: 'item',
+    item: {
       icon: <AdminPanelSettings />,
       path: '/permissions-test',
       roles: ['SUPER_ADMIN'],
@@ -183,6 +206,13 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       if (item.permission) {
         const hasPermission = user?.permissions?.includes(item.permission) || false;
         if (!hasPermission) return false;
+      }
+
+      // Surcouche perso « Mes tarifs travaux » : réservée aux exécutants. Les
+      // admins/managers gèrent le catalogue org (Tarification › Maintenance) →
+      // on évite le doublon d'écrans pour eux.
+      if (item.path === '/mes-tarifs-travaux') {
+        return !isAdmin() && !isManager();
       }
 
       if (item.path === '/permissions-test') {

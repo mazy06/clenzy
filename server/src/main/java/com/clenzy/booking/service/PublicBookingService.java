@@ -651,7 +651,7 @@ public class PublicBookingService {
         reservation.setProperty(property);
         reservation.setGuest(guest);
         reservation.setGuestName(req.guest().name());
-        reservation.setGuestCount(req.guests());
+        applyOccupancy(reservation, req.guests(), req.children());
         reservation.setCheckIn(req.checkIn());
         reservation.setCheckOut(req.checkOut());
         reservation.setCheckInTime(property.getDefaultCheckInTime());
@@ -895,7 +895,7 @@ public class PublicBookingService {
             reservation.setProperty(property);
             reservation.setGuest(guest);
             reservation.setGuestName(req.guest().name());
-            reservation.setGuestCount(item.guests());
+            applyOccupancy(reservation, item.guests(), item.children());
             reservation.setCheckIn(item.checkIn());
             reservation.setCheckOut(item.checkOut());
             reservation.setCheckInTime(property.getDefaultCheckInTime());
@@ -1876,5 +1876,20 @@ public class PublicBookingService {
         }
         String[] parts = fullName.trim().split("\\s+", 2);
         return parts.length == 2 ? parts : new String[]{parts[0], ""};
+    }
+
+    /**
+     * Renseigne l'occupation d'une reservation : total ({@code guests}) et, si le
+     * widget a capture des enfants, la ventilation adultes/enfants (0314) pour
+     * exonerer les mineurs de la taxe de sejour. {@code children} null ou 0 laisse
+     * la ventilation non renseignee (repli sur le total au calcul de taxe).
+     */
+    private void applyOccupancy(Reservation reservation, Integer guests, Integer children) {
+        reservation.setGuestCount(guests);
+        if (guests != null && children != null && children > 0) {
+            int minors = Math.min(children, guests);
+            reservation.setChildrenCount(minors);
+            reservation.setAdultsCount(guests - minors);
+        }
     }
 }

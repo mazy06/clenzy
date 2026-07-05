@@ -3,25 +3,28 @@ import {
   Box,
   Typography,
   IconButton,
-  Chip,
   Popover,
   Divider,
   Badge,
   Tooltip,
 } from '@mui/material';
 import {
-  Visibility,
-  VisibilityOff,
   AttachMoney,
   ViewCompact,
-  ViewComfy,
   FilterList as FilterListIcon,
   Close as CloseIcon,
 } from '../../icons';
 import type { DensityMode, PlanningFilters, UrgencyAnimationMode } from './types';
 import type { ReservationStatus } from '../../services/api';
-import { RESERVATION_STATUS_TOKEN_COLORS } from './constants';
-import { RESERVATION_STATUS_LABELS } from '../../services/api/reservationsApi';
+import type { PlanningChannelKey } from './constants';
+import {
+  ChannelLegendChips,
+  StatusLegendChips,
+  InterventionLegendChip,
+  sigButtonSx,
+  STATUS_OPTIONS,
+  CHANNEL_LEGEND,
+} from './LegendChips';
 
 interface PlanningFilterButtonProps {
   filters: PlanningFilters;
@@ -30,19 +33,19 @@ interface PlanningFilterButtonProps {
   onDensityChange: (density: DensityMode) => void;
   onShowInterventionsChange: (show: boolean) => void;
   onShowPricesChange: (show: boolean) => void;
-  onStatusFilter: (statuses: ReservationStatus[]) => void;
   onClearFilters: () => void;
   urgencyAnimation: UrgencyAnimationMode;
   onUrgencyAnimationChange: (mode: UrgencyAnimationMode) => void;
+  // ── Chips légende (canaux / statuts / interventions) ──────────────────────
+  // Source unique avec la toolbar : la modale les héberge SEULEMENT quand la
+  // rangée légende de la toolbar est masquée (`showLegendChips` = viewport
+  // compact OU constellation d'agents déployée), pour ne jamais dupliquer.
+  showLegendChips: boolean;
+  activeChannels: ReadonlySet<PlanningChannelKey>;
+  onToggleChannel: (key: PlanningChannelKey) => void;
+  activeStatuses: ReadonlySet<ReservationStatus>;
+  onToggleStatus: (status: ReservationStatus) => void;
 }
-
-const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
-  { value: 'confirmed', label: RESERVATION_STATUS_LABELS.confirmed },
-  { value: 'pending', label: RESERVATION_STATUS_LABELS.pending },
-  { value: 'checked_in', label: RESERVATION_STATUS_LABELS.checked_in },
-  { value: 'checked_out', label: RESERVATION_STATUS_LABELS.checked_out },
-  { value: 'cancelled', label: RESERVATION_STATUS_LABELS.cancelled },
-];
 
 // Variantes d'animation d'urgence des briques (galerie Signature 09b).
 const URGENCY_ANIMATION_OPTIONS: { value: UrgencyAnimationMode; label: string }[] = [
@@ -52,29 +55,6 @@ const URGENCY_ANIMATION_OPTIONS: { value: UrgencyAnimationMode; label: string }[
   { value: 'tada', label: 'Tada' },
   { value: 'none', label: 'Aucune' },
 ];
-
-/** Chip pilule Signature (spec .pl-chip) : carte hairline, padding 5px 10px,
- *  11.5px fw600 var(--body) ; état actif accent-soft. */
-const sigChipSx = (active: boolean) => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 0.75,
-  fontSize: '0.71875rem',
-  fontWeight: 600,
-  lineHeight: 1,
-  color: active ? 'var(--accent)' : 'var(--body)',
-  backgroundColor: active ? 'var(--accent-soft)' : 'var(--card)',
-  border: '1px solid',
-  borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-  borderRadius: '8px',
-  padding: '5px 10px',
-  cursor: 'pointer',
-  userSelect: 'none' as const,
-  whiteSpace: 'nowrap' as const,
-  transition: 'border-color 160ms cubic-bezier(.16,1,.3,1), background-color 160ms cubic-bezier(.16,1,.3,1), color 160ms cubic-bezier(.16,1,.3,1)',
-  '&:hover': { borderColor: active ? 'var(--accent)' : 'var(--faint)' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-});
 
 /** Overline des sections du popover de filtres. */
 const OVERLINE_SX = {
@@ -86,80 +66,29 @@ const OVERLINE_SX = {
   display: 'block',
 };
 
-/** Chips MUI des toggles (popover), tokenisés. */
-const toggleChipSx = (active: boolean, height: number) => ({
-  fontSize: height >= 28 ? '0.625rem' : '0.5625rem',
-  fontWeight: 600,
-  height,
-  cursor: 'pointer',
-  backgroundColor: active ? 'var(--accent-soft)' : 'var(--card)',
-  color: active ? 'var(--accent)' : 'var(--muted)',
-  borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-  '& .MuiChip-icon': { fontSize: 13, color: 'inherit' },
-  '&:hover': { backgroundColor: active ? 'var(--accent-soft)' : 'var(--hover)' },
-});
-
-const StatusChips: React.FC<{
-  filters: PlanningFilters;
-  onStatusFilter: (statuses: ReservationStatus[]) => void;
-}> = ({ filters, onStatusFilter }) => (
-  <>
-    {STATUS_OPTIONS.map((opt) => {
-      const isActive = filters.statuses.includes(opt.value);
-      return (
-        <Box
-          key={opt.value}
-          component="span"
-          onClick={() => {
-            if (isActive) {
-              onStatusFilter(filters.statuses.filter((s) => s !== opt.value));
-            } else {
-              onStatusFilter([...filters.statuses, opt.value]);
-            }
-          }}
-          sx={sigChipSx(isActive)}
-        >
-          {/* Puce colorée = couleur du statut (mêmes tokens que les briques) */}
-          <Box
-            component="span"
-            sx={{
-              width: 9,
-              height: 9,
-              borderRadius: '3px',
-              flexShrink: 0,
-              backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)',
-            }}
-          />
-          {opt.label}
-        </Box>
-      );
-    })}
-  </>
-);
-
-const UrgencyAnimationChips: React.FC<{
-  urgencyAnimation: UrgencyAnimationMode;
-  onUrgencyAnimationChange: (mode: UrgencyAnimationMode) => void;
-  chipHeight: number;
-}> = ({ urgencyAnimation, onUrgencyAnimationChange, chipHeight }) => (
-  <>
-    {URGENCY_ANIMATION_OPTIONS.map((opt) => (
-      <Chip
-        key={opt.value}
-        label={opt.label}
-        size="small"
-        variant="outlined"
-        onClick={() => onUrgencyAnimationChange(opt.value)}
-        sx={toggleChipSx(urgencyAnimation === opt.value, chipHeight)}
-      />
-    ))}
-  </>
+/** Chip pilule togglable de la modale (langage Signature .pl-chip, même style
+ *  que les chips Statuts) : icône optionnelle + libellé, actif = accent-soft. */
+const ModalToggleChip: React.FC<{
+  active: boolean;
+  label: string;
+  icon?: React.ReactNode;
+  onClick: () => void;
+}> = ({ active, label, icon, onClick }) => (
+  <Box component="button" type="button" aria-pressed={active} onClick={onClick} sx={sigButtonSx(active)}>
+    {icon && (
+      <Box component="span" sx={{ display: 'inline-flex', color: 'inherit' }}>
+        {icon}
+      </Box>
+    )}
+    {label}
+  </Box>
 );
 
 /**
- * Bouton filtre (entonnoir + badge) du planning, déplacé du PlanningToolbar
- * vers le slot `actions` du PageHeader. Encapsule l'IconButton et son Popover
- * (statuts, affichage interventions/tarifs/densité, animation d'urgence, clear).
+ * Bouton filtre (entonnoir + badge) du planning, placé dans le slot `actions`
+ * du PageHeader. Encapsule l'IconButton et son Popover. La modale est
+ * adaptative : elle absorbe la rangée légende (canaux/statuts/interventions)
+ * quand la toolbar ne peut pas l'afficher (compact / constellation).
  */
 const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   filters,
@@ -168,21 +97,30 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   onDensityChange,
   onShowInterventionsChange,
   onShowPricesChange,
-  onStatusFilter,
   onClearFilters,
   urgencyAnimation,
   onUrgencyAnimationChange,
+  showLegendChips,
+  activeChannels,
+  onToggleChannel,
+  activeStatuses,
+  onToggleStatus,
 }) => {
   const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
   const filterOpen = Boolean(filterAnchor);
 
-  // Count active filters for badge
+  // Badge de l'entonnoir : nombre de filtres actifs (toutes catégories).
+  // Un canal/statut désélectionné = un filtre actif, où qu'il soit affiché.
   const activeFilterCount = useMemo(() => {
-    let count = filters.statuses.length;
-    if (!filters.showInterventions) count++;  // hidden = active filter
-    if (filters.showPrices) count++;           // shown = active filter (off by default)
+    let count =
+      (CHANNEL_LEGEND.length - activeChannels.size)
+      + (STATUS_OPTIONS.length - activeStatuses.size);
+    if (!filters.showInterventions) count++; // masqué = filtre actif
+    if (filters.showPrices) count++;          // tarifs affichés = filtre actif
     return count;
-  }, [filters.statuses, filters.showInterventions, filters.showPrices]);
+  }, [activeChannels.size, activeStatuses.size, filters.showInterventions, filters.showPrices]);
+
+  const isCompactDensity = density === 'compact';
 
   return (
     <>
@@ -241,52 +179,72 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
           </IconButton>
         </Box>
 
-        {/* Status filters */}
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="overline" sx={OVERLINE_SX}>
-            Statuts
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-            <StatusChips filters={filters} onStatusFilter={onStatusFilter} />
-          </Box>
-        </Box>
+        {/* Chips légende (canaux + statuts) — uniquement quand la toolbar ne les
+            affiche pas (compact / constellation déployée), pour éviter le doublon. */}
+        {showLegendChips && (
+          <>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="overline" sx={OVERLINE_SX}>
+                Canaux
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                <ChannelLegendChips
+                  activeChannels={activeChannels}
+                  onToggleChannel={onToggleChannel}
+                  variant="toggle"
+                />
+              </Box>
+            </Box>
 
-        <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
+            <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
 
-        {/* Display toggles */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="overline" sx={OVERLINE_SX}>
+                Statuts
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                <StatusLegendChips
+                  activeStatuses={activeStatuses}
+                  onToggleStatus={onToggleStatus}
+                  variant="toggle"
+                />
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
+          </>
+        )}
+
+        {/* Affichage */}
         <Box sx={{ mb: 1 }}>
           <Typography variant="overline" sx={OVERLINE_SX}>
             Affichage
           </Typography>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-            {/* Interventions toggle */}
-            <Chip
-              icon={filters.showInterventions ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
-              label="Interventions"
-              size="small"
-              variant="outlined"
-              onClick={() => onShowInterventionsChange(!filters.showInterventions)}
-              sx={toggleChipSx(filters.showInterventions, 22)}
-            />
+            {/* Interventions : chip légende (grille) — hébergée ici seulement
+                quand la toolbar ne l'affiche pas. */}
+            {showLegendChips && (
+              <InterventionLegendChip
+                active={filters.showInterventions}
+                onToggle={() => onShowInterventionsChange(!filters.showInterventions)}
+                variant="toggle"
+              />
+            )}
 
-            {/* Prices toggle */}
-            <Chip
-              icon={<AttachMoney size={13} strokeWidth={1.75} />}
+            {/* Tarifs (affiche les prix par nuit sur la grille) */}
+            <ModalToggleChip
+              active={filters.showPrices}
               label="Tarifs"
-              size="small"
-              variant="outlined"
+              icon={<AttachMoney size={13} strokeWidth={1.75} />}
               onClick={() => onShowPricesChange(!filters.showPrices)}
-              sx={toggleChipSx(filters.showPrices, 22)}
             />
 
-            {/* Density toggle */}
-            <Chip
-              icon={density === 'normal' ? <ViewCompact size={13} strokeWidth={1.75} /> : <ViewComfy size={13} strokeWidth={1.75} />}
-              label={density === 'normal' ? 'Compact' : 'Normal'}
-              size="small"
-              variant="outlined"
-              onClick={() => onDensityChange(density === 'normal' ? 'compact' : 'normal')}
-              sx={toggleChipSx(false, 22)}
+            {/* Densité (compact / normal) */}
+            <ModalToggleChip
+              active={isCompactDensity}
+              label="Compact"
+              icon={<ViewCompact size={13} strokeWidth={1.75} />}
+              onClick={() => onDensityChange(isCompactDensity ? 'normal' : 'compact')}
             />
           </Box>
 
@@ -295,11 +253,14 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
             Animation d'urgence
           </Typography>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-            <UrgencyAnimationChips
-              urgencyAnimation={urgencyAnimation}
-              onUrgencyAnimationChange={onUrgencyAnimationChange}
-              chipHeight={22}
-            />
+            {URGENCY_ANIMATION_OPTIONS.map((opt) => (
+              <ModalToggleChip
+                key={opt.value}
+                active={urgencyAnimation === opt.value}
+                label={opt.label}
+                onClick={() => onUrgencyAnimationChange(opt.value)}
+              />
+            ))}
           </Box>
         </Box>
 

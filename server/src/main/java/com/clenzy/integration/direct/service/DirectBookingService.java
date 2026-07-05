@@ -194,6 +194,11 @@ public class DirectBookingService {
                 request.checkIn(), request.checkOut(), "pending", "DIRECT");
         reservation.setOrganizationId(orgId);
         reservation.setGuestCount(request.numberOfGuests());
+        // Ventilation adultes/enfants (0314) : numberOfGuests est le total, dont
+        // numberOfChildren mineurs → adultes taxables = total - enfants (borne a 0).
+        int directChildren = Math.max(0, request.numberOfChildren());
+        reservation.setChildrenCount(directChildren);
+        reservation.setAdultsCount(Math.max(0, request.numberOfGuests() - directChildren));
         reservation.setTotalPrice(totalPrice);
         reservation.setSourceName("Direct Booking Widget");
         reservation.setNotes(buildReservationNotes(request));

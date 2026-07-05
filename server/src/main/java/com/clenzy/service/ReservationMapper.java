@@ -56,7 +56,9 @@ public class ReservationMapper {
             entity.getHiddenFromPlanning(),
             entity.getPaymentStatus() != null ? entity.getPaymentStatus().name() : null,
             entity.getPaidAt() != null ? entity.getPaidAt().toString() : null,
-            entity.getIntervention() != null ? entity.getIntervention().getId() : null
+            entity.getIntervention() != null ? entity.getIntervention().getId() : null,
+            entity.getAdultsCount(),
+            entity.getChildrenCount()
         );
     }
 
@@ -92,6 +94,8 @@ public class ReservationMapper {
             guestRepository.save(entity.getGuest());
         }
         if (dto.guestCount() != null) entity.setGuestCount(dto.guestCount());
+        if (dto.adultsCount() != null) entity.setAdultsCount(dto.adultsCount());
+        if (dto.childrenCount() != null) entity.setChildrenCount(dto.childrenCount());
         if (dto.checkIn() != null) entity.setCheckIn(LocalDate.parse(dto.checkIn()));
         if (dto.checkOut() != null) entity.setCheckOut(LocalDate.parse(dto.checkOut()));
         if (dto.checkInTime() != null) entity.setCheckInTime(dto.checkInTime());

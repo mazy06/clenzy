@@ -436,7 +436,7 @@ class PublicBookingServiceTest {
                     PROPERTY_ID, in, out, 2,
                     new BookingReserveRequestDto.GuestInfo("John Doe", "john@example.com", "+33600000000"),
                     "Some notes",
-                    null);
+                    null, null);
             // happy-path mocks needed for checkAvailability inside reserve()
             lenient().when(propertyRepository.findBookingEngineProperty(PROPERTY_ID, ORG_ID))
                     .thenReturn(Optional.of(buildProperty()));
@@ -538,7 +538,7 @@ class PublicBookingServiceTest {
         @DisplayName("applies voucher discount when code is valid")
         void whenValidVoucher_thenDiscountApplied() {
             BookingReserveRequestDto reqWithVoucher = new BookingReserveRequestDto(
-                    PROPERTY_ID, in, out, 2, req.guest(), null, "PROMO10");
+                    PROPERTY_ID, in, out, 2, req.guest(), null, "PROMO10", null);
 
             BookingVoucher voucher = new BookingVoucher();
             voucher.setId(7L);
@@ -567,7 +567,7 @@ class PublicBookingServiceTest {
         @DisplayName("falls back gracefully when voucher rejected")
         void whenInvalidVoucher_thenRejectionReason() {
             BookingReserveRequestDto reqWithVoucher = new BookingReserveRequestDto(
-                    PROPERTY_ID, in, out, 2, req.guest(), null, "BAD");
+                    PROPERTY_ID, in, out, 2, req.guest(), null, "BAD", null);
             when(voucherEngine.validate(any(), any(), any(), anyInt(), any(), any(), any()))
                     .thenReturn(new VoucherValidationResult.Invalid(
                             VoucherValidationError.EXPIRED, "Expired"));
@@ -582,7 +582,7 @@ class PublicBookingServiceTest {
         @DisplayName("rolls back voucher fields when recordUsage races and fails")
         void whenRecordUsageEmpty_thenRollback() {
             BookingReserveRequestDto reqWithVoucher = new BookingReserveRequestDto(
-                    PROPERTY_ID, in, out, 2, req.guest(), null, "PROMO");
+                    PROPERTY_ID, in, out, 2, req.guest(), null, "PROMO", null);
             BookingVoucher voucher = new BookingVoucher();
             voucher.setId(7L);
             voucher.setCode("PROMO");
@@ -659,9 +659,9 @@ class PublicBookingServiceTest {
         @DisplayName("creates one reservation per item")
         void whenMultipleItems_thenCreatesEach() {
             BookingReserveBatchRequestDto.Item it1 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, in, out, 2, null);
+                    PROPERTY_ID, in, out, 2, null, null);
             BookingReserveBatchRequestDto.Item it2 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, in.plusDays(10), out.plusDays(10), 2, null);
+                    PROPERTY_ID, in.plusDays(10), out.plusDays(10), 2, null, null);
             BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
                     List.of(it1, it2),
                     new BookingReserveRequestDto.GuestInfo("Jane Doe", "jane@example.com", null));
@@ -686,9 +686,9 @@ class PublicBookingServiceTest {
                     .thenReturn(0L).thenReturn(5L);
 
             BookingReserveBatchRequestDto.Item it1 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, in, out, 2, null);
+                    PROPERTY_ID, in, out, 2, null, null);
             BookingReserveBatchRequestDto.Item it2 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, in.plusDays(10), out.plusDays(10), 2, null);
+                    PROPERTY_ID, in.plusDays(10), out.plusDays(10), 2, null, null);
             BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
                     List.of(it1, it2),
                     new BookingReserveRequestDto.GuestInfo("J", "j@e.com", null));
@@ -1527,9 +1527,9 @@ class PublicBookingServiceTest {
                     .thenReturn(Map.of(in, new BigDecimal("100.00")));
 
             BookingReserveBatchRequestDto.Item it1 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, in, out, 2, null);
+                    PROPERTY_ID, in, out, 2, null, null);
             BookingReserveBatchRequestDto.Item it2 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID + 1, in, out, 2, null);
+                    PROPERTY_ID + 1, in, out, 2, null, null);
             BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
                     List.of(it1, it2),
                     new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null));
@@ -1546,9 +1546,9 @@ class PublicBookingServiceTest {
             LocalDate out = LocalDate.now().plusDays(10);
 
             BookingReserveBatchRequestDto.Item it1 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, in, out, 2, null);
+                    PROPERTY_ID, in, out, 2, null, null);
             BookingReserveBatchRequestDto.Item it2 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, in.plusDays(1), out.plusDays(1), 2, null);
+                    PROPERTY_ID, in.plusDays(1), out.plusDays(1), 2, null, null);
             BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
                     List.of(it1, it2),
                     new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null));
@@ -1587,9 +1587,9 @@ class PublicBookingServiceTest {
 
             // checkOut item1 == checkIn item2 : pas de chevauchement (nuit du checkout libre)
             BookingReserveBatchRequestDto.Item it1 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, in, out, 2, null);
+                    PROPERTY_ID, in, out, 2, null, null);
             BookingReserveBatchRequestDto.Item it2 = new BookingReserveBatchRequestDto.Item(
-                    PROPERTY_ID, out, out.plusDays(2), 2, null);
+                    PROPERTY_ID, out, out.plusDays(2), 2, null, null);
             BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(
                     List.of(it1, it2),
                     new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null));

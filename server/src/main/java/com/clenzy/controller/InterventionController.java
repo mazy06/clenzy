@@ -181,6 +181,14 @@ public class InterventionController {
         return lifecycleService.validateIntervention(id, request.getEstimatedCost(), jwt);
     }
 
+    @PutMapping("/{id}/amount")
+    @Operation(summary = "Editer le montant d'une intervention (nouveau montant / remise EUR / remise %)")
+    public InterventionResponse updateAmount(@PathVariable Long id,
+                                       @RequestBody com.clenzy.dto.InterventionAmountRequest request,
+                                       @AuthenticationPrincipal Jwt jwt) {
+        return lifecycleService.updateAmount(id, request.mode(), request.value(), jwt);
+    }
+
     @PutMapping("/{id}/start")
     @Operation(summary = "Demarrer une intervention (TECHNICIAN, HOUSEKEEPER, SUPERVISOR)")
     public InterventionResponse startIntervention(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {

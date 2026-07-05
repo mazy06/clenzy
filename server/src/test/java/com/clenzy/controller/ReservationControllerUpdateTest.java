@@ -101,7 +101,7 @@ class ReservationControllerUpdateTest {
     private ReservationDto makeUpdateDto(String checkIn, String checkOut) {
         return new ReservationDto(null, null, null, null, null, null, null, null,
                 checkIn, checkOut, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, false, null, null, null);
+                null, null, null, null, null, false, null, null, null, null, null);
     }
 
     @Nested
@@ -123,7 +123,7 @@ class ReservationControllerUpdateTest {
             when(reservationMapper.toDto(any(Reservation.class)))
                     .thenReturn(new ReservationDto(1L, 1L, "Apt", "Guest", null, null, null, 2,
                             "2026-03-01", "2026-03-08", null, null, "confirmed", "direct",
-                            null, null, null, null, null, null, null, null, null, false, null, null, null));
+                            null, null, null, null, null, null, null, null, null, false, null, null, null, null, null));
 
             ResponseEntity<ReservationDto> response = controller.update(1L, dto, jwt);
 

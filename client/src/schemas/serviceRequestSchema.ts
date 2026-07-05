@@ -1,5 +1,14 @@
 import { z } from 'zod/v4';
 
+/** Ligne de devis (maintenance) : total ligne = quantity × unitPrice. */
+export const quoteLineSchema = z.object({
+  label: z.string(),
+  quantity: z.number(),
+  unitPrice: z.number(),
+  /** Type de prestation catalogue (matching technicien + application des tarifs). */
+  interventionType: z.string().optional(),
+});
+
 export const serviceRequestSchema = z.object({
   title: z.string().min(1, 'Le titre est requis'),
   description: z.string(),
@@ -12,6 +21,16 @@ export const serviceRequestSchema = z.object({
   assignedToId: z.number().optional(),
   assignedToType: z.enum(['user', 'team']).optional(),
   status: z.string().optional(),
+  /** Montant estimé (maintenance : total du devis ou diagnostic ; recalculé serveur). */
+  estimatedCost: z.number().optional(),
+  /** Devis structuré (maintenance, mode devis direct). */
+  quoteLines: z.array(quoteLineSchema).optional(),
+  /** Mode de chiffrage maintenance : devis direct ou diagnostic préalable. */
+  pricingMode: z.enum(['DIRECT', 'DIAGNOSTIC']).optional(),
+  /** Montant du diagnostic (mode diagnostic : facturé d'abord). */
+  diagnosticFee: z.number().optional(),
 });
+
+export type QuoteLine = z.infer<typeof quoteLineSchema>;
 
 export type ServiceRequestFormValues = z.infer<typeof serviceRequestSchema>;

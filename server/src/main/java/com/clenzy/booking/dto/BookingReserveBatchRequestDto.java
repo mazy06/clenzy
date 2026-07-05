@@ -55,6 +55,13 @@ public record BookingReserveBatchRequestDto(
         @Min(value = 1, message = "guests doit etre >= 1")
         Integer guests,
 
-        String notes
+        String notes,
+
+        /**
+         * Nombre d'enfants/mineurs parmi les {@code guests} (optionnel, defaut 0).
+         * Exonere les mineurs de la taxe de sejour (adultes = guests - children).
+         */
+        @Min(value = 0, message = "children doit etre >= 0")
+        Integer children
     ) {}
 }

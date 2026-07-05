@@ -23,6 +23,10 @@ export interface ServiceRequest {
   assignedToTeam?: { id: number; name: string };
   paymentStatus?: string;
   autoAssignStatus?: 'searching' | 'found' | 'exhausted' | null;
+  // Chiffrage maintenance (devis structuré) — présents sur getById.
+  quoteLines?: { label: string; quantity: number; unitPrice: number; interventionType?: string }[];
+  pricingMode?: 'DIRECT' | 'DIAGNOSTIC';
+  diagnosticFee?: number;
   createdAt: string;
   updatedAt?: string;
 }

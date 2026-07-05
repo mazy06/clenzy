@@ -96,6 +96,20 @@ class ReservationMapperTest {
         }
 
         @Test
+        void whenAdultsAndChildrenSet_thenTraversesToDto() {
+            // 0314 — la ventilation adultes/enfants traverse toDto (entite -> DTO).
+            Reservation r = createReservation();
+            r.setProperty(createProperty(5L, "Appt Nice"));
+            r.setAdultsCount(2);
+            r.setChildrenCount(1);
+
+            ReservationDto dto = mapper.toDto(r);
+
+            assertThat(dto.adultsCount()).isEqualTo(2);
+            assertThat(dto.childrenCount()).isEqualTo(1);
+        }
+
+        @Test
         void whenNullProperty_thenPropertyFieldsAreDefaulted() {
             Reservation r = createReservation();
             r.setProperty(null);
@@ -177,7 +191,8 @@ class ReservationMapperTest {
                     "14:00", "10:00",
                     null, null, null,
                     200.0, "CONF123", "VIP guest",
-                    null, null, null, null, null, false, null, null, null
+                    null, null, null, null, null, false, null, null, null,
+                    2, 1
             );
 
             Reservation entity = new Reservation();
@@ -193,6 +208,9 @@ class ReservationMapperTest {
             assertThat(entity.getTotalPrice()).isEqualByComparingTo("200.0");
             assertThat(entity.getConfirmationCode()).isEqualTo("CONF123");
             assertThat(entity.getNotes()).isEqualTo("VIP guest");
+            // 0314 — la ventilation adultes/enfants traverse apply (DTO -> entite).
+            assertThat(entity.getAdultsCount()).isEqualTo(2);
+            assertThat(entity.getChildrenCount()).isEqualTo(1);
         }
 
         @Test
@@ -206,7 +224,8 @@ class ReservationMapperTest {
                     null, null, null,
                     null, null, null, null, null,
                     null, null, null,
-                    null, null, null, null, null, false, null, null, null
+                    null, null, null, null, null, false, null, null, null,
+                    null, null
             );
 
             Reservation entity = new Reservation();
@@ -225,7 +244,8 @@ class ReservationMapperTest {
                     null, null, null,
                     null, null, null, null, null,
                     null, null, null,
-                    null, null, null, null, null, false, null, null, null
+                    null, null, null, null, null, false, null, null, null,
+                    null, null
             );
 
             Reservation entity = new Reservation();
@@ -243,7 +263,8 @@ class ReservationMapperTest {
                     null, null, null,
                     null, null, null, null, null,
                     null, null, null,
-                    null, null, null, null, null, false, null, null, null
+                    null, null, null, null, null, false, null, null, null,
+                    null, null
             );
 
             Reservation entity = createReservation();
@@ -268,7 +289,8 @@ class ReservationMapperTest {
                     null, null, null,
                     null, null, null, null, null,
                     null, null, null,
-                    null, null, null, null, null, false, null, null, null
+                    null, null, null, null, null, false, null, null, null,
+                    null, null
             );
             Reservation entity = new Reservation();
             entity.setProperty(createProperty(1L, "Test"));
@@ -290,7 +312,8 @@ class ReservationMapperTest {
                     null, null, null, null, null,
                     null, null, null,
                     null, null, null,
-                    null, null, null, null, null, false, null, null, null
+                    null, null, null, null, null, false, null, null, null,
+                    null, null
             );
             Reservation entity = new Reservation();
             entity.setProperty(createProperty(1L, "T"));
@@ -313,7 +336,8 @@ class ReservationMapperTest {
                     null, null, null, null, null,
                     null, null, null,
                     null, null, null,
-                    null, null, null, null, null, false, null, null, null
+                    null, null, null, null, null, false, null, null, null,
+                    null, null
             );
             Reservation entity = new Reservation();
             entity.setProperty(createProperty(1L, "T"));
@@ -336,7 +360,8 @@ class ReservationMapperTest {
                     null, null, null, null, null,
                     null, null, null,
                     null, null, null,
-                    null, null, null, null, null, false, null, null, null
+                    null, null, null, null, null, false, null, null, null,
+                    null, null
             );
             Reservation entity = new Reservation();
             entity.setProperty(createProperty(1L, "T"));

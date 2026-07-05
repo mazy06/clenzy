@@ -39,6 +39,14 @@ public class Reservation {
     @Column(name = "guest_count")
     private Integer guestCount = 1;
 
+    // Ventilation adultes/enfants (0314). NULL = ventilation inconnue → le calcul
+    // de taxe de sejour retombe sur guestCount. guestCount reste le total autoritaire.
+    @Column(name = "adults_count")
+    private Integer adultsCount;
+
+    @Column(name = "children_count")
+    private Integer childrenCount;
+
     @Column(name = "check_in", nullable = false)
     private LocalDate checkIn;
 
@@ -222,6 +230,25 @@ public class Reservation {
 
     public Integer getGuestCount() { return guestCount; }
     public void setGuestCount(Integer guestCount) { this.guestCount = guestCount; }
+
+    public Integer getAdultsCount() { return adultsCount; }
+    public void setAdultsCount(Integer adultsCount) { this.adultsCount = adultsCount; }
+
+    public Integer getChildrenCount() { return childrenCount; }
+    public void setChildrenCount(Integer childrenCount) { this.childrenCount = childrenCount; }
+
+    /**
+     * Nombre de personnes taxables a la taxe de sejour selon que les mineurs sont
+     * exoneres. Si la ventilation est connue (adultsCount non nul) et l'exoneration
+     * active, seuls les adultes sont taxes ; sinon repli sur guestCount (total) —
+     * comportement historique preserve quand la ventilation est inconnue.
+     */
+    public int taxablePersons(boolean exemptMinors) {
+        if (exemptMinors && adultsCount != null && adultsCount >= 0) {
+            return adultsCount;
+        }
+        return guestCount != null && guestCount > 0 ? guestCount : 1;
+    }
 
     public LocalDate getCheckIn() { return checkIn; }
     public void setCheckIn(LocalDate checkIn) { this.checkIn = checkIn; }

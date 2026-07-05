@@ -107,7 +107,7 @@ class ReservationServiceUpdateTest {
     private ReservationDto dtoWith(String newCheckIn, String newCheckOut, String status) {
         return new ReservationDto(null, null, null, null, null, null, null, null,
                 newCheckIn, newCheckOut, null, null, status, null, null, null, null, null,
-                null, null, null, null, null, false, null, null, null);
+                null, null, null, null, null, false, null, null, null, null, null);
     }
 
     /** Simule l'application des dates du DTO sur l'entite (comportement du vrai mapper). */

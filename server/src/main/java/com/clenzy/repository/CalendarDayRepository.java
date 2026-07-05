@@ -123,6 +123,20 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
             @Param("orgId") Long orgId);
 
     /**
+     * Dates BOOKED d'une plage (yield v1 F8a : occupation de la fenetre = taille
+     * du resultat / jours de la fenetre, et les nuits reservees ne sont jamais
+     * re-tarifees). Convention Clenzy : absence de ligne = disponible.
+     */
+    @Query("SELECT cd.date FROM CalendarDay cd WHERE cd.property.id = :propertyId " +
+           "AND cd.date >= :from AND cd.date < :to AND cd.status = com.clenzy.model.CalendarDayStatus.BOOKED " +
+           "AND cd.organizationId = :orgId")
+    List<LocalDate> findBookedDatesInRange(
+            @Param("propertyId") Long propertyId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
+
+    /**
      * Jours INDISPONIBLES (≠ AVAILABLE) par propriété sur [from, to) (batch, urgence honnête 2.9).
      * Convention Clenzy : absence de ligne = disponible → dispo = (jours fenêtre) − (count retourné).
      */

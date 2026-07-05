@@ -154,7 +154,7 @@ class PublicBookingControllerTest {
 
         BookingReserveRequestDto.GuestInfo gi = new BookingReserveRequestDto.GuestInfo("John", "j@t.com", "0600");
         BookingReserveRequestDto req = new BookingReserveRequestDto(10L, LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(3), 2, gi, null, null);
+                LocalDate.now().plusDays(3), 2, gi, null, null, null);
         BookingReserveResponseDto resp = BookingReserveResponseDto.withoutVoucher(
                 "code-1", "PENDING", "Prop", req.checkIn(), req.checkOut(),
                 BigDecimal.valueOf(100), "EUR", null, true);
@@ -168,7 +168,7 @@ class PublicBookingControllerTest {
     void reserve_rateLimited_returns429() {
         BookingReserveRequestDto.GuestInfo gi = new BookingReserveRequestDto.GuestInfo("John", "j@t.com", "0600");
         BookingReserveRequestDto req = new BookingReserveRequestDto(10L, LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(3), 2, gi, null, null);
+                LocalDate.now().plusDays(3), 2, gi, null, null, null);
         when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(false);
 
         ResponseEntity<?> response = controller.reserve("slug", req, request);
@@ -184,7 +184,7 @@ class PublicBookingControllerTest {
 
         BookingReserveRequestDto.GuestInfo gi = new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null);
         BookingReserveBatchRequestDto.Item item = new BookingReserveBatchRequestDto.Item(
-                10L, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), 2, null);
+                10L, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), 2, null, null);
         BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(List.of(item), gi);
         BookingReserveBatchResponseDto resp = new BookingReserveBatchResponseDto(
                 "batch", List.of(), BigDecimal.TEN, "EUR", null, true);
@@ -198,7 +198,7 @@ class PublicBookingControllerTest {
     void reserveBatch_rateLimited_returns429() {
         BookingReserveRequestDto.GuestInfo gi = new BookingReserveRequestDto.GuestInfo("J", "j@x.com", null);
         BookingReserveBatchRequestDto.Item item = new BookingReserveBatchRequestDto.Item(
-                10L, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), 2, null);
+                10L, LocalDate.now().plusDays(1), LocalDate.now().plusDays(3), 2, null, null);
         BookingReserveBatchRequestDto req = new BookingReserveBatchRequestDto(List.of(item), gi);
         when(rateLimiter.tryAcquireBatch(any())).thenReturn(false);
 

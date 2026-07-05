@@ -30,11 +30,21 @@ class AutonomyBudgetServiceTest {
 
     @Mock private AiAutonomyBudgetRepository budgetRepository;
     @Mock private AiUsageLedgerRepository ledgerRepository;
+    @Mock private com.clenzy.repository.OrganizationRepository organizationRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private AutonomyBudgetService service() {
-        return new AutonomyBudgetService(budgetRepository, ledgerRepository, objectMapper);
+        return new AutonomyBudgetService(budgetRepository, ledgerRepository,
+                organizationRepository, objectMapper);
+    }
+
+    /** Org sans config explicite, avec le forfait donné (defauts grille §9). */
+    private void orgWithForfait(String forfait) {
+        com.clenzy.model.Organization org = new com.clenzy.model.Organization();
+        org.setForfait(forfait);
+        when(budgetRepository.findById(42L)).thenReturn(Optional.empty());
+        when(organizationRepository.findById(42L)).thenReturn(Optional.of(org));
     }
 
     private AiAutonomyBudget budget(long cap, String onCap, String behaviors) {
@@ -46,11 +56,40 @@ class AutonomyBudgetServiceTest {
     }
 
     @Test
-    void noConfig_isDisabled() {
-        when(budgetRepository.findById(42L)).thenReturn(Optional.empty());
+    void noConfig_isDisabled_behaviorsOffByDefault() {
+        // Meme avec un plafond par defaut > 0 (forfait premium), les behaviors
+        // restent OFF sans config explicite → rien ne s'execute (opt-in conserve).
+        orgWithForfait("premium");
 
-        assertThat(service().evaluate(42L, "pricing_scan").outcome())
-                .isEqualTo(AutonomyBudgetService.Outcome.DISABLED);
+        AutonomyBudgetService.Decision decision = service().evaluate(42L, "pricing_scan");
+
+        assertThat(decision.outcome()).isEqualTo(AutonomyBudgetService.Outcome.DISABLED);
+        assertThat(decision.capMillicredits()).isEqualTo(2_500_000L);
+    }
+
+    @Test
+    void defaultCap_followsForfaitGrid() {
+        // Grille §9 : essentiel 0 / confort 500 / premium 2 500 credits.
+        orgWithForfait("confort");
+        assertThat(service().getConfig(42L).getPremiumCapMillicredits()).isEqualTo(500_000L);
+
+        orgWithForfait("premium");
+        assertThat(service().getConfig(42L).getPremiumCapMillicredits()).isEqualTo(2_500_000L);
+
+        orgWithForfait("essentiel");
+        assertThat(service().getConfig(42L).getPremiumCapMillicredits()).isZero();
+
+        // Repli essentiel (0) : forfait null ou inconnu, comme la dotation T-07.
+        orgWithForfait(null);
+        assertThat(service().getConfig(42L).getPremiumCapMillicredits()).isZero();
+    }
+
+    @Test
+    void explicitConfig_overridesForfaitDefault() {
+        AiAutonomyBudget explicit = budget(100_000L, AiAutonomyBudget.ON_CAP_NOTIFY_ONLY, "{}");
+        when(budgetRepository.findById(42L)).thenReturn(Optional.of(explicit));
+
+        assertThat(service().getConfig(42L).getPremiumCapMillicredits()).isEqualTo(100_000L);
     }
 
     @Test

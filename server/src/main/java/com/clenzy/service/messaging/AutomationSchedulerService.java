@@ -104,7 +104,7 @@ public class AutomationSchedulerService {
                 tenantScopedExecutor.runAsOrganization(orgId,
                     () -> sweepOrganization(orgId, entry.getValue()));
             } catch (Exception e) {
-                // Isolation par org (pattern GuestMessagingScheduler / ICalSyncScheduler).
+                // Isolation par org (pattern ICalSyncScheduler).
                 log.error("Sweep automation en erreur pour org={}: {}", orgId, e.getMessage(), e);
             }
         }
