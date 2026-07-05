@@ -114,7 +114,10 @@
     "payment": {
       "badge": "To settle",
       "settle": "Pay now",
-      "later": "Later"
+      "later": "Later",
+      "maintenancePrefix": "Maintenance",
+      "fallbackTitle": "Service request",
+      "reason": "This service request ({{title}}) is unpaid. “Pay now” opens secure Stripe checkout — no charge without your confirmation on the Stripe page."
     },
     "apply": {
       "action": "Apply",
@@ -160,6 +163,14 @@
       "inputLabel": "Message to the agents",
       "send": "Send",
       "thinking": "The agents are working…"
+    },
+    "deck": {
+      "count": "{{count}} card(s)",
+      "sortDue": "Due date",
+      "sortAmount": "Amount",
+      "bulk": "Process all",
+      "undo": "Undo",
+      "undoBulk": "Processed — {{count}} card(s)"
     }
   },
   "channexGuided": {
@@ -701,7 +712,8 @@
     "contactsHub": "Contacts",
     "finances": "Finance",
     "distribution": "Distribution",
-    "platformTools": "Platform tools"
+    "platformTools": "Platform tools",
+    "automationRules": "Automations"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -2036,7 +2048,9 @@
       "notes": "Notes",
       "property": "Property",
       "source": "Source",
-      "status": "Status"
+      "status": "Status",
+      "childrenCount": "of which children (minors)",
+      "childrenCountHelp": "Exempt from tourist tax"
     },
     "status": {
       "confirmed": "Confirmed",
@@ -3854,7 +3868,10 @@
         "hoursBefore": "Hours before",
         "hoursBeforeDesc": "Delay before check-out for sending",
         "template": "Check-out template"
-      }
+      },
+      "movedTitle": "Automated messages (check-in / check-out)",
+      "movedBody": "Automated messaging is now managed in Automations, alongside the other rules.",
+      "movedCta": "Open Automations"
     },
     "templates": {
       "title": "Message templates",
@@ -4128,6 +4145,44 @@
       "taxAmount": "Tax amount",
       "lineCount": "Lines",
       "noData": "No fiscal data for this period"
+    },
+    "taxRules": {
+      "title": "Tax rules",
+      "add": "Add",
+      "addTitle": "New tax rule",
+      "editTitle": "Edit tax rule",
+      "category": "Category",
+      "taxName": "Tax name",
+      "rate": "Rate",
+      "ratePercent": "Rate (%)",
+      "rateHelp": "Enter the rate as a percentage (e.g. 20 for 20%)",
+      "countryLabel": "Country",
+      "from": "From",
+      "to": "Until",
+      "toHelp": "Leave empty if the rule is still in force",
+      "description": "Description",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "created": "Tax rule created successfully",
+      "updated": "Tax rule updated successfully",
+      "deleted": "Tax rule deleted",
+      "deleting": "Deleting...",
+      "error": "An error occurred during the operation",
+      "loadError": "Unable to load tax rules",
+      "retry": "Retry",
+      "noRules": "No tax rule configured for this country. Add one to be able to generate invoices.",
+      "deleteConfirmTitle": "Delete tax rule?",
+      "deleteConfirmMessage": "Are you sure you want to delete the rule \"{{name}}\" ({{category}})? This action is irreversible.",
+      "categories": {
+        "ACCOMMODATION": "Accommodation",
+        "STANDARD": "Standard",
+        "CLEANING": "Cleaning",
+        "FOOD": "Food & beverage"
+      }
     }
   },
   "bookingEngine": {
@@ -5628,5 +5683,18 @@
     "above": "Above (→ increase)",
     "adjustmentHelpDown": "Applied as a decrease",
     "adjustmentHelpUp": "Applied as an increase"
+  },
+  "automation": {
+    "seedRecommended": "Enable recommended rules",
+    "system": {
+      "title": "System automations",
+      "readOnly": "Read-only",
+      "subtitle": "Automations managed elsewhere in the product (outside rules). Shown here for visibility — their status reflects the real state."
+    },
+    "view": {
+      "list": "List view",
+      "card": "Card view"
+    },
+    "emptyDesc": "Automation rules will appear here."
   }
 }

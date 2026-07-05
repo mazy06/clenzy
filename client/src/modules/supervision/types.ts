@@ -66,6 +66,12 @@ export interface PendingAction {
    */
   kind?: 'action' | 'reminder' | 'payment';
   /**
+   * Famille d'une carte 'payment' (demande de service) : 'maintenance' → le
+   * libellé affiché est préfixé « Maintenance … » (traduit via i18n au rendu),
+   * 'cleaning' → titre brut (porte déjà « Ménage … »).
+   */
+  serviceCategory?: 'cleaning' | 'maintenance';
+  /**
    * Montant BRUT en EUR (devise de base), pour les cartes 'payment' ET pour
    * l'impact estimé d'une suggestion actionnable. Formaté dans la devise choisie
    * par l'opérateur au rendu (cf. PendingActionCard + useCurrency), puis affiché
@@ -105,6 +111,12 @@ export interface FeedEntry {
   agentId: AgentId;
   at: string; // ISO (affiché HH:MM)
   text: string; // "Revenue a ajusté le tarif du 14–17 juil. (+8 %)"
+  /**
+   * Entrée issue de l'orchestrateur (réponse à une demande opérateur dans le
+   * chat), pas d'un agent métier : rendu avec l'identité orchestrateur (icône +
+   * couleur d'accent) au lieu de `AGENT_META[agentId]`.
+   */
+  orchestrator?: boolean;
 }
 
 // ─── Métriques du jour (en-tête) ─────────────────────────────────────────────

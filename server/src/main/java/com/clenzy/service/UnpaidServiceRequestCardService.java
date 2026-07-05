@@ -2,12 +2,12 @@ package com.clenzy.service;
 
 import com.clenzy.dto.UnpaidServiceRequestCardDto;
 import com.clenzy.model.ServiceRequest;
+import com.clenzy.model.ServiceType;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -39,17 +39,16 @@ public class UnpaidServiceRequestCardService {
     }
 
     private UnpaidServiceRequestCardDto toCard(ServiceRequest sr) {
-        BigDecimal amount = sr.getEstimatedCost();
-        String label = sr.getTitle() != null && !sr.getTitle().isBlank()
-                ? sr.getTitle() : "Demande de service";
-        String amountStr = amount != null ? amount.stripTrailingZeros().toPlainString() : "—";
+        String title = sr.getTitle() != null ? sr.getTitle().trim() : "";
+        ServiceType type = sr.getServiceType();
+        // Famille structurée (jamais de texte utilisateur ici) : le front en déduit
+        // le préfixe traduit (« Maintenance … »/« Ménage … ») selon la langue.
+        String category = (type != null && type.isCleaningService()) ? "cleaning" : "maintenance";
         return new UnpaidServiceRequestCardDto(
                 "service-request-" + sr.getId(),
                 sr.getId(),
-                label,
-                "Montant à régler : " + amountStr + " €",
-                "Cette demande de service (" + label + ") n'est pas réglée. « Régler » ouvre le "
-                        + "paiement Stripe sécurisé — aucun débit sans ta validation sur la page Stripe.",
-                amount);
+                title,
+                category,
+                sr.getEstimatedCost());
     }
 }

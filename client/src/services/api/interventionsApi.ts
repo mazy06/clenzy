@@ -260,6 +260,12 @@ export const interventionsApi = {
     return apiClient.put<Intervention>(`/interventions/${id}`, data);
   },
 
+  // Édite le montant : nouveau montant (SET), remise en € (DISCOUNT_AMOUNT) ou en
+  // % (DISCOUNT_PERCENT). Le montant final est recalculé côté serveur.
+  updateAmount(id: number, mode: 'SET' | 'DISCOUNT_AMOUNT' | 'DISCOUNT_PERCENT', value: number) {
+    return apiClient.put<Intervention>(`/interventions/${id}/amount`, { mode, value });
+  },
+
   delete(id: number) {
     return apiClient.delete(`/interventions/${id}`);
   },

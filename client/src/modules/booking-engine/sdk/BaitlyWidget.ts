@@ -604,6 +604,7 @@ export class BaitlyWidget {
       checkIn: s.checkIn,
       checkOut: s.checkOut,
       guests: s.adults + s.children,
+      children: s.children,
       total: s.pricing.total,
       currency: s.pricing.currency,
     };
@@ -675,6 +676,7 @@ export class BaitlyWidget {
         checkIn: s.checkIn,
         checkOut: s.checkOut,
         guests: s.adults + s.children,
+        children: s.children,
         guest,
         notes: s.guestForm.message || undefined,
       }, s.guestToken ?? undefined); // tarif membre (2.8)
@@ -718,6 +720,7 @@ export class BaitlyWidget {
         checkIn: c.checkIn,
         checkOut: c.checkOut,
         guests: c.guests,
+        children: c.children,
       }));
       const batch = await this.api.reserveBatch({ items, guest }, s.guestToken ?? undefined); // tarif membre (2.8)
 

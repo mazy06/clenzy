@@ -105,7 +105,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     /**
      * Reservations confirmees avec check-in dans la plage donnee.
-     * Utilise par GuestMessagingScheduler pour l'envoi automatique des instructions.
+     * Utilise par le balayage du hub d'automatisation (AutomationSchedulerService)
+     * pour les regles de cycle de vie (messages check-in, etc.).
      */
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE r.checkIn BETWEEN :from AND :to " +

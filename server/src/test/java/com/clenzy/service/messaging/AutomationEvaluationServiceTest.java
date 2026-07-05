@@ -44,6 +44,7 @@ class AutomationEvaluationServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private TenantScopedExecutor tenantScopedExecutor;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService;
 
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -55,7 +56,7 @@ class AutomationEvaluationServiceTest {
         service = new AutomationEvaluationService(ruleRepository, executionRepository,
             new AutomationConditionEvaluator(new com.fasterxml.jackson.databind.ObjectMapper()),
             actionRegistry, reservationRepository, tenantScopedExecutor, tenantContext,
-            meterRegistry, clock);
+            meterRegistry, supervisionActivityService, clock);
     }
 
     /** Le moteur enveloppe l'execution hors HTTP dans le contexte tenant de l'org. */

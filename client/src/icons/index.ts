@@ -43,6 +43,7 @@ export {
   Save,
   X as Close,
   X as Cancel,
+  CornerDownLeft as EnterKey,
   Pencil as Edit,
   Trash2 as Delete,
   Trash2 as DeleteOutline,

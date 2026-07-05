@@ -8,10 +8,11 @@ import java.time.LocalDate;
 /**
  * Ligne de rapport de taxe de séjour : le calcul pour UNE réservation.
  *
- * <p>Formule v1 (documentée dans {@code TouristTaxService}) :
+ * <p>Formule (documentée dans {@code TouristTaxService}) :
  * {@code taxAmount} = base selon le mode du barème × (1 + surtaxes %),
- * arrondi HALF_UP à 2 décimales. {@code taxablePersons} = {@code guestCount}
- * de la réservation (pas de ventilation adultes/enfants en v1).</p>
+ * arrondi HALF_UP à 2 décimales. {@code taxablePersons} = adultes seuls si la
+ * ventilation est connue et l'exonération des mineurs active, sinon
+ * {@code guestCount} (cf. {@code Reservation.taxablePersons}).</p>
  */
 public record TouristTaxReportLineDto(
     Long reservationId,

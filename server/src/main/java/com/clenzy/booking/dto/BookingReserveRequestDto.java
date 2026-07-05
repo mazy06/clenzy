@@ -39,7 +39,14 @@ public record BookingReserveRequestDto(
      * Valide + applique au moment de la creation de la reservation.
      * NULL si pas de voucher.
      */
-    String voucherCode
+    String voucherCode,
+
+    /**
+     * Nombre d'enfants/mineurs parmi les {@code guests} (optionnel, defaut 0 si null).
+     * Sert a exonerer les mineurs de la taxe de sejour (adultes = guests - children).
+     */
+    @Min(value = 0, message = "children doit etre >= 0")
+    Integer children
 ) {
     public record GuestInfo(
         @NotBlank(message = "Le nom du guest est obligatoire")

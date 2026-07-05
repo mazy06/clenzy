@@ -67,6 +67,7 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestCount, setGuestCount] = useState<number>(1);
+  const [childrenCount, setChildrenCount] = useState<number>(0);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [checkInTime, setCheckInTime] = useState('');
@@ -102,6 +103,7 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
       setGuestEmail(reservation.guestEmail ?? '');
       setGuestPhone(reservation.guestPhone ?? '');
       setGuestCount(reservation.guestCount);
+      setChildrenCount(reservation.childrenCount ?? 0);
       setCheckIn(reservation.checkIn);
       setCheckOut(reservation.checkOut);
       setCheckInTime(reservation.checkInTime ?? '');
@@ -120,6 +122,7 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
     setGuestEmail('');
     setGuestPhone('');
     setGuestCount(1);
+    setChildrenCount(0);
     setCheckIn('');
     setCheckOut('');
     setCheckInTime('');
@@ -138,6 +141,9 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
   // ─── Submit ───────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setSubmitError(null);
+    // Ventilation adultes/enfants (0314) : enfants bornés au total, adultes = reste.
+    const minors = Math.min(Math.max(0, childrenCount), guestCount);
+    const adultsCount = guestCount - minors;
     try {
       if (isEditing) {
         const updateData: UpdateReservationData = {
@@ -149,6 +155,8 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
           updateData.guestEmail = guestEmail || undefined;
           updateData.guestPhone = guestPhone || undefined;
           updateData.guestCount = guestCount;
+          updateData.childrenCount = minors;
+          updateData.adultsCount = adultsCount;
           updateData.checkIn = checkIn;
           updateData.checkOut = checkOut;
           updateData.checkInTime = checkInTime || undefined;
@@ -163,6 +171,8 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
           guestEmail: guestEmail || undefined,
           guestPhone: guestPhone || undefined,
           guestCount,
+          childrenCount: minors,
+          adultsCount,
           checkIn,
           checkOut,
           checkInTime: checkInTime || undefined,
@@ -284,17 +294,32 @@ const ReservationFormDialog: React.FC<ReservationFormDialogProps> = ({
             />
           </Box>
 
-          {/* Guest count */}
-          <TextField
-            size="small"
-            type="number"
-            label={t('reservations.fields.guestCount')}
-            value={guestCount}
-            onChange={(e) => setGuestCount(Math.max(1, parseInt(e.target.value) || 1))}
-            inputProps={{ min: 1 }}
-            disabled={isEditing && isExternalSource}
-            sx={{ width: 180 }}
-          />
+          {/* Guest count + ventilation adultes/enfants (0314) */}
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <TextField
+              size="small"
+              type="number"
+              label={t('reservations.fields.guestCount')}
+              value={guestCount}
+              onChange={(e) => setGuestCount(Math.max(1, parseInt(e.target.value) || 1))}
+              inputProps={{ min: 1 }}
+              disabled={isEditing && isExternalSource}
+              sx={{ width: 180 }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label={t('reservations.fields.childrenCount', 'dont enfants (mineurs)')}
+              value={childrenCount}
+              onChange={(e) =>
+                setChildrenCount(Math.min(guestCount, Math.max(0, parseInt(e.target.value) || 0)))
+              }
+              inputProps={{ min: 0, max: guestCount }}
+              disabled={isEditing && isExternalSource}
+              helperText={t('reservations.fields.childrenCountHelp', 'Exonérés de la taxe de séjour')}
+              sx={{ width: 220 }}
+            />
+          </Box>
 
           {/* ── Dates ── */}
           <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ fontSize: '0.6875rem', mt: 0.5 }}>

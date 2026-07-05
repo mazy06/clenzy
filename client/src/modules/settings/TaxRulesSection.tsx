@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import {
   Add, Edit, Delete, Gavel, Info as InfoIcon,
-  Hotel, Percent, CleaningServices, Restaurant, LocationCity,
+  Hotel, Percent, CleaningServices, Restaurant,
 } from '../../icons';
 import type { LucideIcon } from 'lucide-react';
 import { useTaxRules, useCreateTaxRule, useUpdateTaxRule, useDeleteTaxRule } from '../../hooks/useTaxRules';
@@ -25,7 +25,6 @@ const CATEGORY_LABELS: Record<TaxCategoryType, string> = {
   STANDARD: 'Standard',
   CLEANING: 'Menage',
   FOOD: 'Restauration',
-  TOURIST_TAX: 'Taxe de sejour',
 };
 
 const CATEGORY_STYLE: Record<TaxCategoryType, { Icon: LucideIcon; color: string }> = {
@@ -33,7 +32,6 @@ const CATEGORY_STYLE: Record<TaxCategoryType, { Icon: LucideIcon; color: string 
   STANDARD: { Icon: Percent, color: 'var(--accent)' },
   CLEANING: { Icon: CleaningServices, color: 'var(--info)' },
   FOOD: { Icon: Restaurant, color: 'var(--warn)' },
-  TOURIST_TAX: { Icon: LocationCity, color: 'var(--muted)' },
 };
 
 const DEFAULT_CATEGORY_STYLE = { Icon: Percent, color: 'var(--muted)' };
@@ -64,6 +62,9 @@ function percentToRate(percent: string): number {
 
 const TaxRulesSection: React.FC = () => {
   const { t } = useTranslation();
+  // Libellé de catégorie traduit (le label FR statique sert de défaut/fallback).
+  const categoryLabel = (cat: string) =>
+    t(`fiscal.taxRules.categories.${cat}`, CATEGORY_LABELS[cat as TaxCategoryType] ?? cat);
   const { hasAnyRole } = useAuth();
   const { data: fiscalProfile } = useFiscalProfile();
   const isSuperAdmin = hasAnyRole(['SUPER_ADMIN']);
@@ -98,9 +99,13 @@ const TaxRulesSection: React.FC = () => {
       acc[cat] = i;
       return acc;
     }, {});
-    return [...rules].sort((a, b) =>
-      (categoryOrder[a.taxCategory] ?? 99) - (categoryOrder[b.taxCategory] ?? 99)
-    );
+    // TOURIST_TAX exclu de cet écran (géré par tourist_tax_configs) : filtre
+    // défensif pour les environnements pas encore migrés par le changeset 0315.
+    return [...rules]
+      .filter(r => r.taxCategory !== 'TOURIST_TAX')
+      .sort((a, b) =>
+        (categoryOrder[a.taxCategory] ?? 99) - (categoryOrder[b.taxCategory] ?? 99)
+      );
   }, [rules]);
 
   // ── Dialog handlers ──
@@ -267,7 +272,7 @@ const TaxRulesSection: React.FC = () => {
                     <TableCell>
                       <Chip
                         icon={<CategoryIcon size={11} strokeWidth={2} />}
-                        label={CATEGORY_LABELS[catKey] ?? rule.taxCategory}
+                        label={categoryLabel(catKey)}
                         size="small"
                         sx={{
                           height: 22,
@@ -378,7 +383,7 @@ const TaxRulesSection: React.FC = () => {
             required
           >
             {TAX_CATEGORIES.map(cat => (
-              <MenuItem key={cat} value={cat}>{CATEGORY_LABELS[cat]}</MenuItem>
+              <MenuItem key={cat} value={cat}>{categoryLabel(cat)}</MenuItem>
             ))}
           </TextField>
 
@@ -473,7 +478,7 @@ const TaxRulesSection: React.FC = () => {
           <Typography variant="body2">
             {t('fiscal.taxRules.deleteConfirmMessage', {
               name: deleteTarget?.taxName ?? '',
-              category: CATEGORY_LABELS[deleteTarget?.taxCategory as TaxCategoryType] ?? deleteTarget?.taxCategory ?? '',
+              category: deleteTarget ? categoryLabel(deleteTarget.taxCategory) : '',
             })}
           </Typography>
         </DialogContent>

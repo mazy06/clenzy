@@ -3043,3 +3043,103 @@ databaseChangeLog:
       sqlFile:
         path: changes/0313__yield_adjustments_journal.sql
         relativeToChangelogFile: true
+
+  # Ventilation adultes/enfants sur les reservations (exoneration mineurs de la
+  # taxe de sejour). Colonnes nullables, alimentees seulement quand la source
+  # connait la ventilation ; sinon le calcul retombe sur guest_count.
+  - changeSet:
+      id: "0314-reservation-adults-children"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0314__reservation_adults_children.sql
+        relativeToChangelogFile: true
+
+  # Consolidation fiscale : retrait des lignes TOURIST_TAX cosmetiques de
+  # tax_rules (aucun calculateur ne les lisait) — la taxe de sejour est geree
+  # par tourist_tax_configs, surface dans Reglages > Fiscal.
+  - changeSet:
+      id: "0315-remove-tourist-tax-from-tax-rules"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0315__remove_tourist_tax_from_tax_rules.sql
+        relativeToChangelogFile: true
+
+  # Consolidation messagerie invité : la messagerie check-in/check-out passe du
+  # système legacy (messaging_automation_config + GuestMessagingScheduler) vers
+  # le hub d'automatisation. Transforme la config active en règles CHECK_IN_DAY/
+  # CHECK_OUT_DAY + SEND_MESSAGE (idempotent). Le scheduler legacy est supprimé.
+  - changeSet:
+      id: "0316-migrate-guest-messaging-to-automation-rules"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0316__migrate_guest_messaging_to_automation_rules.sql
+        relativeToChangelogFile: true
+
+  # Règles d'automatisation recommandées actives par défaut : amorçage idempotent
+  # des organisations existantes (les nouvelles sont amorcées à la création).
+  - changeSet:
+      id: "0317-seed-recommended-automation-rules"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0317__seed_recommended_automation_rules.sql
+        relativeToChangelogFile: true
+
+  # Devis structure (maintenance) : lignes de devis en JSON sur la demande de service.
+  - changeSet:
+      id: "0318-add-quote-lines-to-service-requests"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0318__add_quote_lines_to_service_requests.sql
+        relativeToChangelogFile: true
+
+  # Mode de chiffrage maintenance : devis direct vs diagnostic prealable facture d'abord.
+  - changeSet:
+      id: "0319-add-maintenance-diagnostic-to-service-requests"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0319__add_maintenance_diagnostic_to_service_requests.sql
+        relativeToChangelogFile: true
+
+  # Types de service personnalises reutilisables (org-scopes).
+  - changeSet:
+      id: "0320-custom-service-types"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0320__custom_service_types.sql
+        relativeToChangelogFile: true
+
+  # Backfill du catalogue travaux (maintenance) pour les configs vides.
+  - changeSet:
+      id: "0321-backfill-travaux-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0321__backfill_travaux_config.sql
+        relativeToChangelogFile: true
+
+  # Surcouche travaux par technicien (prestations + prix propres).
+  - changeSet:
+      id: "0322-technician-prestations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0322__technician_prestations.sql
+        relativeToChangelogFile: true
+
+  # Catalogue travaux enrichi + classe par domaine (label + domain dans la donnee).
+  # validCheckSum ANY : ce changeset a deja ete applique (no-op) puis restaure a
+  # l'identique ; on tolere son checksum pour ne pas bloquer le boot. Le vrai
+  # enrichissement robuste est fait par 0324.
+  - changeSet:
+      id: "0323-enrich-travaux-catalogue"
+      author: clenzy-team
+      validCheckSum: ANY
+      sqlFile:
+        path: changes/0323__enrich_travaux_catalogue.sql
+        relativeToChangelogFile: true
+
+  # Enrichissement catalogue travaux v2 (condition robuste au reformatage JSON).
+  - changeSet:
+      id: "0324-enrich-travaux-catalogue-v2"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0324__enrich_travaux_catalogue_v2.sql
+        relativeToChangelogFile: true

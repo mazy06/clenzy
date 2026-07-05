@@ -34,5 +34,9 @@ public record ReservationDto(
     String paymentStatus,
     String paidAt,
     // Linked intervention (read-only output)
-    Long interventionId
+    Long interventionId,
+    // Ventilation adultes/enfants (0314) — input + output. NULL = ventilation
+    // inconnue (le calcul de taxe de sejour retombe sur guestCount).
+    Integer adultsCount,
+    Integer childrenCount
 ) {}

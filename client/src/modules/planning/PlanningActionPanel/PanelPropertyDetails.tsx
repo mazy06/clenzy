@@ -36,6 +36,7 @@ import { usePropertyDetails } from '../../../hooks/usePropertyDetails';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { PanelView } from '../types';
 import { PropertyImageCarousel } from '../../../components/PropertyImageCarousel';
+import { MapboxPropertyMap } from '../../../components/MapboxPropertyMap';
 import { formatShortDate, formatTimeFromDate } from '../../../utils/formatUtils';
 import { getCleaningFrequencyLabel } from '../../../utils/statusUtils';
 
@@ -217,6 +218,9 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
   const isActive = property.status === 'active';
 
+  // Héro : aperçu carte si la propriété est géolocalisée, sinon placeholder icône.
+  const hasCoords = typeof property.latitude === 'number' && typeof property.longitude === 'number';
+
   // Ligne méta maquette : « ville · m² · ch » (seulement les données dispo).
   const metaLine = [
     property.city,
@@ -239,21 +243,37 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
   return (
     <Box>
-      {/* ─── HÉRO : 96px accent-soft + icône bâtiment (maquette) ─────── */}
-      <Box
-        sx={{
-          height: 96,
-          borderRadius: '14px',
-          backgroundColor: 'var(--accent-soft)',
-          color: 'var(--accent)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          mb: 1.25,
-        }}
-      >
-        <Apartment size={40} strokeWidth={1.5} />
-      </Box>
+      {/* ─── HÉRO : aperçu carte (propriété géolocalisée) sinon icône ─── */}
+      {hasCoords ? (
+        <Box sx={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--line)', mb: 1.25 }}>
+          <MapboxPropertyMap
+            properties={[{
+              lat: property.latitude as number,
+              lng: property.longitude as number,
+              name: property.name,
+              type: 'property',
+            }]}
+            center={[property.longitude as number, property.latitude as number]}
+            zoom={14}
+            height={150}
+          />
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            height: 96,
+            borderRadius: '14px',
+            backgroundColor: 'var(--accent-soft)',
+            color: 'var(--accent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: 1.25,
+          }}
+        >
+          <Apartment size={40} strokeWidth={1.5} />
+        </Box>
+      )}
 
       {/* Nom + statut + ligne « ville · m² · ch » */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, mb: 0.25 }}>

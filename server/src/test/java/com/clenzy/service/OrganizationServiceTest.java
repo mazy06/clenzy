@@ -43,6 +43,9 @@ class OrganizationServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private com.clenzy.service.AutomationRuleService automationRuleService;
+
     private OrganizationService organizationService;
 
     @BeforeEach
@@ -50,7 +53,8 @@ class OrganizationServiceTest {
         organizationService = new OrganizationService(
                 organizationRepository,
                 memberRepository,
-                userRepository
+                userRepository,
+                automationRuleService
         );
     }
 

@@ -522,9 +522,10 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     setValue('userId', user.databaseId);
   }, [isEditMode, user?.databaseId, setValue]);
 
-  // Auto-fill titre en fonction du type de service + nom de la propriété
+  // Auto-fill titre en fonction du type de service + nom de la propriété.
+  // « Autre » (OTHER) = type personnalisé saisi par l'utilisateur → ne pas écraser.
   useEffect(() => {
-    if (isEditMode || !watchedServiceType || !selectedProperty) return;
+    if (isEditMode || !watchedServiceType || watchedServiceType === 'OTHER' || !selectedProperty) return;
     const option = INTERVENTION_TYPE_OPTIONS.find(o => o.value === watchedServiceType);
     const label = option?.label || watchedServiceType;
     setValue('title', `${label} - ${selectedProperty.name}`);

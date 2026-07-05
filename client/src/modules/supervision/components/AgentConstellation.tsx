@@ -27,6 +27,8 @@ export interface AgentConstellationProps {
   onSelectAgent?: (id: AgentId) => void;
   /** Action posée dans le HUD (ex. bouton « Scanner » en icône). */
   headerAction?: ReactNode;
+  /** Contenu empilé juste sous le HUD (ex. flux « En direct »). */
+  belowHud?: ReactNode;
 }
 
 interface NormalizedView {
@@ -78,6 +80,7 @@ export function AgentConstellation({
   online,
   onSelectAgent,
   headerAction,
+  belowHud,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
   const { agents, hud } = useMemo(() => normalize(snapshot), [snapshot]);
@@ -92,6 +95,7 @@ export function AgentConstellation({
       onToggleFocus={() => setFocused((f) => !f)}
       onSelectAgent={onSelectAgent}
       headerAction={headerAction}
+      belowHud={belowHud}
     />
   );
 }

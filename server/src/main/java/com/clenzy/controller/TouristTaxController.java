@@ -25,7 +25,9 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/tourist-tax")
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+// Config fiscale gérée par le staff plateforme (section Réglages > Fiscal),
+// aligné sur le reste de la configuration fiscale (profil, règles TVA).
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
 public class TouristTaxController {
 
     private final TouristTaxService taxService;

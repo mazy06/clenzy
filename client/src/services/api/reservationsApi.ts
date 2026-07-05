@@ -17,6 +17,10 @@ export interface Reservation {
    *  repli sur les initiales. */
   guestAvatarUrl?: string;
   guestCount: number;
+  /** Ventilation adultes/enfants (0314). Absente = ventilation inconnue
+   *  (la taxe de séjour retombe sur guestCount). */
+  adultsCount?: number;
+  childrenCount?: number;
   checkIn: string;      // ISO date string (YYYY-MM-DD)
   checkOut: string;     // ISO date string (YYYY-MM-DD)
   checkInTime?: string;  // Heure check-in (HH:mm)
@@ -51,6 +55,8 @@ export interface CreateReservationData {
   guestEmail?: string;
   guestPhone?: string;
   guestCount: number;
+  adultsCount?: number;
+  childrenCount?: number;
   checkIn: string;
   checkOut: string;
   checkInTime?: string;
@@ -69,6 +75,8 @@ export interface UpdateReservationData {
   guestEmail?: string;
   guestPhone?: string;
   guestCount?: number;
+  adultsCount?: number;
+  childrenCount?: number;
   checkIn?: string;
   checkOut?: string;
   checkInTime?: string;

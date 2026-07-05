@@ -5,6 +5,7 @@ import com.clenzy.model.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,6 +32,12 @@ public class ServiceRequestDto {
     public String preferredTimeSlot;
     public Integer estimatedDurationHours;
     public BigDecimal estimatedCost;
+    /** Devis structure (maintenance). Le total est recalcule cote serveur. */
+    public List<QuoteLineDto> quoteLines;
+    /** Mode de chiffrage maintenance : "DIRECT" (devis) ou "DIAGNOSTIC". */
+    public String pricingMode;
+    /** Montant du diagnostic (mode DIAGNOSTIC : facture d'abord). */
+    public BigDecimal diagnosticFee;
     public BigDecimal actualCost;
     public String specialInstructions;
     public String accessNotes;

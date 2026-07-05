@@ -30,6 +30,8 @@ export interface ServicePriceConfig {
   interventionType: string;           // ex: "ELECTRICAL_REPAIR"
   basePrice: number;                  // prix fixe de base en €
   enabled: boolean;
+  label?: string;                     // libellé affiché (porté par la donnée)
+  domain?: string;                    // domaine de classement (ex: "Plomberie")
 }
 
 export interface BlanchisserieItem {
@@ -110,5 +112,14 @@ export const pricingConfigApi = {
 
   update(data: PricingConfigUpdate) {
     return apiClient.put<PricingConfig>('/pricing-config', data);
+  },
+
+  // Tarifs travaux (maintenance) uniquement — endpoint dédié ouvert aux techniciens.
+  getTravaux() {
+    return apiClient.get<ServicePriceConfig[]>('/pricing-config/travaux');
+  },
+
+  updateTravaux(travaux: ServicePriceConfig[]) {
+    return apiClient.put<ServicePriceConfig[]>('/pricing-config/travaux', travaux);
   },
 };

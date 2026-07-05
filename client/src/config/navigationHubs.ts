@@ -254,6 +254,7 @@ export const STANDALONE_SCREENS: StandaloneScreen[] = [
   { path: '/dashboard', translationKey: 'navigation.dashboard', fallbackLabel: 'Tableau de bord' },
   { path: '/reports', translationKey: 'navigation.reports', fallbackLabel: 'Rapports' },
   { path: '/settings', translationKey: 'navigation.settings', fallbackLabel: 'Paramètres' },
+  { path: '/automation-rules', translationKey: 'navigation.automationRules', fallbackLabel: 'Automatisations' },
   { path: '/permissions-test', translationKey: 'navigation.rolesPermissions', fallbackLabel: 'Rôles & permissions' },
   { path: '/admin/monitoring', translationKey: 'navigation.monitoring', fallbackLabel: 'Monitoring' },
 ];
