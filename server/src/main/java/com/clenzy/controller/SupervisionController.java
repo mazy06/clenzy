@@ -16,6 +16,7 @@ import com.clenzy.service.agent.supervision.SupervisionConversationService;
 import com.clenzy.service.agent.supervision.SupervisionPortfolioService;
 import com.clenzy.service.agent.supervision.SupervisionReportService;
 import com.clenzy.service.agent.supervision.SupervisionScanService;
+import com.clenzy.service.agent.supervision.SupervisionSseRegistry;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -43,12 +45,16 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','SUPERVISOR')")
 public class SupervisionController {
 
+    /** Durée de vie d'un flux SSE de supervision (le front se reconnecte à l'échéance). */
+    private static final long SSE_TIMEOUT_MS = 30L * 60L * 1000L;
+
     private final SupervisionActivityService activityService;
     private final SupervisionScanService scanService;
     private final SupervisionSuggestionService suggestionService;
     private final SupervisionPortfolioService portfolioService;
     private final SupervisionReportService reportService;
     private final SupervisionConversationService conversationService;
+    private final SupervisionSseRegistry sseRegistry;
     private final PayoutReminderService payoutReminderService;
     private final UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     private final TenantContext tenantContext;
@@ -59,6 +65,7 @@ public class SupervisionController {
                                  SupervisionPortfolioService portfolioService,
                                  SupervisionReportService reportService,
                                  SupervisionConversationService conversationService,
+                                 SupervisionSseRegistry sseRegistry,
                                  PayoutReminderService payoutReminderService,
                                  UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                  TenantContext tenantContext) {
@@ -68,6 +75,7 @@ public class SupervisionController {
         this.portfolioService = portfolioService;
         this.reportService = reportService;
         this.conversationService = conversationService;
+        this.sseRegistry = sseRegistry;
         this.payoutReminderService = payoutReminderService;
         this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
         this.tenantContext = tenantContext;
@@ -77,6 +85,25 @@ public class SupervisionController {
     @GetMapping("/activity/{propertyId}")
     public ResponseEntity<SupervisionActivitySnapshotDto> activity(@PathVariable Long propertyId) {
         return ResponseEntity.ok(activityService.getSnapshot(propertyId));
+    }
+
+    /**
+     * GET /api/ai/supervision/stream/{propertyId} — flux SSE temps réel du logement (T6/B6) :
+     * nouvelles entrées de feed + résolutions de cartes poussées instantanément à tous les
+     * opérateurs (fan-out inter-instances via Redis). Ownership validé (getSnapshot lève si non
+     * autorisé). Complète le polling 30 s (baseline), ne le remplace pas.
+     */
+    @GetMapping(value = "/stream/{propertyId}", produces = "text/event-stream")
+    public SseEmitter stream(@PathVariable Long propertyId) {
+        activityService.getSnapshot(propertyId); // valide l'ownership org (lève sinon)
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+        sseRegistry.register(propertyId, emitter);
+        try {
+            emitter.send(SseEmitter.event().name("ready").data("{}")); // amorce la connexion
+        } catch (Exception ignored) {
+            // best-effort : si l'amorce échoue, les callbacks de l'émetteur nettoient le registre
+        }
+        return emitter;
     }
 
     /**
