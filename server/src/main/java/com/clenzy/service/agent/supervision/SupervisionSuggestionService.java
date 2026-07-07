@@ -38,6 +38,7 @@ public class SupervisionSuggestionService {
     private final SuggestionActionExecutor actionExecutor;
     private final NotificationService notificationService;
     private final SupervisionRealtimePublisher realtimePublisher;
+    private final com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
 
@@ -45,12 +46,14 @@ public class SupervisionSuggestionService {
                                         SuggestionActionExecutor actionExecutor,
                                         NotificationService notificationService,
                                         SupervisionRealtimePublisher realtimePublisher,
+                                        com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                         Clock clock,
                                         PlatformTransactionManager transactionManager) {
         this.repository = repository;
         this.actionExecutor = actionExecutor;
         this.notificationService = notificationService;
         this.realtimePublisher = realtimePublisher;
+        this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -199,20 +202,27 @@ public class SupervisionSuggestionService {
     }
 
     /**
-     * Compteurs de suggestions en attente pour les pastilles du planning (org-scopé) :
-     * total (badge du menu) + détail par logement (badge de cellule). Une seule requête
-     * agrégée pour le détail.
+     * Compteurs de cartes HITL en attente pour les pastilles du planning (org-scopé) :
+     * total (badge du menu) + détail par logement (badge de cellule). Agrège les
+     * DEUX sources visibles dans la file de la constellation — suggestions des scans
+     * autonomes ET cartes de demande de service impayée (« à régler ») — pour que la
+     * pastille corresponde au « en attente » du HUD. Le total est la somme du détail.
+     *
+     * <p>Le rappel payout J-1 (org-level, per-user, transitoire) n'est pas compté.</p>
      */
     @Transactional(readOnly = true)
     public com.clenzy.dto.SupervisionPendingCountsDto pendingCounts(Long organizationId) {
         Instant now = Instant.now();
-        long total = repository.countByOrganizationIdAndStatusAndExpiresAtAfter(
-                organizationId, SupervisionSuggestion.STATUS_PENDING, now);
         java.util.Map<Long, Long> byProperty = new java.util.LinkedHashMap<>();
+        // Suggestions des scans autonomes en attente.
         for (Object[] row : repository.countPendingByProperty(
                 organizationId, SupervisionSuggestion.STATUS_PENDING, now)) {
-            byProperty.put((Long) row[0], (Long) row[1]);
+            byProperty.merge((Long) row[0], (Long) row[1], Long::sum);
         }
+        // Cartes de demande de service impayée (source dominante des cartes « à régler »).
+        unpaidServiceRequestCardService.pendingCountsByProperty(organizationId)
+                .forEach((propertyId, count) -> byProperty.merge(propertyId, count, Long::sum));
+        long total = byProperty.values().stream().mapToLong(Long::longValue).sum();
         return new com.clenzy.dto.SupervisionPendingCountsDto(total, byProperty);
     }
 
