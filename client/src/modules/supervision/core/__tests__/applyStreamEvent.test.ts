@@ -108,6 +108,29 @@ describe('applyStreamEvent — par logement', () => {
     const s1 = applyStreamEvent(s0, { type: 'pendingAction.cleared' });
     expect(s1).toBe(s0);
   });
+
+  it('snapshot.refreshed remplace feed/file/agents/métriques mais préserve l’état live', () => {
+    const s0 = buildPropertySnapshot('1');
+    // État piloté par le flux live, à NE PAS écraser au rafraîchissement.
+    const live = applyStreamEvent(
+      applyStreamEvent(s0, { type: 'conversation.busy', busy: true }),
+      { type: 'pendingAction.added', action: { interruptId: 'int-1', toolName: 'Send Message', message: 'Confirmer ?' } },
+    );
+    // Snapshot serveur rafraîchi : nouveau feed (toolName porté) + file vidée.
+    const next: OrchestratorSnapshot = {
+      ...buildPropertySnapshot('1'),
+      pending: [],
+      feed: [{ id: 'f9', agentId: 'ops', at: '2026-07-07T09:00:00Z', text: 'Bruit détecté', toolName: 'noise_alert' }],
+    };
+    const out = asProperty(applyStreamEvent(live, { type: 'snapshot.refreshed', snapshot: next }));
+    // Remplacé depuis le serveur…
+    expect(out.feed[0].id).toBe('f9');
+    expect(out.feed[0].toolName).toBe('noise_alert'); // clé i18n préservée
+    expect(out.pending).toEqual([]);
+    // …mais l'état live est conservé.
+    expect(out.conversationBusy).toBe(true);
+    expect(out.pendingAction?.interruptId).toBe('int-1');
+  });
 });
 
 describe('applyStreamEvent — portefeuille', () => {

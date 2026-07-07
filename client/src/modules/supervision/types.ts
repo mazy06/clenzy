@@ -232,6 +232,8 @@ export type StreamEvent =
   | { type: 'conversation.busy'; busy: boolean } // run en cours (true) / terminé (false)
   // ── Approbation inline (interrupt AG-UI) ─────────────────────────────────────
   | { type: 'pendingAction.added'; action: PendingAgentAction } // run en pause : action sensible à valider/refuser
-  | { type: 'pendingAction.cleared' }; // décision prise (ou run repris) → carte retirée
+  | { type: 'pendingAction.cleared' } // décision prise (ou run repris) → carte retirée
+  // ── Rafraîchissement périodique hors run (polling du feed/file réels) ─────────
+  | { type: 'snapshot.refreshed'; snapshot: OrchestratorSnapshot }; // remplace feed/pending/agents/métriques, préserve l'état live (conversation, interrupt)
 
 export type PendingOutcome = 'validated' | 'edited' | 'expired';

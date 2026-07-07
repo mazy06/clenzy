@@ -92,6 +92,23 @@ function reduceProperty(snapshot: OrchestratorSnapshot, evt: StreamEvent): Orche
       return { ...snapshot, pendingAction: evt.action };
     case 'pendingAction.cleared':
       return snapshot.pendingAction ? { ...snapshot, pendingAction: undefined } : snapshot;
+    case 'snapshot.refreshed': {
+      // Rafraîchissement périodique hors run : on remplace ce qui vient du serveur
+      // (feed réel — toolName préservé —, file HITL, agents, métriques) mais on
+      // CONSERVE l'état piloté par le flux live (conversation, busy, interrupt inline)
+      // pour ne rien écraser en cours de session.
+      const next = evt.snapshot;
+      return {
+        ...snapshot,
+        online: next.online,
+        paused: next.paused,
+        summary: next.summary,
+        agents: next.agents,
+        pending: next.pending,
+        feed: next.feed,
+        dayMetrics: next.dayMetrics,
+      };
+    }
     default:
       return snapshot;
   }

@@ -156,7 +156,7 @@ class CleaningBackfillSchedulerTest {
     // ── Regle de scan HITL : depart de DEMAIN sans menage planifie ─────────────
 
     @Test
-    void whenCheckoutTomorrowWithoutCleaning_thenRecordsHitlCard() {
+    void whenCheckoutTomorrowWithoutCleaning_afterEachStay_thenActionableHitlCard() {
         reservation.setCheckOut(LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(1));
         when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(cleaningRule(ORG_ID)));
         when(reservationRepository.findConfirmedByCheckOutRange(any(), any(), eq(ORG_ID)))
@@ -165,6 +165,25 @@ class CleaningBackfillSchedulerTest {
 
         scheduler.scanTomorrowCheckoutsMissingCleaning();
 
+        // Propriete AFTER_EACH_STAY (defaut) → carte APPLICABLE (« Planifier le menage »).
+        verify(supervisionSuggestionService).recordActionable(
+            eq(ORG_ID), eq(100L), eq("ops"),
+            eq("Menage manquant pour le depart de demain"), any(),
+            eq("CLEANING_REQUEST"), any(), any(), eq("warning"));
+    }
+
+    @Test
+    void whenCheckoutTomorrowWithoutCleaning_nonAfterEachStay_thenInformationalCard() {
+        property.setCleaningFrequency(com.clenzy.model.CleaningFrequency.WEEKLY);
+        reservation.setCheckOut(LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(1));
+        when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(cleaningRule(ORG_ID)));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation));
+        when(serviceRequestRepository.findByReservationId(42L, ORG_ID)).thenReturn(List.of());
+
+        scheduler.scanTomorrowCheckoutsMissingCleaning();
+
+        // Frequence non AFTER_EACH_STAY → l'apply ne pourrait pas aboutir → carte informationnelle.
         verify(supervisionSuggestionService).record(
             eq(ORG_ID), eq(100L), eq("ops"), eq("cleaning_missing"),
             eq("Menage manquant pour le depart de demain"), any());
