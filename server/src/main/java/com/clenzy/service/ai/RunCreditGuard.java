@@ -47,15 +47,18 @@ public class RunCreditGuard {
     private final ThreadLocal<RunBudget> current = new ThreadLocal<>();
 
     private final CreditBalanceService balanceService;
+    private final com.clenzy.tenant.TenantContext tenantContext;
     private final boolean enabled;
     private final long floorMillicredits;
     private final long chunkMillicredits;
 
     public RunCreditGuard(CreditBalanceService balanceService,
+                          com.clenzy.tenant.TenantContext tenantContext,
                           @Value("${clenzy.ai.credits.enforcement.enabled:false}") boolean enabled,
                           @Value("${clenzy.ai.credits.enforcement.floor-millicredits:2000}") long floorMillicredits,
                           @Value("${clenzy.ai.credits.enforcement.chunk-millicredits:5000}") long chunkMillicredits) {
         this.balanceService = balanceService;
+        this.tenantContext = tenantContext;
         this.enabled = enabled;
         this.floorMillicredits = floorMillicredits;
         this.chunkMillicredits = chunkMillicredits;
@@ -68,6 +71,12 @@ public class RunCreditGuard {
      */
     public boolean beginRun(Long orgId) {
         if (!enabled) {
+            current.remove();
+            return true;
+        }
+        // Exemption STAFF PLATEFORME (SUPER_ADMIN / SUPER_MANAGER) : exempts de l'abonnement,
+        // donc exempts des credits IA — aucune reservation ni debit (comme enforcement OFF).
+        if (tenantContext.isSuperAdmin()) {
             current.remove();
             return true;
         }

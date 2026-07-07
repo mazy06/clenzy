@@ -25,11 +25,12 @@ class RunCreditGuardTest {
     private static final long CHUNK = 5000L;
 
     @Mock private CreditBalanceService balanceService;
+    @Mock private com.clenzy.tenant.TenantContext tenantContext;
 
     private RunCreditGuard guard;
 
     private RunCreditGuard enabledGuard() {
-        guard = new RunCreditGuard(balanceService, true, FLOOR, CHUNK);
+        guard = new RunCreditGuard(balanceService, tenantContext, true, FLOOR, CHUNK);
         return guard;
     }
 
@@ -42,7 +43,7 @@ class RunCreditGuardTest {
 
     @Test
     void disabled_alwaysAllows_andNeverTouchesBalance() {
-        RunCreditGuard off = new RunCreditGuard(balanceService, false, FLOOR, CHUNK);
+        RunCreditGuard off = new RunCreditGuard(balanceService, tenantContext, false, FLOOR, CHUNK);
 
         assertThat(off.beginRun(42L)).isTrue();
         off.onDebit(42L, 10_000L);
@@ -59,6 +60,20 @@ class RunCreditGuardTest {
 
         assertThat(enabledGuard().beginRun(42L)).isFalse();
         assertThat(guard.isExhausted()).isFalse();
+    }
+
+    @Test
+    void platformStaff_exempt_evenWhenEnforcementOn() {
+        when(tenantContext.isSuperAdmin()).thenReturn(true);
+
+        // Enforcement ACTIF, mais staff plateforme → autorisé sans réservation ni débit.
+        assertThat(enabledGuard().beginRun(42L)).isTrue();
+        guard.onDebit(42L, 10_000L);
+        assertThat(guard.isExhausted()).isFalse();
+        guard.endRun();
+
+        verify(balanceService, never()).tryReserve(anyLong(), anyLong());
+        verify(balanceService, never()).applyConsumptionToGrants(anyLong(), anyLong());
     }
 
     @Test
