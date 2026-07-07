@@ -19,6 +19,8 @@ public record GuestReviewDto(
     String reviewText,
     String hostResponse,
     Instant hostRespondedAt,
+    String hostResponseDraft,
+    Instant hostResponseDraftAt,
     LocalDate reviewDate,
     Double sentimentScore,
     SentimentLabel sentimentLabel,
@@ -31,7 +33,8 @@ public record GuestReviewDto(
         return new GuestReviewDto(
             r.getId(), r.getPropertyId(), r.getReservationId(), r.getChannelName(),
             r.getGuestName(), r.getRating(), r.getReviewText(), r.getHostResponse(),
-            r.getHostRespondedAt(), r.getReviewDate(), r.getSentimentScore(),
+            r.getHostRespondedAt(), r.getHostResponseDraft(), r.getHostResponseDraftAt(),
+            r.getReviewDate(), r.getSentimentScore(),
             r.getSentimentLabel(), r.getLanguage(), r.getTags(), r.getIsPublic(),
             r.getCreatedAt()
         );

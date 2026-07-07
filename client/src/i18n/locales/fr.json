@@ -191,6 +191,11 @@
       "autoActions": "Actions auto",
       "acceptance": "Acceptation"
     },
+    "reviewDrafts": {
+      "title": "Brouillons de réponse (IA)",
+      "empty": "Aucun brouillon de réponse en attente.",
+      "publish": "Publier"
+    },
     "drawer": {
       "ventilation": "Détail par logement",
       "noActivity": "Aucune activité"

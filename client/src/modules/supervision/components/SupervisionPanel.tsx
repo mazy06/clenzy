@@ -328,7 +328,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
         </Box>
       )}
 
-      <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} />
+      <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} propertyId={propertyId} />
     </Box>
   );
 }

@@ -29,6 +29,8 @@ class GuestReviewDtoTest {
                 "Great stay!",
                 "Thank you!",
                 respondedAt,
+                null,
+                null,
                 reviewDate,
                 0.95,
                 SentimentLabel.POSITIVE,

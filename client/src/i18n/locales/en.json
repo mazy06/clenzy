@@ -191,6 +191,11 @@
       "autoActions": "Auto actions",
       "acceptance": "Acceptance"
     },
+    "reviewDrafts": {
+      "title": "Reply drafts (AI)",
+      "empty": "No reply draft pending.",
+      "publish": "Publish"
+    },
     "drawer": {
       "ventilation": "Breakdown by property",
       "noActivity": "No activity"
