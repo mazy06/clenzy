@@ -97,7 +97,7 @@ function reduceProperty(snapshot: OrchestratorSnapshot, evt: StreamEvent): Orche
       // (feed réel — toolName préservé —, file HITL, agents, métriques) mais on
       // CONSERVE l'état piloté par le flux live (conversation, busy, interrupt inline)
       // pour ne rien écraser en cours de session.
-      const next = evt.snapshot;
+      const next = evt.snapshot as OrchestratorSnapshot;
       return {
         ...snapshot,
         online: next.online,
@@ -135,6 +135,20 @@ function reducePortfolio(snapshot: PortfolioSnapshot, evt: StreamEvent): Portfol
     case 'agent.status':
     case 'agent.acting':
       return { ...snapshot, agents: snapshot.agents.map((a) => (a.id === evt.agentId ? patchRollup(a, evt) : a)) };
+    case 'snapshot.refreshed': {
+      // Rafraîchissement périodique du portefeuille : remplace l'agrégat serveur
+      // (agents rollupés, file et journal multi-logements, métriques).
+      const next = evt.snapshot as PortfolioSnapshot;
+      return {
+        ...snapshot,
+        online: next.online,
+        paused: next.paused,
+        agents: next.agents,
+        pending: next.pending,
+        feed: next.feed,
+        dayMetrics: next.dayMetrics,
+      };
+    }
     default:
       return snapshot;
   }

@@ -16,4 +16,12 @@ public interface SupervisionActivityRepository extends JpaRepository<Supervision
     /** Nb d'actions d'un type depuis un instant (compteur « actions récentes »). */
     long countByOrganizationIdAndPropertyIdAndKindAndCreatedAtAfter(
             Long organizationId, Long propertyId, String kind, Instant since);
+
+    /** Dernières entrées de TOUTE l'organisation (vue portefeuille, chrono inversé). */
+    List<SupervisionActivity> findByOrganizationIdOrderByCreatedAtDesc(
+            Long organizationId, Pageable pageable);
+
+    /** Nb d'actions d'un type sur toute l'org depuis un instant (métrique portefeuille). */
+    long countByOrganizationIdAndKindAndCreatedAtAfter(
+            Long organizationId, String kind, Instant since);
 }

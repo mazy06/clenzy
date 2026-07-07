@@ -92,6 +92,35 @@ public class SupervisionActivityService {
      * Un nom inconnu (ex. action d'automatisation déterministe) renvoie false →
      * l'entrée est conservée au rendu. Sert à masquer le bruit read-only hérité.
      */
+    /**
+     * Feed org-wide (vue portefeuille) : dernières activités de TOUTE l'organisation,
+     * hors outils read-only (héritage). Retourne les entités (le portefeuille y ajoute
+     * le nom du logement). Pas de vérif d'ownership par logement ici : l'org est celle
+     * du requester (résolue par l'appelant via {@code tenantContext}).
+     */
+    @Transactional(readOnly = true)
+    public List<SupervisionActivity> recentOrgFeed(Long organizationId, int fetchLimit, int keepLimit) {
+        if (organizationId == null) {
+            return List.of();
+        }
+        return activityRepository
+                .findByOrganizationIdOrderByCreatedAtDesc(organizationId, PageRequest.of(0, fetchLimit))
+                .stream()
+                .filter(a -> !isReadOnlyTool(a.getToolName()))
+                .limit(keepLimit)
+                .toList();
+    }
+
+    /** Nb d'actions auto de l'org sur la fenêtre récente (métrique portefeuille). */
+    @Transactional(readOnly = true)
+    public long orgAutoActions(Long organizationId) {
+        if (organizationId == null) {
+            return 0L;
+        }
+        return activityRepository.countByOrganizationIdAndKindAndCreatedAtAfter(
+                organizationId, SupervisionActivity.KIND_ACT, Instant.now().minus(AUTO_ACTIONS_WINDOW));
+    }
+
     private boolean isReadOnlyTool(String toolName) {
         if (toolName == null || toolName.isBlank()) {
             return false;

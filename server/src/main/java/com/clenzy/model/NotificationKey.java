@@ -193,6 +193,11 @@ public enum NotificationKey {
     REVIEW_RECEIVED(NotificationType.INFO, NotificationCategory.REVIEW, true),
     REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true),
 
+    // ─── SUPERVISION / CONSTELLATION (1 cle) ──────────────────────────────
+    // Carte HITL actionnable (warning/critical) creee par un agent : l'operateur
+    // doit la voir meme hors de l'ecran de supervision (anti « action manquee »).
+    SUPERVISION_SUGGESTION(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+
     // ─── PAYOUT (7 cles) ──────────────────────────────────────────────────
     PAYOUT_BATCH_GENERATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
     PAYOUT_PENDING_APPROVAL(NotificationType.WARNING, NotificationCategory.PAYMENT, true),

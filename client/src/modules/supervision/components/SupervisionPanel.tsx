@@ -201,7 +201,10 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
                   <ActivityFeed entries={propertySnapshot.feed} />
                 ) : (
                   <Box sx={{ px: 1, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-                    {t('supervision.feed.empty', 'Aucune action récente des agents')}
+                    {t(
+                      'supervision.feed.emptyOnboarding',
+                      'Les agents observent ce logement. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
+                    )}
                   </Box>
                 )}
               </Box>

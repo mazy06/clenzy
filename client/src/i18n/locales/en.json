@@ -182,7 +182,14 @@
     },
     "feed": {
       "title": "Live",
-      "empty": "No recent agent actions"
+      "empty": "No recent agent actions",
+      "emptyOnboarding": "The agents are watching your properties. Their actions and suggestions to approve will appear here — nothing runs without your consent."
+    },
+    "report": {
+      "title": "Report · 30 days",
+      "timeSaved": "Time saved",
+      "autoActions": "Auto actions",
+      "acceptance": "Acceptance"
     },
     "drawer": {
       "ventilation": "Breakdown by property",

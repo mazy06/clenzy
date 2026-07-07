@@ -234,6 +234,6 @@ export type StreamEvent =
   | { type: 'pendingAction.added'; action: PendingAgentAction } // run en pause : action sensible à valider/refuser
   | { type: 'pendingAction.cleared' } // décision prise (ou run repris) → carte retirée
   // ── Rafraîchissement périodique hors run (polling du feed/file réels) ─────────
-  | { type: 'snapshot.refreshed'; snapshot: OrchestratorSnapshot }; // remplace feed/pending/agents/métriques, préserve l'état live (conversation, interrupt)
+  | { type: 'snapshot.refreshed'; snapshot: SupervisionSnapshot }; // remplace feed/pending/agents/métriques (property OU portefeuille), préserve l'état live
 
 export type PendingOutcome = 'validated' | 'edited' | 'expired';
