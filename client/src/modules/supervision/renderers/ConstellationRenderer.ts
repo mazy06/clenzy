@@ -51,6 +51,10 @@ export interface ConstellationRendererProps {
   headerAction?: ReactNode;
   /** Bilan de valeur (fenêtre = zoom planning) affiché dans le HUD. */
   report?: ConstellationReport;
+  /** Fenêtre du bilan actuellement sélectionnée (jours) — état du sélecteur. */
+  reportWindow?: number;
+  /** Change la fenêtre du bilan depuis le HUD (Jour/Semaine/Quinzaine/Mois). */
+  onReportWindowChange?: (days: number) => void;
   /** Contenu empilé JUSTE SOUS le HUD (haut-gauche), ex. flux « En direct ». */
   belowHud?: ReactNode;
 }

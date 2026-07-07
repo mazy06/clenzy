@@ -8,7 +8,7 @@
    Concurrence multi-opérateur / expiration → bandeaux (useResolutionToasts).
    ============================================================ */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { WifiOff, Replay, Radar } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
@@ -48,8 +48,12 @@ export interface SupervisionPanelProps {
 export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, onActing, onEditAction }: SupervisionPanelProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
-  // Bilan de valeur (org-scopé) affiché dans le HUD, fenêtre = zoom planning.
-  const { report } = useSupervisionReport(reportWindowDays);
+  // Bilan de valeur (org-scopé) affiché dans le HUD. La fenêtre suit le zoom du
+  // planning par défaut, avec un sélecteur HUD (dont « Jour ») qui l'affine ; un
+  // changement de zoom re-synchronise (le zoom reste le maître).
+  const [reportWindow, setReportWindow] = useState(reportWindowDays);
+  useEffect(() => setReportWindow(reportWindowDays), [reportWindowDays]);
+  const { report } = useSupervisionReport(reportWindow);
   const [selected, setSelected] = useState<AgentId | null>(null);
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
 
@@ -163,6 +167,8 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               }
             : undefined
         }
+        reportWindow={reportWindow}
+        onReportWindowChange={setReportWindow}
         headerAction={
           canKickoff && propertyId != null ? (
             <Tooltip

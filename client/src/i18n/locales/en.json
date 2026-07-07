@@ -189,6 +189,7 @@
       "title": "Report · 30 days",
       "titleBase": "Report",
       "windowDays": "{{count}} days",
+      "win": { "day": "Day", "week": "Week", "fortnight": "Fortn.", "month": "Month" },
       "timeSaved": "Time saved",
       "autoActions": "Auto actions",
       "acceptance": "Acceptance"

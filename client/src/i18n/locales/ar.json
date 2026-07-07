@@ -189,6 +189,7 @@
       "title": "الحصيلة · 30 يومًا",
       "titleBase": "الحصيلة",
       "windowDays": "{{count}} يومًا",
+      "win": { "day": "يوم", "week": "أسبوع", "fortnight": "أسبوعان", "month": "شهر" },
       "timeSaved": "الوقت الموفَّر",
       "autoActions": "إجراءات تلقائية",
       "acceptance": "القبول"
