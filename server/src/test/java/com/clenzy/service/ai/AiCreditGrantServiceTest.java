@@ -139,11 +139,25 @@ class AiCreditGrantServiceTest {
     }
 
     @Test
+    void ensureAllotment_returnsFalse_whenOrgHasNoActiveSubscription() {
+        // Self-heal : une org sans abonnement actif n'est pas éligible aux crédits inclus.
+        when(grantRepository.existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
+                eq(9L), eq(AiCreditGrant.SOURCE_SUBSCRIPTION), any())).thenReturn(false);
+        when(userRepository.findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(9L))
+                .thenReturn(Optional.empty());
+
+        assertThat(service().ensureCurrentMonthAllotment(9L)).isFalse();
+        verify(grantRepository, never()).save(any());
+    }
+
+    @Test
     void monthlyRefresh_grantsPrepaidSubscriber_notYetRefreshedThisMonth() {
         when(userRepository.findByStripeSubscriptionIdIsNotNullAndBillingPeriodIn(any()))
                 .thenReturn(List.of(prepaidPayer(7L, "confort", "ANNUAL")));
         when(grantRepository.existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
                 eq(7L), eq(AiCreditGrant.SOURCE_SUBSCRIPTION), any())).thenReturn(false);
+        when(userRepository.findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(7L))
+                .thenReturn(Optional.of(prepaidPayer(7L, "confort", "ANNUAL")));
         when(grantRepository.existsByStripeRef(anyString())).thenReturn(false);
         when(ledgerRepository.existsByIdempotencyKey(anyString())).thenReturn(false);
 
