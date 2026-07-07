@@ -595,6 +595,39 @@ const Root = styled.div`
     border-radius: 50%;
     background: rgba(174, 180, 224, 0.5);
   }
+  /* Bilan de valeur dans le HUD (fenêtre = zoom planning) : séparé par un filet,
+     titre discret + une ligne de 3 métriques (réutilise la grammaire hudrow). */
+  .cst__hudbilan {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(174, 180, 224, 0.18);
+  }
+  .cst__hudbilanhead {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #9aa0cc;
+  }
+  .cst__hudbilanrow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #c8cdf0;
+  }
+  .cst__hudbilanrow b {
+    color: #fff;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .cst__hudbilanrow i {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(174, 180, 224, 0.5);
+  }
   .cst__attention {
     display: inline-flex;
     align-items: center;
@@ -763,6 +796,21 @@ const Root = styled.div`
   html:not([data-theme='dark']) & .cst__hudrow i {
     background: rgba(43, 63, 73, 0.4);
   }
+  html:not([data-theme='dark']) & .cst__hudbilan {
+    border-top-color: rgba(43, 63, 73, 0.12);
+  }
+  html:not([data-theme='dark']) & .cst__hudbilanhead {
+    color: #5d7a8a;
+  }
+  html:not([data-theme='dark']) & .cst__hudbilanrow b {
+    color: #1c2b33;
+  }
+  html:not([data-theme='dark']) & .cst__hudbilanrow {
+    color: #4a6373;
+  }
+  html:not([data-theme='dark']) & .cst__hudbilanrow i {
+    background: rgba(43, 63, 73, 0.4);
+  }
   html:not([data-theme='dark']) & .cst__focushint {
     color: #5d7a8a;
   }
@@ -878,6 +926,7 @@ export function FramerConstellation({
   onToggleFocus,
   onSelectAgent,
   headerAction,
+  report,
   belowHud,
 }: ConstellationRendererProps) {
   const { t } = useTranslation();
@@ -1076,6 +1125,24 @@ export function FramerConstellation({
             <i />
             <b className="amber">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
           </div>
+          {/* Bilan de valeur — fenêtre alignée sur le zoom du planning. */}
+          {report && (
+            <div className="cst__hudbilan">
+              <div className="cst__hudbilanhead">
+                {t('supervision.report.titleBase', 'Bilan')} · {t('supervision.report.windowDays', {
+                  count: report.windowDays,
+                  defaultValue: '{{count}} jours',
+                })}
+              </div>
+              <div className="cst__hudbilanrow">
+                <b>{report.estimatedTimeSaved}</b> {t('supervision.report.timeSaved', 'Temps gagné')}
+                <i />
+                <b>{report.autoActions}</b> {t('supervision.report.autoActions', 'Actions auto')}
+                <i />
+                <b>{Math.round(report.acceptanceRate * 100)} %</b> {t('supervision.report.acceptance', 'Acceptation')}
+              </div>
+            </div>
+          )}
           {attentionCount > 0 && (
             <div className="cst__attention">
               <span className="cst__attentiondot" />

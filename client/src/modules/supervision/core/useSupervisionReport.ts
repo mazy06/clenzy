@@ -21,16 +21,21 @@ export interface SupervisionReport {
   estimatedTimeSaved: string; // "≈ 4 h 30"
 }
 
-export function useSupervisionReport(): { report: SupervisionReport | null; loading: boolean } {
+/**
+ * @param windowDays fenêtre glissante (jours) — la constellation l'aligne sur le
+ *   zoom du planning : Semaine 7 / Quinzaine 15 / Mois 30. Défaut 30.
+ */
+export function useSupervisionReport(windowDays = 30): { report: SupervisionReport | null; loading: boolean } {
   const [report, setReport] = useState<SupervisionReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoading(true);
       try {
         const token = getAccessToken();
-        const res = await fetch(buildApiUrl('/ai/supervision/report'), {
+        const res = await fetch(buildApiUrl(`/ai/supervision/report?windowDays=${windowDays}`), {
           credentials: 'include',
           headers: { accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         });
@@ -46,7 +51,7 @@ export function useSupervisionReport(): { report: SupervisionReport | null; load
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [windowDays]);
 
   return { report, loading };
 }

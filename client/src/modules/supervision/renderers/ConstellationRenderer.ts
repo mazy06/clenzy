@@ -28,6 +28,17 @@ export interface ConstellationHud {
   awaitingCount: number;
 }
 
+/**
+ * Bilan de valeur affiché dans le HUD (« Orchestrateur »). Fenêtre alignée sur
+ * le zoom du planning (Semaine 7 / Quinzaine 15 / Mois 30 j).
+ */
+export interface ConstellationReport {
+  windowDays: number;
+  autoActions: number;
+  acceptanceRate: number; // 0..1
+  estimatedTimeSaved: string; // « ≈ 7 h 20 »
+}
+
 export interface ConstellationRendererProps {
   agents: ConstellationAgentView[];
   hud: ConstellationHud;
@@ -38,6 +49,8 @@ export interface ConstellationRendererProps {
   onSelectAgent?: (id: AgentId) => void;
   /** Action posée DANS le HUD (haut-gauche), ex. bouton « Scanner » en icône. */
   headerAction?: ReactNode;
+  /** Bilan de valeur (fenêtre = zoom planning) affiché dans le HUD. */
+  report?: ConstellationReport;
   /** Contenu empilé JUSTE SOUS le HUD (haut-gauche), ex. flux « En direct ». */
   belowHud?: ReactNode;
 }

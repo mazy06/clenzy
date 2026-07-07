@@ -14,6 +14,7 @@ import { WifiOff, Replay, Radar } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
+import { useSupervisionReport } from '../core/useSupervisionReport';
 import { useResolutionToasts } from '../core/useResolutionToasts';
 import { spawnComet } from '../core/spawnComet';
 import { AGENT_META } from '../constants';
@@ -35,6 +36,8 @@ export interface SupervisionPanelProps {
   deps: unknown[];
   /** Propriété pilotée — active le bouton « Scanner » (mode live). */
   propertyId?: number | string;
+  /** Fenêtre du bilan affiché dans le HUD (jours) — alignée sur le zoom planning. */
+  reportWindowDays?: number;
   onSelectAgent?: (id: AgentId) => void;
   /** Agent qui agit sur une réservation → comète (en plus du rendu interne). */
   onActing?: (agentId: AgentId, reservationId: string) => void;
@@ -42,9 +45,11 @@ export interface SupervisionPanelProps {
   onEditAction?: (actionId: string) => void;
 }
 
-export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAgent, onActing, onEditAction }: SupervisionPanelProps) {
+export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, onActing, onEditAction }: SupervisionPanelProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  // Bilan de valeur (org-scopé) affiché dans le HUD, fenêtre = zoom planning.
+  const { report } = useSupervisionReport(reportWindowDays);
   const [selected, setSelected] = useState<AgentId | null>(null);
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
 
@@ -148,6 +153,16 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
         snapshot={snapshot}
         online={status === 'live'}
         onSelectAgent={handleSelect}
+        report={
+          report
+            ? {
+                windowDays: report.windowDays,
+                autoActions: report.autoActions,
+                acceptanceRate: report.acceptanceRate,
+                estimatedTimeSaved: report.estimatedTimeSaved,
+              }
+            : undefined
+        }
         headerAction={
           canKickoff && propertyId != null ? (
             <Tooltip
