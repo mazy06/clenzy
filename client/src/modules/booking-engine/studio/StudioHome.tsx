@@ -233,6 +233,8 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   const { user } = useAuth();
   const [configs, setConfigs] = useState<BookingEngineConfig[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Message d'invite affiché si on clique « Partir d'une page vierge » sans funnel (effacé au choix d'un funnel).
+  const [blankError, setBlankError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   // Champ IA — texte libre + champs structurés (constructeur de prompt)
@@ -320,7 +322,16 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
   // « Page vierge » : d'abord l'étape DIRECTION sur écran plein (modèle open-design), puis l'éditeur. La
   // création du booking engine habillé se fait dans DesignSystemCreatePage (`flow: 'blank'`).
-  const handleCreateBlank = () => navigate('/booking-engine/design-systems/new', { state: { flow: 'blank', funnelId } });
+  // RÈGLE : un funnel DOIT être sélectionné (comme pour les templates) — le funnel pilote le parcours.
+  // Au clic SANS funnel → message d'invite (le bouton reste cliquable pour déclencher le retour).
+  const handleCreateBlank = () => {
+    if (!funnelId) {
+      setBlankError("Sélectionnez d'abord un funnel ci-dessus pour partir d'une page vierge.");
+      return;
+    }
+    setBlankError(null);
+    navigate('/booking-engine/design-systems/new', { state: { flow: 'blank', funnelId } });
+  };
 
   // ── Constructeur de prompt : ajout / retrait de champs + libellé de valeur courante ──
   const addOption = (id: PromptOptionId) => {
@@ -353,6 +364,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
   // Choix d'un funnel : réconcilie les champs dépendants (objectif, pages) pour rester cohérent.
   const applyFunnel = (id: string) => {
     setFunnelId(id);
+    setBlankError(null); // un funnel est choisi → l'invite « page vierge » n'a plus lieu d'être
     // Le template choisi ne reste que s'il appartient au nouveau funnel, sinon on le réinitialise.
     setTemplateId((t) => (t && templateFunnel(t) === id ? t : null));
     setGoal((g) => (g && goalConflicts(g, id) ? null : g));
@@ -802,11 +814,19 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           )}
         </div>
 
-        {/* Page vierge (sans template) */}
+        {/* Page vierge (sans template) — RÈGLE : un funnel est requis. Cliquable ; au clic sans funnel → message. */}
         <div className="blank-row">
-          <button className="blank" type="button" onClick={handleCreateBlank} disabled={creating}>
+          <button
+            className="blank" type="button" onClick={handleCreateBlank} disabled={creating}
+            aria-describedby={blankError ? 'blank-funnel-hint' : undefined}
+          >
             Partir d'une page vierge <ArrowRight size={16} strokeWidth={2} />
           </button>
+          {blankError && (
+            <p id="blank-funnel-hint" role="alert" className="fan-locked" style={{ color: 'var(--warn, #C28A52)' }}>
+              {blankError}
+            </p>
+          )}
         </div>
 
           </div>{/* /studio-split__main */}
