@@ -189,6 +189,7 @@
       "title": "Bilan · 30 jours",
       "titleBase": "Bilan",
       "windowDays": "{{count}} jours",
+      "win": { "day": "Jour", "week": "Sem.", "fortnight": "Quinz.", "month": "Mois" },
       "timeSaved": "Temps gagné",
       "autoActions": "Actions auto",
       "acceptance": "Acceptation"

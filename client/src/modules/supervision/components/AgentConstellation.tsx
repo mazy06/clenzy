@@ -30,6 +30,9 @@ export interface AgentConstellationProps {
   headerAction?: ReactNode;
   /** Bilan de valeur (fenêtre = zoom planning) affiché dans le HUD. */
   report?: ConstellationReport;
+  /** Fenêtre du bilan sélectionnée (jours) + handler du sélecteur HUD. */
+  reportWindow?: number;
+  onReportWindowChange?: (days: number) => void;
   /** Contenu empilé juste sous le HUD (ex. flux « En direct »). */
   belowHud?: ReactNode;
 }
@@ -84,6 +87,8 @@ export function AgentConstellation({
   onSelectAgent,
   headerAction,
   report,
+  reportWindow,
+  onReportWindowChange,
   belowHud,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
@@ -100,6 +105,8 @@ export function AgentConstellation({
       onSelectAgent={onSelectAgent}
       headerAction={headerAction}
       report={report}
+      reportWindow={reportWindow}
+      onReportWindowChange={onReportWindowChange}
       belowHud={belowHud}
     />
   );
