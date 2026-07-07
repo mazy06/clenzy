@@ -265,8 +265,23 @@ export default function SiteGenerationPage() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(320px, 420px) minmax(0, 1fr)' }, gap: { xs: 3, md: '48px' }, alignItems: 'start', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 }, maxWidth: 1320, mx: 'auto' }}>
         {/* ─── Colonne gauche : cadrage + étapes — épinglée au scroll (position: sticky, comme open-design) ─── */}
         <Box sx={{ position: { md: 'sticky' }, top: { md: 84 }, alignSelf: 'start' }}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.5, borderRadius: 'var(--radius-pill, 999px)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 700, fontSize: 'var(--text-2xs)', mb: 2 }}>
-            <Sparkles size={13} /> Génération IA
+          <Box sx={{
+            display: 'inline-flex', alignItems: 'center', gap: 0.75, mb: 2.5, pl: 0.5, pr: 1.5, py: 0.5,
+            borderRadius: 'var(--radius-pill, 999px)',
+            bgcolor: 'color-mix(in srgb, var(--accent) 7%, var(--surface))',
+            border: '1px solid', borderColor: 'color-mix(in srgb, var(--accent) 18%, var(--line))',
+            boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)',
+          }}>
+            <Box aria-hidden sx={{
+              display: 'grid', placeItems: 'center', width: 22, height: 22, borderRadius: '50%',
+              bgcolor: 'var(--accent)', color: 'var(--on-accent)', flexShrink: 0,
+              boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)',
+            }}>
+              <Sparkles size={12} strokeWidth={2.4} />
+            </Box>
+            <Box component="span" sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--accent)' }}>
+              Génération IA
+            </Box>
           </Box>
           <Box sx={{ fontFamily: 'var(--font-display)', fontSize: { xs: 30, md: 42 }, fontWeight: 700, lineHeight: 1.08, color: 'var(--ink)', letterSpacing: '-0.02em', textWrap: 'balance' }}>
             Générez votre site, en minutes
