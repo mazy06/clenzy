@@ -2,6 +2,7 @@ package com.clenzy.service.ai;
 
 import com.clenzy.model.AiCreditGrant;
 import com.clenzy.model.AiUsageLedgerEntry;
+import com.clenzy.model.BillingPeriod;
 import com.clenzy.model.User;
 import com.clenzy.repository.AiCreditGrantRepository;
 import com.clenzy.repository.AiUsageLedgerRepository;
@@ -14,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -38,6 +41,8 @@ public class AiCreditGrantService {
     private static final Duration SUBSCRIPTION_GRANT_TTL = Duration.ofDays(32);
     /** Top-up prepaye : 12 mois (D-102). */
     private static final Duration TOPUP_GRANT_TTL = Duration.ofDays(365);
+    /** Zone de facturation : borne le « mois courant » de la recharge des prépayés. */
+    private static final ZoneId BILLING_ZONE = ZoneId.of("Europe/Paris");
 
     private final AiCreditGrantRepository grantRepository;
     private final AiUsageLedgerRepository ledgerRepository;
@@ -87,6 +92,45 @@ public class AiCreditGrantService {
         long allotment = allotmentFor(payer.getForfait());
         grant(payer.getOrganizationId(), AiCreditGrant.SOURCE_SUBSCRIPTION, allotment,
                 Instant.now().plus(SUBSCRIPTION_GRANT_TTL), invoiceId);
+    }
+
+    /**
+     * Recharge mensuelle des crédits pour les abonnés PMS <b>prépayés</b>
+     * (ANNUAL / BIENNIAL) — Stripe ne déclenche {@code invoice.paid} qu'une fois
+     * par période, ils n'auraient sinon qu'un mois de crédits par an. Les abonnés
+     * MENSUELS sont exclus : leur recharge est déjà portée par {@code invoice.paid}.
+     *
+     * <p>Anti-double : une org qui a déjà reçu une poche SUBSCRIPTION ce mois-ci
+     * (invoice de renouvellement tombé le même mois, ou run précédent) est ignorée.
+     * Idempotent par (org, mois) via la clé {@code monthly:orgId:yyyy-MM}.</p>
+     *
+     * @return nombre d'orgs rechargées
+     */
+    @Transactional
+    public int refreshMonthlyForPrepaidSubscribers() {
+        YearMonth month = YearMonth.now(BILLING_ZONE);
+        Instant monthStart = month.atDay(1).atStartOfDay(BILLING_ZONE).toInstant();
+        List<User> subscribers = userRepository.findByStripeSubscriptionIdIsNotNullAndBillingPeriodIn(
+                List.of(BillingPeriod.ANNUAL.name(), BillingPeriod.BIENNIAL.name()));
+        int refreshed = 0;
+        for (User subscriber : subscribers) {
+            Long orgId = subscriber.getOrganizationId();
+            if (orgId == null) {
+                continue;
+            }
+            boolean alreadyRefreshedThisMonth = grantRepository
+                    .existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
+                            orgId, AiCreditGrant.SOURCE_SUBSCRIPTION, monthStart);
+            if (alreadyRefreshedThisMonth) {
+                continue;
+            }
+            grant(orgId, AiCreditGrant.SOURCE_SUBSCRIPTION, allotmentFor(subscriber.getForfait()),
+                    Instant.now().plus(SUBSCRIPTION_GRANT_TTL), "monthly:" + orgId + ":" + month);
+            refreshed++;
+        }
+        log.info("[CREDITS] Recharge mensuelle prépayés ({}) : {} org(s) rechargée(s) sur {} abonné(s) annuel(s)/biennal(aux)",
+                month, refreshed, subscribers.size());
+        return refreshed;
     }
 
     /**
