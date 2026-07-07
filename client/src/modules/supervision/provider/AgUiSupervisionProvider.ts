@@ -141,6 +141,13 @@ export interface AgUiProviderOptions {
 /** Agent AG-UI exposé par le backend (cf. AgUiController.AGENT_NAME). */
 const AGENT_NAME = 'clenzy-supervisor';
 
+/**
+ * Intervalle de rafraîchissement périodique du snapshot HORS run live (ms) : le feed
+ * réel et la file HITL sont re-fetchés pour faire apparaître les nouveaux événements
+ * sans recharger la page. Suspendu pendant un run SSE (le flux gère alors l'état).
+ */
+const POLL_INTERVAL_MS = 30_000;
+
 export class AgUiSupervisionProvider implements SupervisionProvider<OrchestratorSnapshot> {
   private readonly listeners = new Set<Listener>();
   private abort: AbortController | null = null;
@@ -165,6 +172,13 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    * « Valider » sur ces cartes = appliquer l'action serveur, pas rejeter.
    */
   private readonly applicableSuggestionIds = new Set<string>();
+  /** true tant qu'un run SSE est en cours → le polling se met en pause pour ne pas
+   *  écraser l'état live (conversation, interrupt inline). */
+  private runActive = false;
+  /** Timer de rafraîchissement périodique du feed/file hors run. */
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  /** true si un rafraîchissement est déjà en vol (évite le chevauchement). */
+  private polling = false;
 
   constructor(
     private readonly propertyId: string,
@@ -275,6 +289,9 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       text: e.text,
       toolName: e.toolName,
     }));
+
+    // Démarre (une seule fois) le rafraîchissement périodique hors run.
+    this.ensurePolling();
 
     const awaiting = hitlPending.length + pendingQueue.length;
     return {
@@ -586,6 +603,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     this.abort = new AbortController();
     const signal = this.abort.signal;
     this.currentReplyId = null;
+    this.runActive = true; // suspend le polling tant que le flux live pilote l'état
     this.emit({ type: 'conversation.busy', busy: true });
     const token = getAccessToken();
     try {
@@ -611,7 +629,38 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       // Abort volontaire (nouveau kickoff) → silencieux ; vraie panne → hors-ligne.
       if (!this.disposed && !signal.aborted) this.emit({ type: 'connection', online: false });
     } finally {
+      this.runActive = false; // le flux est terminé → le polling peut reprendre
       if (!this.disposed && !signal.aborted) this.emit({ type: 'conversation.busy', busy: false });
+    }
+  }
+
+  /** Arme le timer de rafraîchissement périodique (idempotent, une seule fois). */
+  private ensurePolling(): void {
+    if (this.pollTimer || this.disposed) return;
+    this.pollTimer = setInterval(() => {
+      void this.pollRefresh();
+    }, POLL_INTERVAL_MS);
+  }
+
+  /**
+   * Re-fetch le snapshot réel (feed + file HITL + suggestions) et émet
+   * `snapshot.refreshed` pour faire apparaître les nouveaux événements sans reload.
+   * No-op pendant un run live (le flux SSE pilote l'état) ou si un poll est déjà en vol.
+   * `getSnapshot` est gracieux (jamais d'exception) et rafraîchit au passage la table
+   * des suggestions actionnables (applicableSuggestionIds).
+   */
+  private async pollRefresh(): Promise<void> {
+    if (this.disposed || this.runActive || this.polling) return;
+    this.polling = true;
+    try {
+      const next = await this.getSnapshot();
+      if (!this.disposed && !this.runActive) {
+        this.emit({ type: 'snapshot.refreshed', snapshot: next });
+      }
+    } catch {
+      // getSnapshot est déjà tolérant aux pannes ; on ignore tout résidu.
+    } finally {
+      this.polling = false;
     }
   }
 
@@ -855,6 +904,10 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
 
   dispose(): void {
     this.disposed = true;
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
     this.abort?.abort();
     this.abort = null;
     this.currentInterruptId = null;

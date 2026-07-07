@@ -2,6 +2,7 @@ package com.clenzy.scheduler;
 
 import com.clenzy.model.AutomationAction;
 import com.clenzy.model.AutomationRule;
+import com.clenzy.model.CleaningFrequency;
 import com.clenzy.model.Property;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.Reservation;
@@ -11,6 +12,7 @@ import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.ServiceRequestService;
 import com.clenzy.service.access.StayTimes;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionActionType;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.service.automation.AutomationEngine;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -217,8 +219,21 @@ public class CleaningBackfillScheduler {
         }
         String motif = "Depart du " + reservation.getCheckOut() + " (reservation " + reservation.getId()
             + ") sans demande de menage planifiee. Planifier un menage avant l'arrivee suivante.";
-        supervisionSuggestionService.record(orgId, propertyId, "ops", "cleaning_missing",
-            "Menage manquant pour le depart de demain", motif);
+        final String title = "Menage manquant pour le depart de demain";
+        // Carte APPLICABLE (« Planifier le menage ») uniquement si le menage auto peut aboutir :
+        // l'apply reutilise createAutomaticCleaningRequest, qui exige la frequence AFTER_EACH_STAY.
+        // Sinon carte informationnelle (l'operateur planifie manuellement).
+        if (property.getCleaningFrequency() == CleaningFrequency.AFTER_EACH_STAY
+            && reservation.getCheckOut() != null) {
+            String params = String.format("{\"reservationId\":%d,\"checkIn\":%s,\"checkOut\":\"%s\"}",
+                reservation.getId(),
+                reservation.getCheckIn() != null ? "\"" + reservation.getCheckIn() + "\"" : "null",
+                reservation.getCheckOut());
+            supervisionSuggestionService.recordActionable(orgId, propertyId, "ops", title, motif,
+                SupervisionActionType.CLEANING_REQUEST, params, null, "warning");
+        } else {
+            supervisionSuggestionService.record(orgId, propertyId, "ops", "cleaning_missing", title, motif);
+        }
         return true;
     }
 

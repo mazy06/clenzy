@@ -48,5 +48,24 @@ public final class SupervisionActionType {
      */
     public static final String YIELD_PRICE_ADJUST = "YIELD_PRICE_ADJUST";
 
+    /**
+     * Planifie le menage manquant du depart de demain (agent Operations). Reutilise
+     * {@code ServiceRequestService.createAutomaticCleaningRequest} (idempotent, org-validee,
+     * ecriture DB uniquement). Params : {@code reservationId}, {@code checkIn}, {@code checkOut}
+     * (ISO). N'est propose qu'aux logements en frequence AFTER_EACH_STAY (l'apply reussit alors
+     * toujours) — cf. {@code CleaningBackfillScheduler.scanTomorrowCheckoutsMissingCleaning}.
+     */
+    public static final String CLEANING_REQUEST = "CLEANING_REQUEST";
+
+    /**
+     * Relance de paiement voyageur apres un echec (agent Finance). Regenere un lien
+     * de paiement Stripe pour le solde du ({@code BookingBalanceService.createBalanceCheckoutUrl})
+     * et l'envoie a l'email de paiement de la reservation. EFFET EXTERNE (Stripe + email) :
+     * execute HORS transaction (regle audit n°2), compensation en cas d'echec. Params :
+     * {@code reservationId}. L'email et le montant du sont RE-resolus a l'apply (regle audit n°1) ;
+     * la carte n'est proposee que si un email de paiement est resoluble.
+     */
+    public static final String PAYMENT_REMINDER = "PAYMENT_REMINDER";
+
     private SupervisionActionType() {}
 }

@@ -1,16 +1,23 @@
 package com.clenzy.service.agent.supervision;
 
+import com.clenzy.model.Reservation;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.SecurityDepositStatus;
+import com.clenzy.model.ServiceRequest;
 import com.clenzy.model.SupervisionSuggestion;
+import com.stripe.exception.StripeException;
+import com.clenzy.booking.service.BookingBalanceService;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.SecurityDepositRepository;
 import com.clenzy.repository.YieldAdjustmentRepository;
 import com.clenzy.service.CalendarEngine;
+import com.clenzy.service.EmailService;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.SearchCacheInvalidator;
 import com.clenzy.service.SecurityDepositPaymentService;
+import com.clenzy.service.ServiceRequestService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +38,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -53,6 +62,10 @@ class SuggestionActionExecutorTest {
     @Mock private SecurityDepositPaymentService securityDepositPaymentService;
     @Mock private CalendarEngine calendarEngine;
     @Mock private YieldAdjustmentRepository yieldAdjustmentRepository;
+    @Mock private ServiceRequestService serviceRequestService;
+    @Mock private ReservationRepository reservationRepository;
+    @Mock private BookingBalanceService bookingBalanceService;
+    @Mock private EmailService emailService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -63,6 +76,7 @@ class SuggestionActionExecutorTest {
         executor = new SuggestionActionExecutor(priceEngine, rateOverrideRepository,
                 propertyRepository, searchCacheInvalidator, securityDepositRepository,
                 securityDepositPaymentService, calendarEngine, yieldAdjustmentRepository,
+                serviceRequestService, reservationRepository, bookingBalanceService, emailService,
                 new ObjectMapper(), clock);
     }
 
@@ -190,5 +204,77 @@ class SuggestionActionExecutorTest {
         assertThatThrownBy(() -> executor.execute(suggestion("UNKNOWN_TYPE", null)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("non supporté");
+    }
+
+    @Test
+    @DisplayName("menage manquant : planifie via createAutomaticCleaningRequest (DB-only)")
+    void cleaningRequest_schedulesCleaning() {
+        when(serviceRequestService.createAutomaticCleaningRequest(
+                eq(ORG_ID), eq(PROPERTY_ID), eq(LocalDate.parse("2026-07-01")),
+                eq(LocalDate.parse("2026-07-05")), eq(RESERVATION_ID)))
+                .thenReturn(new ServiceRequestService.AutoCleaningOutcome(mock(ServiceRequest.class), null));
+
+        executor.execute(suggestion(SupervisionActionType.CLEANING_REQUEST,
+                "{\"reservationId\":100,\"checkIn\":\"2026-07-01\",\"checkOut\":\"2026-07-05\"}"));
+
+        verify(serviceRequestService).createAutomaticCleaningRequest(
+                eq(ORG_ID), eq(PROPERTY_ID), any(), eq(LocalDate.parse("2026-07-05")), eq(RESERVATION_ID));
+    }
+
+    @Test
+    @DisplayName("menage manquant : deja planifie (idempotent) -> pas d'echec")
+    void cleaningRequest_idempotentWhenAlreadyExists() {
+        when(serviceRequestService.createAutomaticCleaningRequest(anyLong(), anyLong(), any(), any(), any()))
+                .thenReturn(new ServiceRequestService.AutoCleaningOutcome(null, "demande deja existante (cle X)"));
+
+        // Ne lève pas : l'objectif (un ménage existe) est atteint.
+        executor.execute(suggestion(SupervisionActionType.CLEANING_REQUEST,
+                "{\"reservationId\":100,\"checkOut\":\"2026-07-05\"}"));
+    }
+
+    @Test
+    @DisplayName("menage manquant : skip non idempotent -> echec explicite (carte reste PENDING)")
+    void cleaningRequest_throwsOnHardSkip() {
+        when(serviceRequestService.createAutomaticCleaningRequest(anyLong(), anyLong(), any(), any(), any()))
+                .thenReturn(new ServiceRequestService.AutoCleaningOutcome(null, "propriete sans proprietaire"));
+
+        assertThatThrownBy(() -> executor.execute(suggestion(SupervisionActionType.CLEANING_REQUEST,
+                "{\"checkOut\":\"2026-07-05\"}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("non planifiable");
+    }
+
+    @Test
+    @DisplayName("relance paiement : lien de solde regenere + email voyageur (effet externe)")
+    void paymentReminder_sendsBalanceLinkEmail() throws StripeException {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getPaymentLinkEmail()).thenReturn("guest@example.com");
+        when(reservation.getConfirmationCode()).thenReturn("ABC123");
+        when(reservation.getGuestName()).thenReturn("Alice");
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        when(bookingBalanceService.createBalanceCheckoutUrl(ORG_ID, "ABC123"))
+                .thenReturn("https://checkout.stripe/abc");
+
+        executor.execute(suggestion(SupervisionActionType.PAYMENT_REMINDER, "{\"reservationId\":100}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("guest@example.com"), anyString(),
+                contains("https://checkout.stripe/abc"));
+    }
+
+    @Test
+    @DisplayName("relance paiement : email introuvable -> echec explicite (rien d'envoye)")
+    void paymentReminder_throwsWhenNoEmail() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getPaymentLinkEmail()).thenReturn(null);
+        when(reservation.getGuest()).thenReturn(null);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.PAYMENT_REMINDER, "{\"reservationId\":100}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("email de paiement");
+        verifyNoInteractions(emailService);
     }
 }
