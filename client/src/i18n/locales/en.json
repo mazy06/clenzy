@@ -187,6 +187,8 @@
     },
     "report": {
       "title": "Report · 30 days",
+      "titleBase": "Report",
+      "windowDays": "{{count}} days",
       "timeSaved": "Time saved",
       "autoActions": "Auto actions",
       "acceptance": "Acceptance"

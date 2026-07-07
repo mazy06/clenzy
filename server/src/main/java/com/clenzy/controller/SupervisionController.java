@@ -134,9 +134,10 @@ public class SupervisionController {
      * taux d'acceptation et estimation du temps opérateur épargné (ROI).
      */
     @GetMapping("/report")
-    public ResponseEntity<SupervisionReportDto> report() {
+    public ResponseEntity<SupervisionReportDto> report(
+            @RequestParam(name = "windowDays", defaultValue = "30") int windowDays) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        return ResponseEntity.ok(reportService.getReport(orgId));
+        return ResponseEntity.ok(reportService.getReport(orgId, windowDays));
     }
 
     /**

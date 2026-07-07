@@ -187,6 +187,8 @@
     },
     "report": {
       "title": "الحصيلة · 30 يومًا",
+      "titleBase": "الحصيلة",
+      "windowDays": "{{count}} يومًا",
       "timeSaved": "الوقت الموفَّر",
       "autoActions": "إجراءات تلقائية",
       "acceptance": "القبول"

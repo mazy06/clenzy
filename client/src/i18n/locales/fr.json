@@ -187,6 +187,8 @@
     },
     "report": {
       "title": "Bilan · 30 jours",
+      "titleBase": "Bilan",
+      "windowDays": "{{count}} jours",
       "timeSaved": "Temps gagné",
       "autoActions": "Actions auto",
       "acceptance": "Acceptation"

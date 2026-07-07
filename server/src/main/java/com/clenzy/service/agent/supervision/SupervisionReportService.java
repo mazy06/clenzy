@@ -42,10 +42,22 @@ public class SupervisionReportService {
         this.clock = clock;
     }
 
+    /** Bilan sur la fenêtre par défaut (30 j). */
     @Transactional(readOnly = true)
     public SupervisionReportDto getReport(Long organizationId) {
+        return getReport(organizationId, WINDOW_DAYS);
+    }
+
+    /**
+     * Bilan sur une fenêtre glissante paramétrable (jours) — la constellation
+     * l'aligne sur le zoom du planning (Semaine 7 / Quinzaine 15 / Mois 30).
+     * {@code windowDays} est borné à [1, 366].
+     */
+    @Transactional(readOnly = true)
+    public SupervisionReportDto getReport(Long organizationId, int windowDays) {
+        final int days = Math.max(1, Math.min(windowDays, 366));
         final Instant now = clock.instant();
-        final Instant since = now.minus(Duration.ofDays(WINDOW_DAYS));
+        final Instant since = now.minus(Duration.ofDays(days));
 
         final long autoActions = activityRepository.countByOrganizationIdAndKindAndCreatedAtAfter(
                 organizationId, SupervisionActivity.KIND_ACT, since);
@@ -61,7 +73,7 @@ public class SupervisionReportService {
         final long minutes = autoActions * MIN_PER_AUTO_ACTION + applied * MIN_PER_APPLIED_SUGGESTION;
 
         return new SupervisionReportDto(
-                WINDOW_DAYS, autoActions, applied, dismissed, pending,
+                days, autoActions, applied, dismissed, pending,
                 Math.round(acceptance * 100.0) / 100.0, minutes, humanDuration(minutes));
     }
 

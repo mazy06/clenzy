@@ -75,6 +75,8 @@ const PlanningPage: React.FC = () => {
     }
     return map;
   }, [pendingByProperty]);
+  // Fenêtre du bilan de la constellation, alignée sur le zoom du planning.
+  const reportWindowDays = nav.zoom === 'week' ? 7 : nav.zoom === 'fortnight' ? 15 : 30;
   const [supervisionScope, setSupervisionScope] = useState<SupervisionScope>('property');
   const [expandedPropertyId, setExpandedPropertyId] = useState<number | null>(null);
   const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
@@ -721,6 +723,7 @@ const PlanningPage: React.FC = () => {
                         }
                         deps={[property.id, cometReservationId]}
                         propertyId={property.id}
+                        reportWindowDays={reportWindowDays}
                       />
                     );
                   }
