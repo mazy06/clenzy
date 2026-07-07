@@ -3183,3 +3183,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0329__add_supervision_module_thresholds.sql
         relativeToChangelogFile: true
+
+  # Persistance de la conversation opérateur ↔ orchestrateur de la constellation (B7).
+  - changeSet:
+      id: "0330-create-supervision-conversation-message"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0330__create_supervision_conversation_message.sql
+        relativeToChangelogFile: true

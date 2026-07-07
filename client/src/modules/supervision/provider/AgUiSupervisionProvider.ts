@@ -158,6 +158,8 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   private currentReplyId: string | null = null;
   /** Texte de la réponse orchestrateur en cours d'accumulation (pour le journal « En direct »). */
   private replyBuffer = '';
+  /** Dernier message opérateur (B7) : persisté avec la réponse à la fin du run. */
+  private lastOperatorMessage = '';
   /**
    * Historique de messages du fil courant (RunAgentInput.messages). On le
    * conserve pour pouvoir REPRENDRE le run après une pause (interrupt) avec le
@@ -556,6 +558,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     // Nouveau tour utilisateur → fil neuf : on repart d'un contexte propre
     // (toute action en attente d'un tour précédent est abandonnée).
     this.threadMessages = [{ role: 'user', content: trimmed }];
+    this.lastOperatorMessage = trimmed; // B7 : historisé avec la réponse en fin de run
     this.currentRunId = null;
     if (this.currentInterruptId) {
       this.currentInterruptId = null;
@@ -738,7 +741,11 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         if (typeof frame.runId === 'string') this.currentRunId = frame.runId;
         return;
       case 'RUN_FINISHED':
-        if (frame.outcome?.type === 'interrupt') this.handleInterrupt(frame.outcome.interrupts);
+        if (frame.outcome?.type === 'interrupt') {
+          this.handleInterrupt(frame.outcome.interrupts);
+        } else {
+          void this.persistConversation(); // B7 : historise l'échange (best-effort)
+        }
         return;
       case 'STATE_SNAPSHOT': {
         const activity = frame.snapshot?.agentActivity;
@@ -906,6 +913,35 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
 
   async setPaused(): Promise<void> {
     return Promise.resolve();
+  }
+
+  /**
+   * B7 : persiste l'échange (message opérateur + réponse orchestrateur) pour l'historique
+   * de la constellation. Best-effort — l'historique n'est pas critique, un échec est ignoré.
+   */
+  private async persistConversation(): Promise<void> {
+    const operator = this.lastOperatorMessage.trim();
+    const orchestrator = this.replyBuffer.trim();
+    if (!operator && !orchestrator) return;
+    const turns: Array<{ role: string; content: string }> = [];
+    if (operator) turns.push({ role: 'operator', content: operator });
+    if (orchestrator) turns.push({ role: 'orchestrator', content: orchestrator });
+    this.lastOperatorMessage = ''; // évite un double post si un run repart sans nouveau message
+    try {
+      const token = getAccessToken();
+      await fetch(buildApiUrl(`/ai/supervision/conversation/${this.propertyId}`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(turns),
+      });
+    } catch {
+      // best-effort : l'historique n'est pas sur le chemin critique
+    }
   }
 
   dispose(): void {

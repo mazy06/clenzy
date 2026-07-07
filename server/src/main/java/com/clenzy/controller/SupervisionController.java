@@ -3,6 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.PayoutReminderDto;
 import com.clenzy.dto.PortfolioSnapshotDto;
 import com.clenzy.dto.SupervisionActivitySnapshotDto;
+import com.clenzy.dto.SupervisionConversationMessageDto;
+import com.clenzy.dto.SupervisionConversationTurnDto;
 import com.clenzy.dto.SupervisionReportDto;
 import com.clenzy.dto.SupervisionScanResultDto;
 import com.clenzy.dto.SupervisionSuggestionDto;
@@ -10,6 +12,7 @@ import com.clenzy.dto.UnpaidServiceRequestCardDto;
 import com.clenzy.service.PayoutReminderService;
 import com.clenzy.service.UnpaidServiceRequestCardService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionConversationService;
 import com.clenzy.service.agent.supervision.SupervisionPortfolioService;
 import com.clenzy.service.agent.supervision.SupervisionReportService;
 import com.clenzy.service.agent.supervision.SupervisionScanService;
@@ -22,7 +25,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -43,6 +48,7 @@ public class SupervisionController {
     private final SupervisionSuggestionService suggestionService;
     private final SupervisionPortfolioService portfolioService;
     private final SupervisionReportService reportService;
+    private final SupervisionConversationService conversationService;
     private final PayoutReminderService payoutReminderService;
     private final UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     private final TenantContext tenantContext;
@@ -52,6 +58,7 @@ public class SupervisionController {
                                  SupervisionSuggestionService suggestionService,
                                  SupervisionPortfolioService portfolioService,
                                  SupervisionReportService reportService,
+                                 SupervisionConversationService conversationService,
                                  PayoutReminderService payoutReminderService,
                                  UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                  TenantContext tenantContext) {
@@ -60,6 +67,7 @@ public class SupervisionController {
         this.suggestionService = suggestionService;
         this.portfolioService = portfolioService;
         this.reportService = reportService;
+        this.conversationService = conversationService;
         this.payoutReminderService = payoutReminderService;
         this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
         this.tenantContext = tenantContext;
@@ -102,6 +110,29 @@ public class SupervisionController {
     public ResponseEntity<SupervisionReportDto> report() {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return ResponseEntity.ok(reportService.getReport(orgId));
+    }
+
+    /**
+     * POST /api/ai/supervision/conversation/{propertyId} — persiste des tours de la
+     * conversation opérateur ↔ orchestrateur (B7). Best-effort, piloté par le front après
+     * un échange. Org + logement scopé (org du token, utilisateur = subject JWT).
+     */
+    @PostMapping("/conversation/{propertyId}")
+    public ResponseEntity<Void> recordConversation(@PathVariable Long propertyId,
+                                                   @RequestBody List<SupervisionConversationTurnDto> turns,
+                                                   @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        conversationService.record(orgId, propertyId, jwt.getSubject(), turns);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** GET /api/ai/supervision/conversation/{propertyId} — historique (chrono inversé, org-scopé). */
+    @GetMapping("/conversation/{propertyId}")
+    public ResponseEntity<List<SupervisionConversationMessageDto>> conversationHistory(
+            @PathVariable Long propertyId,
+            @RequestParam(name = "limit", defaultValue = "50") int limit) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(conversationService.history(orgId, propertyId, limit));
     }
 
     /** GET /api/ai/supervision/suggestions/{propertyId} — file org-scopée en attente. */
