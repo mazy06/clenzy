@@ -169,6 +169,17 @@ public class SupervisionController {
         return ResponseEntity.ok(suggestionService.list(orgId, propertyId));
     }
 
+    /**
+     * GET /api/ai/supervision/pending-counts — compteurs de suggestions en attente
+     * (org-scopé) pour les pastilles du planning : total (badge menu) + par logement
+     * (badge de cellule). Léger : requête de comptage agrégée, sans charger les cartes.
+     */
+    @GetMapping("/pending-counts")
+    public ResponseEntity<com.clenzy.dto.SupervisionPendingCountsDto> pendingCounts() {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(suggestionService.pendingCounts(orgId));
+    }
+
     /** POST /api/ai/supervision/suggestions/{id}/dismiss — rejette une suggestion. */
     @PostMapping("/suggestions/{id}/dismiss")
     public ResponseEntity<Void> dismissSuggestion(@PathVariable Long id) {

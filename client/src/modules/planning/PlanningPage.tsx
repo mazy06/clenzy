@@ -43,6 +43,7 @@ import {
   isSupervisionLiveEnabled,
   useCanSuperviseAgents,
   useSupervisionConfig,
+  useSupervisionPendingCounts,
   type SupervisionScope,
 } from '../supervision';
 import { isMockEnabled } from '../../services/storageService';
@@ -65,6 +66,15 @@ const PlanningPage: React.FC = () => {
   // (Settings > IA). On ne fetch la config que pour les rôles habilités.
   const { data: supervisionConfig } = useSupervisionConfig({ enabled: canViewSupervision });
   const canSupervise = canViewSupervision && (supervisionConfig?.enabled ?? false);
+  // Compteurs de cartes HITL en attente → pastilles sur les cellules logement.
+  const { byProperty: pendingByProperty } = useSupervisionPendingCounts(canSupervise);
+  const pendingCountByProperty = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const [propertyId, count] of Object.entries(pendingByProperty)) {
+      if (count > 0) map.set(Number(propertyId), count);
+    }
+    return map;
+  }, [pendingByProperty]);
   const [supervisionScope, setSupervisionScope] = useState<SupervisionScope>('property');
   const [expandedPropertyId, setExpandedPropertyId] = useState<number | null>(null);
   const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
@@ -683,6 +693,7 @@ const PlanningPage: React.FC = () => {
             pricingMap={pricingMap}
             minNightsMap={minNightsMap}
             channelSyncMap={channelSyncMap}
+            pendingCountByProperty={canSupervise ? pendingCountByProperty : undefined}
             pageSize={pagination.pageSize}
             expandedPropertyId={canSupervise ? expandedPropertyId : null}
             onToggleExpanded={canSupervise ? handleToggleExpanded : undefined}
