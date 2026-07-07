@@ -19,6 +19,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -128,6 +129,46 @@ class AiCreditGrantServiceTest {
         assertThat(ledger.getValue().getEntryType()).isEqualTo(AiUsageLedgerEntry.TYPE_EXPIRY);
         assertThat(ledger.getValue().getMillicredits()).isEqualTo(-600L);
         verify(balanceService).invalidate(42L);
+    }
+
+    private static User prepaidPayer(Long orgId, String forfait, String billingPeriod) {
+        User user = payer(orgId, forfait);
+        user.setStripeSubscriptionId("sub_" + orgId);
+        user.setBillingPeriod(billingPeriod);
+        return user;
+    }
+
+    @Test
+    void monthlyRefresh_grantsPrepaidSubscriber_notYetRefreshedThisMonth() {
+        when(userRepository.findByStripeSubscriptionIdIsNotNullAndBillingPeriodIn(any()))
+                .thenReturn(List.of(prepaidPayer(7L, "confort", "ANNUAL")));
+        when(grantRepository.existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
+                eq(7L), eq(AiCreditGrant.SOURCE_SUBSCRIPTION), any())).thenReturn(false);
+        when(grantRepository.existsByStripeRef(anyString())).thenReturn(false);
+        when(ledgerRepository.existsByIdempotencyKey(anyString())).thenReturn(false);
+
+        int refreshed = service().refreshMonthlyForPrepaidSubscribers();
+
+        assertThat(refreshed).isEqualTo(1);
+        ArgumentCaptor<AiCreditGrant> captor = ArgumentCaptor.forClass(AiCreditGrant.class);
+        verify(grantRepository).save(captor.capture());
+        assertThat(captor.getValue().getSource()).isEqualTo(AiCreditGrant.SOURCE_SUBSCRIPTION);
+        assertThat(captor.getValue().getMillicreditsGranted()).isEqualTo(CONFORT);
+        assertThat(captor.getValue().getOrganizationId()).isEqualTo(7L);
+    }
+
+    @Test
+    void monthlyRefresh_skipsOrgAlreadyRefreshedThisMonth() {
+        // invoice de renouvellement déjà tombé ce mois → pas de double crédit.
+        when(userRepository.findByStripeSubscriptionIdIsNotNullAndBillingPeriodIn(any()))
+                .thenReturn(List.of(prepaidPayer(7L, "premium", "BIENNIAL")));
+        when(grantRepository.existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
+                eq(7L), eq(AiCreditGrant.SOURCE_SUBSCRIPTION), any())).thenReturn(true);
+
+        int refreshed = service().refreshMonthlyForPrepaidSubscribers();
+
+        assertThat(refreshed).isZero();
+        verify(grantRepository, never()).save(any());
     }
 
     @Test
