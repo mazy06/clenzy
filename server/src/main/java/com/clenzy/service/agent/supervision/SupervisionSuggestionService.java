@@ -198,6 +198,24 @@ public class SupervisionSuggestionService {
                 .toList();
     }
 
+    /**
+     * Compteurs de suggestions en attente pour les pastilles du planning (org-scopé) :
+     * total (badge du menu) + détail par logement (badge de cellule). Une seule requête
+     * agrégée pour le détail.
+     */
+    @Transactional(readOnly = true)
+    public com.clenzy.dto.SupervisionPendingCountsDto pendingCounts(Long organizationId) {
+        Instant now = Instant.now();
+        long total = repository.countByOrganizationIdAndStatusAndExpiresAtAfter(
+                organizationId, SupervisionSuggestion.STATUS_PENDING, now);
+        java.util.Map<Long, Long> byProperty = new java.util.LinkedHashMap<>();
+        for (Object[] row : repository.countPendingByProperty(
+                organizationId, SupervisionSuggestion.STATUS_PENDING, now)) {
+            byProperty.put((Long) row[0], (Long) row[1]);
+        }
+        return new com.clenzy.dto.SupervisionPendingCountsDto(total, byProperty);
+    }
+
     /** Rejette une suggestion (ownership org-scopé). No-op si absente/autre org. */
     @Transactional
     public void dismiss(Long organizationId, Long suggestionId) {

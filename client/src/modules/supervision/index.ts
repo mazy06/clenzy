@@ -17,6 +17,10 @@ export { SUPERVISION_OPERATOR_ROLES, SUPERVISION_VIEWER_ROLES } from './roles';
 export { useSupervisionConfig, useUpdateSupervisionConfig, runSupervisionScan } from './useSupervisionConfig';
 export type { SupervisionConfig, SupervisionModuleConfig, SupervisionScanResult } from './useSupervisionConfig';
 
+// Compteurs de suggestions en attente (pastilles menu + cellules planning)
+export { useSupervisionPendingCounts } from './useSupervisionPendingCounts';
+export type { SupervisionPendingCounts } from './useSupervisionPendingCounts';
+
 // Seam provider
 export type { SupervisionProvider } from './provider/SupervisionProvider';
 export {

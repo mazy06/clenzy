@@ -32,6 +32,17 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     long countByOrganizationIdAndStatusAndExpiresAtAfter(
             Long organizationId, String status, Instant now);
 
+    /**
+     * Nb de suggestions en attente non expirées PAR logement (pastilles planning) :
+     * une seule requête agrégée, {@code [propertyId, count]} par ligne.
+     */
+    @Query("SELECT s.propertyId, COUNT(s) FROM SupervisionSuggestion s "
+            + "WHERE s.organizationId = :orgId AND s.status = :status AND s.expiresAt > :now "
+            + "GROUP BY s.propertyId")
+    List<Object[]> countPendingByProperty(@Param("orgId") Long orgId,
+                                          @Param("status") String status,
+                                          @Param("now") Instant now);
+
     /** Déduplication : une même proposition en attente existe-t-elle déjà ? */
     boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
             Long organizationId, Long propertyId, String moduleKey, String title, String status);

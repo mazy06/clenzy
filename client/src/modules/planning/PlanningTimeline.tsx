@@ -49,6 +49,8 @@ interface PlanningTimelineProps {
   pricingMap: PricingMap;
   minNightsMap?: MinNightsMap;
   channelSyncMap?: ChannelSyncMap;
+  /** Nb de cartes HITL en attente par logement → pastille sur la cellule. */
+  pendingCountByProperty?: Map<number, number>;
   pageSize?: number;
   /** Superviseur d'agents : logement déployé en accordéon (null = aucun). */
   expandedPropertyId?: number | null;
@@ -83,6 +85,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   pricingMap,
   minNightsMap,
   channelSyncMap,
+  pendingCountByProperty,
   pageSize,
   expandedPropertyId = null,
   onToggleExpanded,
@@ -220,6 +223,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 effectiveRowHeight={effectiveRowHeight}
                 emptyRowCount={emptyRowCount}
                 reservationCountByProperty={reservationCountByProperty}
+                pendingCountByProperty={pendingCountByProperty}
                 channelSyncMap={channelSyncMap}
                 expandedPropertyId={expandedPropertyId}
                 onToggleExpanded={onToggleExpanded}

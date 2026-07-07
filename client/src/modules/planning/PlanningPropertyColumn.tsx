@@ -35,6 +35,8 @@ interface PlanningPropertyColumnProps {
   effectiveRowHeight: number;
   emptyRowCount?: number;
   reservationCountByProperty?: Map<number, number>;
+  /** Nb de cartes HITL en attente par logement (pastille superviseur). */
+  pendingCountByProperty?: Map<number, number>;
   channelSyncMap?: ChannelSyncMap;
   /** Superviseur d'agents : logement déployé (accordéon). */
   expandedPropertyId?: number | null;
@@ -53,6 +55,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   effectiveRowHeight,
   emptyRowCount = 0,
   reservationCountByProperty,
+  pendingCountByProperty,
   channelSyncMap,
   expandedPropertyId = null,
   onToggleExpanded,
@@ -168,6 +171,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
       )}
       {properties.map((property) => {
         const reservationCount = reservationCountByProperty?.get(property.id) ?? 0;
+        const pendingCount = pendingCountByProperty?.get(property.id) ?? 0;
         const subtitle = property.city || property.address || '';
         const sync = channelSyncMap?.get(property.id);
         // Color du wifi : vert si tout sync, ambre si partiel, rouge si zero
@@ -259,6 +263,31 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                     >
                       {reservationCount}
                     </Box>
+                  </Box>
+                )}
+                {/* Cartes HITL en attente : pastille ambre numérotée (attire l'œil) */}
+                {pendingCount > 0 && (
+                  <Box
+                    component="span"
+                    aria-label={`${pendingCount} action(s) à valider`}
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      minWidth: 16,
+                      height: 16,
+                      px: '4px',
+                      borderRadius: '8px',
+                      bgcolor: 'var(--warn, #A97C2E)',
+                      color: '#fff',
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {pendingCount > 99 ? '99+' : pendingCount}
                   </Box>
                 )}
               </Box>
