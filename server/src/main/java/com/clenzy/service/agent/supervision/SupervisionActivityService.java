@@ -42,6 +42,7 @@ public class SupervisionActivityService {
     private final ToolRegistry toolRegistry;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final SupervisionRealtimePublisher realtimePublisher;
 
     // @Lazy : ToolRegistry dépend (transitivement) de ce service → sans lazy, cycle
     // de beans au démarrage. Le proxy est résolu au 1er appel (registre alors prêt).
@@ -49,12 +50,14 @@ public class SupervisionActivityService {
                                       SupervisionModuleRegistry registry,
                                       @Lazy ToolRegistry toolRegistry,
                                       PropertyRepository propertyRepository,
-                                      OrganizationAccessGuard organizationAccessGuard) {
+                                      OrganizationAccessGuard organizationAccessGuard,
+                                      SupervisionRealtimePublisher realtimePublisher) {
         this.activityRepository = activityRepository;
         this.registry = registry;
         this.toolRegistry = toolRegistry;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.realtimePublisher = realtimePublisher;
     }
 
     /**
@@ -143,9 +146,12 @@ public class SupervisionActivityService {
             return;
         }
         try {
-            activityRepository.save(new SupervisionActivity(
+            SupervisionActivity saved = activityRepository.save(new SupervisionActivity(
                     organizationId, propertyId, moduleKey,
                     SupervisionActivity.KIND_ACT, toolName, summary));
+            // Temps réel (T6) : pousse l'entrée aux opérateurs connectés (best-effort).
+            realtimePublisher.publishFeedAdded(propertyId, saved.getId(), moduleKey, toolName,
+                    summary, saved.getCreatedAt());
         } catch (Exception e) {
             log.debug("supervision activity record failed (module={} prop={}): {}",
                     moduleKey, propertyId, e.getMessage());

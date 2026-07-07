@@ -182,6 +182,8 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   /** true si un rafraîchissement est déjà en vol (évite le chevauchement). */
   private polling = false;
+  /** Flux SSE temps réel du feed/résolutions (T6/B6), hors run. */
+  private eventStream: AbortController | null = null;
 
   constructor(
     private readonly propertyId: string,
@@ -295,8 +297,9 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       toolName: e.toolName,
     }));
 
-    // Démarre (une seule fois) le rafraîchissement périodique hors run.
+    // Démarre (une seule fois) le rafraîchissement périodique + le flux SSE temps réel.
     this.ensurePolling();
+    this.ensureEventStream();
 
     const awaiting = hitlPending.length + pendingQueue.length;
     return {
@@ -650,6 +653,60 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   }
 
   /**
+   * Ouvre (une seule fois) le flux SSE temps réel du logement (T6/B6) : nouvelles entrées
+   * de feed + résolutions poussées par les autres opérateurs. Complète le polling 30 s.
+   * Best-effort : en cas de perte, le polling reste le baseline.
+   */
+  private ensureEventStream(): void {
+    if (this.eventStream || this.disposed) return;
+    this.eventStream = new AbortController();
+    void this.consumeEventStream(this.eventStream.signal);
+  }
+
+  private async consumeEventStream(signal: AbortSignal): Promise<void> {
+    try {
+      const token = getAccessToken();
+      const response = await fetch(buildApiUrl(`/ai/supervision/stream/${this.propertyId}`), {
+        method: 'GET',
+        credentials: 'include',
+        headers: { accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        signal,
+      });
+      if (!response.ok || !response.body) return;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done || this.disposed) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          this.handleEventFrame(buffer.slice(0, idx));
+          buffer = buffer.slice(idx + 2);
+        }
+      }
+    } catch {
+      // abandon volontaire (dispose) ou perte réseau → le polling 30 s prend le relais
+    }
+  }
+
+  private handleEventFrame(frame: string): void {
+    const dataLine = frame.split('\n').find((l) => l.startsWith('data:'));
+    if (!dataLine) return;
+    const raw = dataLine.slice(5).trim();
+    if (!raw || raw === '{}') return; // amorce « ready »
+    try {
+      const event = JSON.parse(raw) as StreamEvent;
+      if (event && typeof event.type === 'string' && !this.disposed) {
+        this.emit(event); // feed.added / pending.resolved → pipeline existant
+      }
+    } catch {
+      /* frame malformé → ignoré */
+    }
+  }
+
+  /**
    * Re-fetch le snapshot réel (feed + file HITL + suggestions) et émet
    * `snapshot.refreshed` pour faire apparaître les nouveaux événements sans reload.
    * No-op pendant un run live (le flux SSE pilote l'état) ou si un poll est déjà en vol.
@@ -950,6 +1007,8 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       clearInterval(this.pollTimer);
       this.pollTimer = null;
     }
+    this.eventStream?.abort();
+    this.eventStream = null;
     this.abort?.abort();
     this.abort = null;
     this.currentInterruptId = null;

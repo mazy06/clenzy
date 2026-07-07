@@ -37,17 +37,20 @@ public class SupervisionSuggestionService {
     private final SupervisionSuggestionRepository repository;
     private final SuggestionActionExecutor actionExecutor;
     private final NotificationService notificationService;
+    private final SupervisionRealtimePublisher realtimePublisher;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
 
     public SupervisionSuggestionService(SupervisionSuggestionRepository repository,
                                         SuggestionActionExecutor actionExecutor,
                                         NotificationService notificationService,
+                                        SupervisionRealtimePublisher realtimePublisher,
                                         Clock clock,
                                         PlatformTransactionManager transactionManager) {
         this.repository = repository;
         this.actionExecutor = actionExecutor;
         this.notificationService = notificationService;
+        this.realtimePublisher = realtimePublisher;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -201,6 +204,8 @@ public class SupervisionSuggestionService {
         repository.findByIdAndOrganizationId(suggestionId, organizationId).ifPresent(s -> {
             s.setStatus(SupervisionSuggestion.STATUS_DISMISSED);
             repository.save(s);
+            // Temps réel (B6) : carte rejetée → retirée chez les autres opérateurs.
+            realtimePublisher.publishPendingResolved(s.getPropertyId(), suggestionId, "edited", null);
         });
     }
 
@@ -253,6 +258,8 @@ public class SupervisionSuggestionService {
                 throw e;
             }
         }
+        // Temps réel (B6) : carte appliquée → poussée aux autres opérateurs (best-effort).
+        realtimePublisher.publishPendingResolved(suggestion.getPropertyId(), suggestionId, "validated", null);
     }
 
     private SupervisionSuggestionDto toDto(SupervisionSuggestion s) {
