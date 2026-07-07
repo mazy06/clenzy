@@ -48,6 +48,13 @@ public class GuestReview {
     @Column(name = "host_responded_at")
     private Instant hostRespondedAt;
 
+    /** Brouillon de réponse généré par l'IA (REP), à valider avant publication. */
+    @Column(name = "host_response_draft", columnDefinition = "TEXT")
+    private String hostResponseDraft;
+
+    @Column(name = "host_response_draft_at")
+    private Instant hostResponseDraftAt;
+
     @Column(name = "review_date", nullable = false)
     private LocalDate reviewDate;
 
@@ -110,6 +117,12 @@ public class GuestReview {
     public void setReviewText(String reviewText) { this.reviewText = reviewText; }
     public String getHostResponse() { return hostResponse; }
     public void setHostResponse(String hostResponse) { this.hostResponse = hostResponse; }
+
+    public String getHostResponseDraft() { return hostResponseDraft; }
+    public void setHostResponseDraft(String hostResponseDraft) { this.hostResponseDraft = hostResponseDraft; }
+
+    public Instant getHostResponseDraftAt() { return hostResponseDraftAt; }
+    public void setHostResponseDraftAt(Instant hostResponseDraftAt) { this.hostResponseDraftAt = hostResponseDraftAt; }
     public Instant getHostRespondedAt() { return hostRespondedAt; }
     public void setHostRespondedAt(Instant hostRespondedAt) { this.hostRespondedAt = hostRespondedAt; }
     public LocalDate getReviewDate() { return reviewDate; }

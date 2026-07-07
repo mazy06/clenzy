@@ -66,6 +66,7 @@ class SuggestionActionExecutorTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private BookingBalanceService bookingBalanceService;
     @Mock private EmailService emailService;
+    @Mock private ReviewReplyDraftService reviewReplyDraftService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -77,7 +78,7 @@ class SuggestionActionExecutorTest {
                 propertyRepository, searchCacheInvalidator, securityDepositRepository,
                 securityDepositPaymentService, calendarEngine, yieldAdjustmentRepository,
                 serviceRequestService, reservationRepository, bookingBalanceService, emailService,
-                new ObjectMapper(), clock);
+                reviewReplyDraftService, new ObjectMapper(), clock);
     }
 
     private static SupervisionSuggestion suggestion(String actionType, String params) {
@@ -260,6 +261,23 @@ class SuggestionActionExecutorTest {
 
         verify(emailService).sendSimpleHtmlEmail(eq("guest@example.com"), anyString(),
                 contains("https://checkout.stripe/abc"));
+    }
+
+    @Test
+    @DisplayName("brouillon de reponse avis : delegue au service LLM (effet externe, brouillon-seul)")
+    void reviewDraftReply_delegatesToDraftService() {
+        executor.execute(suggestion(SupervisionActionType.REVIEW_DRAFT_REPLY, "{\"reviewId\":77}"));
+        verify(reviewReplyDraftService).generateDraft(ORG_ID, 77L);
+    }
+
+    @Test
+    @DisplayName("brouillon de reponse avis : reviewId manquant -> echec explicite")
+    void reviewDraftReply_throwsWithoutReviewId() {
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.REVIEW_DRAFT_REPLY, "{}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("reviewId");
+        verifyNoInteractions(reviewReplyDraftService);
     }
 
     @Test

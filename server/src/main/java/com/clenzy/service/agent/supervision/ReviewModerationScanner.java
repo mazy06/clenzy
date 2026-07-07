@@ -100,8 +100,11 @@ public class ReviewModerationScanner {
         // Timezone de la propriété résolue (repli Europe/Paris) : conservée pour un
         // usage éventuel d'affichage ; la date de l'avis étant journalière, elle ne
         // change pas l'éligibilité — la note et l'absence de réponse en décident.
-        suggestionService.record(orgId, propertyId, "rep", "review_negative",
-                title, motif.toString());
+        // Carte APPLICABLE (« Générer un brouillon de réponse ») : l'apply génère un brouillon
+        // LLM (host_response_draft), jamais publié — l'opérateur valide/édite/publie ensuite.
+        final String params = String.format("{\"reviewId\":%d}", review.getId());
+        suggestionService.recordActionable(orgId, propertyId, "rep", title, motif.toString(),
+                SupervisionActionType.REVIEW_DRAFT_REPLY, params, null, "warning");
     }
 
     /** Timezone de la propriété (repli Europe/Paris) — findById org-validé. */

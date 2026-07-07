@@ -82,6 +82,7 @@ public class SuggestionActionExecutor {
     private final ReservationRepository reservationRepository;
     private final BookingBalanceService bookingBalanceService;
     private final EmailService emailService;
+    private final ReviewReplyDraftService reviewReplyDraftService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -97,6 +98,7 @@ public class SuggestionActionExecutor {
                                     ReservationRepository reservationRepository,
                                     BookingBalanceService bookingBalanceService,
                                     EmailService emailService,
+                                    ReviewReplyDraftService reviewReplyDraftService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -111,6 +113,7 @@ public class SuggestionActionExecutor {
         this.reservationRepository = reservationRepository;
         this.bookingBalanceService = bookingBalanceService;
         this.emailService = emailService;
+        this.reviewReplyDraftService = reviewReplyDraftService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -123,7 +126,8 @@ public class SuggestionActionExecutor {
     public boolean hasExternalEffect(String actionType) {
         return SupervisionActionType.DEPOSIT_REFUND.equals(actionType)
                 || SupervisionActionType.DEPOSIT_RELEASE.equals(actionType)
-                || SupervisionActionType.PAYMENT_REMINDER.equals(actionType);
+                || SupervisionActionType.PAYMENT_REMINDER.equals(actionType)
+                || SupervisionActionType.REVIEW_DRAFT_REPLY.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -140,6 +144,7 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.YIELD_PRICE_ADJUST -> applyYieldAdjust(suggestion);
             case SupervisionActionType.CLEANING_REQUEST -> applyCleaningRequest(suggestion);
             case SupervisionActionType.PAYMENT_REMINDER -> applyPaymentReminder(suggestion);
+            case SupervisionActionType.REVIEW_DRAFT_REPLY -> applyReviewDraftReply(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
     }
@@ -284,6 +289,20 @@ public class SuggestionActionExecutor {
             return g.getEmail().trim();
         }
         return null;
+    }
+
+    /**
+     * REP — génère un BROUILLON de réponse d'avis (LLM) enregistré dans host_response_draft.
+     * EFFET EXTERNE (appel LLM) → exécuté hors transaction par {@link SupervisionSuggestionService#apply}.
+     * Ne publie rien : l'opérateur valide/édite/publie ensuite. Params : {@code reviewId}.
+     */
+    private void applyReviewDraftReply(SupervisionSuggestion suggestion) {
+        final JsonNode params = parseParams(suggestion.getActionParams());
+        if (!params.path("reviewId").isNumber()) {
+            throw new IllegalStateException("REVIEW_DRAFT_REPLY sans reviewId");
+        }
+        reviewReplyDraftService.generateDraft(
+                suggestion.getOrganizationId(), params.path("reviewId").asLong());
     }
 
     private Long resolveReservationId(SupervisionSuggestion suggestion) {

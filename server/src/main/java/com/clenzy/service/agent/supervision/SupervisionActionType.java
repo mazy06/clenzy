@@ -67,5 +67,12 @@ public final class SupervisionActionType {
      */
     public static final String PAYMENT_REMINDER = "PAYMENT_REMINDER";
 
+    /**
+     * Génère un BROUILLON de réponse d'avis via LLM (agent Réputation, REP) et l'enregistre dans
+     * {@code guest_reviews.host_response_draft} — JAMAIS publié automatiquement (l'opérateur valide,
+     * édite, publie). EFFET EXTERNE (appel LLM) → exécuté hors transaction. Params : {@code reviewId}.
+     */
+    public static final String REVIEW_DRAFT_REPLY = "REVIEW_DRAFT_REPLY";
+
     private SupervisionActionType() {}
 }

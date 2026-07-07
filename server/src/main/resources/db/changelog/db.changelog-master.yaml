@@ -3191,3 +3191,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0330__create_supervision_conversation_message.sql
         relativeToChangelogFile: true
+
+  # Brouillon de réponse d'avis généré par l'IA, à valider (REP).
+  - changeSet:
+      id: "0331-add-guest-review-response-draft"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0331__add_guest_review_response_draft.sql
+        relativeToChangelogFile: true
