@@ -4,6 +4,7 @@ import com.clenzy.model.PropertyElasticityEstimate;
 import com.clenzy.repository.PropertyElasticityEstimateRepository;
 import com.clenzy.repository.PropertyElasticityEstimateRepository.PropertyTenantRow;
 import com.clenzy.service.agent.simulation.EmpiricalElasticityEstimator;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -19,17 +20,19 @@ class ElasticityRecomputeSchedulerTest {
 
     private PropertyElasticityEstimateRepository repository;
     private EmpiricalElasticityEstimator estimator;
+    private SupervisionActivityService supervisionActivityService;
 
     @BeforeEach
     void setUp() {
         repository = mock(PropertyElasticityEstimateRepository.class);
         estimator = mock(EmpiricalElasticityEstimator.class);
+        supervisionActivityService = mock(SupervisionActivityService.class);
     }
 
     @Test
     void runOnce_disabled_returnsZero() {
         ElasticityRecomputeScheduler scheduler = new ElasticityRecomputeScheduler(
-                repository, estimator, false);
+                repository, estimator, supervisionActivityService, false);
 
         assertEquals(0, scheduler.runOnce());
         verifyNoInteractions(repository);
@@ -40,7 +43,7 @@ class ElasticityRecomputeSchedulerTest {
     void runOnce_listFails_returnsZero_doesNotThrow() {
         when(repository.listActivePropertyIds()).thenThrow(new RuntimeException("DB down"));
         ElasticityRecomputeScheduler scheduler = new ElasticityRecomputeScheduler(
-                repository, estimator, true);
+                repository, estimator, supervisionActivityService, true);
 
         assertEquals(0, scheduler.runOnce());
         verifyNoInteractions(estimator);
@@ -57,7 +60,7 @@ class ElasticityRecomputeSchedulerTest {
                 .thenAnswer(inv -> inv.getArgument(0));
 
         ElasticityRecomputeScheduler scheduler = new ElasticityRecomputeScheduler(
-                repository, estimator, true);
+                repository, estimator, supervisionActivityService, true);
 
         assertEquals(1, scheduler.runOnce());
         ArgumentCaptor<PropertyElasticityEstimate> cap =
@@ -75,7 +78,7 @@ class ElasticityRecomputeSchedulerTest {
         when(estimator.estimate(1L, 11L)).thenReturn(Optional.empty());
 
         ElasticityRecomputeScheduler scheduler = new ElasticityRecomputeScheduler(
-                repository, estimator, true);
+                repository, estimator, supervisionActivityService, true);
 
         assertEquals(0, scheduler.runOnce());
         verify(repository, never()).save(any());
@@ -93,7 +96,7 @@ class ElasticityRecomputeSchedulerTest {
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ElasticityRecomputeScheduler scheduler = new ElasticityRecomputeScheduler(
-                repository, estimator, true);
+                repository, estimator, supervisionActivityService, true);
 
         scheduler.runOnce();
         ArgumentCaptor<PropertyElasticityEstimate> cap =
@@ -119,7 +122,7 @@ class ElasticityRecomputeSchedulerTest {
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ElasticityRecomputeScheduler scheduler = new ElasticityRecomputeScheduler(
-                repository, estimator, true);
+                repository, estimator, supervisionActivityService, true);
 
         // 1 upsertee, 1 skipped — la boucle n'a pas casse
         assertEquals(1, scheduler.runOnce());
@@ -128,7 +131,7 @@ class ElasticityRecomputeSchedulerTest {
     @Test
     void runWeekly_delegatesToRunOnce() {
         ElasticityRecomputeScheduler scheduler = new ElasticityRecomputeScheduler(
-                repository, estimator, false);
+                repository, estimator, supervisionActivityService, false);
         scheduler.runWeekly();
         // Disabled → verifie qu'on ne touche pas le repository
         verifyNoInteractions(repository);

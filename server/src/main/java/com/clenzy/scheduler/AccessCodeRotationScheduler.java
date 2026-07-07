@@ -9,6 +9,7 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.access.AccessCodeGenerator;
 import com.clenzy.service.access.StayTimes;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -42,16 +43,19 @@ public class AccessCodeRotationScheduler {
     private final ReservationRepository reservationRepository;
     private final AccessCodeGenerator accessCodeGenerator;
     private final NotificationService notificationService;
+    private final SupervisionActivityService supervisionActivityService;
 
     public AccessCodeRotationScheduler(
             CheckInInstructionsRepository instructionsRepository,
             ReservationRepository reservationRepository,
             AccessCodeGenerator accessCodeGenerator,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            SupervisionActivityService supervisionActivityService) {
         this.instructionsRepository = instructionsRepository;
         this.reservationRepository = reservationRepository;
         this.accessCodeGenerator = accessCodeGenerator;
         this.notificationService = notificationService;
+        this.supervisionActivityService = supervisionActivityService;
     }
 
     /** Toutes les heures (à :15). Régénère les codes des logements dont un séjour vient de se terminer. */
@@ -118,6 +122,16 @@ public class AccessCodeRotationScheduler {
                 "Le voyageur est parti : le code d'accès de « " + property.getName()
                         + " » a été régénéré (" + newCode + "). Pensez à mettre à jour le code de la boîte à clé.",
                 "/properties/" + propertyId);
+
+        // Feed « En direct » de la constellation du logement (agent Opérations « ops ») : best-effort,
+        // un échec ne doit jamais casser la rotation. propertyId résolu par occurrence (ce logement).
+        try {
+            supervisionActivityService.recordModuleAct(orgId, propertyId, "ops", "access_code_rotated",
+                    "Code d'accès renouvelé après le départ du voyageur sur ce logement");
+        } catch (Exception e) {
+            log.debug("Rotation code: activite constellation non enregistree (property={}): {}",
+                    propertyId, e.getMessage());
+        }
         return true;
     }
 

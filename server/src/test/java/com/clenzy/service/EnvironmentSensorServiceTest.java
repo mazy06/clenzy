@@ -12,6 +12,7 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.model.Property;
 import com.clenzy.repository.EnvironmentSensorRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,13 +46,15 @@ class EnvironmentSensorServiceTest {
     @Mock TuyaDeviceClaimService claimService;
     @Mock NotificationService notificationService;
     @Mock NetatmoApiService netatmoApiService;
+    @Mock SupervisionActivityService supervisionActivityService;
 
     EnvironmentSensorService service;
 
     @BeforeEach
     void setUp() {
         service = new EnvironmentSensorService(sensorRepository, propertyRepository,
-                tuyaApiService, tenantContext, claimService, notificationService, netatmoApiService);
+                tuyaApiService, tenantContext, claimService, notificationService, netatmoApiService,
+                supervisionActivityService);
     }
 
     private EnvironmentSensor buildSensor(SensorType type, String externalId) {

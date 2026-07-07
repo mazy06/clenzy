@@ -8,6 +8,7 @@ import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.access.AccessCodeGenerator;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,13 +33,15 @@ class AccessCodeRotationSchedulerTest {
     @Mock private CheckInInstructionsRepository instructionsRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private NotificationService notificationService;
+    @Mock private SupervisionActivityService supervisionActivityService;
     private final AccessCodeGenerator generator = new AccessCodeGenerator();
     private AccessCodeRotationScheduler scheduler;
 
     @BeforeEach
     void setUp() {
         scheduler = new AccessCodeRotationScheduler(
-            instructionsRepository, reservationRepository, generator, notificationService);
+            instructionsRepository, reservationRepository, generator, notificationService,
+            supervisionActivityService);
     }
 
     private CheckInInstructions autoRotateInstructions() {

@@ -3,6 +3,8 @@ package com.clenzy.service.automation;
 import com.clenzy.model.AutomationTrigger;
 import com.clenzy.model.Intervention;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,11 +37,17 @@ public class PaymentFailedTriggerService {
 
     private final InterventionRepository interventionRepository;
     private final AutomationEngine automationEngine;
+    private final SupervisionActivityService supervisionActivityService;
+    private final SupervisionSuggestionService supervisionSuggestionService;
 
     public PaymentFailedTriggerService(InterventionRepository interventionRepository,
-                                       AutomationEngine automationEngine) {
+                                       AutomationEngine automationEngine,
+                                       SupervisionActivityService supervisionActivityService,
+                                       SupervisionSuggestionService supervisionSuggestionService) {
         this.interventionRepository = interventionRepository;
         this.automationEngine = automationEngine;
+        this.supervisionActivityService = supervisionActivityService;
+        this.supervisionSuggestionService = supervisionSuggestionService;
     }
 
     /**
@@ -60,6 +68,8 @@ public class PaymentFailedTriggerService {
             }
             fire(paymentIntentId, intervention.getOrganizationId(),
                     NotifyStaffExecutor.SUBJECT_INTERVENTION, interventionId);
+            Long propertyId = intervention.getProperty() != null ? intervention.getProperty().getId() : null;
+            recordConstellationActivity(intervention.getOrganizationId(), propertyId, paymentIntentId);
             return;
         }
 
@@ -67,6 +77,9 @@ public class PaymentFailedTriggerService {
         Long bookingId = parseLong(meta.get("booking_id"));
         if (orgId != null && bookingId != null) {
             fire(paymentIntentId, orgId, NotifyStaffExecutor.SUBJECT_DIRECT_BOOKING, bookingId);
+            // La constellation est indexée par logement : property_id est porté par les
+            // metadata Stripe de la réservation directe (booking_id = code de confirmation).
+            recordConstellationActivity(orgId, parseLong(meta.get("property_id")), paymentIntentId);
             return;
         }
 
@@ -81,6 +94,36 @@ public class PaymentFailedTriggerService {
         }
         automationEngine.fireTrigger(AutomationTrigger.PAYMENT_FAILED, orgId,
                 new AutomationSubject(subjectType, subjectId, data));
+    }
+
+    /**
+     * Fait remonter l'échec de paiement dans le feed « En direct » de la CONSTELLATION du logement
+     * (agent Finance « fin »). Best-effort : le record est lui-même best-effort et @Transactional côté
+     * service, et un échec ne doit JAMAIS casser le capteur (donc le webhook Stripe). Aucune émission si
+     * le logement n'est pas résoluble pour cette occurrence (paiement non rattaché à un bien).
+     */
+    private void recordConstellationActivity(Long orgId, Long propertyId, String paymentIntentId) {
+        if (orgId == null || propertyId == null) {
+            return;
+        }
+        try {
+            String summary = "Paiement échoué sur une réservation de ce logement"
+                    + (paymentIntentId != null ? " (" + paymentIntentId + ")" : "");
+            supervisionActivityService.recordModuleAct(orgId, propertyId, "fin", "payment_failed", summary);
+        } catch (Exception e) {
+            log.debug("payment_intent.payment_failed {} : activité constellation non enregistrée : {}",
+                    paymentIntentId, e.getMessage());
+        }
+        // En PLUS du feed (historique), une carte HITL actionnable (todo) : relancer le voyageur.
+        // Dédup intégrée sur le titre côté service. Best-effort : ne casse jamais le capteur.
+        try {
+            supervisionSuggestionService.record(orgId, propertyId, "fin", "payment_failed",
+                    "Paiement échoué à relancer",
+                    "Le paiement d’une réservation de ce logement a échoué — relancer le voyageur.");
+        } catch (Exception e) {
+            log.debug("payment_intent.payment_failed {} : suggestion constellation non enregistrée : {}",
+                    paymentIntentId, e.getMessage());
+        }
     }
 
     private static Long parseLong(String raw) {

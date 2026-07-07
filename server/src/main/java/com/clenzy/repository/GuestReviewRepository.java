@@ -44,6 +44,16 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
            "AND r.organizationId = :orgId ORDER BY r.reviewDate DESC")
     List<GuestReview> findNegativeWithoutResponse(@Param("threshold") int threshold, @Param("orgId") Long orgId);
 
+    /**
+     * Avis NÉGATIFS non traités d'un logement (règle de scan « rep » de la constellation) :
+     * note ≤ {@code ratingMax} et aucune réponse hôte encore rédigée. Scopé org + propriété.
+     */
+    @Query("SELECT r FROM GuestReview r WHERE r.propertyId = :propertyId AND r.organizationId = :orgId " +
+           "AND r.rating IS NOT NULL AND r.rating <= :ratingMax AND r.hostResponse IS NULL " +
+           "ORDER BY r.reviewDate DESC")
+    List<GuestReview> findUntreatedNegativeByPropertyId(@Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId, @Param("ratingMax") int ratingMax);
+
     @Query("SELECT AVG(r.rating) FROM GuestReview r WHERE r.propertyId = :propertyId AND r.organizationId = :orgId")
     Double averageRatingByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
