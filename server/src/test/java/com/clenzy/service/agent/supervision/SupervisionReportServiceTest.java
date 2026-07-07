@@ -78,4 +78,39 @@ class SupervisionReportServiceTest {
         assertThat(r.estimatedTimeSavedMinutes()).isZero();
         assertThat(r.estimatedTimeSaved()).isEqualTo("≈ 0 min");
     }
+
+    /**
+     * La fenêtre paramétrable (Jour/Semaine/Quinzaine/Mois) borne bien le comptage :
+     * {@code since = now − windowDays}. Une fenêtre plus courte compte STRICTEMENT
+     * moins d'actions → moins de temps gagné. Preuve du câblage bout en bout.
+     */
+    @Test
+    void windowChangesCounts_dayCountsStrictlyLessThanMonth() {
+        // now = 2026-07-07T10:00:00Z (clock fixe) → since(1j) = 06-07, since(30j) = 06-07 mois précédent.
+        final Instant sinceDay = Instant.parse("2026-07-06T10:00:00Z");
+        final Instant sinceMonth = Instant.parse("2026-06-07T10:00:00Z");
+        when(activityRepository.countByOrganizationIdAndKindAndCreatedAtAfter(
+                eq(ORG), eq(SupervisionActivity.KIND_ACT), eq(sinceDay))).thenReturn(2L);
+        when(activityRepository.countByOrganizationIdAndKindAndCreatedAtAfter(
+                eq(ORG), eq(SupervisionActivity.KIND_ACT), eq(sinceMonth))).thenReturn(20L);
+        when(suggestionRepository.countByOrganizationIdAndStatusAndAppliedAtAfter(
+                eq(ORG), eq(SupervisionSuggestion.STATUS_APPLIED), any())).thenReturn(0L);
+        when(suggestionRepository.countByOrganizationIdAndStatusAndCreatedAtAfter(
+                eq(ORG), eq(SupervisionSuggestion.STATUS_DISMISSED), any())).thenReturn(0L);
+        when(suggestionRepository.countByOrganizationIdAndStatusAndExpiresAtAfter(
+                eq(ORG), eq(SupervisionSuggestion.STATUS_PENDING), any())).thenReturn(0L);
+
+        SupervisionReportDto day = service.getReport(ORG, 1);
+        SupervisionReportDto month = service.getReport(ORG, 30);
+
+        assertThat(day.windowDays()).isEqualTo(1);
+        assertThat(day.autoActions()).isEqualTo(2);
+        assertThat(day.estimatedTimeSavedMinutes()).isEqualTo(16); // 2 × 8
+        assertThat(month.windowDays()).isEqualTo(30);
+        assertThat(month.autoActions()).isEqualTo(20);
+        assertThat(month.estimatedTimeSavedMinutes()).isEqualTo(160); // 20 × 8
+        // Cœur de l'exigence : la durée choisie change bien les chiffres.
+        assertThat(day.autoActions()).isLessThan(month.autoActions());
+        assertThat(day.estimatedTimeSavedMinutes()).isLessThan(month.estimatedTimeSavedMinutes());
+    }
 }
