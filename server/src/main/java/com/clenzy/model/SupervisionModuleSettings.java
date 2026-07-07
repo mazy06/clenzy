@@ -39,6 +39,10 @@ public class SupervisionModuleSettings {
     @Column(name = "autonomy_level", nullable = false, length = 20)
     private SupervisionAutonomy autonomyLevel = SupervisionAutonomy.SUGGEST;
 
+    /** Seuils configurables du module (JSON, B5) — null = seuils par défaut en dur. */
+    @Column(name = "thresholds", columnDefinition = "TEXT")
+    private String thresholds;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -71,6 +75,9 @@ public class SupervisionModuleSettings {
 
     public SupervisionAutonomy getAutonomyLevel() { return autonomyLevel; }
     public void setAutonomyLevel(SupervisionAutonomy autonomyLevel) { this.autonomyLevel = autonomyLevel; }
+
+    public String getThresholds() { return thresholds; }
+    public void setThresholds(String thresholds) { this.thresholds = thresholds; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
