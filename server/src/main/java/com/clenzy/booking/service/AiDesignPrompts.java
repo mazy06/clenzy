@@ -76,16 +76,16 @@ public final class AiDesignPrompts {
         STEP 1: Identify the website's colors, fonts, spacing, border-radius, shadows, button styles.
         STEP 2: Generate CSS with these extracted values as CSS custom properties.
 
-        MANDATORY CSS VARIABLE NAMES (use exactly these, set to the values found on the website):
-          --bw-primaryColor, --bw-secondaryColor, --bw-accentColor,
-          --bw-backgroundColor, --bw-surfaceColor, --bw-textColor, --bw-textSecondaryColor,
-          --bw-headingFontFamily, --bw-bodyFontFamily, --bw-baseFontSize, --bw-headingFontWeight,
-          --bw-borderRadius, --bw-buttonBorderRadius, --bw-cardBorderRadius, --bw-spacing,
-          --bw-boxShadow, --bw-cardShadow, --bw-buttonStyle, --bw-buttonTextTransform,
-          --bw-borderColor, --bw-dividerColor
+        MANDATORY CSS VARIABLE NAMES (use exactly these canonical --bt-* names, set to the values found on the website):
+          --bt-color-primary, --bt-color-secondary, --bt-color-accent,
+          --bt-color-bg, --bt-color-surface, --bt-color-text, --bt-color-text-muted,
+          --bt-font-heading, --bt-font-body, --bt-text-md, --bt-heading-weight,
+          --bt-radius-md, --bt-radius-button, --bt-radius-card, --bt-space-4,
+          --bt-shadow-md, --bt-shadow-card, --bt-button-style, --bt-button-transform,
+          --bt-color-border, --bt-color-divider
 
         Rules:
-        - Start with `:root.booking-widget {` containing ALL --bw-* variables with real values from the website
+        - Start with `:root.booking-widget {` containing ALL --bt-* variables with real values from the website
         - Scope ALL selectors under `.booking-widget`
         - Include responsive styles (@media queries)
         - Style: buttons, inputs, cards, headers, text, links, calendar
@@ -116,7 +116,7 @@ public final class AiDesignPrompts {
 
         Rules:
         - Scope ALL selectors under `.booking-widget`
-        - Use CSS custom properties (--bw-*) for all token values at the :root of .booking-widget
+        - Use CSS custom properties (--bt-*) for all token values at the :root of .booking-widget
         - Generate clean, readable, well-commented CSS
         - Include responsive styles (@media queries)
         - Style these elements: buttons, inputs, cards, headers, text, links, calendar

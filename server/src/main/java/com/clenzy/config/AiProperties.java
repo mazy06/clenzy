@@ -34,6 +34,7 @@ public class AiProperties {
     private Bedrock bedrock = new Bedrock();
     private WebsiteFetch websiteFetch = new WebsiteFetch();
     private TokenBudget tokenBudget = new TokenBudget();
+    private SiteGeneration siteGeneration = new SiteGeneration();
 
     // ─── OpenAI ──────────────────────────────────────────────────────────
 
@@ -107,6 +108,25 @@ public class AiProperties {
         public void setEnforced(boolean enforced) { this.enforced = enforced; }
     }
 
+    // ─── Génération de site (paramètres NON hardcodés) ───────────────────
+    // `maxOutputTokens` = longueur de sortie max d'un appel de génération (paramètre TECHNIQUE, pas un
+    // quota business). Le quota/solde vit dans le système de crédits (T-07). `creditEnforced` active le
+    // gate crédits SCOPÉ à la génération (défaut off — n'affecte pas le flag global d'enforcement) :
+    // solde < `creditFloorMillicredits` → 402 AI_CREDITS_INSUFFICIENT → paywall d'achat de pack.
+
+    public static class SiteGeneration {
+        private int maxOutputTokens = 24_000;
+        private boolean creditEnforced = false;
+        private long creditFloorMillicredits = 30_000;
+
+        public int getMaxOutputTokens() { return maxOutputTokens; }
+        public void setMaxOutputTokens(int maxOutputTokens) { this.maxOutputTokens = maxOutputTokens; }
+        public boolean isCreditEnforced() { return creditEnforced; }
+        public void setCreditEnforced(boolean creditEnforced) { this.creditEnforced = creditEnforced; }
+        public long getCreditFloorMillicredits() { return creditFloorMillicredits; }
+        public void setCreditFloorMillicredits(long creditFloorMillicredits) { this.creditFloorMillicredits = creditFloorMillicredits; }
+    }
+
     // ─── Root getters/setters ────────────────────────────────────────────
 
     public boolean isEnabled() { return enabled; }
@@ -126,5 +146,8 @@ public class AiProperties {
 
     public TokenBudget getTokenBudget() { return tokenBudget; }
     public void setTokenBudget(TokenBudget tokenBudget) { this.tokenBudget = tokenBudget; }
+
+    public SiteGeneration getSiteGeneration() { return siteGeneration; }
+    public void setSiteGeneration(SiteGeneration siteGeneration) { this.siteGeneration = siteGeneration; }
 
 }

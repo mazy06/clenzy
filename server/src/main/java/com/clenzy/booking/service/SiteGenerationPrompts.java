@@ -97,13 +97,22 @@ final class SiteGenerationPrompts {
         ces variables `--bt-*` sur .site-root et UTILISE-les dans tout le CSS (couleurs, tailles de police,
         paddings, gaps, rayons, ombres, transitions…) — n'écris JAMAIS une valeur en dur quand un token
         existe. CE MÊME contrat `--bt-*` habille aussi les widgets de réservation → cohérence visuelle
-        TOTALE pages ↔ widgets (exigée). Conserve la STRUCTURE de classes :
+        TOTALE pages ↔ widgets (exigée).
+        RÈGLE CRITIQUE — ZÉRO STYLE INLINE : n'utilise JAMAIS l'attribut style="..." dans le HTML. L'éditeur
+        no-code (GrapesJS) SUPPRIME les styles inline à l'import → fonds image, couleurs et mises en page
+        seraient perdus (site cassé en édition manuelle). TOUT le style — FONDS IMAGE COMPRIS — vit dans le
+        "css" via des CLASSES. Le HTML ne porte que des attributs `class` (et href/src/data-*).
+        Conserve la STRUCTURE de classes :
         - Une racine unique par page : <div class="site-root"> ... </div>, portant TOUTES les variables `--bt-*`.
         - Conteneur centré : <div class="site-wrap"> (max-width ~1140px, padding latéral).
         - Sections : <section class="site-section"> (variante claire : "site-section site-section--tint").
         - En-tête de section : <div class="site-section__head"> avec <p class="site-eyebrow"> (sur-titre
           en capitales espacées) + <h2> + <p class="site-lead">.
-        - Hero : <section class="site-hero"> avec un fond image, <h1>, sous-titre, et un CTA <a class="site-btn">.
+        - Hero : <section class="site-hero site-hero--{page}"> (h1 + sous-titre + CTA <a class="site-btn">). Le
+          FOND IMAGE du hero est défini DANS le "css" via la classe modificatrice (ex.
+          `.site-hero--accueil{ background-image: linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.45)), url('...'); }`
+          avec overlay sombre pour la lisibilité du texte clair) — JAMAIS en style inline. Varie l'image par
+          page via `--{page}` (accueil, logements, a-propos…).
         - Boutons : classe "site-btn" (plein) / "site-btn site-btn--ghost" (secondaire).
         - Une navigation <nav class="site-nav"> en haut (liens vers les pages internes RÉELLEMENT générées)
           et un <footer class="site-footer"> en bas, IDENTIQUES sur chaque page.
@@ -127,6 +136,24 @@ final class SiteGenerationPrompts {
         indiqué, en respectant pour chacune son `path`, son `type` et le rôle décrit. N'ajoute ni ne
         retire aucune page.
 
+        ── RICHESSE & SECTIONS (obligatoire — un site premium, pas une page nue) ────────────────────
+        Chaque page comporte PLUSIEURS sections VARIÉES (pas seulement un hero + un widget). Vise 5–7
+        sections par page, avec une alternance visuelle (fonds clairs / teintés, pleine largeur / colonnes).
+        Compose selon la page et le brief à partir de :
+        - Hero immersif (fond image en classe + overlay + h1 + sous-titre + CTA).
+        - Présentation / récit (2–3 paragraphes, souvent en 2 colonnes texte + image).
+        - Grille d'atouts / services : 3–4 cartes `.site-card` (titre + court texte, sans emoji).
+        - Galerie d'images : grille responsive 2–3 colonnes `.site-gallery` (utilise les images fournies).
+        - Repères SANS invention (ex. « check-in autonome », « conciergerie 7j/7 ») en pastilles `.site-pills`.
+        - Témoignages : 2–3 citations `.site-quote` (sans note ni nombre d'avis inventés).
+        - FAQ : 3–5 questions/réponses concises `.site-faq`.
+        - Bandeau CTA final `.site-cta` + `<footer class="site-footer">` riche (liens de nav, contact, mentions).
+        CSS RICHE et responsive OBLIGATOIRE : CSS Grid / Flexbox pour grilles et colonnes ; media-queries
+        (mobile ≤ 640px → colonnes empilées) ; états `:hover` sur cartes et boutons ; images en
+        `object-fit: cover` ; transitions via `--bt-duration`/`--bt-ease`. Le tout piloté par les `--bt-*`.
+        La HOME contient AU MINIMUM : hero + présentation + grille d'atouts + galerie + (témoignages OU FAQ)
+        + bandeau CTA + footer.
+
         ── CONTENU ─────────────────────────────────────────────────────────────────────────────────
         - Rédige un contenu engageant, crédible et FACTUEL : n'invente AUCUN fait chiffré vérifiable
           (pas de nombre d'avis, pas de note, pas de date de création précise inventés).
@@ -136,14 +163,16 @@ final class SiteGenerationPrompts {
 
         ── SÉCURITÉ ────────────────────────────────────────────────────────────────────────────────
         - HTML valide et SÛR : pas de <script>, pas d'attributs d'événement (onclick…), pas d'<iframe>.
-        - Images via URLs https absolues (placeholders Unsplash acceptés).
+        - Images : si des « IMAGES RÉELLES DES LOGEMENTS » sont fournies dans le brief, UTILISE-LES en PRIORITÉ
+          (fond du hero, galerie, cartes) ; sinon des placeholders Unsplash https absolus. TOUJOURS via une
+          classe CSS dans le "css" (background-image ou <img class="..." src="...">), JAMAIS en style inline.
 
         ── EXEMPLE DE STYLE (à imiter, PAS à recopier) ───────────────────────────────────────────────
         Squelette attendu d'une page HOME (à adapter au brief : marque, ville, copie, sections) —
         respecte ces classes et l'emplacement des marqueurs :
         <div class="site-root">
           <nav class="site-nav"><div class="site-wrap"><a href="/">{Marque}</a><a href="/logements">Logements</a><a href="/contact">Contact</a></div></nav>
-          <section class="site-hero" style="background-image:url('https://images.unsplash.com/photo-...')">
+          <section class="site-hero site-hero--accueil">
             <div class="site-wrap"><h1>{Titre accrocheur}</h1><p>{sous-titre}</p>
               <div data-clenzy-widget="search" data-clenzy-next="/logements"></div>
               <a class="site-btn" href="/logements">{CTA aligné sur l'objectif}</a></div>
@@ -200,8 +229,15 @@ final class SiteGenerationPrompts {
      * @param resolvedPrimary couleur primaire résolue (hex) à ÉPINGLER (cohérence widget ↔ page CSS).
      */
     static String buildUserPrompt(SiteGenerationBrief brief, String sourceLanguage, String brandName,
-                                  String resolvedPrimary) {
+                                  String resolvedPrimary, String designDirection, List<String> imageUrls) {
         StringBuilder sb = new StringBuilder();
+        // DS-3 : direction de design imposée (prose DESIGN.md d'un système choisi) — PRIORITAIRE sur les
+        // autres indices de style du brief. Placée en tête pour maximiser son poids.
+        if (designDirection != null && !designDirection.isBlank()) {
+            sb.append("── DIRECTION DE DESIGN À SUIVRE (prioritaire — respecte son atmosphère, sa palette, ")
+              .append("sa typographie, sa VOIX & son TON) ──\n")
+              .append(designDirection.trim()).append("\n\n");
+        }
         sb.append("Langue de rédaction: ").append(langName(sourceLanguage)).append('\n');
         if ("ar".equals(sourceLanguage)) {
             sb.append("Sens d'écriture: RTL (droite→gauche) — ajoute dir=\"rtl\" sur .site-root, aligne le ")
@@ -225,6 +261,15 @@ final class SiteGenerationPrompts {
         sb.append("Voix éditoriale: écris pour ").append(orDefault(brief.audience(), "des voyageurs"))
           .append(", registre ").append(orDefault(brief.tier(), "standard"))
           .append(", ton ").append(orDefault(brief.tone(), "professionnel et chaleureux")).append(".\n");
+
+        // Photos RÉELLES des logements de l'org (URLs publiques) → le LLM les place en fonds/galeries
+        // (via classes CSS) plutôt que des placeholders génériques. Bornées côté service.
+        if (imageUrls != null && !imageUrls.isEmpty()) {
+            sb.append("\n── IMAGES RÉELLES DES LOGEMENTS (à utiliser en PRIORITÉ, via classes CSS) ──\n");
+            for (String u : imageUrls) {
+                sb.append("- ").append(u).append('\n');
+            }
+        }
 
         sb.append("\n── PAGES À PRODUIRE (dans cet ordre) ──\n");
         int i = 1;

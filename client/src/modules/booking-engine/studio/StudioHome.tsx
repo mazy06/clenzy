@@ -1,22 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Menu, MenuItem, Divider, Popover, InputBase, Skeleton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
-import { useTranslation } from 'react-i18next';
 import {
   Plus, LayoutDashboard, ArrowUp, Search, Home, Layers, Sparkles, Languages, Feather, X,
   ArrowRight, List as ListIcon, LayoutGrid, AlertTriangle, ChevronDown, Trash2,
   Users, Target, Gem, MapPin, Coins, BadgeCheck, Files,
 } from 'lucide-react';
 import { bookingEngineApi, type BookingEngineConfig, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
-import { sitesApi, type SiteGenerationBrief } from '../../../services/api/sitesApi';
+import type { SiteGenerationBrief } from '../../../services/api/sitesApi';
 import { BUILTIN_FUNNEL_PRESETS } from './grapes/funnelPresets';
 import { FunnelArt } from './funnelArt';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './grapes/import/galleryTemplates';
 import { DESIGN_PRESETS } from '../constants';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAiFeatureToggles } from '../../../hooks/useAi';
-import { useNotification } from '../../../hooks/useNotification';
-import SiteGenerationModal from './SiteGenerationModal';
 import './studioHome.css';
 
 /**
@@ -233,15 +230,10 @@ const PROMPT_OPTIONS: { id: PromptOptionId; label: string; icon: typeof LayoutDa
 
 export default function StudioHome({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { notify } = useNotification();
   const { user } = useAuth();
   const [configs, setConfigs] = useState<BookingEngineConfig[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-
-  // Génération de site par IA : modale de brief → création config + site → ai-generate → ouverture.
-  const [genOpen, setGenOpen] = useState(false);
 
   // Champ IA — texte libre + champs structurés (constructeur de prompt)
   const [prompt, setPrompt] = useState('');
@@ -326,8 +318,9 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     }
   };
 
-  // Le funnel sélectionné (obligatoire) est porté par la création, même « page vierge ».
-  const handleCreateBlank = () => createAndOpen('Nouveau booking engine', {}, { funnelId });
+  // « Page vierge » : d'abord l'étape DIRECTION sur écran plein (modèle open-design), puis l'éditeur. La
+  // création du booking engine habillé se fait dans DesignSystemCreatePage (`flow: 'blank'`).
+  const handleCreateBlank = () => navigate('/booking-engine/design-systems/new', { state: { flow: 'blank', funnelId } });
 
   // ── Constructeur de prompt : ajout / retrait de champs + libellé de valeur courante ──
   const addOption = (id: PromptOptionId) => {
@@ -479,8 +472,8 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       );
       return;
     }
-    // Description libre → génération : la modale s'ouvre pré-remplie par les champs du constructeur.
-    setGenOpen(true);
+    // Description libre → génération : écran plein « open-design » pré-rempli par les champs du constructeur.
+    navigate('/booking-engine/generate', { state: { brief: studioBrief, recap: briefRecap } });
   };
 
   const createWithTemplate = (tplId: string) => {
@@ -491,28 +484,6 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       // `templateId` + `funnelId` consommés par GrapesStudio (auto-import + widgets) une fois l'éditeur prêt.
       { templateId: tplId, funnelId },
     );
-  };
-
-  /**
-   * Génère un site complet par IA : crée un booking engine vierge, résout son site (`ensureForConfig`),
-   * lance la génération (`ai-generate`) puis ouvre l'éditeur sur le site généré (pages en BROUILLON).
-   * Rejette en cas d'échec (message remonté + affiché par la modale ; l'échec 502 reste lisible).
-   */
-  const handleGenerateSite = async (brief: SiteGenerationBrief) => {
-    const name = (brief.brandName?.trim() || brief.propertyType.trim()).slice(0, 40) || 'Nouveau booking engine';
-    const overrides: Partial<BookingEngineConfigUpdate> = {};
-    if (brief.primaryColorHint && /^#[0-9a-fA-F]{6}$/.test(brief.primaryColorHint)) {
-      overrides.primaryColor = brief.primaryColorHint;
-    }
-    const created = await bookingEngineApi.createConfig({ ...buildConfigPayload(uniqueConfigName(name)), ...overrides });
-    const site = await sitesApi.ensureForConfig(created.id);
-    const result = await sitesApi.generateSite(site.id, brief);
-    const count = result.pagesCreated.length;
-    setGenOpen(false);
-    notify.success(
-      t('bookingEngine.studio.ai.generate.success', '{{count}} pages créées en brouillon — à relire avant publication.', { count }),
-    );
-    navigate(`/booking-engine/studio/${created.id}`);
   };
 
   // Supprime le booking engine confirmé (DELETE org-scopé côté serveur) puis retire la ligne localement.
@@ -553,6 +524,14 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           <p className="eyebrow">Booking Engine · Studio</p>
           <h1>Quel booking engine créons-nous&nbsp;?</h1>
         </div>
+
+        {/* Les directions réutilisables se gèrent ici ; la SÉLECTION se fait à l'étape 1 de la génération. */}
+        <Box sx={{ mb: 1.5 }}>
+          <Box component="button" type="button" onClick={() => navigate('/booking-engine/design-systems')}
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, border: 0, bgcolor: 'transparent', cursor: 'pointer', color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
+            <Sparkles size={14} strokeWidth={2} /> Gérer les systèmes de design
+          </Box>
+        </Box>
 
         {/* 2 · Champ IA */}
         {creating ? (
@@ -908,14 +887,6 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           )}
         </section>
       </div>
-
-      <SiteGenerationModal
-        open={genOpen}
-        onClose={() => setGenOpen(false)}
-        onGenerate={handleGenerateSite}
-        initialBrief={studioBrief}
-        recap={briefRecap}
-      />
 
       <Dialog open={!!confirmDelete} onClose={() => !deleting && setConfirmDelete(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Supprimer ce booking engine ?</DialogTitle>

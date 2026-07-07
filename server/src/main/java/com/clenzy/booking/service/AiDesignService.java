@@ -175,37 +175,38 @@ public class AiDesignService {
     // ─── Extract tokens from CSS variables ─────────────────────────────
 
     /**
-     * Parse les variables CSS --bw-* du CSS genere pour construire les DesignTokens.
-     * C'est plus fiable que de demander au LLM de retourner du JSON.
+     * Parse les variables CSS --bt-* (contrat unifié, cf. {@code DESIGN-BAITLY.md}) du CSS généré pour
+     * construire les DesignTokens. C'est plus fiable que de demander au LLM de retourner du JSON. Noms
+     * alignés sur {@code SiteGenerationService.tokensFromVars} (une seule source de vérité --bt-*).
      */
     private DesignTokensDto extractTokensFromCss(String css) {
         return new DesignTokensDto(
-                extractCssVar(css, "--bw-primaryColor"),
-                extractCssVar(css, "--bw-secondaryColor"),
-                extractCssVar(css, "--bw-accentColor"),
-                extractCssVar(css, "--bw-backgroundColor"),
-                extractCssVar(css, "--bw-surfaceColor"),
-                extractCssVar(css, "--bw-textColor"),
-                extractCssVar(css, "--bw-textSecondaryColor"),
-                extractCssVar(css, "--bw-headingFontFamily"),
-                extractCssVar(css, "--bw-bodyFontFamily"),
-                extractCssVar(css, "--bw-baseFontSize"),
-                extractCssVar(css, "--bw-headingFontWeight"),
-                extractCssVar(css, "--bw-borderRadius"),
-                extractCssVar(css, "--bw-buttonBorderRadius"),
-                extractCssVar(css, "--bw-cardBorderRadius"),
-                extractCssVar(css, "--bw-spacing"),
-                extractCssVar(css, "--bw-boxShadow"),
-                extractCssVar(css, "--bw-cardShadow"),
-                extractCssVar(css, "--bw-buttonStyle"),
-                extractCssVar(css, "--bw-buttonTextTransform"),
-                extractCssVar(css, "--bw-borderColor"),
-                extractCssVar(css, "--bw-dividerColor")
+                extractCssVar(css, "--bt-color-primary"),
+                extractCssVar(css, "--bt-color-secondary"),
+                extractCssVar(css, "--bt-color-accent"),
+                extractCssVar(css, "--bt-color-bg"),
+                extractCssVar(css, "--bt-color-surface"),
+                extractCssVar(css, "--bt-color-text"),
+                extractCssVar(css, "--bt-color-text-muted"),
+                extractCssVar(css, "--bt-font-heading"),
+                extractCssVar(css, "--bt-font-body"),
+                extractCssVar(css, "--bt-text-md"),
+                extractCssVar(css, "--bt-heading-weight"),
+                extractCssVar(css, "--bt-radius-md"),
+                extractCssVar(css, "--bt-radius-button"),
+                extractCssVar(css, "--bt-radius-card"),
+                extractCssVar(css, "--bt-space-4"),
+                extractCssVar(css, "--bt-shadow-md"),
+                extractCssVar(css, "--bt-shadow-card"),
+                extractCssVar(css, "--bt-button-style"),
+                extractCssVar(css, "--bt-button-transform"),
+                extractCssVar(css, "--bt-color-border"),
+                extractCssVar(css, "--bt-color-divider")
         );
     }
 
     /**
-     * Extrait la valeur d'une variable CSS (ex: "--bw-primaryColor: #007bff;" → "#007bff").
+     * Extrait la valeur d'une variable CSS (ex: "--bt-color-primary: #007bff;" → "#007bff").
      */
     private String extractCssVar(String css, String varName) {
         if (css == null) return null;

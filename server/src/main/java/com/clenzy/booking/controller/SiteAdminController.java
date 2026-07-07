@@ -6,7 +6,9 @@ import com.clenzy.booking.dto.GeneratedArticleDto;
 import com.clenzy.booking.dto.SiteDomainDto;
 import com.clenzy.booking.dto.SiteDomainRequest;
 import com.clenzy.booking.dto.SiteDto;
+import com.clenzy.booking.dto.SiteFromTemplateRequest;
 import com.clenzy.booking.dto.SitePageDto;
+import com.clenzy.booking.dto.SiteRefineRequest;
 import com.clenzy.booking.dto.SiteUpsertRequest;
 import com.clenzy.booking.service.SiteAdminService;
 import com.clenzy.tenant.TenantContext;
@@ -33,17 +35,23 @@ public class SiteAdminController {
     private final com.clenzy.booking.service.SiteContentAiService contentAiService;
     private final com.clenzy.booking.service.ContentTranslationService translationService;
     private final com.clenzy.booking.service.SiteGenerationService siteGenerationService;
+    private final com.clenzy.booking.service.SiteTemplateInstantiationService templateInstantiationService;
+    private final com.clenzy.booking.service.SiteRefinementService refinementService;
     private final TenantContext tenantContext;
 
     public SiteAdminController(SiteAdminService service,
                               com.clenzy.booking.service.SiteContentAiService contentAiService,
                               com.clenzy.booking.service.ContentTranslationService translationService,
                               com.clenzy.booking.service.SiteGenerationService siteGenerationService,
+                              com.clenzy.booking.service.SiteTemplateInstantiationService templateInstantiationService,
+                              com.clenzy.booking.service.SiteRefinementService refinementService,
                               TenantContext tenantContext) {
         this.service = service;
         this.contentAiService = contentAiService;
         this.translationService = translationService;
         this.siteGenerationService = siteGenerationService;
+        this.templateInstantiationService = templateInstantiationService;
+        this.refinementService = refinementService;
         this.tenantContext = tenantContext;
     }
 
@@ -72,6 +80,14 @@ public class SiteAdminController {
     @PostMapping("/ensure-for-config/{configId}")
     public ResponseEntity<SiteDto> ensureForConfig(@PathVariable Long configId) {
         return ResponseEntity.ok(service.ensureSiteForConfig(orgId(), configId));
+    }
+
+    /** Instancie un template du catalogue en un site DRAFT de l'org (galerie Baitly, P3). */
+    @PostMapping("/from-template/{templateId}")
+    public ResponseEntity<SiteDto> createFromTemplate(@PathVariable Long templateId,
+                                                      @RequestBody(required = false) SiteFromTemplateRequest req) {
+        String name = req != null ? req.name() : null;
+        return ResponseEntity.ok(templateInstantiationService.instantiate(orgId(), templateId, name));
     }
 
     @PutMapping("/{id}")
@@ -113,6 +129,13 @@ public class SiteAdminController {
     @PostMapping("/{id}/pages/{pageId}/publish")
     public ResponseEntity<SitePageDto> publishPage(@PathVariable Long id, @PathVariable Long pageId) {
         return ResponseEntity.ok(service.publishPage(orgId(), id, pageId));
+    }
+
+    /** Retouche IA d'une page en langage naturel (« Retoucher avec l'IA », P3). Reste en brouillon. */
+    @PostMapping("/{id}/pages/{pageId}/refine")
+    public ResponseEntity<SitePageDto> refinePage(@PathVariable Long id, @PathVariable Long pageId,
+                                                  @Valid @RequestBody SiteRefineRequest req) {
+        return ResponseEntity.ok(refinementService.refine(orgId(), id, pageId, req.instruction()));
     }
 
     /**

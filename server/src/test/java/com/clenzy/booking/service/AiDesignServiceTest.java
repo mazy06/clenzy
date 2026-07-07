@@ -95,27 +95,27 @@ class AiDesignServiceTest {
 
     private String sampleCss() {
         return ":root {\n"
-                + "  --bw-primaryColor: #FF0000;\n"
-                + "  --bw-secondaryColor: #00FF00;\n"
-                + "  --bw-accentColor: #0000FF;\n"
-                + "  --bw-backgroundColor: #FFFFFF;\n"
-                + "  --bw-surfaceColor: #F4F4F4;\n"
-                + "  --bw-textColor: #111111;\n"
-                + "  --bw-textSecondaryColor: #666666;\n"
-                + "  --bw-headingFontFamily: Inter;\n"
-                + "  --bw-bodyFontFamily: Roboto;\n"
-                + "  --bw-baseFontSize: 16px;\n"
-                + "  --bw-headingFontWeight: 700;\n"
-                + "  --bw-borderRadius: 8px;\n"
-                + "  --bw-buttonBorderRadius: 4px;\n"
-                + "  --bw-cardBorderRadius: 8px;\n"
-                + "  --bw-spacing: 16px;\n"
-                + "  --bw-boxShadow: none;\n"
-                + "  --bw-cardShadow: 0 2px 4px rgba(0,0,0,0.1);\n"
-                + "  --bw-buttonStyle: filled;\n"
-                + "  --bw-buttonTextTransform: uppercase;\n"
-                + "  --bw-borderColor: #E0E0E0;\n"
-                + "  --bw-dividerColor: null;\n"
+                + "  --bt-color-primary: #FF0000;\n"
+                + "  --bt-color-secondary: #00FF00;\n"
+                + "  --bt-color-accent: #0000FF;\n"
+                + "  --bt-color-bg: #FFFFFF;\n"
+                + "  --bt-color-surface: #F4F4F4;\n"
+                + "  --bt-color-text: #111111;\n"
+                + "  --bt-color-text-muted: #666666;\n"
+                + "  --bt-font-heading: Inter;\n"
+                + "  --bt-font-body: Roboto;\n"
+                + "  --bt-text-md: 16px;\n"
+                + "  --bt-heading-weight: 700;\n"
+                + "  --bt-radius-md: 8px;\n"
+                + "  --bt-radius-button: 4px;\n"
+                + "  --bt-radius-card: 8px;\n"
+                + "  --bt-space-4: 16px;\n"
+                + "  --bt-shadow-md: none;\n"
+                + "  --bt-shadow-card: 0 2px 4px rgba(0,0,0,0.1);\n"
+                + "  --bt-button-style: filled;\n"
+                + "  --bt-button-transform: uppercase;\n"
+                + "  --bt-color-border: #E0E0E0;\n"
+                + "  --bt-color-divider: null;\n"
                 + "}";
     }
 
@@ -224,7 +224,7 @@ class AiDesignServiceTest {
             AiDesignAnalysisResponseDto result = service.analyzeWebsite(CONFIG_ID, URL);
 
             assertThat(result.fromCache()).isFalse();
-            assertThat(result.generatedCss()).contains("--bw-primaryColor: #FF0000");
+            assertThat(result.generatedCss()).contains("--bt-color-primary: #FF0000");
             assertThat(result.designTokens().primaryColor()).isEqualTo("#FF0000");
             assertThat(result.designTokens().headingFontFamily()).isEqualTo("Inter");
 
@@ -367,20 +367,20 @@ class AiDesignServiceTest {
         @Test
         @DisplayName("extractCssVar returns value, or null on missing/empty/none/null sentinel")
         void extractCssVar_branches() throws Exception {
-            String css = "--bw-primaryColor: #FF0000;\n--bw-empty: ;\n--bw-noneVal: none;\n--bw-nullVal: null;";
-            assertThat(invoke("extractCssVar", String.class, css, "--bw-primaryColor"))
+            String css = "--bt-color-primary: #FF0000;\n--bt-empty: ;\n--bt-noneVal: none;\n--bt-nullVal: null;";
+            assertThat(invoke("extractCssVar", String.class, css, "--bt-color-primary"))
                     .isEqualTo("#FF0000");
-            assertThat(invoke("extractCssVar", String.class, css, "--bw-empty")).isNull();
-            assertThat(invoke("extractCssVar", String.class, css, "--bw-noneVal")).isNull();
-            assertThat(invoke("extractCssVar", String.class, css, "--bw-nullVal")).isNull();
-            assertThat(invoke("extractCssVar", String.class, css, "--bw-missing")).isNull();
-            assertThat(invoke("extractCssVar", String.class, (Object) null, "--bw-x")).isNull();
+            assertThat(invoke("extractCssVar", String.class, css, "--bt-empty")).isNull();
+            assertThat(invoke("extractCssVar", String.class, css, "--bt-noneVal")).isNull();
+            assertThat(invoke("extractCssVar", String.class, css, "--bt-nullVal")).isNull();
+            assertThat(invoke("extractCssVar", String.class, css, "--bt-missing")).isNull();
+            assertThat(invoke("extractCssVar", String.class, (Object) null, "--bt-x")).isNull();
         }
 
         @Test
         @DisplayName("extractCssVar handles missing semicolon → returns null")
         void extractCssVar_missingSemicolon() throws Exception {
-            assertThat(invoke("extractCssVar", String.class, "--bw-x: abc", "--bw-x")).isNull();
+            assertThat(invoke("extractCssVar", String.class, "--bt-x: abc", "--bt-x")).isNull();
         }
 
         @Test
