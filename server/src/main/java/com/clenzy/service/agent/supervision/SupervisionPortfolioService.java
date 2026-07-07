@@ -3,8 +3,10 @@ package com.clenzy.service.agent.supervision;
 import com.clenzy.dto.PortfolioSnapshotDto;
 import com.clenzy.model.Property;
 import com.clenzy.model.SupervisionActivity;
+import com.clenzy.model.SupervisionModuleSettings;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.SupervisionModuleSettingsRepository;
 import com.clenzy.repository.SupervisionSuggestionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,15 +37,18 @@ public class SupervisionPortfolioService {
 
     private final PropertyRepository propertyRepository;
     private final SupervisionSuggestionRepository suggestionRepository;
+    private final SupervisionModuleSettingsRepository moduleSettingsRepository;
     private final SupervisionActivityService activityService;
     private final Clock clock;
 
     public SupervisionPortfolioService(PropertyRepository propertyRepository,
                                        SupervisionSuggestionRepository suggestionRepository,
+                                       SupervisionModuleSettingsRepository moduleSettingsRepository,
                                        SupervisionActivityService activityService,
                                        Clock clock) {
         this.propertyRepository = propertyRepository;
         this.suggestionRepository = suggestionRepository;
+        this.moduleSettingsRepository = moduleSettingsRepository;
         this.activityService = activityService;
         this.clock = clock;
     }
@@ -67,12 +72,27 @@ public class SupervisionPortfolioService {
                 .map(a -> toFeedEntry(a, names))
                 .toList();
 
-        final List<PortfolioSnapshotDto.AgentRollup> agents = buildRollups(pending, names);
+        // Autonomie RÉELLE par agent (SupervisionModuleSettings, éditée via /config).
+        final Map<String, String> autonomyByAgent = moduleSettingsRepository
+                .findByOrganizationId(organizationId).stream()
+                .filter(m -> m.getModuleKey() != null && m.getAutonomyLevel() != null)
+                .collect(Collectors.toMap(SupervisionModuleSettings::getModuleKey,
+                        m -> m.getAutonomyLevel().toWire(), (a, b) -> a));
+
+        final List<PortfolioSnapshotDto.AgentRollup> agents = buildRollups(pending, names, autonomyByAgent);
         final PortfolioSnapshotDto.DayMetrics metrics = new PortfolioSnapshotDto.DayMetrics(
                 "—", (int) activityService.orgAutoActions(organizationId), pendingCards.size());
 
-        return new PortfolioSnapshotDto("portfolio", properties.size(), true, DEFAULT_AUTONOMY, false,
-                agents, pendingCards, feed, metrics);
+        return new PortfolioSnapshotDto("portfolio", properties.size(), true,
+                deriveGlobalAutonomy(autonomyByAgent), false, agents, pendingCards, feed, metrics);
+    }
+
+    /** Autonomie globale = valeur commune aux 5 agents si homogène, sinon la plus prudente (suggest). */
+    private String deriveGlobalAutonomy(Map<String, String> autonomyByAgent) {
+        final java.util.Set<String> levels = AGENTS.stream()
+                .map(a -> autonomyByAgent.getOrDefault(a, DEFAULT_AUTONOMY))
+                .collect(Collectors.toSet());
+        return levels.size() == 1 ? levels.iterator().next() : DEFAULT_AUTONOMY;
     }
 
     private String propertyName(Property p) {
@@ -114,7 +134,8 @@ public class SupervisionPortfolioService {
 
     /** Un rollup par agent : statut wait si des suggestions l'attendent, ventilation par logement. */
     private List<PortfolioSnapshotDto.AgentRollup> buildRollups(List<SupervisionSuggestion> pending,
-                                                                Map<Long, String> names) {
+                                                                Map<Long, String> names,
+                                                                Map<String, String> autonomyByAgent) {
         final Map<String, List<SupervisionSuggestion>> byModule = pending.stream()
                 .filter(s -> s.getModuleKey() != null && s.getPropertyId() != null)
                 .collect(Collectors.groupingBy(SupervisionSuggestion::getModuleKey));
@@ -134,7 +155,9 @@ public class SupervisionPortfolioService {
             final boolean waiting = !forAgent.isEmpty();
             final String task = waiting ? forAgent.size() + " action(s) en attente" : "";
             rollups.add(new PortfolioSnapshotDto.AgentRollup(
-                    agent, waiting ? "wait" : "veille", DEFAULT_AUTONOMY, countByProperty.size(), task, items));
+                    agent, waiting ? "wait" : "veille",
+                    autonomyByAgent.getOrDefault(agent, DEFAULT_AUTONOMY),
+                    countByProperty.size(), task, items));
         }
         return rollups;
     }

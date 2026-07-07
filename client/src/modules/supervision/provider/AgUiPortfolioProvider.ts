@@ -9,8 +9,9 @@
 
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
+import { applyAutonomy } from './supervisionConfigApi';
 import type { SupervisionProvider } from './SupervisionProvider';
-import type { PortfolioSnapshot, StreamEvent } from '../types';
+import type { AgentId, AutonomyLevel, PortfolioSnapshot, StreamEvent } from '../types';
 
 type Listener = (event: StreamEvent) => void;
 
@@ -100,12 +101,14 @@ export class AgUiPortfolioProvider implements SupervisionProvider<PortfolioSnaps
     });
   }
 
-  setGlobalAutonomy(): Promise<void> {
-    return Promise.resolve();
+  async setGlobalAutonomy(level: AutonomyLevel): Promise<void> {
+    await applyAutonomy('all', level);
+    await this.pollRefresh(); // reflète la nouvelle autonomie dans le snapshot
   }
 
-  setAgentAutonomy(): Promise<void> {
-    return Promise.resolve();
+  async setAgentAutonomy(agentId: AgentId, level: AutonomyLevel): Promise<void> {
+    await applyAutonomy(agentId, level);
+    await this.pollRefresh();
   }
 
   setPaused(): Promise<void> {

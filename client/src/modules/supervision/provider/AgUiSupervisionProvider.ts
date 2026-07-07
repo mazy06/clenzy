@@ -29,7 +29,8 @@
 
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
-import type { AgentId, OrchestratorSnapshot, PendingAction, PendingAgentAction, StreamEvent } from '../types';
+import { applyAutonomy, fetchAutonomy } from './supervisionConfigApi';
+import type { AgentId, AutonomyLevel, OrchestratorSnapshot, PendingAction, PendingAgentAction, StreamEvent } from '../types';
 import type { SupervisionProvider } from './SupervisionProvider';
 import { buildPropertySnapshot } from './mockData';
 import { mapSpecialistToAgent } from './specialistMapping';
@@ -197,12 +198,13 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    */
   async getSnapshot(): Promise<OrchestratorSnapshot> {
     const base = buildPropertySnapshot(this.propertyId, 'calm');
-    const [hitlPending, activity, suggestions, payoutReminder, unpaidSrCards] = await Promise.all([
+    const [hitlPending, activity, suggestions, payoutReminder, unpaidSrCards, autonomy] = await Promise.all([
       this.fetchPending(),
       this.fetchActivity(),
       this.fetchSuggestions(),
       this.fetchPayoutReminder(),
       this.fetchUnpaidServiceRequests(),
+      fetchAutonomy(),
     ]);
     const inline = hitlPending[0] ? pendingDtoToAgentAction(hitlPending[0]) : null;
     if (inline) this.currentInterruptId = inline.interruptId;
@@ -275,6 +277,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     const agents = base.agents.map((a) => ({
       ...a,
       status: waiting.has(a.id) ? ('wait' as const) : ('veille' as const),
+      autonomy: autonomy?.byAgent[a.id] ?? a.autonomy, // autonomie RÉELLE (config), repli mock
       task: null,
       reservationId: null,
       metrics: [], // pas de métriques mock en live ; réelles via le feed/activité
@@ -298,6 +301,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       ...base,
       online: true,
       paused: false,
+      ...(autonomy ? { globalAutonomy: autonomy.global } : {}),
       pending: pendingQueue,
       feed,
       agents,
@@ -890,12 +894,14 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     await this.dismissSuggestion(actionId, 'edited');
   }
 
-  async setGlobalAutonomy(): Promise<void> {
-    return Promise.resolve();
+  async setGlobalAutonomy(level: AutonomyLevel): Promise<void> {
+    await applyAutonomy('all', level);
+    await this.pollRefresh(); // reflète la nouvelle autonomie dans le snapshot
   }
 
-  async setAgentAutonomy(): Promise<void> {
-    return Promise.resolve();
+  async setAgentAutonomy(agentId: AgentId, level: AutonomyLevel): Promise<void> {
+    await applyAutonomy(agentId, level);
+    await this.pollRefresh();
   }
 
   async setPaused(): Promise<void> {

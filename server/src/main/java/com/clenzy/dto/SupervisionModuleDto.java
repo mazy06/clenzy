@@ -6,14 +6,16 @@ package com.clenzy.dto;
  * @param key      clé du module (ex. {@code com})
  * @param labelKey clé i18n du libellé (rendu côté front) — ignoré en écriture
  * @param enabled  module actif pour l'org
- * @param autonomy niveau d'autonomie réseau ('suggest'|'notify'|'full')
- * @param builtin  module natif (vs importé) — ignoré en écriture
+ * @param autonomy   niveau d'autonomie réseau ('suggest'|'notify'|'full')
+ * @param builtin    module natif (vs importé) — ignoré en écriture
+ * @param thresholds seuils configurables du module (JSON), null = seuils par défaut (B5)
  */
 public record SupervisionModuleDto(
         String key,
         String labelKey,
         boolean enabled,
         String autonomy,
-        boolean builtin
+        boolean builtin,
+        String thresholds
 ) {
 }

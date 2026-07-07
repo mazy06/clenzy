@@ -5,6 +5,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.SupervisionActivity;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.SupervisionModuleSettingsRepository;
 import com.clenzy.repository.SupervisionSuggestionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ class SupervisionPortfolioServiceTest {
 
     @Mock private PropertyRepository propertyRepository;
     @Mock private SupervisionSuggestionRepository suggestionRepository;
+    @Mock private SupervisionModuleSettingsRepository moduleSettingsRepository;
     @Mock private SupervisionActivityService activityService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-07T10:00:00Z"), ZoneOffset.UTC);
@@ -38,7 +40,7 @@ class SupervisionPortfolioServiceTest {
     @BeforeEach
     void setUp() {
         service = new SupervisionPortfolioService(
-                propertyRepository, suggestionRepository, activityService, clock);
+                propertyRepository, suggestionRepository, moduleSettingsRepository, activityService, clock);
     }
 
     private Property property(Long id, String name) {

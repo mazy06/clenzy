@@ -53,19 +53,49 @@ public class BusinessAnalyticsScanner {
     private final PropertyPerformanceService performanceService;
     private final SupervisionSuggestionService suggestionService;
     private final ReservationRepository reservationRepository;
+    private final com.clenzy.repository.SupervisionModuleSettingsRepository moduleSettingsRepository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
     public BusinessAnalyticsScanner(PropertyPerformanceService performanceService,
                                     SupervisionSuggestionService suggestionService,
                                     ReservationRepository reservationRepository,
+                                    com.clenzy.repository.SupervisionModuleSettingsRepository moduleSettingsRepository,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.performanceService = performanceService;
         this.suggestionService = suggestionService;
         this.reservationRepository = reservationRepository;
+        this.moduleSettingsRepository = moduleSettingsRepository;
         this.objectMapper = objectMapper;
         this.clock = clock;
+    }
+
+    /** Seuils résolus pour un scan (config org du module « rev », repli sur les défauts en dur). */
+    private record Thresholds(double occupancyLow, double marginLow, int priceDropPercent) {}
+
+    /**
+     * Résout les seuils configurables (B5) depuis {@code SupervisionModuleSettings.thresholds}
+     * (JSON du module « rev »). Toute clé absente / JSON illisible → repli sur le défaut en dur.
+     */
+    private Thresholds resolveThresholds(Long orgId) {
+        double occ = OCCUPANCY_LOW_PCT;
+        double margin = MARGIN_LOW_PCT;
+        int drop = PRICE_DROP_PERCENT;
+        try {
+            final String json = moduleSettingsRepository.findByOrganizationIdAndModuleKey(orgId, "rev")
+                    .map(com.clenzy.model.SupervisionModuleSettings::getThresholds)
+                    .orElse(null);
+            if (json != null && !json.isBlank()) {
+                final com.fasterxml.jackson.databind.JsonNode n = objectMapper.readTree(json);
+                if (n.path("occupancyLow").isNumber()) occ = n.path("occupancyLow").asDouble();
+                if (n.path("marginLow").isNumber()) margin = n.path("marginLow").asDouble();
+                if (n.path("priceDropPercent").isInt()) drop = n.path("priceDropPercent").asInt();
+            }
+        } catch (Exception e) {
+            log.debug("thresholds parse failed org={} — repli défauts : {}", orgId, e.getMessage());
+        }
+        return new Thresholds(occ, margin, drop);
     }
 
     /**
@@ -74,20 +104,21 @@ public class BusinessAnalyticsScanner {
      */
     public void scanProperty(Long orgId, Long propertyId) {
         try {
+            final Thresholds thr = resolveThresholds(orgId); // seuils configurables (B5), repli défauts
             // Occupation À VENIR faible → baisse tarifaire CIBLÉE sur le prochain
             // créneau réellement libre (fenêtre forward = ce qu'une remise remplit).
             final double forwardOccupancy = performanceService.forwardOccupancyRate(propertyId, FORWARD_WINDOW_DAYS);
-            if (forwardOccupancy < OCCUPANCY_LOW_PCT) {
+            if (forwardOccupancy < thr.occupancyLow()) {
                 LocalDate[] gap = findNextAvailableGap(orgId, propertyId);
                 if (gap != null) {
-                    emitPriceDrop(orgId, propertyId, gap[0], gap[1], forwardOccupancy);
+                    emitPriceDrop(orgId, propertyId, gap[0], gap[1], forwardOccupancy, thr);
                 }
             }
 
             // Marge nette insuffisante → alerte informationnelle (module Finance).
             // Rétrospective (90 j passés) : la marge est un indicateur historique.
             final PropertyPerformanceDto perf = performanceService.compute(propertyId);
-            if (perf.revenue().signum() > 0 && perf.netMargin() < MARGIN_LOW_PCT) {
+            if (perf.revenue().signum() > 0 && perf.netMargin() < thr.marginLow()) {
                 suggestionService.recordActionable(
                         orgId, propertyId, "fin",
                         "Marge nette faible",
@@ -151,14 +182,15 @@ public class BusinessAnalyticsScanner {
     }
 
     private void emitPriceDrop(Long orgId, Long propertyId, LocalDate from, LocalDate toExclusive,
-                               double forwardOccupancy) {
+                               double forwardOccupancy, Thresholds thr) {
         final long nights = ChronoUnit.DAYS.between(from, toExclusive);
+        final int percent = thr.priceDropPercent();
         final String params;
         try {
             params = objectMapper.writeValueAsString(Map.of(
                     "from", from.toString(),
                     "to", toExclusive.toString(),
-                    "percent", PRICE_DROP_PERCENT));
+                    "percent", percent));
         } catch (Exception e) {
             log.debug("price-drop params serialization failed property={}: {}", propertyId, e.getMessage());
             return;
@@ -167,12 +199,12 @@ public class BusinessAnalyticsScanner {
         // (fluctuants) vont dans le motif.
         suggestionService.recordActionable(
                 orgId, propertyId, "rev",
-                String.format("Baisser le tarif de −%d %% sur le prochain créneau libre", PRICE_DROP_PERCENT),
+                String.format("Baisser le tarif de −%d %% sur le prochain créneau libre", percent),
                 String.format("Nuits libres du %s au %s (%d nuit%s). Occupation de %d %% sur les %d prochains "
                                 + "jours (seuil %d %%). Une baisse ciblée sur ce créneau peut le remplir.",
                         RANGE_FMT.format(from), RANGE_FMT.format(toExclusive.minusDays(1)),
                         nights, nights > 1 ? "s" : "",
-                        Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, Math.round(OCCUPANCY_LOW_PCT)),
+                        Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, (long) Math.round(thr.occupancyLow())),
                 SupervisionActionType.PRICE_DROP, params, null, "warning");
     }
 }

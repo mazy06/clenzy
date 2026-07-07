@@ -3175,3 +3175,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0328__add_site_template_design_system.sql
         relativeToChangelogFile: true
+
+  # Seuils configurables par agent/module pour les scanners déterministes (B5).
+  - changeSet:
+      id: "0329-add-supervision-module-thresholds"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0329__add_supervision_module_thresholds.sql
+        relativeToChangelogFile: true
