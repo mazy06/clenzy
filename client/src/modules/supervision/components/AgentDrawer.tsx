@@ -9,6 +9,7 @@ import { Drawer, Box, Typography, IconButton } from '@mui/material';
 import { Close, HomeWork } from '../../../icons';
 import { AGENT_META, STATUS } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
+import { SupervisionReviewDrafts } from './SupervisionReviewDrafts';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { AgentId, AgentMetric, AgentStatus, PortfolioAgentItem } from '../types';
 
@@ -22,7 +23,18 @@ export interface AgentDetail {
   metrics?: AgentMetric[];
 }
 
-export function AgentDrawer({ open, detail, onClose }: { open: boolean; detail: AgentDetail | null; onClose: () => void }) {
+export function AgentDrawer({
+  open,
+  detail,
+  onClose,
+  propertyId,
+}: {
+  open: boolean;
+  detail: AgentDetail | null;
+  onClose: () => void;
+  /** Logement courant (vue par logement) : active les brouillons de réponse d'avis pour l'agent Réputation. */
+  propertyId?: number | string;
+}) {
   const { t } = useTranslation();
   const meta = detail ? AGENT_META[detail.id] : null;
 
@@ -105,6 +117,13 @@ export function AgentDrawer({ open, detail, onClose }: { open: boolean; detail: 
             </Box>
           ) : (
             <Typography sx={{ fontSize: 12.5, color: 'var(--muted, #6b7196)' }}>{t('supervision.drawer.noActivity')}</Typography>
+          )}
+
+          {/* Agent Réputation (vue par logement) : brouillons de réponse d'avis à valider (REP). */}
+          {detail.id === 'rep' && propertyId != null && (
+            <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid var(--line, #e6e8ef)' }}>
+              <SupervisionReviewDrafts propertyId={Number(propertyId)} />
+            </Box>
           )}
         </Box>
       )}

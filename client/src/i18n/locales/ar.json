@@ -191,6 +191,11 @@
       "autoActions": "إجراءات تلقائية",
       "acceptance": "القبول"
     },
+    "reviewDrafts": {
+      "title": "مسودّات الرد (ذكاء اصطناعي)",
+      "empty": "لا توجد مسودّة رد قيد الانتظار.",
+      "publish": "نشر"
+    },
     "drawer": {
       "ventilation": "تفاصيل حسب العقار",
       "noActivity": "لا يوجد نشاط"
