@@ -40,10 +40,11 @@ class AiCreditGrantServiceTest {
     @Mock private AiUsageLedgerRepository ledgerRepository;
     @Mock private CreditBalanceService balanceService;
     @Mock private UserRepository userRepository;
+    @Mock private com.clenzy.repository.OrganizationRepository organizationRepository;
 
     private AiCreditGrantService service() {
         return new AiCreditGrantService(grantRepository, ledgerRepository, balanceService,
-                userRepository, ESSENTIEL, CONFORT, PREMIUM);
+                userRepository, organizationRepository, ESSENTIEL, CONFORT, PREMIUM);
     }
 
     private static User payer(Long orgId, String forfait) {

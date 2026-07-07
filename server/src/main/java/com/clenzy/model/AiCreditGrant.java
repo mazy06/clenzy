@@ -24,6 +24,8 @@ public class AiCreditGrant {
     public static final String SOURCE_SUBSCRIPTION = "SUBSCRIPTION";
     public static final String SOURCE_TOPUP = "TOPUP";
     public static final String SOURCE_PROMO = "PROMO";
+    /** Dotation initiale d'amorçage d'une org existante avant activation de l'enforcement (T-07). */
+    public static final String SOURCE_INITIAL = "INITIAL";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

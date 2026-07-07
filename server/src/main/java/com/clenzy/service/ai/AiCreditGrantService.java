@@ -43,6 +43,7 @@ public class AiCreditGrantService {
     private final AiUsageLedgerRepository ledgerRepository;
     private final CreditBalanceService balanceService;
     private final UserRepository userRepository;
+    private final com.clenzy.repository.OrganizationRepository organizationRepository;
 
     private final long allotmentEssentiel;
     private final long allotmentConfort;
@@ -52,6 +53,7 @@ public class AiCreditGrantService {
                                 AiUsageLedgerRepository ledgerRepository,
                                 CreditBalanceService balanceService,
                                 UserRepository userRepository,
+                                com.clenzy.repository.OrganizationRepository organizationRepository,
                                 @Value("${clenzy.ai.credits.allotment.essentiel-millicredits:500000}") long allotmentEssentiel,
                                 @Value("${clenzy.ai.credits.allotment.confort-millicredits:2000000}") long allotmentConfort,
                                 @Value("${clenzy.ai.credits.allotment.premium-millicredits:8000000}") long allotmentPremium) {
@@ -59,6 +61,7 @@ public class AiCreditGrantService {
         this.ledgerRepository = ledgerRepository;
         this.balanceService = balanceService;
         this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
         this.allotmentEssentiel = allotmentEssentiel;
         this.allotmentConfort = allotmentConfort;
         this.allotmentPremium = allotmentPremium;
@@ -84,6 +87,54 @@ public class AiCreditGrantService {
         long allotment = allotmentFor(payer.getForfait());
         grant(payer.getOrganizationId(), AiCreditGrant.SOURCE_SUBSCRIPTION, allotment,
                 Instant.now().plus(SUBSCRIPTION_GRANT_TTL), invoiceId);
+    }
+
+    /**
+     * Dotation initiale d'amorçage (T-07) : crédite une org existante AVANT
+     * l'activation de l'enforcement, pour qu'aucune ne soit coupée au flip du
+     * flag. <b>Idempotent</b> : ne fait rien si l'org possède déjà une poche
+     * active (non expirée) — même consommée. TTL identique à l'abonnement
+     * mensuel : couvre jusqu'à la prochaine facture Stripe qui prend le relais.
+     *
+     * @return {@code true} si une poche a été créée, {@code false} si déjà dotée
+     */
+    @Transactional
+    public boolean grantInitialIfAbsent(Long organizationId, long millicredits) {
+        if (organizationId == null || millicredits <= 0) {
+            return false;
+        }
+        boolean alreadyGranted = !grantRepository
+                .findByOrganizationIdAndExpiresAtAfterOrderByExpiresAtAsc(organizationId, Instant.now())
+                .isEmpty();
+        if (alreadyGranted) {
+            return false;
+        }
+        grant(organizationId, AiCreditGrant.SOURCE_INITIAL, millicredits,
+                Instant.now().plus(SUBSCRIPTION_GRANT_TTL), null);
+        return true;
+    }
+
+    /**
+     * Dote TOUTES les orgs existantes d'une poche initiale (amorçage T-07),
+     * à lancer AVANT l'activation de l'enforcement pour n'en couper aucune.
+     * Idempotent par org (voir {@link #grantInitialIfAbsent}).
+     *
+     * @return {@code {granted, skipped, millicredits}}
+     */
+    @Transactional
+    public Map<String, Object> grantInitialToAllOrgs(long millicredits) {
+        int granted = 0;
+        int skipped = 0;
+        for (com.clenzy.model.Organization org : organizationRepository.findAll()) {
+            if (grantInitialIfAbsent(org.getId(), millicredits)) {
+                granted++;
+            } else {
+                skipped++;
+            }
+        }
+        log.info("[CREDITS] Dotation initiale : {} orgs dotées, {} ignorées ({}mc chacune)",
+                granted, skipped, millicredits);
+        return Map.of("granted", granted, "skipped", skipped, "millicredits", millicredits);
     }
 
     /** Credite un pack top-up apres paiement Checkout confirme (webhook). */

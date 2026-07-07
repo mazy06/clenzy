@@ -79,6 +79,23 @@ public class AiCreditController {
         return reconciliationService.monthlyReport(target);
     }
 
+    /**
+     * Dotation initiale d'amorçage de TOUTES les orgs existantes (plateforme
+     * uniquement) — à lancer AVANT d'activer l'enforcement des crédits pour
+     * qu'aucune org ne soit coupée au flip. Idempotent : une org déjà dotée
+     * (poche active) est ignorée. {@code millicredits} configurable
+     * (défaut 500 000 mc = allotment Essentiel), TTL 32 j (relais Stripe).
+     *
+     * @return {@code {granted, skipped, millicredits}}
+     */
+    @PostMapping("/admin/grant-initial")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Map<String, Object> grantInitialAll(
+            @org.springframework.web.bind.annotation.RequestParam(name = "millicredits", defaultValue = "500000")
+            long millicredits) {
+        return grantService.grantInitialToAllOrgs(millicredits);
+    }
+
     /** Cree une session Stripe Checkout pour un pack. Retourne {checkoutUrl}. */
     @PostMapping("/topup")
     public Map<String, String> topUp(@RequestBody TopUpRequest request,
