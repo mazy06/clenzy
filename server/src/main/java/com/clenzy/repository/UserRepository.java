@@ -27,6 +27,12 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      */
     List<User> findByStripeSubscriptionIdIsNotNullAndBillingPeriodIn(
             java.util.Collection<String> billingPeriods);
+
+    /**
+     * Payeur (abonnement Stripe actif) d'une organisation — signal d'éligibilité
+     * à l'auto-provisionnement des crédits IA (self-heal du RunCreditGuard, T-07).
+     */
+    Optional<User> findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(Long organizationId);
     /**
      * Batch lookup by keycloakId — used to avoid N+1 queries when a DTO list needs
      * profile info (avatar, updatedAt) for many counterparts at once.

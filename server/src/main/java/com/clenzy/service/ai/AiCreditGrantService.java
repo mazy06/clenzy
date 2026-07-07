@@ -95,41 +95,62 @@ public class AiCreditGrantService {
     }
 
     /**
+     * Garantit que l'organisation dispose de sa dotation SUBSCRIPTION du mois
+     * courant, si elle y est <b>éligible</b> (abonnement Stripe actif). Cœur
+     * commun des trois chemins de financement : recharge mensuelle des prépayés,
+     * auto-provisionnement à la volée du {@link RunCreditGuard} (self-heal), et
+     * amorçage. <b>Idempotent par (org, mois)</b> : ne crédite pas si une poche
+     * SUBSCRIPTION existe déjà ce mois (invoice de renouvellement tombé le même
+     * mois, run précédent, ou dotation déjà faite) — un solde à zéro dans ce cas
+     * signifie que la dotation du mois a été consommée (refus légitime).
+     *
+     * @return {@code true} si une poche a été créée, {@code false} sinon
+     */
+    @Transactional
+    public boolean ensureCurrentMonthAllotment(Long organizationId) {
+        if (organizationId == null) {
+            return false;
+        }
+        YearMonth month = YearMonth.now(BILLING_ZONE);
+        Instant monthStart = month.atDay(1).atStartOfDay(BILLING_ZONE).toInstant();
+        boolean alreadyGrantedThisMonth = grantRepository
+                .existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
+                        organizationId, AiCreditGrant.SOURCE_SUBSCRIPTION, monthStart);
+        if (alreadyGrantedThisMonth) {
+            return false;
+        }
+        User payer = userRepository
+                .findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(organizationId)
+                .orElse(null);
+        if (payer == null) {
+            return false; // pas d'abonnement actif → non éligible aux crédits inclus
+        }
+        grant(organizationId, AiCreditGrant.SOURCE_SUBSCRIPTION, allotmentFor(payer.getForfait()),
+                Instant.now().plus(SUBSCRIPTION_GRANT_TTL), "monthly:" + organizationId + ":" + month);
+        return true;
+    }
+
+    /**
      * Recharge mensuelle des crédits pour les abonnés PMS <b>prépayés</b>
      * (ANNUAL / BIENNIAL) — Stripe ne déclenche {@code invoice.paid} qu'une fois
      * par période, ils n'auraient sinon qu'un mois de crédits par an. Les abonnés
      * MENSUELS sont exclus : leur recharge est déjà portée par {@code invoice.paid}.
-     *
-     * <p>Anti-double : une org qui a déjà reçu une poche SUBSCRIPTION ce mois-ci
-     * (invoice de renouvellement tombé le même mois, ou run précédent) est ignorée.
-     * Idempotent par (org, mois) via la clé {@code monthly:orgId:yyyy-MM}.</p>
+     * Délègue à {@link #ensureCurrentMonthAllotment} (anti-double + éligibilité).
      *
      * @return nombre d'orgs rechargées
      */
     @Transactional
     public int refreshMonthlyForPrepaidSubscribers() {
-        YearMonth month = YearMonth.now(BILLING_ZONE);
-        Instant monthStart = month.atDay(1).atStartOfDay(BILLING_ZONE).toInstant();
         List<User> subscribers = userRepository.findByStripeSubscriptionIdIsNotNullAndBillingPeriodIn(
                 List.of(BillingPeriod.ANNUAL.name(), BillingPeriod.BIENNIAL.name()));
         int refreshed = 0;
         for (User subscriber : subscribers) {
-            Long orgId = subscriber.getOrganizationId();
-            if (orgId == null) {
-                continue;
+            if (ensureCurrentMonthAllotment(subscriber.getOrganizationId())) {
+                refreshed++;
             }
-            boolean alreadyRefreshedThisMonth = grantRepository
-                    .existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
-                            orgId, AiCreditGrant.SOURCE_SUBSCRIPTION, monthStart);
-            if (alreadyRefreshedThisMonth) {
-                continue;
-            }
-            grant(orgId, AiCreditGrant.SOURCE_SUBSCRIPTION, allotmentFor(subscriber.getForfait()),
-                    Instant.now().plus(SUBSCRIPTION_GRANT_TTL), "monthly:" + orgId + ":" + month);
-            refreshed++;
         }
-        log.info("[CREDITS] Recharge mensuelle prépayés ({}) : {} org(s) rechargée(s) sur {} abonné(s) annuel(s)/biennal(aux)",
-                month, refreshed, subscribers.size());
+        log.info("[CREDITS] Recharge mensuelle prépayés : {} org(s) rechargée(s) sur {} abonné(s) annuel(s)/biennal(aux)",
+                refreshed, subscribers.size());
         return refreshed;
     }
 

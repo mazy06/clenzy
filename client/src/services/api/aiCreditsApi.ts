@@ -6,9 +6,16 @@ import apiClient from '../apiClient';
  */
 
 export interface CreditPocket {
-  source: 'SUBSCRIPTION' | 'TOPUP' | 'PROMO';
+  source: 'SUBSCRIPTION' | 'TOPUP' | 'PROMO' | 'INITIAL';
   remainingMillicredits: number;
   expiresAt: string;
+}
+
+/** Résultat de l'amorçage plateforme : orgs dotées / ignorées (déjà pourvues). */
+export interface GrantInitialResult {
+  granted: number;
+  skipped: number;
+  millicredits: number;
 }
 
 export interface CreditBalance {
@@ -46,6 +53,15 @@ export const aiCreditsApi = {
   /** Crée la session Stripe Checkout d'un pack — rediriger vers checkoutUrl. */
   createTopUp: (pack: string): Promise<{ checkoutUrl: string }> =>
     apiClient.post<{ checkoutUrl: string }>('/ai/credits/topup', { pack }),
+
+  /**
+   * [SUPER_ADMIN] Amorçage : dote toutes les orgs existantes de leur poche
+   * initiale de crédits IA. Idempotent — une org déjà pourvue est ignorée.
+   */
+  grantInitialAll: (millicredits?: number): Promise<GrantInitialResult> =>
+    apiClient.post<GrantInitialResult>(
+      `/ai/credits/admin/grant-initial${millicredits ? `?millicredits=${millicredits}` : ''}`,
+    ),
 };
 
 /** Millicredits → crédits affichables (1 décimale, tabular-nums côté UI). */

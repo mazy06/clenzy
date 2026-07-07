@@ -22,10 +22,14 @@ import org.springframework.stereotype.Component;
  *       ou debit force de l'overshoot (borne par la granularite d'un tour).</li>
  * </ol>
  *
- * <p><b>Flag {@code clenzy.ai.credits.enforcement.enabled} — defaut FALSE</b> :
- * l'activer sans dotations ({@code ai_credit_grant}, T-07) couperait tout le
- * monde a zero. Desactive = comportement historique strict (aucune reservation,
- * jamais de refus).</p>
+ * <p><b>Enforcement toujours actif + auto-provisionnement</b> : plus de flag
+ * d'activation. Si la reservation pre-vol echoue (solde a zero), le garde tente
+ * une auto-dotation de la dotation du mois pour une org <b>eligible</b>
+ * (abonnement actif — {@link AiCreditGrantService#ensureCurrentMonthAllotment})
+ * puis re-reserve. Ainsi aucun abonne n'est coupe par erreur (self-heal), et une
+ * org non eligible (sans abonnement) ou ayant deja consomme sa dotation du mois
+ * est refusee — le PMS classique continue (D-101). Le staff plateforme
+ * (SUPER_ADMIN / SUPER_MANAGER) est totalement exempte.</p>
  */
 @Component
 public class RunCreditGuard {
@@ -48,46 +52,53 @@ public class RunCreditGuard {
 
     private final CreditBalanceService balanceService;
     private final com.clenzy.tenant.TenantContext tenantContext;
-    private final boolean enabled;
+    private final AiCreditGrantService creditGrantService;
     private final long floorMillicredits;
     private final long chunkMillicredits;
 
     public RunCreditGuard(CreditBalanceService balanceService,
                           com.clenzy.tenant.TenantContext tenantContext,
-                          @Value("${clenzy.ai.credits.enforcement.enabled:false}") boolean enabled,
+                          AiCreditGrantService creditGrantService,
                           @Value("${clenzy.ai.credits.enforcement.floor-millicredits:2000}") long floorMillicredits,
                           @Value("${clenzy.ai.credits.enforcement.chunk-millicredits:5000}") long chunkMillicredits) {
         this.balanceService = balanceService;
         this.tenantContext = tenantContext;
-        this.enabled = enabled;
+        this.creditGrantService = creditGrantService;
         this.floorMillicredits = floorMillicredits;
         this.chunkMillicredits = chunkMillicredits;
     }
 
     /**
      * Pre-vol : reserve le plancher. {@code true} = le run peut demarrer.
-     * Enforcement desactive → toujours true, aucun etat pose.
      * beginRun reinitialise l'etat du thread (meme robustesse que le recorder).
+     *
+     * <p>Sequence : exemption staff plateforme → reservation → si echec (solde a
+     * zero), auto-dotation d'une org eligible (self-heal) puis re-reservation →
+     * sinon refus (hard cap).</p>
      */
     public boolean beginRun(Long orgId) {
-        if (!enabled) {
-            current.remove();
-            return true;
-        }
-        // Exemption STAFF PLATEFORME (SUPER_ADMIN / SUPER_MANAGER) : exempts de l'abonnement,
-        // donc exempts des credits IA — aucune reservation ni debit (comme enforcement OFF).
+        // Exemption STAFF PLATEFORME (SUPER_ADMIN / SUPER_MANAGER) : exempts de
+        // l'abonnement, donc exempts des credits IA — aucune reservation ni debit.
         if (tenantContext.isSuperAdmin()) {
             current.remove();
             return true;
         }
-        if (!balanceService.tryReserve(orgId, floorMillicredits)) {
-            current.remove();
-            log.info("[CREDITS] Hard cap : reservation pre-vol refusee (org={}, plancher={}mc)",
-                    orgId, floorMillicredits);
-            return false;
+        if (balanceService.tryReserve(orgId, floorMillicredits)) {
+            current.set(new RunBudget(orgId, floorMillicredits));
+            return true;
         }
-        current.set(new RunBudget(orgId, floorMillicredits));
-        return true;
+        // Solde a zero : self-heal — dote la dotation du mois si l'org est eligible
+        // (abonnement actif, pas encore dotee ce mois), puis re-reserve. Evite de
+        // couper un abonne dont la poche n'a pas encore ete creee (deploy, timing).
+        if (creditGrantService.ensureCurrentMonthAllotment(orgId)
+                && balanceService.tryReserve(orgId, floorMillicredits)) {
+            current.set(new RunBudget(orgId, floorMillicredits));
+            return true;
+        }
+        current.remove();
+        log.info("[CREDITS] Hard cap : solde insuffisant (org={}, plancher={}mc)",
+                orgId, floorMillicredits);
+        return false;
     }
 
     /**
@@ -139,9 +150,5 @@ public class RunCreditGuard {
         } else if (delta < 0) {
             balanceService.forceDebit(budget.orgId, -delta);
         }
-    }
-
-    public boolean isEnabled() {
-        return enabled;
     }
 }
