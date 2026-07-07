@@ -12,6 +12,7 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.model.Property;
 import com.clenzy.repository.EnvironmentSensorRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,7 @@ public class EnvironmentSensorService {
     private final TuyaDeviceClaimService claimService;
     private final NotificationService notificationService;
     private final NetatmoApiService netatmoApiService;
+    private final SupervisionActivityService supervisionActivityService;
 
     public EnvironmentSensorService(EnvironmentSensorRepository sensorRepository,
                                     PropertyRepository propertyRepository,
@@ -58,7 +60,8 @@ public class EnvironmentSensorService {
                                     TenantContext tenantContext,
                                     TuyaDeviceClaimService claimService,
                                     NotificationService notificationService,
-                                    NetatmoApiService netatmoApiService) {
+                                    NetatmoApiService netatmoApiService,
+                                    SupervisionActivityService supervisionActivityService) {
         this.sensorRepository = sensorRepository;
         this.propertyRepository = propertyRepository;
         this.tuyaApiService = tuyaApiService;
@@ -66,6 +69,7 @@ public class EnvironmentSensorService {
         this.claimService = claimService;
         this.notificationService = notificationService;
         this.netatmoApiService = netatmoApiService;
+        this.supervisionActivityService = supervisionActivityService;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -297,6 +301,17 @@ public class EnvironmentSensorService {
             }
         } catch (Exception e) {
             log.error("Erreur envoi notification alerte capteur {}: {}", sensor.getId(), e.getMessage());
+        }
+
+        // Feed « En direct » de la constellation (best-effort : ne casse jamais le flux d'alerte).
+        try {
+            String label = type == SensorType.SMOKE ? "Fumee detectee" : "Mouvement detecte";
+            String summary = label + " — " + sensor.getName() + " · " + property;
+            supervisionActivityService.recordModuleAct(
+                    orgId, sensor.getPropertyId(), "ops", "sensor_anomaly", summary);
+        } catch (Exception e) {
+            log.debug("Alerte capteur {} : activite constellation non enregistree: {}",
+                    sensor.getId(), e.getMessage());
         }
     }
 

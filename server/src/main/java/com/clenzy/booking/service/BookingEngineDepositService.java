@@ -119,8 +119,12 @@ public class BookingEngineDepositService {
         }
     }
 
-    /** Libère (annule le hold Stripe puis RELEASED) une caution HELD — utilisé par le scheduler. */
-    public void releaseHold(SecurityDeposit deposit) {
+    /**
+     * Libère (annule le hold Stripe puis RELEASED) une caution HELD — utilisé par le scheduler.
+     * Renvoie {@code true} si la libération a réussi, {@code false} si l'appel Stripe a échoué
+     * (le scheduler s'appuie sur ce retour pour ne remonter dans la constellation qu'en cas de succès).
+     */
+    public boolean releaseHold(SecurityDeposit deposit) {
         try {
             if (deposit.getExternalRef() != null && !deposit.getExternalRef().isBlank()) {
                 PaymentIntent pi = stripeGateway.retrievePaymentIntent(deposit.getExternalRef());
@@ -128,8 +132,10 @@ public class BookingEngineDepositService {
             }
             self.getObject().release(deposit.getOrganizationId(), deposit.getId());
             log.info("Caution {} libérée automatiquement (séjour terminé)", deposit.getId());
+            return true;
         } catch (StripeException e) {
             log.error("Caution {} : libération auto échouée : {}", deposit.getId(), e.getMessage());
+            return false;
         }
     }
 

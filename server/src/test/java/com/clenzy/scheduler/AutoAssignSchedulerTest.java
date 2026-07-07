@@ -5,6 +5,7 @@ import com.clenzy.model.WorkflowSettings;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.WorkflowSettingsRepository;
 import com.clenzy.service.ServiceRequestService;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,13 +27,14 @@ class AutoAssignSchedulerTest {
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
     @Mock private ServiceRequestService serviceRequestService;
+    @Mock private SupervisionActivityService supervisionActivityService;
 
     private AutoAssignScheduler scheduler;
 
     @BeforeEach
     void setUp() {
         scheduler = new AutoAssignScheduler(serviceRequestRepository,
-                workflowSettingsRepository, serviceRequestService);
+                workflowSettingsRepository, serviceRequestService, supervisionActivityService);
     }
 
     @Test

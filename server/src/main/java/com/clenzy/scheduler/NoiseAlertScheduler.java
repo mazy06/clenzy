@@ -9,6 +9,8 @@ import com.clenzy.repository.NoiseAlertConfigRepository;
 import com.clenzy.repository.NoiseDeviceRepository;
 import com.clenzy.service.NoiseAlertService;
 import com.clenzy.service.NoiseDeviceService;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -33,15 +35,21 @@ public class NoiseAlertScheduler {
     private final NoiseDeviceRepository deviceRepository;
     private final NoiseDeviceService deviceService;
     private final NoiseAlertService alertService;
+    private final SupervisionActivityService supervisionActivityService;
+    private final SupervisionSuggestionService supervisionSuggestionService;
 
     public NoiseAlertScheduler(NoiseAlertConfigRepository configRepository,
                                 NoiseDeviceRepository deviceRepository,
                                 NoiseDeviceService deviceService,
-                                NoiseAlertService alertService) {
+                                NoiseAlertService alertService,
+                                SupervisionActivityService supervisionActivityService,
+                                SupervisionSuggestionService supervisionSuggestionService) {
         this.configRepository = configRepository;
         this.deviceRepository = deviceRepository;
         this.deviceService = deviceService;
         this.alertService = alertService;
+        this.supervisionActivityService = supervisionActivityService;
+        this.supervisionSuggestionService = supervisionSuggestionService;
     }
 
     /**
@@ -100,11 +108,40 @@ public class NoiseAlertScheduler {
                     latest.getDecibels(),
                     AlertSource.SCHEDULER
                 );
-                if (alert != null) alertCount++;
+                if (alert != null) {
+                    alertCount++;
+                    recordConstellationActivity(config);
+                }
             } catch (Exception e) {
                 log.warn("Erreur lecture capteur device={}: {}", device.getId(), e.getMessage());
             }
         }
         return alertCount;
+    }
+
+    /**
+     * Fait remonter l'alerte de bruit dans le feed « En direct » de la CONSTELLATION du logement
+     * (agent Operations « ops »). Le logement est celui de la config (org-scopée) : {@code propertyId}
+     * et {@code organizationId} sont ceux de CETTE occurrence. Best-effort — le record est lui-même
+     * best-effort et transactionnel côté service : un échec ne doit JAMAIS casser le scheduler.
+     */
+    private void recordConstellationActivity(NoiseAlertConfig config) {
+        try {
+            Long propertyId = config.getPropertyId();
+            if (propertyId != null) {
+                supervisionActivityService.recordModuleAct(
+                    config.getOrganizationId(), propertyId, "ops", "noise_alert",
+                    "Bruit détecté au-dessus du seuil sur ce logement");
+                // Carte HITL actionnable EN PLUS du feed : le feed = historique,
+                // la carte = todo à traiter (dédup intégrée sur l'intitulé).
+                supervisionSuggestionService.record(
+                    config.getOrganizationId(), propertyId, "ops", "noise_alert",
+                    "Alerte de bruit à traiter",
+                    "Niveau sonore au-dessus du seuil — contacter le voyageur / vérifier le logement.");
+            }
+        } catch (Exception e) {
+            log.debug("Alerte bruit: activite constellation non enregistree (property={}): {}",
+                config.getPropertyId(), e.getMessage());
+        }
     }
 }

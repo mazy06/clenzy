@@ -4,6 +4,7 @@ import com.clenzy.model.PropertyElasticityEstimate;
 import com.clenzy.repository.PropertyElasticityEstimateRepository;
 import com.clenzy.repository.PropertyElasticityEstimateRepository.PropertyTenantRow;
 import com.clenzy.service.agent.simulation.EmpiricalElasticityEstimator;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,23 +41,27 @@ public class ElasticityRecomputeScheduler {
 
     private final PropertyElasticityEstimateRepository estimateRepository;
     private final EmpiricalElasticityEstimator estimator;
+    private final SupervisionActivityService supervisionActivityService;
     private final Clock clock;
     private final boolean enabled;
 
     @org.springframework.beans.factory.annotation.Autowired
     public ElasticityRecomputeScheduler(PropertyElasticityEstimateRepository estimateRepository,
                                           EmpiricalElasticityEstimator estimator,
+                                          SupervisionActivityService supervisionActivityService,
                                           @Value("${clenzy.assistant.elasticity.recompute-enabled:true}") boolean enabled) {
-        this(estimateRepository, estimator, Clock.systemUTC(), enabled);
+        this(estimateRepository, estimator, supervisionActivityService, Clock.systemUTC(), enabled);
     }
 
     /** Constructeur test-friendly avec horloge injectable (deterministe). */
     ElasticityRecomputeScheduler(PropertyElasticityEstimateRepository estimateRepository,
                                    EmpiricalElasticityEstimator estimator,
+                                   SupervisionActivityService supervisionActivityService,
                                    Clock clock,
                                    boolean enabled) {
         this.estimateRepository = estimateRepository;
         this.estimator = estimator;
+        this.supervisionActivityService = supervisionActivityService;
         this.clock = clock;
         this.enabled = enabled;
     }
@@ -119,6 +124,27 @@ public class ElasticityRecomputeScheduler {
         entity.setSampleSize(estimate.get().sampleSize());
         entity.setComputedAt(LocalDateTime.now(clock.withZone(ZoneId.of("UTC"))));
         estimateRepository.save(entity);
+
+        recordConstellationActivity(row, estimate.get());
         return true;
+    }
+
+    /**
+     * Fait remonter le recalcul d'elasticite dans le feed « En direct » de la CONSTELLATION du logement
+     * (agent Revenue « rev »). Le logement et l'organisation viennent directement de la ligne courante.
+     * Best-effort : un echec n'annule NI l'upsert NI la boucle du scheduler.
+     */
+    private void recordConstellationActivity(PropertyTenantRow row,
+                                             EmpiricalElasticityEstimator.ElasticityEstimate estimate) {
+        try {
+            String summary = "Elasticite prix recalculee (valeur "
+                + String.format(java.util.Locale.ROOT, "%.2f", estimate.elasticity())
+                + ", " + estimate.sampleSize() + " observations) pour ce logement";
+            supervisionActivityService.recordModuleAct(
+                row.organizationId(), row.propertyId(), "rev", "elasticity_recomputed", summary);
+        } catch (Exception e) {
+            log.debug("ElasticityRecomputeScheduler : activite constellation non enregistree (property {}): {}",
+                row.propertyId(), e.getMessage());
+        }
     }
 }

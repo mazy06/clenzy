@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -120,6 +121,19 @@ public class SupervisionActivityService {
             log.debug("supervision activity record failed (module={} prop={}): {}",
                     moduleKey, propertyId, e.getMessage());
         }
+    }
+
+    /**
+     * Variante en transaction indépendante ({@code REQUIRES_NEW}) : à utiliser quand l'appelant
+     * s'apprête à lever une exception qui rollback sa propre transaction (ex. double-booking refusé
+     * dans {@link com.clenzy.service.CalendarEngine}). Sans ça, l'insert rejoindrait la transaction
+     * appelante et serait annulé par le rollback → l'événement de feed n'apparaîtrait jamais.
+     * Reste best-effort : un échec du journal ne remonte jamais à l'appelant.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordModuleActNewTx(Long organizationId, Long propertyId, String moduleKey,
+                                     String toolName, String summary) {
+        recordModuleAct(organizationId, propertyId, moduleKey, toolName, summary);
     }
 
     /** Feed + compteur d'actions d'une propriété (ownership-checked). */

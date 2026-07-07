@@ -15,6 +15,8 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.automation.AutomationEngine;
 import com.clenzy.service.automation.AutomationSubject;
 import com.clenzy.service.automation.NotifyRateParityExecutor;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.tenant.TenantScopedExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +60,8 @@ public class RateParityScheduler {
     private final AutomationEngine automationEngine;
     private final TenantScopedExecutor tenantScopedExecutor;
     private final ChannexProperties channexProperties;
+    private final SupervisionActivityService supervisionActivityService;
+    private final SupervisionSuggestionService supervisionSuggestionService;
 
     public RateParityScheduler(AutomationRuleRepository automationRuleRepository,
                                ChannexPropertyMappingRepository mappingRepository,
@@ -65,7 +69,9 @@ public class RateParityScheduler {
                                RateParityService rateParityService,
                                AutomationEngine automationEngine,
                                TenantScopedExecutor tenantScopedExecutor,
-                               ChannexProperties channexProperties) {
+                               ChannexProperties channexProperties,
+                               SupervisionActivityService supervisionActivityService,
+                               SupervisionSuggestionService supervisionSuggestionService) {
         this.automationRuleRepository = automationRuleRepository;
         this.mappingRepository = mappingRepository;
         this.propertyRepository = propertyRepository;
@@ -73,6 +79,8 @@ public class RateParityScheduler {
         this.automationEngine = automationEngine;
         this.tenantScopedExecutor = tenantScopedExecutor;
         this.channexProperties = channexProperties;
+        this.supervisionActivityService = supervisionActivityService;
+        this.supervisionSuggestionService = supervisionSuggestionService;
     }
 
     @Scheduled(cron = "${clenzy.channex.rate-parity.cron:0 45 7 * * *}")
@@ -112,6 +120,7 @@ public class RateParityScheduler {
                         new AutomationSubject(AutomationSubject.TYPE_PROPERTY,
                                 report.propertyId(), subjectData(report)));
                 fired++;
+                recordConstellationActivity(orgId, report);
             } catch (Exception e) {
                 // Echec Channex (ou autre) sur CE bien : skip journalise, on
                 // poursuit les autres — le compte d'echecs sort dans le log final.
@@ -140,6 +149,36 @@ public class RateParityScheduler {
         }
         return rateParityService.checkParity(mapping.getClenzyPropertyId(), orgId,
                 RateParityService.DEFAULT_DAYS);
+    }
+
+    /**
+     * Fait remonter l'écart de parité dans la CONSTELLATION du logement (agent Revenue « rev »), en plus
+     * du trigger d'automatisation : le propertyId provient du rapport (une occurrence = un logement), l'org
+     * est celle du mapping en cours. Deux effets complémentaires — le feed « En direct » = historique, la
+     * carte HITL = todo actionnable (dédup intégrée sur le titre côté service). Best-effort : chaque appel
+     * est lui-même best-effort côté service, et un échec ne doit JAMAIS interrompre le scan.
+     */
+    private void recordConstellationActivity(Long orgId, RateParityReport report) {
+        try {
+            Long propertyId = report.propertyId();
+            if (propertyId == null) {
+                return;
+            }
+            String summary = "Écart de parité tarifaire détecté sur ce logement"
+                    + (report.maxDeviationPercent() != null
+                        ? " (jusqu'à " + report.maxDeviationPercent().toPlainString() + " %)" : "")
+                    + (report.channelsInDisparity() != null && !report.channelsInDisparity().isEmpty()
+                        ? " · canaux : " + String.join(", ", report.channelsInDisparity()) : "");
+            supervisionActivityService.recordModuleAct(
+                    orgId, propertyId, "rev", "rate_parity_issue", summary);
+            supervisionSuggestionService.record(
+                    orgId, propertyId, "rev", "rate_parity_issue",
+                    "Écart de parité tarifaire",
+                    "Prix incohérents entre canaux — corriger la parité sur le canal concerné.");
+        } catch (Exception e) {
+            log.debug("RateParity: activite constellation non enregistree (property={} org={}): {}",
+                    report.propertyId(), orgId, e.getMessage());
+        }
     }
 
     private static Map<String, Object> subjectData(RateParityReport report) {
