@@ -1,13 +1,17 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.PayoutReminderDto;
+import com.clenzy.dto.PortfolioSnapshotDto;
 import com.clenzy.dto.SupervisionActivitySnapshotDto;
+import com.clenzy.dto.SupervisionReportDto;
 import com.clenzy.dto.SupervisionScanResultDto;
 import com.clenzy.dto.SupervisionSuggestionDto;
 import com.clenzy.dto.UnpaidServiceRequestCardDto;
 import com.clenzy.service.PayoutReminderService;
 import com.clenzy.service.UnpaidServiceRequestCardService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionPortfolioService;
+import com.clenzy.service.agent.supervision.SupervisionReportService;
 import com.clenzy.service.agent.supervision.SupervisionScanService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.tenant.TenantContext;
@@ -37,6 +41,8 @@ public class SupervisionController {
     private final SupervisionActivityService activityService;
     private final SupervisionScanService scanService;
     private final SupervisionSuggestionService suggestionService;
+    private final SupervisionPortfolioService portfolioService;
+    private final SupervisionReportService reportService;
     private final PayoutReminderService payoutReminderService;
     private final UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     private final TenantContext tenantContext;
@@ -44,12 +50,16 @@ public class SupervisionController {
     public SupervisionController(SupervisionActivityService activityService,
                                  SupervisionScanService scanService,
                                  SupervisionSuggestionService suggestionService,
+                                 SupervisionPortfolioService portfolioService,
+                                 SupervisionReportService reportService,
                                  PayoutReminderService payoutReminderService,
                                  UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                  TenantContext tenantContext) {
         this.activityService = activityService;
         this.scanService = scanService;
         this.suggestionService = suggestionService;
+        this.portfolioService = portfolioService;
+        this.reportService = reportService;
         this.payoutReminderService = payoutReminderService;
         this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
         this.tenantContext = tenantContext;
@@ -70,6 +80,28 @@ public class SupervisionController {
     public ResponseEntity<SupervisionScanResultDto> scan(@PathVariable Long propertyId,
                                                          @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(scanService.scan(propertyId, jwt));
+    }
+
+    /**
+     * GET /api/ai/supervision/portfolio — snapshot AGRÉGÉ de tous les logements de
+     * l'organisation du requester (vue d'ensemble) : agents rollupés, file et journal
+     * multi-logements. Org-scopé (org du token), pas d'IDOR.
+     */
+    @GetMapping("/portfolio")
+    public ResponseEntity<PortfolioSnapshotDto> portfolio() {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(portfolioService.getSnapshot(orgId));
+    }
+
+    /**
+     * GET /api/ai/supervision/report — bilan de valeur de la constellation sur 30 jours
+     * (org du requester) : actions autonomes, suggestions appliquées/rejetées/en attente,
+     * taux d'acceptation et estimation du temps opérateur épargné (ROI).
+     */
+    @GetMapping("/report")
+    public ResponseEntity<SupervisionReportDto> report() {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(reportService.getReport(orgId));
     }
 
     /** GET /api/ai/supervision/suggestions/{propertyId} — file org-scopée en attente. */

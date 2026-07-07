@@ -18,6 +18,7 @@ import { ConstellationSkeleton } from './ConstellationSkeleton';
 import { AgentConstellation } from './AgentConstellation';
 import { PendingQueue } from './PendingQueue';
 import { ActivityFeed } from './ActivityFeed';
+import { SupervisionReportStrip } from './SupervisionReportStrip';
 import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
@@ -77,6 +78,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
         </Box>
 
         <Box sx={{ width: { xs: '100%', md: 330 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <SupervisionReportStrip />
           <Box sx={cardSx}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: '14px 16px 12px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
               {t('supervision.queue.title')}
@@ -110,7 +112,16 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
               {t('supervision.feed.title')}
             </Typography>
             <Box sx={{ px: 1, pb: 1, maxHeight: 220, overflowY: 'auto' }}>
-              <ActivityFeed entries={portfolio.feed} />
+              {portfolio.feed.length > 0 ? (
+                <ActivityFeed entries={portfolio.feed} />
+              ) : (
+                <Box sx={{ px: 1.5, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                  {t(
+                    'supervision.feed.emptyOnboarding',
+                    'Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
+                  )}
+                </Box>
+              )}
             </Box>
           </Box>
         </Box>

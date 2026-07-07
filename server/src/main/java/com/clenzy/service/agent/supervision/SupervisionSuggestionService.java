@@ -2,8 +2,10 @@ package com.clenzy.service.agent.supervision;
 
 import com.clenzy.dto.SupervisionSuggestionDto;
 import com.clenzy.exception.NotFoundException;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.SupervisionSuggestionRepository;
+import com.clenzy.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,15 +36,18 @@ public class SupervisionSuggestionService {
 
     private final SupervisionSuggestionRepository repository;
     private final SuggestionActionExecutor actionExecutor;
+    private final NotificationService notificationService;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
 
     public SupervisionSuggestionService(SupervisionSuggestionRepository repository,
                                         SuggestionActionExecutor actionExecutor,
+                                        NotificationService notificationService,
                                         Clock clock,
                                         PlatformTransactionManager transactionManager) {
         this.repository = repository;
         this.actionExecutor = actionExecutor;
+        this.notificationService = notificationService;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -154,7 +159,30 @@ public class SupervisionSuggestionService {
         s.setEstimatedImpactCents(estimatedImpactCents);
         s.setSeverity(severity);
         repository.save(s);
+        notifyIfActionable(organizationId, safeTitle, motif, severity);
         return java.util.Optional.of(s);
+    }
+
+    /**
+     * Notification hors-écran (B2, anti « action manquée ») : prévient les admins/managers
+     * de l'organisation qu'une carte HITL actionnable warning/critical vient d'être créée —
+     * pour ne pas la manquer si l'opérateur n'est pas sur l'écran de supervision. Best-effort
+     * (outbox tx-safe) : n'échoue jamais l'enregistrement. Les cartes informationnelles
+     * ({@link #record}) ne notifient pas — évite le bruit des scans.
+     */
+    private void notifyIfActionable(Long organizationId, String title, String motif, String severity) {
+        if (!"warning".equalsIgnoreCase(severity) && !"critical".equalsIgnoreCase(severity)) {
+            return;
+        }
+        try {
+            notificationService.notifyAdminsAndManagersByOrgId(organizationId,
+                    NotificationKey.SUPERVISION_SUGGESTION, title,
+                    motif != null && !motif.isBlank() ? motif
+                            : "Une action de supervision attend votre validation.",
+                    "/planning");
+        } catch (Exception e) {
+            log.debug("supervision suggestion notification failed (org={}): {}", organizationId, e.getMessage());
+        }
     }
 
     /** Suggestions en attente non expirées d'un logement (org du requester). */

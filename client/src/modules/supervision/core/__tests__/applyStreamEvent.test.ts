@@ -152,4 +152,17 @@ describe('applyStreamEvent — portefeuille', () => {
     );
     expect(s1.feed[0].propertyName).toBe('Duplex');
   });
+
+  it('snapshot.refreshed remplace l’agrégat portefeuille (feed + file)', () => {
+    const s0 = buildPortfolioSnapshot();
+    const next: PortfolioSnapshot = {
+      ...buildPortfolioSnapshot(),
+      pending: [],
+      feed: [{ id: 'pf1', agentId: 'rev', at: '2026-07-07T09:00:00Z', text: 'Prix poussés', propertyName: 'Studio' }],
+    };
+    const out = asPortfolio(applyStreamEvent(s0, { type: 'snapshot.refreshed', snapshot: next }));
+    expect(out.feed[0].id).toBe('pf1');
+    expect(out.feed[0].propertyName).toBe('Studio');
+    expect(out.pending).toEqual([]);
+  });
 });

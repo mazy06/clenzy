@@ -1,6 +1,7 @@
 package com.clenzy.service.agent.supervision;
 
 import com.clenzy.exception.NotFoundException;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.SupervisionSuggestionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,7 @@ class SupervisionSuggestionServiceApplyTest {
 
     @Mock private SupervisionSuggestionRepository repository;
     @Mock private SuggestionActionExecutor actionExecutor;
+    @Mock private com.clenzy.service.NotificationService notificationService;
     @Mock private PlatformTransactionManager transactionManager;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
@@ -47,7 +49,8 @@ class SupervisionSuggestionServiceApplyTest {
 
     @BeforeEach
     void setUp() {
-        service = new SupervisionSuggestionService(repository, actionExecutor, clock, transactionManager);
+        service = new SupervisionSuggestionService(
+                repository, actionExecutor, notificationService, clock, transactionManager);
     }
 
     private static SupervisionSuggestion suggestion(String actionType) {
@@ -157,5 +160,30 @@ class SupervisionSuggestionServiceApplyTest {
         assertThat(first).isFalse();
         assertThat(second).isTrue();
         verify(repository).save(any(SupervisionSuggestion.class));
+    }
+
+    @Test
+    @DisplayName("carte actionnable warning -> notification hors-ecran (B2)")
+    void recordActionableWarning_notifiesOffScreen() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                any(), any(), any(), any(), any())).thenReturn(false);
+
+        service.recordActionableStrict(ORG_ID, 10L, "fin", null, "Solde echoue", "motif",
+                SupervisionActionType.PAYMENT_REMINDER, "{}", null, "warning");
+
+        verify(notificationService).notifyAdminsAndManagersByOrgId(
+                eq(ORG_ID), eq(NotificationKey.SUPERVISION_SUGGESTION), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("carte informationnelle -> pas de notification (anti-spam)")
+    void recordInformational_doesNotNotify() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                any(), any(), any(), any(), any())).thenReturn(false);
+
+        service.record(ORG_ID, 10L, "ops", "cleaning_missing", "Menage manquant", "motif");
+
+        verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
+                any(), any(), any(), any(), any());
     }
 }

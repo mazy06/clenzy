@@ -16,6 +16,22 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     List<SupervisionSuggestion> findByOrganizationIdAndPropertyIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
             Long organizationId, Long propertyId, String status, Instant now);
 
+    /** Suggestions en attente non expirées de TOUTE l'organisation (vue portefeuille). */
+    List<SupervisionSuggestion> findByOrganizationIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+            Long organizationId, String status, Instant now);
+
+    /** Nb de suggestions passées à un statut (ex. APPLIED) depuis un instant (reporting). */
+    long countByOrganizationIdAndStatusAndAppliedAtAfter(
+            Long organizationId, String status, Instant since);
+
+    /** Nb de suggestions dans un statut créées depuis un instant (reporting). */
+    long countByOrganizationIdAndStatusAndCreatedAtAfter(
+            Long organizationId, String status, Instant since);
+
+    /** Nb de suggestions en attente non expirées de l'org (compteur, sans charger la liste). */
+    long countByOrganizationIdAndStatusAndExpiresAtAfter(
+            Long organizationId, String status, Instant now);
+
     /** Déduplication : une même proposition en attente existe-t-elle déjà ? */
     boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
             Long organizationId, Long propertyId, String moduleKey, String title, String status);
