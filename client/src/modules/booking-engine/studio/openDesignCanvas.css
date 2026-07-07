@@ -1,0 +1,84 @@
+/* ============================================================
+   Thème « open-design » scoppé — .od-canvas
+   ------------------------------------------------------------
+   Reprend les tokens réels du chrome web d'open-design
+   (apps/web/src/styles/tokens.css : terracotta #c96442, surfaces
+   chaudes, serif Source Serif Pro, rayons 10/12). On REMAPPE les
+   noms de variables Baitly (--bg, --ink, --accent, …) sur ces
+   valeurs, UNIQUEMENT sous .od-canvas → les écrans de conception
+   (système de design + génération de site) rendent comme
+   open-design sans reteinter le reste du PMS. Clair + sombre.
+   ============================================================ */
+
+.od-canvas {
+  /* Surfaces & lignes (neutres chaudes) */
+  --bg:        #faf9f7;
+  --card:      #fffefc;
+  --surface:   #fffefc;
+  --surface-2: #fdfcfa;
+  --line:      #e1e5eb;
+  --line-2:    #c9d0da;
+  --line-soft: #edf0f4;   /* --border-soft : filets de lignes intra-carte */
+  --hover:     rgba(0, 0, 0, 0.03);
+  --field:      #f4f5f7;
+  --field-line: #e1e5eb;
+  --shadow-card: 0 14px 36px rgba(28, 27, 26, 0.05), 0 1px 0 rgba(28, 27, 26, 0.04);
+
+  /* Texte */
+  --ink:   #0d0c0a;
+  --body:  #1a1916;
+  --muted: #74716b;
+  --faint: #989590;
+
+  /* Accent — indigo de MARQUE Baitly (respect des tokens PMS) sur la mise en page open-design. */
+  --accent:      #5453D6;
+  --accent-deep: #4341BE;
+  --accent-soft: rgba(84, 83, 214, 0.10);
+  --on-accent:   #ffffff;
+
+  /* Sémantique erreur (rouge open-design) */
+  --err:      #9c2a25;
+  --err-soft: #fdecea;
+
+  /* Rayons open-design */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+
+  /* Typo — titres en serif éditorial (Source Serif Pro → repli Georgia) */
+  --font-display: 'Source Serif Pro', 'Source Serif 4', 'Iowan Old Style', 'Apple Garamond', Georgia, 'Times New Roman', serif;
+
+  /* Mouvement — courbe open-design */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --duration-fast: 120ms;
+
+  background: var(--bg);
+  color: var(--body);
+}
+
+[data-theme="dark"] .od-canvas {
+  --bg:        #1a1917;
+  --card:      #2a2825;
+  --surface:   #2a2825;
+  --surface-2: #222120;
+  --line:      #333128;
+  --line-2:    #46433c;
+  --line-soft: #2a2825;
+  --hover:     rgba(255, 255, 255, 0.06);
+  --field:      #252321;
+  --field-line: #46433c;
+  --shadow-card: 0 14px 36px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(0, 0, 0, 0.2);
+
+  --ink:   #f2ede4;
+  --body:  #e8e4dc;
+  --muted: #9a9690;
+  --faint: #6e6b65;
+
+  --accent:      #8584F0;
+  --accent-deep: #6F6EE6;
+  --accent-soft: rgba(133, 132, 240, 0.18);
+  --on-accent:   #ffffff;
+
+  --err:      #e06b65;
+  --err-soft: #2a0e0c;
+}

@@ -58,10 +58,15 @@ class SiteGenerationServiceTest {
 
     @Mock private SiteRepository siteRepository;
     @Mock private BookingEngineConfigRepository configRepository;
+    @Mock private com.clenzy.booking.repository.DesignSystemRepository designSystemRepository;
+    @Mock private com.clenzy.repository.PropertyRepository propertyRepository;
     @Mock private AiProviderRouter aiProviderRouter;
     @Mock private AiTokenBudgetService tokenBudgetService;
     @Mock private SiteAdminService siteAdminService;
     @Mock private NotificationService notificationService;
+    @Mock private com.clenzy.config.AiProperties aiProperties;
+    @Mock private com.clenzy.service.ai.CreditBalanceService creditBalanceService;
+    @Mock private com.clenzy.service.ai.CreditMeteringService creditMeteringService;
     @Mock private ObjectProvider<SiteGenerationService> self;
 
     private ObjectMapper objectMapper;
@@ -71,10 +76,17 @@ class SiteGenerationServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         service = new SiteGenerationService(
-            siteRepository, configRepository, aiProviderRouter, tokenBudgetService,
-            siteAdminService, notificationService, objectMapper, self);
-        // self.getObject() → l'instance réelle (applyTheme @Transactional = no-op en test unitaire).
+            siteRepository, configRepository, designSystemRepository, propertyRepository, aiProviderRouter,
+            tokenBudgetService, siteAdminService, notificationService, aiProperties, creditBalanceService,
+            creditMeteringService, objectMapper, self);
+        // self.getObject() → l'instance réelle (applyTheme / loadOrgImageUrls / meterGenerationCredits = no-op en test).
         lenient().when(self.getObject()).thenReturn(service);
+        // Pas de photos réelles en test unitaire → repli placeholders (liste vide).
+        lenient().when(propertyRepository.findByOrganizationId(org.mockito.ArgumentMatchers.anyLong()))
+            .thenReturn(java.util.List.of());
+        // Config génération : gate crédits OFF (défaut) → pas de facturation en test ; max tokens = défaut.
+        lenient().when(aiProperties.getSiteGeneration())
+            .thenReturn(new com.clenzy.config.AiProperties.SiteGeneration());
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────

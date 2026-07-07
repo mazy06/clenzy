@@ -51,6 +51,10 @@ export interface SitePage {
 export type SitePageUpsert = Partial<SitePage>;
 
 export const sitesApi = {
+  /** Détail d'un site de l'org (org-scopé). */
+  getSite: (siteId: number) =>
+    apiClient.get<Site>(`/sites/${siteId}`),
+
   /** Find-or-create du site lié à la config + migration du pageLayout en page d'accueil. */
   ensureForConfig: (configId: number) =>
     apiClient.post<Site>(`/sites/ensure-for-config/${configId}`),
@@ -134,6 +138,20 @@ export const sitesApi = {
    */
   generateSite: (siteId: number, brief: SiteGenerationBrief): Promise<SiteGenerationResult> =>
     apiClient.post<SiteGenerationResult>(`/sites/${siteId}/ai-generate`, brief),
+
+  /**
+   * Instancie un template du catalogue (galerie Baitly) en un site DRAFT de l'org. `name` optionnel
+   * (repli sur le nom du template). Renvoie le site créé (fonctionnel dès l'instanciation).
+   */
+  createFromTemplate: (templateId: number, name?: string): Promise<Site> =>
+    apiClient.post<Site>(`/sites/from-template/${templateId}`, { name }),
+
+  /**
+   * Retouche IA d'une page en langage naturel (« Retoucher avec l'IA »). Régénère le HTML de la page
+   * selon l'instruction en préservant structure, marqueurs et tokens. La page reste en brouillon.
+   */
+  refinePage: (siteId: number, pageId: number, instruction: string): Promise<SitePage> =>
+    apiClient.post<SitePage>(`/sites/${siteId}/pages/${pageId}/refine`, { instruction }),
 };
 
 /**
@@ -173,6 +191,8 @@ export interface SiteGenerationBrief {
   usps?: string[];
   /** Clés des pages à générer, dans l'ordre (vide → set par défaut). */
   pages?: string[];
+  /** Système de design à suivre (optionnel) : sa prose DESIGN.md + ses tokens --bt-* pilotent la direction. */
+  designSystemId?: number | null;
 }
 
 /** Résumé d'une page générée par IA (miroir de `GeneratedPageSummary`). */

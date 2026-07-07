@@ -3143,3 +3143,35 @@ databaseChangeLog:
       sqlFile:
         path: changes/0324__enrich_travaux_catalogue_v2.sql
         relativeToChangelogFile: true
+
+  # Extension du catalogue de templates de site (galerie Baitly) : category / archetype / status.
+  - changeSet:
+      id: "0325-extend-site-templates-catalogue"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0325__extend_site_templates_catalog.sql
+        relativeToChangelogFile: true
+
+  # Systèmes de design réutilisables (direction : tokens --bt-* + DESIGN.md prose + source).
+  - changeSet:
+      id: "0326-create-design-systems"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0326__create_design_systems.sql
+        relativeToChangelogFile: true
+
+  # Mémorise le système de design d'un site (pour réinjection à la retouche IA).
+  - changeSet:
+      id: "0327-add-site-design-system"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0327__add_site_design_system.sql
+        relativeToChangelogFile: true
+
+  # Associe un système de design à un template (le site instancié en hérite).
+  - changeSet:
+      id: "0328-add-site-template-design-system"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0328__add_site_template_design_system.sql
+        relativeToChangelogFile: true

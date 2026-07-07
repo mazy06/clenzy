@@ -25,6 +25,8 @@ import java.util.List;
  * @param usps            points forts à mettre en avant (« sans commission », « conciergerie 24/7 »…).
  * @param pages           clés des pages à générer, dans l'ordre (cf. {@code SiteGenerationPrompts.PAGE_CATALOG}) ;
  *                        {@code null}/vide → set par défaut (accueil / logements / à-propos / contact).
+ * @param designSystemId  système de design à suivre (optionnel) : sa prose {@code DESIGN.md} + ses tokens
+ *                        {@code --bt-*} sont injectés dans la génération (direction on-brand).
  */
 public record SiteGenerationBrief(
     @NotBlank String propertyType,
@@ -38,11 +40,12 @@ public record SiteGenerationBrief(
     String location,
     String currency,
     List<String> usps,
-    List<String> pages
+    List<String> pages,
+    Long designSystemId
 ) {
     /** Constructeur de compat (brief minimal historique) : les champs structurés restent {@code null}. */
     public SiteGenerationBrief(String propertyType, String tone, String brandName,
                                String primaryColorHint, List<String> languages) {
-        this(propertyType, tone, brandName, primaryColorHint, languages, null, null, null, null, null, null, null);
+        this(propertyType, tone, brandName, primaryColorHint, languages, null, null, null, null, null, null, null, null);
     }
 }

@@ -136,6 +136,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
     }
 
+    @ExceptionHandler(AiCreditsInsufficientException.class)
+    public ResponseEntity<Map<String, Object>> handleAiCreditsInsufficient(AiCreditsInsufficientException ex) {
+        logger.warn("AI credits insufficient: feature={} balance={} required={}",
+                ex.getFeature(), ex.getBalanceMillicredits(), ex.getRequiredMillicredits());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Credits IA insuffisants");
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("errorCode", ex.getErrorCode());
+        errorResponse.put("feature", ex.getFeature());
+        errorResponse.put("balanceMillicredits", ex.getBalanceMillicredits());
+        errorResponse.put("requiredMillicredits", ex.getRequiredMillicredits());
+        errorResponse.put("status", HttpStatus.PAYMENT_REQUIRED.value());
+
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(errorResponse);
+    }
+
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<Map<String, Object>> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
         logger.warn("Conflit de version (modification concurrente): {}", ex.getMessage());

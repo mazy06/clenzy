@@ -15,6 +15,10 @@ public record SiteTemplateDto(
     String register,
     String previewUrl,
     String contentJson,
+    String category,
+    String archetype,
+    String status,
+    Long designSystemId,
     String scope,
     Long organizationId,
     LocalDateTime createdAt
@@ -27,6 +31,10 @@ public record SiteTemplateDto(
             t.getRegister(),
             t.getPreviewUrl(),
             t.getContentJson(),
+            t.getCategory(),
+            t.getArchetype(),
+            t.getStatus(),
+            t.getDesignSystemId(),
             t.getOrganizationId() == null ? "GLOBAL" : "ORG",
             t.getOrganizationId(),
             t.getCreatedAt()
