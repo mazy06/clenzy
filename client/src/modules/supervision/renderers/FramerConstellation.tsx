@@ -647,24 +647,36 @@ const Root = styled.div`
     outline: 2px solid #9b9bf6;
     outline-offset: 1px;
   }
+  /* 3 métriques empilées (valeur au-dessus, label dessous) : la valeur ne casse
+     jamais (≈7 h 28, 0 %) et les labels tiennent sur une ligne, sans élargir le HUD. */
   .cst__hudbilanrow {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-top: 5px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 6px;
     font-size: 12px;
     color: #c8cdf0;
+  }
+  .cst__hudstat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    text-align: center;
   }
   .cst__hudbilanrow b {
     color: #fff;
     font-weight: 800;
+    font-size: 14px;
+    line-height: 1.1;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
-  .cst__hudbilanrow i {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: rgba(174, 180, 224, 0.5);
+  .cst__hudstat span {
+    font-size: 10px;
+    line-height: 1.15;
+    white-space: nowrap;
+    opacity: 0.72;
   }
   .cst__attention {
     display: inline-flex;
@@ -845,9 +857,6 @@ const Root = styled.div`
   }
   html:not([data-theme='dark']) & .cst__hudbilanrow {
     color: #4a6373;
-  }
-  html:not([data-theme='dark']) & .cst__hudbilanrow i {
-    background: rgba(43, 63, 73, 0.4);
   }
   html:not([data-theme='dark']) & .cst__winseg {
     background: rgba(43, 63, 73, 0.08);
@@ -1213,11 +1222,18 @@ export function FramerConstellation({
                 )}
               </div>
               <div className="cst__hudbilanrow">
-                <b>{report.estimatedTimeSaved}</b> {t('supervision.report.timeSaved', 'Temps gagné')}
-                <i />
-                <b>{report.autoActions}</b> {t('supervision.report.autoActions', 'Actions auto')}
-                <i />
-                <b>{Math.round(report.acceptanceRate * 100)} %</b> {t('supervision.report.acceptance', 'Acceptation')}
+                <div className="cst__hudstat">
+                  <b>{report.estimatedTimeSaved}</b>
+                  <span>{t('supervision.report.timeSaved', 'Temps gagné')}</span>
+                </div>
+                <div className="cst__hudstat">
+                  <b>{report.autoActions}</b>
+                  <span>{t('supervision.report.autoActions', 'Actions auto')}</span>
+                </div>
+                <div className="cst__hudstat">
+                  <b>{Math.round(report.acceptanceRate * 100)} %</b>
+                  <span>{t('supervision.report.acceptance', 'Acceptation')}</span>
+                </div>
               </div>
             </div>
           )}
