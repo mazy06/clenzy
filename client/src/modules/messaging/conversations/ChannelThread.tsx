@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Tooltip } from '@mui/material';
+import { Alert, Box, Button, Tooltip, Typography } from '@mui/material';
 import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
   Description as TemplateIcon,
   Link as LinkIcon,
   Person as PersonIcon,
+  Send as SendIcon,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
   useConversationMessages,
+  useDismissAiDraft,
+  useSendAiDraft,
   useSendMessage,
   useSendTemplate,
   useUpdateConversationStatus,
@@ -47,11 +50,23 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
   const updateStatusMutation = useUpdateConversationStatus();
   const sendTemplateMutation = useSendTemplate();
   const aiSuggestMutation = useAiSuggestResponse();
+  const sendAiDraftMutation = useSendAiDraft();
+  const dismissAiDraftMutation = useDismissAiDraft();
 
   // Reset du brouillon au changement de conversation.
   useEffect(() => {
     setDraft('');
   }, [conv.id]);
+
+  // Concierge IA : brouillon de réponse pré-rédigé, à valider par l'opérateur
+  // (jamais envoyé automatiquement quand l'autonomie est en mode « Suggère »).
+  const aiDraft = conv.aiDraftReply;
+  const handleSendDraft = () => sendAiDraftMutation.mutate(conv.id);
+  const handleDismissDraft = () => dismissAiDraftMutation.mutate(conv.id);
+  const handleEditDraft = () => {
+    if (aiDraft) setDraft(aiDraft);
+    dismissAiDraftMutation.mutate(conv.id);
+  };
 
   const messages: ThreadMessage[] = useMemo(
     () =>
@@ -188,28 +203,78 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         }
         composeDisabled={whatsappWindowExpired}
         composeNotice={
-          whatsappWindowExpired ? (
-            <Alert
-              severity="warning"
-              sx={{ borderRadius: 0, fontSize: '0.72rem', py: 0.25, alignItems: 'center' }}
-              action={
-                conv.reservationId ? (
-                  <Button
-                    color="inherit"
-                    size="small"
-                    onClick={() => setTemplateOpen(true)}
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
-                  >
-                    {t('messagingHub.sendTemplateShort', 'Envoyer un template')}
-                  </Button>
-                ) : undefined
-              }
-            >
-              {t(
-                'messagingHub.whatsappWindowExpired',
-                'Fenêtre de 24h dépassée — un template est requis pour relancer ce voyageur.',
+          aiDraft || whatsappWindowExpired ? (
+            <>
+              {/* Concierge IA : brouillon à valider (C1) — jamais envoyé sans l'opérateur. */}
+              {aiDraft && (
+                <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, color: 'primary.main' }}>
+                    <SparklesIcon size={16} strokeWidth={1.75} />
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: 0.4 }}
+                    >
+                      {t('concierge.draftTitle', 'Brouillon Concierge IA')}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
+                    {aiDraft}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<SendIcon size={14} strokeWidth={1.75} />}
+                      onClick={handleSendDraft}
+                      disabled={sendAiDraftMutation.isPending || whatsappWindowExpired}
+                      sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
+                    >
+                      {t('common.send', 'Envoyer')}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={handleEditDraft}
+                      sx={{ textTransform: 'none', fontWeight: 600 }}
+                    >
+                      {t('common.edit', 'Éditer')}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={handleDismissDraft}
+                      disabled={dismissAiDraftMutation.isPending}
+                      sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
+                    >
+                      {t('common.reject', 'Rejeter')}
+                    </Button>
+                  </Box>
+                </Box>
               )}
-            </Alert>
+              {whatsappWindowExpired && (
+                <Alert
+                  severity="warning"
+                  sx={{ borderRadius: 0, fontSize: '0.72rem', py: 0.25, alignItems: 'center' }}
+                  action={
+                    conv.reservationId ? (
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={() => setTemplateOpen(true)}
+                        sx={{ textTransform: 'none', fontWeight: 600 }}
+                      >
+                        {t('messagingHub.sendTemplateShort', 'Envoyer un template')}
+                      </Button>
+                    ) : undefined
+                  }
+                >
+                  {t(
+                    'messagingHub.whatsappWindowExpired',
+                    'Fenêtre de 24h dépassée — un template est requis pour relancer ce voyageur.',
+                  )}
+                </Alert>
+              )}
+            </>
           ) : undefined
         }
         composeTools={
