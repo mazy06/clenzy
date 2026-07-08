@@ -746,6 +746,7 @@ public class ICalImportService {
         dto.setSyncEnabled(feed.isSyncEnabled());
         dto.setLastSyncAt(feed.getLastSyncAt());
         dto.setLastSyncStatus(feed.getLastSyncStatus());
+        dto.setLastSyncError(feed.getLastSyncError());
         dto.setEventsImported(feed.getEventsImported());
         return dto;
     }

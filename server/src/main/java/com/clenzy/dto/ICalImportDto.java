@@ -127,6 +127,8 @@ public class ICalImportDto {
         private boolean syncEnabled;
         private LocalDateTime lastSyncAt;
         private String lastSyncStatus;
+        /** Motif du dernier échec de synchro (null si OK) — remonté à l'UI pour diagnostic. */
+        private String lastSyncError;
         private int eventsImported;
 
         public Long getId() { return id; }
@@ -147,6 +149,8 @@ public class ICalImportDto {
         public void setLastSyncAt(LocalDateTime lastSyncAt) { this.lastSyncAt = lastSyncAt; }
         public String getLastSyncStatus() { return lastSyncStatus; }
         public void setLastSyncStatus(String lastSyncStatus) { this.lastSyncStatus = lastSyncStatus; }
+        public String getLastSyncError() { return lastSyncError; }
+        public void setLastSyncError(String lastSyncError) { this.lastSyncError = lastSyncError; }
         public int getEventsImported() { return eventsImported; }
         public void setEventsImported(int eventsImported) { this.eventsImported = eventsImported; }
     }
