@@ -94,6 +94,10 @@ export function PriceAdjustmentModal({
 }: PriceAdjustmentModalProps) {
   const { t } = useTranslation();
   const [segments, setSegments] = useState<PriceSegment[]>(() => parseSegments(actionParams));
+  // Sens de l'ajustement porté par la carte : "up" = hausse (demande forte), sinon baisse.
+  const raise = useMemo(() => {
+    try { return JSON.parse(actionParams ?? '{}')?.direction === 'up'; } catch { return false; }
+  }, [actionParams]);
   const [mode, setMode] = useState<Mode>('percent');
   const [sim, setSim] = useState<PricingSimulation | null>(null);
   const [simulating, setSimulating] = useState(false);
@@ -120,26 +124,28 @@ export function PriceAdjustmentModal({
     if (mode === 'percent') {
       percent = raw;
     } else if (adr && adr > 0) {
-      if (mode === 'targetPrice') percent = ((adr - raw) / adr) * 100; // prix cible
-      else percent = (raw / adr) * 100; // montant fixe −€
+      // Magnitude (le sens est fixé par `raise`) : prix cible → écart au prix de base ;
+      // montant fixe → delta € par nuit.
+      if (mode === 'targetPrice') percent = (Math.abs(raw - adr) / adr) * 100;
+      else percent = (raw / adr) * 100;
     }
     setPercent(i, Math.max(1, Math.min(50, Math.round(percent))));
   };
 
-  /** Valeur affichée dans le champ selon le mode (dérivée de percent + ADR). */
+  /** Valeur affichée dans le champ selon le mode (dérivée de percent + ADR + sens). */
   const inputValue = (i: number): number => {
     const adr = baselineAdr(i);
     const pct = segments[i].percent;
     if (mode === 'percent' || !adr) return pct;
-    if (mode === 'targetPrice') return Math.round(adr * (1 - pct / 100));
-    return Math.round(adr * (pct / 100)); // −€
+    if (mode === 'targetPrice') return Math.round(adr * (1 + (raise ? 1 : -1) * pct / 100));
+    return Math.round(adr * (pct / 100)); // delta € (magnitude)
   };
 
   const runSimulate = async () => {
     setSimulating(true);
     setError(null);
     try {
-      setSim(await pricingApi.simulate(propertyId, segments));
+      setSim(await pricingApi.simulate(propertyId, segments, raise ? 'up' : 'down'));
     } catch {
       setError(t('supervision.price.simError', 'Simulation impossible pour le moment.'));
     } finally {
@@ -151,7 +157,7 @@ export function PriceAdjustmentModal({
     setApplying(true);
     setError(null);
     try {
-      await pricingApi.applyCustom(suggestionId, segments);
+      await pricingApi.applyCustom(suggestionId, segments, raise ? 'up' : 'down');
       onApplied();
     } catch {
       setError(t('supervision.price.applyError', "L'application des tarifs a échoué."));
@@ -169,13 +175,18 @@ export function PriceAdjustmentModal({
   const modeUnit = mode === 'percent' ? '%' : '€';
   const canConvert = mode === 'percent' || sim != null;
   const totalNights = useMemo(() => segments.reduce((n, s) => n + nights(s.from, s.to), 0), [segments]);
-  const weeks = useMemo(() => monthGrid(viewMonth), [viewMonth]);
-  const monthLabel = viewMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  // Deux mois consécutifs affichés côte à côte (navigation par pas de 1 mois).
+  const months = useMemo(
+    () => [viewMonth, new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1)],
+    [viewMonth],
+  );
 
   return (
-    <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ fontWeight: 800, fontSize: 16 }}>
-        {t('supervision.price.title', 'Ajuster les tarifs des créneaux creux')}
+        {raise
+          ? t('supervision.price.titleRaise', 'Relever les tarifs (demande forte)')
+          : t('supervision.price.title', 'Ajuster les tarifs des créneaux creux')}
         <Typography sx={{ fontSize: 12.5, color: 'text.secondary', fontWeight: 400, mt: 0.25 }}>
           {t('supervision.price.subtitle', '{{count}} créneau(x) · {{nights}} nuits', {
             count: segments.length, nights: totalNights,
@@ -184,51 +195,61 @@ export function PriceAdjustmentModal({
       </DialogTitle>
 
       <DialogContent dividers>
-        {/* Calendrier : les créneaux proposés, une couleur par segment. */}
-        <Box sx={{ mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-            <Button
-              size="small"
-              onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-              sx={{ minWidth: 30, textTransform: 'none', color: 'text.secondary' }}
-              aria-label={t('common.previous', 'Précédent')}
-            >
-              ‹
-            </Button>
-            <Typography sx={{ fontSize: 12.5, fontWeight: 700, textTransform: 'capitalize' }}>{monthLabel}</Typography>
-            <Button
-              size="small"
-              onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-              sx={{ minWidth: 30, textTransform: 'none', color: 'text.secondary' }}
-              aria-label={t('common.next', 'Suivant')}
-            >
-              ›
-            </Button>
-          </Box>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-            {WEEKDAYS.map((d, i) => (
-              <Box key={`wd-${i}`} sx={{ textAlign: 'center', fontSize: 10, color: 'text.secondary', pb: 0.25 }}>{d}</Box>
-            ))}
-            {weeks.flat().map((day, i) => {
-              const inMonth = day.getMonth() === viewMonth.getMonth();
-              const segIdx = segmentIndexOfDay(day);
-              const color = segIdx >= 0 ? SEGMENT_COLORS[segIdx % SEGMENT_COLORS.length] : undefined;
-              return (
-                <Box
-                  key={`d-${i}`}
-                  sx={{
-                    textAlign: 'center', fontSize: 11, py: 0.5, borderRadius: 1,
-                    fontVariantNumeric: 'tabular-nums',
-                    color: color ? '#fff' : inMonth ? 'text.primary' : 'text.disabled',
-                    bgcolor: color ?? 'transparent',
-                    opacity: inMonth ? 1 : 0.45,
-                  }}
-                >
-                  {day.getDate()}
-                </Box>
-              );
-            })}
-          </Box>
+        {/* Calendrier DEUX MOIS côte à côte : les créneaux proposés, une couleur par segment. */}
+        <Box sx={{ display: 'flex', gap: 2.5, mb: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
+          {months.map((month, mi) => (
+            <Box key={mi} sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                {mi === 0 ? (
+                  <Button
+                    size="small"
+                    onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+                    sx={{ minWidth: 30, textTransform: 'none', color: 'text.secondary' }}
+                    aria-label={t('common.previous', 'Précédent')}
+                  >
+                    ‹
+                  </Button>
+                ) : <Box sx={{ width: 30 }} />}
+                <Typography sx={{ fontSize: 12.5, fontWeight: 700, textTransform: 'capitalize' }}>
+                  {month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                </Typography>
+                {mi === months.length - 1 ? (
+                  <Button
+                    size="small"
+                    onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+                    sx={{ minWidth: 30, textTransform: 'none', color: 'text.secondary' }}
+                    aria-label={t('common.next', 'Suivant')}
+                  >
+                    ›
+                  </Button>
+                ) : <Box sx={{ width: 30 }} />}
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                {WEEKDAYS.map((d, i) => (
+                  <Box key={`wd-${mi}-${i}`} sx={{ textAlign: 'center', fontSize: 10, color: 'text.secondary', pb: 0.25 }}>{d}</Box>
+                ))}
+                {monthGrid(month).flat().map((day, i) => {
+                  const inMonth = day.getMonth() === month.getMonth();
+                  const segIdx = segmentIndexOfDay(day);
+                  const color = segIdx >= 0 ? SEGMENT_COLORS[segIdx % SEGMENT_COLORS.length] : undefined;
+                  return (
+                    <Box
+                      key={`d-${mi}-${i}`}
+                      sx={{
+                        textAlign: 'center', fontSize: 11, py: 0.5, borderRadius: 1,
+                        fontVariantNumeric: 'tabular-nums',
+                        color: color ? '#fff' : inMonth ? 'text.primary' : 'text.disabled',
+                        bgcolor: color ?? 'transparent',
+                        opacity: inMonth ? 1 : 0.4,
+                      }}
+                    >
+                      {day.getDate()}
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Box>
+          ))}
         </Box>
 
         {/* Sélecteur de mode de saisie de la remise */}
@@ -246,7 +267,7 @@ export function PriceAdjustmentModal({
             <ToggleButton value="targetPrice" sx={{ textTransform: 'none', px: 1.25 }}>
               {t('supervision.price.modeTarget', 'Prix cible')}
             </ToggleButton>
-            <ToggleButton value="fixedAmount" sx={{ textTransform: 'none', px: 1.25 }}>−€</ToggleButton>
+            <ToggleButton value="fixedAmount" sx={{ textTransform: 'none', px: 1.25 }}>{raise ? '+€' : '−€'}</ToggleButton>
           </ToggleButtonGroup>
           {!canConvert && (
             <Typography sx={{ fontSize: 11, color: 'warning.main' }}>
@@ -291,7 +312,7 @@ export function PriceAdjustmentModal({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
                   <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>
-                    {fmt(seg.from)}→{fmt(seg.to)} · {nights(seg.from, seg.to)} {t('supervision.price.nights', 'nuits')} · −{seg.percent}%
+                    {fmt(seg.from)}→{fmt(seg.to)} · {nights(seg.from, seg.to)} {t('supervision.price.nights', 'nuits')} · {raise ? '+' : '−'}{seg.percent}%
                   </Typography>
                 </Box>
                 {f && (

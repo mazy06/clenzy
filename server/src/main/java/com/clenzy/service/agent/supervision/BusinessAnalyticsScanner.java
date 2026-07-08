@@ -39,6 +39,9 @@ public class BusinessAnalyticsScanner {
 
     /** En-dessous : occupation FUTURE jugée faible → proposition de baisse tarifaire. */
     private static final double OCCUPANCY_LOW_PCT = 55.0;
+    /** Au-dessus : occupation FUTURE élevée = prix possiblement sous-évalués → proposition de HAUSSE
+     *  sur les nuits encore libres (revaloriser l'inventaire restant, corriger un manque à gagner). */
+    private static final double OCCUPANCY_HIGH_PCT = 85.0;
     /** Fenêtre AVANT sur laquelle on juge l'occupation et cherche un créneau libre. */
     private static final int FORWARD_WINDOW_DAYS = 90;
     /** En-dessous : marge nette jugée insuffisante → alerte informationnelle. */
@@ -63,6 +66,7 @@ public class BusinessAnalyticsScanner {
     private final PropertyPerformanceService performanceService;
     private final SupervisionSuggestionService suggestionService;
     private final ReservationRepository reservationRepository;
+    private final com.clenzy.repository.CalendarDayRepository calendarDayRepository;
     private final com.clenzy.repository.SupervisionModuleSettingsRepository moduleSettingsRepository;
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -70,12 +74,14 @@ public class BusinessAnalyticsScanner {
     public BusinessAnalyticsScanner(PropertyPerformanceService performanceService,
                                     SupervisionSuggestionService suggestionService,
                                     ReservationRepository reservationRepository,
+                                    com.clenzy.repository.CalendarDayRepository calendarDayRepository,
                                     com.clenzy.repository.SupervisionModuleSettingsRepository moduleSettingsRepository,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.performanceService = performanceService;
         this.suggestionService = suggestionService;
         this.reservationRepository = reservationRepository;
+        this.calendarDayRepository = calendarDayRepository;
         this.moduleSettingsRepository = moduleSettingsRepository;
         this.objectMapper = objectMapper;
         this.clock = clock;
@@ -120,41 +126,57 @@ public class BusinessAnalyticsScanner {
             final PropertyPerformanceDto perf = performanceService.compute(propertyId);
             final double adr = adrFrom(perf);
 
-            // Occupation À VENIR faible → carde TOUJOURS le logement (aligné /reports, qui
-            // flague un logement sous-performant qu'il y ait un créneau contigu ou non) :
+            // Occupation À VENIR : réservations ET blocages calendrier comptent comme occupés.
+            // Un blocage (résa prise hors OTA/Baitly, blocage manuel) N'EST PAS un creux à remplir
+            // → ni proposé à la remise, ni compté en sous-performance. On carde le logement si
+            // l'occupation à venir reste faible :
             //  - créneau libre contigu → baisse tarifaire CIBLÉE (action, impact €) ;
             //  - sinon (vacance dispersée) → advisory « occupation à venir faible » (impact €).
             boolean forwardCarded = false;
-            final double forwardOccupancy = performanceService.forwardOccupancyRate(propertyId, FORWARD_WINDOW_DAYS);
+            final LocalDate start = LocalDate.now(clock).plusDays(1);
+            final LocalDate horizon = start.plusDays(FORWARD_WINDOW_DAYS);
+            final Set<LocalDate> forwardOccupied = occupiedNights(orgId, propertyId, start, horizon);
+            final double forwardOccupancy = forwardOccupied.size() * 100.0 / FORWARD_WINDOW_DAYS;
             if (forwardOccupancy < thr.occupancyLow()) {
-                // Yield multi-segment : une remise différenciée par créneau creux (délai/last-minute),
-                // en UNE seule proposition. Si vacance dispersée (aucun bloc contigu) → advisory.
-                final List<LocalDate[]> gaps = findAllAvailableGaps(orgId, propertyId);
+                final List<LocalDate[]> gaps = findGaps(forwardOccupied, start, horizon);
                 if (!gaps.isEmpty()) {
-                    emitMultiSegmentPriceDrop(orgId, propertyId, gaps, forwardOccupancy, thr, adr);
+                    emitMultiSegment(orgId, propertyId, gaps, forwardOccupancy, thr, adr, false); // baisse
                 } else {
                     emitForwardUnderperformance(orgId, propertyId, forwardOccupancy, thr, adr);
                 }
                 forwardCarded = true;
+            } else if (forwardOccupancy > OCCUPANCY_HIGH_PCT) {
+                // Sens INVERSE : occupation élevée = prix possiblement trop bas → proposer une
+                // HAUSSE sur les nuits encore libres (l'inventaire rare se vend plus cher).
+                final List<LocalDate[]> gaps = findGaps(forwardOccupied, start, horizon);
+                if (!gaps.isEmpty()) {
+                    emitMultiSegment(orgId, propertyId, gaps, forwardOccupancy, thr, adr, true); // hausse
+                    forwardCarded = true;
+                }
             }
 
-            // Observabilité : trace les chiffres réels utilisés par le scanner (pourquoi une
-            // carte est émise ou non), pour lever l'opacité côté diagnostic.
+            // Occupation RÉTROSPECTIVE (90 j), blocages inclus, pour la sous-performance.
+            final double retroOccupancy = occupiedNights(orgId, propertyId,
+                    LocalDate.now(clock).minusDays(FORWARD_WINDOW_DAYS), LocalDate.now(clock).plusDays(1))
+                    .size() * 100.0 / FORWARD_WINDOW_DAYS;
+
+            // Observabilité : trace les chiffres réels utilisés par le scanner (blocages inclus).
             log.info("BusinessAnalytics org={} property={} : forwardOcc={}% retroOcc={}% adr={}€ marge={}% → forwardCarded={}",
-                    orgId, propertyId, Math.round(forwardOccupancy), Math.round(perf.occupancyRate()),
+                    orgId, propertyId, Math.round(forwardOccupancy), Math.round(retroOccupancy),
                     Math.round(adr), Math.round(perf.netMargin()), forwardCarded);
 
             // Sous-performance RÉTROSPECTIVE (annonce/photos/prix) → advisory info. Seuil aligné
             // /reports « sous-performe » (< 40 %). Émise UNIQUEMENT si l'occupation à venir n'a
-            // pas déjà cardé le logement (anti-doublon).
-            if (!forwardCarded && perf.occupancyRate() < UNDERPERFORM_OCC_PCT) {
+            // pas déjà cardé le logement (anti-doublon). Blocages inclus → un logement bloqué
+            // (résas hors système) n'est pas vu comme sous-performant.
+            if (!forwardCarded && retroOccupancy < UNDERPERFORM_OCC_PCT) {
                 final long impactCents = Math.round(adr * 30 * 0.3 * 100);
                 suggestionService.recordActionable(
                         orgId, propertyId, "rev",
                         "Logement en sous-performance",
                         String.format("Occupation de %d %% sur les 90 derniers jours (seuil %d %%). "
                                 + "Revoir l'annonce, les photos ou le prix.",
-                                Math.round(perf.occupancyRate()), Math.round(UNDERPERFORM_OCC_PCT)),
+                                Math.round(retroOccupancy), Math.round(UNDERPERFORM_OCC_PCT)),
                         null, null, impactCents > 0 ? impactCents : null, "info");
             }
 
@@ -176,34 +198,39 @@ public class BusinessAnalyticsScanner {
     }
 
     /**
-     * TOUS les créneaux CONTIGUS de nuits libres à venir (fenêtre forward), chacun ≥
-     * {@link #MIN_GAP_NIGHTS} et borné à {@link #MAX_DISCOUNT_NIGHTS} — base du yield
-     * multi-segment (une remise différenciée par créneau, en une passe). Liste vide si
-     * le logement est complet sur l'horizon proche (vacance nulle ou trous trop courts).
-     *
-     * <p>Disponibilité déduite des réservations non annulées (une nuit
-     * {@code [checkIn, checkOut)} est occupée). Chaque entrée = {@code [from, toExclusif)}.</p>
+     * Nuits OCCUPÉES sur {@code [from, to)} : réservations non annulées <b>ET</b> blocages
+     * calendrier ({@code CalendarDayStatus.BLOCKED}). Un blocage = résa prise hors OTA/Baitly
+     * ou blocage manuel → nuit indisponible, jamais un creux à remplir ni une sous-performance.
      */
-    private List<LocalDate[]> findAllAvailableGaps(Long orgId, Long propertyId) {
-        final LocalDate start = LocalDate.now(clock).plusDays(1);
-        final LocalDate horizon = start.plusDays(FORWARD_WINDOW_DAYS);
-
-        final Set<LocalDate> booked = new HashSet<>();
+    private Set<LocalDate> occupiedNights(Long orgId, Long propertyId, LocalDate from, LocalDate toExclusive) {
+        final Set<LocalDate> occupied = new HashSet<>();
         for (Reservation r : reservationRepository.findByPropertyId(propertyId, orgId)) {
             if ("cancelled".equalsIgnoreCase(r.getStatus())) {
                 continue;
             }
-            LocalDate from = r.getCheckIn().isBefore(start) ? start : r.getCheckIn();
-            LocalDate to = r.getCheckOut().isBefore(horizon) ? r.getCheckOut() : horizon;
-            for (LocalDate d = from; d.isBefore(to); d = d.plusDays(1)) {
-                booked.add(d);
+            final LocalDate s = r.getCheckIn().isBefore(from) ? from : r.getCheckIn();
+            final LocalDate e = r.getCheckOut().isBefore(toExclusive) ? r.getCheckOut() : toExclusive;
+            for (LocalDate d = s; d.isBefore(e); d = d.plusDays(1)) {
+                occupied.add(d);
             }
         }
+        for (var cd : calendarDayRepository.findBlockedInRange(propertyId, from, toExclusive, orgId)) {
+            occupied.add(cd.getDate());
+        }
+        return occupied;
+    }
 
+    /**
+     * TOUS les créneaux CONTIGUS de nuits libres sur {@code [start, horizon)}, chacun ≥
+     * {@link #MIN_GAP_NIGHTS} et borné à {@link #MAX_DISCOUNT_NIGHTS} — base du yield
+     * multi-segment. {@code occupied} = nuits indisponibles (réservations + blocages).
+     * Chaque entrée = {@code [from, toExclusif)}.
+     */
+    private List<LocalDate[]> findGaps(Set<LocalDate> occupied, LocalDate start, LocalDate horizon) {
         final List<LocalDate[]> gaps = new ArrayList<>();
         LocalDate gapStart = null;
         for (LocalDate d = start; d.isBefore(horizon); d = d.plusDays(1)) {
-            final boolean free = !booked.contains(d);
+            final boolean free = !occupied.contains(d);
             if (free && gapStart == null) {
                 gapStart = d; // ouverture d'un nouveau créneau
                 continue;
@@ -284,9 +311,8 @@ public class BusinessAnalyticsScanner {
      * ajuste/valide chaque segment dans la modale ; l'apply écrit un RateOverride par nuit de
      * chaque segment (visible dans « Prix dynamique »). Titre STABLE (dédup/cooldown) : ni dates ni %.
      */
-    private void emitMultiSegmentPriceDrop(Long orgId, Long propertyId, List<LocalDate[]> gaps,
-                                           double forwardOccupancy, Thresholds thr, double adr) {
-        final int base = thr.priceDropPercent();
+    private void emitMultiSegment(Long orgId, Long propertyId, List<LocalDate[]> gaps,
+                                  double forwardOccupancy, Thresholds thr, double adr, boolean raise) {
         final List<Map<String, Object>> segments = new ArrayList<>(gaps.size());
         double totalImpact = 0;
         final StringBuilder detail = new StringBuilder();
@@ -294,33 +320,53 @@ public class BusinessAnalyticsScanner {
             final LocalDate from = gaps.get(i)[0];
             final LocalDate toExclusive = gaps.get(i)[1];
             final long nights = ChronoUnit.DAYS.between(from, toExclusive);
-            final int percent = discountForLeadTime(from, base);
+            // Baisse : modulée par le délai (last-minute plus fort). Hausse : modulée par l'ampleur
+            // de l'occupation (plus c'est plein, plus on peut revaloriser).
+            final int percent = raise ? raiseForOccupancy(forwardOccupancy, thr)
+                    : discountForLeadTime(from, thr.priceDropPercent());
             final Map<String, Object> seg = new LinkedHashMap<>();
             seg.put("from", from.toString());
             seg.put("to", toExclusive.toString()); // exclusif
             seg.put("percent", percent);
             segments.add(seg);
-            totalImpact += nights * adr * FILL_PROBABILITY;
-            detail.append(String.format("%s→%s −%d %%%s",
-                    RANGE_FMT.format(from), RANGE_FMT.format(toExclusive.minusDays(1)), percent,
-                    i < gaps.size() - 1 ? " · " : "."));
+            // Impact € : baisse = remplissage attendu (nuits × ADR × proba) ; hausse = surplus de
+            // prix sur les nuits encore vendables (nuits × ADR × %).
+            totalImpact += nights * adr * (raise ? percent / 100.0 : FILL_PROBABILITY);
+            detail.append(String.format("%s→%s %s%d %%%s",
+                    RANGE_FMT.format(from), RANGE_FMT.format(toExclusive.minusDays(1)),
+                    raise ? "+" : "−", percent, i < gaps.size() - 1 ? " · " : "."));
         }
         final String params;
         try {
-            params = objectMapper.writeValueAsString(Map.of("segments", segments));
+            params = objectMapper.writeValueAsString(Map.of(
+                    "direction", raise ? "up" : "down", "segments", segments));
         } catch (Exception e) {
             log.debug("multi-segment params serialization failed property={}: {}", propertyId, e.getMessage());
             return;
         }
         final long impactCents = Math.round(totalImpact * 100);
-        final String motif = String.format(
-                "Occupation de %d %% sur les %d prochains jours (seuil %d %%). %d créneau%s creux à optimiser : %s",
-                Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, (long) Math.round(thr.occupancyLow()),
-                gaps.size(), gaps.size() > 1 ? "x" : "", detail);
+        final String title = raise
+                ? "Relever les tarifs (demande forte)"
+                : "Optimiser les tarifs des créneaux creux à venir";
+        final String motif = raise
+                ? String.format("Occupation de %d %% sur les %d prochains jours : demande forte, prix "
+                                + "possiblement sous-évalués. %d créneau%s encore libre%s à revaloriser : %s",
+                        Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS,
+                        gaps.size(), gaps.size() > 1 ? "x" : "", gaps.size() > 1 ? "s" : "", detail)
+                : String.format("Occupation de %d %% sur les %d prochains jours (seuil %d %%). %d créneau%s creux à optimiser : %s",
+                        Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, (long) Math.round(thr.occupancyLow()),
+                        gaps.size(), gaps.size() > 1 ? "x" : "", detail);
         suggestionService.recordActionable(
                 orgId, propertyId, "rev",
-                "Optimiser les tarifs des créneaux creux à venir",
-                motif,
-                SupervisionActionType.PRICE_DROP, params, impactCents > 0 ? impactCents : null, "warning");
+                title, motif,
+                SupervisionActionType.PRICE_DROP, params, impactCents > 0 ? impactCents : null,
+                raise ? "info" : "warning");
+    }
+
+    /** Hausse proposée selon l'ampleur de l'occupation : plus le logement est plein, plus on revalorise. */
+    private int raiseForOccupancy(double forwardOccupancy, Thresholds thr) {
+        final int base = thr.priceDropPercent(); // même magnitude de référence configurée
+        final int pct = forwardOccupancy > 95.0 ? base + 3 : base;
+        return Math.max(3, Math.min(pct, MAX_DISCOUNT_PERCENT));
     }
 }

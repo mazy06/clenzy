@@ -61,16 +61,17 @@ public class PriceSuggestionService {
      * Prévision de l'ajustement multi-segment (occupation/ADR/revenu base→projeté, par segment
      * et cumulé). Read-only, aucun effet DB. Ownership : le logement doit être dans l'org.
      */
-    public SimulationResult simulate(Long orgId, String keycloakId, Long propertyId, List<SegmentInput> segments) {
+    public SimulationResult simulate(Long orgId, String keycloakId, Long propertyId,
+                                     List<SegmentInput> segments, boolean raise) {
         requirePropertyInOrg(propertyId, orgId);
         final List<PricingChangeResult> results = new ArrayList<>(segments.size());
         BigDecimal baseTotal = BigDecimal.ZERO;
         BigDecimal scenarioTotal = BigDecimal.ZERO;
         for (SegmentInput seg : segments) {
             validateSegment(seg);
-            // Le moteur attend un pctChange SIGNÉ (baisse = négatif) et des bornes INCLUSIVES
-            // (nos segments sont [from, to) exclusifs → to.minusDays(1) = dernière nuit).
-            final double pctChange = -Math.abs(seg.percent()) / 100.0;
+            // Le moteur attend un pctChange SIGNÉ (hausse = positif, baisse = négatif) et des bornes
+            // INCLUSIVES (nos segments sont [from, to) exclusifs → to.minusDays(1) = dernière nuit).
+            final double pctChange = (raise ? 1 : -1) * Math.abs(seg.percent()) / 100.0;
             final PricingChangeResult r = simulationService.simulatePricingChange(
                     keycloakId, propertyId, pctChange, seg.from(), seg.to().minusDays(1));
             results.add(r);
@@ -85,7 +86,7 @@ public class PriceSuggestionService {
      * édités, puis délègue à {@link SupervisionSuggestionService#apply} (CAS PENDING→APPLIED +
      * écriture {@code RateOverride}). Appels cross-service séparés (pas d'auto-invocation @Transactional).
      */
-    public void applyCustom(Long orgId, Long suggestionId, List<SegmentInput> segments) {
+    public void applyCustom(Long orgId, Long suggestionId, List<SegmentInput> segments, boolean raise) {
         if (segments == null || segments.isEmpty()) {
             throw new IllegalArgumentException("Au moins un segment de prix est requis");
         }
@@ -100,13 +101,15 @@ public class PriceSuggestionService {
         }
         final String params;
         try {
-            params = objectMapper.writeValueAsString(Map.of("segments", segJson));
+            params = objectMapper.writeValueAsString(Map.of(
+                    "direction", raise ? "up" : "down", "segments", segJson));
         } catch (Exception e) {
             throw new IllegalStateException("Sérialisation des segments impossible", e);
         }
         suggestionService.setCustomPriceParams(orgId, suggestionId, params);
         suggestionService.apply(orgId, suggestionId);
-        log.info("Prix ajusté (custom) org={} suggestion={} : {} segment(s)", orgId, suggestionId, segments.size());
+        log.info("Prix ajusté (custom, {}) org={} suggestion={} : {} segment(s)",
+                raise ? "hausse" : "baisse", orgId, suggestionId, segments.size());
     }
 
     private void validateSegment(SegmentInput seg) {

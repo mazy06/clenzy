@@ -208,11 +208,15 @@ public class SupervisionController {
     /** Segment de prix édité dans la modale : plage [from, to) (to exclusif) + remise % (baisse). */
     public record PriceSegmentRequest(java.time.LocalDate from, java.time.LocalDate to, int percent) {}
 
-    /** Corps de la simulation yield multi-segment. */
-    public record SimulatePricingRequest(Long propertyId, List<PriceSegmentRequest> segments) {}
+    /** Corps de la simulation yield multi-segment ({@code direction} : "up" = hausse, sinon baisse). */
+    public record SimulatePricingRequest(Long propertyId, String direction, List<PriceSegmentRequest> segments) {}
 
-    /** Corps de l'application des segments validés. */
-    public record ApplyCustomRequest(List<PriceSegmentRequest> segments) {}
+    /** Corps de l'application des segments validés ({@code direction} : "up" = hausse, sinon baisse). */
+    public record ApplyCustomRequest(String direction, List<PriceSegmentRequest> segments) {}
+
+    private static boolean isRaise(String direction) {
+        return "up".equalsIgnoreCase(direction);
+    }
 
     private static List<PriceSuggestionService.SegmentInput> toSegments(List<PriceSegmentRequest> reqs) {
         if (reqs == null || reqs.isEmpty()) {
@@ -232,7 +236,7 @@ public class SupervisionController {
             @RequestBody SimulatePricingRequest req, @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return ResponseEntity.ok(priceSuggestionService.simulate(
-                orgId, jwt.getSubject(), req.propertyId(), toSegments(req.segments())));
+                orgId, jwt.getSubject(), req.propertyId(), toSegments(req.segments()), isRaise(req.direction())));
     }
 
     /**
@@ -243,7 +247,7 @@ public class SupervisionController {
     @PostMapping("/suggestions/{id}/apply-custom")
     public ResponseEntity<Void> applyCustomPricing(@PathVariable Long id, @RequestBody ApplyCustomRequest req) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        priceSuggestionService.applyCustom(orgId, id, toSegments(req.segments()));
+        priceSuggestionService.applyCustom(orgId, id, toSegments(req.segments()), isRaise(req.direction()));
         return ResponseEntity.noContent().build();
     }
 

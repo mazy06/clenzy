@@ -326,7 +326,10 @@ public class SuggestionActionExecutor {
                 .orElseThrow(() -> new IllegalStateException("Logement introuvable : " + propertyId));
         final String currency = property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR";
 
-        // Yield multi-segment : {"segments":[{from,to,percent}, …]} ; rétro-compat segment unique {from,to,percent}.
+        // Sens de l'ajustement : "up" = hausse (facteur 1+p/100), sinon baisse (1−p/100). Défaut baisse.
+        final boolean raise = "up".equalsIgnoreCase(params.path("direction").asText("down"));
+
+        // Yield multi-segment : {"direction":…,"segments":[{from,to,percent}, …]} ; rétro-compat {from,to,percent}.
         final List<JsonNode> segments = new ArrayList<>();
         if (params.has("segments") && params.get("segments").isArray()) {
             params.get("segments").forEach(segments::add);
@@ -346,20 +349,20 @@ public class SuggestionActionExecutor {
                 throw new IllegalStateException("Plage invalide : from >= to");
             }
             if (percent <= 0 || percent > MAX_PERCENT) {
-                throw new IllegalStateException("Pourcentage de baisse hors bornes : " + percent);
+                throw new IllegalStateException("Pourcentage d'ajustement hors bornes : " + percent);
             }
-            applied += applyDropOnRange(property, orgId, propertyId, from, to, percent, currency);
+            applied += applyAdjustOnRange(property, orgId, propertyId, from, to, percent, raise, currency);
         }
         searchCacheInvalidator.onAvailabilityOrPriceChanged();
-        log.info("PRICE_DROP appliqué org={} property={} : {} segment(s), {} nuit(s)",
-                orgId, propertyId, segments.size(), applied);
+        log.info("PRICE_{} appliqué org={} property={} : {} segment(s), {} nuit(s)",
+                raise ? "RAISE" : "DROP", orgId, propertyId, segments.size(), applied);
     }
 
-    /** Applique une baisse de {@code percent}% sur chaque nuit de la plage [from, to) (RateOverride). */
-    private int applyDropOnRange(Property property, Long orgId, Long propertyId,
-                                 LocalDate from, LocalDate to, int percent, String currency) {
-        final BigDecimal factor = BigDecimal.ONE.subtract(
-                BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100)));
+    /** Applique un ajustement de {@code percent}% (hausse si {@code raise}, sinon baisse) sur chaque nuit de [from, to). */
+    private int applyAdjustOnRange(Property property, Long orgId, Long propertyId,
+                                   LocalDate from, LocalDate to, int percent, boolean raise, String currency) {
+        final BigDecimal delta = BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100));
+        final BigDecimal factor = raise ? BigDecimal.ONE.add(delta) : BigDecimal.ONE.subtract(delta);
         int applied = 0;
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
             final BigDecimal current = priceEngine.resolvePrice(propertyId, date, orgId);
