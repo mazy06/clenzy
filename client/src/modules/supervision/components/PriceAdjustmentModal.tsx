@@ -10,8 +10,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
-  ToggleButton, ToggleButtonGroup, Typography,
+  IconButton, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
+import { Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
 import { pricingApi, type PriceSegment, type PricingSimulation } from '../pricingApi';
@@ -115,6 +116,12 @@ export function PriceAdjustmentModal({
 
   const setPercent = (i: number, percent: number) => {
     setSegments((prev) => prev.map((s, idx) => (idx === i ? { ...s, percent } : s)));
+  };
+
+  /** Retire un créneau proposé (l'opérateur ne veut pas ajuster cette plage). */
+  const removeSegment = (i: number) => {
+    setSegments((prev) => prev.filter((_, idx) => idx !== i));
+    setSim(null); // la prévision cumulée n'est plus à jour → forcer une re-simulation
   };
 
   /** Convertit la saisie du mode courant en % de baisse (borné 1–50). */
@@ -308,6 +315,14 @@ export function PriceAdjustmentModal({
                     style={{ width: 76, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)', textAlign: 'right' }}
                   />
                   <Box sx={{ fontSize: 12.5, color: 'text.secondary', width: 16 }}>{modeUnit}</Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => removeSegment(i)}
+                    aria-label={t('supervision.price.removeSegment', 'Retirer ce créneau')}
+                    sx={{ color: 'text.disabled', '&:hover': { color: 'error.main', bgcolor: 'transparent' } }}
+                  >
+                    <Close size={15} />
+                  </IconButton>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
