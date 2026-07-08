@@ -36,14 +36,17 @@ export interface PricingSimulation {
   totalDeltaRevenue: number;
 }
 
+/** Sens de l'ajustement : baisse (créneaux creux) ou hausse (demande forte, prix sous-évalués). */
+export type PriceDirection = 'down' | 'up';
+
 /** Endpoints de la modale d'ajustement tarifaire (yield multi-segment). */
 export const pricingApi = {
   /** Prévision (read-only) de l'ajustement sur les segments édités. */
-  simulate(propertyId: number, segments: PriceSegment[]): Promise<PricingSimulation> {
-    return apiClient.post('/ai/supervision/simulate-pricing', { propertyId, segments });
+  simulate(propertyId: number, segments: PriceSegment[], direction: PriceDirection): Promise<PricingSimulation> {
+    return apiClient.post('/ai/supervision/simulate-pricing', { propertyId, direction, segments });
   },
   /** Applique les segments validés → écrit les RateOverride (visibles dans « Prix dynamique »). */
-  applyCustom(suggestionId: string, segments: PriceSegment[]): Promise<void> {
-    return apiClient.post(`/ai/supervision/suggestions/${suggestionId}/apply-custom`, { segments });
+  applyCustom(suggestionId: string, segments: PriceSegment[], direction: PriceDirection): Promise<void> {
+    return apiClient.post(`/ai/supervision/suggestions/${suggestionId}/apply-custom`, { direction, segments });
   },
 };
