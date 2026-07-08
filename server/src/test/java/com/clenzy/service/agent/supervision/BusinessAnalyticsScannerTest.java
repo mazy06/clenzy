@@ -1,9 +1,6 @@
 package com.clenzy.service.agent.supervision;
 
 import com.clenzy.dto.PropertyPerformanceDto;
-import com.clenzy.model.CalendarDay;
-import com.clenzy.model.CalendarDayStatus;
-import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -36,8 +33,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Heuristiques déterministes par logement → cartes HITL. L'occupation (avant ET rétro) inclut
- * réservations ET blocages calendrier : un blocage (résa hors OTA/Baitly, blocage manuel) n'est
- * ni proposé à la remise, ni compté en sous-performance.
+ * réservations ET jours calendrier indisponibles (BOOKED/BLOCKED) : un blocage (résa hors
+ * OTA/Baitly, blocage manuel) n'est ni proposé à l'ajustement, ni compté en sous-performance.
  */
 @ExtendWith(MockitoExtension.class)
 class BusinessAnalyticsScannerTest {
@@ -72,16 +69,12 @@ class BusinessAnalyticsScannerTest {
         return r;
     }
 
-    private CalendarDay blocked(LocalDate d) {
-        return new CalendarDay(new Property(), d, CalendarDayStatus.BLOCKED, ORG);
-    }
-
     @Test
     void lowForwardOccupancy_withFreeGaps_emitsMultiSegmentPriceDropWithImpact() {
         when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "rev")).thenReturn(Optional.empty());
         when(performanceService.compute(PROP)).thenReturn(perf(20.0, "5000", 70.0));
-        when(reservationRepository.findByPropertyId(PROP, ORG)).thenReturn(List.of()); // aucun booking
-        when(calendarDayRepository.findBlockedInRange(eq(PROP), any(), any(), eq(ORG))).thenReturn(List.of());
+        when(reservationRepository.findByPropertyId(PROP, ORG)).thenReturn(List.of());
+        when(calendarDayRepository.findUnavailableDatesInRange(eq(PROP), any(), any(), eq(ORG))).thenReturn(List.of());
 
         scanner().scanProperty(ORG, PROP);
 
@@ -91,6 +84,7 @@ class BusinessAnalyticsScannerTest {
                 eq(SupervisionActionType.PRICE_DROP), params.capture(),
                 argThat(c -> c != null && c > 0), eq("warning"));
         assertThat(params.getValue()).contains("\"segments\"");
+        assertThat(params.getValue()).contains("\"direction\":\"down\"");
     }
 
     @Test
@@ -100,7 +94,7 @@ class BusinessAnalyticsScannerTest {
         // Résa qui remplit la fenêtre À VENIR (occ forward ~99 %) mais ne couvre qu'1 nuit du rétro.
         when(reservationRepository.findByPropertyId(PROP, ORG))
                 .thenReturn(List.of(reservation("2026-07-08", "2026-10-06")));
-        when(calendarDayRepository.findBlockedInRange(eq(PROP), any(), any(), eq(ORG))).thenReturn(List.of());
+        when(calendarDayRepository.findUnavailableDatesInRange(eq(PROP), any(), any(), eq(ORG))).thenReturn(List.of());
 
         scanner().scanProperty(ORG, PROP);
 
@@ -110,19 +104,14 @@ class BusinessAnalyticsScannerTest {
     }
 
     @Test
-    void fullyBlockedForwardAndRetro_emitsNoCard() {
-        // Toutes les nuits (avant + rétro) sont BLOQUÉES (résas hors système) → occupation 100 %
+    void fullyUnavailableForwardAndRetro_emitsNoCard() {
+        // Toutes les nuits (avant + rétro) sont indisponibles (BOOKED/BLOCKED) → occupation 100 %
         // partout → aucune remise proposée et aucune sous-performance.
         when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "rev")).thenReturn(Optional.empty());
         when(performanceService.compute(PROP)).thenReturn(perf(20.0, "5000", 70.0));
         when(reservationRepository.findByPropertyId(PROP, ORG)).thenReturn(List.of());
-        when(calendarDayRepository.findBlockedInRange(eq(PROP), any(), any(), eq(ORG))).thenAnswer(inv -> {
-            LocalDate from = inv.getArgument(1);
-            LocalDate to = inv.getArgument(2);
-            List<CalendarDay> days = new ArrayList<>();
-            for (LocalDate d = from; d.isBefore(to); d = d.plusDays(1)) days.add(blocked(d));
-            return days;
-        });
+        when(calendarDayRepository.findUnavailableDatesInRange(eq(PROP), any(), any(), eq(ORG)))
+                .thenAnswer(inv -> datesInRange(inv.getArgument(1), inv.getArgument(2), null, null));
 
         scanner().scanProperty(ORG, PROP);
 
@@ -131,22 +120,13 @@ class BusinessAnalyticsScannerTest {
 
     @Test
     void highForwardOccupancy_withFreeGap_emitsRaise() {
-        // Occupation à venir élevée (~97 %) + un créneau encore libre → prix sous-évalués :
-        // proposer une HAUSSE (sens inverse de la baisse).
+        // Occupation à venir élevée (~97 %) + un créneau encore libre → prix sous-évalués : HAUSSE.
         when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "rev")).thenReturn(Optional.empty());
         when(performanceService.compute(PROP)).thenReturn(perf(90.0, "5000", 70.0));
         when(reservationRepository.findByPropertyId(PROP, ORG)).thenReturn(List.of());
-        final LocalDate gapFrom = LocalDate.parse("2026-08-01");
-        final LocalDate gapTo = LocalDate.parse("2026-08-04"); // exclusif → 3 nuits libres
-        when(calendarDayRepository.findBlockedInRange(eq(PROP), any(), any(), eq(ORG))).thenAnswer(inv -> {
-            LocalDate from = inv.getArgument(1);
-            LocalDate to = inv.getArgument(2);
-            List<CalendarDay> days = new ArrayList<>();
-            for (LocalDate d = from; d.isBefore(to); d = d.plusDays(1)) {
-                if (d.isBefore(gapFrom) || !d.isBefore(gapTo)) days.add(blocked(d)); // tout bloqué sauf le gap
-            }
-            return days;
-        });
+        when(calendarDayRepository.findUnavailableDatesInRange(eq(PROP), any(), any(), eq(ORG))).thenAnswer(inv ->
+                datesInRange(inv.getArgument(1), inv.getArgument(2),
+                        LocalDate.parse("2026-08-01"), LocalDate.parse("2026-08-04"))); // 3 nuits libres
 
         scanner().scanProperty(ORG, PROP);
 
@@ -156,5 +136,15 @@ class BusinessAnalyticsScannerTest {
                 eq(SupervisionActionType.PRICE_DROP), params.capture(),
                 argThat(c -> c != null && c > 0), eq("info"));
         assertThat(params.getValue()).contains("\"direction\":\"up\"");
+    }
+
+    /** Toutes les dates de [from, to), en excluant le trou [gapFrom, gapTo) s'il est fourni. */
+    private List<LocalDate> datesInRange(LocalDate from, LocalDate to, LocalDate gapFrom, LocalDate gapTo) {
+        List<LocalDate> dates = new ArrayList<>();
+        for (LocalDate d = from; d.isBefore(to); d = d.plusDays(1)) {
+            if (gapFrom != null && !d.isBefore(gapFrom) && d.isBefore(gapTo)) continue;
+            dates.add(d);
+        }
+        return dates;
     }
 }

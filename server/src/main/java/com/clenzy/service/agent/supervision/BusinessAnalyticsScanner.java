@@ -198,9 +198,9 @@ public class BusinessAnalyticsScanner {
     }
 
     /**
-     * Nuits OCCUPÉES sur {@code [from, to)} : réservations non annulées <b>ET</b> blocages
-     * calendrier ({@code CalendarDayStatus.BLOCKED}). Un blocage = résa prise hors OTA/Baitly
-     * ou blocage manuel → nuit indisponible, jamais un creux à remplir ni une sous-performance.
+     * Nuits OCCUPÉES sur {@code [from, to)} : réservations non annulées <b>ET</b> tout jour calendrier
+     * indisponible (≠ AVAILABLE = BOOKED ou BLOCKED). Couvre les résas prises hors OTA/Baitly et les
+     * blocages manuels → nuit indisponible, jamais un creux à remplir ni une sous-performance.
      */
     private Set<LocalDate> occupiedNights(Long orgId, Long propertyId, LocalDate from, LocalDate toExclusive) {
         final Set<LocalDate> occupied = new HashSet<>();
@@ -214,9 +214,7 @@ public class BusinessAnalyticsScanner {
                 occupied.add(d);
             }
         }
-        for (var cd : calendarDayRepository.findBlockedInRange(propertyId, from, toExclusive, orgId)) {
-            occupied.add(cd.getDate());
-        }
+        occupied.addAll(calendarDayRepository.findUnavailableDatesInRange(propertyId, from, toExclusive, orgId));
         return occupied;
     }
 
