@@ -25,6 +25,12 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
     entry.toolName
       ? t(`supervision.tools.${entry.toolName}`, { defaultValue: entry.text || entry.toolName })
       : entry.text;
+  // Détail métier (résumé porté par l'outil : logement, montant, MOTIF d'échec…).
+  // Affiché sous le libellé quand il apporte une info que le libellé générique n'a pas.
+  const detailFor = (entry: FeedEntry | PortfolioFeedEntry) => {
+    const text = (entry.text ?? '').trim();
+    return text && text !== labelFor(entry) ? text : null;
+  };
   return (
     <Box data-activity-feed sx={{ display: 'flex', flexDirection: 'column' }}>
       {entries.map((entry) => {
@@ -58,6 +64,11 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
                 {propertyName ? ` · ${propertyName}` : ''}
               </Box>
               <Box sx={{ fontSize: 12.5, color: 'var(--ink, #1b2240)', lineHeight: 1.4 }}>{labelFor(entry)}</Box>
+              {detailFor(entry) && (
+                <Box sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)', lineHeight: 1.35, mt: 0.25, wordBreak: 'break-word' }}>
+                  {detailFor(entry)}
+                </Box>
+              )}
             </Box>
           </Box>
         );
