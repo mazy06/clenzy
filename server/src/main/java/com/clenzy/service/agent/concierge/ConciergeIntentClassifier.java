@@ -26,6 +26,20 @@ public class ConciergeIntentClassifier {
             "emergency", "cassé", "broken", "fuite", "leak", "insatisfait", "unhappy",
             "scandale", "arnaque", "scam", "dangereux", "danger");
 
+    /**
+     * Demandes à impact CROSS-DOMAINE (ops / revenue) : prolongation, nuit sup,
+     * late checkout, early check-in. Jamais auto-envoyées — elles engageraient le
+     * calendrier / un prestataire ; l'humain coordonne (C3). Testé AVANT la
+     * whitelist FAQ (un « late checkout » contient « checkout » — sans ce
+     * hard-stop il serait pris pour une simple question d'horaire).
+     */
+    private static final List<String> CROSS_DOMAIN_KEYWORDS = List.of(
+            "nuit supplémentaire", "nuit de plus", "une nuit en plus", "extra night",
+            "one more night", "another night", "prolonger", "prolongation", "extend",
+            "rester plus", "stay longer", "late checkout", "late check-out",
+            "départ tardif", "checkout tardif", "check-out tardif", "partir plus tard",
+            "early check-in", "early checkin", "arrivée anticipée", "arriver plus tôt");
+
     /** Intentions FAQ whitelistées → auto-envoi possible (question d'info simple). */
     private static final List<String> FAQ_KEYWORDS = List.of(
             "wifi", "wi-fi", "code", "check-in", "checkin", "arrivée", "arrival",
@@ -44,6 +58,10 @@ public class ConciergeIntentClassifier {
                 || (analysis != null && (analysis.urgent() || isNegative(analysis)));
         if (risky) {
             return new ConciergeDecision(false, "risk_or_negative");
+        }
+        // Hard-stop cross-domaine AVANT la whitelist : jamais d'auto-envoi, coordination humaine.
+        if (CROSS_DOMAIN_KEYWORDS.stream().anyMatch(msg::contains)) {
+            return new ConciergeDecision(false, "cross_domain");
         }
         final boolean faq = FAQ_KEYWORDS.stream().anyMatch(msg::contains);
         return faq

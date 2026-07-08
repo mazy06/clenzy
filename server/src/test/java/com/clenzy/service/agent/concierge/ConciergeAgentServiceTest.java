@@ -34,7 +34,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -100,6 +99,7 @@ class ConciergeAgentServiceTest {
                 .thenReturn(new ConversationAnalysisDto("POSITIVE", 0.82, false));
         when(aiAssist.suggestReply(ORG, CONV))
                 .thenReturn(new AiSuggestedResponseDto("Bonjour, voici la réponse.", "friendly", "fr", List.of()));
+        when(classifier.classify(anyString(), any())).thenReturn(new ConciergeDecision(false, "not_whitelisted"));
 
         service.processInbound(ORG, CONV);
 
@@ -121,6 +121,7 @@ class ConciergeAgentServiceTest {
                 .thenReturn(new ConversationAnalysisDto("NEGATIVE", 0.15, false));
         when(aiAssist.suggestReply(ORG, CONV))
                 .thenReturn(new AiSuggestedResponseDto("Je suis désolé…", "empathetic", "fr", List.of()));
+        when(classifier.classify(anyString(), any())).thenReturn(new ConciergeDecision(false, "risk_or_negative"));
 
         service.processInbound(ORG, CONV);
 
@@ -198,19 +199,41 @@ class ConciergeAgentServiceTest {
     }
 
     @Test
-    void processInbound_drafts_whenAutonomyIsSuggest() {
+    void processInbound_drafts_whenAutonomyIsSuggest_evenIfSafe() {
         ConciergeAgentService auto = build(true, true);
         stubConvAndCredits();
-        lenient().when(aiAssist.analyzeLastInbound(ORG, CONV))
+        when(aiAssist.analyzeLastInbound(ORG, CONV))
                 .thenReturn(new ConversationAnalysisDto("POSITIVE", 0.7, false));
         when(aiAssist.suggestReply(ORG, CONV))
                 .thenReturn(new AiSuggestedResponseDto("Le code wifi est 1234.", "friendly", "fr", List.of()));
+        when(classifier.classify(anyString(), any())).thenReturn(new ConciergeDecision(true, "faq"));
         when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "com"))
                 .thenReturn(Optional.empty()); // absent → défaut SUGGEST → jamais d'auto-envoi
 
         auto.processInbound(ORG, CONV);
 
-        verify(classifier, never()).classify(anyString(), any());
+        verify(conversationService, never()).sendAutonomousMessage(any(), anyString());
+        verify(activityService).recordModuleAct(eq(ORG), eq(PROP), eq("com"),
+                eq("concierge_drafted"), anyString());
+    }
+
+    // ── C3 : coordination cross-domaine ─────────────────────────────────────
+
+    @Test
+    void processInbound_crossDomain_escalatesCoordinationAndDrafts_neverSends() {
+        stubConvAndCredits(); // service C1 (autosend off)
+        when(aiAssist.analyzeLastInbound(ORG, CONV))
+                .thenReturn(new ConversationAnalysisDto("POSITIVE", 0.7, false));
+        when(aiAssist.suggestReply(ORG, CONV))
+                .thenReturn(new AiSuggestedResponseDto("Je vérifie la disponibilité…", "friendly", "fr", List.of()));
+        when(classifier.classify(anyString(), any()))
+                .thenReturn(new ConciergeDecision(false, "cross_domain"));
+
+        service.processInbound(ORG, CONV);
+
+        // Escalade de COORDINATION (pas d'assigné → admins/managers), brouillon prêt, aucun envoi.
+        verify(notificationService).notifyAdminsAndManagersByOrgId(eq(ORG),
+                eq(NotificationKey.CONCIERGE_ESCALATION), anyString(), anyString(), anyString());
         verify(conversationService, never()).sendAutonomousMessage(any(), anyString());
         verify(activityService).recordModuleAct(eq(ORG), eq(PROP), eq("com"),
                 eq("concierge_drafted"), anyString());
