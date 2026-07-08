@@ -36,6 +36,7 @@ class ConversationServiceTest {
     @Mock private com.clenzy.repository.GuestRepository guestRepository;
     @Mock private com.clenzy.repository.UserRepository userRepository;
     @Mock private com.clenzy.service.AssistantOutcomeTracker outcomeTracker;
+    @Mock private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
 
     private ConversationService service;
 
@@ -43,7 +44,7 @@ class ConversationServiceTest {
     void setUp() {
         service = new ConversationService(conversationRepository, messageRepository,
             eventPublisher, notificationService, whatsAppChannel, reservationRepository, guestRepository,
-            userRepository, outcomeTracker);
+            userRepository, outcomeTracker, applicationEventPublisher);
     }
 
     @Test

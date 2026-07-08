@@ -74,6 +74,14 @@ public class Conversation {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /** Brouillon de réponse IA du concierge (C1) — jamais envoyé sans validation. */
+    @Column(name = "ai_draft_reply", columnDefinition = "TEXT")
+    private String aiDraftReply;
+
+    /** Méta du brouillon (JSON : sentiment, urgence, ton, généré le). */
+    @Column(name = "ai_draft_meta", columnDefinition = "TEXT")
+    private String aiDraftMeta;
+
     // Getters & setters
 
     public Long getId() { return id; }
@@ -120,4 +128,10 @@ public class Conversation {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+    public String getAiDraftReply() { return aiDraftReply; }
+    public void setAiDraftReply(String aiDraftReply) { this.aiDraftReply = aiDraftReply; }
+
+    public String getAiDraftMeta() { return aiDraftMeta; }
+    public void setAiDraftMeta(String aiDraftMeta) { this.aiDraftMeta = aiDraftMeta; }
 }
