@@ -21,8 +21,9 @@ import { ActivityFeed } from './ActivityFeed';
 import { SupervisionReportStrip } from './SupervisionReportStrip';
 import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
+import { PriceAdjustmentModal } from './PriceAdjustmentModal';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
-import type { AgentId, PortfolioSnapshot } from '../types';
+import type { AgentId, PendingAction, PortfolioPendingAction, PortfolioSnapshot } from '../types';
 
 export interface PortfolioPanelProps {
   createProvider: () => SupervisionProvider;
@@ -57,6 +58,11 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
       onEditAction?.(id);
     },
     [actions, markInFlight, onEditAction],
+  );
+  const [priceAction, setPriceAction] = useState<PortfolioPendingAction | null>(null);
+  const handleAdjustPrice = useCallback(
+    (a: PendingAction | PortfolioPendingAction) => setPriceAction(a as PortfolioPendingAction),
+    [],
   );
 
   const detail: AgentDetail | null = useMemo(() => {
@@ -141,7 +147,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
               </Box>
             </Box>
             <Box sx={{ p: 1.5, maxHeight: 320, overflowY: 'auto' }}>
-              <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} variant="panel" />
+              <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" />
             </Box>
           </Box>
 
@@ -184,6 +190,19 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
       )}
 
       <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} />
+
+      {priceAction && (
+        <PriceAdjustmentModal
+          suggestionId={priceAction.id}
+          propertyId={Number(priceAction.propertyId ?? 0)}
+          actionParams={priceAction.actionParams}
+          onClose={() => setPriceAction(null)}
+          onApplied={() => {
+            markInFlight(priceAction.id);
+            setPriceAction(null);
+          }}
+        />
+      )}
     </Box>
   );
 }

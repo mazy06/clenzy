@@ -185,7 +185,8 @@ public class SupervisionPortfolioService {
                 s.getActionType(),
                 amountEur,
                 String.valueOf(s.getPropertyId()),
-                nameOf(s.getPropertyId(), names));
+                nameOf(s.getPropertyId(), names),
+                s.getActionParams());
     }
 
     private PortfolioSnapshotDto.FeedEntry toFeedEntry(SupervisionActivity a, Map<Long, String> names) {

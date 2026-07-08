@@ -35,9 +35,11 @@ export interface PendingActionCardProps {
   action: PendingAction | PortfolioPendingAction;
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
+  /** Ouvre la modale d'ajustement tarifaire (cartes PRICE_DROP multi-segment). */
+  onAdjustPrice?: (action: PendingAction | PortfolioPendingAction) => void;
 }
 
-export function PendingActionCard({ action, onValidate, onEdit }: PendingActionCardProps) {
+export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }: PendingActionCardProps) {
   const { t } = useTranslation();
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
@@ -48,6 +50,10 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
   const isPayment = action.kind === 'payment';
   // Suggestion actionnable (ex. baisse de prix) : « Appliquer » exécute l'action serveur.
   const isApply = !isPayment && !isReminder && Boolean(action.applyActionType);
+  // Baisse tarifaire multi-segment : « Ajuster » ouvre une modale (revue + prévision + apply),
+  // au lieu d'appliquer directement, pour laisser l'opérateur éditer les plages/remises.
+  const isPriceAdjust = isApply && action.applyActionType === 'PRICE_DROP'
+    && Boolean(action.actionParams) && Boolean(onAdjustPrice);
   // Un rappel/paiement/action applicable ne « périme » pas : boutons toujours actionnables.
   const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const propertyName = 'propertyName' in action ? action.propertyName : undefined;
@@ -178,7 +184,7 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
             variant="contained"
             disableElevation
             disabled={resolving}
-            onClick={validate}
+            onClick={isPriceAdjust ? () => onAdjustPrice!(action) : validate}
             startIcon={
               resolving ? (
                 <CircularProgress size={13} color="inherit" />
@@ -205,7 +211,9 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
               '&.Mui-disabled': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
             }}
           >
-            {isPayment ? (
+            {isPriceAdjust ? (
+              t('supervision.price.adjustCta', 'Ajuster les tarifs')
+            ) : isPayment ? (
               <>
                 {t('supervision.payment.settle', 'Régler')}
                 {action.amountEur != null && (

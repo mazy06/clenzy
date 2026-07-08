@@ -26,8 +26,9 @@ import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
 import { SupervisionChatBar } from './SupervisionChatBar';
 import { SupervisionPendingAction } from './SupervisionPendingAction';
+import { PriceAdjustmentModal } from './PriceAdjustmentModal';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
-import type { AgentId } from '../types';
+import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
 
 export interface SupervisionPanelProps {
   /** Fabrique du provider (mock ou CopilotKit). Recréé quand `deps` change. */
@@ -111,6 +112,9 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
     },
     [actions, markInFlight, onEditAction],
   );
+  // Modale d'ajustement tarifaire (cartes PRICE_DROP multi-segment).
+  const [priceAction, setPriceAction] = useState<PendingAction | PortfolioPendingAction | null>(null);
+  const handleAdjustPrice = useCallback((a: PendingAction | PortfolioPendingAction) => setPriceAction(a), []);
 
   const handleSelect = useCallback(
     (id: AgentId) => {
@@ -284,6 +288,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
               actions={propertySnapshot.pending}
               onValidate={handleValidate}
               onEdit={handleEdit}
+              onAdjustPrice={handleAdjustPrice}
               variant="floating"
             />
           )}
@@ -293,7 +298,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
       {/* file HITL flottante (vue portefeuille / autres scopes) */}
       {!propertySnapshot && snapshot.pending.length > 0 && (
         <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 7, maxWidth: 'calc(100% - 32px)', display: 'flex', flexDirection: 'column' }}>
-          <TaskDeckQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} variant="floating" />
+          <TaskDeckQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="floating" />
         </Box>
       )}
 
@@ -350,6 +355,21 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
       )}
 
       <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} propertyId={propertyId} />
+
+      {priceAction && (
+        <PriceAdjustmentModal
+          suggestionId={priceAction.id}
+          propertyId={Number(
+            (priceAction as PortfolioPendingAction).propertyId ?? propertyId ?? 0,
+          )}
+          actionParams={priceAction.actionParams}
+          onClose={() => setPriceAction(null)}
+          onApplied={() => {
+            markInFlight(priceAction.id);
+            setPriceAction(null);
+          }}
+        />
+      )}
     </Box>
   );
 }

@@ -332,7 +332,8 @@ public class SupervisionSuggestionService {
                 s.getExpiresAt() != null ? s.getExpiresAt().toString() : null,
                 s.getActionType(),
                 s.getEstimatedImpactCents(),
-                s.getSeverity());
+                s.getSeverity(),
+                s.getActionParams());
     }
 
     private static String truncate(String value, int max) {

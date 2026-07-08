@@ -98,6 +98,8 @@ interface SuggestionShape {
   estimatedImpactCents?: number | null;
   /** Gravité indicative (info/warning/critical), optionnel. */
   severity?: string | null;
+  /** Params bruts de l'action (JSON segments) pour la modale d'ajustement, optionnel. */
+  actionParams?: string | null;
 }
 
 /** Rappel J-1 de reversement (GET /api/ai/supervision/payout-reminder, cf. PayoutReminderDto). */
@@ -267,6 +269,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
           expiresAt: s.expiresAt ?? s.createdAt,
           applyActionType: s.actionType ?? undefined,
           amountEur: s.estimatedImpactCents != null ? s.estimatedImpactCents / 100 : undefined,
+          actionParams: s.actionParams ?? undefined,
         };
       }),
     );
