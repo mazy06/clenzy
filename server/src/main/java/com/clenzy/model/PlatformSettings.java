@@ -61,6 +61,26 @@ public class PlatformSettings {
     @Column(name = "global_composite_widgets", columnDefinition = "TEXT")
     private String globalCompositeWidgets;
 
+    /**
+     * Master plateforme du concierge IA — brouillon de réponse sur message guest entrant.
+     * OFF par défaut : ouvre la capacité à tous les orgs (chacun opte ensuite via son
+     * module « Communication ». Piloté en base pour éviter un redéploiement.
+     */
+    @Column(name = "concierge_draft_enabled", nullable = false)
+    private boolean conciergeDraftEnabled = false;
+
+    /**
+     * Master plateforme de l'auto-envoi concierge. OFF par défaut. Même activé, un org
+     * n'auto-envoie que si son autonomie « Communication » ≠ SUGGÈRE et que son palier
+     * atteint {@link #conciergeAutosendMinForfait}.
+     */
+    @Column(name = "concierge_autosend_enabled", nullable = false)
+    private boolean conciergeAutosendEnabled = false;
+
+    /** Palier (forfait) minimal requis pour l'auto-envoi concierge — défaut « premium ». */
+    @Column(name = "concierge_autosend_min_forfait", nullable = false, columnDefinition = "TEXT")
+    private String conciergeAutosendMinForfait = "premium";
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -87,6 +107,15 @@ public class PlatformSettings {
 
     public String getGlobalCompositeWidgets() { return globalCompositeWidgets; }
     public void setGlobalCompositeWidgets(String globalCompositeWidgets) { this.globalCompositeWidgets = globalCompositeWidgets; }
+
+    public boolean isConciergeDraftEnabled() { return conciergeDraftEnabled; }
+    public void setConciergeDraftEnabled(boolean conciergeDraftEnabled) { this.conciergeDraftEnabled = conciergeDraftEnabled; }
+
+    public boolean isConciergeAutosendEnabled() { return conciergeAutosendEnabled; }
+    public void setConciergeAutosendEnabled(boolean conciergeAutosendEnabled) { this.conciergeAutosendEnabled = conciergeAutosendEnabled; }
+
+    public String getConciergeAutosendMinForfait() { return conciergeAutosendMinForfait; }
+    public void setConciergeAutosendMinForfait(String conciergeAutosendMinForfait) { this.conciergeAutosendMinForfait = conciergeAutosendMinForfait; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

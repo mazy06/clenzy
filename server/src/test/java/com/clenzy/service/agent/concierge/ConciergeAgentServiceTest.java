@@ -10,6 +10,7 @@ import com.clenzy.model.SupervisionModuleSettings;
 import com.clenzy.repository.ConversationRepository;
 import com.clenzy.repository.SupervisionModuleSettingsRepository;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.PlatformSettingsService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.ai.RunCreditGuard;
 import com.clenzy.service.messaging.ConversationAiAssistService;
@@ -34,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -62,6 +64,7 @@ class ConciergeAgentServiceTest {
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private ValueOperations<String, String> valueOps;
     @Mock private com.clenzy.repository.UserRepository userRepository;
+    @Mock private PlatformSettingsService platformSettings;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ConciergeAgentService service;   // draft on, autosend OFF (C1)
@@ -80,10 +83,15 @@ class ConciergeAgentServiceTest {
     }
 
     private ConciergeAgentService build(boolean draft, boolean autosend) {
+        // Masters plateforme désormais lus en base (PlatformSettingsService) : lenient
+        // car certains tests n'exercent pas l'auto-envoi ni le palier premium.
+        lenient().when(platformSettings.isConciergeDraftEnabled()).thenReturn(draft);
+        lenient().when(platformSettings.isConciergeAutosendEnabled()).thenReturn(autosend);
+        lenient().when(platformSettings.getConciergeAutosendMinForfait()).thenReturn("premium");
         return new ConciergeAgentService(aiAssist, conversationRepository, conversationService,
                 moduleSettingsRepository, classifier, activityService, notificationService,
                 runCreditGuard, tenantScopedExecutor, redisTemplate, objectMapper, userRepository,
-                draft, autosend, "premium");
+                platformSettings);
     }
 
     private void stubOrgForfait(String forfait) {
