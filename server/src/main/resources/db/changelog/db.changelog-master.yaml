@@ -3207,3 +3207,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0332__add_conversation_ai_draft.sql
         relativeToChangelogFile: true
+
+  # Masters plateforme du concierge IA (brouillon / auto-envoi / palier premium), pilotés en base.
+  - changeSet:
+      id: "0333-add-platform-concierge-flags"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0333__add_platform_concierge_flags.sql
+        relativeToChangelogFile: true

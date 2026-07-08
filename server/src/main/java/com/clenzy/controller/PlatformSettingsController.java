@@ -39,6 +39,9 @@ public class PlatformSettingsController {
         body.put("internalNotificationEmails", service.getInternalNotificationEmails());
         body.put("senderEmail", s.getSenderEmail());
         body.put("senderName", s.getSenderName());
+        body.put("conciergeDraftEnabled", s.isConciergeDraftEnabled());
+        body.put("conciergeAutosendEnabled", s.isConciergeAutosendEnabled());
+        body.put("conciergeAutosendMinForfait", s.getConciergeAutosendMinForfait());
         body.put("updatedAt", s.getUpdatedAt());
         body.put("updatedBy", s.getUpdatedBy());
         return ResponseEntity.ok(body);
@@ -98,6 +101,27 @@ public class PlatformSettingsController {
         return ResponseEntity.ok(Map.of(
                 "senderEmail", s.getSenderEmail(),
                 "senderName", s.getSenderName()));
+    }
+
+    /** Corps de mise à jour des masters concierge IA (plateforme). */
+    public record ConciergeSettingsRequest(boolean draftEnabled, boolean autosendEnabled, String minForfait) {}
+
+    /**
+     * Active/désactive le concierge IA au niveau plateforme (brouillon + auto-envoi)
+     * et son palier premium minimal. Piloté en base — pris en compte à chaud (prochain
+     * message guest entrant), sans redéploiement du pms-server.
+     */
+    @PutMapping("/concierge")
+    public ResponseEntity<Map<String, Object>> setConcierge(
+            @RequestBody ConciergeSettingsRequest req,
+            @AuthenticationPrincipal Jwt jwt) {
+        PlatformSettings s = service.updateConcierge(
+                req.draftEnabled(), req.autosendEnabled(), req.minForfait(), updatedBy(jwt));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("conciergeDraftEnabled", s.isConciergeDraftEnabled());
+        body.put("conciergeAutosendEnabled", s.isConciergeAutosendEnabled());
+        body.put("conciergeAutosendMinForfait", s.getConciergeAutosendMinForfait());
+        return ResponseEntity.ok(body);
     }
 
     private String updatedBy(Jwt jwt) {
