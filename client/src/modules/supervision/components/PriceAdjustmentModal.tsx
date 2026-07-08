@@ -7,7 +7,7 @@
    cumulée, puis applique les RateOverride (visibles dans « Prix dynamique »).
    ============================================================ */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   ToggleButton, ToggleButtonGroup, Typography,
@@ -61,6 +61,34 @@ function nights(from: string, to: string): number {
   return Math.max(1, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000));
 }
 
+/** Couleur par segment (accents validés Clenzy), cyclée. */
+const SEGMENT_COLORS = ['#4A9B8E', '#D4A574', '#7BA3C2', '#C97A7A', '#8E7BB5'];
+const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function startOfMonth(iso: string): Date {
+  const d = new Date(iso);
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+/** Matrice de semaines (lundi→dimanche) couvrant le mois affiché, avec débords. */
+function monthGrid(view: Date): Date[][] {
+  const first = new Date(view.getFullYear(), view.getMonth(), 1);
+  const lead = (first.getDay() + 6) % 7; // 0 = lundi
+  const start = new Date(first);
+  start.setDate(first.getDate() - lead);
+  const weeks: Date[][] = [];
+  for (let w = 0; w < 6; w++) {
+    const week: Date[] = [];
+    for (let dow = 0; dow < 7; dow++) {
+      week.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + dow));
+    }
+    weeks.push(week);
+  }
+  return weeks;
+}
+
 export function PriceAdjustmentModal({
   suggestionId, propertyId, actionParams, onClose, onApplied,
 }: PriceAdjustmentModalProps) {
@@ -71,8 +99,15 @@ export function PriceAdjustmentModal({
   const [simulating, setSimulating] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewMonth, setViewMonth] = useState<Date>(() => startOfMonth(segments[0]?.from ?? ymd(new Date())));
 
   const baselineAdr = (i: number): number | undefined => sim?.segments[i]?.baseline.adr;
+
+  /** Index du segment couvrant un jour (ou -1). Plage [from, to) exclusive. */
+  const segmentIndexOfDay = (d: Date): number => {
+    const iso = ymd(d);
+    return segments.findIndex((s) => iso >= s.from && iso < s.to);
+  };
 
   const setPercent = (i: number, percent: number) => {
     setSegments((prev) => prev.map((s, idx) => (idx === i ? { ...s, percent } : s)));
@@ -124,9 +159,18 @@ export function PriceAdjustmentModal({
     }
   };
 
+  // Auto-simulation à l'ouverture : l'ADR de base est dispo immédiatement, donc les modes
+  // « prix cible » / « −€ » sont convertibles sans attendre un clic « Simuler ».
+  useEffect(() => {
+    if (segments.length > 0) void runSimulate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const modeUnit = mode === 'percent' ? '%' : '€';
   const canConvert = mode === 'percent' || sim != null;
   const totalNights = useMemo(() => segments.reduce((n, s) => n + nights(s.from, s.to), 0), [segments]);
+  const weeks = useMemo(() => monthGrid(viewMonth), [viewMonth]);
+  const monthLabel = viewMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
   return (
     <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
@@ -140,6 +184,53 @@ export function PriceAdjustmentModal({
       </DialogTitle>
 
       <DialogContent dividers>
+        {/* Calendrier : les créneaux proposés, une couleur par segment. */}
+        <Box sx={{ mb: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+            <Button
+              size="small"
+              onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+              sx={{ minWidth: 30, textTransform: 'none', color: 'text.secondary' }}
+              aria-label={t('common.previous', 'Précédent')}
+            >
+              ‹
+            </Button>
+            <Typography sx={{ fontSize: 12.5, fontWeight: 700, textTransform: 'capitalize' }}>{monthLabel}</Typography>
+            <Button
+              size="small"
+              onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+              sx={{ minWidth: 30, textTransform: 'none', color: 'text.secondary' }}
+              aria-label={t('common.next', 'Suivant')}
+            >
+              ›
+            </Button>
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+            {WEEKDAYS.map((d, i) => (
+              <Box key={`wd-${i}`} sx={{ textAlign: 'center', fontSize: 10, color: 'text.secondary', pb: 0.25 }}>{d}</Box>
+            ))}
+            {weeks.flat().map((day, i) => {
+              const inMonth = day.getMonth() === viewMonth.getMonth();
+              const segIdx = segmentIndexOfDay(day);
+              const color = segIdx >= 0 ? SEGMENT_COLORS[segIdx % SEGMENT_COLORS.length] : undefined;
+              return (
+                <Box
+                  key={`d-${i}`}
+                  sx={{
+                    textAlign: 'center', fontSize: 11, py: 0.5, borderRadius: 1,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: color ? '#fff' : inMonth ? 'text.primary' : 'text.disabled',
+                    bgcolor: color ?? 'transparent',
+                    opacity: inMonth ? 1 : 0.45,
+                  }}
+                >
+                  {day.getDate()}
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+
         {/* Sélecteur de mode de saisie de la remise */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
           <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
@@ -197,9 +288,12 @@ export function PriceAdjustmentModal({
                   />
                   <Box sx={{ fontSize: 12.5, color: 'text.secondary', width: 16 }}>{modeUnit}</Box>
                 </Box>
-                <Typography sx={{ fontSize: 11.5, color: 'text.secondary', mt: 0.5 }}>
-                  {fmt(seg.from)}→{fmt(seg.to)} · {nights(seg.from, seg.to)} {t('supervision.price.nights', 'nuits')} · −{seg.percent}%
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
+                  <Typography sx={{ fontSize: 11.5, color: 'text.secondary' }}>
+                    {fmt(seg.from)}→{fmt(seg.to)} · {nights(seg.from, seg.to)} {t('supervision.price.nights', 'nuits')} · −{seg.percent}%
+                  </Typography>
+                </Box>
                 {f && (
                   <Typography sx={{ fontSize: 11.5, color: 'text.primary', mt: 0.5, fontVariantNumeric: 'tabular-nums' }}>
                     {t('supervision.price.occ', 'Occupation')} {Math.round(f.baseline.occupancyRate * 100)}%
