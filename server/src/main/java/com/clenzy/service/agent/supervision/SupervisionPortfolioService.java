@@ -1,6 +1,7 @@
 package com.clenzy.service.agent.supervision;
 
 import com.clenzy.dto.PortfolioSnapshotDto;
+import com.clenzy.dto.PropertyPerformanceDto;
 import com.clenzy.model.Property;
 import com.clenzy.model.SupervisionActivity;
 import com.clenzy.model.SupervisionModuleSettings;
@@ -8,6 +9,9 @@ import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.SupervisionModuleSettingsRepository;
 import com.clenzy.repository.SupervisionSuggestionRepository;
+import com.clenzy.service.PropertyPerformanceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,21 +39,33 @@ public class SupervisionPortfolioService {
     private static final List<String> AGENTS = List.of("com", "rev", "ops", "fin", "rep");
     private static final String DEFAULT_AUTONOMY = "suggest";
 
+    private static final Logger log = LoggerFactory.getLogger(SupervisionPortfolioService.class);
+
+    /** Fenêtre rétrospective (jours) pour les KPI portefeuille — alignée sur la perf par logement. */
+    private static final int ORG_WINDOW_DAYS = 90;
+    /** Seuils org (miroir de /reports computeBusinessAlerts). */
+    private static final double ORG_OCC_CRITICAL_PCT = 50.0;
+    private static final double ORG_MARGIN_LOW_PCT = 50.0;
+    private static final long ORG_GAP_NIGHTS_HIGH = 20L;
+
     private final PropertyRepository propertyRepository;
     private final SupervisionSuggestionRepository suggestionRepository;
     private final SupervisionModuleSettingsRepository moduleSettingsRepository;
     private final SupervisionActivityService activityService;
+    private final PropertyPerformanceService performanceService;
     private final Clock clock;
 
     public SupervisionPortfolioService(PropertyRepository propertyRepository,
                                        SupervisionSuggestionRepository suggestionRepository,
                                        SupervisionModuleSettingsRepository moduleSettingsRepository,
                                        SupervisionActivityService activityService,
+                                       PropertyPerformanceService performanceService,
                                        Clock clock) {
         this.propertyRepository = propertyRepository;
         this.suggestionRepository = suggestionRepository;
         this.moduleSettingsRepository = moduleSettingsRepository;
         this.activityService = activityService;
+        this.performanceService = performanceService;
         this.clock = clock;
     }
 
@@ -84,7 +100,57 @@ public class SupervisionPortfolioService {
                 "—", (int) activityService.orgAutoActions(organizationId), pendingCards.size());
 
         return new PortfolioSnapshotDto("portfolio", properties.size(), true,
-                deriveGlobalAutonomy(autonomyByAgent), false, agents, pendingCards, feed, metrics);
+                deriveGlobalAutonomy(autonomyByAgent), false, agents, pendingCards, feed, metrics,
+                computeOrgAlerts(organizationId));
+    }
+
+    /**
+     * Alertes de niveau PORTEFEUILLE (org) — indicateurs globaux qui ne se rattachent pas
+     * à un logement unique : occupation moyenne, nuits vacantes cumulées, marge nette org.
+     * Agrégées depuis les perfs par logement (fenêtre {@value #ORG_WINDOW_DAYS} j). Miroir
+     * serveur de /reports {@code computeBusinessAlerts}, sans la baisse de revenus (qui
+     * exigerait une période précédente — non calculée ici). Best-effort : liste vide si erreur.
+     */
+    private List<PortfolioSnapshotDto.OrgAlert> computeOrgAlerts(Long organizationId) {
+        try {
+            final List<PropertyPerformanceDto> perfs =
+                    performanceService.computeSummaries(organizationId, ORG_WINDOW_DAYS);
+            if (perfs.isEmpty()) {
+                return List.of();
+            }
+            final int n = perfs.size();
+            final double avgOccupancy = perfs.stream().mapToDouble(PropertyPerformanceDto::occupancyRate).sum() / n;
+            // Nuits vacantes cumulées = Σ jours × (1 − occ/100).
+            final long gapNights = Math.round(perfs.stream()
+                    .mapToDouble(p -> p.windowDays() * (1.0 - p.occupancyRate() / 100.0)).sum());
+            // Marge nette org pondérée par le revenu (les logements sans revenu ne pèsent pas).
+            final double totalRevenue = perfs.stream()
+                    .mapToDouble(p -> p.revenue() != null ? p.revenue().doubleValue() : 0.0).sum();
+            final double weightedMargin = totalRevenue > 0 ? perfs.stream()
+                    .mapToDouble(p -> p.netMargin() * (p.revenue() != null ? p.revenue().doubleValue() : 0.0)).sum()
+                    / totalRevenue : 0.0;
+
+            final List<PortfolioSnapshotDto.OrgAlert> alerts = new ArrayList<>(3);
+            if (gapNights > ORG_GAP_NIGHTS_HIGH) {
+                alerts.add(new PortfolioSnapshotDto.OrgAlert("critical", "Nuits vacantes élevées",
+                        String.format("%d nuits vacantes cumulées sur le parc (%d j). Revoir la stratégie tarifaire.",
+                                gapNights, ORG_WINDOW_DAYS)));
+            }
+            if (avgOccupancy < ORG_OCC_CRITICAL_PCT) {
+                alerts.add(new PortfolioSnapshotDto.OrgAlert("critical", "Taux d'occupation critique",
+                        String.format("Occupation moyenne de %d %% sur le parc (seuil recommandé : 60 %%). "
+                                + "Envisager des promotions.", Math.round(avgOccupancy))));
+            }
+            if (totalRevenue > 0 && weightedMargin < ORG_MARGIN_LOW_PCT) {
+                alerts.add(new PortfolioSnapshotDto.OrgAlert("warning", "Marge nette insuffisante",
+                        String.format("Marge nette de %d %% sur le parc (objectif : 60 %%). Optimiser les coûts.",
+                                Math.round(weightedMargin))));
+            }
+            return alerts;
+        } catch (Exception e) {
+            log.debug("org alerts computation failed org={}: {}", organizationId, e.getMessage());
+            return List.of();
+        }
     }
 
     /** Autonomie globale = valeur commune aux 5 agents si homogène, sinon la plus prudente (suggest). */

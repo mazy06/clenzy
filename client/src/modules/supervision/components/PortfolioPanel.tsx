@@ -79,6 +79,44 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
 
         <Box sx={{ width: { xs: '100%', md: 330 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <SupervisionReportStrip />
+
+          {(portfolio.orgAlerts?.length ?? 0) > 0 && (
+            <Box sx={cardSx}>
+              <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+                {t('supervision.orgAlerts.title', 'Alertes portefeuille')}
+              </Typography>
+              <Box sx={{ px: 1.5, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                {portfolio.orgAlerts!.map((a, i) => (
+                  <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        mt: '5px',
+                        flexShrink: 0,
+                        bgcolor:
+                          a.severity === 'critical'
+                            ? 'var(--err, #c0392b)'
+                            : a.severity === 'warning'
+                              ? 'var(--warn, #d4a017)'
+                              : 'var(--info, #4a90a4)',
+                      }}
+                    />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink, #1b2240)', lineHeight: 1.3 }}>
+                        {a.title}
+                      </Typography>
+                      <Typography sx={{ fontSize: 11.5, color: 'var(--muted, #6b7280)', lineHeight: 1.35 }}>
+                        {a.description}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+
           <Box sx={cardSx}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: '14px 16px 12px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
               {t('supervision.queue.title')}

@@ -195,6 +195,13 @@ export interface PortfolioFeedEntry extends FeedEntry {
   propertyName: string;
 }
 
+/** Alerte de niveau PORTEFEUILLE (org) — indicateur global non rattaché à un logement. */
+export interface OrgAlert {
+  severity: 'critical' | 'warning' | 'info';
+  title: string;
+  description: string;
+}
+
 export interface PortfolioSnapshot {
   scope: 'portfolio';
   propertyCount: number; // N logements pilotés
@@ -205,6 +212,8 @@ export interface PortfolioSnapshot {
   pending: PortfolioPendingAction[]; // TOUTES les actions en attente, tous logements
   feed: PortfolioFeedEntry[]; // journal portefeuille
   dayMetrics: DayMetrics;
+  /** Alertes org-level (occupation/marge/nuits vacantes du parc). Optionnel (mock/legacy). */
+  orgAlerts?: OrgAlert[];
 }
 
 export type SupervisionSnapshot = OrchestratorSnapshot | PortfolioSnapshot;
