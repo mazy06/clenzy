@@ -16,10 +16,11 @@ export interface PendingQueueProps {
   actions: (PendingAction | PortfolioPendingAction)[];
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
+  onAdjustPrice?: (action: PendingAction | PortfolioPendingAction) => void;
   variant?: 'floating' | 'panel';
 }
 
-export function PendingQueue({ actions, onValidate, onEdit, variant = 'floating' }: PendingQueueProps) {
+export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: PendingQueueProps) {
   const { t } = useTranslation();
 
   // Disposition flottante : rien à afficher quand la file est vide.
@@ -71,7 +72,7 @@ export function PendingQueue({ actions, onValidate, onEdit, variant = 'floating'
       }}
     >
       {actions.map((action) => (
-        <PendingActionCard key={action.id} action={action} onValidate={onValidate} onEdit={onEdit} />
+        <PendingActionCard key={action.id} action={action} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
       ))}
     </Box>
   );

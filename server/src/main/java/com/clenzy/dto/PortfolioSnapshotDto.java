@@ -58,7 +58,8 @@ public record PortfolioSnapshotDto(
             String applyActionType, // actionType si actionnable, sinon null
             Double amountEur,       // impact estimé (EUR), sinon null
             String propertyId,
-            String propertyName) {}
+            String propertyName,
+            String actionParams) {} // params bruts (JSON segments) pour la modale d'ajustement, sinon null
 
     /** Entrée du journal portefeuille + logement d'origine. */
     public record FeedEntry(

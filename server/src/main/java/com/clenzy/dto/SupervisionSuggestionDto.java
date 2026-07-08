@@ -13,6 +13,8 @@ package com.clenzy.dto;
  * @param actionType           type d'action exécutable (ex. {@code PRICE_DROP}), ou {@code null} = informationnelle
  * @param estimatedImpactCents impact estimé en centimes EUR (optionnel)
  * @param severity             gravité indicative ({@code info}/{@code warning}/{@code critical}), optionnel
+ * @param actionParams         paramètres bruts de l'action (JSON, ex. {@code {"segments":[…]}}) pour
+ *                             préremplir la modale d'ajustement ; {@code null} si informationnelle
  */
 public record SupervisionSuggestionDto(
         String id,
@@ -24,6 +26,7 @@ public record SupervisionSuggestionDto(
         String expiresAt,
         String actionType,
         Long estimatedImpactCents,
-        String severity
+        String severity,
+        String actionParams
 ) {
 }

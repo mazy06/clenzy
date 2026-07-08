@@ -85,6 +85,11 @@ export interface PendingAction {
    * Absent = suggestion informationnelle (Valider = rejet, comportement historique).
    */
   applyActionType?: string;
+  /**
+   * Paramètres bruts de l'action (JSON, ex. {@code {"segments":[{from,to,percent}, …]}}),
+   * pour préremplir la modale d'ajustement de prix. Absent si non actionnable.
+   */
+  actionParams?: string;
 }
 
 // ─── Approbation inline (interrupt AG-UI, chemin live) ───────────────────────
