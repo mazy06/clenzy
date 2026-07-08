@@ -36,6 +36,7 @@ public class ConversationService {
     private final GuestRepository guestRepository;
     private final com.clenzy.repository.UserRepository userRepository;
     private final com.clenzy.service.AssistantOutcomeTracker outcomeTracker;
+    private final org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
 
     public ConversationService(ConversationRepository conversationRepository,
                                ConversationMessageRepository messageRepository,
@@ -45,7 +46,8 @@ public class ConversationService {
                                ReservationRepository reservationRepository,
                                GuestRepository guestRepository,
                                com.clenzy.repository.UserRepository userRepository,
-                               com.clenzy.service.AssistantOutcomeTracker outcomeTracker) {
+                               com.clenzy.service.AssistantOutcomeTracker outcomeTracker,
+                               org.springframework.context.ApplicationEventPublisher applicationEventPublisher) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.eventPublisher = eventPublisher;
@@ -55,6 +57,7 @@ public class ConversationService {
         this.guestRepository = guestRepository;
         this.userRepository = userRepository;
         this.outcomeTracker = outcomeTracker;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     /**
@@ -155,6 +158,11 @@ public class ConversationService {
                 "/contact?highlight=" + conversation.getId()
             );
         }
+
+        // Concierge guest (C1) : déclenche la génération d'un brouillon IA APRÈS
+        // commit (listener @Async), org-scopé. Best-effort, gaté par flag.
+        applicationEventPublisher.publishEvent(new com.clenzy.service.agent.concierge.InboundGuestMessageEvent(
+                conversation.getOrganizationId(), conversation.getId()));
 
         return msg;
     }

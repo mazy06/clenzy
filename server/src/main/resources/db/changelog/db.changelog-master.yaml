@@ -3199,3 +3199,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0331__add_guest_review_response_draft.sql
         relativeToChangelogFile: true
+
+  # Concierge guest (C1) : brouillon de réponse IA sur la conversation (à valider).
+  - changeSet:
+      id: "0332-add-conversation-ai-draft"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0332__add_conversation_ai_draft.sql
+        relativeToChangelogFile: true
