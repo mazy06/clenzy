@@ -214,6 +214,36 @@ public class ConversationService {
     }
 
     /**
+     * Envoi AUTONOME (concierge IA, C2) : réponse générée + envoyée par l'agent,
+     * étiquetée IA. Distinct de {@link #sendOutboundMessage} : ne compte PAS une
+     * « reprise humaine » (ce n'est pas une action opérateur). Même livraison
+     * canal (fenêtre 24h WhatsApp gérée par {@code deliverViaWhatsApp}).
+     */
+    @Transactional
+    public ConversationMessage sendAutonomousMessage(Conversation conversation, String content) {
+        ConversationMessage msg = new ConversationMessage();
+        msg.setOrganizationId(conversation.getOrganizationId());
+        msg.setConversation(conversation);
+        msg.setDirection(MessageDirection.OUTBOUND);
+        msg.setChannelSource(conversation.getChannel());
+        msg.setSenderName("Concierge IA");
+        msg.setSenderIdentifier("system:concierge");
+        msg.setContent(content);
+        msg.setDeliveryStatus("SENT");
+        msg.setSentAt(LocalDateTime.now());
+        msg.setMetadata("{\"ai\":true}");
+
+        msg = messageRepository.save(msg);
+        updateConversationOnNewMessage(conversation, content, false);
+        eventPublisher.publishNewMessage(conversation, msg);
+
+        if (conversation.getChannel() == ConversationChannel.WHATSAPP) {
+            deliverViaWhatsApp(conversation.getId(), msg, "Concierge IA", content);
+        }
+        return msg;
+    }
+
+    /**
      * Envoi reel d'une reponse host -> guest via WhatsApp (canal WHATSAPP).
      * Recharge la conversation (managed) pour acceder au guest/property (LAZY),
      * verifie la fenetre de service 24h Meta, signe le message (host + propriete),
