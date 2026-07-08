@@ -16,6 +16,7 @@ import com.clenzy.repository.YieldRuleRepository;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.SearchCacheInvalidator;
 import com.clenzy.service.agent.supervision.SupervisionActionType;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -64,8 +65,12 @@ class YieldRuleEngineTest {
     @Mock private RateOverrideRepository rateOverrideRepository;
     @Mock private PriceEngine priceEngine;
     @Mock private SupervisionSuggestionService suggestionService;
+    @Mock private SupervisionActivityService activityService;
     @Mock private SearchCacheInvalidator searchCacheInvalidator;
     @Mock private PlatformTransactionManager transactionManager;
+
+    /** Seuil d'impact AUTO→HITL utilisé dans les tests (points de %). */
+    private static final BigDecimal AUTO_HITL_PCT = new BigDecimal("12");
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-03T08:00:00Z"), ZoneId.of("UTC"));
 
@@ -79,7 +84,8 @@ class YieldRuleEngineTest {
         lenient().when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         engine = new YieldRuleEngine(configRepository, yieldRuleRepository, journalRepository,
                 propertyRepository, calendarDayRepository, rateOverrideRepository,
-                priceEngine, suggestionService, searchCacheInvalidator, clock, transactionManager);
+                priceEngine, suggestionService, activityService, searchCacheInvalidator,
+                clock, AUTO_HITL_PCT, transactionManager);
 
         property = new Property();
         property.setId(PROPERTY_ID);
@@ -306,7 +312,36 @@ class YieldRuleEngineTest {
         assertThat(capturedJournalLines()).allSatisfy(line ->
                 assertThat(line.getMode()).isEqualTo(YieldAdjustment.Mode.APPLIED));
         verify(searchCacheInvalidator).onAvailabilityOrPriceChanged();
+        // R1 : l'agent Revenue émet un feed « En direct » sur application AUTO.
+        verify(activityService).recordModuleAct(eq(ORG_ID), eq(PROPERTY_ID),
+                eq("rev"), eq("yield_price_adjusted"), anyString());
         verifyNoInteractions(suggestionService);
+    }
+
+    @Test
+    void whenAutoChangeExceedsImpactThreshold_thenRoutedToHitlInsteadOfApplied() {
+        // R1 : ampleur 15 % > seuil 12 % → même en AUTO, on n'applique pas → carte HITL.
+        config.setMode(YieldMode.AUTO);
+        rule.setAdjustmentPct(new BigDecimal("15.00"));
+        rule.setMaxDailyChangePct(new BigDecimal("20.00")); // magnitude = min(15, 20) = 15
+        stubHappyPath(List.of(), new BigDecimal("100.00"));
+        when(suggestionService.recordActionableWithId(eq(ORG_ID), eq(PROPERTY_ID), anyString(),
+                any(), anyString(), anyString(), eq(SupervisionActionType.YIELD_PRICE_ADJUST),
+                anyString(), anyLong(), anyString()))
+                .thenReturn(Optional.of(77L));
+
+        engine.evaluateOrganization(ORG_ID);
+
+        // Pas d'écriture tarifaire ni de feed « action faite » : c'est une proposition.
+        verify(rateOverrideRepository, never()).save(any());
+        verify(activityService, never()).recordModuleAct(anyLong(), anyLong(), anyString(),
+                anyString(), anyString());
+        verify(suggestionService).recordActionableWithId(eq(ORG_ID), eq(PROPERTY_ID), anyString(),
+                any(), anyString(), anyString(), eq(SupervisionActionType.YIELD_PRICE_ADJUST),
+                anyString(), anyLong(), anyString());
+        assertThat(capturedJournalLines()).allSatisfy(line ->
+                assertThat(line.getMode()).isEqualTo(YieldAdjustment.Mode.SUGGESTED));
+        verifyNoInteractions(searchCacheInvalidator);
     }
 
     @Test
