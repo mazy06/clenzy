@@ -13,7 +13,10 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -45,8 +48,10 @@ public class BusinessAnalyticsScanner {
     private static final double UNDERPERFORM_OCC_PCT = 40.0;
     /** Probabilité de remplissage retenue pour estimer l'impact € d'une remise (≈ /reports, 0.7). */
     private static final double FILL_PROBABILITY = 0.7;
-    /** Baisse tarifaire proposée (%). */
+    /** Baisse tarifaire de référence (%) — modulée par le délai en multi-segment. */
     private static final int PRICE_DROP_PERCENT = 12;
+    /** Plafond de remise proposée (%) — garde-fou du yield multi-segment. */
+    private static final int MAX_DISCOUNT_PERCENT = 25;
     /** Longueur max du créneau remisé (on ne brade pas un trimestre entier). */
     private static final int MAX_DISCOUNT_NIGHTS = 21;
     /** En-deçà, un trou n'est pas jugé assez significatif pour une remise. */
@@ -122,9 +127,11 @@ public class BusinessAnalyticsScanner {
             boolean forwardCarded = false;
             final double forwardOccupancy = performanceService.forwardOccupancyRate(propertyId, FORWARD_WINDOW_DAYS);
             if (forwardOccupancy < thr.occupancyLow()) {
-                final LocalDate[] gap = findNextAvailableGap(orgId, propertyId);
-                if (gap != null) {
-                    emitPriceDrop(orgId, propertyId, gap[0], gap[1], forwardOccupancy, thr, adr);
+                // Yield multi-segment : une remise différenciée par créneau creux (délai/last-minute),
+                // en UNE seule proposition. Si vacance dispersée (aucun bloc contigu) → advisory.
+                final List<LocalDate[]> gaps = findAllAvailableGaps(orgId, propertyId);
+                if (!gaps.isEmpty()) {
+                    emitMultiSegmentPriceDrop(orgId, propertyId, gaps, forwardOccupancy, thr, adr);
                 } else {
                     emitForwardUnderperformance(orgId, propertyId, forwardOccupancy, thr, adr);
                 }
@@ -169,14 +176,15 @@ public class BusinessAnalyticsScanner {
     }
 
     /**
-     * Premier créneau CONTIGU de nuits libres à venir (dans la fenêtre forward),
-     * borné à {@link #MAX_DISCOUNT_NIGHTS}. {@code null} si le logement est réservé
-     * sur tout l'horizon proche ou si le trou est trop court ({@link #MIN_GAP_NIGHTS}).
+     * TOUS les créneaux CONTIGUS de nuits libres à venir (fenêtre forward), chacun ≥
+     * {@link #MIN_GAP_NIGHTS} et borné à {@link #MAX_DISCOUNT_NIGHTS} — base du yield
+     * multi-segment (une remise différenciée par créneau, en une passe). Liste vide si
+     * le logement est complet sur l'horizon proche (vacance nulle ou trous trop courts).
      *
      * <p>Disponibilité déduite des réservations non annulées (une nuit
-     * {@code [checkIn, checkOut)} est occupée). Retourne {@code [from, toExclusif)}.</p>
+     * {@code [checkIn, checkOut)} est occupée). Chaque entrée = {@code [from, toExclusif)}.</p>
      */
-    private LocalDate[] findNextAvailableGap(Long orgId, Long propertyId) {
+    private List<LocalDate[]> findAllAvailableGaps(Long orgId, Long propertyId) {
         final LocalDate start = LocalDate.now(clock).plusDays(1);
         final LocalDate horizon = start.plusDays(FORWARD_WINDOW_DAYS);
 
@@ -192,28 +200,52 @@ public class BusinessAnalyticsScanner {
             }
         }
 
-        // Première nuit libre.
+        final List<LocalDate[]> gaps = new ArrayList<>();
         LocalDate gapStart = null;
         for (LocalDate d = start; d.isBefore(horizon); d = d.plusDays(1)) {
-            if (!booked.contains(d)) {
-                gapStart = d;
-                break;
+            final boolean free = !booked.contains(d);
+            if (free && gapStart == null) {
+                gapStart = d; // ouverture d'un nouveau créneau
+                continue;
+            }
+            if (gapStart == null) {
+                continue;
+            }
+            // Clôture à d (exclusif) si nuit réservée OU longueur max atteinte.
+            final boolean maxed = ChronoUnit.DAYS.between(gapStart, d) >= MAX_DISCOUNT_NIGHTS;
+            if (!free || maxed) {
+                addGapIfLongEnough(gaps, gapStart, d);
+                gapStart = (maxed && free) ? d : null; // un bloc maxé mais libre repart à d
             }
         }
-        if (gapStart == null) {
-            return null; // logement complet sur l'horizon proche
+        if (gapStart != null) {
+            addGapIfLongEnough(gaps, gapStart, horizon);
         }
-        // Extension du créneau contigu, borné.
-        LocalDate gapEnd = gapStart; // exclusif
-        while (gapEnd.isBefore(horizon)
-                && !booked.contains(gapEnd)
-                && ChronoUnit.DAYS.between(gapStart, gapEnd) < MAX_DISCOUNT_NIGHTS) {
-            gapEnd = gapEnd.plusDays(1);
+        return gaps;
+    }
+
+    private void addGapIfLongEnough(List<LocalDate[]> gaps, LocalDate from, LocalDate toExclusive) {
+        if (ChronoUnit.DAYS.between(from, toExclusive) >= MIN_GAP_NIGHTS) {
+            gaps.add(new LocalDate[]{from, toExclusive});
         }
-        if (ChronoUnit.DAYS.between(gapStart, gapEnd) < MIN_GAP_NIGHTS) {
-            return null; // trou trop court pour justifier une remise
+    }
+
+    /**
+     * Remise proposée pour un créneau selon le DÉLAI (lead time) — logique yield :
+     * un créneau creux proche se brade plus (urgence last-minute), un lointain moins.
+     * Bornée autour du taux configuré {@code base} : proche = base+3, moyen = base, lointain = base−5.
+     */
+    private int discountForLeadTime(LocalDate gapStart, int base) {
+        final long daysAhead = ChronoUnit.DAYS.between(LocalDate.now(clock), gapStart);
+        final int pct;
+        if (daysAhead < 14) {
+            pct = base + 3;      // last-minute : incitation forte
+        } else if (daysAhead <= 45) {
+            pct = base;          // moyen terme : taux de référence
+        } else {
+            pct = base - 5;      // lointain : ajustement léger
         }
-        return new LocalDate[]{gapStart, gapEnd};
+        return Math.max(3, Math.min(pct, MAX_DISCOUNT_PERCENT));
     }
 
     /**
@@ -245,33 +277,50 @@ public class BusinessAnalyticsScanner {
                 null, null, impactCents > 0 ? impactCents : null, "warning");
     }
 
-    private void emitPriceDrop(Long orgId, Long propertyId, LocalDate from, LocalDate toExclusive,
-                               double forwardOccupancy, Thresholds thr, double adr) {
-        final long nights = ChronoUnit.DAYS.between(from, toExclusive);
-        final int percent = thr.priceDropPercent();
+    /**
+     * Yield MULTI-SEGMENT : pour chaque créneau creux à venir, une remise différenciée selon
+     * le délai (last-minute plus fort). Émet UNE seule carte HITL portant TOUS les segments
+     * (params {@code {"segments":[{from,to,percent}, …]}}), avec l'impact € cumulé. L'opérateur
+     * ajuste/valide chaque segment dans la modale ; l'apply écrit un RateOverride par nuit de
+     * chaque segment (visible dans « Prix dynamique »). Titre STABLE (dédup/cooldown) : ni dates ni %.
+     */
+    private void emitMultiSegmentPriceDrop(Long orgId, Long propertyId, List<LocalDate[]> gaps,
+                                           double forwardOccupancy, Thresholds thr, double adr) {
+        final int base = thr.priceDropPercent();
+        final List<Map<String, Object>> segments = new ArrayList<>(gaps.size());
+        double totalImpact = 0;
+        final StringBuilder detail = new StringBuilder();
+        for (int i = 0; i < gaps.size(); i++) {
+            final LocalDate from = gaps.get(i)[0];
+            final LocalDate toExclusive = gaps.get(i)[1];
+            final long nights = ChronoUnit.DAYS.between(from, toExclusive);
+            final int percent = discountForLeadTime(from, base);
+            final Map<String, Object> seg = new LinkedHashMap<>();
+            seg.put("from", from.toString());
+            seg.put("to", toExclusive.toString()); // exclusif
+            seg.put("percent", percent);
+            segments.add(seg);
+            totalImpact += nights * adr * FILL_PROBABILITY;
+            detail.append(String.format("%s→%s −%d %%%s",
+                    RANGE_FMT.format(from), RANGE_FMT.format(toExclusive.minusDays(1)), percent,
+                    i < gaps.size() - 1 ? " · " : "."));
+        }
         final String params;
         try {
-            params = objectMapper.writeValueAsString(Map.of(
-                    "from", from.toString(),
-                    "to", toExclusive.toString(),
-                    "percent", percent));
+            params = objectMapper.writeValueAsString(Map.of("segments", segments));
         } catch (Exception e) {
-            log.debug("price-drop params serialization failed property={}: {}", propertyId, e.getMessage());
+            log.debug("multi-segment params serialization failed property={}: {}", propertyId, e.getMessage());
             return;
         }
-        // Impact € estimé du remplissage de ce créneau (≈ /reports « nuits à combler ») :
-        // nuits libres × ADR × probabilité de remplissage. null si ADR inconnu (0).
-        final long impactCents = Math.round(nights * adr * FILL_PROBABILITY * 100);
-        // Titre STABLE (sans dates ni %) → dédup fiable ; la plage et le chiffre
-        // (fluctuants) vont dans le motif.
+        final long impactCents = Math.round(totalImpact * 100);
+        final String motif = String.format(
+                "Occupation de %d %% sur les %d prochains jours (seuil %d %%). %d créneau%s creux à optimiser : %s",
+                Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, (long) Math.round(thr.occupancyLow()),
+                gaps.size(), gaps.size() > 1 ? "x" : "", detail);
         suggestionService.recordActionable(
                 orgId, propertyId, "rev",
-                String.format("Baisser le tarif de −%d %% sur le prochain créneau libre", percent),
-                String.format("Nuits libres du %s au %s (%d nuit%s). Occupation de %d %% sur les %d prochains "
-                                + "jours (seuil %d %%). Une baisse ciblée sur ce créneau peut le remplir.",
-                        RANGE_FMT.format(from), RANGE_FMT.format(toExclusive.minusDays(1)),
-                        nights, nights > 1 ? "s" : "",
-                        Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, (long) Math.round(thr.occupancyLow())),
+                "Optimiser les tarifs des créneaux creux à venir",
+                motif,
                 SupervisionActionType.PRICE_DROP, params, impactCents > 0 ? impactCents : null, "warning");
     }
 }

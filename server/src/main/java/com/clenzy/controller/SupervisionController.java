@@ -13,6 +13,7 @@ import com.clenzy.service.PayoutReminderService;
 import com.clenzy.service.UnpaidServiceRequestCardService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.agent.supervision.SupervisionConversationService;
+import com.clenzy.service.agent.supervision.PriceSuggestionService;
 import com.clenzy.service.agent.supervision.SupervisionPortfolioService;
 import com.clenzy.service.agent.supervision.SupervisionReportService;
 import com.clenzy.service.agent.supervision.SupervisionScanService;
@@ -57,6 +58,7 @@ public class SupervisionController {
     private final SupervisionSseRegistry sseRegistry;
     private final PayoutReminderService payoutReminderService;
     private final UnpaidServiceRequestCardService unpaidServiceRequestCardService;
+    private final PriceSuggestionService priceSuggestionService;
     private final TenantContext tenantContext;
 
     public SupervisionController(SupervisionActivityService activityService,
@@ -68,6 +70,7 @@ public class SupervisionController {
                                  SupervisionSseRegistry sseRegistry,
                                  PayoutReminderService payoutReminderService,
                                  UnpaidServiceRequestCardService unpaidServiceRequestCardService,
+                                 PriceSuggestionService priceSuggestionService,
                                  TenantContext tenantContext) {
         this.activityService = activityService;
         this.scanService = scanService;
@@ -78,6 +81,7 @@ public class SupervisionController {
         this.sseRegistry = sseRegistry;
         this.payoutReminderService = payoutReminderService;
         this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
+        this.priceSuggestionService = priceSuggestionService;
         this.tenantContext = tenantContext;
     }
 
@@ -198,6 +202,48 @@ public class SupervisionController {
     public ResponseEntity<Void> applySuggestion(@PathVariable Long id) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         suggestionService.apply(orgId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Segment de prix édité dans la modale : plage [from, to) (to exclusif) + remise % (baisse). */
+    public record PriceSegmentRequest(java.time.LocalDate from, java.time.LocalDate to, int percent) {}
+
+    /** Corps de la simulation yield multi-segment. */
+    public record SimulatePricingRequest(Long propertyId, List<PriceSegmentRequest> segments) {}
+
+    /** Corps de l'application des segments validés. */
+    public record ApplyCustomRequest(List<PriceSegmentRequest> segments) {}
+
+    private static List<PriceSuggestionService.SegmentInput> toSegments(List<PriceSegmentRequest> reqs) {
+        if (reqs == null || reqs.isEmpty()) {
+            throw new IllegalArgumentException("Au moins un segment est requis");
+        }
+        return reqs.stream()
+                .map(s -> new PriceSuggestionService.SegmentInput(s.from(), s.to(), s.percent()))
+                .toList();
+    }
+
+    /**
+     * POST /api/ai/supervision/simulate-pricing — prévision occupation/revenu (base→projeté)
+     * d'un ajustement multi-segment, sur les valeurs éditées dans la modale. Read-only, org-scopé.
+     */
+    @PostMapping("/simulate-pricing")
+    public ResponseEntity<PriceSuggestionService.SimulationResult> simulatePricing(
+            @RequestBody SimulatePricingRequest req, @AuthenticationPrincipal Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(priceSuggestionService.simulate(
+                orgId, jwt.getSubject(), req.propertyId(), toSegments(req.segments())));
+    }
+
+    /**
+     * POST /api/ai/supervision/suggestions/{id}/apply-custom — applique les segments de prix
+     * validés/édités dans la modale (écrit les RateOverride, visibles dans « Prix dynamique »).
+     * Org-scopé, CAS PENDING→APPLIED côté service.
+     */
+    @PostMapping("/suggestions/{id}/apply-custom")
+    public ResponseEntity<Void> applyCustomPricing(@PathVariable Long id, @RequestBody ApplyCustomRequest req) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        priceSuggestionService.applyCustom(orgId, id, toSegments(req.segments()));
         return ResponseEntity.noContent().build();
     }
 

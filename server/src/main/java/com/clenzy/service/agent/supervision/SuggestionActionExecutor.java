@@ -34,6 +34,8 @@ import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Exécute l'action portée par une suggestion actionnable (Phase B + vague 3).
@@ -318,24 +320,46 @@ public class SuggestionActionExecutor {
 
     private void applyPriceDrop(SupervisionSuggestion suggestion) {
         final JsonNode params = parseParams(suggestion.getActionParams());
-        final LocalDate from = LocalDate.parse(params.path("from").asText());
-        final LocalDate to = LocalDate.parse(params.path("to").asText()); // exclusif
-        final int percent = params.path("percent").asInt();
-        if (!from.isBefore(to)) {
-            throw new IllegalStateException("Plage invalide : from >= to");
-        }
-        if (percent <= 0 || percent > MAX_PERCENT) {
-            throw new IllegalStateException("Pourcentage de baisse hors bornes : " + percent);
-        }
-
         final Long propertyId = suggestion.getPropertyId();
         final Long orgId = suggestion.getOrganizationId();
         final Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new IllegalStateException("Logement introuvable : " + propertyId));
         final String currency = property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR";
+
+        // Yield multi-segment : {"segments":[{from,to,percent}, …]} ; rétro-compat segment unique {from,to,percent}.
+        final List<JsonNode> segments = new ArrayList<>();
+        if (params.has("segments") && params.get("segments").isArray()) {
+            params.get("segments").forEach(segments::add);
+        } else {
+            segments.add(params);
+        }
+        if (segments.isEmpty()) {
+            throw new IllegalStateException("Aucun segment de prix à appliquer");
+        }
+
+        int applied = 0;
+        for (JsonNode seg : segments) {
+            final LocalDate from = LocalDate.parse(seg.path("from").asText());
+            final LocalDate to = LocalDate.parse(seg.path("to").asText()); // exclusif
+            final int percent = seg.path("percent").asInt();
+            if (!from.isBefore(to)) {
+                throw new IllegalStateException("Plage invalide : from >= to");
+            }
+            if (percent <= 0 || percent > MAX_PERCENT) {
+                throw new IllegalStateException("Pourcentage de baisse hors bornes : " + percent);
+            }
+            applied += applyDropOnRange(property, orgId, propertyId, from, to, percent, currency);
+        }
+        searchCacheInvalidator.onAvailabilityOrPriceChanged();
+        log.info("PRICE_DROP appliqué org={} property={} : {} segment(s), {} nuit(s)",
+                orgId, propertyId, segments.size(), applied);
+    }
+
+    /** Applique une baisse de {@code percent}% sur chaque nuit de la plage [from, to) (RateOverride). */
+    private int applyDropOnRange(Property property, Long orgId, Long propertyId,
+                                 LocalDate from, LocalDate to, int percent, String currency) {
         final BigDecimal factor = BigDecimal.ONE.subtract(
                 BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100)));
-
         int applied = 0;
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
             final BigDecimal current = priceEngine.resolvePrice(propertyId, date, orgId);
@@ -354,9 +378,7 @@ public class SuggestionActionExecutor {
             rateOverrideRepository.save(override);
             applied++;
         }
-        searchCacheInvalidator.onAvailabilityOrPriceChanged();
-        log.info("PRICE_DROP appliqué org={} property={} {}→{} −{}% ({} jour(s))",
-                orgId, propertyId, from, to, percent, applied);
+        return applied;
     }
 
     /**

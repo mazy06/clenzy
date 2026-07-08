@@ -251,6 +251,24 @@ public class SupervisionSuggestionService {
     }
 
     /**
+     * Remplace les paramètres d'une suggestion de prix par ceux édités dans la modale
+     * (yield multi-segment) avant application. Force {@code actionType = PRICE_DROP} pour
+     * qu'une carte advisory (occupation faible sans action) devienne applicable. Org-scopé,
+     * PENDING uniquement. {@code apply} est ensuite appelé séparément (proxy → sa propre tx).
+     */
+    @Transactional
+    public void setCustomPriceParams(Long organizationId, Long suggestionId, String actionParamsJson) {
+        SupervisionSuggestion s = repository.findByIdAndOrganizationId(suggestionId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Suggestion introuvable : " + suggestionId));
+        if (!SupervisionSuggestion.STATUS_PENDING.equals(s.getStatus())) {
+            throw new IllegalStateException("Suggestion déjà traitée");
+        }
+        s.setActionType(SupervisionActionType.PRICE_DROP);
+        s.setActionParams(actionParamsJson);
+        repository.save(s);
+    }
+
+    /**
      * Applique l'action d'une suggestion actionnable (ownership org-scopé :
      * une suggestion d'une autre org est introuvable → 404).
      *
