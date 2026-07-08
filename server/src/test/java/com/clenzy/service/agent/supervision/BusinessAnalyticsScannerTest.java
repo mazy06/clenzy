@@ -6,6 +6,7 @@ import com.clenzy.repository.SupervisionModuleSettingsRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -16,12 +17,12 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,18 +57,22 @@ class BusinessAnalyticsScannerTest {
     }
 
     @Test
-    void lowForwardOccupancy_withFreeGap_emitsPriceDropWithImpact() {
+    void lowForwardOccupancy_withFreeGaps_emitsMultiSegmentPriceDropWithImpact() {
         when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "rev")).thenReturn(Optional.empty());
         when(performanceService.compute(PROP)).thenReturn(perf(20.0, "5000", 70.0));
         when(performanceService.forwardOccupancyRate(PROP, 90)).thenReturn(30.0); // < 55 → creux à venir
-        when(reservationRepository.findByPropertyId(PROP, ORG)).thenReturn(List.of()); // aucun booking → gap libre
+        when(reservationRepository.findByPropertyId(PROP, ORG)).thenReturn(List.of()); // aucun booking → 90 j libres
 
         scanner().scanProperty(ORG, PROP);
 
-        // Carte actionnable de baisse tarifaire, avec impact € strictement positif.
+        // Carte actionnable multi-segment (PRICE_DROP), impact € strictement positif ; les
+        // params portent un tableau "segments".
+        ArgumentCaptor<String> params = ArgumentCaptor.forClass(String.class);
         verify(suggestionService).recordActionable(eq(ORG), eq(PROP), eq("rev"),
-                startsWith("Baisser le tarif"), anyString(), eq(SupervisionActionType.PRICE_DROP),
-                anyString(), argThat(c -> c != null && c > 0), eq("warning"));
+                eq("Optimiser les tarifs des créneaux creux à venir"), anyString(),
+                eq(SupervisionActionType.PRICE_DROP), params.capture(),
+                argThat(c -> c != null && c > 0), eq("warning"));
+        assertThat(params.getValue()).contains("\"segments\"");
     }
 
     @Test
