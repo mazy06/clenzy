@@ -244,6 +244,40 @@ public class ConversationService {
     }
 
     /**
+     * Concierge IA — l'opérateur VALIDE le brouillon et l'envoie (chemin humain :
+     * {@link #sendOutboundMessage}, donc compté comme reprise humaine). Le brouillon
+     * est consommé. No-op si aucun brouillon.
+     */
+    @Transactional
+    public com.clenzy.dto.ConversationDto sendAiDraft(Long orgId, Long conversationId, String operatorKeycloakId) {
+        Conversation conversation = conversationRepository.findByIdAndOrganizationId(conversationId, orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation introuvable: " + conversationId));
+        String draft = conversation.getAiDraftReply();
+        if (draft != null && !draft.isBlank()) {
+            String senderName = userRepository.findByKeycloakId(operatorKeycloakId)
+                    .map(com.clenzy.model.User::getFullName)
+                    .filter(n -> n != null && !n.isBlank())
+                    .orElse("Hôte");
+            sendOutboundMessage(conversation, senderName, operatorKeycloakId, draft, null);
+            conversation.setAiDraftReply(null);
+            conversation.setAiDraftMeta(null);
+            conversationRepository.save(conversation);
+        }
+        return com.clenzy.dto.ConversationDto.from(conversation);
+    }
+
+    /** Concierge IA — l'opérateur rejette le brouillon (sans envoi). */
+    @Transactional
+    public com.clenzy.dto.ConversationDto dismissAiDraft(Long orgId, Long conversationId) {
+        Conversation conversation = conversationRepository.findByIdAndOrganizationId(conversationId, orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation introuvable: " + conversationId));
+        conversation.setAiDraftReply(null);
+        conversation.setAiDraftMeta(null);
+        conversationRepository.save(conversation);
+        return com.clenzy.dto.ConversationDto.from(conversation);
+    }
+
+    /**
      * Envoi reel d'une reponse host -> guest via WhatsApp (canal WHATSAPP).
      * Recharge la conversation (managed) pour acceder au guest/property (LAZY),
      * verifie la fenetre de service 24h Meta, signe le message (host + propriete),

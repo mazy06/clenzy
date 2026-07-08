@@ -18,6 +18,7 @@ import {
   Unarchive as UnarchiveIcon,
   Link as LinkIcon,
   Description as TemplateIcon,
+  AutoAwesome as AiIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -25,6 +26,8 @@ import {
   useSendMessage,
   useUpdateConversationStatus,
   useSendTemplate,
+  useSendAiDraft,
+  useDismissAiDraft,
 } from '../../hooks/useConversations';
 import type { ConversationDto } from '../../services/api/conversationApi';
 import { getChannelConfig, conversationTitle } from './channelConfig';
@@ -69,6 +72,18 @@ export default function ConversationDetailPanel({
   const sendMessageMutation = useSendMessage();
   const updateStatusMutation = useUpdateConversationStatus();
   const sendTemplateMutation = useSendTemplate();
+  const sendAiDraftMutation = useSendAiDraft();
+  const dismissAiDraftMutation = useDismissAiDraft();
+
+  // Concierge IA : brouillon de réponse à valider (C1). L'opérateur envoie,
+  // édite (le brouillon passe dans la saisie) ou rejette. Jamais envoyé sans lui.
+  const aiDraft = conversation.aiDraftReply;
+  const handleSendDraft = () => sendAiDraftMutation.mutate(conversation.id);
+  const handleDismissDraft = () => dismissAiDraftMutation.mutate(conversation.id);
+  const handleEditDraft = () => {
+    if (aiDraft) setReplyText(aiDraft);
+    dismissAiDraftMutation.mutate(conversation.id);
+  };
 
   const channelCfg = getChannelConfig(conversation.channel);
   const title = conversationTitle(conversation);
@@ -344,6 +359,44 @@ export default function ConversationDetailPanel({
       {/* ── Réponse (masquée en lecture seule) ───────────────────────────── */}
       {!archivedOnly && (
         <Box sx={{ flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+          {/* Concierge IA : brouillon à valider (C1) — jamais envoyé sans l'opérateur. */}
+          {aiDraft && (
+            <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, color: 'primary.main' }}>
+                <AiIcon size={16} />
+                <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  {t('concierge.draftTitle', 'Brouillon Concierge IA')}
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
+                {aiDraft}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<SendIcon size={14} />}
+                  onClick={handleSendDraft}
+                  disabled={sendAiDraftMutation.isPending || whatsappWindowExpired}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
+                >
+                  {t('common.send', 'Envoyer')}
+                </Button>
+                <Button size="small" variant="text" onClick={handleEditDraft} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                  {t('common.edit', 'Éditer')}
+                </Button>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={handleDismissDraft}
+                  disabled={dismissAiDraftMutation.isPending}
+                  sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
+                >
+                  {t('common.reject', 'Rejeter')}
+                </Button>
+              </Box>
+            </Box>
+          )}
           {whatsappWindowExpired && (
             <Alert
               severity="warning"

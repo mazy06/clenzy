@@ -23,6 +23,10 @@ export interface ConversationDto {
   checkOut: string | null;
   /** Identifiant externe : numéro brut pour WhatsApp (formaté à l'affichage). */
   externalConversationId: string | null;
+  /** Concierge IA : brouillon de réponse à valider (null si aucun). */
+  aiDraftReply: string | null;
+  /** Méta du brouillon (JSON : sentiment, urgence, ton…). */
+  aiDraftMeta: string | null;
 }
 
 export interface ConversationMessageDto {
@@ -115,4 +119,12 @@ export const conversationApi = {
   /** Envoi proactif d'un template WhatsApp depuis une réservation (crée la conversation au besoin). */
   sendTemplateForReservation: (reservationId: number, templateKey: string): Promise<ConversationDto> =>
     apiClient.post(`${BASE}/reservation/${reservationId}/send-template`, { templateKey }),
+
+  /** Concierge IA : valide et envoie le brouillon suggéré au guest. */
+  sendAiDraft: (conversationId: number): Promise<ConversationDto> =>
+    apiClient.post(`${BASE}/${conversationId}/ai-draft/send`),
+
+  /** Concierge IA : rejette le brouillon (sans envoi). */
+  dismissAiDraft: (conversationId: number): Promise<ConversationDto> =>
+    apiClient.post(`${BASE}/${conversationId}/ai-draft/dismiss`),
 };
