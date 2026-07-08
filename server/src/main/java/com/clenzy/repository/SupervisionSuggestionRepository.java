@@ -47,6 +47,14 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
             Long organizationId, Long propertyId, String moduleKey, String title, String status);
 
+    /**
+     * Cooldown anti-re-suggestion : une carte identique a-t-elle été rejetée récemment ?
+     * (même org/logement/module/intitulé, statut donné, {@code dismissed_at} après le seuil).
+     */
+    boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+            Long organizationId, Long propertyId, String moduleKey, String title, String status,
+            Instant dismissedAfter);
+
     /** Chargement ownership-safe (org du requester) pour le rejet. */
     Optional<SupervisionSuggestion> findByIdAndOrganizationId(Long id, Long organizationId);
 

@@ -3215,3 +3215,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0333__add_platform_concierge_flags.sql
         relativeToChangelogFile: true
+
+  # Cooldown anti-re-suggestion : horodatage de rejet d'une carte de supervision.
+  - changeSet:
+      id: "0334-add-supervision-suggestion-dismissed-at"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0334__add_supervision_suggestion_dismissed_at.sql
+        relativeToChangelogFile: true

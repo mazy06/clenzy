@@ -16,7 +16,7 @@
 
 import { useState } from 'react';
 import { Box, Button, Collapse, CircularProgress, IconButton } from '@mui/material';
-import { Check, Edit, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
+import { Check, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
 import { useCountdown, type Countdown } from '../core/useCountdown';
@@ -235,16 +235,18 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
             color="inherit"
             disabled={resolving}
             onClick={edit}
-            startIcon={isReminder ? <VisibilityOff size={14} /> : isPayment ? <Schedule size={14} /> : isApply ? <VisibilityOff size={14} /> : <Edit size={14} />}
+            startIcon={isPayment ? <Schedule size={14} /> : <VisibilityOff size={14} />}
             sx={{ textTransform: 'none', fontWeight: 500, fontSize: 12, color: 'var(--ink)', borderColor: 'var(--line-2)', '&:hover': { borderColor: 'var(--muted)', bgcolor: 'transparent' } }}
           >
+            {/* Le bouton secondaire ÉCARTE la suggestion (dismiss serveur) : aucun éditeur
+                métier n'est câblé (onEditAction non fourni). On l'étiquette donc honnêtement
+                « Ignorer » pour toute carte non-paiement/non-rappel — jamais « Modifier »,
+                qui laissait croire à une édition et faisait disparaître la carte. */}
             {isPayment
               ? t('supervision.payment.later', 'Plus tard')
               : isReminder
                 ? t('supervision.reminder.mute', 'Ne plus afficher')
-                : isApply
-                  ? t('supervision.apply.dismiss', 'Ignorer')
-                  : t('supervision.hitl.edit')}
+                : t('supervision.apply.dismiss', 'Ignorer')}
           </Button>
           {/* « Pourquoi ? » réduit à la flèche seule, sur la MÊME ligne que les
               deux boutons (poussée à droite). Le libellé passe en aria-label. */}
