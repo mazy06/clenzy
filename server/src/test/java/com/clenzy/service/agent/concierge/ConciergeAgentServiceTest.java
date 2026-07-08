@@ -61,6 +61,7 @@ class ConciergeAgentServiceTest {
     @Mock private TenantScopedExecutor tenantScopedExecutor;
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private ValueOperations<String, String> valueOps;
+    @Mock private com.clenzy.repository.UserRepository userRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private ConciergeAgentService service;   // draft on, autosend OFF (C1)
@@ -81,7 +82,15 @@ class ConciergeAgentServiceTest {
     private ConciergeAgentService build(boolean draft, boolean autosend) {
         return new ConciergeAgentService(aiAssist, conversationRepository, conversationService,
                 moduleSettingsRepository, classifier, activityService, notificationService,
-                runCreditGuard, tenantScopedExecutor, redisTemplate, objectMapper, draft, autosend);
+                runCreditGuard, tenantScopedExecutor, redisTemplate, objectMapper, userRepository,
+                draft, autosend, "premium");
+    }
+
+    private void stubOrgForfait(String forfait) {
+        com.clenzy.model.User payer = new com.clenzy.model.User();
+        payer.setForfait(forfait);
+        when(userRepository.findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(ORG))
+                .thenReturn(Optional.of(payer));
     }
 
     private void stubConvAndCredits() {
@@ -165,6 +174,7 @@ class ConciergeAgentServiceTest {
         when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "com"))
                 .thenReturn(Optional.of(new SupervisionModuleSettings(ORG, "com", true, SupervisionAutonomy.NOTIFY)));
         when(classifier.classify(anyString(), any())).thenReturn(new ConciergeDecision(true, "faq"));
+        stubOrgForfait("premium"); // palier premium atteint → auto-envoi autorisé
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
 
@@ -177,6 +187,27 @@ class ConciergeAgentServiceTest {
         ArgumentCaptor<Conversation> captor = ArgumentCaptor.forClass(Conversation.class);
         verify(conversationRepository).save(captor.capture());
         assertThat(captor.getValue().getAiDraftReply()).isNull(); // brouillon consommé
+    }
+
+    @Test
+    void processInbound_capsToDraft_whenForfaitBelowPremium() {
+        // C4 : NOTIFY/FULL + intention sûre, mais forfait < premium → jamais d'auto-envoi.
+        ConciergeAgentService auto = build(true, true);
+        stubConvAndCredits();
+        when(aiAssist.analyzeLastInbound(ORG, CONV))
+                .thenReturn(new ConversationAnalysisDto("POSITIVE", 0.9, false));
+        when(aiAssist.suggestReply(ORG, CONV))
+                .thenReturn(new AiSuggestedResponseDto("Le code wifi est 1234.", "friendly", "fr", List.of()));
+        when(moduleSettingsRepository.findByOrganizationIdAndModuleKey(ORG, "com"))
+                .thenReturn(Optional.of(new SupervisionModuleSettings(ORG, "com", true, SupervisionAutonomy.FULL)));
+        when(classifier.classify(anyString(), any())).thenReturn(new ConciergeDecision(true, "faq"));
+        stubOrgForfait("essentiel"); // < premium → auto-envoi refusé
+
+        auto.processInbound(ORG, CONV);
+
+        verify(conversationService, never()).sendAutonomousMessage(any(), anyString());
+        verify(activityService).recordModuleAct(eq(ORG), eq(PROP), eq("com"),
+                eq("concierge_drafted"), anyString());
     }
 
     @Test
