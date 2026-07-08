@@ -72,6 +72,10 @@ public class SupervisionSuggestion {
     @Column(name = "applied_at")
     private Instant appliedAt;
 
+    /** Horodatage de rejet (« Ignorer ») — sert le cooldown anti-re-suggestion d'une carte écartée. */
+    @Column(name = "dismissed_at")
+    private Instant dismissedAt;
+
     @Column(nullable = false, length = 20)
     private String status = STATUS_PENDING;
 
@@ -133,6 +137,9 @@ public class SupervisionSuggestion {
 
     public Instant getAppliedAt() { return appliedAt; }
     public void setAppliedAt(Instant appliedAt) { this.appliedAt = appliedAt; }
+
+    public Instant getDismissedAt() { return dismissedAt; }
+    public void setDismissedAt(Instant dismissedAt) { this.dismissedAt = dismissedAt; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

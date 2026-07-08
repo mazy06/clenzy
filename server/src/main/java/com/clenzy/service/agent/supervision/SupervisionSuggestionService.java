@@ -31,6 +31,9 @@ public class SupervisionSuggestionService {
 
     private static final Logger log = LoggerFactory.getLogger(SupervisionSuggestionService.class);
     private static final Duration TTL = Duration.ofDays(7);
+    /** Une carte « Ignorée » ne peut pas être re-suggérée avant ce délai (anti-spam au scan ;
+     *  au-delà, elle peut re-remonter si la situation persiste — pas de masquage définitif). */
+    private static final Duration DISMISS_COOLDOWN = Duration.ofDays(14);
     private static final int TITLE_MAX = 300;
     private static final int MOTIF_MAX = 500;
 
@@ -156,6 +159,15 @@ public class SupervisionSuggestionService {
         if (dup) {
             return java.util.Optional.empty();
         }
+        // Cooldown : une carte identique récemment IGNORÉE ne réapparaît pas au scan suivant
+        // (respecte le choix de l'opérateur ; re-remontera après DISMISS_COOLDOWN si ça persiste).
+        boolean recentlyDismissed = repository
+                .existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+                        organizationId, propertyId, moduleKey, safeTitle,
+                        SupervisionSuggestion.STATUS_DISMISSED, clock.instant().minus(DISMISS_COOLDOWN));
+        if (recentlyDismissed) {
+            return java.util.Optional.empty();
+        }
         SupervisionSuggestion s = new SupervisionSuggestion(
                 organizationId, propertyId, moduleKey, null, safeTitle,
                 truncate(motif, MOTIF_MAX), clock.instant().plus(TTL));
@@ -231,6 +243,7 @@ public class SupervisionSuggestionService {
     public void dismiss(Long organizationId, Long suggestionId) {
         repository.findByIdAndOrganizationId(suggestionId, organizationId).ifPresent(s -> {
             s.setStatus(SupervisionSuggestion.STATUS_DISMISSED);
+            s.setDismissedAt(clock.instant()); // base du cooldown anti-re-suggestion
             repository.save(s);
             // Temps réel (B6) : carte rejetée → retirée chez les autres opérateurs.
             realtimePublisher.publishPendingResolved(s.getPropertyId(), suggestionId, "edited", null);

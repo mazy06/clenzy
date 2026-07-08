@@ -189,4 +189,36 @@ class SupervisionSuggestionServiceApplyTest {
         verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
                 any(), any(), any(), any(), any());
     }
+
+    @Test
+    @DisplayName("carte récemment IGNORÉE -> pas re-suggérée (cooldown)")
+    void recordActionable_suppressedWhenRecentlyDismissed() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                ORG_ID, 7L, "rev", "Occupation à venir faible", "PENDING")).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("DISMISSED"), any()))
+                .thenReturn(true);
+
+        boolean created = service.recordActionableStrict(ORG_ID, 7L, "rev", null,
+                "Occupation à venir faible", "motif", null, null, null, "warning");
+
+        assertThat(created).isFalse();
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("carte non récemment ignorée -> créée normalement")
+    void recordActionable_createsWhenNotRecentlyDismissed() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                ORG_ID, 7L, "rev", "Occupation à venir faible", "PENDING")).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("DISMISSED"), any()))
+                .thenReturn(false);
+
+        boolean created = service.recordActionableStrict(ORG_ID, 7L, "rev", null,
+                "Occupation à venir faible", "motif", null, null, null, "info");
+
+        assertThat(created).isTrue();
+        verify(repository).save(any());
+    }
 }
