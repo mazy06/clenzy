@@ -16,7 +16,18 @@ public record PortfolioSnapshotDto(
         List<AgentRollup> agents,
         List<PendingCard> pending,
         List<FeedEntry> feed,
-        DayMetrics dayMetrics) {
+        DayMetrics dayMetrics,
+        List<OrgAlert> orgAlerts) {
+
+    /**
+     * Alerte de niveau PORTEFEUILLE (org) — indicateur global qui ne se rattache pas à
+     * un logement unique (occupation org, marge org, nuits vacantes cumulées). Distincte
+     * des cartes HITL par logement : affichée uniquement dans la vue portefeuille.
+     */
+    public record OrgAlert(
+            String severity,      // "critical" | "warning" | "info"
+            String title,
+            String description) {}
 
     /** Agrégat d'un agent (com/rev/ops/fin/rep) sur tout le parc. */
     public record AgentRollup(

@@ -40,6 +40,11 @@ public class BusinessAnalyticsScanner {
     private static final int FORWARD_WINDOW_DAYS = 90;
     /** En-dessous : marge nette jugée insuffisante → alerte informationnelle. */
     private static final double MARGIN_LOW_PCT = 50.0;
+    /** En-dessous : occupation RÉTROSPECTIVE (90 j) jugée basse → alerte « sous-performance »
+     *  (annonce/photos/prix). Seuil aligné sur /reports « sous-performe » (< 40 %). */
+    private static final double UNDERPERFORM_OCC_PCT = 40.0;
+    /** Probabilité de remplissage retenue pour estimer l'impact € d'une remise (≈ /reports, 0.7). */
+    private static final double FILL_PROBABILITY = 0.7;
     /** Baisse tarifaire proposée (%). */
     private static final int PRICE_DROP_PERCENT = 12;
     /** Longueur max du créneau remisé (on ne brade pas un trimestre entier). */
@@ -105,19 +110,49 @@ public class BusinessAnalyticsScanner {
     public void scanProperty(Long orgId, Long propertyId) {
         try {
             final Thresholds thr = resolveThresholds(orgId); // seuils configurables (B5), repli défauts
-            // Occupation À VENIR faible → baisse tarifaire CIBLÉE sur le prochain
-            // créneau réellement libre (fenêtre forward = ce qu'une remise remplit).
+            // Perf rétrospective (90 j) : occupation, revenu, marge — et l'ADR en est dérivé
+            // (prix moyen par nuit vendue) pour estimer l'impact € des cartes.
+            final PropertyPerformanceDto perf = performanceService.compute(propertyId);
+            final double adr = adrFrom(perf);
+
+            // Occupation À VENIR faible → carde TOUJOURS le logement (aligné /reports, qui
+            // flague un logement sous-performant qu'il y ait un créneau contigu ou non) :
+            //  - créneau libre contigu → baisse tarifaire CIBLÉE (action, impact €) ;
+            //  - sinon (vacance dispersée) → advisory « occupation à venir faible » (impact €).
+            boolean forwardCarded = false;
             final double forwardOccupancy = performanceService.forwardOccupancyRate(propertyId, FORWARD_WINDOW_DAYS);
             if (forwardOccupancy < thr.occupancyLow()) {
-                LocalDate[] gap = findNextAvailableGap(orgId, propertyId);
+                final LocalDate[] gap = findNextAvailableGap(orgId, propertyId);
                 if (gap != null) {
-                    emitPriceDrop(orgId, propertyId, gap[0], gap[1], forwardOccupancy, thr);
+                    emitPriceDrop(orgId, propertyId, gap[0], gap[1], forwardOccupancy, thr, adr);
+                } else {
+                    emitForwardUnderperformance(orgId, propertyId, forwardOccupancy, thr, adr);
                 }
+                forwardCarded = true;
+            }
+
+            // Observabilité : trace les chiffres réels utilisés par le scanner (pourquoi une
+            // carte est émise ou non), pour lever l'opacité côté diagnostic.
+            log.info("BusinessAnalytics org={} property={} : forwardOcc={}% retroOcc={}% adr={}€ marge={}% → forwardCarded={}",
+                    orgId, propertyId, Math.round(forwardOccupancy), Math.round(perf.occupancyRate()),
+                    Math.round(adr), Math.round(perf.netMargin()), forwardCarded);
+
+            // Sous-performance RÉTROSPECTIVE (annonce/photos/prix) → advisory info. Seuil aligné
+            // /reports « sous-performe » (< 40 %). Émise UNIQUEMENT si l'occupation à venir n'a
+            // pas déjà cardé le logement (anti-doublon).
+            if (!forwardCarded && perf.occupancyRate() < UNDERPERFORM_OCC_PCT) {
+                final long impactCents = Math.round(adr * 30 * 0.3 * 100);
+                suggestionService.recordActionable(
+                        orgId, propertyId, "rev",
+                        "Logement en sous-performance",
+                        String.format("Occupation de %d %% sur les 90 derniers jours (seuil %d %%). "
+                                + "Revoir l'annonce, les photos ou le prix.",
+                                Math.round(perf.occupancyRate()), Math.round(UNDERPERFORM_OCC_PCT)),
+                        null, null, impactCents > 0 ? impactCents : null, "info");
             }
 
             // Marge nette insuffisante → alerte informationnelle (module Finance).
             // Rétrospective (90 j passés) : la marge est un indicateur historique.
-            final PropertyPerformanceDto perf = performanceService.compute(propertyId);
             if (perf.revenue().signum() > 0 && perf.netMargin() < thr.marginLow()) {
                 suggestionService.recordActionable(
                         orgId, propertyId, "fin",
@@ -181,8 +216,37 @@ public class BusinessAnalyticsScanner {
         return new LocalDate[]{gapStart, gapEnd};
     }
 
+    /**
+     * ADR (prix moyen par nuit vendue) dérivé du DTO de perf : {@code revenue / nuits vendues},
+     * où les nuits vendues = {@code occupancyRate% × fenêtre}. {@code 0} si aucune nuit vendue.
+     * Évite d'élargir le DTO : tout est déjà porté par {@link PropertyPerformanceDto}.
+     */
+    private static double adrFrom(PropertyPerformanceDto perf) {
+        if (perf == null || perf.revenue() == null) return 0.0;
+        final double occupiedNights = (perf.occupancyRate() / 100.0) * perf.windowDays();
+        return occupiedNights >= 1.0 ? perf.revenue().doubleValue() / occupiedNights : 0.0;
+    }
+
+    /**
+     * Occupation à venir faible SANS créneau contigu remplissable (vacance dispersée) :
+     * on ne peut pas cibler une remise sur un bloc, mais le logement sous-performe quand même
+     * → carte advisory avec impact € estimé (nuits creuses à venir × ADR × probabilité).
+     */
+    private void emitForwardUnderperformance(Long orgId, Long propertyId, double forwardOccupancy,
+                                             Thresholds thr, double adr) {
+        final long vacantNights = Math.round((1.0 - forwardOccupancy / 100.0) * FORWARD_WINDOW_DAYS);
+        final long impactCents = Math.round(vacantNights * adr * FILL_PROBABILITY * 100);
+        suggestionService.recordActionable(
+                orgId, propertyId, "rev",
+                "Occupation à venir faible",
+                String.format("Occupation de %d %% sur les %d prochains jours (seuil %d %%). "
+                                + "Envisager une baisse de prix, une promo last-minute ou revoir l'annonce.",
+                        Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, (long) Math.round(thr.occupancyLow())),
+                null, null, impactCents > 0 ? impactCents : null, "warning");
+    }
+
     private void emitPriceDrop(Long orgId, Long propertyId, LocalDate from, LocalDate toExclusive,
-                               double forwardOccupancy, Thresholds thr) {
+                               double forwardOccupancy, Thresholds thr, double adr) {
         final long nights = ChronoUnit.DAYS.between(from, toExclusive);
         final int percent = thr.priceDropPercent();
         final String params;
@@ -195,6 +259,9 @@ public class BusinessAnalyticsScanner {
             log.debug("price-drop params serialization failed property={}: {}", propertyId, e.getMessage());
             return;
         }
+        // Impact € estimé du remplissage de ce créneau (≈ /reports « nuits à combler ») :
+        // nuits libres × ADR × probabilité de remplissage. null si ADR inconnu (0).
+        final long impactCents = Math.round(nights * adr * FILL_PROBABILITY * 100);
         // Titre STABLE (sans dates ni %) → dédup fiable ; la plage et le chiffre
         // (fluctuants) vont dans le motif.
         suggestionService.recordActionable(
@@ -205,6 +272,6 @@ public class BusinessAnalyticsScanner {
                         RANGE_FMT.format(from), RANGE_FMT.format(toExclusive.minusDays(1)),
                         nights, nights > 1 ? "s" : "",
                         Math.round(forwardOccupancy), FORWARD_WINDOW_DAYS, (long) Math.round(thr.occupancyLow())),
-                SupervisionActionType.PRICE_DROP, params, null, "warning");
+                SupervisionActionType.PRICE_DROP, params, impactCents > 0 ? impactCents : null, "warning");
     }
 }
