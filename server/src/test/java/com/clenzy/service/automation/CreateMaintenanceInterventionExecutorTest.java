@@ -167,7 +167,9 @@ class CreateMaintenanceInterventionExecutorTest {
                 eq(PROPERTY_ID), eq(ORG_ID), anyList(), anyString())).thenReturn(false);
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property(owner)));
 
+        LocalDate before = LocalDate.now(ZoneId.systemDefault());
         ExecutionResult result = executor.execute(rule(), noiseCtx());
+        LocalDate after = LocalDate.now(ZoneId.systemDefault());
 
         assertThat(result.skipped()).isFalse();
         ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
@@ -182,8 +184,9 @@ class CreateMaintenanceInterventionExecutorTest {
         assertThat(created.getDescription()).contains("4 alertes sur 24 h").contains("82 dB");
         assertThat(created.getSpecialInstructions())
                 .contains(CreateMaintenanceInterventionExecutor.noiseMarker(PROPERTY_ID));
+        // Lendemain 10:00 : fenetre before/after pour eviter le flake au passage de minuit.
         assertThat(created.getScheduledDate().toLocalDate())
-                .isEqualTo(LocalDate.now(ZoneId.systemDefault()).plusDays(1));
+                .isBetween(before.plusDays(1), after.plusDays(1));
     }
 
     @Test
@@ -264,8 +267,10 @@ class CreateMaintenanceInterventionExecutorTest {
                 eq(PROPERTY_ID), eq(ORG_ID), anyList(), anyString())).thenReturn(false);
         when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property(owner)));
 
+        LocalDate before = LocalDate.now(ZoneId.systemDefault());
         ExecutionResult result = executor.execute(rule(),
                 ctx(CreateMaintenanceInterventionExecutor.SUBJECT_SMART_LOCK_DEVICE, DEVICE_ID));
+        LocalDate after = LocalDate.now(ZoneId.systemDefault());
 
         assertThat(result.skipped()).isFalse();
         ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
@@ -281,9 +286,10 @@ class CreateMaintenanceInterventionExecutorTest {
         assertThat(created.getDescription()).contains("batterie critique").contains("8%");
         assertThat(created.getSpecialInstructions())
                 .contains(CreateMaintenanceInterventionExecutor.marker(DEVICE_ID));
-        // Lendemain 10:00 (fuseau du logement — repli systeme sans timezone)
+        // Lendemain 10:00 (fuseau du logement — repli systeme sans timezone) ;
+        // fenetre before/after pour eviter le flake au passage de minuit.
         assertThat(created.getScheduledDate().toLocalDate())
-                .isEqualTo(LocalDate.now(ZoneId.systemDefault()).plusDays(1));
+                .isBetween(before.plusDays(1), after.plusDays(1));
         assertThat(created.getScheduledDate().toLocalTime()).isEqualTo(LocalTime.of(10, 0));
     }
 }
