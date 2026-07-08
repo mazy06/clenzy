@@ -46,6 +46,21 @@ class ConciergeIntentClassifierTest {
     }
 
     @Test
+    void lateCheckout_isCrossDomain_notSafe_despiteContainingCheckout() {
+        // « checkout » est un mot FAQ, mais « late checkout » engage l'ops → hard-stop.
+        ConciergeDecision d = classifier.classify("Est-il possible d'avoir un late checkout ?", POSITIVE);
+        assertThat(d.autoSendSafe()).isFalse();
+        assertThat(d.reason()).isEqualTo("cross_domain");
+    }
+
+    @Test
+    void extraNightRequest_isCrossDomain() {
+        ConciergeDecision d = classifier.classify("Je voudrais une nuit supplémentaire.", POSITIVE);
+        assertThat(d.autoSendSafe()).isFalse();
+        assertThat(d.reason()).isEqualTo("cross_domain");
+    }
+
+    @Test
     void unknownIntent_isNotSafe() {
         ConciergeDecision d = classifier.classify("Je réfléchis encore à mon séjour.", POSITIVE);
         assertThat(d.autoSendSafe()).isFalse();

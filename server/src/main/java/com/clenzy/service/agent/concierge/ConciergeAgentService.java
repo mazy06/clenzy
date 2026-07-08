@@ -123,12 +123,15 @@ public class ConciergeAgentService {
                 return;
             }
 
-            // C2 — décision d'auto-envoi (triple garde). Non évaluée si l'auto-envoi
-            // est désactivé → comportement C1 strict (brouillon).
-            boolean autoSend = false;
-            if (autosendEnabled && resolveAutonomy(orgId) != SupervisionAutonomy.SUGGEST) {
-                autoSend = classifier.classify(conversation.getLastMessagePreview(), analysis).autoSendSafe();
-            }
+            // Classification (déterministe, gratuite) : décide l'auto-envoi (C2) et
+            // détecte les demandes cross-domaine à coordonner (C3).
+            final ConciergeDecision decision =
+                    classifier.classify(conversation.getLastMessagePreview(), analysis);
+            // C2 — auto-envoi sous triple garde. resolveAutonomy n'est évalué que si
+            // l'auto-envoi est activé (court-circuit) → C1 reste un simple brouillon.
+            final boolean autoSend = autosendEnabled
+                    && resolveAutonomy(orgId) != SupervisionAutonomy.SUGGEST
+                    && decision.autoSendSafe();
 
             if (autoSend && acquireLock(conversationId)) {
                 try {
@@ -150,7 +153,11 @@ public class ConciergeAgentService {
             conversationRepository.save(conversation);
             recordFeed(orgId, conversation, "concierge_drafted",
                     "Brouillon de réponse préparé pour le guest");
-            if (analysis != null && (analysis.urgent() || isNegative(analysis))) {
+            // C3 — demande à impact ops/revenue : escalade de coordination dédiée
+            // (l'humain vérifie calendrier/prestataire). Sinon escalade sur négatif/urgent.
+            if ("cross_domain".equals(decision.reason())) {
+                escalateCoordination(orgId, conversation);
+            } else if (analysis != null && (analysis.urgent() || isNegative(analysis))) {
                 escalate(orgId, conversation, analysis);
             }
         } catch (RuntimeException e) {
@@ -194,9 +201,18 @@ public class ConciergeAgentService {
     }
 
     private void escalate(Long orgId, Conversation conversation, ConversationAnalysisDto analysis) {
-        final String title = "Message guest à traiter en priorité";
-        final String message = "Sentiment " + analysis.sentiment()
-                + (analysis.urgent() ? " · urgent" : "");
+        notifyOwner(orgId, conversation, "Message guest à traiter en priorité",
+                "Sentiment " + analysis.sentiment() + (analysis.urgent() ? " · urgent" : ""));
+    }
+
+    /** C3 — la demande engage l'ops/revenue : l'humain coordonne avant de répondre. */
+    private void escalateCoordination(Long orgId, Conversation conversation) {
+        notifyOwner(orgId, conversation, "Demande guest à coordonner (ops / revenue)",
+                "Impact calendrier / prestataire (prolongation, late checkout…). "
+                        + "À vérifier et confirmer avant de répondre — un brouillon est prêt.");
+    }
+
+    private void notifyOwner(Long orgId, Conversation conversation, String title, String message) {
         final String url = "/contact?highlight=" + conversation.getId();
         if (conversation.getAssignedToKeycloakId() != null) {
             notificationService.notify(conversation.getAssignedToKeycloakId(),
