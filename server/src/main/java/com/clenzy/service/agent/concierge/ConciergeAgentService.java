@@ -6,8 +6,10 @@ import com.clenzy.model.Conversation;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.SupervisionAutonomy;
 import com.clenzy.model.SupervisionModuleSettings;
+import com.clenzy.model.User;
 import com.clenzy.repository.ConversationRepository;
 import com.clenzy.repository.SupervisionModuleSettingsRepository;
+import com.clenzy.repository.UserRepository;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.ai.RunCreditGuard;
@@ -26,6 +28,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -52,6 +55,8 @@ public class ConciergeAgentService {
     private static final Logger log = LoggerFactory.getLogger(ConciergeAgentService.class);
     private static final String COM_MODULE_KEY = "com";
     private static final Duration LOCK_TTL = Duration.ofSeconds(30);
+    /** Ordre croissant des forfaits — le palier premium borne l'auto-envoi (C4). */
+    private static final List<String> FORFAIT_ORDER = List.of("essentiel", "confort", "premium");
 
     private final ConversationAiAssistService aiAssist;
     private final ConversationRepository conversationRepository;
@@ -64,8 +69,11 @@ public class ConciergeAgentService {
     private final TenantScopedExecutor tenantScopedExecutor;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final UserRepository userRepository;
     private final boolean draftEnabled;
     private final boolean autosendEnabled;
+    /** Forfait minimal (palier premium) requis pour l'auto-envoi — monétisation C4. */
+    private final String autosendMinForfait;
 
     public ConciergeAgentService(ConversationAiAssistService aiAssist,
                                  ConversationRepository conversationRepository,
@@ -78,8 +86,10 @@ public class ConciergeAgentService {
                                  TenantScopedExecutor tenantScopedExecutor,
                                  StringRedisTemplate redisTemplate,
                                  ObjectMapper objectMapper,
+                                 UserRepository userRepository,
                                  @Value("${clenzy.concierge.draft.enabled:false}") boolean draftEnabled,
-                                 @Value("${clenzy.concierge.autosend.enabled:false}") boolean autosendEnabled) {
+                                 @Value("${clenzy.concierge.autosend.enabled:false}") boolean autosendEnabled,
+                                 @Value("${clenzy.concierge.autosend.min-forfait:premium}") String autosendMinForfait) {
         this.aiAssist = aiAssist;
         this.conversationRepository = conversationRepository;
         this.conversationService = conversationService;
@@ -91,8 +101,10 @@ public class ConciergeAgentService {
         this.tenantScopedExecutor = tenantScopedExecutor;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.userRepository = userRepository;
         this.draftEnabled = draftEnabled;
         this.autosendEnabled = autosendEnabled;
+        this.autosendMinForfait = autosendMinForfait;
     }
 
     @Async
@@ -127,11 +139,13 @@ public class ConciergeAgentService {
             // détecte les demandes cross-domaine à coordonner (C3).
             final ConciergeDecision decision =
                     classifier.classify(conversation.getLastMessagePreview(), analysis);
-            // C2 — auto-envoi sous triple garde. resolveAutonomy n'est évalué que si
-            // l'auto-envoi est activé (court-circuit) → C1 reste un simple brouillon.
+            // C2/C4 — auto-envoi sous quadruple garde. Évaluation courte-circuitée :
+            // C1 reste un simple brouillon si l'auto-envoi est off. Le palier premium
+            // (planAllowsAutosend) est vérifié en dernier — monétisation C4.
             final boolean autoSend = autosendEnabled
                     && resolveAutonomy(orgId) != SupervisionAutonomy.SUGGEST
-                    && decision.autoSendSafe();
+                    && decision.autoSendSafe()
+                    && planAllowsAutosend(orgId);
 
             if (autoSend && acquireLock(conversationId)) {
                 try {
@@ -171,6 +185,22 @@ public class ConciergeAgentService {
         return moduleSettingsRepository.findByOrganizationIdAndModuleKey(orgId, COM_MODULE_KEY)
                 .map(SupervisionModuleSettings::getAutonomyLevel)
                 .orElse(SupervisionAutonomy.SUGGEST);
+    }
+
+    /**
+     * Palier premium (C4) : l'auto-envoi n'est ouvert qu'aux orgs dont le forfait
+     * atteint le seuil configuré (défaut « premium »). Conservateur : forfait
+     * inconnu / seuil mal configuré → refus (draft only).
+     */
+    private boolean planAllowsAutosend(Long orgId) {
+        final String forfait = userRepository
+                .findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(orgId)
+                .map(User::getForfait)
+                .map(f -> f.toLowerCase(Locale.ROOT))
+                .orElse("");
+        final int have = FORFAIT_ORDER.indexOf(forfait);
+        final int need = FORFAIT_ORDER.indexOf(autosendMinForfait.toLowerCase(Locale.ROOT));
+        return have >= 0 && need >= 0 && have >= need;
     }
 
     private boolean acquireLock(Long conversationId) {

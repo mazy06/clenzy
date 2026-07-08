@@ -45,7 +45,12 @@ public class ConciergeIntentClassifier {
             "wifi", "wi-fi", "code", "check-in", "checkin", "arrivée", "arrival",
             "check-out", "checkout", "départ", "heure", "what time", "quelle heure",
             "adresse", "address", "parking", "direction", "où se trouve", "where is",
-            "comment aller", "how to get", "digicode", "clé", "key");
+            "comment aller", "how to get", "digicode", "clé", "key",
+            // C4 — élargissement à d'autres questions purement informationnelles.
+            "règlement", "house rules", "restaurant", "où manger", "where to eat",
+            "supermarché", "supermarket", "épicerie", "métro", "metro", "bus", "tram",
+            "taxi", "bagage", "luggage", "serviette", "towel", "drap", "chauffage",
+            "heating", "climatisation", "air conditioning", "machine à laver", "washing machine");
 
     /**
      * @param guestMessage dernier message du guest (déjà résolu par l'appelant)

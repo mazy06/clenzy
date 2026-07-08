@@ -68,6 +68,11 @@ class ConciergeIntentClassifierTest {
     }
 
     @Test
+    void broadenedFaq_restaurantRecommendation_isAutoSendSafe() {
+        assertThat(classifier.classify("Un bon restaurant à proximité ?", POSITIVE).autoSendSafe()).isTrue();
+    }
+
+    @Test
     void nullMessage_isNotSafe() {
         assertThat(classifier.classify(null, POSITIVE).autoSendSafe()).isFalse();
     }
