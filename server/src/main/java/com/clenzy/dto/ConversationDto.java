@@ -24,7 +24,10 @@ public record ConversationDto(
     // identifiant externe (numéro brut pour WhatsApp, formaté côté front).
     LocalDate checkIn,
     LocalDate checkOut,
-    String externalConversationId
+    String externalConversationId,
+    // Concierge IA : brouillon de réponse à valider + méta (sentiment, ton…).
+    String aiDraftReply,
+    String aiDraftMeta
 ) {
     public static ConversationDto from(Conversation c) {
         return new ConversationDto(
@@ -45,7 +48,9 @@ public record ConversationDto(
             c.getCreatedAt(),
             c.getReservation() != null ? c.getReservation().getCheckIn() : null,
             c.getReservation() != null ? c.getReservation().getCheckOut() : null,
-            c.getExternalConversationId()
+            c.getExternalConversationId(),
+            c.getAiDraftReply(),
+            c.getAiDraftMeta()
         );
     }
 }

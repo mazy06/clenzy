@@ -27,7 +27,8 @@ class ConversationDtoTest {
                 ConversationChannel.WHATSAPP, ConversationStatus.OPEN,
                 "Subject", "Preview", lastMessageAt,
                 "kc-user-1", true, 5, createdAt,
-                java.time.LocalDate.of(2026, 6, 1), java.time.LocalDate.of(2026, 6, 5), "33612345678@c.us"
+                java.time.LocalDate.of(2026, 6, 1), java.time.LocalDate.of(2026, 6, 5), "33612345678@c.us",
+                "Brouillon IA", "{\"sentiment\":\"POSITIVE\"}"
         );
 
         assertEquals(1L, dto.id());
@@ -48,6 +49,8 @@ class ConversationDtoTest {
         assertEquals(java.time.LocalDate.of(2026, 6, 1), dto.checkIn());
         assertEquals(java.time.LocalDate.of(2026, 6, 5), dto.checkOut());
         assertEquals("33612345678@c.us", dto.externalConversationId());
+        assertEquals("Brouillon IA", dto.aiDraftReply());
+        assertEquals("{\"sentiment\":\"POSITIVE\"}", dto.aiDraftMeta());
     }
 
     // --- from(entity) factory ---
@@ -169,10 +172,10 @@ class ConversationDtoTest {
     void records_equalityByValue() {
         ConversationDto a = new ConversationDto(1L, null, null, null, null, null,
                 ConversationChannel.INTERNAL, ConversationStatus.OPEN,
-                null, null, null, null, false, 0, null, null, null, null);
+                null, null, null, null, false, 0, null, null, null, null, null, null);
         ConversationDto b = new ConversationDto(1L, null, null, null, null, null,
                 ConversationChannel.INTERNAL, ConversationStatus.OPEN,
-                null, null, null, null, false, 0, null, null, null, null);
+                null, null, null, null, false, 0, null, null, null, null, null, null);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }
