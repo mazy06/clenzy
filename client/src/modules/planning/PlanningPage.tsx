@@ -724,6 +724,7 @@ const PlanningPage: React.FC = () => {
                         deps={[property.id, cometReservationId]}
                         propertyId={property.id}
                         reportWindowDays={reportWindowDays}
+                        flush
                       />
                     );
                   }

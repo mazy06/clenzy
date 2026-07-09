@@ -35,6 +35,8 @@ export interface AgentConstellationProps {
   onReportWindowChange?: (days: number) => void;
   /** Contenu empilé juste sous le HUD (ex. flux « En direct »). */
   belowHud?: ReactNode;
+  /** Rendu pleine-cellule (accordéon Planning) : canvas sans arrondi ni ombre. */
+  flush?: boolean;
 }
 
 interface NormalizedView {
@@ -90,6 +92,7 @@ export function AgentConstellation({
   reportWindow,
   onReportWindowChange,
   belowHud,
+  flush,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
   const { agents, hud } = useMemo(() => normalize(snapshot), [snapshot]);
@@ -108,6 +111,7 @@ export function AgentConstellation({
       reportWindow={reportWindow}
       onReportWindowChange={onReportWindowChange}
       belowHud={belowHud}
+      flush={flush}
     />
   );
 }

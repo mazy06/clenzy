@@ -466,14 +466,12 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         height: effectiveRowHeight,
         width: totalGridWidth,
         borderBottom: '1px solid var(--line)',
-        // Spec .pl-row / .pl-cell : fond plat (pas de zebra), hairlines
-        // verticales entre les jours — un seul paint via repeating-gradient
-        // plutôt qu'une Box par cellule. Clip 1px avant le bord droit :
-        // spec .pl-cell:last-child sans séparateur.
+        // Fond plat (pas de zebra). Les hairlines verticales entre jours ne sont
+        // PLUS peintes ici : le fond OPAQUE des cellules week-end (posé en overlay
+        // absolu) masquait le séparateur dessous → bordures week-end invisibles.
+        // Elles sont désormais dans une couche dédiée AU-DESSUS des fonds
+        // week-end/today (voir « .pl-gridlines » plus bas).
         backgroundColor: 'transparent',
-        backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--line) ${dayWidth - 1}px ${dayWidth}px)`,
-        backgroundSize: `${totalGridWidth - 1}px 100%`,
-        backgroundRepeat: 'no-repeat',
       }}
     >
       {/* Day column backgrounds (weekends + today) */}
@@ -502,6 +500,23 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
           />
         );
       })}
+
+      {/* Hairlines verticales entre jours — couche AU-DESSUS des fonds
+          week-end/today (posés juste avant) pour que les séparateurs restent
+          visibles sur les colonnes teintées. Clip 1px avant le bord droit
+          (dernier jour sans séparateur). pointer-events:none → n'intercepte
+          pas les clics ; sous les briques (rendues après dans le DOM). */}
+      <Box
+        aria-hidden
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--line) ${dayWidth - 1}px ${dayWidth}px)`,
+          backgroundSize: `${totalGridWidth - 1}px 100%`,
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
 
       {/* Cursor zone for empty areas (pointer-events off — parent handles mouseDown) */}
       <Box
