@@ -48,6 +48,8 @@ public class SupervisionScanService {
     private final SupervisionSuggestionService suggestionService;
     private final SupervisionModuleRegistry moduleRegistry;
     private final BusinessAnalyticsScanner businessAnalyticsScanner;
+    private final ReviewModerationScanner reviewModerationScanner;
+    private final GuestInstructionsScanner guestInstructionsScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -58,6 +60,8 @@ public class SupervisionScanService {
                                   SupervisionSuggestionService suggestionService,
                                   SupervisionModuleRegistry moduleRegistry,
                                   BusinessAnalyticsScanner businessAnalyticsScanner,
+                                  ReviewModerationScanner reviewModerationScanner,
+                                  GuestInstructionsScanner guestInstructionsScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -67,6 +71,8 @@ public class SupervisionScanService {
         this.suggestionService = suggestionService;
         this.moduleRegistry = moduleRegistry;
         this.businessAnalyticsScanner = businessAnalyticsScanner;
+        this.reviewModerationScanner = reviewModerationScanner;
+        this.guestInstructionsScanner = guestInstructionsScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -128,6 +134,8 @@ public class SupervisionScanService {
      */
     public void deterministicScanOnly(Long orgId, Long propertyId) {
         businessAnalyticsScanner.scanProperty(orgId, propertyId);
+        reviewModerationScanner.scanProperty(orgId, propertyId);
+        guestInstructionsScanner.scanProperty(orgId, propertyId);
     }
 
     /**
@@ -140,6 +148,8 @@ public class SupervisionScanService {
         // sans coût token, best-effort (n'interrompt jamais le scan).
         if (recordSuggestions) {
             businessAnalyticsScanner.scanProperty(orgId, propertyId);
+            reviewModerationScanner.scanProperty(orgId, propertyId);
+            guestInstructionsScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();

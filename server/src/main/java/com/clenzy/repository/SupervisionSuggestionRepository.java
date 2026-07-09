@@ -16,9 +16,44 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     List<SupervisionSuggestion> findByOrganizationIdAndPropertyIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
             Long organizationId, Long propertyId, String status, Instant now);
 
+    /** Suggestions en attente non expirées de TOUTE l'organisation (vue portefeuille). */
+    List<SupervisionSuggestion> findByOrganizationIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
+            Long organizationId, String status, Instant now);
+
+    /** Nb de suggestions passées à un statut (ex. APPLIED) depuis un instant (reporting). */
+    long countByOrganizationIdAndStatusAndAppliedAtAfter(
+            Long organizationId, String status, Instant since);
+
+    /** Nb de suggestions dans un statut créées depuis un instant (reporting). */
+    long countByOrganizationIdAndStatusAndCreatedAtAfter(
+            Long organizationId, String status, Instant since);
+
+    /** Nb de suggestions en attente non expirées de l'org (compteur, sans charger la liste). */
+    long countByOrganizationIdAndStatusAndExpiresAtAfter(
+            Long organizationId, String status, Instant now);
+
+    /**
+     * Nb de suggestions en attente non expirées PAR logement (pastilles planning) :
+     * une seule requête agrégée, {@code [propertyId, count]} par ligne.
+     */
+    @Query("SELECT s.propertyId, COUNT(s) FROM SupervisionSuggestion s "
+            + "WHERE s.organizationId = :orgId AND s.status = :status AND s.expiresAt > :now "
+            + "GROUP BY s.propertyId")
+    List<Object[]> countPendingByProperty(@Param("orgId") Long orgId,
+                                          @Param("status") String status,
+                                          @Param("now") Instant now);
+
     /** Déduplication : une même proposition en attente existe-t-elle déjà ? */
     boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
             Long organizationId, Long propertyId, String moduleKey, String title, String status);
+
+    /**
+     * Cooldown anti-re-suggestion : une carte identique a-t-elle été rejetée récemment ?
+     * (même org/logement/module/intitulé, statut donné, {@code dismissed_at} après le seuil).
+     */
+    boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+            Long organizationId, Long propertyId, String moduleKey, String title, String status,
+            Instant dismissedAfter);
 
     /** Chargement ownership-safe (org du requester) pour le rejet. */
     Optional<SupervisionSuggestion> findByIdAndOrganizationId(Long id, Long organizationId);

@@ -3143,3 +3143,83 @@ databaseChangeLog:
       sqlFile:
         path: changes/0324__enrich_travaux_catalogue_v2.sql
         relativeToChangelogFile: true
+
+  # Extension du catalogue de templates de site (galerie Baitly) : category / archetype / status.
+  - changeSet:
+      id: "0325-extend-site-templates-catalogue"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0325__extend_site_templates_catalog.sql
+        relativeToChangelogFile: true
+
+  # Systèmes de design réutilisables (direction : tokens --bt-* + DESIGN.md prose + source).
+  - changeSet:
+      id: "0326-create-design-systems"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0326__create_design_systems.sql
+        relativeToChangelogFile: true
+
+  # Mémorise le système de design d'un site (pour réinjection à la retouche IA).
+  - changeSet:
+      id: "0327-add-site-design-system"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0327__add_site_design_system.sql
+        relativeToChangelogFile: true
+
+  # Associe un système de design à un template (le site instancié en hérite).
+  - changeSet:
+      id: "0328-add-site-template-design-system"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0328__add_site_template_design_system.sql
+        relativeToChangelogFile: true
+
+  # Seuils configurables par agent/module pour les scanners déterministes (B5).
+  - changeSet:
+      id: "0329-add-supervision-module-thresholds"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0329__add_supervision_module_thresholds.sql
+        relativeToChangelogFile: true
+
+  # Persistance de la conversation opérateur ↔ orchestrateur de la constellation (B7).
+  - changeSet:
+      id: "0330-create-supervision-conversation-message"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0330__create_supervision_conversation_message.sql
+        relativeToChangelogFile: true
+
+  # Brouillon de réponse d'avis généré par l'IA, à valider (REP).
+  - changeSet:
+      id: "0331-add-guest-review-response-draft"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0331__add_guest_review_response_draft.sql
+        relativeToChangelogFile: true
+
+  # Concierge guest (C1) : brouillon de réponse IA sur la conversation (à valider).
+  - changeSet:
+      id: "0332-add-conversation-ai-draft"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0332__add_conversation_ai_draft.sql
+        relativeToChangelogFile: true
+
+  # Masters plateforme du concierge IA (brouillon / auto-envoi / palier premium), pilotés en base.
+  - changeSet:
+      id: "0333-add-platform-concierge-flags"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0333__add_platform_concierge_flags.sql
+        relativeToChangelogFile: true
+
+  # Cooldown anti-re-suggestion : horodatage de rejet d'une carte de supervision.
+  - changeSet:
+      id: "0334-add-supervision-suggestion-dismissed-at"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0334__add_supervision_suggestion_dismissed_at.sql
+        relativeToChangelogFile: true

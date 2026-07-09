@@ -14,6 +14,7 @@ import com.clenzy.service.ical.ICalFeedDownloader;
 import com.clenzy.service.ical.ICalImportSession;
 import com.clenzy.service.ical.ICalOrphanDetector;
 import com.clenzy.service.ical.ICalReservationImporter;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,7 @@ public class ICalImportService {
     private final ICalBlockImporter blockImporter;
     private final ICalOrphanDetector orphanDetector;
     private final ICalCleaningScheduler cleaningScheduler;
+    private final SupervisionActivityService supervisionActivityService;
     /** Proxy Spring de ce bean : permet a syncFeeds d'invoquer importICalFeed AVEC sa
      *  propre transaction (l'auto-invocation directe contournerait le proxy, T-BP-06). */
     private final ObjectProvider<ICalImportService> self;
@@ -88,6 +90,7 @@ public class ICalImportService {
                              ICalBlockImporter blockImporter,
                              ICalOrphanDetector orphanDetector,
                              ICalCleaningScheduler cleaningScheduler,
+                             SupervisionActivityService supervisionActivityService,
                              ObjectProvider<ICalImportService> self) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -104,6 +107,7 @@ public class ICalImportService {
         this.blockImporter = blockImporter;
         this.orphanDetector = orphanDetector;
         this.cleaningScheduler = cleaningScheduler;
+        this.supervisionActivityService = supervisionActivityService;
         this.self = self;
     }
 
@@ -683,7 +687,32 @@ public class ICalImportService {
                 feed.setLastSyncError(e.getMessage());
                 feed.setLastSyncAt(LocalDateTime.now());
                 icalFeedRepository.save(feed);
+                recordSyncFailureActivity(feed, e);
             }
+        }
+    }
+
+    /**
+     * Fait remonter l'echec de synchronisation d'UN feed dans le feed « En direct » de la
+     * CONSTELLATION du logement concerne (agent Operations « ops »). Un feed iCal = un logement
+     * unique ({@link ICalFeed#getProperty()}), donc l'org et le logement sont resolvables par
+     * occurrence. Best-effort : ne casse jamais la boucle de synchro (le record est lui-meme
+     * best-effort cote service).
+     */
+    private void recordSyncFailureActivity(ICalFeed feed, Exception cause) {
+        try {
+            Property property = feed.getProperty();
+            if (property == null || property.getId() == null || property.getOrganizationId() == null) {
+                return; // feed sans logement/org rattachable → rien a afficher dans une constellation
+            }
+            String source = feed.getSourceName() != null ? feed.getSourceName() : "iCal";
+            String reason = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
+            String summary = "Echec synchro calendrier " + source + " — " + reason;
+            supervisionActivityService.recordModuleAct(
+                    property.getOrganizationId(), property.getId(), "ops", "ical_sync_failed", summary);
+        } catch (Exception ex) {
+            log.debug("Synchro iCal : activite constellation non enregistree (feed {}): {}",
+                    feed.getId(), ex.getMessage());
         }
     }
 
@@ -717,6 +746,7 @@ public class ICalImportService {
         dto.setSyncEnabled(feed.isSyncEnabled());
         dto.setLastSyncAt(feed.getLastSyncAt());
         dto.setLastSyncStatus(feed.getLastSyncStatus());
+        dto.setLastSyncError(feed.getLastSyncError());
         dto.setEventsImported(feed.getEventsImported());
         return dto;
     }

@@ -50,6 +50,7 @@ import AssistantBriefingPrefs from './AssistantBriefingPrefs';
 import KnowledgeBaseAdmin from './KnowledgeBaseAdmin';
 import AgentSupervisionSection from './AgentSupervisionSection';
 import AiAutonomySection from './AiAutonomySection';
+import ConciergePlatformSection from './ConciergePlatformSection';
 
 // ─── Provider Brand Config ──────────────────────────────────────────────────
 
@@ -784,6 +785,7 @@ export default function AiSettingsSection() {
         <>
           <AgentSupervisionSection />
           <AiAutonomySection />
+          {mainHasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && <ConciergePlatformSection />}
         </>
       )}
 

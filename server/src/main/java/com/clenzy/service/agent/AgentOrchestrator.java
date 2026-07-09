@@ -101,8 +101,8 @@ public class AgentOrchestrator {
     private final AgentRunRecorder agentRunRecorder;
     /**
      * Enforcement credits (T-06b, ADR-005) : pre-vol → reservation → re-check →
-     * reconciliation. Flag {@code clenzy.ai.credits.enforcement.enabled} (defaut
-     * false). Null sur le chemin legacy test-only.
+     * reconciliation. Toujours actif (self-heal des abonnes eligibles, staff
+     * plateforme exempte). Null sur le chemin legacy test-only.
      */
     private final com.clenzy.service.ai.RunCreditGuard runCreditGuard;
     /**
@@ -307,7 +307,8 @@ public class AgentOrchestrator {
         // 4-bis-2. Pre-vol credits (T-06b, ADR-005) : reservation atomique du
         //    plancher AVANT de demarrer quoi que ce soit de facturable. Refus =
         //    hard cap — message clair, le PMS classique continue (D-101).
-        //    Enforcement off (defaut) → beginRun retourne toujours true.
+        //    Enforcement toujours actif : self-heal des abonnes eligibles, staff
+        //    plateforme exempte (cf. RunCreditGuard.beginRun).
         if (runCreditGuard != null && !runCreditGuard.beginRun(context.organizationId())) {
             consumer.accept(AgentSseEvent.error(
                     "Crédits IA épuisés — l'assistant reprendra après rechargement ou au "

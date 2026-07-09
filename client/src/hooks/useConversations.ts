@@ -122,6 +122,28 @@ export function useSendTemplate() {
   });
 }
 
+/** Concierge IA : valider et envoyer le brouillon suggéré. */
+export function useSendAiDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (conversationId: number) => conversationApi.sendAiDraft(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all });
+    },
+  });
+}
+
+/** Concierge IA : rejeter le brouillon (sans envoi). */
+export function useDismissAiDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (conversationId: number) => conversationApi.dismissAiDraft(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all });
+    },
+  });
+}
+
 /** Envoyer un template WhatsApp depuis une réservation (envoi proactif). */
 export function useSendTemplateForReservation() {
   const queryClient = useQueryClient();

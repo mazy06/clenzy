@@ -17,7 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Collapse, IconButton } from '@mui/material';
 import {
-  Check, Edit, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo,
+  Check, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -35,6 +35,7 @@ export interface TaskDeckQueueProps {
   actions: AnyAction[];
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
+  onAdjustPrice?: (action: AnyAction) => void;
   variant?: 'floating' | 'panel';
 }
 
@@ -52,11 +53,12 @@ function remainingLabel(cd: Countdown, t: (k: string, o?: Record<string, unknown
 // ─── Carte individuelle restylée ──────────────────────────────────────────────
 
 function TaskCard({
-  action, onValidate, onEdit, behind,
+  action, onValidate, onEdit, onAdjustPrice, behind,
 }: {
   action: AnyAction;
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
+  onAdjustPrice?: (action: AnyAction) => void;
   behind?: boolean; // carte derrière (deck replié) : contenu masqué
 }) {
   const { t } = useTranslation();
@@ -66,10 +68,14 @@ function TaskCard({
   const payment = isPayment(action);
   const reminder = isReminder(action);
   const apply = isApply(action);
+  // Baisse tarifaire multi-segment : « Ajuster » ouvre une modale (édition + prévision + apply).
+  const priceAdjust = apply && action.applyActionType === 'PRICE_DROP'
+    && Boolean(action.actionParams) && Boolean(onAdjustPrice);
   const tile = `${meta.color}26`; // teinte ~15 % pour la tuile d'icône
 
   return (
     <Box
+      data-pending-action={action.id}
       sx={{
         display: 'flex', flexDirection: 'column',
         bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '16px',
@@ -122,7 +128,8 @@ function TaskCard({
       {/* Pied : action primaire / secondaire / chevron « Pourquoi ? » */}
       <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
         <Button
-          size="small" variant="contained" disableElevation onClick={() => onValidate(action.id)}
+          size="small" variant="contained" disableElevation
+          onClick={priceAdjust ? () => onAdjustPrice!(action) : () => onValidate(action.id)}
           startIcon={payment ? <CreditCard size={14} /> : <Check size={14} />}
           sx={{
             flex: 1, textTransform: 'none', fontWeight: 500, fontSize: 11.5, borderRadius: '10px', boxShadow: 'none',
@@ -131,7 +138,9 @@ function TaskCard({
             '&:hover': { bgcolor: 'var(--accent-deep)', boxShadow: 'none' },
           }}
         >
-          {payment ? (
+          {priceAdjust ? (
+            t('supervision.price.adjustCta', 'Ajuster les tarifs')
+          ) : payment ? (
             <>{t('supervision.payment.settle', 'Régler')}{action.amountEur != null && (
               <Box component="span" sx={{ ml: 'auto', pl: 0.75 }}><Money value={action.amountEur} from="EUR" /></Box>
             )}</>
@@ -143,10 +152,12 @@ function TaskCard({
         </Button>
         <Button
           size="small" variant="outlined" color="inherit" onClick={() => onEdit(action.id)}
-          startIcon={payment ? <Schedule size={13} /> : (reminder || apply) ? <VisibilityOff size={13} /> : <Edit size={13} />}
+          startIcon={payment ? <Schedule size={13} /> : <VisibilityOff size={13} />}
           sx={{ textTransform: 'none', fontWeight: 500, fontSize: 11.5, borderRadius: '10px', color: 'var(--muted)', borderColor: 'var(--line-2)', '&:hover': { borderColor: 'var(--muted)', bgcolor: 'transparent' } }}
         >
-          {payment ? t('supervision.payment.later', 'Plus tard') : reminder ? t('supervision.reminder.mute', 'Ne plus afficher') : apply ? t('supervision.apply.dismiss', 'Ignorer') : t('supervision.hitl.edit')}
+          {/* « Ignorer » (dismiss assumé) pour toute carte non-paiement/non-rappel — jamais
+              « Modifier » (aucun éditeur câblé ; laissait croire à une édition). */}
+          {payment ? t('supervision.payment.later', 'Plus tard') : reminder ? t('supervision.reminder.mute', 'Ne plus afficher') : t('supervision.apply.dismiss', 'Ignorer')}
         </Button>
         <IconButton
           size="small" onClick={() => setWhy((w) => !w)} aria-expanded={why} aria-label={t('supervision.hitl.why')}
@@ -168,7 +179,7 @@ function TaskCard({
 // ─── Une pile (un type) ───────────────────────────────────────────────────────
 
 function TaskStack({
-  type, actions, open, dimmed, sort, onToggleSort, onOpen, onClose, onValidate, onEdit, onBulk,
+  type, actions, open, dimmed, sort, onToggleSort, onOpen, onClose, onValidate, onEdit, onAdjustPrice, onBulk,
 }: {
   type: AgentId;
   actions: AnyAction[];
@@ -180,6 +191,7 @@ function TaskStack({
   onClose: () => void;
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
+  onAdjustPrice?: (action: AnyAction) => void;
   onBulk: () => void;
 }) {
   const { t } = useTranslation();
@@ -217,10 +229,23 @@ function TaskStack({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {actions.map((a, i) => (
             <Box key={a.id} sx={{ animation: 'deckCascadeIn .42s var(--ease-out, cubic-bezier(.16,1,.3,1)) both', animationDelay: `${i * 0.05}s` }}>
-              <TaskCard action={a} onValidate={onValidate} onEdit={onEdit} />
+              <TaskCard action={a} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
             </Box>
           ))}
         </Box>
+      </Box>
+    );
+  }
+
+  // Carte seule (aucune pile) : rendu EN FLUX, hauteur ajustée au contenu — pas de
+  // deck à hauteur fixe (évite l'espace vide réservé pour une pile inexistante).
+  if (n === 1) {
+    return (
+      <Box sx={{
+        filter: dimmed ? 'blur(4px)' : 'none', opacity: dimmed ? 0.45 : 1,
+        transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s',
+      }}>
+        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
       </Box>
     );
   }
@@ -250,7 +275,7 @@ function TaskStack({
       })}
       {/* Carte du dessus */}
       <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 }}>
-        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} />
+        <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
       </Box>
       {/* Pastille de comptage */}
       {n > 1 && (
@@ -270,7 +295,7 @@ function TaskStack({
 
 // ─── Conteneur ────────────────────────────────────────────────────────────────
 
-export function TaskDeckQueue({ actions, onValidate, onEdit, variant = 'floating' }: TaskDeckQueueProps) {
+export function TaskDeckQueue({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: TaskDeckQueueProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [openType, setOpenType] = useState<AgentId | null>(null);
@@ -349,7 +374,7 @@ export function TaskDeckQueue({ actions, onValidate, onEdit, variant = 'floating
       data-pending-queue
       data-vertical-scroll
       sx={{
-        display: 'flex', flexDirection: 'column', gap: '26px',
+        display: 'flex', flexDirection: 'column', gap: '14px',
         width: variant === 'floating' ? 320 : '100%',
         pt: '10px', pr: '9px', pb: '12px',
         ...(variant === 'floating'
@@ -372,6 +397,7 @@ export function TaskDeckQueue({ actions, onValidate, onEdit, variant = 'floating
           onClose={() => setOpenType(null)}
           onValidate={onValidate}
           onEdit={onEdit}
+          onAdjustPrice={onAdjustPrice}
           onBulk={() => bulk(list.map((a) => a.id), t('supervision.deck.undoBulk', { count: list.length }))}
         />
       ))}

@@ -65,6 +65,7 @@ import {
   useAssignProviderToFeature,
 } from '../../hooks/useAi';
 import type { AiCatalogModel, AiModelUsage, PlatformAiModel, SavePlatformModelRequest, TestPlatformModelRequest } from '../../services/api/aiApi';
+import { aiCreditsApi, type GrantInitialResult } from '../../services/api/aiCreditsApi';
 
 /** Provider connecte (BYOK/partagee) propose dans le selecteur de modele d'une feature. */
 interface ConnectedProviderOption {
@@ -1110,6 +1111,10 @@ export default function PlatformAiConfigSection() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   // Erreur d'assignation feature (ex. règle même-provider des tiers assistant)
   const [assignError, setAssignError] = useState<string | null>(null);
+  // Amorçage crédits (dotation initiale des orgs existantes)
+  const [granting, setGranting] = useState(false);
+  const [grantResult, setGrantResult] = useState<GrantInitialResult | null>(null);
+  const [grantError, setGrantError] = useState<string | null>(null);
 
   const { data: models, isLoading: modelsLoading, error: modelsError } = usePlatformModels();
   const { data: assignments, isLoading: assignmentsLoading } = useFeatureAssignments();
@@ -1207,6 +1212,22 @@ export default function PlatformAiConfigSection() {
 
   const handleUnassign = (feature: string) => {
     unassignMutation.mutate(feature);
+  };
+
+  const handleGrantInitial = () => {
+    setGranting(true);
+    setGrantError(null);
+    setGrantResult(null);
+    aiCreditsApi
+      .grantInitialAll()
+      .then(setGrantResult)
+      .catch((e: unknown) =>
+        setGrantError(
+          (e as { message?: string })?.message ||
+            t('settings.ai.platform.grantInitialError', 'Échec de la dotation.'),
+        ),
+      )
+      .finally(() => setGranting(false));
   };
 
   return (
@@ -1331,6 +1352,59 @@ export default function PlatformAiConfigSection() {
           </React.Fragment>
         ))}
       </Box>
+
+      {/* ── Section 3: Amorçage des crédits IA ── */}
+      <Box sx={{ mt: 3, mb: 1 }}>
+        <Typography
+          variant="overline"
+          sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
+        >
+          {t('settings.ai.platform.creditsBootstrap', 'Amorçage des crédits')}
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 2,
+          justifyContent: 'space-between',
+          py: 1.5,
+        }}
+      >
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', maxWidth: 560, lineHeight: 1.5 }}>
+          {t(
+            'settings.ai.platform.creditsBootstrapHelp',
+            'Dote toutes les organisations existantes de leur poche de crédits initiale. Action idempotente : une organisation déjà pourvue est ignorée. Les abonnés sont ensuite auto-provisionnés à l’usage et rechargés chaque mois.',
+          )}
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={granting ? <CircularProgress size={14} color="inherit" /> : <AttachMoney />}
+          onClick={handleGrantInitial}
+          disabled={granting}
+          sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, fontSize: '0.8125rem', flexShrink: 0 }}
+        >
+          {t('settings.ai.platform.grantInitial', 'Doter les organisations')}
+        </Button>
+      </Box>
+
+      {grantResult && (
+        <Alert severity="success" onClose={() => setGrantResult(null)} sx={{ mt: 1 }}>
+          {t('settings.ai.platform.grantInitialDone', {
+            defaultValue: '{{granted}} organisation(s) dotée(s), {{skipped}} déjà pourvue(s).',
+            granted: grantResult.granted,
+            skipped: grantResult.skipped,
+          })}
+        </Alert>
+      )}
+      {grantError && (
+        <Alert severity="error" onClose={() => setGrantError(null)} sx={{ mt: 1 }}>
+          {grantError}
+        </Alert>
+      )}
 
       {/* ── Add/Edit Dialog ── */}
       <ModelDialog

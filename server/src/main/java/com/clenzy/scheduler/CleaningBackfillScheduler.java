@@ -2,6 +2,7 @@ package com.clenzy.scheduler;
 
 import com.clenzy.model.AutomationAction;
 import com.clenzy.model.AutomationRule;
+import com.clenzy.model.CleaningFrequency;
 import com.clenzy.model.Property;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.Reservation;
@@ -10,6 +11,9 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.ServiceRequestService;
 import com.clenzy.service.access.StayTimes;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionActionType;
+import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.service.automation.AutomationEngine;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
@@ -54,17 +58,23 @@ public class CleaningBackfillScheduler {
     private final ServiceRequestRepository serviceRequestRepository;
     private final ServiceRequestService serviceRequestService;
     private final MeterRegistry meterRegistry;
+    private final SupervisionActivityService supervisionActivityService;
+    private final SupervisionSuggestionService supervisionSuggestionService;
 
     public CleaningBackfillScheduler(AutomationRuleRepository automationRuleRepository,
                                      ReservationRepository reservationRepository,
                                      ServiceRequestRepository serviceRequestRepository,
                                      ServiceRequestService serviceRequestService,
-                                     MeterRegistry meterRegistry) {
+                                     MeterRegistry meterRegistry,
+                                     SupervisionActivityService supervisionActivityService,
+                                     SupervisionSuggestionService supervisionSuggestionService) {
         this.automationRuleRepository = automationRuleRepository;
         this.reservationRepository = reservationRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.serviceRequestService = serviceRequestService;
         this.meterRegistry = meterRegistry;
+        this.supervisionActivityService = supervisionActivityService;
+        this.supervisionSuggestionService = supervisionSuggestionService;
     }
 
     @Scheduled(cron = "0 30 6 * * *") // Tous les jours a 6h30, avant la journee de menage
@@ -119,6 +129,7 @@ public class CleaningBackfillScheduler {
                         "action", AutomationAction.CREATE_CLEANING_REQUEST.name()).increment();
                     log.info("Filet menage auto: demande {} creee pour la reservation {} (org {})",
                         outcome.request().getId(), reservation.getId(), orgId);
+                    recordConstellationActivity(orgId, reservation);
                 }
             } catch (Exception e) {
                 log.error("Filet menage auto: echec pour la reservation {} (org {}): {}",
@@ -128,13 +139,141 @@ public class CleaningBackfillScheduler {
         return created;
     }
 
+    /**
+     * Regle de scan HITL (constellation, agent Operations « ops ») : pour chaque
+     * reservation dont le check-out tombe DEMAIN (fuseau de la propriete) sans
+     * menage planifie, propose une carte actionnable « Menage manquant » a
+     * l'operateur — anticipation, la veille, des departs non couverts par une
+     * demande de menage (le filet {@link #backfillTodaysCheckouts()} ne cree la
+     * demande qu'au jour meme).
+     *
+     * <p>Meme perimetre d'opt-in que le filet (orgs ayant une regle
+     * CREATE_CLEANING_REQUEST active) et memes primitives de detection
+     * (plage de check-out, menage actif deja present). Dedup portee par
+     * {@link SupervisionSuggestionService#record} (pas de doublon en attente sur
+     * le meme intitule). Un echec sur une reservation est logue et n'empeche pas
+     * les suivantes.</p>
+     */
+    @Scheduled(cron = "0 0 18 * * *") // La veille en soiree : laisse le temps de planifier le menage
+    public void scanTomorrowCheckoutsMissingCleaning() {
+        Set<Long> optedInOrgIds = automationRuleRepository.findByEnabledTrue().stream()
+            .filter(rule -> rule.getActionType() == AutomationAction.CREATE_CLEANING_REQUEST)
+            .map(AutomationRule::getOrganizationId)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (optedInOrgIds.isEmpty()) {
+            return;
+        }
+
+        int totalFlagged = 0;
+        for (Long orgId : optedInOrgIds) {
+            try {
+                totalFlagged += scanOrganizationTomorrow(orgId);
+            } catch (Exception e) {
+                log.error("Scan menage manquant demain: echec pour l'organisation {}: {}", orgId, e.getMessage());
+            }
+        }
+        if (totalFlagged > 0) {
+            log.info("Scan menage manquant demain: {} carte(s) HITL creee(s) pour {} organisation(s) opt-in",
+                totalFlagged, optedInOrgIds.size());
+        }
+    }
+
+    private int scanOrganizationTomorrow(Long orgId) {
+        // Fenetre serveur +/- 2 jours autour de la date serveur : couvre « demain »
+        // dans tous les fuseaux des proprietes, le filtre exact se fait par propriete.
+        LocalDate serverToday = LocalDate.now();
+        List<Reservation> checkouts = reservationRepository.findConfirmedByCheckOutRange(
+            serverToday, serverToday.plusDays(2), orgId);
+
+        int flagged = 0;
+        for (Reservation reservation : checkouts) {
+            try {
+                if (!isCheckoutOn(reservation, 1)) {
+                    continue; // le check-out ne tombe pas demain dans le fuseau de la propriete
+                }
+                if (hasActiveCleaningRequest(reservation, orgId)) {
+                    continue; // un menage (auto ou manuel) couvre deja ce depart
+                }
+                if (flagTomorrowCleaningMissing(orgId, reservation)) {
+                    flagged++;
+                }
+            } catch (Exception e) {
+                log.error("Scan menage manquant demain: echec pour la reservation {} (org {}): {}",
+                    reservation.getId(), orgId, e.getMessage());
+            }
+        }
+        return flagged;
+    }
+
+    /**
+     * Cree la carte HITL « Menage manquant » sur la CONSTELLATION du logement du
+     * depart (per-occurrence : propertyId + orgId resolus depuis la reservation).
+     * Best-effort ({@link SupervisionSuggestionService#record} avale et dedup) :
+     * retourne false si le logement n'est pas resoluble (rien flagge).
+     */
+    private boolean flagTomorrowCleaningMissing(Long orgId, Reservation reservation) {
+        Property property = reservation.getProperty();
+        Long propertyId = property != null ? property.getId() : null;
+        if (propertyId == null) {
+            return false; // pas de logement unique → on ne force rien
+        }
+        String motif = "Depart du " + reservation.getCheckOut() + " (reservation " + reservation.getId()
+            + ") sans demande de menage planifiee. Planifier un menage avant l'arrivee suivante.";
+        final String title = "Menage manquant pour le depart de demain";
+        // Carte APPLICABLE (« Planifier le menage ») uniquement si le menage auto peut aboutir :
+        // l'apply reutilise createAutomaticCleaningRequest, qui exige la frequence AFTER_EACH_STAY.
+        // Sinon carte informationnelle (l'operateur planifie manuellement).
+        if (property.getCleaningFrequency() == CleaningFrequency.AFTER_EACH_STAY
+            && reservation.getCheckOut() != null) {
+            String params = String.format("{\"reservationId\":%d,\"checkIn\":%s,\"checkOut\":\"%s\"}",
+                reservation.getId(),
+                reservation.getCheckIn() != null ? "\"" + reservation.getCheckIn() + "\"" : "null",
+                reservation.getCheckOut());
+            supervisionSuggestionService.recordActionable(orgId, propertyId, "ops", title, motif,
+                SupervisionActionType.CLEANING_REQUEST, params, null, "warning");
+        } else {
+            supervisionSuggestionService.record(orgId, propertyId, "ops", "cleaning_missing", title, motif);
+        }
+        return true;
+    }
+
+    /**
+     * Fait remonter le menage auto-planifie dans le feed « En direct » de la CONSTELLATION du logement
+     * (agent Operations « ops »). La propriete est celle de la reservation traitee (per-occurrence,
+     * org-scopee). Best-effort : un echec ne doit jamais casser le filet menage.
+     */
+    private void recordConstellationActivity(Long orgId, Reservation reservation) {
+        try {
+            Property property = reservation.getProperty();
+            Long propertyId = property != null ? property.getId() : null;
+            if (propertyId == null) {
+                return;
+            }
+            String summary = "Menage auto-planifie au depart de la reservation "
+                + reservation.getId() + " (checkout du " + reservation.getCheckOut() + ")";
+            supervisionActivityService.recordModuleAct(orgId, propertyId, "ops", "cleaning_scheduled", summary);
+        } catch (Exception e) {
+            log.debug("Filet menage auto: activite constellation non enregistree (reservation {}): {}",
+                reservation.getId(), e.getMessage());
+        }
+    }
+
     /** « Checkout du jour » evalue dans le fuseau de la propriete (regle audit n°9). */
     private static boolean isCheckoutToday(Reservation reservation) {
+        return isCheckoutOn(reservation, 0);
+    }
+
+    /**
+     * Le check-out tombe-t-il {@code plusDays} apres « aujourd'hui » DANS le fuseau
+     * de la propriete (regle audit n°9 — jamais la zone JVM) ? {@code plusDays=0}
+     * = aujourd'hui, {@code plusDays=1} = demain.
+     */
+    private static boolean isCheckoutOn(Reservation reservation, int plusDays) {
         Property property = reservation.getProperty();
         if (property == null || reservation.getCheckOut() == null) {
             return false;
         }
-        return LocalDate.now(StayTimes.zoneOf(property)).equals(reservation.getCheckOut());
+        return LocalDate.now(StayTimes.zoneOf(property)).plusDays(plusDays).equals(reservation.getCheckOut());
     }
 
     /** Un menage (auto ou manuel) non annule existe-t-il deja pour ce sejour ? */

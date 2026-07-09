@@ -30,6 +30,10 @@ public class Site {
     @Column(name = "booking_engine_config_id")
     private Long bookingEngineConfigId;
 
+    /** Système de design suivi par ce site (DS-3) : réinjecté à la retouche IA. NULL = aucun. */
+    @Column(name = "design_system_id")
+    private Long designSystemId;
+
     @Column(name = "slug", nullable = false, unique = true, length = 63)
     private String slug;
 
@@ -85,6 +89,9 @@ public class Site {
 
     public Long getOrganizationId() { return organizationId; }
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
+
+    public Long getDesignSystemId() { return designSystemId; }
+    public void setDesignSystemId(Long designSystemId) { this.designSystemId = designSystemId; }
 
     public Long getBookingEngineConfigId() { return bookingEngineConfigId; }
     public void setBookingEngineConfigId(Long bookingEngineConfigId) { this.bookingEngineConfigId = bookingEngineConfigId; }

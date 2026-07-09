@@ -12,6 +12,8 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.ServiceRequestService;
 import com.clenzy.service.ServiceRequestService.AutoCleaningOutcome;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,8 @@ class CleaningBackfillSchedulerTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private ServiceRequestService serviceRequestService;
+    @Mock private SupervisionActivityService supervisionActivityService;
+    @Mock private SupervisionSuggestionService supervisionSuggestionService;
 
     private CleaningBackfillScheduler scheduler;
 
@@ -49,7 +53,8 @@ class CleaningBackfillSchedulerTest {
     @BeforeEach
     void setUp() {
         scheduler = new CleaningBackfillScheduler(automationRuleRepository, reservationRepository,
-            serviceRequestRepository, serviceRequestService, new SimpleMeterRegistry());
+            serviceRequestRepository, serviceRequestService, new SimpleMeterRegistry(),
+            supervisionActivityService, supervisionSuggestionService);
 
         property = new Property();
         property.setId(100L);
@@ -146,5 +151,81 @@ class CleaningBackfillSchedulerTest {
 
         verify(serviceRequestService).createAutomaticCleaningRequest(
             eq(ORG_ID), eq(100L), any(), any(), eq(42L));
+    }
+
+    // ── Regle de scan HITL : depart de DEMAIN sans menage planifie ─────────────
+
+    @Test
+    void whenCheckoutTomorrowWithoutCleaning_afterEachStay_thenActionableHitlCard() {
+        reservation.setCheckOut(LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(1));
+        when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(cleaningRule(ORG_ID)));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation));
+        when(serviceRequestRepository.findByReservationId(42L, ORG_ID)).thenReturn(List.of());
+
+        scheduler.scanTomorrowCheckoutsMissingCleaning();
+
+        // Propriete AFTER_EACH_STAY (defaut) → carte APPLICABLE (« Planifier le menage »).
+        verify(supervisionSuggestionService).recordActionable(
+            eq(ORG_ID), eq(100L), eq("ops"),
+            eq("Menage manquant pour le depart de demain"), any(),
+            eq("CLEANING_REQUEST"), any(), any(), eq("warning"));
+    }
+
+    @Test
+    void whenCheckoutTomorrowWithoutCleaning_nonAfterEachStay_thenInformationalCard() {
+        property.setCleaningFrequency(com.clenzy.model.CleaningFrequency.WEEKLY);
+        reservation.setCheckOut(LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(1));
+        when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(cleaningRule(ORG_ID)));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation));
+        when(serviceRequestRepository.findByReservationId(42L, ORG_ID)).thenReturn(List.of());
+
+        scheduler.scanTomorrowCheckoutsMissingCleaning();
+
+        // Frequence non AFTER_EACH_STAY → l'apply ne pourrait pas aboutir → carte informationnelle.
+        verify(supervisionSuggestionService).record(
+            eq(ORG_ID), eq(100L), eq("ops"), eq("cleaning_missing"),
+            eq("Menage manquant pour le depart de demain"), any());
+    }
+
+    @Test
+    void whenCheckoutTomorrowButCleaningAlreadyPlanned_thenNoHitlCard() {
+        reservation.setCheckOut(LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(1));
+        ServiceRequest existing = new ServiceRequest();
+        existing.setServiceType(ServiceType.CLEANING);
+        existing.setStatus(RequestStatus.AWAITING_PAYMENT);
+        when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(cleaningRule(ORG_ID)));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation));
+        when(serviceRequestRepository.findByReservationId(42L, ORG_ID)).thenReturn(List.of(existing));
+
+        scheduler.scanTomorrowCheckoutsMissingCleaning();
+
+        verifyNoInteractions(supervisionSuggestionService);
+    }
+
+    @Test
+    void whenCheckoutIsTodayNotTomorrow_inPropertyTimezone_thenNoHitlCard() {
+        reservation.setCheckOut(LocalDate.now(java.time.ZoneId.of("Europe/Paris")));
+        when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(cleaningRule(ORG_ID)));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation));
+
+        scheduler.scanTomorrowCheckoutsMissingCleaning();
+
+        verifyNoInteractions(supervisionSuggestionService);
+    }
+
+    @Test
+    void whenNoActiveCleaningRule_thenScanIsNoOp() {
+        AutomationRule otherRule = new AutomationRule();
+        otherRule.setOrganizationId(ORG_ID);
+        otherRule.setActionType(AutomationAction.SEND_MESSAGE);
+        when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(otherRule));
+
+        scheduler.scanTomorrowCheckoutsMissingCleaning();
+
+        verifyNoInteractions(reservationRepository, supervisionSuggestionService);
     }
 }

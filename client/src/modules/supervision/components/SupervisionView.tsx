@@ -12,6 +12,7 @@ import { SupervisionPanel } from './SupervisionPanel';
 import { PortfolioPanel } from './PortfolioPanel';
 import { MockSupervisionProvider, MockPortfolioProvider } from '../provider/MockSupervisionProvider';
 import { AgUiSupervisionProvider } from '../provider/AgUiSupervisionProvider';
+import { AgUiPortfolioProvider } from '../provider/AgUiPortfolioProvider';
 import { isSupervisionLiveEnabled } from '../provider/supervisionFlags';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
 import type { AgentId } from '../types';
@@ -57,8 +58,13 @@ export function SupervisionView({
     [createPropertyProvider, useLive, propertyId],
   );
   const portfolioFactory = useCallback(
-    () => (createPortfolioProvider ? createPortfolioProvider() : new MockPortfolioProvider()),
-    [createPortfolioProvider],
+    () =>
+      createPortfolioProvider
+        ? createPortfolioProvider()
+        : useLive
+          ? new AgUiPortfolioProvider()
+          : new MockPortfolioProvider(),
+    [createPortfolioProvider, useLive],
   );
 
   return (

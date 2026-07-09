@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -152,6 +153,43 @@ public class PlatformSettingsService {
     @Transactional
     public PlatformSettings updateGlobalCompositeWidgets(String json, String updatedBy) {
         return update(s -> s.setGlobalCompositeWidgets(json), updatedBy);
+    }
+
+    // ── Concierge IA (masters plateforme, pilotés en base — hot-reload) ──────
+
+    /** Le concierge IA rédige-t-il des brouillons ? (master plateforme, défaut false). */
+    @Transactional(readOnly = true)
+    public boolean isConciergeDraftEnabled() {
+        return getOrDefault().isConciergeDraftEnabled();
+    }
+
+    /** L'auto-envoi concierge est-il ouvert au niveau plateforme ? (défaut false). */
+    @Transactional(readOnly = true)
+    public boolean isConciergeAutosendEnabled() {
+        return getOrDefault().isConciergeAutosendEnabled();
+    }
+
+    /** Palier minimal (forfait) requis pour l'auto-envoi concierge — défaut « premium ». */
+    @Transactional(readOnly = true)
+    public String getConciergeAutosendMinForfait() {
+        String v = getOrDefault().getConciergeAutosendMinForfait();
+        return (v != null && !v.isBlank()) ? v.trim() : "premium";
+    }
+
+    /**
+     * Met à jour les masters concierge (brouillon + auto-envoi + palier premium).
+     * Un palier vide retombe sur « premium ». Piloté en base pour éviter tout redéploiement.
+     */
+    @Transactional
+    public PlatformSettings updateConcierge(boolean draftEnabled, boolean autosendEnabled,
+                                            String minForfait, String updatedBy) {
+        final String forfait = (minForfait == null || minForfait.isBlank())
+                ? "premium" : minForfait.trim().toLowerCase(Locale.ROOT);
+        return update(s -> {
+            s.setConciergeDraftEnabled(draftEnabled);
+            s.setConciergeAutosendEnabled(autosendEnabled);
+            s.setConciergeAutosendMinForfait(forfait);
+        }, updatedBy);
     }
 
     private PlatformSettings update(java.util.function.Consumer<PlatformSettings> mutation, String updatedBy) {

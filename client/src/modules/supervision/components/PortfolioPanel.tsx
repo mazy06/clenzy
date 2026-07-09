@@ -18,10 +18,12 @@ import { ConstellationSkeleton } from './ConstellationSkeleton';
 import { AgentConstellation } from './AgentConstellation';
 import { PendingQueue } from './PendingQueue';
 import { ActivityFeed } from './ActivityFeed';
+import { SupervisionReportStrip } from './SupervisionReportStrip';
 import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
+import { PriceAdjustmentModal } from './PriceAdjustmentModal';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
-import type { AgentId, PortfolioSnapshot } from '../types';
+import type { AgentId, PendingAction, PortfolioPendingAction, PortfolioSnapshot } from '../types';
 
 export interface PortfolioPanelProps {
   createProvider: () => SupervisionProvider;
@@ -57,6 +59,11 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
     },
     [actions, markInFlight, onEditAction],
   );
+  const [priceAction, setPriceAction] = useState<PortfolioPendingAction | null>(null);
+  const handleAdjustPrice = useCallback(
+    (a: PendingAction | PortfolioPendingAction) => setPriceAction(a as PortfolioPendingAction),
+    [],
+  );
 
   const detail: AgentDetail | null = useMemo(() => {
     if (!selected || !snapshot || snapshot.scope !== 'portfolio') return null;
@@ -77,6 +84,45 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
         </Box>
 
         <Box sx={{ width: { xs: '100%', md: 330 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <SupervisionReportStrip />
+
+          {(portfolio.orgAlerts?.length ?? 0) > 0 && (
+            <Box sx={cardSx}>
+              <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+                {t('supervision.orgAlerts.title', 'Alertes portefeuille')}
+              </Typography>
+              <Box sx={{ px: 1.5, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                {portfolio.orgAlerts!.map((a, i) => (
+                  <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        mt: '5px',
+                        flexShrink: 0,
+                        bgcolor:
+                          a.severity === 'critical'
+                            ? 'var(--err, #c0392b)'
+                            : a.severity === 'warning'
+                              ? 'var(--warn, #d4a017)'
+                              : 'var(--info, #4a90a4)',
+                      }}
+                    />
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink, #1b2240)', lineHeight: 1.3 }}>
+                        {a.title}
+                      </Typography>
+                      <Typography sx={{ fontSize: 11.5, color: 'var(--muted, #6b7280)', lineHeight: 1.35 }}>
+                        {a.description}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+
           <Box sx={cardSx}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: '14px 16px 12px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
               {t('supervision.queue.title')}
@@ -101,7 +147,7 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
               </Box>
             </Box>
             <Box sx={{ p: 1.5, maxHeight: 320, overflowY: 'auto' }}>
-              <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} variant="panel" />
+              <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" />
             </Box>
           </Box>
 
@@ -110,7 +156,16 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
               {t('supervision.feed.title')}
             </Typography>
             <Box sx={{ px: 1, pb: 1, maxHeight: 220, overflowY: 'auto' }}>
-              <ActivityFeed entries={portfolio.feed} />
+              {portfolio.feed.length > 0 ? (
+                <ActivityFeed entries={portfolio.feed} />
+              ) : (
+                <Box sx={{ px: 1.5, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                  {t(
+                    'supervision.feed.emptyOnboarding',
+                    'Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
+                  )}
+                </Box>
+              )}
             </Box>
           </Box>
         </Box>
@@ -135,6 +190,19 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
       )}
 
       <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} />
+
+      {priceAction && (
+        <PriceAdjustmentModal
+          suggestionId={priceAction.id}
+          propertyId={Number(priceAction.propertyId ?? 0)}
+          actionParams={priceAction.actionParams}
+          onClose={() => setPriceAction(null)}
+          onApplied={() => {
+            markInFlight(priceAction.id);
+            setPriceAction(null);
+          }}
+        />
+      )}
     </Box>
   );
 }

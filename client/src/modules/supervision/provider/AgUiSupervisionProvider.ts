@@ -29,7 +29,8 @@
 
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
-import type { AgentId, OrchestratorSnapshot, PendingAction, PendingAgentAction, StreamEvent } from '../types';
+import { applyAutonomy, fetchAutonomy } from './supervisionConfigApi';
+import type { AgentId, AutonomyLevel, OrchestratorSnapshot, PendingAction, PendingAgentAction, StreamEvent } from '../types';
 import type { SupervisionProvider } from './SupervisionProvider';
 import { buildPropertySnapshot } from './mockData';
 import { mapSpecialistToAgent } from './specialistMapping';
@@ -78,7 +79,7 @@ interface PendingActionDtoShape {
 
 /** Réponse de GET /api/ai/supervision/activity/{id} (feed + métriques réels). */
 interface ActivitySnapshotShape {
-  feed: Array<{ id: string; agentId: string; at: string; text: string }>;
+  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string }>;
   autoActions: number;
 }
 
@@ -97,6 +98,8 @@ interface SuggestionShape {
   estimatedImpactCents?: number | null;
   /** Gravité indicative (info/warning/critical), optionnel. */
   severity?: string | null;
+  /** Params bruts de l'action (JSON segments) pour la modale d'ajustement, optionnel. */
+  actionParams?: string | null;
 }
 
 /** Rappel J-1 de reversement (GET /api/ai/supervision/payout-reminder, cf. PayoutReminderDto). */
@@ -141,6 +144,13 @@ export interface AgUiProviderOptions {
 /** Agent AG-UI exposé par le backend (cf. AgUiController.AGENT_NAME). */
 const AGENT_NAME = 'clenzy-supervisor';
 
+/**
+ * Intervalle de rafraîchissement périodique du snapshot HORS run live (ms) : le feed
+ * réel et la file HITL sont re-fetchés pour faire apparaître les nouveaux événements
+ * sans recharger la page. Suspendu pendant un run SSE (le flux gère alors l'état).
+ */
+const POLL_INTERVAL_MS = 30_000;
+
 export class AgUiSupervisionProvider implements SupervisionProvider<OrchestratorSnapshot> {
   private readonly listeners = new Set<Listener>();
   private abort: AbortController | null = null;
@@ -150,6 +160,8 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   private currentReplyId: string | null = null;
   /** Texte de la réponse orchestrateur en cours d'accumulation (pour le journal « En direct »). */
   private replyBuffer = '';
+  /** Dernier message opérateur (B7) : persisté avec la réponse à la fin du run. */
+  private lastOperatorMessage = '';
   /**
    * Historique de messages du fil courant (RunAgentInput.messages). On le
    * conserve pour pouvoir REPRENDRE le run après une pause (interrupt) avec le
@@ -165,6 +177,15 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    * « Valider » sur ces cartes = appliquer l'action serveur, pas rejeter.
    */
   private readonly applicableSuggestionIds = new Set<string>();
+  /** true tant qu'un run SSE est en cours → le polling se met en pause pour ne pas
+   *  écraser l'état live (conversation, interrupt inline). */
+  private runActive = false;
+  /** Timer de rafraîchissement périodique du feed/file hors run. */
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  /** true si un rafraîchissement est déjà en vol (évite le chevauchement). */
+  private polling = false;
+  /** Flux SSE temps réel du feed/résolutions (T6/B6), hors run. */
+  private eventStream: AbortController | null = null;
 
   constructor(
     private readonly propertyId: string,
@@ -183,12 +204,13 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    */
   async getSnapshot(): Promise<OrchestratorSnapshot> {
     const base = buildPropertySnapshot(this.propertyId, 'calm');
-    const [hitlPending, activity, suggestions, payoutReminder, unpaidSrCards] = await Promise.all([
+    const [hitlPending, activity, suggestions, payoutReminder, unpaidSrCards, autonomy] = await Promise.all([
       this.fetchPending(),
       this.fetchActivity(),
       this.fetchSuggestions(),
       this.fetchPayoutReminder(),
       this.fetchUnpaidServiceRequests(),
+      fetchAutonomy(),
     ]);
     const inline = hitlPending[0] ? pendingDtoToAgentAction(hitlPending[0]) : null;
     if (inline) this.currentInterruptId = inline.interruptId;
@@ -247,6 +269,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
           expiresAt: s.expiresAt ?? s.createdAt,
           applyActionType: s.actionType ?? undefined,
           amountEur: s.estimatedImpactCents != null ? s.estimatedImpactCents / 100 : undefined,
+          actionParams: s.actionParams ?? undefined,
         };
       }),
     );
@@ -261,24 +284,32 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     const agents = base.agents.map((a) => ({
       ...a,
       status: waiting.has(a.id) ? ('wait' as const) : ('veille' as const),
+      autonomy: autonomy?.byAgent[a.id] ?? a.autonomy, // autonomie RÉELLE (config), repli mock
       task: null,
       reservationId: null,
       metrics: [], // pas de métriques mock en live ; réelles via le feed/activité
     }));
 
     // Feed réel (activité persistée). agentId backend = clé module = AgentId.
+    // toolName = clé i18n stable (traduite au rendu ; text = repli).
     const feed = (activity?.feed ?? []).map((e) => ({
       id: e.id,
       agentId: e.agentId as AgentId,
       at: e.at,
       text: e.text,
+      toolName: e.toolName,
     }));
+
+    // Démarre (une seule fois) le rafraîchissement périodique + le flux SSE temps réel.
+    this.ensurePolling();
+    this.ensureEventStream();
 
     const awaiting = hitlPending.length + pendingQueue.length;
     return {
       ...base,
       online: true,
       paused: false,
+      ...(autonomy ? { globalAutonomy: autonomy.global } : {}),
       pending: pendingQueue,
       feed,
       agents,
@@ -533,6 +564,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     // Nouveau tour utilisateur → fil neuf : on repart d'un contexte propre
     // (toute action en attente d'un tour précédent est abandonnée).
     this.threadMessages = [{ role: 'user', content: trimmed }];
+    this.lastOperatorMessage = trimmed; // B7 : historisé avec la réponse en fin de run
     this.currentRunId = null;
     if (this.currentInterruptId) {
       this.currentInterruptId = null;
@@ -584,6 +616,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     this.abort = new AbortController();
     const signal = this.abort.signal;
     this.currentReplyId = null;
+    this.runActive = true; // suspend le polling tant que le flux live pilote l'état
     this.emit({ type: 'conversation.busy', busy: true });
     const token = getAccessToken();
     try {
@@ -609,7 +642,92 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       // Abort volontaire (nouveau kickoff) → silencieux ; vraie panne → hors-ligne.
       if (!this.disposed && !signal.aborted) this.emit({ type: 'connection', online: false });
     } finally {
+      this.runActive = false; // le flux est terminé → le polling peut reprendre
       if (!this.disposed && !signal.aborted) this.emit({ type: 'conversation.busy', busy: false });
+    }
+  }
+
+  /** Arme le timer de rafraîchissement périodique (idempotent, une seule fois). */
+  private ensurePolling(): void {
+    if (this.pollTimer || this.disposed) return;
+    this.pollTimer = setInterval(() => {
+      void this.pollRefresh();
+    }, POLL_INTERVAL_MS);
+  }
+
+  /**
+   * Ouvre (une seule fois) le flux SSE temps réel du logement (T6/B6) : nouvelles entrées
+   * de feed + résolutions poussées par les autres opérateurs. Complète le polling 30 s.
+   * Best-effort : en cas de perte, le polling reste le baseline.
+   */
+  private ensureEventStream(): void {
+    if (this.eventStream || this.disposed) return;
+    this.eventStream = new AbortController();
+    void this.consumeEventStream(this.eventStream.signal);
+  }
+
+  private async consumeEventStream(signal: AbortSignal): Promise<void> {
+    try {
+      const token = getAccessToken();
+      const response = await fetch(buildApiUrl(`/ai/supervision/stream/${this.propertyId}`), {
+        method: 'GET',
+        credentials: 'include',
+        headers: { accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        signal,
+      });
+      if (!response.ok || !response.body) return;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done || this.disposed) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          this.handleEventFrame(buffer.slice(0, idx));
+          buffer = buffer.slice(idx + 2);
+        }
+      }
+    } catch {
+      // abandon volontaire (dispose) ou perte réseau → le polling 30 s prend le relais
+    }
+  }
+
+  private handleEventFrame(frame: string): void {
+    const dataLine = frame.split('\n').find((l) => l.startsWith('data:'));
+    if (!dataLine) return;
+    const raw = dataLine.slice(5).trim();
+    if (!raw || raw === '{}') return; // amorce « ready »
+    try {
+      const event = JSON.parse(raw) as StreamEvent;
+      if (event && typeof event.type === 'string' && !this.disposed) {
+        this.emit(event); // feed.added / pending.resolved → pipeline existant
+      }
+    } catch {
+      /* frame malformé → ignoré */
+    }
+  }
+
+  /**
+   * Re-fetch le snapshot réel (feed + file HITL + suggestions) et émet
+   * `snapshot.refreshed` pour faire apparaître les nouveaux événements sans reload.
+   * No-op pendant un run live (le flux SSE pilote l'état) ou si un poll est déjà en vol.
+   * `getSnapshot` est gracieux (jamais d'exception) et rafraîchit au passage la table
+   * des suggestions actionnables (applicableSuggestionIds).
+   */
+  private async pollRefresh(): Promise<void> {
+    if (this.disposed || this.runActive || this.polling) return;
+    this.polling = true;
+    try {
+      const next = await this.getSnapshot();
+      if (!this.disposed && !this.runActive) {
+        this.emit({ type: 'snapshot.refreshed', snapshot: next });
+      }
+    } catch {
+      // getSnapshot est déjà tolérant aux pannes ; on ignore tout résidu.
+    } finally {
+      this.polling = false;
     }
   }
 
@@ -683,7 +801,11 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         if (typeof frame.runId === 'string') this.currentRunId = frame.runId;
         return;
       case 'RUN_FINISHED':
-        if (frame.outcome?.type === 'interrupt') this.handleInterrupt(frame.outcome.interrupts);
+        if (frame.outcome?.type === 'interrupt') {
+          this.handleInterrupt(frame.outcome.interrupts);
+        } else {
+          void this.persistConversation(); // B7 : historise l'échange (best-effort)
+        }
         return;
       case 'STATE_SNAPSHOT': {
         const activity = frame.snapshot?.agentActivity;
@@ -839,20 +961,57 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     await this.dismissSuggestion(actionId, 'edited');
   }
 
-  async setGlobalAutonomy(): Promise<void> {
-    return Promise.resolve();
+  async setGlobalAutonomy(level: AutonomyLevel): Promise<void> {
+    await applyAutonomy('all', level);
+    await this.pollRefresh(); // reflète la nouvelle autonomie dans le snapshot
   }
 
-  async setAgentAutonomy(): Promise<void> {
-    return Promise.resolve();
+  async setAgentAutonomy(agentId: AgentId, level: AutonomyLevel): Promise<void> {
+    await applyAutonomy(agentId, level);
+    await this.pollRefresh();
   }
 
   async setPaused(): Promise<void> {
     return Promise.resolve();
   }
 
+  /**
+   * B7 : persiste l'échange (message opérateur + réponse orchestrateur) pour l'historique
+   * de la constellation. Best-effort — l'historique n'est pas critique, un échec est ignoré.
+   */
+  private async persistConversation(): Promise<void> {
+    const operator = this.lastOperatorMessage.trim();
+    const orchestrator = this.replyBuffer.trim();
+    if (!operator && !orchestrator) return;
+    const turns: Array<{ role: string; content: string }> = [];
+    if (operator) turns.push({ role: 'operator', content: operator });
+    if (orchestrator) turns.push({ role: 'orchestrator', content: orchestrator });
+    this.lastOperatorMessage = ''; // évite un double post si un run repart sans nouveau message
+    try {
+      const token = getAccessToken();
+      await fetch(buildApiUrl(`/ai/supervision/conversation/${this.propertyId}`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(turns),
+      });
+    } catch {
+      // best-effort : l'historique n'est pas sur le chemin critique
+    }
+  }
+
   dispose(): void {
     this.disposed = true;
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+    this.eventStream?.abort();
+    this.eventStream = null;
     this.abort?.abort();
     this.abort = null;
     this.currentInterruptId = null;

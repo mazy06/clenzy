@@ -123,6 +123,40 @@
       "action": "تطبيق",
       "dismiss": "تجاهل"
     },
+    "tools": {
+      "ical_sync_failed": "فشل مزامنة التقويم",
+      "sensor_anomaly": "شذوذ في المستشعر",
+      "double_booking_prevented": "تم تفادي حجز مزدوج",
+      "booking_caution": "وديعة الحجز",
+      "payment_failed": "فشل الدفع",
+      "noise_alert": "تنبيه الضوضاء",
+      "cleaning_scheduled": "جدولة تنظيف تلقائية",
+      "intervention_assigned": "تعيين منفّذ",
+      "access_code_rotated": "تم تجديد رمز الدخول",
+      "pricing_pushed": "تم إرسال الأسعار إلى القنوات",
+      "elasticity_recomputed": "إعادة حساب مرونة السعر",
+      "rate_parity_issue": "فارق في تكافؤ الأسعار",
+      "cart_reminder_sent": "تم إرسال تذكير السلة",
+      "assign_intervention": "تم إسناد التدخل",
+      "batch_block_calendar": "حظر التقويم (دفعة)",
+      "block_calendar_day": "تم حظر يوم في التقويم",
+      "cancel_reservation": "تم إلغاء الحجز",
+      "create_intervention": "تم إنشاء تدخل",
+      "create_invoice": "تم إنشاء فاتورة",
+      "create_reservation": "تم إنشاء حجز",
+      "forget_fact": "تم تحديث الذاكرة",
+      "initiate_refund": "تم بدء استرداد",
+      "open_close_channel_availability": "تم تحديث توفر القناة",
+      "reply_to_review": "تم نشر رد على تقييم",
+      "send_guest_message": "تم إرسال رسالة للضيف",
+      "send_owner_statement": "تم إرسال كشف المالك",
+      "set_rate_override": "تم تعديل السعر",
+      "settle_intervention_payment": "تمت تسوية دفع التدخل",
+      "trigger_channel_sync": "تم تشغيل مزامنة القناة",
+      "update_intervention_status": "تم تحديث حالة التدخل",
+      "update_property_status": "تم تحديث حالة العقار",
+      "update_reservation_status": "تم تحديث حالة الحجز"
+    },
     "approval": {
       "title": "مطلوب موافقة",
       "reject": "رفض",
@@ -147,7 +181,23 @@
       "title": "بانتظار موافقتك"
     },
     "feed": {
-      "title": "مباشر"
+      "title": "مباشر",
+      "empty": "لا توجد إجراءات حديثة للوكلاء",
+      "emptyOnboarding": "يراقب الوكلاء عقاراتك. ستظهر هنا إجراءاتهم واقتراحاتهم بانتظار موافقتك — لا يُنفَّذ شيء دون موافقتك."
+    },
+    "report": {
+      "title": "الحصيلة · 30 يومًا",
+      "titleBase": "الحصيلة",
+      "windowDays": "{{count}} يومًا",
+      "win": { "day": "يوم", "week": "أسبوع", "fortnight": "أسبوعان", "month": "شهر" },
+      "timeSaved": "الوقت الموفَّر",
+      "autoActions": "إجراءات تلقائية",
+      "acceptance": "القبول"
+    },
+    "reviewDrafts": {
+      "title": "مسودّات الرد (ذكاء اصطناعي)",
+      "empty": "لا توجد مسودّة رد قيد الانتظار.",
+      "publish": "نشر"
     },
     "drawer": {
       "ventilation": "تفاصيل حسب العقار",
@@ -2708,6 +2758,11 @@
         "addModel": "إضافة نموذج",
         "editModel": "تعديل النموذج",
         "featureMapping": "تعيين حسب الميزة",
+        "creditsBootstrap": "تهيئة الأرصدة",
+        "creditsBootstrapHelp": "امنح كل مؤسسة قائمة رصيدها الأولي من الأرصدة. عملية غير مكرِّرة: تُتجاهل المؤسسة الممنوحة مسبقًا. يُزوَّد المشتركون تلقائيًا عند الاستخدام ويُعاد شحنهم شهريًا.",
+        "grantInitial": "منح المؤسسات",
+        "grantInitialDone": "تم منح {{granted}} مؤسسة، و{{skipped}} ممنوحة مسبقًا.",
+        "grantInitialError": "فشل المنح.",
         "noModel": "بدون نموذج",
         "connectedProviders": "المزودون المتصلون",
         "platformModels": "نماذج المنصة",

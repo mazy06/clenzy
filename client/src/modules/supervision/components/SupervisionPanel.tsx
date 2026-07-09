@@ -8,12 +8,13 @@
    Concurrence multi-opérateur / expiration → bandeaux (useResolutionToasts).
    ============================================================ */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { WifiOff, Replay, Radar } from '../../../icons';
 import { runSupervisionScan } from '../useSupervisionConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
+import { useSupervisionReport } from '../core/useSupervisionReport';
 import { useResolutionToasts } from '../core/useResolutionToasts';
 import { spawnComet } from '../core/spawnComet';
 import { AGENT_META } from '../constants';
@@ -25,8 +26,9 @@ import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
 import { SupervisionChatBar } from './SupervisionChatBar';
 import { SupervisionPendingAction } from './SupervisionPendingAction';
+import { PriceAdjustmentModal } from './PriceAdjustmentModal';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
-import type { AgentId } from '../types';
+import type { AgentId, PendingAction, PortfolioPendingAction } from '../types';
 
 export interface SupervisionPanelProps {
   /** Fabrique du provider (mock ou CopilotKit). Recréé quand `deps` change. */
@@ -35,6 +37,8 @@ export interface SupervisionPanelProps {
   deps: unknown[];
   /** Propriété pilotée — active le bouton « Scanner » (mode live). */
   propertyId?: number | string;
+  /** Fenêtre du bilan affiché dans le HUD (jours) — alignée sur le zoom planning. */
+  reportWindowDays?: number;
   onSelectAgent?: (id: AgentId) => void;
   /** Agent qui agit sur une réservation → comète (en plus du rendu interne). */
   onActing?: (agentId: AgentId, reservationId: string) => void;
@@ -42,9 +46,15 @@ export interface SupervisionPanelProps {
   onEditAction?: (actionId: string) => void;
 }
 
-export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAgent, onActing, onEditAction }: SupervisionPanelProps) {
+export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, onActing, onEditAction }: SupervisionPanelProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  // Bilan de valeur (org-scopé) affiché dans le HUD. La fenêtre suit le zoom du
+  // planning par défaut, avec un sélecteur HUD (dont « Jour ») qui l'affine ; un
+  // changement de zoom re-synchronise (le zoom reste le maître).
+  const [reportWindow, setReportWindow] = useState(reportWindowDays);
+  useEffect(() => setReportWindow(reportWindowDays), [reportWindowDays]);
+  const { report } = useSupervisionReport(reportWindow);
   const [selected, setSelected] = useState<AgentId | null>(null);
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
 
@@ -102,6 +112,9 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
     },
     [actions, markInFlight, onEditAction],
   );
+  // Modale d'ajustement tarifaire (cartes PRICE_DROP multi-segment).
+  const [priceAction, setPriceAction] = useState<PendingAction | PortfolioPendingAction | null>(null);
+  const handleAdjustPrice = useCallback((a: PendingAction | PortfolioPendingAction) => setPriceAction(a), []);
 
   const handleSelect = useCallback(
     (id: AgentId) => {
@@ -148,6 +161,18 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
         snapshot={snapshot}
         online={status === 'live'}
         onSelectAgent={handleSelect}
+        report={
+          report
+            ? {
+                windowDays: report.windowDays,
+                autoActions: report.autoActions,
+                acceptanceRate: report.acceptanceRate,
+                estimatedTimeSaved: report.estimatedTimeSaved,
+              }
+            : undefined
+        }
+        reportWindow={reportWindow}
+        onReportWindowChange={setReportWindow}
         headerAction={
           canKickoff && propertyId != null ? (
             <Tooltip
@@ -174,7 +199,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
           ) : undefined
         }
         belowHud={
-          propertySnapshot && propertySnapshot.feed.length > 0 ? (
+          propertySnapshot ? (
             <Box
               sx={{
                 display: 'flex',
@@ -197,7 +222,16 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
                 data-vertical-scroll
                 sx={{ px: 1, pb: 1, overflowY: 'auto', minHeight: 0, overscrollBehavior: 'contain' }}
               >
-                <ActivityFeed entries={propertySnapshot.feed} />
+                {propertySnapshot.feed.length > 0 ? (
+                  <ActivityFeed entries={propertySnapshot.feed} />
+                ) : (
+                  <Box sx={{ px: 1, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                    {t(
+                      'supervision.feed.emptyOnboarding',
+                      'Les agents observent ce logement. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
+                    )}
+                  </Box>
+                )}
               </Box>
             </Box>
           ) : undefined
@@ -254,6 +288,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
               actions={propertySnapshot.pending}
               onValidate={handleValidate}
               onEdit={handleEdit}
+              onAdjustPrice={handleAdjustPrice}
               variant="floating"
             />
           )}
@@ -263,7 +298,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
       {/* file HITL flottante (vue portefeuille / autres scopes) */}
       {!propertySnapshot && snapshot.pending.length > 0 && (
         <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 7, maxWidth: 'calc(100% - 32px)', display: 'flex', flexDirection: 'column' }}>
-          <TaskDeckQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} variant="floating" />
+          <TaskDeckQueue actions={snapshot.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="floating" />
         </Box>
       )}
 
@@ -319,7 +354,22 @@ export function SupervisionPanel({ createProvider, deps, propertyId, onSelectAge
         </Box>
       )}
 
-      <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} />
+      <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} propertyId={propertyId} />
+
+      {priceAction && (
+        <PriceAdjustmentModal
+          suggestionId={priceAction.id}
+          propertyId={Number(
+            (priceAction as PortfolioPendingAction).propertyId ?? propertyId ?? 0,
+          )}
+          actionParams={priceAction.actionParams}
+          onClose={() => setPriceAction(null)}
+          onApplied={() => {
+            markInFlight(priceAction.id);
+            setPriceAction(null);
+          }}
+        />
+      )}
     </Box>
   );
 }

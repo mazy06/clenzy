@@ -6,6 +6,7 @@ import com.clenzy.repository.MarketingContactRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.service.AbandonedBookingService;
 import com.clenzy.service.EmailService;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +59,7 @@ public class AbandonedBookingRecoveryScheduler {
     private final EmailService emailService;
     private final OrganizationRepository organizationRepository;
     private final MarketingContactRepository marketingContactRepository;
+    private final SupervisionActivityService supervisionActivityService;
     private final Clock clock;
     private final boolean enabled;
     private final String baseUrl;
@@ -67,6 +69,7 @@ public class AbandonedBookingRecoveryScheduler {
                                              EmailService emailService,
                                              OrganizationRepository organizationRepository,
                                              MarketingContactRepository marketingContactRepository,
+                                             SupervisionActivityService supervisionActivityService,
                                              Clock clock,
                                              @Value("${clenzy.booking.cart-recovery.enabled:false}") boolean enabled,
                                              @Value("${clenzy.base-url:https://app.clenzy.fr}") String baseUrl) {
@@ -75,6 +78,7 @@ public class AbandonedBookingRecoveryScheduler {
         this.emailService = emailService;
         this.organizationRepository = organizationRepository;
         this.marketingContactRepository = marketingContactRepository;
+        this.supervisionActivityService = supervisionActivityService;
         this.clock = clock;
         this.enabled = enabled;
         this.baseUrl = baseUrl;
@@ -114,10 +118,36 @@ public class AbandonedBookingRecoveryScheduler {
             try {
                 emailService.sendSimpleHtmlEmail(ab.getGuestEmail(), subject(ab, step), body(ab, step));
                 abandonedBookingService.recordReminderSent(ab, finalStep);
+                recordConstellationActivity(ab, step);
             } catch (Exception e) {
                 // Best-effort : on laisse en l'état -> reessai au prochain run.
                 log.warn("Relance panier abandonne {} (etape {}) echouee: {}", ab.getId(), step, e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Fait remonter la relance de panier abandonné dans le feed « En direct » de la CONSTELLATION du
+     * logement (agent Communication « com »), en plus de l'email envoyé : la propriété est celle du
+     * snapshot du panier ({@code propertyId}), org-scopée par occurrence. Best-effort (le record est
+     * lui-même best-effort côté service) — un échec ne casse jamais le scheduler.
+     */
+    private void recordConstellationActivity(AbandonedBooking ab, int step) {
+        try {
+            Long propertyId = ab.getPropertyId();
+            if (propertyId == null) {
+                return; // panier sans logement rattaché → rien à afficher dans une constellation
+            }
+            int reminderNumber = step + 1;
+            String property = ab.getPropertyName() != null && !ab.getPropertyName().isBlank()
+                ? ab.getPropertyName() : "ce logement";
+            String summary = "Relance panier abandonné " + reminderNumber + "/" + STEP_DELAYS.length
+                + " envoyée pour " + property;
+            supervisionActivityService.recordModuleAct(
+                ab.getOrganizationId(), propertyId, "com", "cart_reminder_sent", summary);
+        } catch (Exception e) {
+            log.debug("Relance panier: activite constellation non enregistree (panier {}): {}",
+                ab.getId(), e.getMessage());
         }
     }
 

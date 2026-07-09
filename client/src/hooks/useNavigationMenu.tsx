@@ -23,6 +23,11 @@ import {
   type HubAccess,
   type HubDef,
 } from '../config/navigationHubs';
+import {
+  useCanSuperviseAgents,
+  useSupervisionConfig,
+  useSupervisionPendingCounts,
+} from '../modules/supervision';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -199,6 +204,13 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pastille « en attente » du menu Planning : nb de cartes HITL de la
+  // constellation. Gaté (rôle habilité + feature activée) → aucun fetch inutile.
+  const { canView: canSupervise } = useCanSuperviseAgents();
+  const { data: supervisionConfig } = useSupervisionConfig({ enabled: canSupervise });
+  const supervisionEnabled = canSupervise && (supervisionConfig?.enabled ?? false);
+  const { total: pendingTotal } = useSupervisionPendingCounts(supervisionEnabled);
+
   // Fonction pour vérifier si un utilisateur a accès à un élément de menu (synchronisée)
   const hasMenuAccess = useCallback((item: Omit<MenuItem, 'id' | 'text'>): boolean => {
     try {
@@ -325,8 +337,16 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     }
   }, [user?.id, user?.permissions, refreshMenu]);
 
-  // Mémoriser le résultat pour éviter les re-renders inutiles
-  const memoizedMenuItems = useMemo(() => menuItems, [menuItems]);
+  // Mémoriser le résultat + superposer la pastille « en attente » sur Planning
+  // (badge dynamique, hors du flux de construction du menu).
+  const memoizedMenuItems = useMemo(() => {
+    if (pendingTotal <= 0) return menuItems;
+    return menuItems.map((item) =>
+      item.path === '/planning'
+        ? { ...item, badge: pendingTotal, badgeColor: 'warning' as const }
+        : item,
+    );
+  }, [menuItems, pendingTotal]);
 
   return {
     menuItems: memoizedMenuItems,

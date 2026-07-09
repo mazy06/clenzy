@@ -7,10 +7,13 @@ import com.clenzy.model.SupervisionActivity;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.SupervisionActivityRepository;
 import com.clenzy.service.access.OrganizationAccessGuard;
+import com.clenzy.service.agent.ToolRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -29,21 +32,32 @@ public class SupervisionActivityService {
 
     private static final Logger log = LoggerFactory.getLogger(SupervisionActivityService.class);
     private static final int FEED_LIMIT = 20;
+    // Fenêtre élargie côté requête : on filtre ensuite les entrées read-only
+    // (héritage) pour garantir jusqu'à FEED_LIMIT vraies actions au rendu.
+    private static final int FEED_FETCH_LIMIT = 200;
     private static final Duration AUTO_ACTIONS_WINDOW = Duration.ofHours(24);
 
     private final SupervisionActivityRepository activityRepository;
     private final SupervisionModuleRegistry registry;
+    private final ToolRegistry toolRegistry;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final SupervisionRealtimePublisher realtimePublisher;
 
+    // @Lazy : ToolRegistry dépend (transitivement) de ce service → sans lazy, cycle
+    // de beans au démarrage. Le proxy est résolu au 1er appel (registre alors prêt).
     public SupervisionActivityService(SupervisionActivityRepository activityRepository,
                                       SupervisionModuleRegistry registry,
+                                      @Lazy ToolRegistry toolRegistry,
                                       PropertyRepository propertyRepository,
-                                      OrganizationAccessGuard organizationAccessGuard) {
+                                      OrganizationAccessGuard organizationAccessGuard,
+                                      SupervisionRealtimePublisher realtimePublisher) {
         this.activityRepository = activityRepository;
         this.registry = registry;
+        this.toolRegistry = toolRegistry;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.realtimePublisher = realtimePublisher;
     }
 
     /**
@@ -54,9 +68,69 @@ public class SupervisionActivityService {
     @Transactional
     public void recordAct(Long organizationId, Long propertyId, String specialist,
                           String toolName, String summary) {
+        // Ne journaliser que les VRAIES ACTIONS : les outils d'écriture
+        // (ToolDescriptor.write → requiresConfirmation). Les outils de LECTURE
+        // exécutés par un scan (analyses, prévisions…) ne sont PAS des actions
+        // et pollueraient le feed « En direct » — on les ignore ici.
+        if (!isWriteTool(toolName)) {
+            return;
+        }
         // Un specialist technique masqué (→ module null) n'est pas journalisé.
         recordModuleAct(organizationId, propertyId,
                 registry.moduleForSpecialist(specialist), toolName, summary);
+    }
+
+    /** Un outil est une « action » s'il est déclaré en écriture (confirmation requise). */
+    private boolean isWriteTool(String toolName) {
+        if (toolName == null || toolName.isBlank()) {
+            return false;
+        }
+        return toolRegistry.find(toolName)
+                .map(h -> h.descriptor().requiresConfirmation())
+                .orElse(false);
+    }
+
+    /**
+     * Vrai UNIQUEMENT si {@code toolName} correspond à un outil connu de LECTURE.
+     * Un nom inconnu (ex. action d'automatisation déterministe) renvoie false →
+     * l'entrée est conservée au rendu. Sert à masquer le bruit read-only hérité.
+     */
+    /**
+     * Feed org-wide (vue portefeuille) : dernières activités de TOUTE l'organisation,
+     * hors outils read-only (héritage). Retourne les entités (le portefeuille y ajoute
+     * le nom du logement). Pas de vérif d'ownership par logement ici : l'org est celle
+     * du requester (résolue par l'appelant via {@code tenantContext}).
+     */
+    @Transactional(readOnly = true)
+    public List<SupervisionActivity> recentOrgFeed(Long organizationId, int fetchLimit, int keepLimit) {
+        if (organizationId == null) {
+            return List.of();
+        }
+        return activityRepository
+                .findByOrganizationIdOrderByCreatedAtDesc(organizationId, PageRequest.of(0, fetchLimit))
+                .stream()
+                .filter(a -> !isReadOnlyTool(a.getToolName()))
+                .limit(keepLimit)
+                .toList();
+    }
+
+    /** Nb d'actions auto de l'org sur la fenêtre récente (métrique portefeuille). */
+    @Transactional(readOnly = true)
+    public long orgAutoActions(Long organizationId) {
+        if (organizationId == null) {
+            return 0L;
+        }
+        return activityRepository.countByOrganizationIdAndKindAndCreatedAtAfter(
+                organizationId, SupervisionActivity.KIND_ACT, Instant.now().minus(AUTO_ACTIONS_WINDOW));
+    }
+
+    private boolean isReadOnlyTool(String toolName) {
+        if (toolName == null || toolName.isBlank()) {
+            return false;
+        }
+        return toolRegistry.find(toolName)
+                .map(h -> !h.descriptor().requiresConfirmation())
+                .orElse(false);
     }
 
     /**
@@ -72,13 +146,29 @@ public class SupervisionActivityService {
             return;
         }
         try {
-            activityRepository.save(new SupervisionActivity(
+            SupervisionActivity saved = activityRepository.save(new SupervisionActivity(
                     organizationId, propertyId, moduleKey,
                     SupervisionActivity.KIND_ACT, toolName, summary));
+            // Temps réel (T6) : pousse l'entrée aux opérateurs connectés (best-effort).
+            realtimePublisher.publishFeedAdded(propertyId, saved.getId(), moduleKey, toolName,
+                    summary, saved.getCreatedAt());
         } catch (Exception e) {
             log.debug("supervision activity record failed (module={} prop={}): {}",
                     moduleKey, propertyId, e.getMessage());
         }
+    }
+
+    /**
+     * Variante en transaction indépendante ({@code REQUIRES_NEW}) : à utiliser quand l'appelant
+     * s'apprête à lever une exception qui rollback sa propre transaction (ex. double-booking refusé
+     * dans {@link com.clenzy.service.CalendarEngine}). Sans ça, l'insert rejoindrait la transaction
+     * appelante et serait annulé par le rollback → l'événement de feed n'apparaîtrait jamais.
+     * Reste best-effort : un échec du journal ne remonte jamais à l'appelant.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordModuleActNewTx(Long organizationId, Long propertyId, String moduleKey,
+                                     String toolName, String summary) {
+        recordModuleAct(organizationId, propertyId, moduleKey, toolName, summary);
     }
 
     /** Feed + compteur d'actions d'une propriété (ownership-checked). */
@@ -93,10 +183,16 @@ public class SupervisionActivityService {
                 property.getOrganizationId(), "Propriété hors de votre organisation");
 
         Long orgId = property.getOrganizationId();
+        // On récupère une fenêtre plus large puis on MASQUE les entrées d'outils
+        // read-only déjà présentes en base (héritage d'avant le filtre d'écriture) :
+        // le feed « En direct » ne montre que de vraies actions. Les entrées
+        // d'automatisation (tool_name non répertorié) sont conservées.
         List<SupervisionFeedEntryDto> feed = activityRepository
                 .findByOrganizationIdAndPropertyIdOrderByCreatedAtDesc(
-                        orgId, propertyId, PageRequest.of(0, FEED_LIMIT))
+                        orgId, propertyId, PageRequest.of(0, FEED_FETCH_LIMIT))
                 .stream()
+                .filter(a -> !isReadOnlyTool(a.getToolName()))
+                .limit(FEED_LIMIT)
                 .map(this::toFeedEntry)
                 .toList();
 
@@ -115,7 +211,8 @@ public class SupervisionActivityService {
                 String.valueOf(a.getId()),
                 a.getModuleKey(),
                 a.getCreatedAt() != null ? a.getCreatedAt().toString() : Instant.now().toString(),
-                text);
+                text,
+                a.getToolName());
     }
 
     /** snake_case → libellé court lisible ; repli sur le module si vide. */

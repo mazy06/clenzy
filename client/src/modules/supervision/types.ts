@@ -85,6 +85,11 @@ export interface PendingAction {
    * Absent = suggestion informationnelle (Valider = rejet, comportement historique).
    */
   applyActionType?: string;
+  /**
+   * Paramètres bruts de l'action (JSON, ex. {@code {"segments":[{from,to,percent}, …]}}),
+   * pour préremplir la modale d'ajustement de prix. Absent si non actionnable.
+   */
+  actionParams?: string;
 }
 
 // ─── Approbation inline (interrupt AG-UI, chemin live) ───────────────────────
@@ -110,7 +115,9 @@ export interface FeedEntry {
   id: string;
   agentId: AgentId;
   at: string; // ISO (affiché HH:MM)
-  text: string; // "Revenue a ajusté le tarif du 14–17 juil. (+8 %)"
+  text: string; // libellé de repli (résumé porté par l'outil, ou mock)
+  /** Nom stable de l'outil → clé i18n `supervision.tools.<toolName>` (feed réel). */
+  toolName?: string;
   /**
    * Entrée issue de l'orchestrateur (réponse à une demande opérateur dans le
    * chat), pas d'un agent métier : rendu avec l'identité orchestrateur (icône +
@@ -193,6 +200,13 @@ export interface PortfolioFeedEntry extends FeedEntry {
   propertyName: string;
 }
 
+/** Alerte de niveau PORTEFEUILLE (org) — indicateur global non rattaché à un logement. */
+export interface OrgAlert {
+  severity: 'critical' | 'warning' | 'info';
+  title: string;
+  description: string;
+}
+
 export interface PortfolioSnapshot {
   scope: 'portfolio';
   propertyCount: number; // N logements pilotés
@@ -203,6 +217,8 @@ export interface PortfolioSnapshot {
   pending: PortfolioPendingAction[]; // TOUTES les actions en attente, tous logements
   feed: PortfolioFeedEntry[]; // journal portefeuille
   dayMetrics: DayMetrics;
+  /** Alertes org-level (occupation/marge/nuits vacantes du parc). Optionnel (mock/legacy). */
+  orgAlerts?: OrgAlert[];
 }
 
 export type SupervisionSnapshot = OrchestratorSnapshot | PortfolioSnapshot;
@@ -230,6 +246,8 @@ export type StreamEvent =
   | { type: 'conversation.busy'; busy: boolean } // run en cours (true) / terminé (false)
   // ── Approbation inline (interrupt AG-UI) ─────────────────────────────────────
   | { type: 'pendingAction.added'; action: PendingAgentAction } // run en pause : action sensible à valider/refuser
-  | { type: 'pendingAction.cleared' }; // décision prise (ou run repris) → carte retirée
+  | { type: 'pendingAction.cleared' } // décision prise (ou run repris) → carte retirée
+  // ── Rafraîchissement périodique hors run (polling du feed/file réels) ─────────
+  | { type: 'snapshot.refreshed'; snapshot: SupervisionSnapshot }; // remplace feed/pending/agents/métriques (property OU portefeuille), préserve l'état live
 
 export type PendingOutcome = 'validated' | 'edited' | 'expired';

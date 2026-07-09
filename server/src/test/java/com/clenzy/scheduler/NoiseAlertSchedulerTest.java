@@ -9,6 +9,8 @@ import com.clenzy.repository.NoiseAlertConfigRepository;
 import com.clenzy.repository.NoiseDeviceRepository;
 import com.clenzy.service.NoiseAlertService;
 import com.clenzy.service.NoiseDeviceService;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,12 +39,17 @@ class NoiseAlertSchedulerTest {
     private NoiseDeviceService deviceService;
     @Mock
     private NoiseAlertService alertService;
+    @Mock
+    private SupervisionActivityService supervisionActivityService;
+    @Mock
+    private SupervisionSuggestionService supervisionSuggestionService;
 
     private NoiseAlertScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new NoiseAlertScheduler(configRepository, deviceRepository, deviceService, alertService);
+        scheduler = new NoiseAlertScheduler(configRepository, deviceRepository, deviceService, alertService,
+                supervisionActivityService, supervisionSuggestionService);
     }
 
     private NoiseAlertConfig createConfig(Long propertyId, Long orgId) {

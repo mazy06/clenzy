@@ -44,6 +44,20 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
            "ORDER BY sr.desiredDate")
     List<ServiceRequest> findUnpaidByProperty(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
+    /**
+     * Nb de demandes de service impayées PAR logement pour toute l'org (pastilles
+     * planning) — mêmes critères que {@link #findUnpaidByProperty}, agrégé :
+     * {@code [propertyId, count]} par ligne.
+     */
+    @Query("SELECT sr.property.id, COUNT(sr) FROM ServiceRequest sr WHERE sr.organizationId = :orgId " +
+           "AND sr.estimatedCost IS NOT NULL AND sr.estimatedCost > 0 " +
+           "AND (sr.paymentStatus IS NULL OR sr.paymentStatus IN (" +
+           "com.clenzy.model.PaymentStatus.PENDING, com.clenzy.model.PaymentStatus.PARTIALLY_PAID, " +
+           "com.clenzy.model.PaymentStatus.FAILED)) " +
+           "AND sr.status NOT IN (com.clenzy.model.RequestStatus.CANCELLED, com.clenzy.model.RequestStatus.REJECTED) " +
+           "GROUP BY sr.property.id")
+    List<Object[]> countUnpaidByPropertyForOrg(@Param("orgId") Long orgId);
+
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user WHERE sr.status = :status AND sr.desiredDate BETWEEN :start AND :end AND sr.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")

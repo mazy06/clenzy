@@ -51,6 +51,7 @@ class ICalImportServiceTest {
     @Mock private GuestService guestService;
     @Mock private ServiceRequestService serviceRequestService;
     @Mock private OtaReservationInvoicingService otaInvoicingService;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService;
     @Mock private org.springframework.beans.factory.ObjectProvider<ICalImportService> selfProvider;
 
     private TenantContext tenantContext;
@@ -85,6 +86,7 @@ class ICalImportServiceTest {
                 new com.clenzy.service.ical.ICalOrphanDetector(reservationRepository2, canceller),
                 new com.clenzy.service.ical.ICalCleaningScheduler(
                         serviceRequestRepository, pricingConfigService, tenantContext),
+                supervisionActivityService,
                 selfProvider
         );
     }

@@ -16,7 +16,7 @@
 
 import { useState } from 'react';
 import { Box, Button, Collapse, CircularProgress, IconButton } from '@mui/material';
-import { Check, Edit, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
+import { Check, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
 import { useCountdown, type Countdown } from '../core/useCountdown';
@@ -35,9 +35,11 @@ export interface PendingActionCardProps {
   action: PendingAction | PortfolioPendingAction;
   onValidate: (id: string) => void;
   onEdit: (id: string) => void;
+  /** Ouvre la modale d'ajustement tarifaire (cartes PRICE_DROP multi-segment). */
+  onAdjustPrice?: (action: PendingAction | PortfolioPendingAction) => void;
 }
 
-export function PendingActionCard({ action, onValidate, onEdit }: PendingActionCardProps) {
+export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }: PendingActionCardProps) {
   const { t } = useTranslation();
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
@@ -48,6 +50,10 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
   const isPayment = action.kind === 'payment';
   // Suggestion actionnable (ex. baisse de prix) : « Appliquer » exécute l'action serveur.
   const isApply = !isPayment && !isReminder && Boolean(action.applyActionType);
+  // Baisse tarifaire multi-segment : « Ajuster » ouvre une modale (revue + prévision + apply),
+  // au lieu d'appliquer directement, pour laisser l'opérateur éditer les plages/remises.
+  const isPriceAdjust = isApply && action.applyActionType === 'PRICE_DROP'
+    && Boolean(action.actionParams) && Boolean(onAdjustPrice);
   // Un rappel/paiement/action applicable ne « périme » pas : boutons toujours actionnables.
   const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const propertyName = 'propertyName' in action ? action.propertyName : undefined;
@@ -178,7 +184,7 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
             variant="contained"
             disableElevation
             disabled={resolving}
-            onClick={validate}
+            onClick={isPriceAdjust ? () => onAdjustPrice!(action) : validate}
             startIcon={
               resolving ? (
                 <CircularProgress size={13} color="inherit" />
@@ -205,7 +211,9 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
               '&.Mui-disabled': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
             }}
           >
-            {isPayment ? (
+            {isPriceAdjust ? (
+              t('supervision.price.adjustCta', 'Ajuster les tarifs')
+            ) : isPayment ? (
               <>
                 {t('supervision.payment.settle', 'Régler')}
                 {action.amountEur != null && (
@@ -235,16 +243,18 @@ export function PendingActionCard({ action, onValidate, onEdit }: PendingActionC
             color="inherit"
             disabled={resolving}
             onClick={edit}
-            startIcon={isReminder ? <VisibilityOff size={14} /> : isPayment ? <Schedule size={14} /> : isApply ? <VisibilityOff size={14} /> : <Edit size={14} />}
+            startIcon={isPayment ? <Schedule size={14} /> : <VisibilityOff size={14} />}
             sx={{ textTransform: 'none', fontWeight: 500, fontSize: 12, color: 'var(--ink)', borderColor: 'var(--line-2)', '&:hover': { borderColor: 'var(--muted)', bgcolor: 'transparent' } }}
           >
+            {/* Le bouton secondaire ÉCARTE la suggestion (dismiss serveur) : aucun éditeur
+                métier n'est câblé (onEditAction non fourni). On l'étiquette donc honnêtement
+                « Ignorer » pour toute carte non-paiement/non-rappel — jamais « Modifier »,
+                qui laissait croire à une édition et faisait disparaître la carte. */}
             {isPayment
               ? t('supervision.payment.later', 'Plus tard')
               : isReminder
                 ? t('supervision.reminder.mute', 'Ne plus afficher')
-                : isApply
-                  ? t('supervision.apply.dismiss', 'Ignorer')
-                  : t('supervision.hitl.edit')}
+                : t('supervision.apply.dismiss', 'Ignorer')}
           </Button>
           {/* « Pourquoi ? » réduit à la flèche seule, sur la MÊME ligne que les
               deux boutons (poussée à droite). Le libellé passe en aria-label. */}

@@ -11,6 +11,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.access.OrganizationAccessGuard;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,8 @@ public class CalendarEngine {
     private final OrganizationAccessGuard organizationAccessGuard;
     /** Invalide les caches de recherche booking (calendrier agrégé des prix) sur changement dispo/prix. */
     private final SearchCacheInvalidator searchCacheInvalidator;
+    /** Feed « En direct » de la constellation (best-effort) : trace le double-booking évité. */
+    private final SupervisionActivityService supervisionActivityService;
 
     public CalendarEngine(CalendarDayRepository calendarDayRepository,
                           CalendarCommandRepository calendarCommandRepository,
@@ -77,7 +80,8 @@ public class CalendarEngine {
                           RateOverrideRepository rateOverrideRepository,
                           SyncMetrics syncMetrics,
                           OrganizationAccessGuard organizationAccessGuard,
-                          SearchCacheInvalidator searchCacheInvalidator) {
+                          SearchCacheInvalidator searchCacheInvalidator,
+                          SupervisionActivityService supervisionActivityService) {
         this.calendarDayRepository = calendarDayRepository;
         this.calendarCommandRepository = calendarCommandRepository;
         this.propertyRepository = propertyRepository;
@@ -89,6 +93,7 @@ public class CalendarEngine {
         this.syncMetrics = syncMetrics;
         this.organizationAccessGuard = organizationAccessGuard;
         this.searchCacheInvalidator = searchCacheInvalidator;
+        this.supervisionActivityService = supervisionActivityService;
     }
 
     // ----------------------------------------------------------------
@@ -155,6 +160,7 @@ public class CalendarEngine {
                 syncMetrics.incrementConflictDetected();
                 log.warn("CalendarEngine.book: {} conflit(s) detecte(s) pour propriete {} entre {} et {}",
                         conflicts, propertyId, checkIn, checkOut);
+                recordDoubleBookingPrevented(orgId, propertyId, checkIn, checkOut, conflicts);
                 throw new CalendarConflictException(propertyId, checkIn, checkOut, conflicts);
             }
 
@@ -783,6 +789,28 @@ public class CalendarEngine {
     // ================================================================
     // Methodes internes
     // ================================================================
+
+    /**
+     * Fait remonter un double-booking évité dans le feed « En direct » de la constellation du logement
+     * (module « ops ») : la plage demandée chevauchait des jours déjà occupés, la réservation est refusée.
+     * Best-effort — l'orgId et le propertyId sont résolus par occurrence, jamais sur le chemin critique :
+     * un échec du journal ne doit pas empêcher le rejet du conflit.
+     */
+    private void recordDoubleBookingPrevented(Long orgId, Long propertyId, LocalDate checkIn,
+                                              LocalDate checkOut, long conflicts) {
+        try {
+            String summary = "Double-réservation évitée — " + conflicts + " jour(s) déjà occupé(s) sur ["
+                    + checkIn + ", " + checkOut + "), réservation refusée";
+            // REQUIRES_NEW : book() lève CalendarConflictException juste après → rollback de sa
+            // transaction. Un insert en propagation REQUIRED serait annulé avec elle ; on isole donc
+            // l'écriture du feed dans une transaction indépendante qui commit malgré le rejet.
+            supervisionActivityService.recordModuleActNewTx(
+                    orgId, propertyId, "ops", "double_booking_prevented", summary);
+        } catch (Exception e) {
+            log.debug("CalendarEngine.book: activite constellation non enregistree (propriete {}): {}",
+                    propertyId, e.getMessage());
+        }
+    }
 
     /**
      * Acquiert le lock advisory transactionnel sur la propriete.

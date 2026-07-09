@@ -2,6 +2,7 @@ package com.clenzy.service.ai;
 
 import com.clenzy.model.AiCreditGrant;
 import com.clenzy.model.AiUsageLedgerEntry;
+import com.clenzy.model.BillingPeriod;
 import com.clenzy.model.User;
 import com.clenzy.repository.AiCreditGrantRepository;
 import com.clenzy.repository.AiUsageLedgerRepository;
@@ -14,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -38,11 +41,14 @@ public class AiCreditGrantService {
     private static final Duration SUBSCRIPTION_GRANT_TTL = Duration.ofDays(32);
     /** Top-up prepaye : 12 mois (D-102). */
     private static final Duration TOPUP_GRANT_TTL = Duration.ofDays(365);
+    /** Zone de facturation : borne le « mois courant » de la recharge des prépayés. */
+    private static final ZoneId BILLING_ZONE = ZoneId.of("Europe/Paris");
 
     private final AiCreditGrantRepository grantRepository;
     private final AiUsageLedgerRepository ledgerRepository;
     private final CreditBalanceService balanceService;
     private final UserRepository userRepository;
+    private final com.clenzy.repository.OrganizationRepository organizationRepository;
 
     private final long allotmentEssentiel;
     private final long allotmentConfort;
@@ -52,6 +58,7 @@ public class AiCreditGrantService {
                                 AiUsageLedgerRepository ledgerRepository,
                                 CreditBalanceService balanceService,
                                 UserRepository userRepository,
+                                com.clenzy.repository.OrganizationRepository organizationRepository,
                                 @Value("${clenzy.ai.credits.allotment.essentiel-millicredits:500000}") long allotmentEssentiel,
                                 @Value("${clenzy.ai.credits.allotment.confort-millicredits:2000000}") long allotmentConfort,
                                 @Value("${clenzy.ai.credits.allotment.premium-millicredits:8000000}") long allotmentPremium) {
@@ -59,6 +66,7 @@ public class AiCreditGrantService {
         this.ledgerRepository = ledgerRepository;
         this.balanceService = balanceService;
         this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
         this.allotmentEssentiel = allotmentEssentiel;
         this.allotmentConfort = allotmentConfort;
         this.allotmentPremium = allotmentPremium;
@@ -84,6 +92,114 @@ public class AiCreditGrantService {
         long allotment = allotmentFor(payer.getForfait());
         grant(payer.getOrganizationId(), AiCreditGrant.SOURCE_SUBSCRIPTION, allotment,
                 Instant.now().plus(SUBSCRIPTION_GRANT_TTL), invoiceId);
+    }
+
+    /**
+     * Garantit que l'organisation dispose de sa dotation SUBSCRIPTION du mois
+     * courant, si elle y est <b>éligible</b> (abonnement Stripe actif). Cœur
+     * commun des trois chemins de financement : recharge mensuelle des prépayés,
+     * auto-provisionnement à la volée du {@link RunCreditGuard} (self-heal), et
+     * amorçage. <b>Idempotent par (org, mois)</b> : ne crédite pas si une poche
+     * SUBSCRIPTION existe déjà ce mois (invoice de renouvellement tombé le même
+     * mois, run précédent, ou dotation déjà faite) — un solde à zéro dans ce cas
+     * signifie que la dotation du mois a été consommée (refus légitime).
+     *
+     * @return {@code true} si une poche a été créée, {@code false} sinon
+     */
+    @Transactional
+    public boolean ensureCurrentMonthAllotment(Long organizationId) {
+        if (organizationId == null) {
+            return false;
+        }
+        YearMonth month = YearMonth.now(BILLING_ZONE);
+        Instant monthStart = month.atDay(1).atStartOfDay(BILLING_ZONE).toInstant();
+        boolean alreadyGrantedThisMonth = grantRepository
+                .existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
+                        organizationId, AiCreditGrant.SOURCE_SUBSCRIPTION, monthStart);
+        if (alreadyGrantedThisMonth) {
+            return false;
+        }
+        User payer = userRepository
+                .findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(organizationId)
+                .orElse(null);
+        if (payer == null) {
+            return false; // pas d'abonnement actif → non éligible aux crédits inclus
+        }
+        grant(organizationId, AiCreditGrant.SOURCE_SUBSCRIPTION, allotmentFor(payer.getForfait()),
+                Instant.now().plus(SUBSCRIPTION_GRANT_TTL), "monthly:" + organizationId + ":" + month);
+        return true;
+    }
+
+    /**
+     * Recharge mensuelle des crédits pour les abonnés PMS <b>prépayés</b>
+     * (ANNUAL / BIENNIAL) — Stripe ne déclenche {@code invoice.paid} qu'une fois
+     * par période, ils n'auraient sinon qu'un mois de crédits par an. Les abonnés
+     * MENSUELS sont exclus : leur recharge est déjà portée par {@code invoice.paid}.
+     * Délègue à {@link #ensureCurrentMonthAllotment} (anti-double + éligibilité).
+     *
+     * @return nombre d'orgs rechargées
+     */
+    @Transactional
+    public int refreshMonthlyForPrepaidSubscribers() {
+        List<User> subscribers = userRepository.findByStripeSubscriptionIdIsNotNullAndBillingPeriodIn(
+                List.of(BillingPeriod.ANNUAL.name(), BillingPeriod.BIENNIAL.name()));
+        int refreshed = 0;
+        for (User subscriber : subscribers) {
+            if (ensureCurrentMonthAllotment(subscriber.getOrganizationId())) {
+                refreshed++;
+            }
+        }
+        log.info("[CREDITS] Recharge mensuelle prépayés : {} org(s) rechargée(s) sur {} abonné(s) annuel(s)/biennal(aux)",
+                refreshed, subscribers.size());
+        return refreshed;
+    }
+
+    /**
+     * Dotation initiale d'amorçage (T-07) : crédite une org existante AVANT
+     * l'activation de l'enforcement, pour qu'aucune ne soit coupée au flip du
+     * flag. <b>Idempotent</b> : ne fait rien si l'org possède déjà une poche
+     * active (non expirée) — même consommée. TTL identique à l'abonnement
+     * mensuel : couvre jusqu'à la prochaine facture Stripe qui prend le relais.
+     *
+     * @return {@code true} si une poche a été créée, {@code false} si déjà dotée
+     */
+    @Transactional
+    public boolean grantInitialIfAbsent(Long organizationId, long millicredits) {
+        if (organizationId == null || millicredits <= 0) {
+            return false;
+        }
+        boolean alreadyGranted = !grantRepository
+                .findByOrganizationIdAndExpiresAtAfterOrderByExpiresAtAsc(organizationId, Instant.now())
+                .isEmpty();
+        if (alreadyGranted) {
+            return false;
+        }
+        grant(organizationId, AiCreditGrant.SOURCE_INITIAL, millicredits,
+                Instant.now().plus(SUBSCRIPTION_GRANT_TTL), null);
+        return true;
+    }
+
+    /**
+     * Dote TOUTES les orgs existantes d'une poche initiale (amorçage T-07),
+     * à lancer AVANT l'activation de l'enforcement pour n'en couper aucune.
+     * Idempotent par org (voir {@link #grantInitialIfAbsent}).
+     *
+     * @return {@code {granted, skipped, millicredits}}
+     */
+    @Transactional
+    public Map<String, Object> grantInitialToAllOrgs(long millicredits) {
+        int granted = 0;
+        int skipped = 0;
+        for (com.clenzy.model.Organization org : organizationRepository.findAll()) {
+            if (grantInitialIfAbsent(org.getId(), millicredits)) {
+                granted++;
+            } else {
+                skipped++;
+            }
+        }
+        log.info("[CREDITS] Dotation initiale : {} orgs dotées, {} ignorées ({}mc chacune)",
+                granted, skipped, millicredits);
+        return Map.of("granted", granted, "skipped", skipped, "millicredits", millicredits);
     }
 
     /** Credite un pack top-up apres paiement Checkout confirme (webhook). */

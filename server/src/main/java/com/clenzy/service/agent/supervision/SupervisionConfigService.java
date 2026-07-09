@@ -87,6 +87,7 @@ public class SupervisionConfigService {
                                 organizationId, moduleDto.key(), true, SupervisionAutonomy.SUGGEST));
                 row.setEnabled(moduleDto.enabled());
                 row.setAutonomyLevel(SupervisionAutonomy.fromWire(moduleDto.autonomy()));
+                row.setThresholds(moduleDto.thresholds()); // seuils configurables (B5), null accepté
                 moduleRepository.save(row);
             }
         }
@@ -97,7 +98,8 @@ public class SupervisionConfigService {
     private SupervisionModuleDto toModuleDto(SupervisionModule module, SupervisionModuleSettings override) {
         boolean enabled = override != null ? override.isEnabled() : true;
         SupervisionAutonomy autonomy = override != null ? override.getAutonomyLevel() : module.defaultAutonomy();
+        String thresholds = override != null ? override.getThresholds() : null;
         return new SupervisionModuleDto(
-                module.key(), module.labelKey(), enabled, autonomy.toWire(), module.builtin());
+                module.key(), module.labelKey(), enabled, autonomy.toWire(), module.builtin(), thresholds);
     }
 }

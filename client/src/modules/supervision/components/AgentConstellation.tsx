@@ -15,6 +15,7 @@ import type {
   ConstellationAgentView,
   ConstellationHud,
   ConstellationRenderer,
+  ConstellationReport,
 } from '../renderers/ConstellationRenderer';
 import type { AgentId, OrchestratorSnapshot, PortfolioSnapshot, SupervisionSnapshot } from '../types';
 
@@ -27,6 +28,11 @@ export interface AgentConstellationProps {
   onSelectAgent?: (id: AgentId) => void;
   /** Action posée dans le HUD (ex. bouton « Scanner » en icône). */
   headerAction?: ReactNode;
+  /** Bilan de valeur (fenêtre = zoom planning) affiché dans le HUD. */
+  report?: ConstellationReport;
+  /** Fenêtre du bilan sélectionnée (jours) + handler du sélecteur HUD. */
+  reportWindow?: number;
+  onReportWindowChange?: (days: number) => void;
   /** Contenu empilé juste sous le HUD (ex. flux « En direct »). */
   belowHud?: ReactNode;
 }
@@ -80,6 +86,9 @@ export function AgentConstellation({
   online,
   onSelectAgent,
   headerAction,
+  report,
+  reportWindow,
+  onReportWindowChange,
   belowHud,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
@@ -95,6 +104,9 @@ export function AgentConstellation({
       onToggleFocus={() => setFocused((f) => !f)}
       onSelectAgent={onSelectAgent}
       headerAction={headerAction}
+      report={report}
+      reportWindow={reportWindow}
+      onReportWindowChange={onReportWindowChange}
       belowHud={belowHud}
     />
   );
