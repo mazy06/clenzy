@@ -30,6 +30,7 @@ class AiTokenBudgetServiceTest {
     private AiTokenBudgetRepository budgetRepository;
     private AiTokenUsageRepository usageRepository;
     private LlmPricingService pricingService;
+    private com.clenzy.tenant.TenantContext tenantContext;
     private AiTokenBudgetService service;
 
     @BeforeEach
@@ -41,7 +42,9 @@ class AiTokenBudgetServiceTest {
         budgetRepository = mock(AiTokenBudgetRepository.class);
         usageRepository = mock(AiTokenUsageRepository.class);
         pricingService = new LlmPricingService(); // real impl — pure stateless, no Spring needed
-        service = spy(new AiTokenBudgetService(aiProperties, budgetRepository, usageRepository, pricingService));
+        tenantContext = mock(com.clenzy.tenant.TenantContext.class); // isSuperAdmin() = false par défaut
+        service = spy(new AiTokenBudgetService(aiProperties, budgetRepository, usageRepository,
+                pricingService, tenantContext));
 
         // Fix month for deterministic tests
         doReturn("2026-03").when(service).getCurrentMonthYear();

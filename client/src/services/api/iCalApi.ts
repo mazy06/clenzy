@@ -54,6 +54,8 @@ export interface ICalFeed {
   syncEnabled: boolean;
   lastSyncAt: string;
   lastSyncStatus: string;
+  /** Motif du dernier échec de synchro (présent si lastSyncStatus === 'ERROR'). */
+  lastSyncError?: string | null;
   eventsImported: number;
 }
 

@@ -2,8 +2,10 @@ package com.clenzy.service.agent.supervision;
 
 import com.clenzy.dto.SupervisionSuggestionDto;
 import com.clenzy.exception.NotFoundException;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.SupervisionSuggestionRepository;
+import com.clenzy.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,20 +31,32 @@ public class SupervisionSuggestionService {
 
     private static final Logger log = LoggerFactory.getLogger(SupervisionSuggestionService.class);
     private static final Duration TTL = Duration.ofDays(7);
+    /** Une carte « Ignorée » ne peut pas être re-suggérée avant ce délai (anti-spam au scan ;
+     *  au-delà, elle peut re-remonter si la situation persiste — pas de masquage définitif). */
+    private static final Duration DISMISS_COOLDOWN = Duration.ofDays(14);
     private static final int TITLE_MAX = 300;
     private static final int MOTIF_MAX = 500;
 
     private final SupervisionSuggestionRepository repository;
     private final SuggestionActionExecutor actionExecutor;
+    private final NotificationService notificationService;
+    private final SupervisionRealtimePublisher realtimePublisher;
+    private final com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
 
     public SupervisionSuggestionService(SupervisionSuggestionRepository repository,
                                         SuggestionActionExecutor actionExecutor,
+                                        NotificationService notificationService,
+                                        SupervisionRealtimePublisher realtimePublisher,
+                                        com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService,
                                         Clock clock,
                                         PlatformTransactionManager transactionManager) {
         this.repository = repository;
         this.actionExecutor = actionExecutor;
+        this.notificationService = notificationService;
+        this.realtimePublisher = realtimePublisher;
+        this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -145,6 +159,15 @@ public class SupervisionSuggestionService {
         if (dup) {
             return java.util.Optional.empty();
         }
+        // Cooldown : une carte identique récemment IGNORÉE ne réapparaît pas au scan suivant
+        // (respecte le choix de l'opérateur ; re-remontera après DISMISS_COOLDOWN si ça persiste).
+        boolean recentlyDismissed = repository
+                .existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+                        organizationId, propertyId, moduleKey, safeTitle,
+                        SupervisionSuggestion.STATUS_DISMISSED, clock.instant().minus(DISMISS_COOLDOWN));
+        if (recentlyDismissed) {
+            return java.util.Optional.empty();
+        }
         SupervisionSuggestion s = new SupervisionSuggestion(
                 organizationId, propertyId, moduleKey, null, safeTitle,
                 truncate(motif, MOTIF_MAX), clock.instant().plus(TTL));
@@ -154,7 +177,30 @@ public class SupervisionSuggestionService {
         s.setEstimatedImpactCents(estimatedImpactCents);
         s.setSeverity(severity);
         repository.save(s);
+        notifyIfActionable(organizationId, safeTitle, motif, severity);
         return java.util.Optional.of(s);
+    }
+
+    /**
+     * Notification hors-écran (B2, anti « action manquée ») : prévient les admins/managers
+     * de l'organisation qu'une carte HITL actionnable warning/critical vient d'être créée —
+     * pour ne pas la manquer si l'opérateur n'est pas sur l'écran de supervision. Best-effort
+     * (outbox tx-safe) : n'échoue jamais l'enregistrement. Les cartes informationnelles
+     * ({@link #record}) ne notifient pas — évite le bruit des scans.
+     */
+    private void notifyIfActionable(Long organizationId, String title, String motif, String severity) {
+        if (!"warning".equalsIgnoreCase(severity) && !"critical".equalsIgnoreCase(severity)) {
+            return;
+        }
+        try {
+            notificationService.notifyAdminsAndManagersByOrgId(organizationId,
+                    NotificationKey.SUPERVISION_SUGGESTION, title,
+                    motif != null && !motif.isBlank() ? motif
+                            : "Une action de supervision attend votre validation.",
+                    "/planning");
+        } catch (Exception e) {
+            log.debug("supervision suggestion notification failed (org={}): {}", organizationId, e.getMessage());
+        }
     }
 
     /** Suggestions en attente non expirées d'un logement (org du requester). */
@@ -167,13 +213,59 @@ public class SupervisionSuggestionService {
                 .toList();
     }
 
+    /**
+     * Compteurs de cartes HITL en attente pour les pastilles du planning (org-scopé) :
+     * total (badge du menu) + détail par logement (badge de cellule). Agrège les
+     * DEUX sources visibles dans la file de la constellation — suggestions des scans
+     * autonomes ET cartes de demande de service impayée (« à régler ») — pour que la
+     * pastille corresponde au « en attente » du HUD. Le total est la somme du détail.
+     *
+     * <p>Le rappel payout J-1 (org-level, per-user, transitoire) n'est pas compté.</p>
+     */
+    @Transactional(readOnly = true)
+    public com.clenzy.dto.SupervisionPendingCountsDto pendingCounts(Long organizationId) {
+        Instant now = Instant.now();
+        java.util.Map<Long, Long> byProperty = new java.util.LinkedHashMap<>();
+        // Suggestions des scans autonomes en attente.
+        for (Object[] row : repository.countPendingByProperty(
+                organizationId, SupervisionSuggestion.STATUS_PENDING, now)) {
+            byProperty.merge((Long) row[0], (Long) row[1], Long::sum);
+        }
+        // Cartes de demande de service impayée (source dominante des cartes « à régler »).
+        unpaidServiceRequestCardService.pendingCountsByProperty(organizationId)
+                .forEach((propertyId, count) -> byProperty.merge(propertyId, count, Long::sum));
+        long total = byProperty.values().stream().mapToLong(Long::longValue).sum();
+        return new com.clenzy.dto.SupervisionPendingCountsDto(total, byProperty);
+    }
+
     /** Rejette une suggestion (ownership org-scopé). No-op si absente/autre org. */
     @Transactional
     public void dismiss(Long organizationId, Long suggestionId) {
         repository.findByIdAndOrganizationId(suggestionId, organizationId).ifPresent(s -> {
             s.setStatus(SupervisionSuggestion.STATUS_DISMISSED);
+            s.setDismissedAt(clock.instant()); // base du cooldown anti-re-suggestion
             repository.save(s);
+            // Temps réel (B6) : carte rejetée → retirée chez les autres opérateurs.
+            realtimePublisher.publishPendingResolved(s.getPropertyId(), suggestionId, "edited", null);
         });
+    }
+
+    /**
+     * Remplace les paramètres d'une suggestion de prix par ceux édités dans la modale
+     * (yield multi-segment) avant application. Force {@code actionType = PRICE_DROP} pour
+     * qu'une carte advisory (occupation faible sans action) devienne applicable. Org-scopé,
+     * PENDING uniquement. {@code apply} est ensuite appelé séparément (proxy → sa propre tx).
+     */
+    @Transactional
+    public void setCustomPriceParams(Long organizationId, Long suggestionId, String actionParamsJson) {
+        SupervisionSuggestion s = repository.findByIdAndOrganizationId(suggestionId, organizationId)
+                .orElseThrow(() -> new NotFoundException("Suggestion introuvable : " + suggestionId));
+        if (!SupervisionSuggestion.STATUS_PENDING.equals(s.getStatus())) {
+            throw new IllegalStateException("Suggestion déjà traitée");
+        }
+        s.setActionType(SupervisionActionType.PRICE_DROP);
+        s.setActionParams(actionParamsJson);
+        repository.save(s);
     }
 
     /**
@@ -225,6 +317,8 @@ public class SupervisionSuggestionService {
                 throw e;
             }
         }
+        // Temps réel (B6) : carte appliquée → poussée aux autres opérateurs (best-effort).
+        realtimePublisher.publishPendingResolved(suggestion.getPropertyId(), suggestionId, "validated", null);
     }
 
     private SupervisionSuggestionDto toDto(SupervisionSuggestion s) {
@@ -238,7 +332,8 @@ public class SupervisionSuggestionService {
                 s.getExpiresAt() != null ? s.getExpiresAt().toString() : null,
                 s.getActionType(),
                 s.getEstimatedImpactCents(),
-                s.getSeverity());
+                s.getSeverity(),
+                s.getActionParams());
     }
 
     private static String truncate(String value, int max) {

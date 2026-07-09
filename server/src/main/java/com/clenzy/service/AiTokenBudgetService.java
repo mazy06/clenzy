@@ -47,15 +47,18 @@ public class AiTokenBudgetService {
     private final AiTokenBudgetRepository budgetRepository;
     private final AiTokenUsageRepository usageRepository;
     private final LlmPricingService pricingService;
+    private final com.clenzy.tenant.TenantContext tenantContext;
 
     public AiTokenBudgetService(AiProperties aiProperties,
                                 AiTokenBudgetRepository budgetRepository,
                                 AiTokenUsageRepository usageRepository,
-                                LlmPricingService pricingService) {
+                                LlmPricingService pricingService,
+                                com.clenzy.tenant.TenantContext tenantContext) {
         this.aiProperties = aiProperties;
         this.budgetRepository = budgetRepository;
         this.usageRepository = usageRepository;
         this.pricingService = pricingService;
+        this.tenantContext = tenantContext;
     }
 
     // ─── Feature toggles ─────────────────────────────────────────────────
@@ -159,6 +162,10 @@ public class AiTokenBudgetService {
      * @param keySource      source de la cle (PLATFORM_DB ou ORGANIZATION)
      */
     public void requireBudget(Long organizationId, AiFeature feature, KeySource keySource) {
+        // Staff plateforme (SUPER_ADMIN / SUPER_MANAGER) : exempt de l'abonnement → exempt du budget.
+        if (tenantContext.isSuperAdmin()) {
+            return;
+        }
         if (keySource == KeySource.ORGANIZATION) {
             log.debug("Skipping budget enforcement for org={} feature={} (BYOK)", organizationId, feature);
             return;

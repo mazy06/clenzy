@@ -114,6 +114,10 @@ const GuestExperiencePage = lazy(() => import('./guest-experience/GuestExperienc
 const StudioHome = lazy(() => import('./booking-engine/studio/StudioHome'));
 const StudioPage = lazy(() => import('./booking-engine/studio/StudioPage'));
 const TemplateGalleryPage = lazy(() => import('./booking-engine/studio/TemplateGalleryPage'));
+const SiteStudioPage = lazy(() => import('./booking-engine/catalog/SiteManagerPage'));
+const DesignSystemsPage = lazy(() => import('./booking-engine/design-systems/DesignSystemsPage'));
+const DesignSystemCreatePage = lazy(() => import('./booking-engine/design-systems/DesignSystemCreatePage'));
+const SiteGenerationPage = lazy(() => import('./booking-engine/studio/SiteGenerationPage'));
 
 // Messaging — pages now merged into Documents module (redirected via Navigate)
 // import MessageTemplatesPage from './messaging/MessageTemplatesPage';
@@ -524,6 +528,40 @@ const AuthenticatedApp: React.FC = () => {
             </ErrorBoundary>
           </ProtectedRoute>
         } />
+        {/* Systèmes de design réutilisables (direction : tokens + DESIGN.md) — modèle open-design. */}
+        <Route path="/booking-engine/design-systems" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <DesignSystemsPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+        <Route path="/booking-engine/design-systems/new" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <DesignSystemCreatePage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+        {/* Génération de site par IA — écran plein 2 étapes (modèle open-design). */}
+        <Route path="/booking-engine/generate" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <SiteGenerationPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Studio de site IMMERSIF (aperçu live + itération conversationnelle) — surface des users org. */}
+        <Route path="/booking-engine/sites/:siteId" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <SiteStudioPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Éditeur GrapesJS = mode d'ÉDITION MANUELLE, ouvert depuis le studio immersif (bouton « Éditer »). */}
         <Route path="/booking-engine/studio/:id" element={
           <ProtectedRoute requiredPermission="properties:view">
             <ErrorBoundary>

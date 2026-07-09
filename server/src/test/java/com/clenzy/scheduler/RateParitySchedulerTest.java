@@ -15,6 +15,8 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.automation.AutomationEngine;
 import com.clenzy.service.automation.AutomationSubject;
 import com.clenzy.service.automation.NotifyRateParityExecutor;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.tenant.TenantScopedExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -57,6 +59,8 @@ class RateParitySchedulerTest {
     @Mock private AutomationEngine automationEngine;
     @Mock private TenantScopedExecutor tenantScopedExecutor;
     @Mock private ChannexProperties channexProperties;
+    @Mock private SupervisionActivityService supervisionActivityService;
+    @Mock private SupervisionSuggestionService supervisionSuggestionService;
 
     private RateParityScheduler scheduler;
 
@@ -64,7 +68,8 @@ class RateParitySchedulerTest {
     void setUp() {
         scheduler = new RateParityScheduler(automationRuleRepository, mappingRepository,
                 propertyRepository, rateParityService, automationEngine,
-                tenantScopedExecutor, channexProperties);
+                tenantScopedExecutor, channexProperties, supervisionActivityService,
+                supervisionSuggestionService);
         when(channexProperties.isConfigured()).thenReturn(true);
         // Le TenantScopedExecutor delegue au supplier (contexte tenant simule)
         when(tenantScopedExecutor.callAsOrganization(anyLong(), any()))

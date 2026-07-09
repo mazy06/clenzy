@@ -137,6 +137,22 @@ public class CreditMeteringService {
     }
 
     /**
+     * Débit client (millicredits) d'un appel LLM SANS écriture au ledger — pour les flux HORS « run »
+     * gardé (ex. génération de site) qui appliquent eux-mêmes le débit au solde via
+     * {@link CreditBalanceService#applyConsumptionToGrants}. Même barème que {@link #meterLlmUsage}
+     * (rate card + facteur BYOK), hors bucket SOCLE.
+     */
+    public long computeClientDebit(String provider, String model, int promptTokens, int completionTokens, boolean byok) {
+        AiCreditRateCard inputRate = resolveRate(provider, model, AiCreditRateCard.TYPE_INPUT);
+        AiCreditRateCard outputRate = resolveRate(provider, model, AiCreditRateCard.TYPE_OUTPUT);
+        long debit = ceilPer1k(promptTokens, rateOf(inputRate)) + ceilPer1k(completionTokens, rateOf(outputRate));
+        if (byok) {
+            debit = Math.round(debit * byokFactor);
+        }
+        return Math.max(0L, debit);
+    }
+
+    /**
      * Taux courant par (provider, tokenType) et prefix-match du modele (le plus
      * long gagne — meme convention que LlmPricingService). Null si aucun taux.
      */

@@ -36,6 +36,7 @@ public class ConversationService {
     private final GuestRepository guestRepository;
     private final com.clenzy.repository.UserRepository userRepository;
     private final com.clenzy.service.AssistantOutcomeTracker outcomeTracker;
+    private final org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
 
     public ConversationService(ConversationRepository conversationRepository,
                                ConversationMessageRepository messageRepository,
@@ -45,7 +46,8 @@ public class ConversationService {
                                ReservationRepository reservationRepository,
                                GuestRepository guestRepository,
                                com.clenzy.repository.UserRepository userRepository,
-                               com.clenzy.service.AssistantOutcomeTracker outcomeTracker) {
+                               com.clenzy.service.AssistantOutcomeTracker outcomeTracker,
+                               org.springframework.context.ApplicationEventPublisher applicationEventPublisher) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.eventPublisher = eventPublisher;
@@ -55,6 +57,7 @@ public class ConversationService {
         this.guestRepository = guestRepository;
         this.userRepository = userRepository;
         this.outcomeTracker = outcomeTracker;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     /**
@@ -156,6 +159,11 @@ public class ConversationService {
             );
         }
 
+        // Concierge guest (C1) : déclenche la génération d'un brouillon IA APRÈS
+        // commit (listener @Async), org-scopé. Best-effort, gaté par flag.
+        applicationEventPublisher.publishEvent(new com.clenzy.service.agent.concierge.InboundGuestMessageEvent(
+                conversation.getOrganizationId(), conversation.getId()));
+
         return msg;
     }
 
@@ -203,6 +211,70 @@ public class ConversationService {
         }
 
         return msg;
+    }
+
+    /**
+     * Envoi AUTONOME (concierge IA, C2) : réponse générée + envoyée par l'agent,
+     * étiquetée IA. Distinct de {@link #sendOutboundMessage} : ne compte PAS une
+     * « reprise humaine » (ce n'est pas une action opérateur). Même livraison
+     * canal (fenêtre 24h WhatsApp gérée par {@code deliverViaWhatsApp}).
+     */
+    @Transactional
+    public ConversationMessage sendAutonomousMessage(Conversation conversation, String content) {
+        ConversationMessage msg = new ConversationMessage();
+        msg.setOrganizationId(conversation.getOrganizationId());
+        msg.setConversation(conversation);
+        msg.setDirection(MessageDirection.OUTBOUND);
+        msg.setChannelSource(conversation.getChannel());
+        msg.setSenderName("Concierge IA");
+        msg.setSenderIdentifier("system:concierge");
+        msg.setContent(content);
+        msg.setDeliveryStatus("SENT");
+        msg.setSentAt(LocalDateTime.now());
+        msg.setMetadata("{\"ai\":true}");
+
+        msg = messageRepository.save(msg);
+        updateConversationOnNewMessage(conversation, content, false);
+        eventPublisher.publishNewMessage(conversation, msg);
+
+        if (conversation.getChannel() == ConversationChannel.WHATSAPP) {
+            deliverViaWhatsApp(conversation.getId(), msg, "Concierge IA", content);
+        }
+        return msg;
+    }
+
+    /**
+     * Concierge IA — l'opérateur VALIDE le brouillon et l'envoie (chemin humain :
+     * {@link #sendOutboundMessage}, donc compté comme reprise humaine). Le brouillon
+     * est consommé. No-op si aucun brouillon.
+     */
+    @Transactional
+    public com.clenzy.dto.ConversationDto sendAiDraft(Long orgId, Long conversationId, String operatorKeycloakId) {
+        Conversation conversation = conversationRepository.findByIdAndOrganizationId(conversationId, orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation introuvable: " + conversationId));
+        String draft = conversation.getAiDraftReply();
+        if (draft != null && !draft.isBlank()) {
+            String senderName = userRepository.findByKeycloakId(operatorKeycloakId)
+                    .map(com.clenzy.model.User::getFullName)
+                    .filter(n -> n != null && !n.isBlank())
+                    .orElse("Hôte");
+            sendOutboundMessage(conversation, senderName, operatorKeycloakId, draft, null);
+            conversation.setAiDraftReply(null);
+            conversation.setAiDraftMeta(null);
+            conversationRepository.save(conversation);
+        }
+        return com.clenzy.dto.ConversationDto.from(conversation);
+    }
+
+    /** Concierge IA — l'opérateur rejette le brouillon (sans envoi). */
+    @Transactional
+    public com.clenzy.dto.ConversationDto dismissAiDraft(Long orgId, Long conversationId) {
+        Conversation conversation = conversationRepository.findByIdAndOrganizationId(conversationId, orgId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation introuvable: " + conversationId));
+        conversation.setAiDraftReply(null);
+        conversation.setAiDraftMeta(null);
+        conversationRepository.save(conversation);
+        return com.clenzy.dto.ConversationDto.from(conversation);
     }
 
     /**

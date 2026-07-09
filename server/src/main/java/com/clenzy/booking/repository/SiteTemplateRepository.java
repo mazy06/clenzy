@@ -20,4 +20,15 @@ public interface SiteTemplateRepository extends JpaRepository<SiteTemplate, Long
         order by case when t.organizationId is null then 0 else 1 end, t.createdAt desc
         """)
     List<SiteTemplate> findVisibleTo(@Param("orgId") Long orgId);
+
+    /**
+     * Comme {@link #findVisibleTo} mais restreint aux templates PUBLISHED : vue des users org (le staff
+     * plateforme, lui, voit aussi les brouillons via {@link #findVisibleTo}).
+     */
+    @Query("""
+        select t from SiteTemplate t
+        where (t.organizationId is null or t.organizationId = :orgId) and t.status = 'PUBLISHED'
+        order by case when t.organizationId is null then 0 else 1 end, t.createdAt desc
+        """)
+    List<SiteTemplate> findVisiblePublishedTo(@Param("orgId") Long orgId);
 }

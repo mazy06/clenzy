@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Box, ButtonBase, Tooltip } from '@mui/material';
 import {
   ChevronLeft,
@@ -8,11 +7,10 @@ import {
   Tablet,
   Smartphone,
   Wand2,
-  Compass,
+  Sparkles,
   SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
-import type { StudioMode } from './studioMode';
 
 /**
  * Baitly Studio — coquille structurelle (F0) : topbar (projet + preview controls + Publier) +
@@ -40,10 +38,8 @@ export interface StudioShellProps {
   onOpenCommand: () => void;
   /** Ouvre la modale « Analyse du design » (analyse IA d'un site → thème du widget). */
   onAnalyzeDesign?: () => void;
-  /** Mode d'édition courant (Guidé / Avancé) — affiché seulement si `onModeChange` est fourni. */
-  mode?: StudioMode;
-  /** Bascule le mode d'édition. Si absent, le sélecteur n'est pas rendu. */
-  onModeChange?: (mode: StudioMode) => void;
+  /** Bascule vers le studio IMMERSIF (aperçu live + assistant design). Si absent, l'onglet n'est pas rendu. */
+  onOpenAssistant?: () => void;
   onBack?: () => void;
   children: ReactNode;
 }
@@ -62,8 +58,7 @@ export default function StudioShell({
   onBreakpointChange,
   onOpenCommand,
   onAnalyzeDesign,
-  mode,
-  onModeChange,
+  onOpenAssistant,
   onBack,
   children,
 }: StudioShellProps) {
@@ -130,8 +125,8 @@ export default function StudioShell({
 
         <Box sx={{ flex: 1 }} />
 
-        {/* Sélecteur de mode d'édition (Guidé / Avancé) */}
-        {mode && onModeChange && <ModeToggle value={mode} onChange={onModeChange} />}
+        {/* Bascule de vue : « Avancé » (éditeur courant) ↔ « Assistant » (studio immersif + chat) */}
+        {onOpenAssistant && <ViewToggle onOpenAssistant={onOpenAssistant} />}
 
         {/* Breakpoint switcher */}
         <SegmentedBreakpoint value={breakpoint} onChange={onBreakpointChange} />
@@ -255,62 +250,40 @@ function SegmentedBreakpoint({ value, onChange }: { value: Breakpoint; onChange:
 }
 
 /**
- * Sélecteur de mode d'édition (segmented) : « Guidé » (bridé, façon Lodgify) vs « Avancé » (GrapesJS
- * libre + import). Accessible (aria-pressed, focus visible), tooltips i18n, icônes lucide.
+ * Bascule de VUE du studio (segmented) : « Avancé » = l'éditeur GrapesJS complet (vue COURANTE, active)
+ * ↔ « Assistant » = bascule vers le studio IMMERSIF (aperçu live + chat pour modifier le site en langage
+ * naturel). Remplace l'ancien mode « Guidé/Avancé » (le guidé a été retiré).
  */
-function ModeToggle({ value, onChange }: { value: StudioMode; onChange: (m: StudioMode) => void }) {
-  const { t } = useTranslation();
-  const items: { key: StudioMode; icon: LucideIcon; label: string; tip: string }[] = [
-    {
-      key: 'guided',
-      icon: Compass,
-      label: t('bookingEngine.studio.mode.guided', 'Guidé'),
-      tip: t('bookingEngine.studio.mode.guidedTip', 'Édition simplifiée : blocs essentiels, couleurs et typo. Idéal pour démarrer vite.'),
-    },
-    {
-      key: 'advanced',
-      icon: SlidersHorizontal,
-      label: t('bookingEngine.studio.mode.advanced', 'Avancé'),
-      tip: t('bookingEngine.studio.mode.advancedTip', 'Éditeur complet : tous les blocs, calques, réglages et import de design.'),
-    },
-  ];
+function ViewToggle({ onOpenAssistant }: { onOpenAssistant: () => void }) {
+  const seg = {
+    display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 28, px: 1,
+    borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)',
+    transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
+    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
+  } as const;
   return (
     <Box
       role="group"
-      aria-label={t('bookingEngine.studio.mode.label', 'Mode d’édition')}
+      aria-label="Vue du studio"
       sx={{ display: 'flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}
     >
-      {items.map(({ key, icon: Icon, label, tip }) => {
-        const active = key === value;
-        return (
-          <Tooltip key={key} title={tip}>
-            <ButtonBase
-              onClick={() => onChange(key)}
-              aria-pressed={active}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.5,
-                height: 28,
-                px: 1,
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 'var(--text-sm)',
-                fontWeight: active ? 'var(--fw-semibold)' : 'var(--fw-medium)',
-                color: active ? 'var(--accent)' : 'var(--muted)',
-                bgcolor: active ? 'var(--card)' : 'transparent',
-                boxShadow: active ? 'var(--shadow-card)' : 'none',
-                cursor: 'pointer',
-                transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
-                '&:hover': { color: active ? 'var(--accent)' : 'var(--ink)' },
-                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-              }}
-            >
-              <Icon size={15} strokeWidth={2} />
-              <Box component="span">{label}</Box>
-            </ButtonBase>
-          </Tooltip>
-        );
-      })}
+      {/* Avancé — vue courante (active) */}
+      <Tooltip title="Éditeur complet : tous les blocs, calques, réglages et import de design.">
+        <Box aria-pressed sx={{ ...seg, fontWeight: 'var(--fw-semibold)', color: 'var(--accent)', bgcolor: 'var(--card)', boxShadow: 'var(--shadow-card)' }}>
+          <SlidersHorizontal size={15} strokeWidth={2} />
+          <Box component="span">Avancé</Box>
+        </Box>
+      </Tooltip>
+      {/* Assistant — bascule vers l'aperçu immersif + chat */}
+      <Tooltip title="Aperçu live + assistant design : décrivez vos modifications en langage naturel.">
+        <ButtonBase
+          onClick={onOpenAssistant}
+          sx={{ ...seg, cursor: 'pointer', fontWeight: 'var(--fw-medium)', color: 'var(--muted)', '&:hover': { color: 'var(--ink)', bgcolor: 'var(--hover)' } }}
+        >
+          <Sparkles size={15} strokeWidth={2} />
+          <Box component="span">Assistant</Box>
+        </ButtonBase>
+      </Tooltip>
     </Box>
   );
 }

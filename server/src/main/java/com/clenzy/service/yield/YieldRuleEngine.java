@@ -16,9 +16,11 @@ import com.clenzy.repository.YieldRuleRepository;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.SearchCacheInvalidator;
 import com.clenzy.service.agent.supervision.SupervisionActionType;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -70,6 +72,8 @@ public class YieldRuleEngine {
     static final String YIELD_OVERRIDE_SOURCE = "YIELD_RULE";
     static final ZoneId DEFAULT_PROPERTY_ZONE = ZoneId.of("Europe/Paris");
     static final String SUGGESTION_MODULE_KEY = "pricing";
+    /** Module « Revenue » de la constellation (feed « En direct »). */
+    static final String REVENUE_MODULE_KEY = "rev";
 
     private final YieldOrgConfigRepository configRepository;
     private final YieldRuleRepository yieldRuleRepository;
@@ -79,8 +83,15 @@ public class YieldRuleEngine {
     private final RateOverrideRepository rateOverrideRepository;
     private final PriceEngine priceEngine;
     private final SupervisionSuggestionService suggestionService;
+    private final SupervisionActivityService activityService;
     private final SearchCacheInvalidator searchCacheInvalidator;
     private final Clock clock;
+    /**
+     * Garde-fou d'impact (R1) : en mode AUTO, un ajustement dont l'ampleur dépasse
+     * ce seuil (en points de %) n'est PAS appliqué automatiquement — il bascule en
+     * carte HITL (comme le mode SUGGEST). Défaut 12 %.
+     */
+    private final BigDecimal autoHitlImpactPct;
     private final TransactionTemplate requiresNewTx;
 
     public YieldRuleEngine(YieldOrgConfigRepository configRepository,
@@ -91,8 +102,10 @@ public class YieldRuleEngine {
                            RateOverrideRepository rateOverrideRepository,
                            PriceEngine priceEngine,
                            SupervisionSuggestionService suggestionService,
+                           SupervisionActivityService activityService,
                            SearchCacheInvalidator searchCacheInvalidator,
                            Clock clock,
+                           @Value("${clenzy.yield.v1.auto-hitl-impact-pct:12}") BigDecimal autoHitlImpactPct,
                            PlatformTransactionManager transactionManager) {
         this.configRepository = configRepository;
         this.yieldRuleRepository = yieldRuleRepository;
@@ -102,8 +115,10 @@ public class YieldRuleEngine {
         this.rateOverrideRepository = rateOverrideRepository;
         this.priceEngine = priceEngine;
         this.suggestionService = suggestionService;
+        this.activityService = activityService;
         this.searchCacheInvalidator = searchCacheInvalidator;
         this.clock = clock;
+        this.autoHitlImpactPct = autoHitlImpactPct;
         this.requiresNewTx = new TransactionTemplate(transactionManager);
         this.requiresNewTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -214,6 +229,16 @@ public class YieldRuleEngine {
                 rule.getComparison() == YieldRule.Comparison.BELOW ? "<" : ">",
                 rule.getOccupancyThresholdPct().toPlainString(), window);
 
+        // R1 — Garde-fou d'impact + mode effectif : en AUTO au-delà du seuil,
+        // on bascule en carte HITL (asSuggestion) plutôt que d'appliquer.
+        final boolean overThreshold = magnitude.compareTo(autoHitlImpactPct) > 0;
+        final boolean applyNow = config.getMode() == YieldMode.AUTO && !overThreshold;
+        final boolean asSuggestion = config.getMode() == YieldMode.SUGGEST
+                || (config.getMode() == YieldMode.AUTO && overThreshold);
+        final YieldAdjustment.Mode effectiveJournalMode = applyNow ? YieldAdjustment.Mode.APPLIED
+                : asSuggestion ? YieldAdjustment.Mode.SUGGESTED
+                : YieldAdjustment.Mode.SIMULATED;
+
         final List<YieldAdjustment> pending = new ArrayList<>();
         for (LocalDate date = today; date.isBefore(today.plusDays(window)); date = date.plusDays(1)) {
             if (bookedDates.contains(date)) {
@@ -234,7 +259,7 @@ public class YieldRuleEngine {
                 continue; // déjà à la borne (ou variation nulle)
             }
             final YieldAdjustment line = new YieldAdjustment(
-                    orgId, property.getId(), today, journalMode(config.getMode()));
+                    orgId, property.getId(), today, effectiveJournalMode);
             line.setRuleId(rule.getId());
             line.setTargetDate(date);
             line.setPriceBefore(current);
@@ -245,7 +270,7 @@ public class YieldRuleEngine {
             line.setReason(reason);
             pending.add(line);
 
-            if (config.getMode() == YieldMode.AUTO) {
+            if (applyNow) {
                 writeOverride(property, date, target, existing.orElse(null), orgId);
             }
         }
@@ -253,7 +278,7 @@ public class YieldRuleEngine {
             return; // rien n'aurait changé : pas de bruit dans le journal
         }
 
-        if (config.getMode() == YieldMode.SUGGEST) {
+        if (asSuggestion) {
             final Optional<Long> suggestionId = recordSuggestion(
                     property, rule, today, window, signedPct, occupancy, reason, pending);
             if (suggestionId.isEmpty()) {
@@ -263,8 +288,14 @@ public class YieldRuleEngine {
         }
 
         journalRepository.saveAll(pending);
-        if (config.getMode() == YieldMode.AUTO) {
+        if (applyNow) {
             searchCacheInvalidator.onAvailabilityOrPriceChanged();
+            // Feed « En direct » de la constellation : l'agent Revenue a agi (R1).
+            activityService.recordModuleAct(orgId, property.getId(), REVENUE_MODULE_KEY,
+                    "yield_price_adjusted",
+                    String.format("Tarif %s de %s %% sur %d nuit(s) — %s",
+                            signedPct.signum() < 0 ? "baissé" : "haussé",
+                            signedPct.abs().toPlainString(), pending.size(), rule.getName()));
             log.info("Yield v1 AUTO : org={} property={} règle '{}' {} % sur {} nuit(s)",
                     orgId, property.getId(), rule.getName(), signedPct, pending.size());
         }

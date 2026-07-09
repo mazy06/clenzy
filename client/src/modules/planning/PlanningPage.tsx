@@ -43,8 +43,10 @@ import {
   isSupervisionLiveEnabled,
   useCanSuperviseAgents,
   useSupervisionConfig,
+  useSupervisionPendingCounts,
   type SupervisionScope,
 } from '../supervision';
+import { isMockEnabled } from '../../services/storageService';
 
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -64,6 +66,17 @@ const PlanningPage: React.FC = () => {
   // (Settings > IA). On ne fetch la config que pour les rôles habilités.
   const { data: supervisionConfig } = useSupervisionConfig({ enabled: canViewSupervision });
   const canSupervise = canViewSupervision && (supervisionConfig?.enabled ?? false);
+  // Compteurs de cartes HITL en attente → pastilles sur les cellules logement.
+  const { byProperty: pendingByProperty } = useSupervisionPendingCounts(canSupervise);
+  const pendingCountByProperty = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const [propertyId, count] of Object.entries(pendingByProperty)) {
+      if (count > 0) map.set(Number(propertyId), count);
+    }
+    return map;
+  }, [pendingByProperty]);
+  // Fenêtre du bilan de la constellation, alignée sur le zoom du planning.
+  const reportWindowDays = nav.zoom === 'week' ? 7 : nav.zoom === 'fortnight' ? 15 : 30;
   const [supervisionScope, setSupervisionScope] = useState<SupervisionScope>('property');
   const [expandedPropertyId, setExpandedPropertyId] = useState<number | null>(null);
   const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
@@ -682,6 +695,7 @@ const PlanningPage: React.FC = () => {
             pricingMap={pricingMap}
             minNightsMap={minNightsMap}
             channelSyncMap={channelSyncMap}
+            pendingCountByProperty={canSupervise ? pendingCountByProperty : undefined}
             pageSize={pagination.pageSize}
             expandedPropertyId={canSupervise ? expandedPropertyId : null}
             onToggleExpanded={canSupervise ? handleToggleExpanded : undefined}
@@ -697,15 +711,19 @@ const PlanningPage: React.FC = () => {
                     return (
                       <SupervisionPanel
                         createProvider={() =>
-                          isSupervisionLiveEnabled()
-                            ? new AgUiSupervisionProvider(String(property.id), {
+                          // Mode démo planning OU live désactivé → provider MOCK
+                          // (constellation + « En direct » alimentés par des données
+                          // fictives variées par logement). Sinon → moteur réel.
+                          isMockEnabled('planning') || !isSupervisionLiveEnabled()
+                            ? new MockSupervisionProvider(String(property.id), { cometReservationId }, 'demo')
+                            : new AgUiSupervisionProvider(String(property.id), {
                                 selectedPropertyId: Number(property.id),
                                 currentPage: '/planning',
                               })
-                            : new MockSupervisionProvider(String(property.id), { cometReservationId })
                         }
                         deps={[property.id, cometReservationId]}
                         propertyId={property.id}
+                        reportWindowDays={reportWindowDays}
                       />
                     );
                   }

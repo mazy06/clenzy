@@ -12,6 +12,7 @@ import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,17 +55,20 @@ public class InvoiceReminderExecutor implements AutomationActionExecutor {
     private final InterventionRepository interventionRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
+    private final SupervisionActivityService supervisionActivityService;
 
     public InvoiceReminderExecutor(InvoiceRepository invoiceRepository,
                                    ReservationRepository reservationRepository,
                                    InterventionRepository interventionRepository,
                                    EmailService emailService,
-                                   NotificationService notificationService) {
+                                   NotificationService notificationService,
+                                   SupervisionActivityService supervisionActivityService) {
         this.invoiceRepository = invoiceRepository;
         this.reservationRepository = reservationRepository;
         this.interventionRepository = interventionRepository;
         this.emailService = emailService;
         this.notificationService = notificationService;
+        this.supervisionActivityService = supervisionActivityService;
     }
 
     @Override
@@ -221,5 +225,47 @@ public class InvoiceReminderExecutor implements AutomationActionExecutor {
             log.warn("Relance facture: notification interne en echec pour la facture {}: {}",
                 invoice.getId(), e.getMessage());
         }
+        recordConstellationActivity(invoice, reminderNumber, daysOverdue, emailSent, recipient);
+    }
+
+    /**
+     * Fait remonter la relance dans le feed « En direct » de la CONSTELLATION du logement (agent Finance
+     * « fin »), en plus de la notification interne : la propriété est résolue via la réservation ou
+     * l'intervention liée à la facture. Best-effort (le record est lui-même best-effort côté service).
+     */
+    private void recordConstellationActivity(Invoice invoice, int reminderNumber, long daysOverdue,
+                                             boolean emailSent, Recipient recipient) {
+        try {
+            Long propertyId = resolvePropertyId(invoice);
+            if (propertyId == null) {
+                return; // facture sans logement rattachable → rien à afficher dans une constellation
+            }
+            String summary = "Relance paiement " + reminderNumber + "/" + MAX_REMINDERS + " — facture "
+                + invoice.getInvoiceNumber() + " impayee (J+" + daysOverdue + ")"
+                + (emailSent && recipient != null ? " · envoyee a " + recipient.email()
+                    : " · email client non resolu, action manuelle");
+            supervisionActivityService.recordModuleAct(
+                invoice.getOrganizationId(), propertyId, "fin", "deferred_payment_reminder", summary);
+        } catch (Exception e) {
+            log.debug("Relance facture: activite constellation non enregistree (facture {}): {}",
+                invoice.getId(), e.getMessage());
+        }
+    }
+
+    /** Logement rattaché à la facture (via sa réservation, sinon son intervention), org-scopé. */
+    private Long resolvePropertyId(Invoice invoice) {
+        if (invoice.getReservationId() != null) {
+            Reservation r = reservationRepository.findById(invoice.getReservationId()).orElse(null);
+            if (r != null && invoice.getOrganizationId().equals(r.getOrganizationId()) && r.getProperty() != null) {
+                return r.getProperty().getId();
+            }
+        }
+        if (invoice.getInterventionId() != null) {
+            Intervention i = interventionRepository.findById(invoice.getInterventionId()).orElse(null);
+            if (i != null && invoice.getOrganizationId().equals(i.getOrganizationId()) && i.getProperty() != null) {
+                return i.getProperty().getId();
+            }
+        }
+        return null;
     }
 }

@@ -261,13 +261,26 @@ function generateMockReservations(): Reservation[] {
     { id: 41, propertyId: 10, propertyName: 'Penthouse Trocadéro', guestName: 'Victoria Lane', guestCount: 6, checkIn: isoDate(y, m, d + 14), checkOut: isoDate(y, m, d + 21), status: 'confirmed', source: 'direct', totalPrice: 4200 },
   ];
 
+  // Email de démo dérivé du nom ("Jean Dupont" → "jean.dupont@example.com").
+  // NFD décompose les accents ; le filtre [^a-z0-9] retire ensuite les marques
+  // combinantes ET les espaces/tirets (pas besoin d'une regex de diacritiques).
+  const mockEmail = (name: string) =>
+    `${name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '')}@example.com`;
+
   // Ajouter les heures de check-in/check-out à chaque réservation + une photo
   // de profil voyageur de démo (mock uniquement) — visage distinct par résa.
+  // guestEmail : renseigné pour ~80 % des résas (1 sur 5 laissée SANS email pour
+  // conserver l'alerte « email manquant » sur quelques briques).
   return res.map((r, i) => ({
     ...r,
     checkInTime: checkInTimes[i % checkInTimes.length],
     checkOutTime: checkOutTimes[i % checkOutTimes.length],
     guestAvatarUrl: r.guestAvatarUrl ?? `https://i.pravatar.cc/80?img=${((r.id - 1) % 70) + 1}`,
+    guestEmail: r.guestEmail ?? (i % 5 === 4 ? undefined : mockEmail(r.guestName)),
   }));
 }
 

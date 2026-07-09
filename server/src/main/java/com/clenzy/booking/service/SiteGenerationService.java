@@ -5,10 +5,17 @@ import com.clenzy.booking.dto.SiteGenerationBrief;
 import com.clenzy.booking.dto.SiteGenerationResultDto;
 import com.clenzy.booking.dto.SiteGenerationResultDto.GeneratedPageSummary;
 import com.clenzy.booking.dto.SitePageDto;
+import com.clenzy.booking.model.DesignSystem;
 import com.clenzy.booking.model.Site;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
+import com.clenzy.booking.repository.DesignSystemRepository;
 import com.clenzy.booking.repository.SiteRepository;
+import com.clenzy.model.Property;
+import com.clenzy.model.PropertyPhoto;
+import com.clenzy.repository.PropertyRepository;
+import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiRequest;
+import com.clenzy.exception.AiCreditsInsufficientException;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.SiteGenerationException;
@@ -18,7 +25,10 @@ import com.clenzy.service.AiProviderRouter;
 import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.service.ResolvedTarget;
 import com.clenzy.service.AiTokenBudgetService;
+import com.clenzy.service.KeySource;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.ai.CreditBalanceService;
+import com.clenzy.service.ai.CreditMeteringService;
 import com.clenzy.util.CssSanitizer;
 import com.clenzy.util.EmailHtmlSanitizer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,6 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -78,33 +89,50 @@ public class SiteGenerationService {
     private static final String GRAPES_FORMAT = "grapesjs";
     /** Borne haute du nombre de pages persistées (garde-fou anti-dérive ; couvre le catalogue complet). */
     private static final int MAX_PAGES = 12;
-    /** Budget tokens de sortie (site complet = HTML volumineux ; relevé pour les sets de pages étendus).
-     *  NB : un set de pages très large peut malgré tout tronquer la sortie JSON — tuning à suivre. */
-    private static final int MAX_TOKENS_GENERATION = 16000;
+    /** Borne du nombre de photos réelles injectées dans le prompt (fonds/galeries on-brand). */
+    private static final int MAX_PROMPT_IMAGES = 10;
+    // Longueur de sortie max d'un appel de génération = paramètre TECHNIQUE, configurable (plus de constante
+    // en dur) : `clenzy.ai.site-generation.max-output-tokens` (défaut 24000). Le QUOTA/solde business vit
+    // dans le système de crédits (T-07), gaté séparément (cf. gate crédits scopé ci-dessous).
 
     private final SiteRepository siteRepository;
     private final BookingEngineConfigRepository configRepository;
+    private final DesignSystemRepository designSystemRepository;
+    private final PropertyRepository propertyRepository;
     private final AiProviderRouter aiProviderRouter;
     private final AiTokenBudgetService tokenBudgetService;
     private final SiteAdminService siteAdminService;
     private final NotificationService notificationService;
+    private final AiProperties aiProperties;
+    private final CreditBalanceService creditBalanceService;
+    private final CreditMeteringService creditMeteringService;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<SiteGenerationService> self;
 
     public SiteGenerationService(SiteRepository siteRepository,
                                  BookingEngineConfigRepository configRepository,
+                                 DesignSystemRepository designSystemRepository,
+                                 PropertyRepository propertyRepository,
                                  AiProviderRouter aiProviderRouter,
                                  AiTokenBudgetService tokenBudgetService,
                                  SiteAdminService siteAdminService,
                                  NotificationService notificationService,
+                                 AiProperties aiProperties,
+                                 CreditBalanceService creditBalanceService,
+                                 CreditMeteringService creditMeteringService,
                                  ObjectMapper objectMapper,
                                  ObjectProvider<SiteGenerationService> self) {
         this.siteRepository = siteRepository;
         this.configRepository = configRepository;
+        this.designSystemRepository = designSystemRepository;
+        this.propertyRepository = propertyRepository;
         this.aiProviderRouter = aiProviderRouter;
         this.tokenBudgetService = tokenBudgetService;
         this.siteAdminService = siteAdminService;
         this.notificationService = notificationService;
+        this.aiProperties = aiProperties;
+        this.creditBalanceService = creditBalanceService;
+        this.creditMeteringService = creditMeteringService;
         this.objectMapper = objectMapper;
         this.self = self;
     }
@@ -146,17 +174,41 @@ public class SiteGenerationService {
         }
         tokenBudgetService.requireBudget(orgId, AiFeature.DESIGN, key.source());
 
+        // 2a-bis. Gate CRÉDITS scopé à la génération (T-07) — SANS toucher au flag d'enforcement global.
+        //   Activé via `clenzy.ai.site-generation.credit-enforced` (défaut off). BYOK (clé org) → non
+        //   facturé (skip). Solde (millicredits) < plancher → 402 AI_CREDITS_INSUFFICIENT → paywall Studio.
+        final boolean byok = key.source() == KeySource.ORGANIZATION;
+        if (aiProperties.getSiteGeneration().isCreditEnforced() && !byok) {
+            long balance = creditBalanceService.coldBalance(orgId);
+            long floor = aiProperties.getSiteGeneration().getCreditFloorMillicredits();
+            if (balance < floor) {
+                throw new AiCreditsInsufficientException(AiFeature.DESIGN.name(), balance, floor);
+            }
+        }
+
+        // 2b. Direction de design optionnelle (DS-3) : un système de design fournit une prose DESIGN.md
+        //     (injectée dans le prompt) + des tokens --bt-* (superposés au rendu → direction on-brand).
+        final DesignSystem designSystem = resolveDesignSystem(orgId, brief.designSystemId());
+        final String designDirection = designSystem != null ? designSystem.getDesignMarkdown() : null;
+        final Map<String, String> systemTokens = designSystem != null
+            ? parseTokensJson(designSystem.getTokensJson()) : Map.of();
+
+        // 2c. Photos RÉELLES des logements de l'org (URLs publiques) — injectées dans le prompt pour des
+        //     fonds/galeries on-brand plutôt que des placeholders Unsplash. Lecture courte (lazy → tx dédiée).
+        final List<String> imageUrls = self.getObject().loadOrgImageUrls(orgId);
+
         // 3. (b)(c) Pages + contenu + SEO : UN appel LLM HORS transaction (audit #2). Étape la plus
         //    risquée → effectuée AVANT toute écriture, pour ne RIEN modifier en cas d'échec.
-        GeneratedSite generated = ensureHomeHero(callLlm(orgId, brief, sourceLanguage, brandName), brandName);
+        GeneratedSite generated = ensureHomeHero(
+            callLlm(orgId, brief, sourceLanguage, brandName, designDirection, imageUrls, byok), brandName);
 
-        // 4. (a) Thème : un SEUL contrat de variables CSS (`--bt-*`) émis par le LLM pilote PAGES ET WIDGETS
-        //    (map déjà assainie au parsing). On en dérive les tokens structurés (rétro-compat, primaire =
-        //    couleur IMPOSÉE du brief) et un bloc `:root{}` déterministe préfixé au CSS de chaque page → les
-        //    widgets (light DOM dans .site-root) héritent du MÊME design par cascade.
-        Map<String, String> designVars = generated.designVars();
+        // 4. (a) Thème : un SEUL contrat de variables CSS (`--bt-*`) pilote PAGES ET WIDGETS. Si un système
+        //    de design est choisi, SES tokens gagnent (superposés sur ceux du LLM) → rendu fidèle à la
+        //    direction. On en dérive les tokens structurés et un bloc `:root{}` préfixé au CSS de chaque page.
+        Map<String, String> designVars = overlayTokens(generated.designVars(), systemTokens);
         DesignTokensDto tokens = mergeTokens(tokensFromVars(designVars), deriveThemeTokens(brief));
-        boolean themeApplied = self.getObject().applyTheme(orgId, siteId, tokens, designVars);
+        boolean themeApplied = self.getObject().applyTheme(orgId, siteId, tokens, designVars,
+            designSystem != null ? designSystem.getId() : null);
 
         // 5. (d) Persistance : chaque page en DRAFT, ai_generated=true (transaction courte par page).
         final String pageCss = buildRootVarsBlock(designVars) + generated.css();
@@ -203,8 +255,13 @@ public class SiteGenerationService {
      * @return {@code true} si le thème a pu être sérialisé et appliqué.
      */
     @Transactional
-    public boolean applyTheme(Long orgId, Long siteId, DesignTokensDto tokens, Map<String, String> designVars) {
+    public boolean applyTheme(Long orgId, Long siteId, DesignTokensDto tokens, Map<String, String> designVars,
+                              Long designSystemId) {
         Site site = requireOwnedSite(orgId, siteId);
+        // Mémorise le système de design suivi (DS-3) → la retouche IA pourra réinjecter sa direction.
+        if (designSystemId != null) {
+            site.setDesignSystemId(designSystemId);
+        }
         String json = serializeTokens(tokens);
         if (json == null) {
             return false;
@@ -317,17 +374,65 @@ public class SiteGenerationService {
         return "#6B8A9A";
     }
 
+    // ─── Images réelles des logements (fonds / galeries on-brand) ───────────────
+
+    /**
+     * Résout jusqu'à {@link #MAX_PROMPT_IMAGES} URLs de photos PUBLIQUES des logements de l'org, pour que
+     * le LLM les place en fonds de hero / galeries (via classes CSS) au lieu de placeholders génériques.
+     * Transaction en LECTURE (les photos sont LAZY sur {@code Property}) ; best-effort — un échec ou une
+     * org sans photo retombe sur les placeholders Unsplash (liste vide). Priorise {@code externalUrl}
+     * (absolue, OTA) sinon l'endpoint public keyless (résolu par le domaine du site / le proxy dev).
+     */
+    @Transactional(readOnly = true)
+    public List<String> loadOrgImageUrls(Long orgId) {
+        try {
+            List<String> urls = new ArrayList<>();
+            for (Property p : propertyRepository.findByOrganizationId(orgId)) {
+                if (p.getPhotos() == null || p.getPhotos().isEmpty()) {
+                    continue;
+                }
+                p.getPhotos().stream()
+                    .sorted(Comparator.comparingInt(PropertyPhoto::getSortOrder))
+                    .map(ph -> publicPhotoUrl(ph, p.getId()))
+                    .filter(u -> u != null)
+                    .forEach(urls::add);
+                if (urls.size() >= MAX_PROMPT_IMAGES) {
+                    break;
+                }
+            }
+            return urls.stream().distinct().limit(MAX_PROMPT_IMAGES).toList();
+        } catch (RuntimeException e) {
+            log.debug("Photos réelles indisponibles pour org={} (repli placeholders)", orgId, e);
+            return List.of();
+        }
+    }
+
+    /**
+     * URL photo PUBLIQUE (img-friendly), même logique que {@code PublicPropertyDto} : {@code externalUrl}
+     * (OTA, absolue) sinon endpoint public keyless {@code /api/public/property-photos/{propertyId}/{photoId}}.
+     */
+    private static String publicPhotoUrl(PropertyPhoto photo, Long propertyId) {
+        if (photo.getExternalUrl() != null && !photo.getExternalUrl().isBlank()) {
+            return photo.getExternalUrl();
+        }
+        if (photo.getStorageKey() != null || photo.getData() != null) {
+            return "/api/public/property-photos/" + propertyId + "/" + photo.getId();
+        }
+        return null;
+    }
+
     // ─── (b)(c) Appel LLM + parsing ─────────────────────────────────────────────
 
     /** Effectue l'appel LLM (HORS transaction) et parse la sortie JSON en pages + CSS. */
-    private GeneratedSite callLlm(Long orgId, SiteGenerationBrief brief, String sourceLanguage, String brandName) {
+    private GeneratedSite callLlm(Long orgId, SiteGenerationBrief brief, String sourceLanguage, String brandName,
+                                  String designDirection, List<String> imageUrls, boolean byok) {
         // Couleur primaire résolue (même valeur que les design tokens) → ÉPINGLÉE dans le prompt pour que
         // le CSS de page (--c-primary) et le widget de réservation partagent EXACTEMENT la même couleur.
         final String resolvedPrimary = normalizeColor(brief.primaryColorHint());
         AiRequest request = AiRequest.jsonWithMaxTokens(
             SiteGenerationPrompts.SYSTEM_PROMPT,
-            SiteGenerationPrompts.buildUserPrompt(brief, sourceLanguage, brandName, resolvedPrimary),
-            MAX_TOKENS_GENERATION);
+            SiteGenerationPrompts.buildUserPrompt(brief, sourceLanguage, brandName, resolvedPrimary, designDirection, imageUrls),
+            aiProperties.getSiteGeneration().getMaxOutputTokens());
 
         final RoutedResponse routed;
         try {
@@ -339,9 +444,40 @@ public class SiteGenerationService {
             throw new SiteGenerationException("Échec de l'appel IA pour la génération du site", e);
         }
         tokenBudgetService.recordUsage(orgId, AiFeature.DESIGN, routed.providerName(), routed.response());
+        // Crédits T-07 (si le gate génération est actif) : trace le débit au ledger + décrémente le solde.
+        var resp = routed.response();
+        if (resp != null) {
+            self.getObject().meterGenerationCredits(orgId, routed.providerName(), resp.model(),
+                resp.promptTokens(), resp.completionTokens(), byok);
+        }
 
-        String content = routed.response() != null ? routed.response().content() : null;
+        String content = resp != null ? resp.content() : null;
         return parseGeneratedSite(content);
+    }
+
+    /**
+     * Métering crédits T-07 d'une génération (transaction dédiée) : écrit le débit au ledger (canonique)
+     * ET décrémente le solde ({@link CreditBalanceService#applyConsumptionToGrants}). La génération n'utilise
+     * PAS {@code RunCreditGuard} → {@code meterLlmUsage} n'affecte pas les poches (onDebit no-op hors run),
+     * on applique donc le débit ici. No-op si le gate génération est off ou en BYOK (clé org). Best-effort.
+     */
+    @Transactional
+    public void meterGenerationCredits(Long orgId, String provider, String model,
+                                       int promptTokens, int completionTokens, boolean byok) {
+        if (byok || !aiProperties.getSiteGeneration().isCreditEnforced()) {
+            return;
+        }
+        try {
+            String idem = "sitegen:" + orgId + ':' + java.util.UUID.randomUUID();
+            creditMeteringService.meterLlmUsage(orgId, null, null, null, "site-generation",
+                AiFeature.DESIGN.name(), provider, model, promptTokens, completionTokens, 0, false, idem);
+            long debit = creditMeteringService.computeClientDebit(provider, model, promptTokens, completionTokens, false);
+            if (debit > 0) {
+                creditBalanceService.applyConsumptionToGrants(orgId, debit);
+            }
+        } catch (RuntimeException e) {
+            log.warn("Métering crédits génération best-effort (org={}) : {}", orgId, e.getMessage());
+        }
     }
 
     /** Parse la réponse JSON {@code {css, pages:[{path,type,title,html,seoTitle,seoDescription}]}}. */
@@ -497,6 +633,45 @@ public class SiteGenerationService {
     private Site requireOwnedSite(Long orgId, Long siteId) {
         return siteRepository.findByIdAndOrganizationId(siteId, orgId)
             .orElseThrow(() -> new NotFoundException("Site introuvable: " + siteId));
+    }
+
+    /**
+     * Charge le système de design demandé s'il est visible de l'org (global ou privé de l'org). Non
+     * bloquant : un id absent/non visible → {@code null} (la génération continue sans direction imposée).
+     */
+    private DesignSystem resolveDesignSystem(Long orgId, Long designSystemId) {
+        if (designSystemId == null) {
+            return null;
+        }
+        return designSystemRepository.findById(designSystemId)
+            .filter(d -> d.getOrganizationId() == null || d.getOrganizationId().equals(orgId))
+            .orElseGet(() -> {
+                log.warn("Système de design {} introuvable/non visible pour org {} — ignoré.", designSystemId, orgId);
+                return null;
+            });
+    }
+
+    /** Parse une map JSON de tokens {@code --bt-*} (assainie via {@link CssSanitizer}). */
+    private Map<String, String> parseTokensJson(String json) {
+        if (json == null || json.isBlank()) {
+            return Map.of();
+        }
+        try {
+            return parseDesignVars(objectMapper.readTree(json));
+        } catch (Exception e) {
+            log.warn("tokensJson du système de design illisible — ignoré: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    /** Superpose {@code override} (tokens du système) sur {@code base} (tokens du LLM) — le système gagne. */
+    private Map<String, String> overlayTokens(Map<String, String> base, Map<String, String> override) {
+        if (override == null || override.isEmpty()) {
+            return base;
+        }
+        Map<String, String> merged = new LinkedHashMap<>(base == null ? Map.of() : base);
+        merged.putAll(override);
+        return merged;
     }
 
     /** Langue source = 1re locale du brief si fournie, sinon la locale par défaut du site. */

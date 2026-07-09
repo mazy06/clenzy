@@ -137,6 +137,21 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
             @Param("orgId") Long orgId);
 
     /**
+     * Dates INDISPONIBLES (≠ AVAILABLE : BOOKED <b>ou</b> BLOCKED) d'une plage [from, to) pour une
+     * propriété. Couvre à la fois les nuits réservées/synchronisées (BOOKED) et les blocages manuels
+     * ou externes (BLOCKED) — une résa prise hors OTA/Baitly ne doit jamais être re-tarifée.
+     */
+    @Query("SELECT cd.date FROM CalendarDay cd WHERE cd.property.id = :propertyId " +
+           "AND cd.date >= :from AND cd.date < :to " +
+           "AND cd.status <> com.clenzy.model.CalendarDayStatus.AVAILABLE " +
+           "AND cd.organizationId = :orgId")
+    List<LocalDate> findUnavailableDatesInRange(
+            @Param("propertyId") Long propertyId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
+
+    /**
      * Jours INDISPONIBLES (≠ AVAILABLE) par propriété sur [from, to) (batch, urgence honnête 2.9).
      * Convention Clenzy : absence de ligne = disponible → dispo = (jours fenêtre) − (count retourné).
      */

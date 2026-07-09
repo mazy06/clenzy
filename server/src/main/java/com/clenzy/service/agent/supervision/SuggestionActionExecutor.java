@@ -1,19 +1,27 @@
 package com.clenzy.service.agent.supervision;
 
+import com.clenzy.booking.service.BookingBalanceService;
+import com.clenzy.model.Guest;
 import com.clenzy.model.Property;
 import com.clenzy.model.RateOverride;
+import com.clenzy.model.Reservation;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.SecurityDepositStatus;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.model.YieldAdjustment;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.SecurityDepositRepository;
 import com.clenzy.repository.YieldAdjustmentRepository;
 import com.clenzy.service.CalendarEngine;
+import com.clenzy.service.EmailService;
 import com.clenzy.service.PriceEngine;
 import com.clenzy.service.SearchCacheInvalidator;
 import com.clenzy.service.SecurityDepositPaymentService;
+import com.clenzy.service.ServiceRequestService;
+import com.clenzy.util.StringUtils;
+import com.stripe.exception.StripeException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -26,6 +34,8 @@ import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Exécute l'action portée par une suggestion actionnable (Phase B + vague 3).
@@ -70,6 +80,11 @@ public class SuggestionActionExecutor {
     private final SecurityDepositPaymentService securityDepositPaymentService;
     private final CalendarEngine calendarEngine;
     private final YieldAdjustmentRepository yieldAdjustmentRepository;
+    private final ServiceRequestService serviceRequestService;
+    private final ReservationRepository reservationRepository;
+    private final BookingBalanceService bookingBalanceService;
+    private final EmailService emailService;
+    private final ReviewReplyDraftService reviewReplyDraftService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -81,6 +96,11 @@ public class SuggestionActionExecutor {
                                     SecurityDepositPaymentService securityDepositPaymentService,
                                     CalendarEngine calendarEngine,
                                     YieldAdjustmentRepository yieldAdjustmentRepository,
+                                    ServiceRequestService serviceRequestService,
+                                    ReservationRepository reservationRepository,
+                                    BookingBalanceService bookingBalanceService,
+                                    EmailService emailService,
+                                    ReviewReplyDraftService reviewReplyDraftService,
                                     ObjectMapper objectMapper,
                                     Clock clock) {
         this.priceEngine = priceEngine;
@@ -91,6 +111,11 @@ public class SuggestionActionExecutor {
         this.securityDepositPaymentService = securityDepositPaymentService;
         this.calendarEngine = calendarEngine;
         this.yieldAdjustmentRepository = yieldAdjustmentRepository;
+        this.serviceRequestService = serviceRequestService;
+        this.reservationRepository = reservationRepository;
+        this.bookingBalanceService = bookingBalanceService;
+        this.emailService = emailService;
+        this.reviewReplyDraftService = reviewReplyDraftService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -102,7 +127,9 @@ public class SuggestionActionExecutor {
      */
     public boolean hasExternalEffect(String actionType) {
         return SupervisionActionType.DEPOSIT_REFUND.equals(actionType)
-                || SupervisionActionType.DEPOSIT_RELEASE.equals(actionType);
+                || SupervisionActionType.DEPOSIT_RELEASE.equals(actionType)
+                || SupervisionActionType.PAYMENT_REMINDER.equals(actionType)
+                || SupervisionActionType.REVIEW_DRAFT_REPLY.equals(actionType);
     }
 
     /** Dispatche l'exécution selon {@code actionType}. Lève si le type est inconnu ou les params invalides. */
@@ -117,6 +144,9 @@ public class SuggestionActionExecutor {
                     releaseDeposit(suggestion);
             case SupervisionActionType.CALENDAR_BLOCK -> applyCalendarBlock(suggestion);
             case SupervisionActionType.YIELD_PRICE_ADJUST -> applyYieldAdjust(suggestion);
+            case SupervisionActionType.CLEANING_REQUEST -> applyCleaningRequest(suggestion);
+            case SupervisionActionType.PAYMENT_REMINDER -> applyPaymentReminder(suggestion);
+            case SupervisionActionType.REVIEW_DRAFT_REPLY -> applyReviewDraftReply(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
     }
@@ -171,6 +201,112 @@ public class SuggestionActionExecutor {
                 suggestion.getOrganizationId(), suggestion.getPropertyId(), from, from, days);
     }
 
+    /**
+     * Planifie le menage manquant du depart de demain (agent Operations). Ecriture DB
+     * uniquement : exécutée dans la transaction d'application. Réutilise le chemin sûr et
+     * idempotent {@link ServiceRequestService#createAutomaticCleaningRequest} (clé unique
+     * {@code AUTO_CLEANING}, org re-validée). La carte n'est proposée qu'aux logements en
+     * fréquence {@code AFTER_EACH_STAY} (l'apply réussit alors toujours).
+     */
+    private void applyCleaningRequest(SupervisionSuggestion suggestion) {
+        final JsonNode params = parseParams(suggestion.getActionParams());
+        final Long reservationId = params.path("reservationId").isNumber()
+                ? params.path("reservationId").asLong() : suggestion.getReservationId();
+        final LocalDate checkIn = params.path("checkIn").isTextual()
+                ? LocalDate.parse(params.path("checkIn").asText()) : null;
+        final LocalDate checkOut = params.path("checkOut").isTextual()
+                ? LocalDate.parse(params.path("checkOut").asText()) : null;
+        if (checkOut == null) {
+            throw new IllegalStateException("CLEANING_REQUEST sans date de départ (checkOut)");
+        }
+        final ServiceRequestService.AutoCleaningOutcome outcome =
+                serviceRequestService.createAutomaticCleaningRequest(
+                        suggestion.getOrganizationId(), suggestion.getPropertyId(),
+                        checkIn, checkOut, reservationId);
+        if (outcome.request() == null) {
+            final String reason = outcome.skipReason() != null ? outcome.skipReason() : "raison inconnue";
+            // Déjà planifié entre-temps (course / re-scan) → idempotent, l'objectif est atteint.
+            if (reason.contains("existante")) {
+                log.info("CLEANING_REQUEST idempotent org={} property={} reservation={} — {}",
+                        suggestion.getOrganizationId(), suggestion.getPropertyId(), reservationId, reason);
+                return;
+            }
+            // Sinon l'action n'a pas pu s'appliquer → échec explicite (la carte reste PENDING).
+            throw new IllegalStateException("Ménage non planifiable : " + reason);
+        }
+        log.info("CLEANING_REQUEST appliqué org={} property={} reservation={} demande={}",
+                suggestion.getOrganizationId(), suggestion.getPropertyId(), reservationId,
+                outcome.request().getId());
+    }
+
+    /**
+     * Relance de paiement voyageur (agent Finance) : régénère un lien de paiement pour le solde
+     * dû de la réservation ({@link BookingBalanceService#createBalanceCheckoutUrl}) et l'envoie à
+     * l'email de paiement. EFFET EXTERNE (Stripe + email) → exécutée HORS transaction par
+     * {@link SupervisionSuggestionService#apply} (règle audit n°2), compensation si échec.
+     *
+     * <p>Règle audit n°1 : l'email, le code et le montant dû sont RE-résolus à l'apply — rien
+     * n'est appliqué depuis la suggestion aveuglément. Règle audit n°3 : ownership org re-validé
+     * après le {@code findById}. Règle audit n°4 : le nom voyageur est échappé dans le HTML.</p>
+     */
+    private void applyPaymentReminder(SupervisionSuggestion suggestion) {
+        final Long reservationId = resolveReservationId(suggestion);
+        final Long orgId = suggestion.getOrganizationId();
+        final Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalStateException("Réservation " + reservationId + " introuvable"));
+        if (!orgId.equals(reservation.getOrganizationId())) {
+            throw new IllegalStateException("Réservation " + reservationId + " hors organisation " + orgId);
+        }
+        final String email = resolvePaymentEmail(reservation);
+        if (email == null) {
+            throw new IllegalStateException("Aucun email de paiement pour la réservation " + reservationId);
+        }
+        final String code = reservation.getConfirmationCode();
+        if (code == null || code.isBlank()) {
+            throw new IllegalStateException("Réservation " + reservationId + " sans code de confirmation");
+        }
+        final String checkoutUrl;
+        try {
+            checkoutUrl = bookingBalanceService.createBalanceCheckoutUrl(orgId, code);
+        } catch (StripeException e) {
+            throw new IllegalStateException("Lien de paiement Stripe non généré : " + e.getMessage(), e);
+        }
+        final String guest = reservation.getGuestName() != null && !reservation.getGuestName().isBlank()
+                ? reservation.getGuestName() : "Bonjour";
+        final String body = "<p>" + StringUtils.escapeHtml(guest) + ",</p>"
+                + "<p>Le paiement de votre réservation n’a pas pu être finalisé. Vous pouvez le régler "
+                + "en toute sécurité via le lien ci-dessous :</p>"
+                + "<p><a href=\"" + checkoutUrl + "\">Régler mon paiement</a></p>";
+        emailService.sendSimpleHtmlEmail(email, "Votre paiement n’a pas abouti — relance", body);
+        log.info("PAYMENT_REMINDER envoyé org={} reservation={} (code {})", orgId, reservationId, code);
+    }
+
+    /** Email de relance : priorité à l'email de paiement de la réservation, repli sur le voyageur lié. */
+    private String resolvePaymentEmail(Reservation reservation) {
+        if (reservation.getPaymentLinkEmail() != null && !reservation.getPaymentLinkEmail().isBlank()) {
+            return reservation.getPaymentLinkEmail().trim();
+        }
+        final Guest g = reservation.getGuest();
+        if (g != null && g.getEmail() != null && !g.getEmail().isBlank()) {
+            return g.getEmail().trim();
+        }
+        return null;
+    }
+
+    /**
+     * REP — génère un BROUILLON de réponse d'avis (LLM) enregistré dans host_response_draft.
+     * EFFET EXTERNE (appel LLM) → exécuté hors transaction par {@link SupervisionSuggestionService#apply}.
+     * Ne publie rien : l'opérateur valide/édite/publie ensuite. Params : {@code reviewId}.
+     */
+    private void applyReviewDraftReply(SupervisionSuggestion suggestion) {
+        final JsonNode params = parseParams(suggestion.getActionParams());
+        if (!params.path("reviewId").isNumber()) {
+            throw new IllegalStateException("REVIEW_DRAFT_REPLY sans reviewId");
+        }
+        reviewReplyDraftService.generateDraft(
+                suggestion.getOrganizationId(), params.path("reviewId").asLong());
+    }
+
     private Long resolveReservationId(SupervisionSuggestion suggestion) {
         if (suggestion.getReservationId() != null) {
             return suggestion.getReservationId();
@@ -184,24 +320,49 @@ public class SuggestionActionExecutor {
 
     private void applyPriceDrop(SupervisionSuggestion suggestion) {
         final JsonNode params = parseParams(suggestion.getActionParams());
-        final LocalDate from = LocalDate.parse(params.path("from").asText());
-        final LocalDate to = LocalDate.parse(params.path("to").asText()); // exclusif
-        final int percent = params.path("percent").asInt();
-        if (!from.isBefore(to)) {
-            throw new IllegalStateException("Plage invalide : from >= to");
-        }
-        if (percent <= 0 || percent > MAX_PERCENT) {
-            throw new IllegalStateException("Pourcentage de baisse hors bornes : " + percent);
-        }
-
         final Long propertyId = suggestion.getPropertyId();
         final Long orgId = suggestion.getOrganizationId();
         final Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new IllegalStateException("Logement introuvable : " + propertyId));
         final String currency = property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR";
-        final BigDecimal factor = BigDecimal.ONE.subtract(
-                BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100)));
 
+        // Sens de l'ajustement : "up" = hausse (facteur 1+p/100), sinon baisse (1−p/100). Défaut baisse.
+        final boolean raise = "up".equalsIgnoreCase(params.path("direction").asText("down"));
+
+        // Yield multi-segment : {"direction":…,"segments":[{from,to,percent}, …]} ; rétro-compat {from,to,percent}.
+        final List<JsonNode> segments = new ArrayList<>();
+        if (params.has("segments") && params.get("segments").isArray()) {
+            params.get("segments").forEach(segments::add);
+        } else {
+            segments.add(params);
+        }
+        if (segments.isEmpty()) {
+            throw new IllegalStateException("Aucun segment de prix à appliquer");
+        }
+
+        int applied = 0;
+        for (JsonNode seg : segments) {
+            final LocalDate from = LocalDate.parse(seg.path("from").asText());
+            final LocalDate to = LocalDate.parse(seg.path("to").asText()); // exclusif
+            final int percent = seg.path("percent").asInt();
+            if (!from.isBefore(to)) {
+                throw new IllegalStateException("Plage invalide : from >= to");
+            }
+            if (percent <= 0 || percent > MAX_PERCENT) {
+                throw new IllegalStateException("Pourcentage d'ajustement hors bornes : " + percent);
+            }
+            applied += applyAdjustOnRange(property, orgId, propertyId, from, to, percent, raise, currency);
+        }
+        searchCacheInvalidator.onAvailabilityOrPriceChanged();
+        log.info("PRICE_{} appliqué org={} property={} : {} segment(s), {} nuit(s)",
+                raise ? "RAISE" : "DROP", orgId, propertyId, segments.size(), applied);
+    }
+
+    /** Applique un ajustement de {@code percent}% (hausse si {@code raise}, sinon baisse) sur chaque nuit de [from, to). */
+    private int applyAdjustOnRange(Property property, Long orgId, Long propertyId,
+                                   LocalDate from, LocalDate to, int percent, boolean raise, String currency) {
+        final BigDecimal delta = BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100));
+        final BigDecimal factor = raise ? BigDecimal.ONE.add(delta) : BigDecimal.ONE.subtract(delta);
         int applied = 0;
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
             final BigDecimal current = priceEngine.resolvePrice(propertyId, date, orgId);
@@ -220,9 +381,7 @@ public class SuggestionActionExecutor {
             rateOverrideRepository.save(override);
             applied++;
         }
-        searchCacheInvalidator.onAvailabilityOrPriceChanged();
-        log.info("PRICE_DROP appliqué org={} property={} {}→{} −{}% ({} jour(s))",
-                orgId, propertyId, from, to, percent, applied);
+        return applied;
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.clenzy.service.agent.supervision;
 
 import com.clenzy.exception.NotFoundException;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.SupervisionSuggestionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,9 @@ class SupervisionSuggestionServiceApplyTest {
 
     @Mock private SupervisionSuggestionRepository repository;
     @Mock private SuggestionActionExecutor actionExecutor;
+    @Mock private com.clenzy.service.NotificationService notificationService;
+    @Mock private SupervisionRealtimePublisher realtimePublisher;
+    @Mock private com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     @Mock private PlatformTransactionManager transactionManager;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
@@ -47,7 +51,9 @@ class SupervisionSuggestionServiceApplyTest {
 
     @BeforeEach
     void setUp() {
-        service = new SupervisionSuggestionService(repository, actionExecutor, clock, transactionManager);
+        service = new SupervisionSuggestionService(
+                repository, actionExecutor, notificationService, realtimePublisher,
+                unpaidServiceRequestCardService, clock, transactionManager);
     }
 
     private static SupervisionSuggestion suggestion(String actionType) {
@@ -157,5 +163,62 @@ class SupervisionSuggestionServiceApplyTest {
         assertThat(first).isFalse();
         assertThat(second).isTrue();
         verify(repository).save(any(SupervisionSuggestion.class));
+    }
+
+    @Test
+    @DisplayName("carte actionnable warning -> notification hors-ecran (B2)")
+    void recordActionableWarning_notifiesOffScreen() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                any(), any(), any(), any(), any())).thenReturn(false);
+
+        service.recordActionableStrict(ORG_ID, 10L, "fin", null, "Solde echoue", "motif",
+                SupervisionActionType.PAYMENT_REMINDER, "{}", null, "warning");
+
+        verify(notificationService).notifyAdminsAndManagersByOrgId(
+                eq(ORG_ID), eq(NotificationKey.SUPERVISION_SUGGESTION), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("carte informationnelle -> pas de notification (anti-spam)")
+    void recordInformational_doesNotNotify() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                any(), any(), any(), any(), any())).thenReturn(false);
+
+        service.record(ORG_ID, 10L, "ops", "cleaning_missing", "Menage manquant", "motif");
+
+        verify(notificationService, never()).notifyAdminsAndManagersByOrgId(
+                any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("carte récemment IGNORÉE -> pas re-suggérée (cooldown)")
+    void recordActionable_suppressedWhenRecentlyDismissed() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                ORG_ID, 7L, "rev", "Occupation à venir faible", "PENDING")).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("DISMISSED"), any()))
+                .thenReturn(true);
+
+        boolean created = service.recordActionableStrict(ORG_ID, 7L, "rev", null,
+                "Occupation à venir faible", "motif", null, null, null, "warning");
+
+        assertThat(created).isFalse();
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("carte non récemment ignorée -> créée normalement")
+    void recordActionable_createsWhenNotRecentlyDismissed() {
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                ORG_ID, 7L, "rev", "Occupation à venir faible", "PENDING")).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
+                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("DISMISSED"), any()))
+                .thenReturn(false);
+
+        boolean created = service.recordActionableStrict(ORG_ID, 7L, "rev", null,
+                "Occupation à venir faible", "motif", null, null, null, "info");
+
+        assertThat(created).isTrue();
+        verify(repository).save(any());
     }
 }

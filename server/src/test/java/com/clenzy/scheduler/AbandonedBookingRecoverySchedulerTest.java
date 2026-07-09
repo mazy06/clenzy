@@ -7,6 +7,7 @@ import com.clenzy.repository.MarketingContactRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.service.AbandonedBookingService;
 import com.clenzy.service.EmailService;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,12 +51,14 @@ class AbandonedBookingRecoverySchedulerTest {
     @Mock private EmailService emailService;
     @Mock private OrganizationRepository organizationRepository;
     @Mock private MarketingContactRepository marketingContactRepository;
+    @Mock private SupervisionActivityService supervisionActivityService;
 
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private AbandonedBookingRecoveryScheduler enabledScheduler() {
         return new AbandonedBookingRecoveryScheduler(repository, abandonedBookingService, emailService,
-            organizationRepository, marketingContactRepository, clock, true, "https://app.clenzy.fr");
+            organizationRepository, marketingContactRepository, supervisionActivityService, clock, true,
+            "https://app.clenzy.fr");
     }
 
     private AbandonedBooking pending(String email, int reminderCount, Duration age) {
@@ -89,7 +92,7 @@ class AbandonedBookingRecoverySchedulerTest {
     void disabledFlag_noOp() {
         AbandonedBookingRecoveryScheduler disabled = new AbandonedBookingRecoveryScheduler(
             repository, abandonedBookingService, emailService, organizationRepository,
-            marketingContactRepository, clock, false, "https://app.clenzy.fr");
+            marketingContactRepository, supervisionActivityService, clock, false, "https://app.clenzy.fr");
 
         disabled.sendRecoveryEmails();
 

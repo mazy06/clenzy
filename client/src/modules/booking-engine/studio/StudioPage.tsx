@@ -26,7 +26,8 @@ import BlogPanel from './builder/BlogPanel';
 import DistributionPanel from './settings/DistributionPanel';
 import GrowthSettingsPanel from './settings/GrowthSettingsPanel';
 import { useStudioConfig } from './useStudioConfig';
-import { readStudioMode, writeStudioMode, type StudioMode } from './studioMode';
+import { type StudioMode } from './studioMode';
+import { sitesApi } from '../../../services/api/sitesApi';
 import type { BookingEngineConfig, DesignTokens } from '../../../services/api/bookingEngineApi';
 
 /**
@@ -56,12 +57,18 @@ export default function StudioPage() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [designAnalysisOpen, setDesignAnalysisOpen] = useState(false);
 
-  // Mode d'édition (Guidé / Avancé) — persisté dans le champ JSON `componentConfig` (clé `studioMode`),
-  // sans migration DB. Défaut `advanced` = comportement historique inchangé.
-  const studioMode = readStudioMode(cfg.config?.componentConfig);
-  const handleModeChange = (mode: StudioMode) => {
-    if (mode === studioMode) return;
-    cfg.patch({ componentConfig: writeStudioMode(cfg.config?.componentConfig, mode) });
+  // Mode d'édition : « Guidé » a été retiré → l'éditeur est TOUJOURS en avancé. Le bouton « Assistant »
+  // (topbar) bascule vers le studio immersif (aperçu live + chat) au lieu d'un mode simplifié.
+  const studioMode: StudioMode = 'advanced';
+
+  // Bascule vers le studio IMMERSIF : résout le site lié à cette config (find-or-create) puis y navigue.
+  const openAssistant = async () => {
+    const configId = cfg.config?.id;
+    if (!configId) return;
+    try {
+      const site = await sitesApi.ensureForConfig(configId);
+      navigate(`/booking-engine/sites/${site.id}`);
+    } catch { /* résolution du site impossible : on reste dans l'éditeur */ }
   };
 
   // Applique le design extrait (analyse IA d'un site) au booking engine courant : tokens (widget +
@@ -118,8 +125,7 @@ export default function StudioPage() {
         onBreakpointChange={setBreakpoint}
         onOpenCommand={() => setPaletteOpen(true)}
         onAnalyzeDesign={() => setDesignAnalysisOpen(true)}
-        mode={studioMode}
-        onModeChange={handleModeChange}
+        onOpenAssistant={openAssistant}
         onBack={() => navigate('/booking-engine', { state: { tab: 2 } })}
       >
         {active.key === 'design' && <GrapesStudio cfg={cfg} breakpoint={breakpoint} mode={studioMode} />}

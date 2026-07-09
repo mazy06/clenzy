@@ -21,6 +21,19 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     /** Payeur d'un abonnement Stripe (dotation credits IA a invoice.paid — T-07). */
     Optional<User> findByStripeSubscriptionId(String stripeSubscriptionId);
     /**
+     * Abonnés PMS prépayés (billingPeriod ANNUAL/BIENNIAL) ayant un abonnement
+     * Stripe : Stripe ne déclenche invoice.paid qu'une fois par période, ce job
+     * leur recharge les crédits IA mensuellement (T-07).
+     */
+    List<User> findByStripeSubscriptionIdIsNotNullAndBillingPeriodIn(
+            java.util.Collection<String> billingPeriods);
+
+    /**
+     * Payeur (abonnement Stripe actif) d'une organisation — signal d'éligibilité
+     * à l'auto-provisionnement des crédits IA (self-heal du RunCreditGuard, T-07).
+     */
+    Optional<User> findFirstByOrganizationIdAndStripeSubscriptionIdIsNotNull(Long organizationId);
+    /**
      * Batch lookup by keycloakId — used to avoid N+1 queries when a DTO list needs
      * profile info (avatar, updatedAt) for many counterparts at once.
      */

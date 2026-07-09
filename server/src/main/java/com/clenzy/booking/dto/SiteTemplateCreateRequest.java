@@ -11,5 +11,6 @@ public record SiteTemplateCreateRequest(
     String register,
     String previewUrl,
     String contentJson,
-    String scope
+    String scope,
+    Long designSystemId
 ) {}

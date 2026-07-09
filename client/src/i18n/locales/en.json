@@ -123,6 +123,40 @@
       "action": "Apply",
       "dismiss": "Dismiss"
     },
+    "tools": {
+      "ical_sync_failed": "Calendar sync failed",
+      "sensor_anomaly": "Sensor anomaly",
+      "double_booking_prevented": "Double booking prevented",
+      "booking_caution": "Booking deposit",
+      "payment_failed": "Payment failed",
+      "noise_alert": "Noise alert",
+      "cleaning_scheduled": "Cleaning auto-scheduled",
+      "intervention_assigned": "Assignee assigned",
+      "access_code_rotated": "Access code rotated",
+      "pricing_pushed": "Prices pushed to channels",
+      "elasticity_recomputed": "Price elasticity recomputed",
+      "rate_parity_issue": "Rate parity gap",
+      "cart_reminder_sent": "Cart reminder sent",
+      "assign_intervention": "Intervention assigned",
+      "batch_block_calendar": "Calendar blocked (batch)",
+      "block_calendar_day": "Calendar day blocked",
+      "cancel_reservation": "Reservation cancelled",
+      "create_intervention": "Intervention created",
+      "create_invoice": "Invoice created",
+      "create_reservation": "Reservation created",
+      "forget_fact": "Memory updated",
+      "initiate_refund": "Refund initiated",
+      "open_close_channel_availability": "Channel availability updated",
+      "reply_to_review": "Review reply posted",
+      "send_guest_message": "Guest message sent",
+      "send_owner_statement": "Owner statement sent",
+      "set_rate_override": "Rate adjusted",
+      "settle_intervention_payment": "Intervention payment settled",
+      "trigger_channel_sync": "Channel sync triggered",
+      "update_intervention_status": "Intervention status updated",
+      "update_property_status": "Property status updated",
+      "update_reservation_status": "Reservation status updated"
+    },
     "approval": {
       "title": "Approval required",
       "reject": "Reject",
@@ -147,7 +181,23 @@
       "title": "Awaiting your approval"
     },
     "feed": {
-      "title": "Live"
+      "title": "Live",
+      "empty": "No recent agent actions",
+      "emptyOnboarding": "The agents are watching your properties. Their actions and suggestions to approve will appear here — nothing runs without your consent."
+    },
+    "report": {
+      "title": "Report · 30 days",
+      "titleBase": "Report",
+      "windowDays": "{{count}} days",
+      "win": { "day": "Day", "week": "Week", "fortnight": "Fortn.", "month": "Month" },
+      "timeSaved": "Time saved",
+      "autoActions": "Auto actions",
+      "acceptance": "Acceptance"
+    },
+    "reviewDrafts": {
+      "title": "Reply drafts (AI)",
+      "empty": "No reply draft pending.",
+      "publish": "Publish"
     },
     "drawer": {
       "ventilation": "Breakdown by property",
@@ -2738,6 +2788,11 @@
         "addModel": "Add a model",
         "editModel": "Edit model",
         "featureMapping": "Feature assignment",
+        "creditsBootstrap": "Credits bootstrap",
+        "creditsBootstrapHelp": "Grant every existing organization its initial credit pocket. Idempotent: an already-funded organization is skipped. Subscribers are then auto-provisioned on use and topped up monthly.",
+        "grantInitial": "Grant organizations",
+        "grantInitialDone": "{{granted}} organization(s) granted, {{skipped}} already funded.",
+        "grantInitialError": "Grant failed.",
         "noModel": "No model",
         "connectedProviders": "Connected providers",
         "platformModels": "Platform models",

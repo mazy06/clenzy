@@ -72,6 +72,23 @@ public class ConversationController {
         return ResponseEntity.ok(aiAssistService.translateLastInbound(orgId, id, target));
     }
 
+    /** Concierge IA : l'opérateur VALIDE le brouillon et l'envoie au guest. */
+    @PostMapping("/{id}/ai-draft/send")
+    public ResponseEntity<ConversationDto> sendAiDraft(
+            @PathVariable Long id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal
+            org.springframework.security.oauth2.jwt.Jwt jwt) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(conversationService.sendAiDraft(orgId, id, jwt.getSubject()));
+    }
+
+    /** Concierge IA : l'opérateur REJETTE le brouillon (sans envoi). */
+    @PostMapping("/{id}/ai-draft/dismiss")
+    public ResponseEntity<ConversationDto> dismissAiDraft(@PathVariable Long id) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(conversationService.dismissAiDraft(orgId, id));
+    }
+
     @GetMapping
     public ResponseEntity<Page<ConversationDto>> getInbox(
             @RequestParam(required = false) ConversationStatus status,

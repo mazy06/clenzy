@@ -3,6 +3,7 @@ package com.clenzy.booking.controller;
 import com.clenzy.booking.dto.SiteTemplateCreateRequest;
 import com.clenzy.booking.dto.SiteTemplateDto;
 import com.clenzy.booking.service.SiteTemplateService;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,6 +40,18 @@ public class SiteTemplateController {
                                                   @AuthenticationPrincipal Jwt jwt) {
         String createdBy = jwt != null ? jwt.getSubject() : null;
         return ResponseEntity.ok(service.create(req, createdBy));
+    }
+
+    /**
+     * Ingère un template d'authoring (produit au CLI, contrat {@code DESIGN-BAITLY.md}) au catalogue
+     * GLOBAL. Réservé au staff plateforme : valide le contrat + assainit + convertit en enveloppes GrapesJS.
+     */
+    @PostMapping("/ingest")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<SiteTemplateDto> ingest(@RequestBody JsonNode authoring,
+                                                  @AuthenticationPrincipal Jwt jwt) {
+        String createdBy = jwt != null ? jwt.getSubject() : null;
+        return ResponseEntity.ok(service.ingest(authoring, createdBy));
     }
 
     /** Modifie un template (métadonnées ; le contenu n'est remplacé que s'il est fourni). */

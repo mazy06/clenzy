@@ -6,6 +6,7 @@ import com.clenzy.integration.channel.AirbnbChannelAdapter;
 import com.clenzy.integration.channel.SyncResult;
 import com.clenzy.model.MessagingAutomationConfig;
 import com.clenzy.repository.MessagingAutomationConfigRepository;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -33,15 +34,18 @@ public class PricingPushScheduler {
     private final AirbnbListingMappingRepository listingRepository;
     private final MessagingAutomationConfigRepository configRepository;
     private final AirbnbChannelAdapter airbnbChannelAdapter;
+    private final SupervisionActivityService supervisionActivityService;
 
     public PricingPushScheduler(
             AirbnbListingMappingRepository listingRepository,
             MessagingAutomationConfigRepository configRepository,
-            AirbnbChannelAdapter airbnbChannelAdapter
+            AirbnbChannelAdapter airbnbChannelAdapter,
+            SupervisionActivityService supervisionActivityService
     ) {
         this.listingRepository = listingRepository;
         this.configRepository = configRepository;
         this.airbnbChannelAdapter = airbnbChannelAdapter;
+        this.supervisionActivityService = supervisionActivityService;
     }
 
     /**
@@ -84,6 +88,7 @@ public class PricingPushScheduler {
                         totalPushed++;
                         log.debug("Auto-push prix OK pour listing {} (property={}, {} jours)",
                             mapping.getAirbnbListingId(), mapping.getPropertyId(), result.getItemsProcessed());
+                        recordConstellationActivity(orgId, mapping, result);
                     } else if (result.getStatus() == SyncResult.Status.FAILED) {
                         totalFailed++;
                         log.warn("Auto-push prix FAILED pour listing {} (property={}): {}",
@@ -100,6 +105,27 @@ public class PricingPushScheduler {
 
         if (totalPushed > 0 || totalFailed > 0) {
             log.info("PricingPushScheduler: {} listings mis a jour, {} echecs", totalPushed, totalFailed);
+        }
+    }
+
+    /**
+     * Fait remonter le push des prix dans le feed « En direct » de la CONSTELLATION du logement
+     * (agent Revenue « rev »). Le propertyId est celui du mapping de CETTE occurrence, l'org est
+     * déjà isolée dans la boucle. Best-effort : le record est lui-même best-effort côté service et
+     * un échec ne doit jamais casser le scheduler.
+     */
+    private void recordConstellationActivity(Long orgId, AirbnbListingMapping mapping, SyncResult result) {
+        try {
+            Long propertyId = mapping.getPropertyId();
+            if (propertyId == null) {
+                return; // listing sans logement rattachable → rien à afficher dans une constellation
+            }
+            String summary = "Prix poussés vers les canaux sur ce logement ("
+                + result.getItemsProcessed() + " jours mis à jour)";
+            supervisionActivityService.recordModuleAct(orgId, propertyId, "rev", "pricing_pushed", summary);
+        } catch (Exception e) {
+            log.debug("Push prix: activite constellation non enregistree (listing {}): {}",
+                mapping.getAirbnbListingId(), e.getMessage());
         }
     }
 }

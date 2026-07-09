@@ -39,6 +39,14 @@ public interface AiCreditGrantRepository extends JpaRepository<AiCreditGrant, Lo
     /** Idempotence des webhooks de dotation (T-07). */
     boolean existsByStripeRef(String stripeRef);
 
+    /**
+     * Une poche de la source donnée a-t-elle déjà été créée pour cette org depuis
+     * {@code from} ? Sert à la recharge mensuelle des prépayés : évite un double
+     * crédit si l'invoice de renouvellement (SUBSCRIPTION) est déjà tombé ce mois.
+     */
+    boolean existsByOrganizationIdAndSourceAndGrantedAtGreaterThanEqual(
+            Long organizationId, String source, Instant from);
+
     /** Poches echues avec du restant a journaliser en EXPIRY (job quotidien T-07). */
     @Query("""
             select g from AiCreditGrant g

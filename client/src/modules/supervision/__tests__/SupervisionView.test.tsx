@@ -19,17 +19,17 @@ describe('<SupervisionView> — bascule de portée', () => {
       />,
     );
 
-    // Par logement : constellation, pas de journal portefeuille.
+    // Par logement (showcase) : constellation présente + 1 seule carte à valider.
     await waitFor(() => expect(container.querySelector('[data-supervision-constellation]')).toBeTruthy());
-    expect(container.querySelector('[data-activity-feed]')).toBeNull();
+    await waitFor(() => expect(container.querySelectorAll('[data-pending-action]').length).toBe(1));
 
-    // → Vue d'ensemble : journal portefeuille + file multi-logements.
-    fireEvent.click(screen.getByText("Vue d'ensemble"));
-    await waitFor(() => expect(container.querySelector('[data-activity-feed]')).toBeTruthy());
-    expect(container.querySelectorAll('[data-pending-action]').length).toBeGreaterThan(1);
+    // → Vue d'ensemble : file multi-logements (plusieurs cartes à valider).
+    // Libellés icône-seule → sélection par aria-label.
+    fireEvent.click(screen.getByRole('button', { name: "Vue d'ensemble" }));
+    await waitFor(() => expect(container.querySelectorAll('[data-pending-action]').length).toBeGreaterThan(1));
 
-    // → retour Par logement.
-    fireEvent.click(screen.getByText('Par logement'));
-    await waitFor(() => expect(container.querySelector('[data-activity-feed]')).toBeNull());
+    // → retour Par logement : de nouveau une seule carte.
+    fireEvent.click(screen.getByRole('button', { name: 'Par logement' }));
+    await waitFor(() => expect(container.querySelectorAll('[data-pending-action]').length).toBe(1));
   });
 });

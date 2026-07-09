@@ -49,6 +49,22 @@ public class SiteTemplate {
     @Column(name = "content_json", nullable = false, columnDefinition = "text")
     private String contentJson;
 
+    /** Catégorie de galerie (ex. conciergerie, villa, appartement). Filtre galerie. */
+    @Column(name = "category", length = 60)
+    private String category;
+
+    /** Archétype de layout (ex. overlay, split, catalogue, editorial). Filtre galerie. */
+    @Column(name = "archetype", length = 60)
+    private String archetype;
+
+    /** État de publication : DRAFT (staff seulement) | PUBLISHED (visible des users org). */
+    @Column(name = "status", length = 20, nullable = false)
+    private String status = "PUBLISHED";
+
+    /** Système de design associé (direction) ; le site instancié en hérite. NULL = aucun. */
+    @Column(name = "design_system_id")
+    private Long designSystemId;
+
     /** keycloakId du créateur (audit léger). */
     @Column(name = "created_by", length = 64)
     private String createdBy;
@@ -77,6 +93,18 @@ public class SiteTemplate {
 
     public String getContentJson() { return contentJson; }
     public void setContentJson(String contentJson) { this.contentJson = contentJson; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+
+    public String getArchetype() { return archetype; }
+    public void setArchetype(String archetype) { this.archetype = archetype; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public Long getDesignSystemId() { return designSystemId; }
+    public void setDesignSystemId(Long designSystemId) { this.designSystemId = designSystemId; }
 
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }

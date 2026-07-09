@@ -123,6 +123,40 @@
       "action": "Appliquer",
       "dismiss": "Ignorer"
     },
+    "tools": {
+      "ical_sync_failed": "Échec sync calendrier",
+      "sensor_anomaly": "Anomalie capteur",
+      "double_booking_prevented": "Double-réservation évitée",
+      "booking_caution": "Caution de réservation",
+      "payment_failed": "Paiement échoué",
+      "noise_alert": "Alerte de bruit",
+      "cleaning_scheduled": "Ménage auto-planifié",
+      "intervention_assigned": "Intervenant assigné",
+      "access_code_rotated": "Code d'accès renouvelé",
+      "pricing_pushed": "Prix poussés vers les canaux",
+      "elasticity_recomputed": "Élasticité prix recalculée",
+      "rate_parity_issue": "Écart de parité tarifaire",
+      "cart_reminder_sent": "Relance panier envoyée",
+      "assign_intervention": "Intervention assignée",
+      "batch_block_calendar": "Blocage calendrier (lot)",
+      "block_calendar_day": "Jour bloqué au calendrier",
+      "cancel_reservation": "Réservation annulée",
+      "create_intervention": "Intervention créée",
+      "create_invoice": "Facture créée",
+      "create_reservation": "Réservation créée",
+      "forget_fact": "Mémoire mise à jour",
+      "initiate_refund": "Remboursement initié",
+      "open_close_channel_availability": "Disponibilité canal mise à jour",
+      "reply_to_review": "Réponse à un avis publiée",
+      "send_guest_message": "Message voyageur envoyé",
+      "send_owner_statement": "Relevé propriétaire envoyé",
+      "set_rate_override": "Tarif ajusté",
+      "settle_intervention_payment": "Paiement d'intervention réglé",
+      "trigger_channel_sync": "Synchronisation canal lancée",
+      "update_intervention_status": "Statut d'intervention mis à jour",
+      "update_property_status": "Statut du logement mis à jour",
+      "update_reservation_status": "Statut de réservation mis à jour"
+    },
     "approval": {
       "title": "Validation requise",
       "reject": "Refuser",
@@ -147,7 +181,23 @@
       "title": "Attend ta validation"
     },
     "feed": {
-      "title": "En direct"
+      "title": "En direct",
+      "empty": "Aucune action récente des agents",
+      "emptyOnboarding": "Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord."
+    },
+    "report": {
+      "title": "Bilan · 30 jours",
+      "titleBase": "Bilan",
+      "windowDays": "{{count}} jours",
+      "win": { "day": "Jour", "week": "Sem.", "fortnight": "Quinz.", "month": "Mois" },
+      "timeSaved": "Temps gagné",
+      "autoActions": "Actions auto",
+      "acceptance": "Acceptation"
+    },
+    "reviewDrafts": {
+      "title": "Brouillons de réponse (IA)",
+      "empty": "Aucun brouillon de réponse en attente.",
+      "publish": "Publier"
     },
     "drawer": {
       "ventilation": "Détail par logement",
@@ -2763,6 +2813,11 @@
         "addModel": "Ajouter un modele",
         "editModel": "Modifier le modele",
         "featureMapping": "Assignation par feature",
+        "creditsBootstrap": "Amorçage des crédits",
+        "creditsBootstrapHelp": "Dote toutes les organisations existantes de leur poche de crédits initiale. Action idempotente : une organisation déjà pourvue est ignorée. Les abonnés sont ensuite auto-provisionnés à l’usage et rechargés chaque mois.",
+        "grantInitial": "Doter les organisations",
+        "grantInitialDone": "{{granted}} organisation(s) dotée(s), {{skipped}} déjà pourvue(s).",
+        "grantInitialError": "Échec de la dotation.",
         "noModel": "Aucun modele",
         "connectedProviders": "Providers connectés",
         "platformModels": "Modèles plateforme",

@@ -165,11 +165,13 @@ public enum NotificationKey {
     INCIDENT_OPENED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
     INCIDENT_RESOLVED(NotificationType.SUCCESS, NotificationCategory.SYSTEM, true),
 
-    // ─── GUEST MESSAGING (4 cles) ───────────────────────────────────────────
+    // ─── GUEST MESSAGING (5 cles) ───────────────────────────────────────────
     GUEST_MESSAGE_SENT(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
     GUEST_MESSAGE_FAILED(NotificationType.ERROR, NotificationCategory.GUEST_MESSAGING, true),
     GUEST_PRICING_PUSHED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, false),
     GUEST_NO_EMAIL_FOR_CHECKIN(NotificationType.WARNING, NotificationCategory.GUEST_MESSAGING, true),
+    /** Concierge IA (C1) : message guest à traiter en priorité (sentiment négatif / urgent). */
+    CONCIERGE_ESCALATION(NotificationType.WARNING, NotificationCategory.GUEST_MESSAGING, true),
 
     // ─── ACCÈS ──────────────────────────────────────────────────────────────
     ACCESS_CODE_ROTATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
@@ -192,6 +194,11 @@ public enum NotificationKey {
     // ─── REVIEW (2 cles) ──────────────────────────────────────────────────
     REVIEW_RECEIVED(NotificationType.INFO, NotificationCategory.REVIEW, true),
     REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true),
+
+    // ─── SUPERVISION / CONSTELLATION (1 cle) ──────────────────────────────
+    // Carte HITL actionnable (warning/critical) creee par un agent : l'operateur
+    // doit la voir meme hors de l'ecran de supervision (anti « action manquee »).
+    SUPERVISION_SUGGESTION(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
 
     // ─── PAYOUT (7 cles) ──────────────────────────────────────────────────
     PAYOUT_BATCH_GENERATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),

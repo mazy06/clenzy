@@ -3,6 +3,9 @@ package com.clenzy.service.automation;
 import com.clenzy.model.AutomationTrigger;
 import com.clenzy.model.Intervention;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +28,10 @@ import static org.mockito.Mockito.when;
 class PaymentFailedTriggerServiceTest {
 
     @Mock private InterventionRepository interventionRepository;
+    @Mock private ReservationRepository reservationRepository;
     @Mock private AutomationEngine automationEngine;
+    @Mock private SupervisionActivityService supervisionActivityService;
+    @Mock private SupervisionSuggestionService supervisionSuggestionService;
 
     @InjectMocks
     private PaymentFailedTriggerService service;

@@ -38,6 +38,19 @@ public class UnpaidServiceRequestCardService {
                 .toList();
     }
 
+    /**
+     * Nb de cartes « demande de service impayée » PAR logement pour une org
+     * (pastilles planning). Une seule requête agrégée, {@code [propertyId, count]}.
+     */
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, Long> pendingCountsByProperty(Long organizationId) {
+        java.util.Map<Long, Long> byProperty = new java.util.LinkedHashMap<>();
+        for (Object[] row : serviceRequestRepository.countUnpaidByPropertyForOrg(organizationId)) {
+            byProperty.put((Long) row[0], (Long) row[1]);
+        }
+        return byProperty;
+    }
+
     private UnpaidServiceRequestCardDto toCard(ServiceRequest sr) {
         String title = sr.getTitle() != null ? sr.getTitle().trim() : "";
         ServiceType type = sr.getServiceType();

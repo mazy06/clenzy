@@ -595,6 +595,89 @@ const Root = styled.div`
     border-radius: 50%;
     background: rgba(174, 180, 224, 0.5);
   }
+  /* Bilan de valeur dans le HUD (fenêtre = zoom planning) : séparé par un filet,
+     titre discret + une ligne de 3 métriques (réutilise la grammaire hudrow). */
+  .cst__hudbilan {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(174, 180, 224, 0.18);
+  }
+  .cst__hudbilanhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #9aa0cc;
+  }
+  /* Sélecteur de fenêtre du bilan (Jour/Sem./Quinz./Mois) — segments compacts. */
+  .cst__winseg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 8px;
+    background: rgba(174, 180, 224, 0.12);
+  }
+  .cst__winseg button {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: #aab0dc;
+    background: transparent;
+    transition: color 160ms ease, background-color 160ms ease;
+  }
+  .cst__winseg button:hover {
+    color: #e7e9fb;
+  }
+  .cst__winseg button.on {
+    color: #fff;
+    background: rgba(123, 128, 232, 0.55);
+  }
+  .cst__winseg button:focus-visible {
+    outline: 2px solid #9b9bf6;
+    outline-offset: 1px;
+  }
+  /* 3 métriques empilées (valeur au-dessus, label dessous) : la valeur ne casse
+     jamais (≈7 h 28, 0 %) et les labels tiennent sur une ligne, sans élargir le HUD. */
+  .cst__hudbilanrow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #c8cdf0;
+  }
+  .cst__hudstat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    text-align: center;
+  }
+  .cst__hudbilanrow b {
+    color: #fff;
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 1.1;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .cst__hudstat span {
+    font-size: 10px;
+    line-height: 1.15;
+    white-space: nowrap;
+    opacity: 0.72;
+  }
   .cst__attention {
     display: inline-flex;
     align-items: center;
@@ -763,6 +846,31 @@ const Root = styled.div`
   html:not([data-theme='dark']) & .cst__hudrow i {
     background: rgba(43, 63, 73, 0.4);
   }
+  html:not([data-theme='dark']) & .cst__hudbilan {
+    border-top-color: rgba(43, 63, 73, 0.12);
+  }
+  html:not([data-theme='dark']) & .cst__hudbilanhead {
+    color: #5d7a8a;
+  }
+  html:not([data-theme='dark']) & .cst__hudbilanrow b {
+    color: #1c2b33;
+  }
+  html:not([data-theme='dark']) & .cst__hudbilanrow {
+    color: #4a6373;
+  }
+  html:not([data-theme='dark']) & .cst__winseg {
+    background: rgba(43, 63, 73, 0.08);
+  }
+  html:not([data-theme='dark']) & .cst__winseg button {
+    color: #5d7a8a;
+  }
+  html:not([data-theme='dark']) & .cst__winseg button:hover {
+    color: #1c2b33;
+  }
+  html:not([data-theme='dark']) & .cst__winseg button.on {
+    color: #fff;
+    background: #5b5bd6;
+  }
   html:not([data-theme='dark']) & .cst__focushint {
     color: #5d7a8a;
   }
@@ -869,6 +977,14 @@ function statusScale(status: AgentStatus, active: boolean): number {
   return 1;
 }
 
+/** Fenêtres du bilan (jours) proposées dans le HUD — « Jour » en plus du zoom planning. */
+const REPORT_WINDOWS: { days: number; key: string; fallback: string }[] = [
+  { days: 1, key: 'supervision.report.win.day', fallback: 'Jour' },
+  { days: 7, key: 'supervision.report.win.week', fallback: 'Sem.' },
+  { days: 15, key: 'supervision.report.win.fortnight', fallback: 'Quinz.' },
+  { days: 30, key: 'supervision.report.win.month', fallback: 'Mois' },
+];
+
 export function FramerConstellation({
   agents,
   hud,
@@ -878,6 +994,9 @@ export function FramerConstellation({
   onToggleFocus,
   onSelectAgent,
   headerAction,
+  report,
+  reportWindow,
+  onReportWindowChange,
   belowHud,
 }: ConstellationRendererProps) {
   const { t } = useTranslation();
@@ -1076,6 +1195,48 @@ export function FramerConstellation({
             <i />
             <b className="amber">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
           </div>
+          {/* Bilan de valeur — fenêtre alignée sur le zoom du planning. */}
+          {report && (
+            <div className="cst__hudbilan">
+              <div className="cst__hudbilanhead">
+                <span className="cst__hudbilantitle">{t('supervision.report.titleBase', 'Bilan')}</span>
+                {onReportWindowChange ? (
+                  <span className="cst__winseg" role="group" aria-label={t('supervision.report.titleBase', 'Bilan')}>
+                    {REPORT_WINDOWS.map((opt) => (
+                      <button
+                        key={opt.days}
+                        type="button"
+                        className={(reportWindow ?? report.windowDays) === opt.days ? 'on' : ''}
+                        aria-pressed={(reportWindow ?? report.windowDays) === opt.days}
+                        onClick={() => onReportWindowChange(opt.days)}
+                      >
+                        {t(opt.key, opt.fallback)}
+                      </button>
+                    ))}
+                  </span>
+                ) : (
+                  <span>· {t('supervision.report.windowDays', {
+                    count: report.windowDays,
+                    defaultValue: '{{count}} jours',
+                  })}</span>
+                )}
+              </div>
+              <div className="cst__hudbilanrow">
+                <div className="cst__hudstat">
+                  <b>{report.estimatedTimeSaved}</b>
+                  <span>{t('supervision.report.timeSaved', 'Temps gagné')}</span>
+                </div>
+                <div className="cst__hudstat">
+                  <b>{report.autoActions}</b>
+                  <span>{t('supervision.report.autoActions', 'Actions auto')}</span>
+                </div>
+                <div className="cst__hudstat">
+                  <b>{Math.round(report.acceptanceRate * 100)} %</b>
+                  <span>{t('supervision.report.acceptance', 'Acceptation')}</span>
+                </div>
+              </div>
+            </div>
+          )}
           {attentionCount > 0 && (
             <div className="cst__attention">
               <span className="cst__attentiondot" />
