@@ -5,8 +5,9 @@
    Texte rendu en clair (jamais de HTML).
    ============================================================ */
 
-import { Box } from '@mui/material';
-import { AutoAwesome } from '../../../icons';
+import { useState } from 'react';
+import { Box, IconButton } from '@mui/material';
+import { AutoAwesome, ChevronDown } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { AGENT_META } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
@@ -19,6 +20,15 @@ function hhmm(iso: string): string {
 
 export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedEntry)[] }) {
   const { t } = useTranslation();
+  // Détail métier replié par défaut : on ne montre que le libellé, la description
+  // (motif d'échec, montant…) s'ouvre au clic sur le chevron.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   // Feed RÉEL : le libellé est traduit via le nom d'outil stable
   // (`supervision.tools.<toolName>`). Repli sur `text` (résumé/mock) si pas de clé.
   const labelFor = (entry: FeedEntry | PortfolioFeedEntry) =>
@@ -38,6 +48,8 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
         const isOrchestrator = 'orchestrator' in entry && entry.orchestrator;
         const meta = AGENT_META[entry.agentId];
         const propertyName = 'propertyName' in entry ? entry.propertyName : undefined;
+        const detail = detailFor(entry);
+        const isOpen = expanded.has(entry.id);
         return (
           <Box
             key={entry.id}
@@ -63,10 +75,33 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
                 {hhmm(entry.at)}
                 {propertyName ? ` · ${propertyName}` : ''}
               </Box>
-              <Box sx={{ fontSize: 12.5, color: 'var(--ink, #1b2240)', lineHeight: 1.4 }}>{labelFor(entry)}</Box>
-              {detailFor(entry) && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{ fontSize: 12.5, color: 'var(--ink, #1b2240)', lineHeight: 1.4, minWidth: 0 }}>
+                  {labelFor(entry)}
+                </Box>
+                {detail && (
+                  <IconButton
+                    size="small"
+                    onClick={() => toggle(entry.id)}
+                    aria-label={t('common.details', { defaultValue: 'Détails' })}
+                    aria-expanded={isOpen}
+                    sx={{
+                      p: 0.25,
+                      color: 'var(--muted, #6b7196)',
+                      flexShrink: 0,
+                      '& svg': {
+                        transition: 'transform 200ms ease',
+                        transform: isOpen ? 'rotate(180deg)' : 'none',
+                      },
+                    }}
+                  >
+                    <ChevronDown size={14} />
+                  </IconButton>
+                )}
+              </Box>
+              {detail && isOpen && (
                 <Box sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)', lineHeight: 1.35, mt: 0.25, wordBreak: 'break-word' }}>
-                  {detailFor(entry)}
+                  {detail}
                 </Box>
               )}
             </Box>

@@ -275,16 +275,12 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                           height: accordionHeight,
                           borderBottom: '1px solid var(--line)',
                           backgroundColor: 'var(--bg)',
-                          // Effet « déploiement » en OPACITÉ uniquement : surtout pas de
-                          // `overflow:hidden` ni de `transform` ici — le panneau interne est
-                          // `position:sticky` (calé viewport) et ces deux propriétés sur son
-                          // ancêtre cassent le sticky / le clippent (→ panneau invisible).
-                          '@keyframes supDeploy': {
-                            from: { opacity: 0 },
-                            to: { opacity: 1 },
-                          },
-                          animation: 'supDeploy 260ms ease-out',
-                          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+                          // PAS de fondu d'opacité ici : le panneau interne (sticky, tiré à
+                          // gauche par ml) est OPAQUE dès la 1re frame → il couvre le spacer
+                          // sombre côté colonne instantanément. Un fondu rendait la
+                          // constellation semi-transparente 260ms et laissait voir le spacer
+                          // (bloc sombre qui « s'affichait et se fermait »). Ni overflow:hidden
+                          // ni transform ici (casseraient le sticky du panneau).
                         }}
                       >
                         {/* Panneau calé sur le viewport (sticky-left) + tiré sous la
@@ -297,7 +293,9 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                             width: viewport.width || '100%',
                             height: '100%',
                             zIndex: 11,
-                            p: 2,
+                            // Pas de padding : le canvas sombre (flush) couvre TOUT
+                            // l'accordéon, sans espace vide autour.
+                            p: 0,
                             boxSizing: 'border-box',
                           }}
                         >

@@ -14,10 +14,15 @@ const glowBreathe = keyframes`
   50% { opacity: .9; transform: translate(-50%, -50%) scale(1.12); }`;
 const dim = keyframes`0%, 100% { opacity: .55; } 50% { opacity: 1; }`;
 
-const Root = styled.div`
+const Root = styled.div<{ $flush?: boolean }>`
   position: relative;
-  height: 560px;
-  border-radius: 16px;
+  /* Pleine cellule (Planning) : le skeleton REMPLIT l'accordéon exactement
+     comme la constellation chargée (même sticky box tirée à gauche) → pas de
+     couture avec la zone colonne pendant « Connecting to agents… ». Sinon :
+     carte 560px arrondie (vues standalone / portefeuille). */
+  height: ${(p) => (p.$flush ? '100%' : '560px')};
+  min-height: ${(p) => (p.$flush ? '380px' : 'auto')};
+  border-radius: ${(p) => (p.$flush ? '0' : '16px')};
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -25,9 +30,9 @@ const Root = styled.div`
   justify-content: center;
   gap: 18px;
   background: radial-gradient(125% 100% at 50% 42%, #313a7e 0%, #1b2052 44%, #0c0e2a 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 18px 44px -20px rgba(13, 15, 44, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06)${(p) => (p.$flush ? '' : ', 0 18px 44px -20px rgba(13, 15, 44, 0.7)')};
   @media (max-width: 600px) {
-    height: 460px;
+    height: ${(p) => (p.$flush ? '100%' : '460px')};
   }
   html:not([data-theme='dark']) & {
     background: radial-gradient(125% 100% at 50% 42%, #ffffff 0%, #eef3f6 58%, #e1e9ed 100%);
@@ -74,10 +79,10 @@ const Root = styled.div`
   }
 `;
 
-export function ConstellationSkeleton() {
+export function ConstellationSkeleton({ flush }: { flush?: boolean } = {}) {
   const { t } = useTranslation();
   return (
-    <Root data-supervision-skeleton role="status" aria-live="polite">
+    <Root data-supervision-skeleton $flush={flush} role="status" aria-live="polite">
       <span className="sk__glow" />
       <span className="sk__core" />
       <span className="sk__label">{t('supervision.states.loading')}</span>

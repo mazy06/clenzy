@@ -44,9 +44,11 @@ export interface SupervisionPanelProps {
   onActing?: (agentId: AgentId, reservationId: string) => void;
   /** Ouvre l'éditeur métier concerné (ex. grille tarifaire) sur « Modifier ». */
   onEditAction?: (actionId: string) => void;
+  /** Rendu pleine-cellule (accordéon Planning) : canvas sans arrondi ni ombre. */
+  flush?: boolean;
 }
 
-export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, onActing, onEditAction }: SupervisionPanelProps) {
+export function SupervisionPanel({ createProvider, deps, propertyId, reportWindowDays = 30, onSelectAgent, onActing, onEditAction, flush }: SupervisionPanelProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   // Bilan de valeur (org-scopé) affiché dans le HUD. La fenêtre suit le zoom du
@@ -132,7 +134,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   }, [selected, snapshot]);
 
   if (status === 'loading' || !snapshot) {
-    return <ConstellationSkeleton />;
+    return <ConstellationSkeleton flush={flush} />;
   }
 
   // Narrow explicite : les champs conversation/pendingAction n'existent que sur
@@ -160,6 +162,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
       <AgentConstellation
         snapshot={snapshot}
         online={status === 'live'}
+        flush={flush}
         onSelectAgent={handleSelect}
         report={
           report

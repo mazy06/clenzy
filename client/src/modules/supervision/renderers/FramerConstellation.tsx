@@ -45,7 +45,7 @@ const beamFlow = keyframes`from { stroke-dashoffset: 0; } to { stroke-dashoffset
 
 // ─── Canvas sombre (tokens handoff §7) ───────────────────────────────────────
 
-const Root = styled.div`
+const Root = styled.div<{ $flush?: boolean }>`
   position: relative;
   /* Fluide : la constellation remplit la hauteur DISPONIBLE de son parent
      (l'accordéon Planning est déjà responsive) au lieu d'une hauteur fixe qui
@@ -57,13 +57,15 @@ const Root = styled.div`
                         (portefeuille, démos) où flex/height:100% ne résout pas. */
   flex: 1 1 auto;
   min-height: 380px;
-  border-radius: 16px;
+  /* Pleine cellule (Planning) : pas de coins arrondis ni d'ombre portée → le
+     canvas couvre tout l'accordéon sans laisser d'espace vide autour. Sinon :
+     carte arrondie flottante (vues standalone / portefeuille). */
+  border-radius: ${(p) => (p.$flush ? '0' : '16px')};
   overflow: hidden;
   background: radial-gradient(125% 100% at 50% 42%, #313a7e 0%, #1b2052 44%, #0c0e2a 100%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06),
     inset 0 -90px 120px -60px rgba(6, 7, 24, 0.55),
-    inset 0 0 160px -40px rgba(6, 7, 24, 0.5),
-    0 18px 44px -20px rgba(13, 15, 44, 0.7);
+    inset 0 0 160px -40px rgba(6, 7, 24, 0.5)${(p) => (p.$flush ? '' : ', 0 18px 44px -20px rgba(13, 15, 44, 0.7)')};
   @media (max-width: 600px) {
     min-height: 340px;
   }
@@ -998,6 +1000,7 @@ export function FramerConstellation({
   reportWindow,
   onReportWindowChange,
   belowHud,
+  flush,
 }: ConstellationRendererProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -1033,7 +1036,7 @@ export function FramerConstellation({
     .join(' ');
 
   return (
-    <Root ref={ref} className={rootClass} data-supervision-constellation role="group" aria-label={t('supervision.title')}>
+    <Root ref={ref} $flush={flush} className={rootClass} data-supervision-constellation role="group" aria-label={t('supervision.title')}>
       {/* anneaux d'autonomie étiquetés (statiques) — ancrés au centre VISUEL
           (layout.cx/cy, remonté) et non au centre CSS 50% : sinon anneaux et
           satellites/faisceaux (coords géométriques) se désalignent. */}
