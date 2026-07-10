@@ -39,8 +39,10 @@
 
 | # | Item | Statut |
 |---|---|---|
-| 2A | Table `housekeeper_rate` (taux horaire + forfait par propriété), « Mes tarifs » (web), nudge fourchette à la saisie, badge écart sur détail intervention, intégration résolveur. | ⬜ |
-| 2B | **P4** push réparé (producteur Kafka `notifications.send` + tokens Expo) · **P5** email « mission assignée » au pro (mission, logement, accès, rémunération) · **P2** montants dans les notifs (chacun voit SON montant). | ⬜ |
+| 2A | Table `housekeeper_rates` (migration 0338 : HOURLY par user + FLAT par propriété primant, unicité via index partiels), résolveur étendu (source `HOUSEKEEPER_RATE`, types dérivés par ratio de multiplicateurs), application à l'assignation avec gardes (jamais après paiement/validation ; auto-assign NON câblé — pose des équipes, pas des users), endpoints me/admin (ownership JWT fail-closed), onglet « Mes tarifs » dans Réglages (nudge fourchette, badge « dans le marché », jamais bloquant), badge barème sur détail intervention. 21 tests. ⏸ différé : vue manager depuis fiche membre (backend prêt). | ✅ |
+| 2B | **P4** push réparé : producteur outbox → `notifications.send` (whitelist 5 clés terrain, post-commit, échec Kafka n'affecte pas l'in-app) ; infra tokens `device_tokens` préexistait (réutilisée) ; mobile CÂBLÉ (usePushNotifications monté au login, désenregistrement au logout, deep-links) · **P5** `MissionAssignmentEmailComposer` post-commit (rémunération résolue + mention barème, pas de codes d'accès, préférence notif respectée) · **P2** montants dans les notifs (pro = rémunération ; owner/admins = facturé). 8 tests. | ✅ |
+
+**Phase 2 TERMINÉE (2026-07-10)** — vérifiée (`mvn package` complet + `tsc` client + `tsc` mobile = 0). Non commitée.
 
 ## Phase 3 — Boucle opérationnelle
 

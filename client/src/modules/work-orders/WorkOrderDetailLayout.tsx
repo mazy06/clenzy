@@ -7,6 +7,7 @@ import {
   Paper,
   Divider,
   LinearProgress,
+  Tooltip,
 } from '@mui/material';
 import {
   LocationOn,
@@ -269,6 +270,8 @@ export interface WorkOrderViewModel {
   estimatedDurationHours?: number;
   dueDate?: string;
   estimatedCost?: number;
+  /** Prix conseil plateforme (moteur ménage) snapshoté à la création — badge écart. */
+  recommendedCost?: number;
   actualCost?: number;
   createdAt?: string;
   /** Tuiles métriques additionnelles (ex : début/fin pour une intervention). */
@@ -428,6 +431,37 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                 <Money value={vm.estimatedCost} from="EUR" />
               </Typography>
               <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.estimatedCost')}</Typography>
+              {/* Moteur Ménage 2A : écart vs barème conseil (snapshot recommended_cost). */}
+              {vm.recommendedCost != null && vm.recommendedCost > 0 && (() => {
+                const delta = vm.estimatedCost! - vm.recommendedCost!;
+                const conform = Math.abs(delta) <= 5;
+                const deltaPct = Math.round((delta / vm.recommendedCost!) * 100);
+                const label = conform
+                  ? t('workOrders.recommended.conform')
+                  : `${deltaPct > 0 ? '+' : ''}${deltaPct} % ${t('workOrders.recommended.vsScale')}`;
+                return (
+                  <Tooltip title={`${t('workOrders.recommended.scale')} : ${vm.recommendedCost} €`} arrow>
+                    <Box
+                      component="span"
+                      sx={{
+                        mt: 0.5,
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        borderRadius: '7px',
+                        padding: '1px 6px',
+                        whiteSpace: 'nowrap',
+                        cursor: 'default',
+                        fontVariantNumeric: 'tabular-nums',
+                        ...(conform
+                          ? { color: 'var(--ok, #4A9B8E)', backgroundColor: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)' }
+                          : { color: 'var(--muted)', backgroundColor: 'var(--field)', border: '1px solid var(--field-line)' }),
+                      }}
+                    >
+                      {label}
+                    </Box>
+                  </Tooltip>
+                );
+              })()}
             </Box>
           </Grid>
         )}

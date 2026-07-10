@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import com.clenzy.model.InterventionStatus;
+import com.clenzy.model.InterventionType;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.UserRole;
 import com.clenzy.tenant.TenantContext;
@@ -46,6 +47,8 @@ public class InterventionService {
     private final InterventionPhotoService photoService;
     private final InterventionMapper interventionMapper;
     private final InterventionAccessPolicy accessPolicy;
+    private final com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
+    private final com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
 
     public InterventionService(InterventionRepository interventionRepository,
                                UserRepository userRepository,
@@ -54,7 +57,9 @@ public class InterventionService {
                                TenantContext tenantContext,
                                InterventionPhotoService photoService,
                                InterventionMapper interventionMapper,
-                               InterventionAccessPolicy accessPolicy) {
+                               InterventionAccessPolicy accessPolicy,
+                               com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine,
+                               com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer) {
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
@@ -63,6 +68,8 @@ public class InterventionService {
         this.photoService = photoService;
         this.interventionMapper = interventionMapper;
         this.accessPolicy = accessPolicy;
+        this.cleaningPricingEngine = cleaningPricingEngine;
+        this.missionAssignmentEmailComposer = missionAssignmentEmailComposer;
     }
 
     public InterventionResponse create(CreateInterventionRequest request, Jwt jwt) {
@@ -89,17 +96,21 @@ public class InterventionService {
             String actionUrl = "/interventions/" + intervention.getId();
             String propertyName = intervention.getProperty() != null ? intervention.getProperty().getName() : "";
 
+            // P2 : les admins voient le montant estimé (prix facturé côté org).
+            String montant = intervention.getEstimatedCost() != null
+                    ? " Cout estime: " + intervention.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                    : "";
             if (userRole == UserRole.HOST) {
                 notificationService.notifyAdminsAndManagers(
                         NotificationKey.INTERVENTION_AWAITING_VALIDATION,
                         "Intervention en attente de validation",
-                        "L'intervention '" + intervention.getTitle() + "' sur " + propertyName + " est en attente de validation.",
+                        "L'intervention '" + intervention.getTitle() + "' sur " + propertyName + " est en attente de validation." + montant,
                         actionUrl);
             } else {
                 notificationService.notifyAdminsAndManagers(
                         NotificationKey.INTERVENTION_CREATED,
                         "Nouvelle intervention creee",
-                        "L'intervention '" + intervention.getTitle() + "' a ete creee sur " + propertyName + ".",
+                        "L'intervention '" + intervention.getTitle() + "' a ete creee sur " + propertyName + "." + montant,
                         actionUrl);
             }
         } catch (Exception e) {
@@ -287,6 +298,7 @@ public class InterventionService {
                     .orElseThrow(() -> new NotFoundException("Utilisateur non trouve"));
             intervention.setAssignedUser(user);
             intervention.setTeamId(null);
+            applyHousekeeperRateIfSafe(intervention, userId);
         } else if (teamId != null) {
             assignedTeam = teamRepository.findById(teamId)
                     .orElseThrow(() -> new NotFoundException("Equipe non trouvee"));
@@ -300,10 +312,30 @@ public class InterventionService {
             String actionUrl = "/interventions/" + intervention.getId();
             if (userId != null && intervention.getAssignedUser() != null) {
                 String assignedKeycloakId = intervention.getAssignedUser().getKeycloakId();
+                // P2 : le pro voit SA rémunération (estimatedCost résolu, tarif pro inclus).
+                String remuneration = intervention.getEstimatedCost() != null
+                        ? " Remuneration: " + intervention.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                        : "";
                 notificationService.notify(assignedKeycloakId, NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
                         "Intervention assignee",
-                        "Vous etes assigne a l'intervention '" + intervention.getTitle() + "'.",
+                        "Vous etes assigne a l'intervention '" + intervention.getTitle() + "'." + remuneration,
                         actionUrl);
+                // P5 : email « mission assignée » POST-COMMIT (jamais d'effet externe en
+                // transaction). Hors transaction active → envoi immédiat (best-effort).
+                final Intervention assigned = intervention;
+                final User assignedUser = intervention.getAssignedUser();
+                Runnable sendEmail = () -> missionAssignmentEmailComposer.sendMissionAssignedEmail(assigned, assignedUser);
+                if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+                    org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                            new org.springframework.transaction.support.TransactionSynchronization() {
+                                @Override
+                                public void afterCommit() {
+                                    sendEmail.run();
+                                }
+                            });
+                } else {
+                    sendEmail.run();
+                }
             } else if (assignedTeam != null && assignedTeam.getMembers() != null) {
                 List<String> memberIds = assignedTeam.getMembers().stream()
                         .map(m -> m.getUser() != null ? m.getUser().getKeycloakId() : null)
@@ -319,6 +351,42 @@ public class InterventionService {
         }
 
         return interventionMapper.convertToResponse(intervention);
+    }
+
+    /**
+     * Moteur Ménage 2A : à l'assignation d'un PRO sur une intervention ménage,
+     * réévalue le prix pratiqué (estimatedCost) avec son tarif (forfait logement
+     * prioritaire, sinon taux horaire × durée normée). PRUDENCE : uniquement si
+     * l'intervention n'est PAS engagée financièrement — statut PENDING, jamais
+     * payée (paymentStatus PAID/PARTIALLY_PAID/REFUNDED exclus, paidAt null).
+     * Le snapshot conseil (recommendedCost) reste INCHANGÉ.
+     */
+    private void applyHousekeeperRateIfSafe(Intervention intervention, Long userId) {
+        if (intervention.getProperty() == null) return;
+        if (intervention.getStatus() != InterventionStatus.PENDING) return;
+        if (intervention.getPaidAt() != null) return;
+        com.clenzy.model.PaymentStatus ps = intervention.getPaymentStatus();
+        if (ps == com.clenzy.model.PaymentStatus.PAID
+                || ps == com.clenzy.model.PaymentStatus.PARTIALLY_PAID
+                || ps == com.clenzy.model.PaymentStatus.REFUNDED) {
+            return;
+        }
+        String type = intervention.getType();
+        boolean isCleaning = type != null && (type.equals(InterventionType.CLEANING.name())
+                || type.equals(InterventionType.EXPRESS_CLEANING.name())
+                || type.equals(InterventionType.DEEP_CLEANING.name()));
+        if (!isCleaning) return;
+
+        var resolved = cleaningPricingEngine.resolveCleaningPrice(
+                intervention.getProperty(),
+                type.equals(InterventionType.CLEANING.name())
+                        ? com.clenzy.service.pricing.CleaningPricingEngine.STANDARD_CLEANING : type,
+                userId);
+        if (resolved.source() == com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.HOUSEKEEPER_RATE) {
+            intervention.setEstimatedCost(resolved.amount());
+            log.info("Intervention {} : cout reevalue au tarif du pro {} → {}",
+                    intervention.getId(), userId, resolved.amount());
+        }
     }
 
     public InterventionResponse addPhotos(Long id, List<MultipartFile> photos, String photoType, Jwt jwt) {

@@ -15,6 +15,8 @@ export interface ServiceRequest {
   status: string;
   estimatedDurationHours: number;
   estimatedCost?: number;
+  /** Prix conseil plateforme (moteur ménage) snapshoté à la création. */
+  recommendedCost?: number;
   desiredDate: string;
   assignedToId?: number;
   assignedToType?: 'user' | 'team';
@@ -104,6 +106,8 @@ export interface PlanningServiceRequest {
   endTime?: string;
   estimatedDurationHours: number;
   estimatedCost?: number;
+  /** Prix conseil plateforme (moteur ménage) snapshoté à la création. */
+  recommendedCost?: number;
   status: string;
   reservationId?: number;
 }

@@ -2931,6 +2931,25 @@
         "disconnectTitle": "Disconnect Pennylane",
         "disconnectConfirm": "Do you want to disconnect Pennylane? Accounting sync will be stopped."
       }
+    },
+    "myRates": {
+      "tabLabel": "My rates",
+      "hourlySection": "Hourly rate",
+      "hourlyRate": "My hourly rate",
+      "referenceRate": "Platform reference rate",
+      "hourlyHint": "Applied to cleaning missions without a flat rate: standardized property duration × your rate.",
+      "flatSection": "Flat rates per property",
+      "flatHint": "The flat rate takes precedence over the hourly rate for that property. Leave empty to use the hourly rate.",
+      "flatFieldAria": "Flat rate for {{name}}",
+      "advisoryLine": "Advisory for this property: {{min}} – {{max}} €",
+      "advisoryMedian": "median",
+      "inMarket": "in market",
+      "vsAdvisory": "vs advisory",
+      "noProperties": "No properties in your organization.",
+      "save": "Save my rates",
+      "saveSuccess": "Rates saved",
+      "saveError": "Error while saving",
+      "loadError": "Unable to load your rates."
     }
   },
   "contracts": {
@@ -3213,6 +3232,11 @@
     "tabs": {
       "serviceRequests": "Service Requests",
       "interventions": "Interventions"
+    },
+    "recommended": {
+      "scale": "Recommended scale",
+      "conform": "on scale",
+      "vsScale": "vs scale"
     }
   },
   "propertiesPage": {

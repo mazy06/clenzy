@@ -2901,6 +2901,25 @@
         "disconnectTitle": "قطع اتصال Pennylane",
         "disconnectConfirm": "هل تريد قطع اتصال Pennylane؟ سيتم إيقاف المزامنة المحاسبية."
       }
+    },
+    "myRates": {
+      "tabLabel": "أسعاري",
+      "hourlySection": "سعر الساعة",
+      "hourlyRate": "سعر ساعتي",
+      "referenceRate": "السعر المرجعي للمنصة",
+      "hourlyHint": "يُطبَّق على مهام التنظيف بدون سعر ثابت: المدة المعيارية للسكن × سعرك.",
+      "flatSection": "أسعار ثابتة لكل سكن",
+      "flatHint": "السعر الثابت يتقدّم على سعر الساعة لهذا السكن. اتركه فارغًا لاستخدام سعر الساعة.",
+      "flatFieldAria": "سعر ثابت لـ {{name}}",
+      "advisoryLine": "التوصية لهذا السكن: {{min}} – {{max}} €",
+      "advisoryMedian": "الوسيط",
+      "inMarket": "ضمن السوق",
+      "vsAdvisory": "مقابل التوصية",
+      "noProperties": "لا توجد مساكن في مؤسستك.",
+      "save": "حفظ أسعاري",
+      "saveSuccess": "تم حفظ الأسعار",
+      "saveError": "خطأ أثناء الحفظ",
+      "loadError": "تعذّر تحميل أسعارك."
     }
   },
   "contracts": {
@@ -3176,6 +3195,11 @@
     "tabs": {
       "serviceRequests": "طلبات الخدمة",
       "interventions": "التدخلات"
+    },
+    "recommended": {
+      "scale": "الجدول الموصى به",
+      "conform": "مطابق للجدول",
+      "vsScale": "مقابل الجدول"
     }
   },
   "propertiesPage": {

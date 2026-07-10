@@ -110,6 +110,7 @@ const ServiceRequestDetails: React.FC = () => {
     estimatedDurationHours: sr.estimatedDuration,
     dueDate: sr.dueDate,
     estimatedCost: sr.estimatedCost,
+    recommendedCost: sr.recommendedCost,
     actualCost: sr.actualCost,
     createdAt: sr.createdAt,
     property: {

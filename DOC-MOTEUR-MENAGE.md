@@ -272,12 +272,59 @@ sequenceDiagram
 
 ---
 
-## 7. Phases suivantes (alimenté au fil du chantier)
+## 7. Phase 2 — Tarifs housekeeper + canaux terrain
 
-### Phase 2 — Tarifs housekeeper + canaux terrain *(à venir)*
+### 7.1 Les tarifs du prestataire (livré)
 
-- Tarif propre par prestataire (taux horaire et/ou forfait par logement, le forfait primant), écran « Mes tarifs », nudge fourchette à la saisie, badge d'écart sur les interventions.
-- Réparation du push mobile (aujourd'hui inopérant), email « mission assignée » au prestataire avec sa rémunération, montants dans les notifications (chacun voit **son** montant).
+Chaque housekeeper/technicien peut désormais avoir **ses propres tarifs**, cadrés par le conseil :
+
+| Type de tarif | Portée | Priorité |
+|---|---|---|
+| **Forfait** | Un logement précis (pattern « prix attaché au couple logement × prestataire ») | 1 — prime toujours |
+| **Taux horaire** | Général (tous les logements) : `durée normée du logement × mon taux × type de ménage` | 2 |
+| *(aucun tarif)* | — | 3 — prix du logement, sinon conseil |
+
+Le forfait est défini pour le ménage **standard** ; express et deep clean s'en dérivent automatiquement (mêmes proportions que le conseil).
+
+**Écran « Mes tarifs »** (Réglages, visible housekeeper/technicien) :
+- Mon taux horaire, avec le taux de référence plateforme affiché à côté.
+- Mes forfaits par logement, chacun avec le **nudge** : « Conseil pour ce logement : 80 – 110 € · médiane 95 € » et un badge **« dans le marché »** si le tarif est dans la fourchette, sinon « ±Y % vs conseil » — informatif, **jamais bloquant** (choix produit assumé, cf. §6).
+
+**Application automatique** : quand un pro est assigné à un ménage, son tarif devient le montant de l'intervention — **uniquement si elle n'est pas encore payée ni validée** (un montant payé n'est jamais recalculé). Le barème conseillé reste enregistré à côté pour comparaison.
+
+**Sur le détail d'une intervention** : chip « conforme au barème » (écart ≤ 5 €) ou « ±Y % vs barème », avec le montant conseillé en infobulle.
+
+### 🔧 Notes techniques 2A
+
+- Migration `0338__create_housekeeper_rates.sql` — table `housekeeper_rates` (org, user, property NULLABLE, amount, unit HOURLY|FLAT), unicité (org, user, property) par **index partiels** (NULL non distincts sinon), `@Filter organizationFilter`.
+- `CleaningPricingEngine.resolveCleaningPrice(property, type, housekeeperUserId)` — nouvelle source `HOUSEKEEPER_RATE` ; l'ancienne signature délègue (compat).
+- Endpoints `GET/PUT /api/housekeeper-rates/me` (user résolu du JWT — ownership structurel) et `/user/{userId}` (SUPER_ADMIN/SUPER_MANAGER). PUT = état complet. Garde org fail-closed sur les forfaits.
+- Gardes d'assignation : type ménage + statut PENDING + non payé (`paidAt`, paymentStatus) ; `recommendedCost` jamais modifié ; **auto-assignation non câblée** (elle pose des équipes, pas des users — évolution possible en Phase 3 avec l'auto-assignation par tarif).
+- Différé : vue manager des tarifs d'un membre (backend + API front prêts).
+
+### 7.2 Les canaux terrain (livré)
+
+Avant : un prestataire assigné à une mission ne recevait **qu'une notification in-app**, sans montant — ni push, ni email. Le mécanisme de push mobile existait dans le code mais n'était **branché nulle part**.
+
+Maintenant, à l'assignation d'une mission, le prestataire reçoit :
+
+```mermaid
+flowchart LR
+    A["Assignation d'une<br/>intervention à un pro"] --> B["🔔 Notification in-app<br/>avec sa rémunération"]
+    A --> C["📱 Push mobile<br/>(ouvre la mission dans l'app)"]
+    A --> D["✉️ Email « mission assignée »<br/>mission · logement · durée ·<br/>rémunération · position vs barème"]
+```
+
+- **Push mobile réparé** : notifications push sur les événements terrain (mission assignée à un pro ou une équipe, démarrée, terminée, escalade), avec ouverture directe de la mission dans l'app mobile. Enregistrement automatique au login, désenregistrement au logout.
+- **Email « mission assignée »** : type de mission, date/heure, durée estimée, logement (nom et adresse — **jamais de codes d'accès par email**, sécurité), « Votre rémunération : X € » et la position vs le barème (« conforme » ou « ±Y % »). Si le pro a désactivé cette notification dans ses préférences, l'email est également coupé.
+- **Montants dans les notifications** — règle : **chacun voit son montant**. Le pro voit sa rémunération (« Rémunération : 88 € ») ; le propriétaire et les admins voient le prix facturé (« Coût estimé : 95 € », « Montant : 95 € » à la confirmation de paiement).
+
+### 🔧 Notes techniques 2B
+
+- **Producteur push** : `NotificationService` publie via l'**outbox transactionnel** (topic `notifications.send`, relais post-commit) — un échec Kafka n'affecte jamais la notification in-app. Whitelist `PUSH_ENABLED_KEYS` (5 clés terrain, extensible).
+- L'infrastructure de tokens (`device_tokens`, `POST /api/devices/register`, `FcmService`) **préexistait au complet** — le chaînon manquant était le producteur d'événements et le montage du hook mobile (`usePushNotifications` dans `MainNavigator`, deep-links `clenzy://interventions/{id}`).
+- **Email** : `MissionAssignmentEmailComposer` (échappement HTML systématique), déclenché **après commit** (`TransactionSynchronization.afterCommit`) — règle projet : aucun effet externe dans une transaction DB. Une clé de notification désactivée coupe tous les canaux (choix documenté, en attendant la préférence par canal — différée, cf. P7).
+- Aucune migration : réutilisation intégrale de l'existant. Vérifications : `mvn package` complet + `tsc` client + `tsc` mobile = 0 ; 8 tests neufs (producteur ×4, composer ×4).
 
 ### Phase 3 — Boucle opérationnelle *(à venir)*
 

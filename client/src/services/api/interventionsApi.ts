@@ -28,6 +28,8 @@ export interface Intervention {
   actualDurationMinutes?: number;
   progressPercentage: number;
   estimatedCost?: number;
+  /** Prix conseil plateforme (moteur ménage) snapshoté à la création. */
+  recommendedCost?: number;
   actualCost?: number;
   notes?: string;
   photosUrl?: string;
@@ -55,6 +57,8 @@ export interface InterventionFormData {
   scheduledDate: string;
   estimatedDurationHours: number;
   estimatedCost?: number;
+  /** Prix conseil plateforme (moteur ménage) snapshoté à la création. */
+  recommendedCost?: number;
   notes: string;
   photos: string;
   progressPercentage: number;

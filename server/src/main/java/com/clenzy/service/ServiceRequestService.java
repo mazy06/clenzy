@@ -184,6 +184,19 @@ public class ServiceRequestService {
 
         sr.setAssignedToId(assignedToId);
         sr.setAssignedToType(assignedToType);
+        // Moteur Ménage 2A : assignation d'un PRO sur une SR ménage non payée
+        // (garde de statut ci-dessus : PENDING/AWAITING_PAYMENT/ASSIGNED) →
+        // le prix pratiqué suit son tarif. Le conseil (recommendedCost) est INCHANGÉ.
+        if ("user".equals(assignedToType) && sr.getPaidAt() == null
+                && sr.getProperty() != null
+                && sr.getServiceType() != null && sr.getServiceType().isCleaningService()) {
+            var resolved = cleaningPricingEngine.resolveCleaningPrice(
+                    sr.getProperty(), sr.getServiceType().name(), assignedToId);
+            if (resolved.source() == com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.HOUSEKEEPER_RATE) {
+                sr.setEstimatedCost(resolved.amount());
+                log.info("SR {} : cout reevalue au tarif du pro {} → {}", sr.getId(), assignedToId, resolved.amount());
+            }
+        }
         sr.setStatus(RequestStatus.AWAITING_PAYMENT);
         sr.setAutoAssignStatus("found");
         sr = serviceRequestRepository.save(sr);
@@ -281,7 +294,10 @@ public class ServiceRequestService {
             notificationService.notifyAdminsAndManagers(
                 NotificationKey.INTERVENTION_AWAITING_VALIDATION,
                 "Intervention creee apres paiement",
-                "L'intervention \"" + intervention.getTitle() + "\" a ete creee suite au paiement de la demande de service.",
+                "L'intervention \"" + intervention.getTitle() + "\" a ete creee suite au paiement de la demande de service."
+                    + (intervention.getEstimatedCost() != null
+                        ? " Cout estime: " + intervention.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                        : ""),
                 "/interventions/" + intervention.getId()
             );
         } catch (Exception e) {

@@ -133,19 +133,26 @@ public class StripePaymentConfirmationService {
         try {
             if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null
                     && intervention.getProperty().getOwner().getKeycloakId() != null) {
+                // P2 : montant payé visible dans la notif (prix facturé).
+                String montantPaye = intervention.getEstimatedCost() != null
+                        ? " Montant: " + intervention.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                        : "";
                 notificationService.notify(
                     intervention.getProperty().getOwner().getKeycloakId(),
                     NotificationKey.PAYMENT_CONFIRMED,
                     "Paiement confirme",
-                    "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete confirme",
+                    "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete confirme." + montantPaye,
                     "/interventions/" + intervention.getId()
                 );
             }
+            String montantPayeAdmins = intervention.getEstimatedCost() != null
+                    ? " Montant: " + intervention.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                    : "";
             // Notifier également les admins/managers
             notificationService.notifyAdminsAndManagers(
                 NotificationKey.PAYMENT_CONFIRMED,
                 "Paiement confirme",
-                "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete confirme",
+                "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete confirme." + montantPayeAdmins,
                 "/interventions/" + intervention.getId()
             );
 
@@ -280,7 +287,10 @@ public class StripePaymentConfirmationService {
                 NotificationKey.PAYMENT_CONFIRMED,
                 "Paiement reservation confirme",
                 "Le paiement pour la reservation de " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
-                    + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a ete confirme",
+                    + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a ete confirme."
+                    + (reservation.getTotalPrice() != null
+                        ? " Montant: " + reservation.getTotalPrice().stripTrailingZeros().toPlainString() + " EUR."
+                        : ""),
                 "/reservations?highlight=" + reservation.getId()
             );
         } catch (Exception e) {
@@ -513,14 +523,22 @@ public class StripePaymentConfirmationService {
                     sr.getUser().getKeycloakId(),
                     NotificationKey.PAYMENT_CONFIRMED,
                     "Paiement confirme",
-                    "Le paiement pour votre demande \"" + sr.getTitle() + "\" a ete confirme. L'intervention sera creee automatiquement.",
+                    "Le paiement pour votre demande \"" + sr.getTitle() + "\" a ete confirme."
+                        + (sr.getEstimatedCost() != null
+                            ? " Montant: " + sr.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                            : "")
+                        + " L'intervention sera creee automatiquement.",
                     "/interventions?tab=service-requests&highlight=" + sr.getId()
                 );
             }
             notificationService.notifyAdminsAndManagers(
                 NotificationKey.PAYMENT_CONFIRMED,
                 "Paiement SR confirme",
-                "Le paiement pour la demande \"" + sr.getTitle() + "\" a ete confirme. Intervention creee.",
+                "Le paiement pour la demande \"" + sr.getTitle() + "\" a ete confirme."
+                    + (sr.getEstimatedCost() != null
+                        ? " Montant: " + sr.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                        : "")
+                    + " Intervention creee.",
                 "/interventions?tab=service-requests&highlight=" + sr.getId()
             );
         } catch (Exception e) {
