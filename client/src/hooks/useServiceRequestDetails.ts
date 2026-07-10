@@ -57,6 +57,8 @@ export interface ServiceRequestDetailsData {
   guestCheckinTime?: string;
   // Costs
   estimatedCost?: number;
+  /** Prix conseil plateforme (moteur ménage) snapshoté à la création. */
+  recommendedCost?: number;
   actualCost?: number;
   // Flags
   urgent: boolean;
@@ -161,6 +163,7 @@ function convertDetail(raw: Record<string, unknown>): ServiceRequestDetailsData 
     guestCheckinTime: (raw.guestCheckinTime as string) || undefined,
     // Costs
     estimatedCost: (raw.estimatedCost as number) || undefined,
+    recommendedCost: (raw.recommendedCost as number) || undefined,
     actualCost: (raw.actualCost as number) || undefined,
     // Flags
     urgent: (raw.urgent as boolean) || false,

@@ -42,6 +42,8 @@ class InterventionServiceTest {
     @Mock private InterventionPhotoService photoService;
     @Mock private InterventionMapper interventionMapper;
     @Mock private InterventionAccessPolicy accessPolicy;
+    @Mock private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
+    @Mock private com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
 
     private InterventionService service;
 
@@ -54,7 +56,8 @@ class InterventionServiceTest {
         service = new InterventionService(
                 interventionRepository, userRepository, teamRepository,
                 notificationService, tenantContext,
-                photoService, interventionMapper, accessPolicy);
+                photoService, interventionMapper, accessPolicy,
+                cleaningPricingEngine, missionAssignmentEmailComposer);
 
         owner = new User();
         owner.setId(10L);

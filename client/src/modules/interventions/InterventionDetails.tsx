@@ -156,6 +156,7 @@ export default function InterventionDetailsPage() {
       estimatedDurationHours: intervention.estimatedDurationHours,
       dueDate: intervention.scheduledDate,
       estimatedCost: intervention.estimatedCost,
+      recommendedCost: intervention.recommendedCost,
       actualCost: intervention.actualCost,
       createdAt: intervention.createdAt,
       extraMetrics,

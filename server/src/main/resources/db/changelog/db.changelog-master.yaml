@@ -3247,3 +3247,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0337__add_recommended_cost_snapshot.sql
         relativeToChangelogFile: true
+
+  # Moteur Menage 2A : tarifs prestataire (taux horaire general + forfait par logement).
+  - changeSet:
+      id: "0338-create-housekeeper-rates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0338__create_housekeeper_rates.sql
+        relativeToChangelogFile: true

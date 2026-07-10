@@ -23,7 +23,14 @@ function buildDeepLink(data: Record<string, unknown>): string | null {
   switch (type) {
     case 'INTERVENTION_ASSIGNED':
     case 'INTERVENTION_STATUS_CHANGED':
+    // Clés NotificationKey réelles poussées par le backend (whitelist MM-2B P4).
+    case 'INTERVENTION_ASSIGNED_TO_USER':
+    case 'INTERVENTION_ASSIGNED_TO_TEAM':
+    case 'INTERVENTION_STARTED':
+    case 'INTERVENTION_COMPLETED':
       return entityId ? `clenzy://interventions/${entityId}` : 'clenzy://interventions';
+    case 'SERVICE_REQUEST_ESCALATION':
+      return 'clenzy://notifications';
     case 'SERVICE_REQUEST_NEW':
     case 'SERVICE_REQUEST_STATUS':
       return 'clenzy://notifications';

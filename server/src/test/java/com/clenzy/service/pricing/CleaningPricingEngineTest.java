@@ -1,6 +1,9 @@
 package com.clenzy.service.pricing;
 
+import com.clenzy.model.HousekeeperRate;
+import com.clenzy.model.HousekeeperRate.RateUnit;
 import com.clenzy.model.Property;
+import com.clenzy.repository.HousekeeperRateRepository;
 import com.clenzy.service.PricingConfigService;
 import com.clenzy.service.pricing.CleaningPricingEngine.CleaningInputs;
 import com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource;
@@ -16,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -28,9 +32,10 @@ import static org.mockito.Mockito.when;
 class CleaningPricingEngineTest {
 
     @Mock private PricingConfigService pricingConfigService;
+    @Mock private HousekeeperRateRepository housekeeperRateRepository;
 
     private CleaningPricingEngine engine() {
-        return new CleaningPricingEngine(pricingConfigService, new ObjectMapper());
+        return new CleaningPricingEngine(pricingConfigService, new ObjectMapper(), housekeeperRateRepository);
     }
 
     private void withDefaults() {
@@ -216,6 +221,79 @@ class CleaningPricingEngineTest {
             ResolvedCleaningPrice resolved = engine().resolveCleaningPrice(property(null), "CLEANING");
             assertThat(resolved.amount()).isEqualByComparingTo("95");
             assertThat(resolved.source()).isEqualTo(CleaningPriceSource.ENGINE);
+        }
+
+        private Property orgProperty(java.math.BigDecimal cleaningBasePrice) {
+            Property p = property(cleaningBasePrice);
+            p.setId(3L);
+            p.setOrganizationId(7L);
+            return p;
+        }
+
+        private HousekeeperRate rate(Long propertyId, String amount, RateUnit unit) {
+            return new HousekeeperRate(7L, 42L, propertyId, new java.math.BigDecimal(amount), unit);
+        }
+
+        @Test
+        void whenFlatRateExists_thenItPrimesOverHourlyAndOverride() {
+            withDefaults();
+            when(housekeeperRateRepository.findByOrganizationIdAndUserIdAndPropertyId(7L, 42L, 3L))
+                    .thenReturn(Optional.of(rate(3L, "88", RateUnit.FLAT)));
+
+            ResolvedCleaningPrice resolved = engine()
+                    .resolveCleaningPrice(orgProperty(java.math.BigDecimal.valueOf(120)), "CLEANING", 42L);
+
+            assertThat(resolved.amount()).isEqualByComparingTo("88");
+            assertThat(resolved.source()).isEqualTo(CleaningPriceSource.HOUSEKEEPER_RATE);
+            // Conseil toujours calculé pour le snapshot.
+            assertThat(resolved.quote().recommended()).isEqualByComparingTo("95");
+        }
+
+        @Test
+        void whenFlatRateAndExpressType_thenAmountIsScaledByMultiplierRatio() {
+            withDefaults();
+            when(housekeeperRateRepository.findByOrganizationIdAndUserIdAndPropertyId(7L, 42L, 3L))
+                    .thenReturn(Optional.of(rate(3L, "100", RateUnit.FLAT)));
+
+            ResolvedCleaningPrice resolved = engine()
+                    .resolveCleaningPrice(orgProperty(null), "EXPRESS_CLEANING", 42L);
+
+            // 100 € standard × (0.65/1.0) = 65 € (arrondi 5, plancher 30).
+            assertThat(resolved.amount()).isEqualByComparingTo("65");
+            assertThat(resolved.source()).isEqualTo(CleaningPriceSource.HOUSEKEEPER_RATE);
+        }
+
+        @Test
+        void whenOnlyHourlyRate_thenPriceIsNormedDurationTimesProRate() {
+            withDefaults();
+            when(housekeeperRateRepository.findByOrganizationIdAndUserIdAndPropertyId(7L, 42L, 3L))
+                    .thenReturn(Optional.empty());
+            when(housekeeperRateRepository.findByOrganizationIdAndUserIdAndPropertyIdIsNull(7L, 42L))
+                    .thenReturn(Optional.of(rate(null, "30", RateUnit.HOURLY)));
+
+            ResolvedCleaningPrice resolved = engine().resolveCleaningPrice(orgProperty(null), "CLEANING", 42L);
+
+            // 135 min × 30 €/h = 67,50 → arrondi 5 → 70.
+            assertThat(resolved.amount()).isEqualByComparingTo("70");
+            assertThat(resolved.source()).isEqualTo(CleaningPriceSource.HOUSEKEEPER_RATE);
+        }
+
+        @Test
+        void whenNoHousekeeperRate_thenFallsBackToExistingResolution() {
+            withDefaults();
+            when(housekeeperRateRepository.findByOrganizationIdAndUserIdAndPropertyId(7L, 42L, 3L))
+                    .thenReturn(Optional.empty());
+            when(housekeeperRateRepository.findByOrganizationIdAndUserIdAndPropertyIdIsNull(7L, 42L))
+                    .thenReturn(Optional.empty());
+
+            ResolvedCleaningPrice withOverride = engine()
+                    .resolveCleaningPrice(orgProperty(java.math.BigDecimal.valueOf(120)), "CLEANING", 42L);
+            assertThat(withOverride.amount()).isEqualByComparingTo("120");
+            assertThat(withOverride.source()).isEqualTo(CleaningPriceSource.PROPERTY_OVERRIDE);
+
+            ResolvedCleaningPrice engineWins = engine().resolveCleaningPrice(orgProperty(null), "CLEANING", 42L);
+            assertThat(engineWins.amount()).isEqualByComparingTo("95");
+            assertThat(engineWins.source()).isEqualTo(CleaningPriceSource.ENGINE);
         }
 
         @Test

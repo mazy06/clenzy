@@ -2956,6 +2956,25 @@
         "disconnectTitle": "Déconnecter Pennylane",
         "disconnectConfirm": "Voulez-vous déconnecter Pennylane ? La synchronisation comptable sera interrompue."
       }
+    },
+    "myRates": {
+      "tabLabel": "Mes tarifs",
+      "hourlySection": "Taux horaire",
+      "hourlyRate": "Mon taux horaire",
+      "referenceRate": "Taux de référence plateforme",
+      "hourlyHint": "Appliqué aux missions ménage sans forfait : durée normée du logement × votre taux.",
+      "flatSection": "Forfaits par logement",
+      "flatHint": "Le forfait prime sur le taux horaire pour ce logement. Laissez vide pour utiliser le taux horaire.",
+      "flatFieldAria": "Forfait pour {{name}}",
+      "advisoryLine": "Conseil pour ce logement : {{min}} – {{max}} €",
+      "advisoryMedian": "médiane",
+      "inMarket": "dans le marché",
+      "vsAdvisory": "vs conseil",
+      "noProperties": "Aucun logement dans votre organisation.",
+      "save": "Enregistrer mes tarifs",
+      "saveSuccess": "Tarifs enregistrés",
+      "saveError": "Erreur lors de l'enregistrement",
+      "loadError": "Impossible de charger vos tarifs."
     }
   },
   "contracts": {
@@ -3238,6 +3257,11 @@
     "tabs": {
       "serviceRequests": "Demandes de service",
       "interventions": "Interventions"
+    },
+    "recommended": {
+      "scale": "Barème conseillé",
+      "conform": "conforme au barème",
+      "vsScale": "vs barème"
     }
   },
   "propertiesPage": {

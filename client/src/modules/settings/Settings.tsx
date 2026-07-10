@@ -30,6 +30,7 @@ import {
   ChatBubbleOutline,
   TrendingUp,
   AccountBalance,
+  Euro,
   Payment,
   SmartToy,
   Extension,
@@ -86,6 +87,7 @@ import {
 } from '../../services/integrations/allServicesIndex';
 import OwnerPayoutSettings from './OwnerPayoutSettings';
 import MyPayoutSettings from './MyPayoutSettings';
+import MyRatesSettings from './MyRatesSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -234,6 +236,7 @@ export default function Settings() {
     { key: 'notifications', label: t('tabHeaders.settings.tabs.notifications', 'Notifications'), icon: <Notifications />, hidden: false },
     { key: 'messaging', label: t('tabHeaders.settings.tabs.messaging', 'Messagerie'), icon: <ChatBubbleOutline />, hidden: false },
     { key: 'my-payout', label: t('settings.myPayout.tabLabel', 'Mes reversements'), icon: <AccountBalance />, hidden: !hasAnyRole(['HOST']) },
+    { key: 'my-rates', label: t('settings.myRates.tabLabel', 'Mes tarifs'), icon: <Euro />, hidden: !hasAnyRole(['HOUSEKEEPER', 'TECHNICIAN']) },
     { key: 'ai', label: t('tabHeaders.settings.tabs.ai', 'IA'), icon: <SmartToy />, hidden: !canViewAi },
     { key: 'fiscal', label: t('tabHeaders.settings.tabs.fiscal', 'Fiscal'), icon: <AccountBalance />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
     { key: 'organization', label: t('tabHeaders.settings.tabs.organization', 'Organisation'), icon: <GroupAdd />, hidden: !hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) },
@@ -258,6 +261,7 @@ export default function Settings() {
     notifications: tabIndexFromKey(settingsTabs, 'notifications'),
     messaging: tabIndexFromKey(settingsTabs, 'messaging'),
     myPayout: tabIndexFromKey(settingsTabs, 'my-payout'),
+    myRates: tabIndexFromKey(settingsTabs, 'my-rates'),
     ai: tabIndexFromKey(settingsTabs, 'ai'),
     fiscal: tabIndexFromKey(settingsTabs, 'fiscal'),
     organization: tabIndexFromKey(settingsTabs, 'organization'),
@@ -1079,6 +1083,13 @@ export default function Settings() {
       {hasAnyRole(['HOST']) && (
         <TabPanel value={tabValue} index={tabIdx.myPayout}>
           <MyPayoutSettings />
+        </TabPanel>
+      )}
+
+      {/* ─── Onglet Mes tarifs (HOUSEKEEPER / TECHNICIAN) ──────────── */}
+      {hasAnyRole(['HOUSEKEEPER', 'TECHNICIAN']) && (
+        <TabPanel value={tabValue} index={tabIdx.myRates}>
+          <MyRatesSettings />
         </TabPanel>
       )}
 

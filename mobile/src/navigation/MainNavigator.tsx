@@ -6,6 +6,7 @@ import { ManagerNavigator } from './ManagerNavigator';
 import { HousekeeperNavigator } from './HousekeeperNavigator';
 import { TechnicianNavigator } from './TechnicianNavigator';
 import { NotificationsScreen } from '@/screens/host/NotificationsScreen';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export type MainStackParamList = {
   Tabs: undefined;
@@ -15,6 +16,10 @@ export type MainStackParamList = {
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
 export function MainNavigator() {
+  // Push mobile (MM-2B P4) : MainNavigator n'est monté QUE authentifié →
+  // enregistre le token Expo au login + branche les listeners (deep-links).
+  usePushNotifications();
+
   const {
     isSuperAdmin,
     isSuperManager,

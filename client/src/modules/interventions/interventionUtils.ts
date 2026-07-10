@@ -99,6 +99,8 @@ export interface InterventionDetailsData {
   estimatedDurationHours: number;
   actualDurationMinutes: number;
   estimatedCost: number;
+  /** Prix conseil plateforme (moteur ménage) snapshoté à la création. */
+  recommendedCost?: number;
   actualCost: number;
   notes: string;
   photos: string;
