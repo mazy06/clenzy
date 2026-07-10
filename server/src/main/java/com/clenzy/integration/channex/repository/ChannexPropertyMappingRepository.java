@@ -29,6 +29,15 @@ public interface ChannexPropertyMappingRepository extends JpaRepository<ChannexP
     @Query("SELECT m FROM ChannexPropertyMapping m WHERE m.channexPropertyId = :channexPropertyId")
     Optional<ChannexPropertyMapping> findByChannexPropertyIdAnyOrg(@Param("channexPropertyId") String channexPropertyId);
 
+    /**
+     * Variante keyless (endpoint photos publiques) : une propriete mappee
+     * Channex a son contenu marketing destine a la distribution OTA publique —
+     * l'existence du mapping EST le controle d'acces (meme logique que
+     * bookingEngineVisible cote booking engine).
+     */
+    @Query("SELECT COUNT(m) > 0 FROM ChannexPropertyMapping m WHERE m.clenzyPropertyId = :clenzyPropertyId")
+    boolean existsByClenzyPropertyIdAnyOrg(@Param("clenzyPropertyId") Long clenzyPropertyId);
+
     /** Tous les mappings actifs d'une organisation (UI Settings). */
     @Query("SELECT m FROM ChannexPropertyMapping m WHERE m.organizationId = :orgId ORDER BY m.createdAt DESC")
     List<ChannexPropertyMapping> findAllByOrgId(@Param("orgId") Long orgId);

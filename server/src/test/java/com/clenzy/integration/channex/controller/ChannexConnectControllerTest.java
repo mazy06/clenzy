@@ -82,7 +82,16 @@ class ChannexConnectControllerTest {
             // Items 2-3-4 paid apps services mocked
             org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexMessagingService.class),
             org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexReviewsService.class),
-            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexStripeTokenizationService.class));
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexStripeTokenizationService.class),
+            // Phase B : webhook registration + content push
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexWebhookRegistrationService.class),
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexContentPushService.class),
+            // Phase C : applications, CRS, rules par canal, Google, reporting
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexApplicationsService.class),
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexCrsBookingService.class),
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexAvailabilityRuleService.class),
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexGoogleReadinessService.class),
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexBookingReportingService.class));
         jwt = Jwt.withTokenValue("token")
             .header("alg", "RS256")
             .claim("sub", "user-123")

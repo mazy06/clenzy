@@ -84,6 +84,7 @@ public class ChannexConnectService {
     private final ChannexMetrics metrics;
     private final ChannexCapabilityService capabilityService;
     private final com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository;
+    private final com.clenzy.integration.channex.config.ChannexProperties channexProperties;
 
     public ChannexConnectService(ChannexClient channexClient,
                                    ChannexPropertyMappingRepository mappingRepository,
@@ -93,7 +94,8 @@ public class ChannexConnectService {
                                    PropertyRepository propertyRepository,
                                    ChannexMetrics metrics,
                                    ChannexCapabilityService capabilityService,
-                                   com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository) {
+                                   com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository,
+                                   com.clenzy.integration.channex.config.ChannexProperties channexProperties) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.otaChannelRepository = otaChannelRepository;
@@ -103,6 +105,7 @@ public class ChannexConnectService {
         this.metrics = metrics;
         this.capabilityService = capabilityService;
         this.priceDriftRepository = priceDriftRepository;
+        this.channexProperties = channexProperties;
     }
 
     // ─── Connect ────────────────────────────────────────────────────────────
@@ -182,6 +185,12 @@ public class ChannexConnectService {
     /**
      * Mode AUTO_CREATE : cree Property + Room Type + Rate Plan dans Channex
      * via 3 appels API. Les attributs sont derives de la Property Clenzy.
+     *
+     * <p>Le payload inclut des la creation : l'adresse/contact/geo (REQUIS par
+     * Channex a la connexion du premier channel OTA), {@code property_type}
+     * "apartment" (bareme de facturation Vacation Rental + prerequis Google VR)
+     * et les {@code settings} qui garantissent que le PMS reste l'unique maitre
+     * de l'availability.</p>
      */
     private ChannexIds autoCreateInChannex(Property property) {
         // Property : derivation depuis Clenzy
@@ -191,10 +200,29 @@ public class ChannexConnectService {
             ? property.getCountryCode().toUpperCase() : "FR";
         String title = property.getName() != null && !property.getName().isBlank()
             ? property.getName() : ("Clenzy Property #" + property.getId());
+        String timezone = property.getTimezone() != null && !property.getTimezone().isBlank()
+            ? property.getTimezone() : "Europe/Paris";
+        // Contact : owner de la propriete (requis par les OTAs au 1er channel)
+        String email = property.getOwner() != null ? property.getOwner().getEmail() : null;
+        String phone = property.getOwner() != null ? property.getOwner().getPhoneNumber() : null;
+
+        // Settings doc Channex (Properties Collection) :
+        //  - autoupdate on_modification/cancellation OFF : le PMS recalcule et
+        //    pousse l'availability lui-meme (sinon double decompte) ;
+        //  - state_length aligne sur la fenetre de full sync (borne 100-730) ;
+        //  - min_stay_type "both" : on pousse min_stay_arrival ET through.
+        java.util.Map<String, Object> settings = new java.util.LinkedHashMap<>();
+        settings.put("allow_availability_autoupdate_on_modification", false);
+        settings.put("allow_availability_autoupdate_on_cancellation", false);
+        settings.put("state_length", Math.min(730, Math.max(100, channexProperties.getFullSyncDays())));
+        settings.put("min_stay_type", "both");
 
         try {
             ChannexPropertyDto created = channexClient.createProperty(new ChannexCreatePropertyRequest(
-                title, currency, country, "Europe/Paris", null
+                title, currency, country, timezone, null,
+                email, phone, property.getPostalCode(), property.getCity(), property.getAddress(),
+                property.getLatitude(), property.getLongitude(),
+                "apartment", settings
             ));
             log.info("ChannexConnect[AUTO]: property creee {} ({})", created.id(), created.title());
 
@@ -1104,6 +1132,14 @@ public class ChannexConnectService {
     /**
      * Force un re-push complet pour une property deja connectee (utile pour
      * recuperer un mapping en ERROR ou refaire le sync apres une desactivation).
+     *
+     * <p>{@code months == 0} → <b>full sync</b> au sens de la doc Channex :
+     * fenetre {@code clenzy.channex.full-sync-days} (defaut 500 jours), poussee
+     * en 2 appels API (1 availability + 1 rates&restrictions, grace a la
+     * compression date_from/date_to du client) — test n°1 de la certification.
+     * C'est la valeur a utiliser au go-live d'une propriete (premier OTA
+     * branche) et apres incident. {@code months 1-12} → fenetre restreinte
+     * (rattrapage leger).</p>
      */
     @Transactional
     public ChannexSyncService.ChannexSyncResult resync(Long clenzyPropertyId, Long orgId, int months) {
@@ -1117,9 +1153,15 @@ public class ChannexConnectService {
             mappingRepository.save(mapping);
         }
 
-        int safeMonths = Math.min(Math.max(1, months), 12);
         LocalDate from = LocalDate.now();
-        LocalDate to = from.plusMonths(safeMonths);
+        LocalDate to;
+        if (months <= 0) {
+            // Full sync doc Channex : 500 jours / 2 appels, max 1x/24h en usage normal
+            to = from.plusDays(Math.max(1, channexProperties.getFullSyncDays()) - 1L);
+        } else {
+            int safeMonths = Math.min(months, 12);
+            to = from.plusMonths(safeMonths);
+        }
         return syncService.pushProperty(clenzyPropertyId, orgId, from, to);
     }
 

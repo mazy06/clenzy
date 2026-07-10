@@ -132,6 +132,14 @@ public class Reservation {
     @Column(name = "external_uid", length = 500)
     private String externalUid;
 
+    /**
+     * Id du booking Channex si cette reservation DIRECTE a ete poussee via le
+     * Booking CRS (ota "Offline") — permet de la modifier/annuler cote Channex
+     * ensuite (PUT /bookings/:id). Null = jamais poussee (defaut).
+     */
+    @Column(name = "channex_crs_booking_id", length = 64)
+    private String channexCrsBookingId;
+
     @Column(columnDefinition = "TEXT")
     private String notes;
 
@@ -282,6 +290,9 @@ public class Reservation {
 
     public String getExternalUid() { return externalUid; }
     public void setExternalUid(String externalUid) { this.externalUid = externalUid; }
+
+    public String getChannexCrsBookingId() { return channexCrsBookingId; }
+    public void setChannexCrsBookingId(String channexCrsBookingId) { this.channexCrsBookingId = channexCrsBookingId; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

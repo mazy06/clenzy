@@ -74,12 +74,13 @@ class ChannexSyncServicePricingPushTest {
                 org.mockito.ArgumentMatchers.anyLong()))
             .thenReturn(com.clenzy.integration.channel.ChannelRoute.CHANNEX);
         service = new ChannexSyncService(
-            channexClient, mappingRepository, calendarDayRepository, priceEngine, new ObjectMapper(),
+            channexClient, mappingRepository, calendarDayRepository, priceEngine,
             new ChannexMetrics(new SimpleMeterRegistry()),
             syncLogService, propertyRepository,
             bookingRestrictionRepository, occupancyPricingRepository,
             lengthOfStayDiscountRepository, ratePlanRepository,
-            routing
+            routing,
+            new com.clenzy.integration.channex.config.ChannexProperties()
         );
     }
 

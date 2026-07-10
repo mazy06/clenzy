@@ -275,7 +275,7 @@ export default function ChannexDiagnoseDialog({
     try {
       switch (action.code) {
         case 'FORCE_RESYNC': {
-          const result = await channexApi.resync(propertyId, 6);
+          const result = await channexApi.resync(propertyId, 0);
           setActionResult({
             ok: result.success,
             message: result.success

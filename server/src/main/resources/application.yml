@@ -166,6 +166,22 @@ resilience4j:
 
 # ─── AI Module ────────────────────────────────────────────────────────────────
 clenzy:
+  # Channel manager Channex (staging par defaut — prod: app.channex.io via env).
+  # api-key : header user-api-key ; webhook-secret : valeur du X-Channex-Token
+  # attendue sur /api/webhooks/channex ; webhook-callback-url : URL publique de
+  # ce meme endpoint (vide = pas d'auto-registration, dev local sans tunnel) ;
+  # public-media-base-url : base https publique pour servir les photos internes
+  # a Channex (vide = photos internes non poussees).
+  channex:
+    base-url: ${CHANNEX_BASE_URL:https://staging.channex.io/api/v1}
+    api-key: ${CHANNEX_API_KEY:}
+    webhook-secret: ${CHANNEX_WEBHOOK_SECRET:}
+    webhook-callback-url: ${CHANNEX_WEBHOOK_CALLBACK_URL:}
+    public-media-base-url: ${CHANNEX_PUBLIC_MEDIA_BASE_URL:}
+    # Push ARI meme sans OTA actif — DEV/STAGING UNIQUEMENT (certification PMS).
+    # DEFAUT false : en prod, l'ARI ne part qu'a partir du 1er OTA mappe. Ne
+    # JAMAIS mettre true en prod.
+    allow-push-without-active-ota: ${CHANNEX_ALLOW_PUSH_WITHOUT_ACTIVE_OTA:false}
   ai:
     enabled: false
     openai:

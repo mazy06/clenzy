@@ -1,6 +1,5 @@
 package com.clenzy.integration.channex.service;
 
-import com.clenzy.integration.channex.client.ChannexClient;
 import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexBookingDto;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
@@ -67,7 +66,7 @@ class ChannexBookingServiceTest {
     @Mock private GuestService guestService;
     @Mock private CalendarEngine calendarEngine;
     @Mock private NotificationService notificationService;
-    @Mock private ChannexClient channexClient;
+    @Mock private com.clenzy.repository.CalendarDayRepository calendarDayRepository;
 
     private ChannexBookingService service;
     private ChannexPropertyMapping mapping;
@@ -79,7 +78,8 @@ class ChannexBookingServiceTest {
         ChannexMetrics metrics = new ChannexMetrics(new SimpleMeterRegistry());
         service = new ChannexBookingService(
             mappingRepository, reservationRepository, propertyRepository,
-            guestService, calendarEngine, notificationService, metrics, channexClient
+            guestService, calendarEngine, notificationService, metrics,
+            calendarDayRepository
         );
 
         mapping = new ChannexPropertyMapping();
@@ -110,7 +110,7 @@ class ChannexBookingServiceTest {
         var occupancy = new ChannexBookingDto.ChannexOccupancy(2, 1, 0);
         var room = new ChannexBookingDto.ChannexBookingRoom("rt-1", "rp-1", occupancy);
         return new ChannexBookingDto(
-            id, "OTA-CODE-" + id, "Airbnb", "channex-prop-1",
+            id, null, null, "OTA-CODE-" + id, "Airbnb", "channex-prop-1",
             status, arrival, departure,
             new BigDecimal("289.50"), "EUR",
             customer, List.of(room));
@@ -162,9 +162,6 @@ class ChannexBookingServiceTest {
         verify(calendarEngine).book(eq(100L), eq(LocalDate.of(2026, 6, 1)),
             eq(LocalDate.of(2026, 6, 5)), eq(999L), eq(42L), anyString(), anyString());
 
-        // ack appele
-        verify(channexClient).acknowledgeBooking("book-1");
-
         // notif appelee
         verify(notificationService).notifyAdminsAndManagersByOrgId(
             eq(42L), eq(NotificationKey.RESERVATION_CREATED), any(), any(), any());
@@ -175,7 +172,7 @@ class ChannexBookingServiceTest {
     void handleNewBooking_confirmationCodeFallback() {
         var customer = new ChannexBookingDto.ChannexCustomer("Bob", "Smith", null, null, null, null);
         var booking = new ChannexBookingDto(
-            "abcd1234efgh", null, "Booking.com", "channex-prop-1",
+            "abcd1234efgh", null, null, null, "Booking.com", "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
             new BigDecimal("100"), null, customer, List.of());
 
@@ -218,13 +215,12 @@ class ChannexBookingServiceTest {
         assertThat(result.getId()).isEqualTo(123L);
         verify(reservationRepository, never()).save(any());
         verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
-        verify(channexClient, never()).acknowledgeBooking(any());
         verify(notificationService, never()).notifyAdminsAndManagersByOrgId(any(), any(), any(), any(), any());
     }
 
     @Test
-    @DisplayName("handleNewBooking: conflit calendrier loggue mais ne plante pas")
-    void handleNewBooking_calendarConflictDoesNotThrow() {
+    @DisplayName("handleNewBooking: overbooking (dates occupees) -> resa persistee, book() NON appele, pas d'exception")
+    void handleNewBooking_overbookingPersistsWithoutPoisoningTx() {
         var booking = bookingDto("book-x", "new",
             LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5));
 
@@ -240,38 +236,16 @@ class ChannexBookingServiceTest {
             r.setId(999L);
             return r;
         });
-        doThrow(new RuntimeException("dates conflict"))
-            .when(calendarEngine).book(any(), any(), any(), any(), any(), any(), any());
+        // Dates deja occupees -> le pre-check countConflicts renvoie > 0.
+        when(calendarDayRepository.countConflicts(eq(100L), any(), any(), anyLong()))
+            .thenReturn(3L);
 
-        // Ne doit pas lever — la reservation est creee meme si le calendrier echoue
+        // Ne doit pas lever, la reservation est persistee (pour ack), et book() n'est
+        // JAMAIS appele -> aucune transaction empoisonnee (bug feed d'origine).
         Reservation result = service.handleNewBooking(booking);
         assertThat(result).isNotNull();
         verify(reservationRepository).save(any());
-    }
-
-    @Test
-    @DisplayName("handleNewBooking: ack KO loggue warning sans faire echouer")
-    void handleNewBooking_ackKoDoesNotFail() {
-        var booking = bookingDto("book-ack", "new",
-            LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 3));
-
-        when(mappingRepository.findByChannexPropertyIdAnyOrg("channex-prop-1"))
-            .thenReturn(Optional.of(mapping));
-        when(reservationRepository.findByExternalUidAndPropertyId(any(), eq(100L)))
-            .thenReturn(Optional.empty());
-        when(propertyRepository.findById(100L)).thenReturn(Optional.of(property));
-        when(guestService.findOrCreate(any(), any(), any(), any(), any(), any(), anyLong()))
-            .thenReturn(guest);
-        when(reservationRepository.save(any())).thenAnswer(inv -> {
-            Reservation r = inv.getArgument(0);
-            r.setId(1L);
-            return r;
-        });
-        doThrow(new RuntimeException("Channex ack down"))
-            .when(channexClient).acknowledgeBooking(anyString());
-
-        Reservation result = service.handleNewBooking(booking);
-        assertThat(result).isNotNull();
+        verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -347,7 +321,7 @@ class ChannexBookingServiceTest {
         @Test
         @DisplayName("id null → IllegalArgumentException")
         void idNull() {
-            var dto = new ChannexBookingDto(null, null, null, "channex-prop-1", "new",
+            var dto = new ChannexBookingDto(null, null, null, null, null, "channex-prop-1", "new",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
                 BigDecimal.ONE, "EUR", null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
@@ -358,7 +332,7 @@ class ChannexBookingServiceTest {
         @Test
         @DisplayName("propertyId null → IllegalArgumentException")
         void propertyIdNull() {
-            var dto = new ChannexBookingDto("book-1", null, null, null, "new",
+            var dto = new ChannexBookingDto("book-1", null, null, null, null, null, "new",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
                 BigDecimal.ONE, "EUR", null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
@@ -369,7 +343,7 @@ class ChannexBookingServiceTest {
         @Test
         @DisplayName("arrival/departure null → IllegalArgumentException")
         void datesNull() {
-            var dto = new ChannexBookingDto("book-1", null, null, "channex-prop-1", "new",
+            var dto = new ChannexBookingDto("book-1", null, null, null, null, "channex-prop-1", "new",
                 null, null, BigDecimal.ONE, "EUR", null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -379,7 +353,7 @@ class ChannexBookingServiceTest {
         @Test
         @DisplayName("arrival == departure → IllegalArgumentException (must be strictly before)")
         void datesEqual() {
-            var dto = new ChannexBookingDto("book-1", null, null, "channex-prop-1", "new",
+            var dto = new ChannexBookingDto("book-1", null, null, null, null, "channex-prop-1", "new",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 1),
                 BigDecimal.ONE, "EUR", null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
@@ -390,7 +364,7 @@ class ChannexBookingServiceTest {
         @Test
         @DisplayName("arrival > departure → IllegalArgumentException")
         void datesInverted() {
-            var dto = new ChannexBookingDto("book-1", null, null, "channex-prop-1", "new",
+            var dto = new ChannexBookingDto("book-1", null, null, null, null, "channex-prop-1", "new",
                 LocalDate.of(2026, 6, 5), LocalDate.of(2026, 6, 1),
                 BigDecimal.ONE, "EUR", null, List.of());
             assertThatThrownBy(() -> service.handleNewBooking(dto))
@@ -485,7 +459,7 @@ class ChannexBookingServiceTest {
     }
 
     @Test
-    @DisplayName("handleModification: re-book apres dates change leve → loggue sans casser")
+    @DisplayName("handleModification: re-book sur dates occupees (overbooking) → resa conservee, book() non appele")
     void handleModification_reBookConflictSwallowed() {
         var booking = bookingDto("book-mod-c", "modified",
             LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 5));
@@ -501,12 +475,14 @@ class ChannexBookingServiceTest {
         when(reservationRepository.findByExternalUidAndPropertyId(any(), eq(100L)))
             .thenReturn(Optional.of(existing));
         when(reservationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        doThrow(new RuntimeException("conflict"))
-            .when(calendarEngine).book(any(), any(), any(), any(), any(), any(), any());
+        // Nouvelles dates deja occupees -> pre-check countConflicts > 0.
+        when(calendarDayRepository.countConflicts(eq(100L), any(), any(), anyLong()))
+            .thenReturn(2L);
 
         Optional<Reservation> result = service.handleModification(booking);
-        // toujours present malgre le book qui leve
+        // toujours present, et book() jamais appele (pas de tx empoisonnee)
         assertThat(result).isPresent();
+        verify(calendarEngine, never()).book(any(), any(), any(), any(), any(), any(), any());
     }
 
     // ─── handleCancellation ─────────────────────────────────────────────────
@@ -544,12 +520,12 @@ class ChannexBookingServiceTest {
         assertThat(service.handleCancellation(null)).isEmpty();
         // id null
         assertThat(service.handleCancellation(
-            new ChannexBookingDto(null, null, null, "channex-prop-1", "cancelled",
+            new ChannexBookingDto(null, null, null, null, null, "channex-prop-1", "cancelled",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5),
                 BigDecimal.ONE, "EUR", null, List.of()))).isEmpty();
         // propertyId null
         assertThat(service.handleCancellation(
-            new ChannexBookingDto("book-1", null, null, null, "cancelled",
+            new ChannexBookingDto("book-1", null, null, null, null, null, "cancelled",
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5),
                 BigDecimal.ONE, "EUR", null, List.of()))).isEmpty();
 
@@ -647,7 +623,7 @@ class ChannexBookingServiceTest {
     @DisplayName("OTA 'Booking.com' → GuestChannel.BOOKING")
     void otaName_BookingMapsToBooking() {
         var customer = new ChannexBookingDto.ChannexCustomer("X", "Y", null, null, null, null);
-        var booking = new ChannexBookingDto("b1", null, "Booking.com", "channex-prop-1",
+        var booking = new ChannexBookingDto("b1", null, null, null, "Booking.com", "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
             BigDecimal.ONE, "EUR", customer, List.of());
 
@@ -674,7 +650,7 @@ class ChannexBookingServiceTest {
     @DisplayName("OTA 'Vrbo' → GuestChannel.VRBO")
     void otaName_VrboMapsToVrbo() {
         var customer = new ChannexBookingDto.ChannexCustomer("X", "Y", null, null, null, null);
-        var booking = new ChannexBookingDto("b1", null, "Vrbo", "channex-prop-1",
+        var booking = new ChannexBookingDto("b1", null, null, null, "Vrbo", "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
             BigDecimal.ONE, "EUR", customer, List.of());
 
@@ -701,7 +677,7 @@ class ChannexBookingServiceTest {
     @DisplayName("OTA inconnu (Expedia) → GuestChannel.OTHER")
     void otaName_ExpediaMapsToOther() {
         var customer = new ChannexBookingDto.ChannexCustomer("X", "Y", null, null, null, null);
-        var booking = new ChannexBookingDto("b1", null, "Expedia", "channex-prop-1",
+        var booking = new ChannexBookingDto("b1", null, null, null, "Expedia", "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
             BigDecimal.ONE, "EUR", customer, List.of());
 
@@ -728,7 +704,7 @@ class ChannexBookingServiceTest {
     @DisplayName("OTA null → GuestChannel.DIRECT")
     void otaName_NullMapsToDirect() {
         var customer = new ChannexBookingDto.ChannexCustomer("X", "Y", null, null, null, null);
-        var booking = new ChannexBookingDto("b1", null, null, "channex-prop-1",
+        var booking = new ChannexBookingDto("b1", null, null, null, null, "channex-prop-1",
             "new", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 3),
             BigDecimal.ONE, "EUR", customer, List.of());
 

@@ -1,14 +1,12 @@
 package com.clenzy.integration.channex.controller;
 
-import com.clenzy.integration.channex.client.ChannexClient;
 import com.clenzy.integration.channex.client.ChannexSignatureValidator;
 import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
-import com.clenzy.integration.channex.service.ChannexBookingService;
+import com.clenzy.integration.channex.service.ChannexBookingFeedService;
 import com.clenzy.integration.channex.service.ChannexMessagingService;
 import com.clenzy.integration.channex.service.ChannexSyncLogService;
-import com.clenzy.model.Reservation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -32,19 +30,27 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Les webhooks booking_* sont des DECLENCHEURS de drain du feed de revisions
+ * (doc Channex) : le controller ne persiste plus le payload embarque, il
+ * delegue a {@link ChannexBookingFeedService#processFeed()}.
+ */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ChannexWebhookController")
 class ChannexWebhookControllerTest {
 
     @Mock private ChannexSignatureValidator signatureValidator;
-    @Mock private ChannexBookingService bookingService;
-    @Mock private ChannexClient channexClient;
+    @Mock private ChannexBookingFeedService bookingFeedService;
     @Mock private ChannexPropertyMappingRepository mappingRepository;
     @Mock private ChannexSyncLogService syncLogService;
     @Mock private ChannexMessagingService messagingService;
+    @Mock private com.clenzy.integration.channex.service.ChannexChannelEventService channelEventService;
 
     private ObjectMapper objectMapper;
     private ChannexWebhookController controller;
+
+    private static final ChannexBookingFeedService.FeedProcessingResult ONE_ACKED =
+        new ChannexBookingFeedService.FeedProcessingResult(1, 1, 0, false);
 
     private static final String VALID_NEW_BOOKING_BODY = """
         {
@@ -73,15 +79,14 @@ class ChannexWebhookControllerTest {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         // Service sync-error reel sur repository mocke + syncLogService mocke (refactor T-ARCH-01)
-        controller = new ChannexWebhookController(signatureValidator, bookingService, objectMapper,
+        controller = new ChannexWebhookController(signatureValidator, bookingFeedService, objectMapper,
             new ChannexMetrics(new SimpleMeterRegistry()),
-            channexClient,
             new com.clenzy.integration.channex.service.ChannexSyncErrorService(mappingRepository, syncLogService),
-            messagingService);
+            messagingService, channelEventService);
     }
 
     @Test
-    @DisplayName("Signature invalide -> 401 + bookingService non appele")
+    @DisplayName("Signature invalide -> 401 + feed non draine")
     void rejectsInvalidSignature() {
         when(signatureValidator.isValid(anyString())).thenReturn(false);
 
@@ -91,7 +96,7 @@ class ChannexWebhookControllerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(401);
         assertThat(response.getBody()).containsEntry("error", "invalid_token");
-        verify(bookingService, never()).handleNewBooking(any());
+        verify(bookingFeedService, never()).processFeed();
     }
 
     @Test
@@ -107,7 +112,7 @@ class ChannexWebhookControllerTest {
     }
 
     @Test
-    @DisplayName("Payload JSON malforme -> 400 + bookingService non appele")
+    @DisplayName("Payload JSON malforme -> 400 + feed non draine")
     void rejectsMalformedPayload() {
         when(signatureValidator.isValid(anyString())).thenReturn(true);
 
@@ -117,18 +122,14 @@ class ChannexWebhookControllerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(400);
         assertThat(response.getBody()).containsEntry("error", "malformed_payload");
-        verify(bookingService, never()).handleNewBooking(any());
+        verify(bookingFeedService, never()).processFeed();
     }
 
     @Test
-    @DisplayName("event=booking_new -> dispatch vers handleNewBooking + 200")
+    @DisplayName("event=booking_new -> drain du feed + 200 avec compteurs")
     void dispatchesBookingNew() {
         when(signatureValidator.isValid(anyString())).thenReturn(true);
-
-        Reservation r = new Reservation();
-        r.setId(42L);
-        r.setConfirmationCode("HM6T7A8B9C");
-        when(bookingService.handleNewBooking(any())).thenReturn(r);
+        when(bookingFeedService.processFeed()).thenReturn(ONE_ACKED);
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook(
             "sig-ok", VALID_NEW_BOOKING_BODY
@@ -136,44 +137,120 @@ class ChannexWebhookControllerTest {
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).containsEntry("event", "booking_new");
-        assertThat(response.getBody()).containsEntry("reservationId", 42L);
-        assertThat(response.getBody()).containsEntry("confirmationCode", "HM6T7A8B9C");
-        verify(bookingService).handleNewBooking(any());
+        assertThat(response.getBody()).containsEntry("revisionsProcessed", 1);
+        assertThat(response.getBody()).containsEntry("revisionsAcked", 1);
+        verify(bookingFeedService).processFeed();
     }
 
     @Test
-    @DisplayName("event=booking_modification -> dispatch + 200")
+    @DisplayName("event=booking_modification -> drain du feed + 200")
     void dispatchesBookingModification() {
         String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "booking_modification");
         when(signatureValidator.isValid(anyString())).thenReturn(true);
-
-        Reservation r = new Reservation();
-        r.setId(99L);
-        when(bookingService.handleModification(any())).thenReturn(Optional.of(r));
+        when(bookingFeedService.processFeed()).thenReturn(ONE_ACKED);
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).containsEntry("event", "booking_modification");
-        assertThat(response.getBody()).containsEntry("reservationId", 99L);
+        verify(bookingFeedService).processFeed();
     }
 
     @Test
-    @DisplayName("event=booking_cancellation -> dispatch + 200")
+    @DisplayName("event=booking_cancellation -> drain du feed + 200")
     void dispatchesBookingCancellation() {
         String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "booking_cancellation");
         when(signatureValidator.isValid(anyString())).thenReturn(true);
-
-        Reservation r = new Reservation();
-        r.setId(7L);
-        when(bookingService.handleCancellation(any())).thenReturn(Optional.of(r));
+        when(bookingFeedService.processFeed()).thenReturn(ONE_ACKED);
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).containsEntry("event", "booking_cancellation");
+        verify(bookingFeedService).processFeed();
     }
 
     @Test
-    @DisplayName("event inconnu (review_received) -> 200 ignored, pas de dispatch booking")
+    @DisplayName("event=booking_new SANS payload embarque -> drain quand meme (200)")
+    void bookingNewWithoutPayloadStillDrainsFeed() {
+        // send_data=false cote Channex : le webhook n'embarque pas la revision,
+        // le feed reste la source de verite — le drain doit avoir lieu.
+        String body = """
+            { "event":"booking_new","property_id":"p","payload": null }
+            """;
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
+        when(bookingFeedService.processFeed()).thenReturn(ONE_ACKED);
+
+        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        verify(bookingFeedService).processFeed();
+    }
+
+    @Test
+    @DisplayName("event=non_acked_booking -> drain du feed (rattrapage)")
+    void nonAckedBookingDrainsFeed() {
+        String body = """
+            {"event":"non_acked_booking","property_id":"p","payload":{"id":"book-1"}}
+            """;
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
+        when(bookingFeedService.processFeed()).thenReturn(ONE_ACKED);
+
+        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).containsEntry("status", "ok");
+        verify(bookingFeedService).processFeed();
+    }
+
+    @Test
+    @DisplayName("event=booking_unmapped_room -> notification + drain du feed (resa persistee quand meme)")
+    void unmappedRoomNotifiesAndDrains() {
+        String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "booking_unmapped_room");
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
+        when(channelEventService.onUnmappedBooking("channex-prop-1", "booking_unmapped_room"))
+            .thenReturn(true);
+        when(bookingFeedService.processFeed()).thenReturn(ONE_ACKED);
+
+        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).containsEntry("notified", true);
+        verify(channelEventService).onUnmappedBooking("channex-prop-1", "booking_unmapped_room");
+        verify(bookingFeedService).processFeed();
+    }
+
+    @Test
+    @DisplayName("event=disconnect_channel -> notification cycle de vie + 200")
+    void channelLifecycleRouted() {
+        String body = """
+            {"event":"disconnect_channel","property_id":"channex-prop-1","payload":{}}
+            """;
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
+        when(channelEventService.onChannelLifecycleEvent("channex-prop-1", "disconnect_channel"))
+            .thenReturn(true);
+
+        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).containsEntry("action", "notified");
+    }
+
+    @Test
+    @DisplayName("event=reservation_request (Airbnb) mapping absent -> 200 ignored")
+    void airbnbEventNoMappingIgnored() {
+        String body = """
+            {"event":"reservation_request","property_id":"chx-unknown","payload":{}}
+            """;
+        when(signatureValidator.isValid(anyString())).thenReturn(true);
+        when(channelEventService.onAirbnbEvent("chx-unknown", "reservation_request"))
+            .thenReturn(false);
+
+        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).containsEntry("status", "ignored");
+    }
+
+    @Test
+    @DisplayName("event inconnu (review_received) -> 200 ignored, pas de drain")
     void ignoresUnknownEvent() {
         String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "review_received");
         when(signatureValidator.isValid(anyString())).thenReturn(true);
@@ -181,16 +258,14 @@ class ChannexWebhookControllerTest {
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).containsEntry("status", "ignored");
-        verify(bookingService, never()).handleNewBooking(any());
-        verify(bookingService, never()).handleModification(any());
-        verify(bookingService, never()).handleCancellation(any());
+        verify(bookingFeedService, never()).processFeed();
     }
 
     @Test
-    @DisplayName("Erreur metier (IllegalStateException: mapping absent) -> 400")
+    @DisplayName("Erreur metier (IllegalStateException) -> 400")
     void mapsBusinessExceptionTo400() {
         when(signatureValidator.isValid(anyString())).thenReturn(true);
-        when(bookingService.handleNewBooking(any()))
+        when(bookingFeedService.processFeed())
             .thenThrow(new IllegalStateException("Aucun ChannexPropertyMapping pour channex_property_id=unknown"));
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook(
@@ -205,7 +280,7 @@ class ChannexWebhookControllerTest {
     @DisplayName("Erreur technique imprevue (NPE) -> 500 pour que Channex retry")
     void mapsTechnicalExceptionTo500() {
         when(signatureValidator.isValid(anyString())).thenReturn(true);
-        when(bookingService.handleNewBooking(any()))
+        when(bookingFeedService.processFeed())
             .thenThrow(new RuntimeException("DB connection lost"));
 
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook(
@@ -227,87 +302,6 @@ class ChannexWebhookControllerTest {
         ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
         assertThat(response.getStatusCode().value()).isEqualTo(400);
         assertThat(response.getBody()).containsEntry("error", "missing_event");
-    }
-
-    @Test
-    @DisplayName("event=booking_new sans payload -> 400 missing_booking_payload")
-    void rejectsBookingNewWithoutPayload() {
-        when(signatureValidator.isValid(anyString())).thenReturn(true);
-        String body = """
-            { "event":"booking_new","property_id":"p","payload": null }
-            """;
-        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
-        assertThat(response.getStatusCode().value()).isEqualTo(400);
-        assertThat(response.getBody()).containsEntry("error", "missing_booking_payload");
-    }
-
-    @Test
-    @DisplayName("event=booking_modification -> not_found si Optional vide")
-    void bookingModificationNotFound() {
-        String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "booking_modification");
-        when(signatureValidator.isValid(anyString())).thenReturn(true);
-        when(bookingService.handleModification(any())).thenReturn(Optional.empty());
-
-        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).containsEntry("status", "not_found");
-    }
-
-    @Test
-    @DisplayName("event=booking_cancellation -> not_found si Optional vide")
-    void bookingCancellationNotFound() {
-        String body = VALID_NEW_BOOKING_BODY.replace("booking_new", "booking_cancellation");
-        when(signatureValidator.isValid(anyString())).thenReturn(true);
-        when(bookingService.handleCancellation(any())).thenReturn(Optional.empty());
-
-        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).containsEntry("status", "not_found");
-    }
-
-    @Test
-    @DisplayName("event=non_acked_booking -> re-ack via ChannexClient")
-    void nonAckedBookingReAcks() {
-        String body = """
-            {"event":"non_acked_booking","property_id":"p","payload":{"id":"book-1"}}
-            """;
-        when(signatureValidator.isValid(anyString())).thenReturn(true);
-
-        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
-
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).containsEntry("status", "ok");
-        assertThat(response.getBody()).containsEntry("action", "re_acknowledged");
-        verify(channexClient).acknowledgeBooking("book-1");
-    }
-
-    @Test
-    @DisplayName("event=non_acked_booking sans bookingId -> 400")
-    void nonAckedBookingMissingId() {
-        String body = """
-            {"event":"non_acked_booking","property_id":"p","payload":{}}
-            """;
-        when(signatureValidator.isValid(anyString())).thenReturn(true);
-
-        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
-        assertThat(response.getStatusCode().value()).isEqualTo(400);
-        assertThat(response.getBody()).containsEntry("error", "missing_booking_id");
-    }
-
-    @Test
-    @DisplayName("event=non_acked_booking ack failure -> swallowed 200")
-    void nonAckedBookingAckFailureSwallowed() {
-        String body = """
-            {"event":"non_acked_booking","property_id":"p","payload":{"id":"book-1"}}
-            """;
-        when(signatureValidator.isValid(anyString())).thenReturn(true);
-        org.mockito.Mockito.doThrow(new RuntimeException("404"))
-            .when(channexClient).acknowledgeBooking("book-1");
-
-        ResponseEntity<Map<String, Object>> response = controller.handleWebhook("sig-ok", body);
-
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).containsEntry("status", "ok_swallowed");
     }
 
     @Test

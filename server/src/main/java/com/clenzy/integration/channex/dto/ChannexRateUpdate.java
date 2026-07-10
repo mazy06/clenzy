@@ -14,6 +14,7 @@ import java.time.LocalDate;
  * @param minStayArrival          Min stay arrival (nullable)
  * @param closedToArrival         Si true, pas de check-in autorise ce jour
  * @param closedToDeparture       Si true, pas de check-out autorise ce jour
+ * @param maxStay                 Sejour maximum (nullable)
  */
 public record ChannexRateUpdate(
     String channexPropertyId,
@@ -23,7 +24,8 @@ public record ChannexRateUpdate(
     Integer minStayThrough,
     Integer minStayArrival,
     Boolean closedToArrival,
-    Boolean closedToDeparture
+    Boolean closedToDeparture,
+    Integer maxStay
 ) {
     public ChannexRateUpdate {
         if (rate == null || rate.signum() < 0) {
@@ -34,6 +36,6 @@ public record ChannexRateUpdate(
     /** Update simplifie : juste le tarif sans restrictions. */
     public static ChannexRateUpdate rateOnly(String propertyId, String ratePlanId,
                                               LocalDate date, BigDecimal rate) {
-        return new ChannexRateUpdate(propertyId, ratePlanId, date, rate, null, null, null, null);
+        return new ChannexRateUpdate(propertyId, ratePlanId, date, rate, null, null, null, null, null);
     }
 }
