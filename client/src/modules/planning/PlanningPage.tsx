@@ -9,7 +9,7 @@ import PlanningToolbar from './PlanningToolbar';
 import PlanningFilterButton from './PlanningFilterButton';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
-import PlanningQuickCreateDialog from './PlanningQuickCreateDialog';
+import ReservationDialog from '../../components/reservations/ReservationDialog';
 import BlockPeriodDialog from './BlockPeriodDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
 import ICalImportModal from '../dashboard/ICalImportModal';
@@ -254,7 +254,7 @@ const PlanningPage: React.FC = () => {
   } = usePlanningSelection(filteredEvents);
 
   // « + Réservation » (header) : réutilise le flux quick-create existant
-  // (PlanningQuickCreateDialog). Le dialog est lié à UNE propriété (pas de
+  // (ReservationDialog en mode création). Le dialog est lié à UNE propriété (pas de
   // sélecteur interne) : on préselectionne le premier logement visible avec
   // un séjour aujourd'hui → demain ; les dates restent modifiables dans le dialog.
   const handleCreateReservation = useCallback(() => {
@@ -780,10 +780,28 @@ const PlanningPage: React.FC = () => {
       />
 
       {/* Quick Create Dialog */}
-      <PlanningQuickCreateDialog
+      <ReservationDialog
+        mode="create"
         open={!!quickCreateData}
-        data={quickCreateData}
         onClose={closeQuickCreate}
+        lockedProperty={
+          quickCreateData
+            ? {
+                id: quickCreateData.propertyId,
+                name: quickCreateData.propertyName,
+                nightlyPrice: quickCreateData.nightlyPrice,
+                defaultCheckInTime: quickCreateData.defaultCheckInTime,
+                defaultCheckOutTime: quickCreateData.defaultCheckOutTime,
+                cleaningBasePrice: quickCreateData.cleaningBasePrice,
+                cleaningFrequency: quickCreateData.cleaningFrequency,
+              }
+            : undefined
+        }
+        initialDates={
+          quickCreateData
+            ? { checkIn: quickCreateData.startDate, checkOut: quickCreateData.endDate }
+            : undefined
+        }
         events={filteredEvents}
       />
 

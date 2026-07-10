@@ -14,6 +14,8 @@ interface PropertiesGridViewProps {
   page: number;
   onPageChange: (page: number) => void;
   channexMappings: Map<number, ChannexMappingDto>;
+  /** Coûts de ménage estimés (vrai estimateur backend), clé = propertyId. */
+  cleaningEstimates: Record<number, number>;
   onDelete: (property: PropertyListItem) => void;
   onDiagnose: (propertyId: number, propertyName: string) => void;
   canManageContracts: boolean;
@@ -25,7 +27,7 @@ interface PropertiesGridViewProps {
 
 /** Vue grille : cartes PropertyCard + pagination fixe. */
 const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
-  properties, totalCount, page, onPageChange, channexMappings, onDelete, onDiagnose,
+  properties, totalCount, page, onPageChange, channexMappings, cleaningEstimates, onDelete, onDiagnose,
   canManageContracts, missingContractIds, onMissingContractClick, navigate,
 }) => {
   // KPI opérationnels (occupation / ADR / revenu / statut / interventions) des
@@ -50,6 +52,7 @@ const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
           key={property.id}
           property={toPropertyDetails(property)}
           kpi={kpiMap.get(Number(property.id))}
+          cleaningEstimate={cleaningEstimates[Number(property.id)]}
           onEdit={() => navigate(`/properties/${property.id}/edit`)}
           onDelete={() => onDelete(property)}
           onView={() => navigate(`/properties/${property.id}`)}

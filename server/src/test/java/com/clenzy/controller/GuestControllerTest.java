@@ -295,15 +295,13 @@ class GuestControllerTest {
     class CreateGuest {
 
         @Test
-        @DisplayName("create -> findOrCreate with DIRECT channel + returns DTO")
+        @DisplayName("create -> delegates to createDirect + returns DTO")
         void whenCreate_thenDelegatesToService() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
-            GuestDto input = new GuestDto(null, "Alice", "Dupont", "alice@x.com", "+33600000000", null);
+            GuestDto input = new GuestDto(null, "Alice", "Dupont", "alice@x.com", "+33600000000", null, "fr", "FR", "VIP");
 
             Guest created = newGuest(99L, 1L, "Alice", "Dupont", "alice@x.com", GuestChannel.DIRECT);
-            doReturn(created).when(guestService).findOrCreate(
-                eq("Alice"), eq("Dupont"), eq("alice@x.com"), eq("+33600000000"),
-                eq(GuestChannel.DIRECT), isNull(), eq(1L));
+            doReturn(GuestService.toDto(created)).when(guestService).createDirect(eq(input), eq(1L));
 
             ResponseEntity<GuestDto> response = controller.create(input);
 

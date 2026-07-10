@@ -30,9 +30,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
 import { useReservations } from '../../hooks/useReservations';
 import type { Reservation, ReservationStatus, ReservationSource } from '../../services/api/reservationsApi';
-import type { CreateReservationData, UpdateReservationData } from '../../services/api/reservationsApi';
 import { ReservationStatusChip, ReservationSourceBadge } from './ReservationStatusChip';
-import ReservationFormDialog from './ReservationFormDialog';
+import ReservationDialog from '../../components/reservations/ReservationDialog';
 import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -91,10 +90,6 @@ const ReservationsList: React.FC = () => {
     error,
     filters,
     setFilter,
-    createReservation,
-    isCreating,
-    updateReservation,
-    isUpdating,
     cancelReservation,
     isCancelling,
   } = useReservations();
@@ -133,19 +128,6 @@ const ReservationsList: React.FC = () => {
     setCancelTarget(reservation);
     setCancelDialogOpen(true);
   }, []);
-
-  const handleFormSubmit = useCallback(
-    async (data: CreateReservationData | UpdateReservationData) => {
-      if (editingReservation) {
-        await updateReservation({ id: editingReservation.id, data: data as UpdateReservationData });
-        notify.success('Reservation mise a jour');
-      } else {
-        await createReservation(data as CreateReservationData);
-        notify.success('Reservation creee');
-      }
-    },
-    [editingReservation, updateReservation, createReservation, notify],
-  );
 
   const handleConfirmCancel = useCallback(async () => {
     if (!cancelTarget) return;
@@ -420,15 +402,16 @@ const ReservationsList: React.FC = () => {
       )}
 
       {/* Create/Edit dialog */}
-      <ReservationFormDialog
+      <ReservationDialog
         open={formOpen}
+        mode={editingReservation ? 'edit' : 'create'}
+        reservation={editingReservation}
         onClose={() => {
           setFormOpen(false);
           setEditingReservation(null);
         }}
-        onSubmit={handleFormSubmit}
-        reservation={editingReservation}
-        isSubmitting={isCreating || isUpdating}
+        onCreated={() => notify.success('Réservation créée')}
+        onUpdated={() => notify.success('Réservation mise à jour')}
       />
 
       {/* Guest profile dialog */}
