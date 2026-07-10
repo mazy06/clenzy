@@ -125,16 +125,14 @@ export const usersApi = {
  * Helper for any `<Avatar>` surface that wants to display a user's photo if it exists
  * and gracefully fall back to initials otherwise.
  *
- * Returns `undefined` when:
- *  - the user object is null/undefined
- *  - no numeric id is resolvable (Keycloak string ids are ignored — we need the DB id)
- *  - the user has no `profilePictureUrl` (i.e. never uploaded a photo)
+ * Le backend renvoie une URL SIGNEE **relative** (`/api/users/..?ticket=..`). Comme le front
+ * (:3000) et l'API (:8084) sont sur des origines distinctes en dev, cette URL doit etre
+ * prefixee de la base API — sinon un `<img src="/api/..">` vise l'origine de la page (Vite),
+ * qui renvoie index.html, et l'avatar tombe sur les initiales. En prod (same-origin), la base
+ * est vide et l'URL reste relative, donc inchangee.
  *
- * Returns the cache-busted served URL otherwise. MUI's `<Avatar>` automatically falls
- * back to its `children` (the initials) when `src` is undefined or 404s.
- *
- * Accepts mixed shapes (numeric `id`, numeric `databaseId`, or even a string Keycloak id)
- * to keep call sites simple.
+ * Returns `undefined` when the user is null/undefined or has no `profilePictureUrl`. MUI's
+ * `<Avatar>` retombe sur ses `children` (les initiales) quand `src` est undefined ou 404.
  */
 export function userAvatarSrc(
   user: {
@@ -144,13 +142,20 @@ export function userAvatarSrc(
     updatedAt?: string | null;
   } | null | undefined,
 ): string | undefined {
-  if (!user || !user.profilePictureUrl) return undefined;
-  // Le backend renvoie deja une URL directement affichable : URL SIGNEE (ticket HMAC,
-  // cf. UserService.toDto -> publicAvatarUrl) pour les avatars uploades, ou URL externe
-  // (SSO) telle quelle. On l'utilise DIRECTEMENT — la reconstruire sans ticket cassait
-  // l'affichage car une balise <img> ne porte pas le JWT (401 intermittent -> initiales).
-  const url = user.profilePictureUrl;
-  if (!user.updatedAt) return url;
-  // Cache-bust sur upload (l'URL signee a deja un '?ticket=').
-  return `${url}${url.includes('?') ? '&' : '?'}v=${encodeURIComponent(user.updatedAt)}`;
+  if (!user) return undefined;
+  if (user.profilePictureUrl) {
+    // Le backend renvoie une URL SIGNEE (ticket HMAC, cf. UserService.publicAvatarUrl) ou
+    // une URL externe SSO. ATTENTION : /me et les DTO renvoient une URL RELATIVE
+    // (`/api/users/..`). Le front (:3000) et l'API (:8084) etant sur des origines distinctes
+    // en dev, un `<img src="/api/..">` resout contre l'origine de la PAGE (Vite :3000), qui
+    // renvoie index.html au lieu de l'image -> <img> casse -> initiales. On prefixe donc la
+    // base API pour viser le backend (BASE_URL vide en prod same-origin -> inchange). Les
+    // URL externes (http/https, SSO) passent telles quelles.
+    const raw = user.profilePictureUrl;
+    const url = raw.startsWith('/') ? `${API_CONFIG.BASE_URL}${raw}` : raw;
+    if (!user.updatedAt) return url;
+    // Cache-bust sur upload (l'URL signee a deja un '?ticket=').
+    return `${url}${url.includes('?') ? '&' : '?'}v=${encodeURIComponent(user.updatedAt)}`;
+  }
+  return undefined;
 }
