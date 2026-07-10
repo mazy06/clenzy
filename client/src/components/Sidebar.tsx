@@ -425,22 +425,25 @@ export default function Sidebar({
           {/* Cloche — point 7px var(--err) si non-lus (remplace le compteur) */}
           <Tooltip title={t('notifications.title')} placement={collapsed ? sidePlacement : 'top'}>
             <IconButton size="small" onClick={() => handleNavigation('/notifications')} sx={footBtnSx}>
-              <Notifications size={footerIconSize} strokeWidth={1.75} />
-              {unreadCount > 0 && (
-                <Box
-                  component="span"
-                  sx={{
-                    position: 'absolute',
-                    top: 5,
-                    insetInlineEnd: 8,
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--err)',
-                    boxShadow: '0 0 0 2px var(--nav-bg)',
-                  }}
-                />
-              )}
+              <Box component="span" sx={{ position: 'relative', display: 'inline-flex' }}>
+                <Notifications size={footerIconSize} strokeWidth={1.75} />
+                {unreadCount > 0 && (
+                  <Box
+                    component="span"
+                    sx={{
+                      position: 'absolute',
+                      top: -2,
+                      insetInlineEnd: -2,
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--err)',
+                      boxShadow: '0 0 0 2px var(--nav-bg)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
+              </Box>
             </IconButton>
           </Tooltip>
 
