@@ -76,6 +76,20 @@ public enum NotificationKey {
     CHANNEX_PRICE_DRIFT_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
     // Domaine 1 : divergence des restrictions de sejour (min stay / CTA / CTD) Clenzy ↔ OTA
     CHANNEX_RESTRICTION_DRIFT_DETECTED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // Phase B Channex — evenements webhook additionnels :
+    // UNMAPPED_BOOKING : resa recue sur room/rate NON mappe (priorite doc — risque
+    // de double reservation tant que le mapping n'est pas corrige).
+    CHANNEX_UNMAPPED_BOOKING(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+    // RATE_ERROR : tarifs rejetes par l'OTA (rate_error webhook).
+    CHANNEX_RATE_ERROR(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+    // SYNC_WARNING : avertissement de sync non bloquant remonte par Channex.
+    CHANNEX_SYNC_WARNING(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // CHANNEL_EVENT : cycle de vie d'un canal OTA (connexion, deconnexion,
+    // activation/desactivation) — WARNING car une deconnexion stoppe la distribution.
+    CHANNEX_CHANNEL_EVENT(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // AIRBNB_REQUEST : demande Airbnb a traiter (reservation_request,
+    // alteration_request, inquiry) — action dans l'ecran Channex embarque.
+    CHANNEX_AIRBNB_REQUEST(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
 
     // ─── AI MODEL HEALTH (1 cle) ───────────────────────────────────────────────
     // Emise quand un modele LLM configure repond 410 Gone (EOL chez le provider).

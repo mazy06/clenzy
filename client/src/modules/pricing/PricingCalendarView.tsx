@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -126,6 +126,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [minNightsDialogOpen, setMinNightsDialogOpen] = useState(false);
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -171,28 +172,51 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
     [isFrench],
   );
 
-  const handleCellClick = useCallback(
+  // Plage inclusive entre deux dates du mois affiché (ordre visuel du calendrier).
+  const rangeBetween = useCallback(
+    (anchor: string, target: string): string[] => {
+      const allDates = calendarCells.filter((c) => c.inMonth).map((c) => c.dateStr);
+      const a = allDates.indexOf(anchor);
+      const b = allDates.indexOf(target);
+      if (a < 0 || b < 0) return [target];
+      return allDates.slice(Math.min(a, b), Math.max(a, b) + 1);
+    },
+    [calendarCells],
+  );
+
+  // Début de sélection : simple clic = 1 date + ancre + démarre le glisser ;
+  // Maj+clic = étend depuis l'ancre existante (raccourci conservé).
+  const handleCellMouseDown = useCallback(
     (dateStr: string, event: React.MouseEvent) => {
       if (!selectedPropertyId) return;
-
       if (event.shiftKey && selectionAnchor) {
-        const allDates = calendarCells.filter((c) => c.inMonth).map((c) => c.dateStr);
-        const anchorIdx = allDates.indexOf(selectionAnchor);
-        const currentIdx = allDates.indexOf(dateStr);
-        if (anchorIdx >= 0 && currentIdx >= 0) {
-          const start = Math.min(anchorIdx, currentIdx);
-          const end = Math.max(anchorIdx, currentIdx);
-          setSelectedDates(allDates.slice(start, end + 1));
-        }
-      } else {
-        setSelectionAnchor(dateStr);
-        setSelectedDates((prev) =>
-          prev.includes(dateStr) ? prev.filter((d) => d !== dateStr) : [dateStr],
-        );
+        setSelectedDates(rangeBetween(selectionAnchor, dateStr));
+        return;
       }
+      setSelectionAnchor(dateStr);
+      setSelectedDates([dateStr]);
+      setIsDragging(true);
     },
-    [selectedPropertyId, selectionAnchor, calendarCells],
+    [selectedPropertyId, selectionAnchor, rangeBetween],
   );
+
+  // Survol pendant le glisser : étend la plage depuis l'ancre → sélection de plage
+  // « cliquer-glisser » sans passer par le formulaire de droite.
+  const handleCellMouseEnter = useCallback(
+    (dateStr: string) => {
+      if (!isDragging || !selectionAnchor) return;
+      setSelectedDates(rangeBetween(selectionAnchor, dateStr));
+    },
+    [isDragging, selectionAnchor, rangeBetween],
+  );
+
+  // Fin du glisser, où que le curseur soit relâché.
+  useEffect(() => {
+    if (!isDragging) return;
+    const onUp = () => setIsDragging(false);
+    window.addEventListener('mouseup', onUp);
+    return () => window.removeEventListener('mouseup', onUp);
+  }, [isDragging]);
 
   const handleApplyPrice = useCallback(
     async (price: number) => {
@@ -295,7 +319,8 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               return (
                 <Box
                   key={cell.dateStr}
-                  onClick={(e) => cell.inMonth && handleCellClick(cell.dateStr, e)}
+                  onMouseDown={(e) => cell.inMonth && handleCellMouseDown(cell.dateStr, e)}
+                  onMouseEnter={() => cell.inMonth && handleCellMouseEnter(cell.dateStr)}
                   onDoubleClick={() => {
                     if (cell.inMonth && selectedPropertyId) {
                       setSelectedDates([cell.dateStr]);
@@ -306,6 +331,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                     minHeight: 64,
                     p: 0.5,
                     borderRadius: '8px',
+                    userSelect: 'none',
                     cursor: cell.inMonth ? 'pointer' : 'default',
                     opacity: cell.inMonth ? 1 : 0.3,
                     bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
@@ -376,7 +402,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           </Box>
 
           {/* Legend */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'var(--line)' }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'var(--line)' }}>
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
               <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
@@ -385,6 +411,9 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                 </Typography>
               </Box>
             ))}
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', ml: 'auto', fontStyle: 'italic' }}>
+              {t('dynamicPricing.calendar.rangeHint', 'Cliquez-glissez pour sélectionner une plage')}
+            </Typography>
           </Box>
         </Paper>
       )}

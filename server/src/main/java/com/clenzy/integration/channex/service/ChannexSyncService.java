@@ -1,6 +1,5 @@
 package com.clenzy.integration.channex.service;
 
-import com.clenzy.config.KafkaConfig;
 import com.clenzy.integration.channex.client.ChannexClient;
 import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexAvailabilityUpdate;
@@ -13,11 +12,8 @@ import com.clenzy.model.CalendarDay;
 import com.clenzy.model.CalendarDayStatus;
 import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.service.PriceEngine;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,11 +30,11 @@ import java.util.Optional;
 /**
  * Service de synchronisation sortante vers Channex.
  *
- * <p>Architecture : consomme le topic Kafka {@link KafkaConfig#TOPIC_CALENDAR_UPDATES}
- * en parallele de {@link com.clenzy.integration.channel.ChannelSyncService} (groupId
- * distinct : {@code clenzy-channex-sync}) pour pousser les changements de
- * disponibilite et de prix vers Channex, qui se charge ensuite de propager
- * vers les OTAs (Airbnb, Booking, Vrbo, ...).</p>
+ * <p>Architecture : les events du topic {@code calendar.updates} sont consommes
+ * par {@link ChannexCalendarUpdateListener}, agreges par propriete dans
+ * {@link ChannexAriBatcher} (fenetre 30-60 s + rate limits Channex), puis
+ * pousses ici via {@link #processCalendarRange}. Channex propage ensuite vers
+ * les OTAs (Airbnb, Booking, Vrbo, ...).</p>
  *
  * <p><b>Regle metier importante :</b> si une property a un
  * {@link ChannexPropertyMapping} actif, on assume que ses OTAs sont gerees
@@ -51,13 +47,11 @@ import java.util.Optional;
 public class ChannexSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(ChannexSyncService.class);
-    private static final String KAFKA_GROUP_ID = "clenzy-channex-sync";
 
     private final ChannexClient channexClient;
     private final ChannexPropertyMappingRepository mappingRepository;
     private final CalendarDayRepository calendarDayRepository;
     private final PriceEngine priceEngine;
-    private final ObjectMapper objectMapper;
     private final ChannexMetrics metrics;
     private final ChannexSyncLogService syncLogService;
     private final com.clenzy.repository.PropertyRepository propertyRepository;
@@ -66,12 +60,12 @@ public class ChannexSyncService {
     private final com.clenzy.repository.LengthOfStayDiscountRepository lengthOfStayDiscountRepository;
     private final com.clenzy.repository.RatePlanRepository ratePlanRepository;
     private final com.clenzy.integration.channel.ChannelRoutingStrategy routingStrategy;
+    private final com.clenzy.integration.channex.config.ChannexProperties channexProperties;
 
     public ChannexSyncService(ChannexClient channexClient,
                                 ChannexPropertyMappingRepository mappingRepository,
                                 CalendarDayRepository calendarDayRepository,
                                 PriceEngine priceEngine,
-                                ObjectMapper objectMapper,
                                 ChannexMetrics metrics,
                                 ChannexSyncLogService syncLogService,
                                 com.clenzy.repository.PropertyRepository propertyRepository,
@@ -79,12 +73,12 @@ public class ChannexSyncService {
                                 com.clenzy.repository.OccupancyPricingRepository occupancyPricingRepository,
                                 com.clenzy.repository.LengthOfStayDiscountRepository lengthOfStayDiscountRepository,
                                 com.clenzy.repository.RatePlanRepository ratePlanRepository,
-                                com.clenzy.integration.channel.ChannelRoutingStrategy routingStrategy) {
+                                com.clenzy.integration.channel.ChannelRoutingStrategy routingStrategy,
+                                com.clenzy.integration.channex.config.ChannexProperties channexProperties) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.calendarDayRepository = calendarDayRepository;
         this.priceEngine = priceEngine;
-        this.objectMapper = objectMapper;
         this.metrics = metrics;
         this.syncLogService = syncLogService;
         this.propertyRepository = propertyRepository;
@@ -93,84 +87,72 @@ public class ChannexSyncService {
         this.lengthOfStayDiscountRepository = lengthOfStayDiscountRepository;
         this.ratePlanRepository = ratePlanRepository;
         this.routingStrategy = routingStrategy;
+        this.channexProperties = channexProperties;
     }
 
-    // ─── Kafka consumer ─────────────────────────────────────────────────────
+    // ─── Push declenche par le batcher ARI ──────────────────────────────────
 
     /**
-     * Consomme les events emis par CalendarEngine / PriceEngine via OutboxRelay.
+     * Pousse une plage agregee par {@link ChannexAriBatcher} (les events Kafka
+     * {@code calendar.updates} n'appellent plus l'API directement — exigence de
+     * certification Channex : batching par propriete + rate limits).
      *
-     * <p>Skip silencieux (return normal) si la property n'a pas de mapping Channex actif.
-     * Les echecs de push OTA sont enregistres en statut ERROR sur le mapping
-     * ({@code updateMappingStatus}) puis rejoues par {@link #retryFailedMappings()}. Toute
-     * autre erreur de traitement <b>se propage</b> : le DefaultErrorHandler Kafka rejoue
-     * (backoff) puis route vers la DLT {@code calendar.updates.DLT} — jamais d'avalage
-     * silencieux qui neutraliserait la DLT (audit #7).</p>
+     * <p>Skips silencieux (résultat success=true) : property sans mapping actif,
+     * mapping DISABLED, routage natif prioritaire, aucun OTA actif cote Channex.
+     * Les echecs de push OTA marquent le mapping ERROR ({@code updateMappingStatus})
+     * et remontent success=false — le batcher re-tente avec backoff, puis
+     * {@link #retryFailedMappings()} prend le relais.</p>
      */
-    @SuppressWarnings("unchecked")
     @Transactional
-    @KafkaListener(topics = KafkaConfig.TOPIC_CALENDAR_UPDATES, groupId = KAFKA_GROUP_ID)
-    public void onCalendarUpdate(Object payload) {
-        Map<String, Object> event = unwrapPayload(payload);
-        if (event == null) return;
-
-        Long propertyId = extractLong(event, "propertyId");
-        Long orgId = extractLong(event, "orgId");
-        String action = (String) event.get("action");
-        LocalDate from = parseDate(event, "from");
-        LocalDate to = parseDate(event, "to");
-
-        if (propertyId == null || orgId == null || from == null || to == null) {
-            log.debug("ChannexSync: event incomplet, skip (propertyId={}, orgId={}, from={}, to={})",
-                propertyId, orgId, from, to);
-            return;
-        }
-
+    public ChannexSyncResult processCalendarRange(Long propertyId, Long orgId,
+                                                  LocalDate from, LocalDate to) {
         Optional<ChannexPropertyMapping> mappingOpt =
             mappingRepository.findByClenzyPropertyId(propertyId, orgId);
         if (mappingOpt.isEmpty()) {
             // Property non geree par Channex — silence (les connectors directs s'en chargent)
-            return;
+            return new ChannexSyncResult(true, "skip: no mapping", 0, 0);
         }
 
         ChannexPropertyMapping mapping = mappingOpt.get();
-        ChannexSyncStatus status = mapping.getSyncStatus();
-        if (status == ChannexSyncStatus.DISABLED) {
+        if (mapping.getSyncStatus() == ChannexSyncStatus.DISABLED) {
             log.debug("ChannexSync: mapping {} disabled, skip", mapping.getId());
-            return;
+            return new ChannexSyncResult(true, "skip: mapping disabled", 0, 0);
         }
 
         // Routage CM natif (anti double-push) : si la propriete a un mapping DIRECT actif, le
         // connecteur natif s'en charge (prioritaire) — Channex ne pousse pas pour eviter le doublon.
         if (routingStrategy.resolve(propertyId, orgId) != com.clenzy.integration.channel.ChannelRoute.CHANNEX) {
             log.debug("ChannexSync: property={} routee en direct (natif prioritaire), skip Channex", propertyId);
-            return;
+            return new ChannexSyncResult(true, "skip: routed to native connector", 0, 0);
         }
 
-        // Gate OTA : meme regle que pushProperty() — pas de push tant qu'aucun
-        // OTA n'est branche cote Channex (sinon les events Kafka generent des
-        // appels API gaspilles vers Channex sans aucune distribution OTA).
-        try {
+        // Gate OTA : pas de push tant qu'aucun OTA n'est branche cote Channex
+        // (sinon appels API gaspilles sans aucune distribution OTA).
+        // Bypass dev/staging (certification) : channexProperties.allowPushWithoutActiveOta.
+        if (!channexProperties.isAllowPushWithoutActiveOta()) {
+          try {
             if (!channexClient.hasActiveOtaChannel(mapping.getChannexPropertyId())) {
-                log.debug("ChannexSync: event skip property={} (aucun OTA actif cote Channex)",
+                log.debug("ChannexSync: push skip property={} (aucun OTA actif cote Channex)",
                     propertyId);
-                return;
+                return new ChannexSyncResult(true, "skip: no active OTA channel", 0, 0);
             }
-        } catch (Exception e) {
+          } catch (Exception e) {
             // En cas d'erreur sur le check : continuer le push (preferable a un skip silencieux)
             log.warn("ChannexSync: check OTA actif KO ({}), push tente quand meme", e.getMessage());
+          }
         }
 
-        log.info("ChannexSync: push declenche action={} property={} period=[{},{}]",
-            action, propertyId, from, to);
+        log.info("ChannexSync: push batche property={} period=[{},{}]", propertyId, from, to);
 
         // Push availability + rates (les 2 sont independants — un echec n'impacte pas l'autre).
-        // Les echecs OTA sont catch dans les methodes de push et enregistres en ERROR (rejoues par
-        // retryFailedMappings). Toute autre erreur se propage -> retry Kafka -> DLT (audit #7).
+        // Les echecs OTA sont catch dans les methodes de push et enregistres en ERROR.
         boolean availabilityOk = pushAvailabilityForRange(mapping, from, to);
         boolean ratesOk = pushRatesForRange(mapping, from, to);
 
         updateMappingStatus(mapping, availabilityOk && ratesOk, null);
+        boolean ok = availabilityOk && ratesOk;
+        return new ChannexSyncResult(ok,
+            ok ? "ok" : "partial failure: avail=" + availabilityOk + " rates=" + ratesOk, 0, 0);
     }
 
     // ─── Push methods (visibles tests + appelables manuellement) ────────────
@@ -214,7 +196,9 @@ public class ChannexSyncService {
         // On evite ainsi les appels API gaspilles + la pollution Channex au stade
         // ou l'utilisateur n'a fait que connecter la property mais pas encore
         // l'OAuth Airbnb / les credentials Booking.
-        try {
+        // Bypass dev/staging (certification) : channexProperties.allowPushWithoutActiveOta.
+        if (!channexProperties.isAllowPushWithoutActiveOta()) {
+          try {
             if (!channexClient.hasActiveOtaChannel(mapping.getChannexPropertyId())) {
                 log.info("ChannexSync: skip push property={} (aucun OTA actif cote Channex)",
                     propertyId);
@@ -225,11 +209,12 @@ public class ChannexSyncService {
                 return new ChannexSyncResult(true,
                     "Skipped: no active OTA channel — connect Airbnb/Booking first", 0, 0);
             }
-        } catch (Exception e) {
+          } catch (Exception e) {
             // En cas d'erreur sur le check (network, 5xx Channex), on log mais on
             // continue le push : preferable de tenter qu'echouer silencieusement.
             log.warn("ChannexSync: impossible de verifier les OTA actifs ({}), on tente le push quand meme",
                 e.getMessage());
+          }
         }
 
         boolean availOk = pushAvailabilityForRange(mapping, from, to);
@@ -287,7 +272,9 @@ public class ChannexSyncService {
                 ));
             }
 
-            channexClient.pushAvailability(updates);
+            com.clenzy.integration.channex.dto.ChannexAriPushResult pushResult =
+                channexClient.pushAvailability(updates);
+            recordAriOutcome(mapping, "availability", pushResult);
             metrics.recordSyncSuccess("push_availability", System.currentTimeMillis() - startMs);
             return true;
         } catch (ChannexException e) {
@@ -313,8 +300,13 @@ public class ChannexSyncService {
     private boolean pushRatesForRange(ChannexPropertyMapping mapping, LocalDate from, LocalDate to) {
         long startMs = System.currentTimeMillis();
         try {
+            // resolvePriceRange est EXCLUSIF sur `to` (PriceEngine: date.isBefore(to)).
+            // On passe to.plusDays(1) pour couvrir [from, to] INCLUS — sinon le
+            // dernier jour de la plage n'a jamais de prix, et une plage d'un seul
+            // jour (from==to) ne pousse aucun prix. Cohérent avec l'availability
+            // (itération inclusive) et les restrictions ci-dessous (to.plusDays(1)).
             Map<LocalDate, BigDecimal> prices = priceEngine.resolvePriceRange(
-                mapping.getClenzyPropertyId(), from, to, mapping.getOrganizationId()
+                mapping.getClenzyPropertyId(), from, to.plusDays(1), mapping.getOrganizationId()
             );
 
             // Phase 5 : pre-charge les BookingRestriction applicables sur la plage
@@ -344,11 +336,14 @@ public class ChannexSyncService {
                         restriction != null ? restriction.getMinStay() : null,
                         restriction != null ? restriction.getMinStayArrival() : null,
                         restriction != null ? restriction.getClosedToArrival() : null,
-                        restriction != null ? restriction.getClosedToDeparture() : null
+                        restriction != null ? restriction.getClosedToDeparture() : null,
+                        restriction != null ? restriction.getMaxStay() : null
                     ));
                 }
             }
-            channexClient.pushRates(updates);
+            com.clenzy.integration.channex.dto.ChannexAriPushResult pushResult =
+                channexClient.pushRates(updates);
+            recordAriOutcome(mapping, "rates", pushResult);
             metrics.recordSyncSuccess("push_rates", System.currentTimeMillis() - startMs);
             return true;
         } catch (ChannexException e) {
@@ -369,6 +364,37 @@ public class ChannexSyncService {
      * plage tri par priority DESC. On filtre en memoire sur la date specifique
      * et on prend la premiere (== plus haute priority).</p>
      */
+    /**
+     * Trace le resultat d'un push ARI : les task IDs (traitement asynchrone
+     * Channex, exiges pour la certification) en INFO, et les
+     * {@code meta.warnings} en sync log — une entree en warning a ete IGNOREE
+     * par Channex (200 OK trompeur), la passer sous silence = donnee perdue.
+     */
+    private void recordAriOutcome(ChannexPropertyMapping mapping, String kind,
+                                  com.clenzy.integration.channex.dto.ChannexAriPushResult result) {
+        if (result == null) return;
+        if (!result.taskIds().isEmpty()) {
+            log.info("ChannexSync[{}]: property={} task_ids={}", kind,
+                mapping.getClenzyPropertyId(), result.taskIds());
+        }
+        if (result.hasWarnings()) {
+            String detail = String.join(" | ", result.warnings());
+            log.warn("ChannexSync[{}]: property={} {} warning(s) de validation Channex : {}",
+                kind, mapping.getClenzyPropertyId(), result.warnings().size(), detail);
+            syncLogService.record(mapping.getOrganizationId(), mapping.getClenzyPropertyId(),
+                mapping.getId(),
+                com.clenzy.integration.channex.model.ChannexSyncLog.SyncType.PUSH_PROPERTY,
+                com.clenzy.integration.channex.model.ChannexSyncLog.Status.FAIL,
+                result.warnings().size(), java.time.Instant.now(),
+                "ARI " + kind + " — entrees ignorees par Channex (meta.warnings): "
+                    + truncateForLog(detail));
+        }
+    }
+
+    private static String truncateForLog(String s) {
+        return s != null && s.length() > 900 ? s.substring(0, 900) + "…" : s;
+    }
+
     private com.clenzy.model.BookingRestriction pickHighestPriorityFor(
             List<com.clenzy.model.BookingRestriction> applicables, LocalDate date) {
         for (com.clenzy.model.BookingRestriction br : applicables) {
@@ -593,46 +619,6 @@ public class ChannexSyncService {
             }
         }
         log.info("ChannexSync retry: {} mappings recuperes sur {}", recovered, failed.size());
-    }
-
-    // ─── Payload helpers (factorises avec ChannelSyncService) ───────────────
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> unwrapPayload(Object payload) {
-        if (payload instanceof Map) return (Map<String, Object>) payload;
-        try {
-            if (payload instanceof ConsumerRecord<?, ?> record) {
-                Object value = record.value();
-                if (value instanceof Map) return (Map<String, Object>) value;
-                if (value instanceof String s) return objectMapper.readValue(s, Map.class);
-            }
-            if (payload instanceof String s) return objectMapper.readValue(s, Map.class);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            // Payload JSON illisible = erreur de traitement -> propagee (retry Kafka -> DLT, audit #7)
-            throw new IllegalStateException("ChannexSync: payload JSON illisible", e);
-        }
-        log.debug("ChannexSync: payload type inattendu {}, skip", payload != null ? payload.getClass().getName() : "null");
-        return null;
-    }
-
-    private static Long extractLong(Map<String, Object> event, String key) {
-        Object v = event.get(key);
-        if (v == null) return null;
-        if (v instanceof Number n) return n.longValue();
-        if (v instanceof String s) {
-            try { return Long.parseLong(s); } catch (NumberFormatException ignored) { return null; }
-        }
-        return null;
-    }
-
-    private static LocalDate parseDate(Map<String, Object> event, String key) {
-        Object v = event.get(key);
-        if (v == null) return null;
-        if (v instanceof LocalDate d) return d;
-        if (v instanceof String s) {
-            try { return LocalDate.parse(s); } catch (DateTimeParseException ignored) { return null; }
-        }
-        return null;
     }
 
     /** Resultat d'un push manuel pour reporting UI. */

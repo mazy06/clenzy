@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -594,16 +595,18 @@ class ChannexClientExtendedTest {
     }
 
     @Test
-    @DisplayName("pushRates: avec restrictions complete (min stay, CTA, CTD)")
+    @DisplayName("pushRates: avec restrictions complete (min stay, CTA, CTD, max stay)")
     void pushRates_withRestrictions() {
         mockServer.expect(requestTo(BASE + "/restrictions"))
             .andExpect(method(HttpMethod.POST))
+            .andExpect(jsonPath("$.values[0].max_stay").value(14))
+            .andExpect(jsonPath("$.values[0].min_stay_through").value(3))
             .andRespond(withSuccess());
 
         client.pushRates(List.of(
             new ChannexRateUpdate("prop-1", "rp-1",
                 LocalDate.of(2026, 6, 1), new BigDecimal("100.00"),
-                3, 2, true, false)
+                3, 2, true, false, 14)
         ));
         mockServer.verify();
     }

@@ -8,12 +8,17 @@ import com.clenzy.model.RatePlanType;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RatePlanRepository;
 import com.clenzy.tenant.TenantContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -29,19 +34,65 @@ import java.util.stream.Collectors;
 @Service
 public class RatePlanService {
 
+    private static final Logger log = LoggerFactory.getLogger(RatePlanService.class);
+
+    /** Fenêtre de propagation par défaut pour un plan sans date de fin. */
+    private static final int DEFAULT_PROPAGATION_DAYS = 500;
+
     private final RatePlanRepository ratePlanRepository;
     private final PropertyRepository propertyRepository;
     private final ReservationService reservationService;
     private final TenantContext tenantContext;
+    private final OutboxPublisher outboxPublisher;
+    private final ObjectMapper objectMapper;
+    private final Clock clock;
 
     public RatePlanService(RatePlanRepository ratePlanRepository,
                            PropertyRepository propertyRepository,
                            ReservationService reservationService,
-                           TenantContext tenantContext) {
+                           TenantContext tenantContext,
+                           OutboxPublisher outboxPublisher,
+                           ObjectMapper objectMapper,
+                           Clock clock) {
         this.ratePlanRepository = ratePlanRepository;
         this.propertyRepository = propertyRepository;
         this.reservationService = reservationService;
         this.tenantContext = tenantContext;
+        this.outboxPublisher = outboxPublisher;
+        this.objectMapper = objectMapper;
+        this.clock = clock;
+    }
+
+    /**
+     * Publie un event calendrier {@code RATE_UPDATED} sur la plage d'application
+     * du plan tarifaire — sinon un changement de prix de rate plan ne se propage
+     * PAS aux canaux (Channex). Même pattern outbox que {@link RateOverrideService}.
+     * Plage INCLUSIVE [from, to] (cf. ChannexSyncService.pushRatesForRange).
+     * Un plan sans startDate/endDate = fenêtre par défaut [aujourd'hui, +N j].
+     * Ne pousse jamais de dates passées.
+     */
+    private void publishRatePlanEvent(RatePlan plan) {
+        try {
+            Long propertyId = plan.getProperty().getId();
+            Long orgId = plan.getOrganizationId();
+            LocalDate today = LocalDate.now(clock);
+            LocalDate from = plan.getStartDate() != null ? plan.getStartDate() : today;
+            LocalDate to = plan.getEndDate() != null ? plan.getEndDate()
+                    : from.plusDays(DEFAULT_PROPAGATION_DAYS);
+            if (from.isBefore(today)) from = today;      // pas de push sur le passé
+            if (to.isBefore(from)) return;               // rien à pousser
+            String payload = objectMapper.writeValueAsString(Map.of(
+                "action", "RATE_UPDATED",
+                "propertyId", propertyId,
+                "orgId", orgId,
+                "from", from.toString(),
+                "to", to.toString()
+            ));
+            outboxPublisher.publishCalendarEvent("RATE_UPDATED", propertyId, orgId, payload);
+        } catch (Exception e) {
+            log.error("Failed to publish rate plan event (plan={}): {}",
+                plan.getId(), e.getMessage());
+        }
     }
 
     /** Plans tarifaires d'une propriete. */
@@ -74,7 +125,9 @@ public class RatePlanService {
         if (dto.minStayOverride() != null) plan.setMinStayOverride(dto.minStayOverride());
         plan.setIsActive(dto.isActive() != null ? dto.isActive() : true);
 
-        return toDto(ratePlanRepository.save(plan));
+        RatePlan saved = ratePlanRepository.save(plan);
+        publishRatePlanEvent(saved); // propage les prix aux OTAs (Channex)
+        return toDto(saved);
     }
 
     /** Met a jour un plan tarifaire (patch partiel champ a champ). */
@@ -97,7 +150,9 @@ public class RatePlanService {
         if (dto.minStayOverride() != null) existing.setMinStayOverride(dto.minStayOverride());
         if (dto.isActive() != null) existing.setIsActive(dto.isActive());
 
-        return toDto(ratePlanRepository.save(existing));
+        RatePlan saved = ratePlanRepository.save(existing);
+        publishRatePlanEvent(saved); // propage les prix aux OTAs (Channex)
+        return toDto(saved);
     }
 
     /** Supprime un plan tarifaire apres validation d'org de la propriete porteuse. */
@@ -109,6 +164,8 @@ public class RatePlanService {
         reservationService.validatePropertyAccess(existing.getProperty().getId(), keycloakId);
 
         ratePlanRepository.delete(existing);
+        // Suppression = les prix de la plage redeviennent base/défaut → propager.
+        publishRatePlanEvent(existing);
     }
 
     private RatePlanDto toDto(RatePlan entity) {

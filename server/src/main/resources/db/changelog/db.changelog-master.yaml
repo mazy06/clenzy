@@ -3223,3 +3223,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0334__add_supervision_suggestion_dismissed_at.sql
         relativeToChangelogFile: true
+
+  # Channex Booking CRS : id du booking Channex pour les resas directes poussees (ota Offline).
+  - changeSet:
+      id: "0335-add-reservation-channex-crs-booking-id"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0335__add_reservation_channex_crs_booking_id.sql
+        relativeToChangelogFile: true

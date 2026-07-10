@@ -21,6 +21,8 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ChannexBookingDto(
     String id,
+    @JsonProperty("booking_id") String bookingId,
+    @JsonProperty("unique_id") String uniqueId,
     @JsonProperty("ota_reservation_code") String otaReservationCode,
     @JsonProperty("ota_name") String otaName,
     @JsonProperty("property_id") String propertyId,
@@ -32,6 +34,23 @@ public record ChannexBookingDto(
     @JsonProperty("customer") ChannexCustomer customer,
     @JsonProperty("rooms") List<ChannexBookingRoom> rooms
 ) {
+
+    /**
+     * Identifiant STABLE du booking, quel que soit le format recu :
+     * <ul>
+     *   <li>booking revision (feed / webhook revision) : {@code booking_id}
+     *       porte l'id du booking, {@code id} etant celui de la REVISION
+     *       (il change a chaque modification !) ;</li>
+     *   <li>booking direct ({@code GET /bookings/:id}) : {@code id} est l'id
+     *       du booking et {@code booking_id} est absent.</li>
+     * </ul>
+     * L'idempotence Clenzy ({@code Reservation.externalUid}) DOIT s'appuyer sur
+     * cet identifiant — utiliser {@code id()} directement creerait un doublon
+     * de reservation a chaque revision.
+     */
+    public String stableBookingId() {
+        return bookingId != null && !bookingId.isBlank() ? bookingId : id;
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ChannexCustomer(

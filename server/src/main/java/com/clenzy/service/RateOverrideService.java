@@ -7,6 +7,9 @@ import com.clenzy.model.RateOverride;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.tenant.TenantContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,22 +35,54 @@ import java.util.stream.Collectors;
 @Service
 public class RateOverrideService {
 
+    private static final Logger log = LoggerFactory.getLogger(RateOverrideService.class);
+
     private final RateOverrideRepository rateOverrideRepository;
     private final PropertyRepository propertyRepository;
     private final ReservationService reservationService;
     private final TenantContext tenantContext;
     private final SearchCacheInvalidator searchCacheInvalidator;
+    private final OutboxPublisher outboxPublisher;
+    private final ObjectMapper objectMapper;
 
     public RateOverrideService(RateOverrideRepository rateOverrideRepository,
                                PropertyRepository propertyRepository,
                                ReservationService reservationService,
                                TenantContext tenantContext,
-                               SearchCacheInvalidator searchCacheInvalidator) {
+                               SearchCacheInvalidator searchCacheInvalidator,
+                               OutboxPublisher outboxPublisher,
+                               ObjectMapper objectMapper) {
         this.rateOverrideRepository = rateOverrideRepository;
         this.propertyRepository = propertyRepository;
         this.reservationService = reservationService;
         this.tenantContext = tenantContext;
         this.searchCacheInvalidator = searchCacheInvalidator;
+        this.outboxPublisher = outboxPublisher;
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Publie un event calendrier {@code RATE_UPDATED} dans l'outbox (pattern
+     * transactionnel : ligne DB commit avec le prix, publiee sur Kafka
+     * {@code calendar.updates} apres commit par {@link OutboxPublisher}).
+     * Consomme par {@code ChannexCalendarUpdateListener} → batcher ARI → push
+     * des prix vers Channex. Sans ca, un changement de prix ne se propageait
+     * PAS aux OTAs (seules les restrictions et l'availability le faisaient).
+     * Plage inclusive [from, to] (cf. pushRatesForRange).
+     */
+    private void publishRateEvent(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
+        try {
+            String payload = objectMapper.writeValueAsString(Map.of(
+                "action", "RATE_UPDATED",
+                "propertyId", propertyId,
+                "orgId", orgId,
+                "from", from.toString(),
+                "to", to.toString()
+            ));
+            outboxPublisher.publishCalendarEvent("RATE_UPDATED", propertyId, orgId, payload);
+        } catch (Exception e) {
+            log.error("Failed to publish rate event (property={}): {}", propertyId, e.getMessage());
+        }
     }
 
     /** Overrides d'une propriete sur la plage [from, to]. */
@@ -71,16 +106,23 @@ public class RateOverrideService {
         Property property = propertyRepository.findById(dto.propertyId())
                 .orElseThrow(() -> new NotFoundException("Propriete introuvable: " + dto.propertyId()));
 
-        RateOverride override = new RateOverride(
-                property, LocalDate.parse(dto.date()),
-                BigDecimal.valueOf(dto.nightlyPrice()),
-                dto.source() != null ? dto.source() : "MANUAL", orgId);
+        LocalDate date = LocalDate.parse(dto.date());
+        // Upsert : contrainte unique (property_id, date) — ré-éditer une date
+        // existante met à jour le prix au lieu de planter (duplicate key).
+        RateOverride override = rateOverrideRepository
+                .findByPropertyIdAndDate(dto.propertyId(), date, orgId)
+                .orElseGet(() -> new RateOverride(property, date,
+                        BigDecimal.valueOf(dto.nightlyPrice()),
+                        dto.source() != null ? dto.source() : "MANUAL", orgId));
+        override.setNightlyPrice(BigDecimal.valueOf(dto.nightlyPrice()));
+        override.setSource(dto.source() != null ? dto.source() : "MANUAL");
         override.setCurrency(dto.currency() != null ? dto.currency()
                 : (property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR"));
         override.setCreatedBy(keycloakId);
 
         RateOverrideDto saved = toDto(rateOverrideRepository.save(override));
         searchCacheInvalidator.onAvailabilityOrPriceChanged(); // prix changé → invalide le calendrier agrégé
+        publishRateEvent(property.getId(), orgId, date, date); // propage le prix aux OTAs (Channex)
         return saved;
     }
 
@@ -109,12 +151,23 @@ public class RateOverrideService {
 
         List<RateOverride> created = new ArrayList<>();
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
-            RateOverride override = new RateOverride(property, date, price, source, orgId);
+            final LocalDate d = date;
+            // Upsert : ré-appliquer une période chevauchant des dates déjà
+            // surchargées met à jour au lieu de planter (unique (property_id, date)).
+            RateOverride override = rateOverrideRepository
+                    .findByPropertyIdAndDate(propertyId, d, orgId)
+                    .orElseGet(() -> new RateOverride(property, d, price, source, orgId));
+            override.setNightlyPrice(price);
+            override.setSource(source);
             override.setCurrency(currency);
             override.setCreatedBy(keycloakId);
             created.add(rateOverrideRepository.save(override));
         }
         searchCacheInvalidator.onAvailabilityOrPriceChanged(); // prix changés → invalide le calendrier agrégé
+        if (!created.isEmpty()) {
+            // Plage source [from, to) exclusive → event inclusif [from, to-1].
+            publishRateEvent(propertyId, orgId, from, to.minusDays(1));
+        }
 
         return Map.of(
                 "propertyId", propertyId,
@@ -135,8 +188,14 @@ public class RateOverrideService {
         // validee par la regle transverse (CLAUDE.md « Lecons », regle 3).
         reservationService.validatePropertyAccess(existing.getProperty().getId(), keycloakId);
 
+        // Capture avant suppression (entite bientot detachee).
+        Long propertyId = existing.getProperty().getId();
+        Long orgId = existing.getOrganizationId();
+        LocalDate date = existing.getDate();
+
         rateOverrideRepository.delete(existing);
         searchCacheInvalidator.onAvailabilityOrPriceChanged(); // prix changé → invalide le calendrier agrégé
+        publishRateEvent(propertyId, orgId, date, date); // suppression = prix redevient base → propager aux OTAs
     }
 
     private RateOverrideDto toDto(RateOverride entity) {

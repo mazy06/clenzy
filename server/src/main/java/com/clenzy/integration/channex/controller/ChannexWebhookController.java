@@ -3,7 +3,6 @@ package com.clenzy.integration.channex.controller;
 import com.clenzy.integration.channex.client.ChannexSignatureValidator;
 import com.clenzy.integration.channex.config.ChannexMetrics;
 import com.clenzy.integration.channex.dto.ChannexWebhookPayload;
-import com.clenzy.integration.channex.service.ChannexBookingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,29 +46,32 @@ public class ChannexWebhookController {
     private static final Logger log = LoggerFactory.getLogger(ChannexWebhookController.class);
 
     private final ChannexSignatureValidator signatureValidator;
-    private final ChannexBookingService bookingService;
+    // Flux primaire bookings : le webhook DECLENCHE un drain du feed de revisions
+    // (persist -> ack), il ne persiste plus lui-meme le payload embarque.
+    private final com.clenzy.integration.channex.service.ChannexBookingFeedService bookingFeedService;
     private final ObjectMapper objectMapper;
     private final ChannexMetrics metrics;
-    // Sprint A2 + A3 deps : pour re-ack + flag sync errors sur mapping
-    private final com.clenzy.integration.channex.client.ChannexClient channexClient;
+    // Sprint A3 : flag sync errors sur mapping
     private final com.clenzy.integration.channex.service.ChannexSyncErrorService syncErrorService;
     // Item 2 + 3 (paid apps) : routing webhooks Messages + Reviews
     private final com.clenzy.integration.channex.service.ChannexMessagingService messagingService;
+    // Phase B : unmapped bookings, rate_error/sync_warning, cycle de vie channel, events Airbnb
+    private final com.clenzy.integration.channex.service.ChannexChannelEventService channelEventService;
 
     public ChannexWebhookController(ChannexSignatureValidator signatureValidator,
-                                      ChannexBookingService bookingService,
+                                      com.clenzy.integration.channex.service.ChannexBookingFeedService bookingFeedService,
                                       ObjectMapper objectMapper,
                                       ChannexMetrics metrics,
-                                      com.clenzy.integration.channex.client.ChannexClient channexClient,
                                       com.clenzy.integration.channex.service.ChannexSyncErrorService syncErrorService,
-                                      com.clenzy.integration.channex.service.ChannexMessagingService messagingService) {
+                                      com.clenzy.integration.channex.service.ChannexMessagingService messagingService,
+                                      com.clenzy.integration.channex.service.ChannexChannelEventService channelEventService) {
         this.signatureValidator = signatureValidator;
-        this.bookingService = bookingService;
+        this.bookingFeedService = bookingFeedService;
         this.objectMapper = objectMapper;
         this.metrics = metrics;
-        this.channexClient = channexClient;
         this.syncErrorService = syncErrorService;
         this.messagingService = messagingService;
+        this.channelEventService = channelEventService;
     }
 
     @PostMapping
@@ -114,15 +116,38 @@ public class ChannexWebhookController {
         // 3. Dispatch
         try {
             ResponseEntity<Map<String, Object>> response = switch (payload.event()) {
-                case "booking_new" -> handleNewBooking(payload);
-                case "booking_modification" -> handleModification(payload);
-                case "booking_cancellation" -> handleCancellation(payload);
-                // Sprint A2 (Quick Win) — Channex notifie que le booking n'a pas
-                // ete acknowledged. On re-tente l'ack pour eviter les escalations OTA.
-                case "non_acked_booking" -> handleNonAckedBooking(payload);
+                // Doc Channex : les webhooks booking sont des DECLENCHEURS. La source
+                // de verite est le feed de revisions (persist -> ack par revision) —
+                // couvre aussi le desordre de livraison et les webhooks manques.
+                case "booking_new", "booking_modification", "booking_cancellation",
+                     "non_acked_booking", "booking" -> handleBookingTrigger(payload);
                 // Sprint A3 (Quick Win) — Channex notifie qu'un push availability/rates
                 // a echoue cote OTA. On flag le mapping en ERROR avec le detail.
                 case "sync_error" -> handleSyncError(payload);
+                // Phase B — resa sur room/rate NON mappe (priorite doc : risque de
+                // double reservation). On notifie ET on draine le feed (la revision
+                // doit quand meme etre persistee — le mapping Clenzy se resout par
+                // propriete, room_type_id null n'empeche pas la creation).
+                case "booking_unmapped_room", "booking_unmapped_rate" ->
+                    handleUnmappedBooking(payload);
+                // Phase B — tarifs rejetes par l'OTA / avertissement non bloquant
+                case "rate_error" -> handleChannelEvent(payload,
+                    () -> channelEventService.onRateError(payload.propertyId(), null));
+                case "sync_warning" -> handleChannelEvent(payload,
+                    () -> channelEventService.onSyncWarning(payload.propertyId(), null));
+                // Phase B — cycle de vie des canaux OTA (une deconnexion stoppe la
+                // distribution sans aucun autre signal cote PMS)
+                case "new_channel", "updated_channel", "activate_channel",
+                     "deactivate_channel", "disconnect_channel", "disconnect_listing" ->
+                    handleChannelEvent(payload,
+                        () -> channelEventService.onChannelLifecycleEvent(
+                            payload.propertyId(), payload.event()));
+                // Phase B — evenements Airbnb (l'action se fait dans l'ecran Channex)
+                case "reservation_request", "alteration_request", "inquiry",
+                     "accepted_reservation", "declined_reservation" ->
+                    handleChannelEvent(payload,
+                        () -> channelEventService.onAirbnbEvent(
+                            payload.propertyId(), payload.event()));
                 // Item 2 (Messages App) — nouveau message guest OTA recu via Channex
                 case "message" -> handleChannexMessage(rawBody);
                 // Item 3 (Reviews App) — nouvelle review ou mise a jour
@@ -156,78 +181,61 @@ public class ChannexWebhookController {
 
     // ─── Dispatchers ────────────────────────────────────────────────────────
 
-    private ResponseEntity<Map<String, Object>> handleNewBooking(ChannexWebhookPayload payload) {
-        if (payload.payload() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "missing_booking_payload"));
-        }
-        var reservation = bookingService.handleNewBooking(payload.payload());
+    /**
+     * Trigger unique pour tous les evenements booking ({@code booking_new},
+     * {@code booking_modification}, {@code booking_cancellation},
+     * {@code non_acked_booking}, {@code booking}) : draine le feed de revisions
+     * non acquittees (persist → ack par revision).
+     *
+     * <p>Le payload embarque dans le webhook n'est plus la source de verite
+     * (doc Channex : ordre non garanti) — la revision concernee est dans le
+     * feed tant qu'elle n'est pas ackee, le drain la traite donc forcement.
+     * Reponse 200 systematique si le drain a tourne : les echecs partiels
+     * restent dans le feed et sont re-tentes (webhook suivant ou scheduler),
+     * inutile que Channex re-livre le webhook.</p>
+     */
+    private ResponseEntity<Map<String, Object>> handleBookingTrigger(ChannexWebhookPayload payload) {
+        var result = bookingFeedService.processFeed();
         return ResponseEntity.ok(Map.of(
             "status", "ok",
-            "event", "booking_new",
-            "reservationId", reservation.getId(),
-            "confirmationCode", reservation.getConfirmationCode()
+            "event", payload.event(),
+            "revisionsProcessed", result.processed(),
+            "revisionsAcked", result.acked(),
+            "revisionsFailed", result.failed()
         ));
     }
 
-    private ResponseEntity<Map<String, Object>> handleModification(ChannexWebhookPayload payload) {
-        if (payload.payload() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "missing_booking_payload"));
-        }
-        var reservation = bookingService.handleModification(payload.payload());
-        return ResponseEntity.ok(reservation
-            .<Map<String, Object>>map(r -> Map.of(
-                "status", "ok",
-                "event", "booking_modification",
-                "reservationId", (Object) r.getId()
-            ))
-            .orElse(Map.of("status", "not_found", "event", "booking_modification")));
-    }
-
-    private ResponseEntity<Map<String, Object>> handleCancellation(ChannexWebhookPayload payload) {
-        if (payload.payload() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "missing_booking_payload"));
-        }
-        var reservation = bookingService.handleCancellation(payload.payload());
-        return ResponseEntity.ok(reservation
-            .<Map<String, Object>>map(r -> Map.of(
-                "status", "ok",
-                "event", "booking_cancellation",
-                "reservationId", (Object) r.getId()
-            ))
-            .orElse(Map.of("status", "not_found", "event", "booking_cancellation")));
+    /**
+     * Phase B — resa sur room/rate non mappe : notification + sync log (via
+     * ChannexChannelEventService) PUIS drain du feed (la revision est
+     * persistee malgre le room_type_id null — resolution par propriete).
+     */
+    private ResponseEntity<Map<String, Object>> handleUnmappedBooking(ChannexWebhookPayload payload) {
+        boolean notified = channelEventService.onUnmappedBooking(
+            payload.propertyId(), payload.event());
+        var result = bookingFeedService.processFeed();
+        return ResponseEntity.ok(Map.of(
+            "status", "ok",
+            "event", payload.event(),
+            "notified", notified,
+            "revisionsProcessed", result.processed(),
+            "revisionsAcked", result.acked()
+        ));
     }
 
     /**
-     * Sprint A2 — Channex notifie qu'un booking n'a pas ete acknowledged.
-     * On re-tente l'ack pour eviter qu'Airbnb escalade. Best-effort : si
-     * l'ack echoue (booking deja confirme, 404, etc.), on log mais on retourne
-     * 200 OK pour ne pas que Channex re-tente en boucle.
+     * Phase B — handler generique des evenements de canal : delegue au service
+     * (notification + logs), repond 200 dans tous les cas (mapping absent =
+     * ignored, inutile que Channex re-livre).
      */
-    private ResponseEntity<Map<String, Object>> handleNonAckedBooking(ChannexWebhookPayload payload) {
-        String bookingId = payload.payload() != null ? payload.payload().id() : null;
-        if (bookingId == null || bookingId.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "missing_booking_id"));
-        }
-        try {
-            channexClient.acknowledgeBooking(bookingId);
-            log.info("Channex webhook[non_acked_booking]: booking={} re-acknowledged", bookingId);
-            return ResponseEntity.ok(Map.of(
-                "status", "ok",
-                "event", "non_acked_booking",
-                "bookingId", bookingId,
-                "action", "re_acknowledged"
-            ));
-        } catch (Exception e) {
-            log.warn("Channex webhook[non_acked_booking]: re-ack KO booking={}: {}",
-                bookingId, e.getMessage());
-            // 200 OK quand meme : on a essaye notre best, pas de retry Channex utile
-            return ResponseEntity.ok(Map.of(
-                "status", "ok_swallowed",
-                "event", "non_acked_booking",
-                "bookingId", bookingId,
-                "error", e.getMessage()
-            ));
-        }
+    private ResponseEntity<Map<String, Object>> handleChannelEvent(
+            ChannexWebhookPayload payload, java.util.function.BooleanSupplier action) {
+        boolean handled = action.getAsBoolean();
+        return ResponseEntity.ok(Map.of(
+            "status", handled ? "ok" : "ignored",
+            "event", payload.event(),
+            handled ? "action" : "reason", handled ? "notified" : "no_mapping"
+        ));
     }
 
     /**

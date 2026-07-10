@@ -305,10 +305,10 @@ export const channexApi = {
   },
 
   /**
-   * Force un re-push complet d'une property (1 a 12 mois, defaut 6).
+   * Re-push d'une property. months=0 (defaut) = FULL SYNC 500 jours (doc Channex), 1-12 = fenetre restreinte.
    * Utile pour recuperer un mapping en ERROR ou apres changement de prix.
    */
-  resync(clenzyPropertyId: number, months: number = 6): Promise<ChannexSyncResult> {
+  resync(clenzyPropertyId: number, months: number = 0): Promise<ChannexSyncResult> {
     return apiClient.post<ChannexSyncResult>(
       `/integrations/channex/properties/${clenzyPropertyId}/resync`,
       undefined,
