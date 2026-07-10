@@ -11,6 +11,7 @@ import { AutoAwesome, ChevronDown } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { AGENT_META } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
+import { toolIconFor } from '../renderers/toolIcon';
 import type { FeedEntry, PortfolioFeedEntry } from '../types';
 
 function hhmm(iso: string): string {
@@ -47,6 +48,10 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
         // Entrée orchestrateur (réponse chat) : identité d'accent + icône assistant.
         const isOrchestrator = 'orchestrator' in entry && entry.orchestrator;
         const meta = AGENT_META[entry.agentId];
+        // Icône = NATURE de l'action (toolName) ; repli sur l'icône d'agent si le
+        // toolName est absent/inconnu (résumés & entrées mock). La couleur du carré
+        // encode l'agent, donc l'icône n'a pas à le redoubler.
+        const toolIcon = isOrchestrator ? null : toolIconFor(entry.toolName, 14);
         const propertyName = 'propertyName' in entry ? entry.propertyName : undefined;
         const detail = detailFor(entry);
         const isOpen = expanded.has(entry.id);
@@ -68,7 +73,7 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
                 flexShrink: 0,
               }}
             >
-              {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : <AgentIcon token={meta.icon} size={14} />}
+              {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : (toolIcon ?? <AgentIcon token={meta.icon} size={14} />)}
             </Box>
             <Box sx={{ minWidth: 0 }}>
               <Box sx={{ fontSize: 11, color: 'var(--muted, #6b7196)', fontVariantNumeric: 'tabular-nums' }}>
