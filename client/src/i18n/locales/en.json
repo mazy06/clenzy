@@ -189,7 +189,12 @@
       "title": "Report · 30 days",
       "titleBase": "Report",
       "windowDays": "{{count}} days",
-      "win": { "day": "Day", "week": "Week", "fortnight": "Fortn.", "month": "Month" },
+      "win": {
+        "day": "Day",
+        "week": "Week",
+        "fortnight": "Fortn.",
+        "month": "Month"
+      },
       "timeSaved": "Time saved",
       "autoActions": "Auto actions",
       "acceptance": "Acceptance"
@@ -1610,7 +1615,23 @@
     "activeFeatures": "Active options",
     "department": "Department",
     "arrondissement": "District",
-    "addressAutocomplete": "Search for an address..."
+    "addressAutocomplete": "Search for an address...",
+    "cleaningEstimator": {
+      "engineBadge": "Baitly Cleaning Engine",
+      "adopted": "Property price aligned with recommendation",
+      "adoptAsBasePrice": "Adopt as property price",
+      "currentBasePrice": "Current property price",
+      "breakdownTitle": "Time breakdown",
+      "breakdown": {
+        "base": "Base (bedrooms)",
+        "bathrooms": "Extra bathrooms",
+        "surface": "Surface above threshold",
+        "floors": "Extra floors",
+        "exterior": "Exterior",
+        "laundry": "Laundry / linen",
+        "guests": "Guests above 4"
+      }
+    }
   },
   "serviceRequests": {
     "detail": {
@@ -3345,7 +3366,8 @@
       "exterieur": "Outdoor",
       "blanchisserie": "Laundry",
       "monitoring": "Monitoring",
-      "taxeSejour": "Tourist tax"
+      "taxeSejour": "Tourist tax",
+      "menage": "Cleaning"
     },
     "monitoring": {
       "title": "Property Noise Monitoring",
@@ -3601,6 +3623,33 @@
       "price": "Price",
       "key": "Identifier",
       "keyHelp": "Unique identifier (e.g., deep_cleaning, custom_service)"
+    },
+    "cleaning": {
+      "intro": "The Cleaning Engine computes a single recommended price: standardized minutes per property component × hourly rate × cleaning-type multiplier. Empty field = platform default.",
+      "workTime": "Work time",
+      "baseByBedrooms": "Base minutes by bedroom count",
+      "bedroomsN": "{{n}} bd.",
+      "bedrooms5plus": "5+ bd.",
+      "perExtraBathroom": "Per extra bathroom",
+      "surfaceThreshold": "Surface threshold",
+      "surfaceStep": "Surface step",
+      "surfaceStepMinutes": "Minutes per step",
+      "perExtraFloor": "Per extra floor",
+      "exterior": "Exterior",
+      "laundry": "Laundry / linen",
+      "perGuestAbove4": "Per guest above 4",
+      "ratesAndRounding": "Rates & rounding",
+      "hourlyRate": "Reference hourly rate",
+      "rangePercent": "Range (±)",
+      "roundTo": "Round to multiple of",
+      "minPrice": "Price floor",
+      "cleaningTypes": "Cleaning types",
+      "simulator": "Simulator",
+      "simulatorSavedConfigHint": "The simulation uses the SAVED grid on the server. Save your changes (Save button at the top) to see them reflected here.",
+      "simulatorProperty": "Property",
+      "simulatorSelectProperty": "Select a property",
+      "sourceOverride": "Property price (override)",
+      "sourceEngine": "Engine recommendation"
     }
   },
   "channels": {
@@ -5265,7 +5314,8 @@
         "exterieur": "Outdoor services pricing: gardening, pool, green spaces.",
         "blanchisserie": "Linen pricing: packages per item type, washing and delivery.",
         "monitoring": "Noise monitoring offers pricing (Minut, Roomonitor) propagated to clients.",
-        "taxeSejour": "Organization tourist tax rates, report and export by period."
+        "taxeSejour": "Organization tourist tax rates, report and export by period.",
+        "menage": "Cleaning Engine: standardized minutes per component, hourly rate and recommended price range."
       }
     },
     "billing": {

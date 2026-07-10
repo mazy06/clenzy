@@ -64,6 +64,11 @@ public class ServiceRequest {
     @Column(name = "estimated_cost")
     private BigDecimal estimatedCost;
 
+    // Prix conseil plateforme (CleaningPricingEngine) snapshote a la creation.
+    // NULL = cree avant le moteur. Separe le conseil du pratique (estimatedCost).
+    @Column(name = "recommended_cost", precision = 10, scale = 2)
+    private BigDecimal recommendedCost;
+
     // Devis structure (maintenance) serialise en JSON : [{label, quantity, unitPrice}].
     // NULL = pas de devis (ex. menage, cout issu du forfait).
     @Column(name = "quote_lines", columnDefinition = "TEXT")
@@ -253,6 +258,14 @@ public class ServiceRequest {
     
     public void setEstimatedCost(BigDecimal estimatedCost) {
         this.estimatedCost = estimatedCost;
+    }
+
+    public BigDecimal getRecommendedCost() {
+        return recommendedCost;
+    }
+
+    public void setRecommendedCost(BigDecimal recommendedCost) {
+        this.recommendedCost = recommendedCost;
     }
 
     public String getQuoteLines() {

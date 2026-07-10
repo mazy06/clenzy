@@ -61,6 +61,8 @@ class ReservationServiceUpdateTest {
     @Mock private com.clenzy.repository.GuestRepository guestRepository;
     @Mock private StripeService stripeService;
     @Mock private com.clenzy.service.WebhookEventPublisher webhookEventPublisher;
+    @Mock
+    private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
 
     private TenantContext tenantContext;
     private ReservationService reservationService;
@@ -84,7 +86,8 @@ class ReservationServiceUpdateTest {
                 smartLockDeviceRepository, smartLockAccessCodeService,
                 reservationMapper, interventionRepository,
                 propertyRepository, guestRepository, stripeService,
-                webhookEventPublisher
+                webhookEventPublisher,
+                cleaningPricingEngine
         );
 
         property = new Property();

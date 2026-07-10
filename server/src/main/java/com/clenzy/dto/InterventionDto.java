@@ -55,6 +55,8 @@ public class InterventionDto {
 
     public Integer actualDurationMinutes;
     public BigDecimal estimatedCost;
+    /** Prix conseil plateforme (moteur ménage) snapshoté à la création — lecture seule. */
+    public BigDecimal recommendedCost;
     public BigDecimal actualCost;
     public String notes;
     public String photos; // Ancien champ pour compatibilité

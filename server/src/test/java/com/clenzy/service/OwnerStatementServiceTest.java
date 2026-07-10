@@ -1,9 +1,14 @@
 package com.clenzy.service;
 
+import com.clenzy.model.ExpenseCategory;
+import com.clenzy.model.Intervention;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
+import com.clenzy.model.Property;
+import com.clenzy.model.ProviderExpense;
 import com.clenzy.model.User;
 import com.clenzy.repository.OwnerPayoutRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,8 +26,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,12 +40,14 @@ class OwnerStatementServiceTest {
     @Mock private OwnerPayoutRepository payoutRepository;
     @Mock private UserRepository userRepository;
     @Mock private EmailService emailService;
+    @Mock private ProviderExpenseRepository providerExpenseRepository;
 
     private OwnerStatementService service;
 
     @BeforeEach
     void setUp() {
-        service = new OwnerStatementService(payoutRepository, userRepository, emailService);
+        service = new OwnerStatementService(payoutRepository, userRepository, emailService,
+                providerExpenseRepository);
     }
 
     private User user(Long id, String email, String first, String last) {
@@ -335,6 +344,112 @@ class OwnerStatementServiceTest {
             ArgumentCaptor<String> subjectCaptor = ArgumentCaptor.forClass(String.class);
             verify(emailService).sendSimpleHtmlEmail(anyString(), subjectCaptor.capture(), anyString());
             assertThat(subjectCaptor.getValue()).contains("01/05/2026").contains("31/05/2026");
+        }
+    }
+
+    // ── Bareme conseille menage (P11, PLAN-MOTEUR-MENAGE.md) ─────────────
+
+    @Nested
+    @DisplayName("bareme conseille menage")
+    class CleaningAdvisories {
+
+        private OwnerPayout paidPayoutWithId(long id) {
+            OwnerPayout p = payout(PayoutStatus.PAID,
+                    LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31),
+                    new BigDecimal("1000"), new BigDecimal("200"),
+                    new BigDecimal("120"), new BigDecimal("680"));
+            p.setId(id);
+            return p;
+        }
+
+        private ProviderExpense cleaningExpense(BigDecimal billedTtc, BigDecimal recommendedCost) {
+            Property property = new Property();
+            property.setName("Duplex Marrakech");
+
+            Intervention intervention = new Intervention();
+            intervention.setRecommendedCost(recommendedCost);
+
+            ProviderExpense expense = new ProviderExpense();
+            expense.setCategory(ExpenseCategory.CLEANING);
+            expense.setAmountTtc(billedTtc);
+            expense.setIntervention(intervention);
+            expense.setProperty(property);
+            expense.setExpenseDate(LocalDate.of(2026, 5, 12));
+            return expense;
+        }
+
+        private String sentHtml() {
+            ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
+            verify(emailService).sendSimpleHtmlEmail(anyString(), anyString(), bodyCaptor.capture());
+            return bodyCaptor.getValue();
+        }
+
+        @Test
+        void cleaningExpenseAboveTolerance_showsAdvisoryPrice() {
+            User owner = user(1L, "e@x.com", "John", "Doe");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+            OwnerPayout p = paidPayoutWithId(7L);
+            when(payoutRepository.findByOwnerId(1L, 100L)).thenReturn(List.of(p));
+            when(providerExpenseRepository.findByPayoutIdAndOrgId(7L, 100L))
+                    .thenReturn(List.of(cleaningExpense(new BigDecimal("120.00"), new BigDecimal("95.00"))));
+
+            service.sendStatement(1L, 100L, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31), "Co.");
+
+            // Ecart 25 € > tolerance 5 € : le bareme est affiche a cote du facture.
+            assertThat(sentHtml())
+                    .contains("Duplex Marrakech")
+                    .contains("Bareme conseille : 95,00");
+        }
+
+        @Test
+        void cleaningExpenseWithinTolerance_showsConformeAuBareme() {
+            User owner = user(1L, "e@x.com", "John", "Doe");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+            OwnerPayout p = paidPayoutWithId(7L);
+            when(payoutRepository.findByOwnerId(1L, 100L)).thenReturn(List.of(p));
+            when(providerExpenseRepository.findByPayoutIdAndOrgId(7L, 100L))
+                    .thenReturn(List.of(cleaningExpense(new BigDecimal("98.00"), new BigDecimal("95.00"))));
+
+            service.sendStatement(1L, 100L, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31), "Co.");
+
+            // |98 - 95| = 3 € ≤ 5 € : conforme, pas d'affichage du bareme.
+            assertThat(sentHtml())
+                    .contains("conforme au bareme")
+                    .doesNotContain("Bareme conseille :");
+        }
+
+        @Test
+        void nonCleaningOrUnsnapshottedExpenses_noAdvisoryBlock() {
+            User owner = user(1L, "e@x.com", "John", "Doe");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+            OwnerPayout p = paidPayoutWithId(7L);
+            when(payoutRepository.findByOwnerId(1L, 100L)).thenReturn(List.of(p));
+
+            ProviderExpense maintenance = cleaningExpense(new BigDecimal("120.00"), new BigDecimal("95.00"));
+            maintenance.setCategory(ExpenseCategory.MAINTENANCE);
+            ProviderExpense noSnapshot = cleaningExpense(new BigDecimal("120.00"), null);
+            when(providerExpenseRepository.findByPayoutIdAndOrgId(7L, 100L))
+                    .thenReturn(List.of(maintenance, noSnapshot));
+
+            service.sendStatement(1L, 100L, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31), "Co.");
+
+            assertThat(sentHtml()).doesNotContain("bareme conseille");
+        }
+
+        @Test
+        void payoutWithoutId_skipsExpenseLookup() {
+            // Les payouts non persistes (id null) ne declenchent aucune requete depense.
+            User owner = user(1L, "e@x.com", "John", "Doe");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+            OwnerPayout p = payout(PayoutStatus.PAID,
+                    LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31),
+                    new BigDecimal("1000"), new BigDecimal("200"),
+                    BigDecimal.ZERO, new BigDecimal("800"));
+            when(payoutRepository.findByOwnerId(1L, 100L)).thenReturn(List.of(p));
+
+            service.sendStatement(1L, 100L, LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31), "Co.");
+
+            verify(providerExpenseRepository, never()).findByPayoutIdAndOrgId(any(), any());
         }
     }
 

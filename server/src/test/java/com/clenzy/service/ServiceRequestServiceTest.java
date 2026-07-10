@@ -46,6 +46,8 @@ class ServiceRequestServiceTest {
     @Mock private ServiceRequestMapper serviceRequestMapper;
     @Mock private AssignmentEventRepository assignmentEventRepository;
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
+    @Mock
+    private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
 
     private TenantContext tenantContext;
     private ServiceRequestService service;
@@ -61,7 +63,8 @@ class ServiceRequestServiceTest {
                 serviceRequestRepository, userRepository, propertyRepository,
                 interventionRepository, reservationRepository, teamRepository, notificationService,
                 propertyTeamService, kafkaTemplate, tenantContext, serviceRequestMapper,
-                assignmentEventRepository, workflowSettingsRepository);
+                assignmentEventRepository, workflowSettingsRepository,
+                cleaningPricingEngine);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

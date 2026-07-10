@@ -189,7 +189,12 @@
       "title": "Bilan · 30 jours",
       "titleBase": "Bilan",
       "windowDays": "{{count}} jours",
-      "win": { "day": "Jour", "week": "Sem.", "fortnight": "Quinz.", "month": "Mois" },
+      "win": {
+        "day": "Jour",
+        "week": "Sem.",
+        "fortnight": "Quinz.",
+        "month": "Mois"
+      },
       "timeSaved": "Temps gagné",
       "autoActions": "Actions auto",
       "acceptance": "Acceptation"
@@ -1635,7 +1640,23 @@
     "activeFeatures": "Options actives",
     "department": "Departement",
     "arrondissement": "Arrondissement",
-    "addressAutocomplete": "Rechercher une adresse..."
+    "addressAutocomplete": "Rechercher une adresse...",
+    "cleaningEstimator": {
+      "engineBadge": "Moteur Ménage Baitly",
+      "adopted": "Prix du logement aligné sur le conseil",
+      "adoptAsBasePrice": "Adopter comme prix du logement",
+      "currentBasePrice": "Prix du logement actuel",
+      "breakdownTitle": "Décomposition du temps",
+      "breakdown": {
+        "base": "Base (chambres)",
+        "bathrooms": "Salles de bain supplémentaires",
+        "surface": "Surface au-delà du seuil",
+        "floors": "Étages supplémentaires",
+        "exterior": "Extérieur",
+        "laundry": "Buanderie / linge",
+        "guests": "Voyageurs au-delà de 4"
+      }
+    }
   },
   "serviceRequests": {
     "detail": {
@@ -3370,7 +3391,8 @@
       "exterieur": "Extérieur",
       "blanchisserie": "Blanchisserie",
       "monitoring": "Monitoring",
-      "taxeSejour": "Taxe de séjour"
+      "taxeSejour": "Taxe de séjour",
+      "menage": "Ménage"
     },
     "monitoring": {
       "title": "Monitoring sonore des propriétés",
@@ -3626,6 +3648,33 @@
       "price": "Prix",
       "key": "Identifiant",
       "keyHelp": "Identifiant unique (ex: deep_cleaning, custom_prestation)"
+    },
+    "cleaning": {
+      "intro": "Le Moteur Ménage calcule un prix conseillé unique : minutes normées par composant du logement × taux horaire × multiplicateur du type de ménage. Champ vide = défaut plateforme.",
+      "workTime": "Temps de travail",
+      "baseByBedrooms": "Minutes de base selon le nombre de chambres",
+      "bedroomsN": "{{n}} ch.",
+      "bedrooms5plus": "5+ ch.",
+      "perExtraBathroom": "Par SDB supplémentaire",
+      "surfaceThreshold": "Seuil de surface",
+      "surfaceStep": "Pas de surface",
+      "surfaceStepMinutes": "Minutes par pas",
+      "perExtraFloor": "Par étage supplémentaire",
+      "exterior": "Extérieur",
+      "laundry": "Buanderie / linge",
+      "perGuestAbove4": "Par voyageur au-delà de 4",
+      "ratesAndRounding": "Taux & arrondis",
+      "hourlyRate": "Taux horaire de référence",
+      "rangePercent": "Fourchette (±)",
+      "roundTo": "Arrondi au multiple de",
+      "minPrice": "Prix plancher",
+      "cleaningTypes": "Types de ménage",
+      "simulator": "Simulateur",
+      "simulatorSavedConfigHint": "La simulation utilise la grille ENREGISTRÉE côté serveur. Sauvegardez vos modifications (bouton Enregistrer en haut) pour les voir reflétées ici.",
+      "simulatorProperty": "Logement",
+      "simulatorSelectProperty": "Sélectionner un logement",
+      "sourceOverride": "Prix du logement (override)",
+      "sourceEngine": "Conseil moteur"
     }
   },
   "channels": {
@@ -5292,7 +5341,8 @@
         "exterieur": "Tarifs des prestations extérieures : jardinage, piscine, espaces verts.",
         "blanchisserie": "Tarification du linge : forfaits par type de pièce, lavage et livraison.",
         "monitoring": "Tarifs des offres de monitoring sonore (Minut, Roomonitor) propagés aux clients.",
-        "taxeSejour": "Barèmes de taxe de séjour de l’organisation, rapport et export par période."
+        "taxeSejour": "Barèmes de taxe de séjour de l’organisation, rapport et export par période.",
+        "menage": "Moteur Ménage : minutes normées par composant, taux horaire et fourchette du prix conseillé."
       }
     },
     "billing": {

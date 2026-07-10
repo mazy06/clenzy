@@ -8,7 +8,8 @@ import com.clenzy.model.ServiceRequest;
 import com.clenzy.model.ServiceType;
 import com.clenzy.model.User;
 import com.clenzy.repository.ServiceRequestRepository;
-import com.clenzy.service.PricingConfigService;
+import com.clenzy.service.pricing.CleaningPricingEngine;
+import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,14 +32,14 @@ public class ICalCleaningScheduler {
     private static final Logger log = LoggerFactory.getLogger(ICalCleaningScheduler.class);
 
     private final ServiceRequestRepository serviceRequestRepository;
-    private final PricingConfigService pricingConfigService;
+    private final CleaningPricingEngine cleaningPricingEngine;
     private final TenantContext tenantContext;
 
     public ICalCleaningScheduler(ServiceRequestRepository serviceRequestRepository,
-                                 PricingConfigService pricingConfigService,
+                                 CleaningPricingEngine cleaningPricingEngine,
                                  TenantContext tenantContext) {
         this.serviceRequestRepository = serviceRequestRepository;
-        this.pricingConfigService = pricingConfigService;
+        this.cleaningPricingEngine = cleaningPricingEngine;
         this.tenantContext = tenantContext;
     }
 
@@ -125,7 +126,10 @@ public class ICalCleaningScheduler {
             estimatedDuration = 2;
             log.debug("Property {} n'a pas de cleaningDurationMinutes, fallback a {}h", property.getName(), estimatedDuration);
         }
-        BigDecimal estimatedCost = pricingConfigService.estimateCleaningCost(property);
+        // Prix résolu (override logement OU conseil moteur) + snapshot du conseil.
+        ResolvedCleaningPrice resolvedPrice =
+                cleaningPricingEngine.resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING);
+        BigDecimal estimatedCost = resolvedPrice.amount();
 
         // Instructions speciales avec UID pour dedoublonnage
         StringBuilder instructions = new StringBuilder();
@@ -161,6 +165,7 @@ public class ICalCleaningScheduler {
         serviceRequest.setStatus(RequestStatus.PENDING);
         serviceRequest.setEstimatedDurationHours(estimatedDuration);
         serviceRequest.setEstimatedCost(estimatedCost);
+        serviceRequest.setRecommendedCost(resolvedPrice.quote().recommended());
         serviceRequest.setGuestCheckoutTime(scheduledDate);
         serviceRequest.setGuestCheckinTime(LocalDateTime.of(checkOut, checkInTime));
         serviceRequest.setSpecialInstructions(specialInstructions);

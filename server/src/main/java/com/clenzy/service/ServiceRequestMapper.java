@@ -112,6 +112,7 @@ public class ServiceRequestMapper {
         dto.preferredTimeSlot = e.getPreferredTimeSlot();
         dto.estimatedDurationHours = e.getEstimatedDurationHours();
         dto.estimatedCost = e.getEstimatedCost();
+        dto.recommendedCost = e.getRecommendedCost();
         if (e.getQuoteLines() != null && !e.getQuoteLines().isBlank()) {
             try {
                 dto.quoteLines = objectMapper.readValue(e.getQuoteLines(), new TypeReference<List<QuoteLineDto>>() {});

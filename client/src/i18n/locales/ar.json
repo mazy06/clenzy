@@ -189,7 +189,12 @@
       "title": "الحصيلة · 30 يومًا",
       "titleBase": "الحصيلة",
       "windowDays": "{{count}} يومًا",
-      "win": { "day": "يوم", "week": "أسبوع", "fortnight": "أسبوعان", "month": "شهر" },
+      "win": {
+        "day": "يوم",
+        "week": "أسبوع",
+        "fortnight": "أسبوعان",
+        "month": "شهر"
+      },
       "timeSaved": "الوقت الموفَّر",
       "autoActions": "إجراءات تلقائية",
       "acceptance": "القبول"
@@ -1609,7 +1614,23 @@
     "activeFeatures": "الخيارات النشطة",
     "department": "المحافظة",
     "arrondissement": "الدائرة",
-    "addressAutocomplete": "البحث عن عنوان..."
+    "addressAutocomplete": "البحث عن عنوان...",
+    "cleaningEstimator": {
+      "engineBadge": "محرك التنظيف Baitly",
+      "adopted": "سعر السكن مطابق للتوصية",
+      "adoptAsBasePrice": "اعتماده كسعر للسكن",
+      "currentBasePrice": "سعر السكن الحالي",
+      "breakdownTitle": "تفصيل الوقت",
+      "breakdown": {
+        "base": "الأساس (الغرف)",
+        "bathrooms": "حمّامات إضافية",
+        "surface": "مساحة فوق العتبة",
+        "floors": "طوابق إضافية",
+        "exterior": "الخارج",
+        "laundry": "الغسيل",
+        "guests": "ضيوف فوق 4"
+      }
+    }
   },
   "serviceRequests": {
     "detail": {
@@ -3189,7 +3210,8 @@
     },
     "tarification": {
       "subtitle": {
-        "taxeSejour": "أسعار ضريبة الإقامة الخاصة بالمنظمة، تقرير وتصدير حسب الفترة."
+        "taxeSejour": "أسعار ضريبة الإقامة الخاصة بالمنظمة، تقرير وتصدير حسب الفترة.",
+        "menage": "محرك التنظيف: دقائق معيارية لكل مكوّن، سعر الساعة ونطاق السعر الموصى به."
       }
     }
   },
@@ -3322,7 +3344,8 @@
       "exterieur": "الخارجي",
       "blanchisserie": "المغسلة",
       "monitoring": "المراقبة",
-      "taxeSejour": "ضريبة الإقامة"
+      "taxeSejour": "ضريبة الإقامة",
+      "menage": "التنظيف"
     },
     "monitoring": {
       "title": "مراقبة الضوضاء في العقارات",
@@ -3572,6 +3595,33 @@
       "price": "السعر",
       "key": "المعرّف",
       "keyHelp": "معرّف فريد (مثال: deep_cleaning, custom_prestation)"
+    },
+    "cleaning": {
+      "intro": "يحسب محرك التنظيف سعرًا موصى به واحدًا: دقائق معيارية لكل مكوّن × سعر الساعة × معامل نوع التنظيف. الحقل الفارغ = الإعداد الافتراضي للمنصة.",
+      "workTime": "وقت العمل",
+      "baseByBedrooms": "الدقائق الأساسية حسب عدد الغرف",
+      "bedroomsN": "{{n}} غرفة",
+      "bedrooms5plus": "5+ غرف",
+      "perExtraBathroom": "لكل حمّام إضافي",
+      "surfaceThreshold": "عتبة المساحة",
+      "surfaceStep": "خطوة المساحة",
+      "surfaceStepMinutes": "دقائق لكل خطوة",
+      "perExtraFloor": "لكل طابق إضافي",
+      "exterior": "الخارج",
+      "laundry": "الغسيل",
+      "perGuestAbove4": "لكل ضيف فوق 4",
+      "ratesAndRounding": "الأسعار والتقريب",
+      "hourlyRate": "سعر الساعة المرجعي",
+      "rangePercent": "النطاق (±)",
+      "roundTo": "التقريب إلى مضاعف",
+      "minPrice": "الحد الأدنى للسعر",
+      "cleaningTypes": "أنواع التنظيف",
+      "simulator": "المحاكي",
+      "simulatorSavedConfigHint": "تستخدم المحاكاة الشبكة المحفوظة على الخادم. احفظ تعديلاتك (زر الحفظ في الأعلى) لرؤيتها هنا.",
+      "simulatorProperty": "السكن",
+      "simulatorSelectProperty": "اختر سكنًا",
+      "sourceOverride": "سعر السكن (مخصص)",
+      "sourceEngine": "توصية المحرك"
     }
   },
   "channels": {

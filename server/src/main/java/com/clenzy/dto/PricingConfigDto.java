@@ -37,6 +37,9 @@ public class PricingConfigDto {
     private Integer automationBasicSurcharge;
     private Integer automationFullSurcharge;
 
+    // Config JSON du moteur menage (CleaningPricingEngine) — brut, edite par l'onglet Menage.
+    private String cleaningEngineConfig;
+
     private String updatedAt;
 
     // Forfait configs (Standard, Express, En profondeur)
@@ -295,6 +298,9 @@ public class PricingConfigDto {
 
     public Map<String, Double> getFrequencyCoeffs() { return frequencyCoeffs; }
     public void setFrequencyCoeffs(Map<String, Double> frequencyCoeffs) { this.frequencyCoeffs = frequencyCoeffs; }
+
+    public String getCleaningEngineConfig() { return cleaningEngineConfig; }
+    public void setCleaningEngineConfig(String cleaningEngineConfig) { this.cleaningEngineConfig = cleaningEngineConfig; }
 
     public List<SurfaceTier> getSurfaceTiers() { return surfaceTiers; }
     public void setSurfaceTiers(List<SurfaceTier> surfaceTiers) { this.surfaceTiers = surfaceTiers; }
