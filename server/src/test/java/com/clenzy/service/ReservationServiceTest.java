@@ -45,6 +45,8 @@ class ReservationServiceTest {
     @Mock private com.clenzy.repository.GuestRepository guestRepository;
     @Mock private StripeService stripeService;
     @Mock private com.clenzy.service.WebhookEventPublisher webhookEventPublisher;
+    @Mock
+    private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
 
     private TenantContext tenantContext;
     private ReservationService reservationService;
@@ -68,8 +70,26 @@ class ReservationServiceTest {
                 smartLockDeviceRepository, smartLockAccessCodeService,
                 reservationMapper, interventionRepository,
                 propertyRepository, guestRepository, stripeService,
-                webhookEventPublisher
+                webhookEventPublisher,
+                cleaningPricingEngine
         );
+
+        // Moteur ménage mocké : émule le résolveur (override logement > 0 prioritaire,
+        // sinon conseil 95 €). lenient : la plupart des tests ne créent pas de ménage.
+        lenient().when(cleaningPricingEngine.resolveCleaningPrice(any(), any())).thenAnswer(inv -> {
+            Property p = inv.getArgument(0);
+            java.math.BigDecimal base = p.getCleaningBasePrice();
+            var quote = new com.clenzy.service.pricing.CleaningPricingEngine.CleaningQuote(
+                    135, java.math.BigDecimal.valueOf(95),
+                    java.math.BigDecimal.valueOf(80), java.math.BigDecimal.valueOf(110));
+            if (base != null && base.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                return new com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice(
+                        base, com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.PROPERTY_OVERRIDE, quote);
+            }
+            return new com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice(
+                    java.math.BigDecimal.valueOf(95),
+                    com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.ENGINE, quote);
+        });
 
         // Pas d'override min-nights par defaut dans les tests (resolution
         // tombe sur property.minimumNights, qui est null pour la plupart

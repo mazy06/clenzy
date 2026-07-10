@@ -27,6 +27,7 @@ public record InterventionResponse(
     Integer estimatedDurationHours,
     Integer actualDurationMinutes,
     BigDecimal estimatedCost,
+    BigDecimal recommendedCost,
     BigDecimal actualCost,
     String scheduledDate,
     LocalDateTime startTime,
@@ -73,6 +74,7 @@ public record InterventionResponse(
         private Integer estimatedDurationHours;
         private Integer actualDurationMinutes;
         private BigDecimal estimatedCost;
+        private BigDecimal recommendedCost;
         private BigDecimal actualCost;
         private String scheduledDate;
         private LocalDateTime startTime;
@@ -116,6 +118,7 @@ public record InterventionResponse(
         public Builder estimatedDurationHours(Integer estimatedDurationHours) { this.estimatedDurationHours = estimatedDurationHours; return this; }
         public Builder actualDurationMinutes(Integer actualDurationMinutes) { this.actualDurationMinutes = actualDurationMinutes; return this; }
         public Builder estimatedCost(BigDecimal estimatedCost) { this.estimatedCost = estimatedCost; return this; }
+        public Builder recommendedCost(BigDecimal recommendedCost) { this.recommendedCost = recommendedCost; return this; }
         public Builder actualCost(BigDecimal actualCost) { this.actualCost = actualCost; return this; }
         public Builder scheduledDate(String scheduledDate) { this.scheduledDate = scheduledDate; return this; }
         public Builder startTime(LocalDateTime startTime) { this.startTime = startTime; return this; }
@@ -146,7 +149,7 @@ public record InterventionResponse(
                 requestorId, requestorName,
                 assignedToType, assignedToId, assignedToName, assignedUserRole,
                 estimatedDurationHours, actualDurationMinutes,
-                estimatedCost, actualCost,
+                estimatedCost, recommendedCost, actualCost,
                 scheduledDate, startTime, endTime, completedAt,
                 createdAt, updatedAt,
                 notes, progressPercentage, validatedRooms, completedSteps,

@@ -258,6 +258,40 @@ function generateMockProperties(): Property[] {
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
+// ─── Moteur Ménage : preview (quotes par type + décomposition minutes) ────────
+
+export interface CleaningPreviewInputs {
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  squareMeters?: number | null;
+  floors?: number | null;
+  hasExterior?: boolean | null;
+  hasLaundry?: boolean | null;
+  maxGuests?: number | null;
+  /** Types demandés (défaut serveur : EXPRESS_CLEANING, CLEANING, DEEP_CLEANING). */
+  cleaningTypes?: string[];
+}
+
+export interface CleaningQuoteDto {
+  durationMinutes: number;
+  recommended: number;
+  min: number;
+  max: number;
+}
+
+export interface CleaningEstimateDetail {
+  estimate: number;
+  source: 'PROPERTY_OVERRIDE' | 'ENGINE';
+  min: number;
+  max: number;
+  durationMinutes: number;
+}
+
+export interface CleaningPreviewResponse {
+  quotes: Record<string, CleaningQuoteDto>;
+  minutesBreakdown: Record<string, number>;
+}
+
 export const propertiesApi = {
   /** Indique si le mode mock analytics est actif. */
   isMockMode(): boolean {
@@ -339,11 +373,25 @@ export const propertiesApi = {
     return res.estimate;
   },
 
+  /** Variante détaillée : prix résolu + provenance + fourchette + durée normée. */
+  async getCleaningEstimateDetail(propertyId: number): Promise<CleaningEstimateDetail> {
+    return apiClient.get<CleaningEstimateDetail>(`/pricing-config/cleaning-estimate/${propertyId}`);
+  },
+
   /**
    * Estimation ménage EN LOT (une requête pour une liste de logements) :
    * POST /pricing-config/cleaning-estimates → { estimates: { [propertyId]: number } }.
    * Liste vide → {} sans appel réseau.
    */
+  /**
+   * Preview du Moteur Ménage (valeurs brouillon, sans propriété persistée) :
+   * quotes par type de ménage + décomposition des minutes par composant.
+   * Utilise la config ENREGISTRÉE côté serveur.
+   */
+  async previewCleaningEstimate(inputs: CleaningPreviewInputs): Promise<CleaningPreviewResponse> {
+    return apiClient.post<CleaningPreviewResponse>('/pricing-config/cleaning-estimate/preview', inputs);
+  },
+
   async getCleaningEstimates(propertyIds: number[]): Promise<Record<number, number>> {
     if (propertyIds.length === 0) return {};
     const res = await apiClient.post<{ estimates: Record<number, number> }>(

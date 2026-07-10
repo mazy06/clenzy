@@ -13,6 +13,7 @@ import com.clenzy.service.PlatformSettingsService;
 import com.clenzy.service.PricingConfigService;
 import com.clenzy.service.ReceivedFormService;
 import com.clenzy.service.WaitlistService;
+import com.clenzy.service.pricing.CleaningPricingEngine;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,8 +34,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * POST /api/public/quote-request
  * - Valide les données du formulaire
  * - Calcule le forfait recommandé (Essentiel / Confort / Premium)
- * - Calcule le tarif par intervention via un moteur de pondération
- *   (type logement × nbre logements × voyageurs × surface × fréquence)
+ * - Calcule le tarif par intervention via le moteur ménage unifié
+ *   (CleaningPricingEngine) + sur-couche commerciale (package × nbre
+ *   logements × fréquence, plancher, arrondi 5 €)
  * - Génère le devis PDF et l'envoie au prospect (info@clenzy.fr en copie CC)
  * - Retourne le forfait recommandé au frontend
  */
@@ -50,17 +53,30 @@ public class QuoteController {
     private final DocumentGeneratorService documentGeneratorService;
     private final PlatformSettingsService platformSettingsService;
     private final WaitlistService waitlistService;
+    private final CleaningPricingEngine cleaningPricingEngine;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
+
+    /**
+     * Facteur commercial par package appliqué sur le prix moteur (équivalent à
+     * moduler le taux horaire de référence, le prix moteur étant linéaire en
+     * taux horaire). TRANSITOIRE (P3, PLAN-MOTEUR-MENAGE.md) : la modulation
+     * par package sera portée DANS le moteur ultérieurement.
+     */
+    private static final Map<String, Double> PACKAGE_RATE_FACTORS = Map.of(
+            "essentiel", 0.9,
+            "confort", 1.0,
+            "premium", 1.15);
 
     public QuoteController(EmailService emailService, PricingConfigService pricingConfigService,
                            ReceivedFormService receivedFormService,
                            NotificationService notificationService,
                            DocumentGeneratorService documentGeneratorService,
                            PlatformSettingsService platformSettingsService,
-                           WaitlistService waitlistService) {
+                           WaitlistService waitlistService,
+                           CleaningPricingEngine cleaningPricingEngine) {
         this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
         this.receivedFormService = receivedFormService;
@@ -68,6 +84,7 @@ public class QuoteController {
         this.documentGeneratorService = documentGeneratorService;
         this.platformSettingsService = platformSettingsService;
         this.waitlistService = waitlistService;
+        this.cleaningPricingEngine = cleaningPricingEngine;
     }
 
     /**
@@ -272,26 +289,67 @@ public class QuoteController {
     }
 
     /**
-     * Calcule le tarif par intervention en fonction de tous les critères du formulaire.
-     * Formule : base × typeLogement × nbreLogements × voyageurs × surface × fréquence
-     * Arrondi à la tranche de 5€ la plus proche, avec un plancher configurable.
+     * Calcule le tarif ménage par intervention pour le devis prospect
+     * (P3, PLAN-MOTEUR-MENAGE.md).
      *
-     * Les coefficients et prix de base sont chargés dynamiquement depuis la DB
-     * via PricingConfigService (configurable depuis le menu Tarification).
+     * <p>Cœur du prix = {@link CleaningPricingEngine} : les mêmes minutes normées ×
+     * taux horaire de référence que le PMS. Endpoint public sans tenant : le moteur
+     * lit la config platform via {@code getCleaningEngineConfigJson} qui replie sur
+     * la dernière config globale quand aucune org n'est résolue (même mécanisme que
+     * {@code getCurrentConfig}). L'ancienne formule
+     * base(package) × typeCoeff × surfaceCoeff × guestCoeff est remplacée :
+     * surface et capacité entrent désormais directement dans le moteur.</p>
+     *
+     * <p>Sur-couche commerciale CONSERVÉE : facteur par package sur le prix moteur
+     * ({@link #PACKAGE_RATE_FACTORS}), × countCoeff (dégressivité multi-logements),
+     * × frequencyCoeff, plancher minPrice landing, arrondi au multiple de 5 €.</p>
      */
     private int computePrice(QuoteRequestDto dto, String packageId) {
-        Map<String, Integer> basePrices = pricingConfigService.getBasePrices();
-        int base = basePrices.getOrDefault(packageId, 40);
+        BigDecimal engineRecommended = cleaningPricingEngine
+                .quote(prospectCleaningInputs(dto), CleaningPricingEngine.STANDARD_CLEANING)
+                .recommended();
 
-        double typeCoeff = pricingConfigService.getPropertyTypeCoeffs().getOrDefault(dto.getPropertyType(), 1.0);
+        double packageFactor = PACKAGE_RATE_FACTORS.getOrDefault(packageId, 1.0);
         double countCoeff = pricingConfigService.getPropertyCountCoeffs().getOrDefault(dto.getPropertyCount(), 1.0);
-        double guestCoeff = pricingConfigService.getGuestCapacityCoeffs().getOrDefault(dto.getGuestCapacity(), 1.0);
-        double surfaceCoeff = pricingConfigService.getSurfaceCoeff(dto.getSurface());
         double freqCoeff = pricingConfigService.getFrequencyCoeffs().getOrDefault(dto.getBookingFrequency(), 1.0);
 
-        double raw = base * typeCoeff * countCoeff * guestCoeff * surfaceCoeff * freqCoeff;
+        double raw = engineRecommended.doubleValue() * packageFactor * countCoeff * freqCoeff;
         int minPrice = pricingConfigService.getMinPrice();
         return Math.max(minPrice, (int) (Math.round(raw / 5.0) * 5));
+    }
+
+    /**
+     * Traduit le formulaire prospect en composants du logement pour le moteur.
+     *
+     * <p>APPROXIMATION documentée : le formulaire landing ne demande ni chambres ni
+     * salles de bain. Seuls surface et capacité voyageurs sont réels. On estime :
+     * chambres = max(1, voyageurs / 2) (couchage double par chambre), 1 salle de
+     * bain (pas de supplément), 1 seul niveau, extérieur/linge inconnus (null).</p>
+     */
+    private CleaningPricingEngine.CleaningInputs prospectCleaningInputs(QuoteRequestDto dto) {
+        int guests = estimateGuests(dto.getGuestCapacity());
+        int bedrooms = Math.max(1, guests / 2);
+        Integer surface = dto.getSurface() > 0 ? dto.getSurface() : null;
+        return new CleaningPricingEngine.CleaningInputs(
+                bedrooms, 1, surface, 1, null, null, guests);
+    }
+
+    /**
+     * Capacité voyageurs du formulaire ("1-2", "3-4", "5-6", "7+") → nombre :
+     * borne haute de la tranche, "7+" → 8. Valeur inconnue/absente → 4 (profil médian).
+     */
+    private static int estimateGuests(String guestCapacity) {
+        if (guestCapacity == null || guestCapacity.isBlank()) return 4;
+        String trimmed = guestCapacity.trim();
+        try {
+            if (trimmed.endsWith("+")) {
+                return Integer.parseInt(trimmed.substring(0, trimmed.length() - 1)) + 1;
+            }
+            int dash = trimmed.lastIndexOf('-');
+            return Integer.parseInt(dash >= 0 ? trimmed.substring(dash + 1) : trimmed);
+        } catch (NumberFormatException e) {
+            return 4;
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════

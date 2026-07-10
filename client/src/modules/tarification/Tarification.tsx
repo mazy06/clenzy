@@ -11,6 +11,7 @@ import {
   Refresh,
   Devices,
   CleaningServices,
+  Timer,
   Build,
   Yard,
   LocalLaundryService,
@@ -30,6 +31,7 @@ import {
 } from '../../components/PageHeaderActionsContext';
 import TabPMS from './TabPMS';
 import TabEntretien from './TabEntretien';
+import TabMenage from './TabMenage';
 import TabTravaux from './TabTravaux';
 import TabExterieur from './TabExterieur';
 import TabBlanchisserie from './TabBlanchisserie';
@@ -40,6 +42,7 @@ import TabMonitoring from './TabMonitoring';
 const TAB_DEFS = [
   { key: 'pms',           icon: <Devices /> },
   { key: 'entretien',     icon: <CleaningServices /> },
+  { key: 'menage',        icon: <Timer /> },
   { key: 'travaux',       icon: <Build /> },
   { key: 'exterieur',     icon: <Yard /> },
   { key: 'blanchisserie', icon: <LocalLaundryService /> },
@@ -87,6 +90,9 @@ export default function Tarification() {
     },
     [t('tarification.tabs.entretien')]: {
       subtitle: t('tabHeaders.tarification.subtitle.entretien', "Tarifs des prestations d'entretien et menage : forfaits, suppléments et coefficients."),
+    },
+    [t('tarification.tabs.menage')]: {
+      subtitle: t('tabHeaders.tarification.subtitle.menage', 'Moteur Ménage : minutes normées par composant, taux horaire et fourchette du prix conseillé.'),
     },
     [t('tarification.tabs.travaux')]: {
       subtitle: t('tabHeaders.tarification.subtitle.travaux', 'Grille tarifaire des travaux et interventions techniques par typologie de chantier.'),
@@ -178,6 +184,9 @@ export default function Tarification() {
             <TabEntretien config={config} teams={teams} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
           {activeTab === 2 && (
+            <TabMenage config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
+          )}
+          {activeTab === 3 && (
             <TabTravaux
               items={config.travauxConfig || []}
               canEdit={canEdit}
@@ -192,13 +201,13 @@ export default function Tarification() {
               }}
             />
           )}
-          {activeTab === 3 && (
+          {activeTab === 4 && (
             <TabExterieur config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
-          {activeTab === 4 && (
+          {activeTab === 5 && (
             <TabBlanchisserie config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
-          {activeTab === 5 && (
+          {activeTab === 6 && (
             <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
         </Box>

@@ -37,6 +37,10 @@ public class PricingConfig {
     @Column(name = "surface_tiers", columnDefinition = "TEXT")
     private String surfaceTiers;
 
+    // Config JSON du moteur menage (CleaningPricingEngine). NULL = defauts Java.
+    @Column(name = "cleaning_engine_config", columnDefinition = "TEXT")
+    private String cleaningEngineConfig;
+
     // Package base prices (EUR)
     @Column(name = "base_price_essentiel")
     private Integer basePriceEssentiel;
@@ -135,6 +139,9 @@ public class PricingConfig {
 
     public String getFrequencyCoeffs() { return frequencyCoeffs; }
     public void setFrequencyCoeffs(String frequencyCoeffs) { this.frequencyCoeffs = frequencyCoeffs; }
+
+    public String getCleaningEngineConfig() { return cleaningEngineConfig; }
+    public void setCleaningEngineConfig(String cleaningEngineConfig) { this.cleaningEngineConfig = cleaningEngineConfig; }
 
     public String getSurfaceTiers() { return surfaceTiers; }
     public void setSurfaceTiers(String surfaceTiers) { this.surfaceTiers = surfaceTiers; }

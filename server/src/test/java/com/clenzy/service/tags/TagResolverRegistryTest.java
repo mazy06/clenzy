@@ -47,6 +47,7 @@ class TagResolverRegistryTest {
     @Mock private ReceivedFormRepository receivedFormRepository;
     @Mock private ManagementContractRepository managementContractRepository;
     @Mock private PricingConfigService pricingConfigService;
+    @Mock private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
 
     @Test
     void whenDomainResolversCollected_thenTypesMatchLegacySwitchExactly() {
@@ -54,7 +55,7 @@ class TagResolverRegistryTest {
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
         EntityTagBuilders builders = new EntityTagBuilders(checkInInstructionsRepository, objectMapper);
         List<ReferenceTagResolver> resolvers = List.of(
-                new InterventionTagResolver(interventionRepository, builders),
+                new InterventionTagResolver(interventionRepository, builders, cleaningPricingEngine),
                 new ReservationTagResolver(reservationRepository, builders),
                 new ServiceRequestTagResolver(serviceRequestRepository, builders),
                 new PropertyTagResolver(propertyRepository, builders),

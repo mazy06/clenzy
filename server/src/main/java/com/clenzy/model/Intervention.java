@@ -144,6 +144,11 @@ public class Intervention {
     
     @Column(name = "estimated_cost", precision = 10, scale = 2)
     private BigDecimal estimatedCost;
+
+    // Prix conseil plateforme (CleaningPricingEngine) snapshote a la creation.
+    // NULL = cree avant le moteur. Separe le conseil du pratique (estimatedCost).
+    @Column(name = "recommended_cost", precision = 10, scale = 2)
+    private BigDecimal recommendedCost;
     
     @Column(name = "actual_cost", precision = 10, scale = 2)
     private BigDecimal actualCost;
@@ -329,6 +334,14 @@ public class Intervention {
     
     public void setEstimatedCost(BigDecimal estimatedCost) {
         this.estimatedCost = estimatedCost;
+    }
+
+    public BigDecimal getRecommendedCost() {
+        return recommendedCost;
+    }
+
+    public void setRecommendedCost(BigDecimal recommendedCost) {
+        this.recommendedCost = recommendedCost;
     }
     
     public BigDecimal getActualCost() {

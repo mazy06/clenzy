@@ -3231,3 +3231,19 @@ databaseChangeLog:
       sqlFile:
         path: changes/0335__add_reservation_channex_crs_booking_id.sql
         relativeToChangelogFile: true
+
+  # Moteur Menage 1A : config JSON du CleaningPricingEngine sur pricing_configs.
+  - changeSet:
+      id: "0336-add-cleaning-engine-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0336__add_cleaning_engine_config.sql
+        relativeToChangelogFile: true
+
+  # Moteur Menage 1A : snapshot du prix conseil (recommended_cost) sur SR + interventions.
+  - changeSet:
+      id: "0337-add-recommended-cost-snapshot"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0337__add_recommended_cost_snapshot.sql
+        relativeToChangelogFile: true

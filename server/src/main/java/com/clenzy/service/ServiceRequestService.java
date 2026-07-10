@@ -30,6 +30,8 @@ import com.clenzy.repository.TeamRepository;
 import com.clenzy.model.Team;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.service.pricing.CleaningPricingEngine;
+import com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -76,6 +78,7 @@ public class ServiceRequestService {
     private final ServiceRequestMapper serviceRequestMapper;
     private final AssignmentEventRepository assignmentEventRepository;
     private final WorkflowSettingsRepository workflowSettingsRepository;
+    private final CleaningPricingEngine cleaningPricingEngine;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                   UserRepository userRepository,
@@ -89,7 +92,8 @@ public class ServiceRequestService {
                                   TenantContext tenantContext,
                                   ServiceRequestMapper serviceRequestMapper,
                                   AssignmentEventRepository assignmentEventRepository,
-                                  WorkflowSettingsRepository workflowSettingsRepository) {
+                                  WorkflowSettingsRepository workflowSettingsRepository,
+                                  CleaningPricingEngine cleaningPricingEngine) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -103,6 +107,7 @@ public class ServiceRequestService {
         this.serviceRequestMapper = serviceRequestMapper;
         this.assignmentEventRepository = assignmentEventRepository;
         this.workflowSettingsRepository = workflowSettingsRepository;
+        this.cleaningPricingEngine = cleaningPricingEngine;
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
@@ -220,6 +225,7 @@ public class ServiceRequestService {
         intervention.setScheduledDate(sr.getDesiredDate());
         intervention.setEstimatedDurationHours(sr.getEstimatedDurationHours());
         intervention.setEstimatedCost(sr.getEstimatedCost());
+        intervention.setRecommendedCost(sr.getRecommendedCost());
         intervention.setIsUrgent(sr.isUrgent());
         intervention.setStartTime(sr.getDesiredDate());
         intervention.setRequiresFollowUp(false);
@@ -893,7 +899,12 @@ public class ServiceRequestService {
         sr.setDesiredDate(desiredDate);
         sr.setGuestCheckoutTime(desiredDate);
         sr.setEstimatedDurationHours((int) Math.ceil(ServiceType.CLEANING.getEstimatedHours()));
-        sr.setEstimatedCost(property.getCleaningBasePrice());
+        // Prix résolu (override logement prioritaire, sinon conseil moteur — plus
+        // jamais null quand cleaningBasePrice est absent) + snapshot du conseil.
+        ResolvedCleaningPrice resolvedPrice = cleaningPricingEngine
+                .resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING);
+        sr.setEstimatedCost(resolvedPrice.amount());
+        sr.setRecommendedCost(resolvedPrice.quote().recommended());
         sr.setUser(owner);
         sr.setProperty(property);
         sr.setReservationId(reservationId);

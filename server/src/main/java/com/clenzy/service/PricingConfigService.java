@@ -2,8 +2,6 @@ package com.clenzy.service;
 
 import com.clenzy.dto.PricingConfigDto;
 import com.clenzy.model.PricingConfig;
-import com.clenzy.model.Property;
-import com.clenzy.model.PropertyType;
 import com.clenzy.repository.PricingConfigRepository;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -17,7 +15,6 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 @Service
@@ -280,6 +277,19 @@ public class PricingConfigService {
         return dto.getMinPrice() != null ? dto.getMinPrice() : DEFAULT_MIN_PRICE;
     }
 
+    /**
+     * Config JSON brute du moteur menage (CleaningPricingEngine) de l'org courante.
+     * NULL = jamais personnalisee -> le moteur applique ses defauts Java.
+     */
+    @Transactional(readOnly = true)
+    public String getCleaningEngineConfigJson() {
+        Long orgId = tenantContext.getOrganizationId();
+        Optional<PricingConfig> config = orgId != null
+                ? repository.findTopByOrganizationIdOrderByIdDesc(orgId)
+                : repository.findTopByOrderByIdDesc();
+        return config.map(PricingConfig::getCleaningEngineConfig).orElse(null);
+    }
+
     // ─── Devis pricing computation (used by TagResolverService) ────────────
 
     /** Remise standard sur l'engagement annuel (paiement en une fois). */
@@ -473,70 +483,6 @@ public class PricingConfigService {
         return getPmsMonthlyPriceCents() + (billableSeats * getPmsPerSeatPriceCents());
     }
 
-    // ─── Estimation coût ménage (partagée : iCal scheduler + modale réservation) ──
-
-    /**
-     * Estime le cout de menage en euros pour une propriete.
-     * Formule : basePrix(forfait du owner) x typeCoeff x surfaceCoeff x guestCoeff,
-     * borne au prix minimum et arrondi au multiple de 5 EUR le plus proche.
-     * (Logique historiquement privee dans ICalCleaningScheduler, exposee ici pour reutilisation.)
-     */
-    public BigDecimal estimateCleaningCost(Property property) {
-        // Prix de base depuis la config dynamique, selon le forfait du owner
-        Map<String, Integer> basePrices = getBasePrices();
-        String forfait = (property.getOwner() != null && property.getOwner().getForfait() != null)
-                ? property.getOwner().getForfait().toLowerCase() : "confort";
-        int basePrice = basePrices.getOrDefault(forfait, basePrices.getOrDefault("confort", 75));
-
-        // Coefficient type de propriete (mapper PropertyType enum -> cle PricingConfig)
-        Map<String, Double> typeCoeffs = getPropertyTypeCoeffs();
-        String propertyTypeKey = mapPropertyTypeToKey(property.getType());
-        double typeCoeff = typeCoeffs.getOrDefault(propertyTypeKey, 1.0);
-
-        // Coefficient surface (via tiers dynamiques)
-        double surfaceCoeff = property.getSquareMeters() != null
-                ? getSurfaceCoeff(property.getSquareMeters()) : 1.0;
-
-        // Coefficient capacite guests
-        Map<String, Double> guestCoeffs = getGuestCapacityCoeffs();
-        int guests = property.getMaxGuests() != null ? property.getMaxGuests() : 2;
-        String guestKey = guests <= 2 ? "1-2" : guests <= 4 ? "3-4" : guests <= 6 ? "5-6" : "7+";
-        double guestCoeff = guestCoeffs.getOrDefault(guestKey, 1.0);
-
-        double cost = basePrice * typeCoeff * surfaceCoeff * guestCoeff;
-
-        // Prix minimum
-        int minPrice = getMinPrice();
-        cost = Math.max(cost, minPrice);
-
-        // Arrondir au multiple de 5 EUR le plus proche
-        cost = Math.round(cost / 5.0) * 5.0;
-
-        log.debug("Estimation cout menage pour {} : base={} x type({})={} x surface={} x guests({})={} = {}",
-                property.getName(), basePrice, propertyTypeKey, typeCoeff, surfaceCoeff, guestKey, guestCoeff, cost);
-
-        return BigDecimal.valueOf(cost);
-    }
-
-    /**
-     * Mappe un PropertyType enum vers la cle utilisee dans PricingConfig.
-     */
-    private String mapPropertyTypeToKey(PropertyType type) {
-        if (type == null) return "autre";
-        switch (type) {
-            case APARTMENT: return "appartement";
-            case HOUSE: return "maison";
-            case STUDIO: return "studio";
-            case VILLA: return "villa";
-            case LOFT: return "loft";
-            case GUEST_ROOM: return "chambre-hote";
-            case COTTAGE: return "gite";
-            case CHALET: return "chalet";
-            case BOAT: return "bateau";
-            default: return "autre";
-        }
-    }
-
     // ─── Conversion: Entity -> DTO ─────────────────────────────────
 
     private PricingConfigDto toDto(PricingConfig entity) {
@@ -575,6 +521,8 @@ public class PricingConfigService {
         dto.setAvailablePrestations(parseListJson(entity.getAvailablePrestations(), new TypeReference<List<PricingConfigDto.PrestationOption>>() {}));
         dto.setAvailableSurcharges(parseListJson(entity.getAvailableSurcharges(), new TypeReference<List<PricingConfigDto.SurchargeOption>>() {}));
 
+        dto.setCleaningEngineConfig(entity.getCleaningEngineConfig());
+
         dto.setUpdatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().toString() : null);
 
         return dto;
@@ -597,6 +545,9 @@ public class PricingConfigService {
         }
         if (dto.getSurfaceTiers() != null) {
             entity.setSurfaceTiers(toJson(dto.getSurfaceTiers()));
+        }
+        if (dto.getCleaningEngineConfig() != null) {
+            entity.setCleaningEngineConfig(dto.getCleaningEngineConfig());
         }
 
         if (dto.getBasePriceEssentiel() != null) entity.setBasePriceEssentiel(dto.getBasePriceEssentiel());

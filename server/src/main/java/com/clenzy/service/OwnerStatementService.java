@@ -1,9 +1,12 @@
 package com.clenzy.service;
 
+import com.clenzy.model.ExpenseCategory;
 import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
+import com.clenzy.model.ProviderExpense;
 import com.clenzy.model.User;
 import com.clenzy.repository.OwnerPayoutRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
@@ -15,6 +18,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -39,16 +43,26 @@ public class OwnerStatementService {
     private static final DateTimeFormatter LONG_DATE = DateTimeFormatter.ofPattern("d MMMM yyyy", FR);
     private static final DateTimeFormatter SHORT_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy", FR);
 
+    /**
+     * Tolerance d'ecart entre le montant menage facture et le bareme conseille
+     * (recommended_cost) au-dela de laquelle le bareme est affiche (P11,
+     * PLAN-MOTEUR-MENAGE.md). En-deca : mention « conforme au bareme ».
+     */
+    private static final BigDecimal ADVISORY_TOLERANCE_EUR = BigDecimal.valueOf(5);
+
     private final OwnerPayoutRepository payoutRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final ProviderExpenseRepository providerExpenseRepository;
 
     public OwnerStatementService(OwnerPayoutRepository payoutRepository,
                                   UserRepository userRepository,
-                                  EmailService emailService) {
+                                  EmailService emailService,
+                                  ProviderExpenseRepository providerExpenseRepository) {
         this.payoutRepository = payoutRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
+        this.providerExpenseRepository = providerExpenseRepository;
     }
 
     /**
@@ -115,7 +129,8 @@ public class OwnerStatementService {
             from.format(SHORT_DATE), to.format(SHORT_DATE));
 
         String html = buildHtml(ownerName, safeConciergerieName, from, to,
-            payouts, totalPaid, totalGross, totalCommission, totalExpenses);
+            payouts, totalPaid, totalGross, totalCommission, totalExpenses,
+            buildCleaningAdvisories(payouts, orgId));
 
         emailService.sendSimpleHtmlEmail(email, subject, html);
 
@@ -131,7 +146,8 @@ public class OwnerStatementService {
                               LocalDate from, LocalDate to,
                               List<OwnerPayout> payouts,
                               BigDecimal totalPaid, BigDecimal totalGross,
-                              BigDecimal totalCommission, BigDecimal totalExpenses) {
+                              BigDecimal totalCommission, BigDecimal totalExpenses,
+                              List<String> cleaningAdvisories) {
         StringBuilder rows = new StringBuilder();
         if (payouts.isEmpty()) {
             rows.append("<tr><td colspan='5' style='padding:18px;text-align:center;color:#718096;'>")
@@ -202,6 +218,7 @@ public class OwnerStatementService {
             +           "</tr>"
             +           rows
             +         "</table>"
+            +         cleaningAdvisoryBlock(cleaningAdvisories)
             +       "</td></tr>"
             +       "<tr><td style='padding:24px 32px 8px 32px;'>"
             +         "<table width='100%' cellpadding='0' cellspacing='0'>"
@@ -237,6 +254,52 @@ public class OwnerStatementService {
             +   "</td></tr>"
             + "</table>"
             + "</body></html>";
+    }
+
+    /**
+     * Lignes « bareme conseille » des prestations MENAGE de la periode (P11,
+     * PLAN-MOTEUR-MENAGE.md) : pour chaque depense menage rattachee a une
+     * intervention dont le conseil moteur a ete snapshote ({@code recommended_cost}),
+     * compare le montant facture au bareme. Ecart ≤ {@link #ADVISORY_TOLERANCE_EUR}
+     * → « conforme au bareme », sinon affiche le bareme.
+     *
+     * <p>Mention purement informative : ne modifie ni les lignes ni les totaux
+     * du releve. Tout texte libre (nom de propriete) est echappe.</p>
+     */
+    private List<String> buildCleaningAdvisories(List<OwnerPayout> payouts, Long orgId) {
+        List<String> lines = new ArrayList<>();
+        for (OwnerPayout payout : payouts) {
+            if (payout.getId() == null) continue;
+            for (ProviderExpense expense : providerExpenseRepository
+                    .findByPayoutIdAndOrgId(payout.getId(), orgId)) {
+                if (expense.getCategory() != ExpenseCategory.CLEANING) continue;
+                if (expense.getIntervention() == null) continue;
+                BigDecimal recommended = expense.getIntervention().getRecommendedCost();
+                BigDecimal billed = expense.getAmountTtc();
+                if (recommended == null || billed == null) continue;
+
+                String propertyName = expense.getProperty() != null && expense.getProperty().getName() != null
+                    ? StringUtils.escapeHtml(expense.getProperty().getName()) : "";
+                String date = expense.getExpenseDate() != null
+                    ? expense.getExpenseDate().format(SHORT_DATE) : "";
+                String advisory = billed.subtract(recommended).abs().compareTo(ADVISORY_TOLERANCE_EUR) <= 0
+                    ? "conforme au bareme"
+                    : "Bareme conseille : " + formatAmount(recommended) + " €";
+                lines.add((date.isEmpty() ? "" : date + " — ")
+                    + "Menage" + (propertyName.isEmpty() ? "" : " " + propertyName)
+                    + " : " + formatAmount(billed) + " € · " + advisory);
+            }
+        }
+        return lines;
+    }
+
+    /** Bloc discret sous le detail par periode. Vide si aucune prestation menage baremee. */
+    private String cleaningAdvisoryBlock(List<String> cleaningAdvisories) {
+        if (cleaningAdvisories == null || cleaningAdvisories.isEmpty()) return "";
+        return "<div style='font-size:11px;color:#A0AEC0;margin-top:10px;line-height:1.7;'>"
+            + "Prestations menage — reference au bareme conseille :<br/>"
+            + String.join("<br/>", cleaningAdvisories)
+            + "</div>";
     }
 
     private String formatAmount(BigDecimal amount) {
