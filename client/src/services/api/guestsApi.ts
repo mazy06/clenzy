@@ -9,6 +9,9 @@ export interface GuestDto {
   email?: string;
   phone?: string;
   fullName: string;
+  countryCode?: string;
+  language?: string;
+  notes?: string;
 }
 
 export interface CreateGuestData {
@@ -16,6 +19,9 @@ export interface CreateGuestData {
   lastName: string;
   email?: string;
   phone?: string;
+  countryCode?: string;
+  language?: string;
+  notes?: string;
 }
 
 export interface GuestListDto {
@@ -51,6 +57,11 @@ export const guestsApi = {
   /** Creer une fiche client (deduplication automatique cote serveur). */
   async create(data: CreateGuestData): Promise<GuestDto> {
     return apiClient.post<GuestDto>('/guests', data);
+  },
+
+  /** Mettre a jour la fiche d'un voyageur existant (nom, email, tel, pays, langue, notes). */
+  async update(guestId: number, data: CreateGuestData): Promise<GuestDto> {
+    return apiClient.put<GuestDto>(`/guests/${guestId}`, data);
   },
 
   /** Lister tous les voyageurs (page Voyageurs). */

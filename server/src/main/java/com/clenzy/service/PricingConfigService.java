@@ -2,6 +2,8 @@ package com.clenzy.service;
 
 import com.clenzy.dto.PricingConfigDto;
 import com.clenzy.model.PricingConfig;
+import com.clenzy.model.Property;
+import com.clenzy.model.PropertyType;
 import com.clenzy.repository.PricingConfigRepository;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,6 +17,7 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @Service
@@ -468,6 +471,70 @@ public class PricingConfigService {
     public int computeMonthlyPmsCostCents(int seatCount) {
         int billableSeats = Math.max(0, seatCount - getPmsFreeSeats());
         return getPmsMonthlyPriceCents() + (billableSeats * getPmsPerSeatPriceCents());
+    }
+
+    // ─── Estimation coût ménage (partagée : iCal scheduler + modale réservation) ──
+
+    /**
+     * Estime le cout de menage en euros pour une propriete.
+     * Formule : basePrix(forfait du owner) x typeCoeff x surfaceCoeff x guestCoeff,
+     * borne au prix minimum et arrondi au multiple de 5 EUR le plus proche.
+     * (Logique historiquement privee dans ICalCleaningScheduler, exposee ici pour reutilisation.)
+     */
+    public BigDecimal estimateCleaningCost(Property property) {
+        // Prix de base depuis la config dynamique, selon le forfait du owner
+        Map<String, Integer> basePrices = getBasePrices();
+        String forfait = (property.getOwner() != null && property.getOwner().getForfait() != null)
+                ? property.getOwner().getForfait().toLowerCase() : "confort";
+        int basePrice = basePrices.getOrDefault(forfait, basePrices.getOrDefault("confort", 75));
+
+        // Coefficient type de propriete (mapper PropertyType enum -> cle PricingConfig)
+        Map<String, Double> typeCoeffs = getPropertyTypeCoeffs();
+        String propertyTypeKey = mapPropertyTypeToKey(property.getType());
+        double typeCoeff = typeCoeffs.getOrDefault(propertyTypeKey, 1.0);
+
+        // Coefficient surface (via tiers dynamiques)
+        double surfaceCoeff = property.getSquareMeters() != null
+                ? getSurfaceCoeff(property.getSquareMeters()) : 1.0;
+
+        // Coefficient capacite guests
+        Map<String, Double> guestCoeffs = getGuestCapacityCoeffs();
+        int guests = property.getMaxGuests() != null ? property.getMaxGuests() : 2;
+        String guestKey = guests <= 2 ? "1-2" : guests <= 4 ? "3-4" : guests <= 6 ? "5-6" : "7+";
+        double guestCoeff = guestCoeffs.getOrDefault(guestKey, 1.0);
+
+        double cost = basePrice * typeCoeff * surfaceCoeff * guestCoeff;
+
+        // Prix minimum
+        int minPrice = getMinPrice();
+        cost = Math.max(cost, minPrice);
+
+        // Arrondir au multiple de 5 EUR le plus proche
+        cost = Math.round(cost / 5.0) * 5.0;
+
+        log.debug("Estimation cout menage pour {} : base={} x type({})={} x surface={} x guests({})={} = {}",
+                property.getName(), basePrice, propertyTypeKey, typeCoeff, surfaceCoeff, guestKey, guestCoeff, cost);
+
+        return BigDecimal.valueOf(cost);
+    }
+
+    /**
+     * Mappe un PropertyType enum vers la cle utilisee dans PricingConfig.
+     */
+    private String mapPropertyTypeToKey(PropertyType type) {
+        if (type == null) return "autre";
+        switch (type) {
+            case APARTMENT: return "appartement";
+            case HOUSE: return "maison";
+            case STUDIO: return "studio";
+            case VILLA: return "villa";
+            case LOFT: return "loft";
+            case GUEST_ROOM: return "chambre-hote";
+            case COTTAGE: return "gite";
+            case CHALET: return "chalet";
+            case BOAT: return "bateau";
+            default: return "autre";
+        }
     }
 
     // ─── Conversion: Entity -> DTO ─────────────────────────────────

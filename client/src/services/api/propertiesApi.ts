@@ -328,4 +328,28 @@ export const propertiesApi = {
     const query = days ? `?days=${days}` : '';
     return apiClient.get<PropertyPerformance[]>(`/properties/performance-summaries${query}`);
   },
+
+  /**
+   * Estimation du coût de ménage (vrai estimateur d'intervention côté backend :
+   * basePrix forfait × coeff type × surface × capacité, min + arrondi 5 €).
+   * Montant proposé (éditable) dans la modale de réservation.
+   */
+  async getCleaningEstimate(propertyId: number): Promise<number> {
+    const res = await apiClient.get<{ estimate: number }>(`/pricing-config/cleaning-estimate/${propertyId}`);
+    return res.estimate;
+  },
+
+  /**
+   * Estimation ménage EN LOT (une requête pour une liste de logements) :
+   * POST /pricing-config/cleaning-estimates → { estimates: { [propertyId]: number } }.
+   * Liste vide → {} sans appel réseau.
+   */
+  async getCleaningEstimates(propertyIds: number[]): Promise<Record<number, number>> {
+    if (propertyIds.length === 0) return {};
+    const res = await apiClient.post<{ estimates: Record<number, number> }>(
+      '/pricing-config/cleaning-estimates',
+      { propertyIds },
+    );
+    return res.estimates ?? {};
+  },
 };

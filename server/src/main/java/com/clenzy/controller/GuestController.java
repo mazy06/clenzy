@@ -2,8 +2,6 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.GuestDto;
 import com.clenzy.dto.GuestListDto;
-import com.clenzy.model.Guest;
-import com.clenzy.model.GuestChannel;
 import com.clenzy.service.GuestService;
 import com.clenzy.tenant.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
@@ -69,18 +67,23 @@ public class GuestController {
                     + "La deduplication par email est geree automatiquement.")
     public ResponseEntity<GuestDto> create(@RequestBody GuestDto dto) {
         Long orgId = tenantContext.getRequiredOrganizationId();
+        // findOrCreate DIRECT + application des infos optionnelles (langue, pays, notes).
+        return ResponseEntity.ok(guestService.createDirect(dto, orgId));
+    }
 
-        Guest guest = guestService.findOrCreate(
-                dto.firstName(),
-                dto.lastName(),
-                dto.email(),
-                dto.phone(),
-                GuestChannel.DIRECT,
-                null,
-                orgId
-        );
+    // ── PUT : mettre a jour une fiche voyageur ──────────────────────────────
 
-        return ResponseEntity.ok(GuestService.toDto(guest));
+    @PutMapping("/{guestId}")
+    @Operation(summary = "Mettre a jour une fiche voyageur",
+            description = "Met a jour les infos d'un voyageur existant (nom, email, telephone, "
+                    + "nationalite, langue, notes). Org-scope.")
+    public ResponseEntity<GuestDto> update(
+            @PathVariable Long guestId,
+            @RequestBody GuestDto dto) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return guestService.updateGuest(guestId, orgId, dto)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // ── PATCH : mettre a jour l'email d'un voyageur ─────────────────────────

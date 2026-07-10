@@ -10,5 +10,8 @@ public record GuestDto(
     String lastName,
     String email,
     String phone,
-    String fullName
+    String fullName,
+    String language,
+    String countryCode,
+    String notes
 ) {}

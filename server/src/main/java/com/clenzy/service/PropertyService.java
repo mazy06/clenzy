@@ -147,6 +147,19 @@ public class PropertyService {
     }
 
     /**
+     * Charge l'entité Property org-scopée avec garde fail-closed (audit 2026-06, règle 3 :
+     * findById ne traverse pas le filtre Hibernate → validation d'org obligatoire) et
+     * initialise le owner (forfait requis par l'estimation ménage hors transaction).
+     */
+    @Transactional(readOnly = true)
+    public Property getSecuredPropertyEntity(Long id) {
+        Property property = findByIdRespectingTenant(id);
+        requireSameOrganization(property);
+        Hibernate.initialize(property.getOwner());
+        return property;
+    }
+
+    /**
      * Charge une propriete en respectant le tenant.
      *
      * Utilise findById (standard JPA) au lieu de findByIdWithOwner (JPQL avec LEFT JOIN FETCH).

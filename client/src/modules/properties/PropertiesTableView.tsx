@@ -10,7 +10,7 @@ import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import ThemedTooltip from '../../components/ThemedTooltip';
 import { Money } from '../../components/Money';
 import MissingContractChip from './MissingContractChip';
-import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from './PropertyCard';
+import { estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
 import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, softDataChipSx, FIELD_CHIP_SX, propertyGradientCss } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
@@ -32,6 +32,8 @@ interface PropertiesTableViewProps {
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
   channexMappings: Map<number, ChannexMappingDto>;
+  /** Coûts de ménage estimés (vrai estimateur backend), clé = propertyId. */
+  cleaningEstimates: Record<number, number>;
   canManageContracts: boolean;
   missingContractIds: Set<number>;
   /** Clic sur le badge « Contrat manquant » : ouvre la modal de contrat préselectionnée. */
@@ -44,7 +46,7 @@ interface PropertiesTableViewProps {
 /** Vue liste : tableau dense des propriétés + pagination. */
 const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
   properties, totalCount, page, rowsPerPage, onPageChange, onRowsPerPageChange,
-  channexMappings, canManageContracts, missingContractIds, onMissingContractClick,
+  channexMappings, cleaningEstimates, canManageContracts, missingContractIds, onMissingContractClick,
   onToggleStatus, onDelete, navigate,
 }) => {
   const { t } = useTranslation();
@@ -91,7 +93,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
           <TableBody>
             {properties.map((property) => {
               const details = toPropertyDetails(property);
-              const price = estimateCleaningPrice(details);
+              const price = cleaningEstimates[Number(property.id)];
               const duration = estimateCleaningDuration(details);
               return (
                 <TableRow
