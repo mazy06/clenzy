@@ -29,6 +29,57 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     List<Intervention> findByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
     /**
+     * Interventions planifiées dans la fenêtre du dashboard overview. Org-scope
+     * strict ; owner optionnel (HOST) ; assigné optionnel (rôles opérationnels :
+     * un technicien ne voit que SES interventions). Sans join fetch.
+     */
+    @Query("SELECT i FROM Intervention i WHERE i.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR i.property.owner.keycloakId = :ownerKc) "
+        + "AND (:assigneeId IS NULL OR i.assignedUser.id = :assigneeId) "
+        + "AND i.scheduledDate >= :from AND i.scheduledDate < :toExclusive")
+    List<Intervention> findForDashboardWindow(
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("assigneeId") Long assigneeId);
+
+    /** Compteur d'interventions urgentes ouvertes (badge dashboard) — mêmes scopes optionnels. */
+    @Query("SELECT COUNT(i) FROM Intervention i WHERE i.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR i.property.owner.keycloakId = :ownerKc) "
+        + "AND (:assigneeId IS NULL OR i.assignedUser.id = :assigneeId) "
+        + "AND i.priority = 'URGENT' AND i.status IN :statuses")
+    long countUrgentForDashboard(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("assigneeId") Long assigneeId,
+            @Param("statuses") List<InterventionStatus> statuses);
+
+    /** Compteur « paiements en attente » (interventions payantes non réglées) — dashboard. */
+    @Query("SELECT COUNT(i) FROM Intervention i WHERE i.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR i.property.owner.keycloakId = :ownerKc) "
+        + "AND i.paymentStatus = :pendingStatus "
+        + "AND (i.estimatedCost > 0 OR i.actualCost > 0)")
+    long countPendingPaymentsForDashboard(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("pendingStatus") com.clenzy.model.PaymentStatus pendingStatus);
+
+    /**
+     * Interventions d'un LOT de logements planifiées dans la fenêtre — agrégats
+     * de coûts (PropertyPerformanceService). Volontairement SANS join fetch
+     * (seuls scheduledDate et les coûts sont lus) : remplace l'appel
+     * {@link #findByPropertyId} par logement (N+1).
+     */
+    @Query("SELECT i FROM Intervention i WHERE i.property.id IN :propertyIds AND i.organizationId = :orgId " +
+           "AND i.scheduledDate >= :from AND i.scheduledDate < :toExclusive")
+    List<Intervention> findByPropertyIdsAndScheduledDateRange(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId);
+
+    /**
      * Requêtes avec pagination optimisée
      */
     @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE i.organizationId = :orgId")

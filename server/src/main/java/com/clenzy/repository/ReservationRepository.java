@@ -46,6 +46,48 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
     /**
+     * Réservations chevauchant la fenêtre du dashboard overview — KPI financiers
+     * (occupation, revenu, ADR, RevPAN). Org-scope strict, owner optionnel (HOST).
+     * Sans join fetch : seules les bornes / statut / prix sont lues.
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR r.property.owner.keycloakId = :ownerKc) "
+        + "AND r.checkOut >= :from AND r.checkIn < :toExclusive")
+    List<Reservation> findOverlappingWindowForDashboard(
+            @Param("from") LocalDate from,
+            @Param("toExclusive") LocalDate toExclusive,
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc);
+
+    /**
+     * Compteur « paiements en attente » du dashboard : réservations DIRECTES non
+     * annulées avec paiement PENDING et montant dû. Les réservations OTA sont
+     * exclues (déjà réglées sur le canal — affichées « Payé » côté PMS).
+     */
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR r.property.owner.keycloakId = :ownerKc) "
+        + "AND r.source = 'direct' AND r.status <> 'cancelled' "
+        + "AND r.paymentStatus = :pendingStatus AND r.totalPrice > 0")
+    long countDirectPendingPaymentsForDashboard(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("pendingStatus") PaymentStatus pendingStatus);
+
+    /**
+     * Réservations d'un LOT de logements chevauchant la fenêtre — agrégats de
+     * performance (PropertyPerformanceService). Volontairement SANS join fetch
+     * (seules les bornes/statut/prix sont lues) : remplace l'appel
+     * {@link #findByPropertyId} par logement (N+1, entités complètes hydratées).
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.property.id IN :propertyIds AND r.organizationId = :orgId " +
+           "AND r.checkOut >= :from AND r.checkIn < :toExclusive")
+    List<Reservation> findByPropertyIdsOverlappingWindow(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("from") LocalDate from,
+            @Param("toExclusive") LocalDate toExclusive,
+            @Param("orgId") Long orgId);
+
+    /**
      * Recherche par nom de guest ou de logement (autocomplete rattachement
      * « à trier » → réservation). Pas de filtre org explicite : réservé au
      * platform staff (cross-org) ; le filtre tenant Hibernate s'applique pour

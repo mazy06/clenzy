@@ -15,6 +15,9 @@ public interface PropertyPhotoRepository extends JpaRepository<PropertyPhoto, Lo
 
     List<PropertyPhoto> findByPropertyIdOrderBySortOrderAsc(Long propertyId);
 
+    /** Chargement batch pour le mapping des listes de logements (évite le N+1 du toDto). */
+    List<PropertyPhoto> findByPropertyIdIn(List<Long> propertyIds);
+
     int countByPropertyId(Long propertyId);
 
     @Modifying

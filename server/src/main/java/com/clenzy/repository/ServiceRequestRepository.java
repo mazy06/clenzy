@@ -15,6 +15,40 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, Long>, JpaSpecificationExecutor<ServiceRequest> {
+
+    /**
+     * Compteurs du dashboard overview sur la fenêtre de la période (créées dans
+     * la fenêtre). Org-scope strict, owner optionnel (HOST).
+     */
+    @Query("SELECT COUNT(sr) FROM ServiceRequest sr WHERE sr.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR sr.property.owner.keycloakId = :ownerKc) "
+        + "AND sr.createdAt >= :from AND sr.createdAt < :toExclusive")
+    long countWindowForDashboard(
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc);
+
+    @Query("SELECT COUNT(sr) FROM ServiceRequest sr WHERE sr.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR sr.property.owner.keycloakId = :ownerKc) "
+        + "AND sr.createdAt >= :from AND sr.createdAt < :toExclusive "
+        + "AND sr.status IN :statuses")
+    long countWindowByStatusesForDashboard(
+            @Param("from") LocalDateTime from,
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("statuses") List<RequestStatus> statuses);
+
+    /** Compteur « paiements en attente » (demandes en attente de paiement) — dashboard. */
+    @Query("SELECT COUNT(sr) FROM ServiceRequest sr WHERE sr.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR sr.property.owner.keycloakId = :ownerKc) "
+        + "AND sr.status = :status")
+    long countByStatusForDashboard(
+            @Param("orgId") Long orgId,
+            @Param("ownerKc") String ownerKc,
+            @Param("status") RequestStatus status);
+
     /**
      * Requêtes optimisées avec FETCH JOIN et cache
      */

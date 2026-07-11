@@ -19,6 +19,8 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Score de performance d'un logement sur une fenêtre glissante (défaut 90 j).
@@ -89,24 +91,55 @@ public class PropertyPerformanceService {
     public PropertyPerformanceDto compute(Long propertyId, int windowDays) {
         final Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new NotFoundException("Logement introuvable : " + propertyId));
-        return computeForProperty(property, windowDays);
+        final Long orgId = property.getOrganizationId();
+        return computeForProperty(property, windowDays,
+                reservationRepository.findByPropertyId(propertyId, orgId),
+                interventionRepository.findByPropertyId(propertyId, orgId));
     }
 
     /**
      * Performance de tous les logements ACTIFS d'une org, triés par score
      * décroissant (classement du dashboard). Org-scopé strict.
+     *
+     * <p>Chargement BATCH : une requête réservations + une requête interventions
+     * pour toute l'org (fenêtre pré-filtrée en SQL), puis agrégation en mémoire —
+     * l'ancienne version faisait 2 requêtes PAR logement (N+1, audit perf).</p>
      */
     public List<PropertyPerformanceDto> computeSummaries(Long orgId, int windowDays) {
-        return propertyRepository.findByOrganizationIdAndStatus(orgId, PropertyStatus.ACTIVE).stream()
-                .map(p -> computeForProperty(p, windowDays))
+        final List<Property> actives = propertyRepository.findByOrganizationIdAndStatus(orgId, PropertyStatus.ACTIVE);
+        if (actives.isEmpty()) {
+            return List.of();
+        }
+
+        final int days = windowDays > 0 ? windowDays : DEFAULT_WINDOW_DAYS;
+        final LocalDate today = LocalDate.now(clock);
+        final LocalDate windowStart = today.minusDays(days);
+        final LocalDate windowEndExclusive = today.plusDays(1);
+        final List<Long> ids = actives.stream().map(Property::getId).toList();
+
+        // Les réservations hors fenêtre contribuent 0 nuit / 0 revenu : le
+        // pré-filtre SQL par chevauchement est sans effet sur le résultat.
+        final Map<Long, List<Reservation>> reservationsByProperty = reservationRepository
+                .findByPropertyIdsOverlappingWindow(ids, windowStart, windowEndExclusive, orgId).stream()
+                .collect(Collectors.groupingBy(r -> r.getProperty().getId()));
+        final Map<Long, List<Intervention>> interventionsByProperty = interventionRepository
+                .findByPropertyIdsAndScheduledDateRange(
+                        ids, windowStart.atStartOfDay(), windowEndExclusive.atStartOfDay(), orgId).stream()
+                .collect(Collectors.groupingBy(i -> i.getProperty().getId()));
+
+        return actives.stream()
+                .map(p -> computeForProperty(p, windowDays,
+                        reservationsByProperty.getOrDefault(p.getId(), List.of()),
+                        interventionsByProperty.getOrDefault(p.getId(), List.of())))
                 .sorted(Comparator.comparingInt(PropertyPerformanceDto::score).reversed())
                 .toList();
     }
 
-    private PropertyPerformanceDto computeForProperty(Property property, int windowDays) {
+    private PropertyPerformanceDto computeForProperty(Property property, int windowDays,
+                                                      List<Reservation> reservations,
+                                                      List<Intervention> interventions) {
         final int days = windowDays > 0 ? windowDays : DEFAULT_WINDOW_DAYS;
         final Long propertyId = property.getId();
-        final Long orgId = property.getOrganizationId();
 
         final LocalDate today = LocalDate.now(clock);
         final LocalDate windowStart = today.minusDays(days);
@@ -115,7 +148,7 @@ public class PropertyPerformanceService {
 
         long occupiedNights = 0L;
         BigDecimal revenue = BigDecimal.ZERO;
-        for (Reservation r : reservationRepository.findByPropertyId(propertyId, orgId)) {
+        for (Reservation r : reservations) {
             if ("cancelled".equalsIgnoreCase(r.getStatus())) {
                 continue;
             }
@@ -134,7 +167,7 @@ public class PropertyPerformanceService {
         }
 
         BigDecimal costs = BigDecimal.ZERO;
-        for (Intervention i : interventionRepository.findByPropertyId(propertyId, orgId)) {
+        for (Intervention i : interventions) {
             if (i.getScheduledDate() == null) {
                 continue;
             }
