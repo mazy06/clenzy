@@ -163,12 +163,16 @@ class HousekeeperRateAssignmentTest {
         @Mock private WorkflowSettingsRepository workflowSettingsRepository;
         @Mock private CleaningPricingEngine cleaningPricingEngine;
         @Mock private com.clenzy.service.pricing.HousekeeperScoreService housekeeperScoreService;
+        @Mock private com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
+        @Mock private com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
+        @Mock private com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
 
         private ServiceRequestService service() {
             return new ServiceRequestService(serviceRequestRepository, userRepository, propertyRepository,
                     interventionRepository, reservationRepository, teamRepository, notificationService,
                     propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
-                    assignmentEventRepository, workflowSettingsRepository, cleaningPricingEngine, housekeeperScoreService);
+                    assignmentEventRepository, workflowSettingsRepository, cleaningPricingEngine, housekeeperScoreService,
+                    supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate);
         }
 
         private ServiceRequest cleaningSr(RequestStatus status) {

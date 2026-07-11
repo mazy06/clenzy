@@ -74,5 +74,14 @@ public final class SupervisionActionType {
      */
     public static final String REVIEW_DRAFT_REPLY = "REVIEW_DRAFT_REPLY";
 
+    /**
+     * Relance la réassignation d'une demande de ménage dont le prestataire s'est
+     * désisté (agent Operations). Réutilise {@code ServiceRequestService.attemptAutoAssign}
+     * (écriture DB + notifications in-app uniquement) : « Appliquer » retente la
+     * recherche d'équipe/prestataire disponible ; idempotent si la demande a été
+     * réassignée entre-temps (scheduler 15 min). Params : {@code serviceRequestId}.
+     */
+    public static final String REASSIGN_CLEANING = "REASSIGN_CLEANING";
+
     private SupervisionActionType() {}
 }

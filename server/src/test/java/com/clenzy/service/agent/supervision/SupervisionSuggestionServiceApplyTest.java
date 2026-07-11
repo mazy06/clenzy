@@ -45,6 +45,7 @@ class SupervisionSuggestionServiceApplyTest {
     @Mock private SupervisionRealtimePublisher realtimePublisher;
     @Mock private com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService;
     @Mock private PlatformTransactionManager transactionManager;
+    @Mock private SupervisionActivityService activityService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
@@ -54,7 +55,7 @@ class SupervisionSuggestionServiceApplyTest {
     void setUp() {
         service = new SupervisionSuggestionService(
                 repository, actionExecutor, notificationService, realtimePublisher,
-                unpaidServiceRequestCardService, clock, transactionManager);
+                unpaidServiceRequestCardService, activityService, clock, transactionManager);
     }
 
     private static SupervisionSuggestion suggestion(String actionType) {

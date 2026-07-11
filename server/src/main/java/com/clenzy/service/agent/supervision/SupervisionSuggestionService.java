@@ -42,6 +42,7 @@ public class SupervisionSuggestionService {
     private final NotificationService notificationService;
     private final SupervisionRealtimePublisher realtimePublisher;
     private final com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService;
+    private final SupervisionActivityService activityService;
     private final Clock clock;
     private final TransactionTemplate transactionTemplate;
 
@@ -50,6 +51,7 @@ public class SupervisionSuggestionService {
                                         NotificationService notificationService,
                                         SupervisionRealtimePublisher realtimePublisher,
                                         com.clenzy.service.UnpaidServiceRequestCardService unpaidServiceRequestCardService,
+                                        SupervisionActivityService activityService,
                                         Clock clock,
                                         PlatformTransactionManager transactionManager) {
         this.repository = repository;
@@ -57,6 +59,7 @@ public class SupervisionSuggestionService {
         this.notificationService = notificationService;
         this.realtimePublisher = realtimePublisher;
         this.unpaidServiceRequestCardService = unpaidServiceRequestCardService;
+        this.activityService = activityService;
         this.clock = clock;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -353,6 +356,13 @@ public class SupervisionSuggestionService {
                         repository.revertApplied(suggestionId, organizationId));
                 throw e;
             }
+        }
+        // Feed « En direct » : l'apply HUMAIN laisse une trace, comme le chemin auto
+        // (`auto_applied` journalisé par SupervisionAutoApplyService — audit 2026-07 :
+        // l'action approuvée par l'opérateur n'apparaissait nulle part).
+        if (!SupervisionSuggestion.APPLIED_BY_AUTO.equals(appliedBy)) {
+            activityService.recordModuleAct(organizationId, suggestion.getPropertyId(),
+                    suggestion.getModuleKey(), "suggestion_applied", suggestion.getTitle());
         }
         // Temps réel (B6) : carte appliquée → poussée aux autres opérateurs (best-effort).
         realtimePublisher.publishPendingResolved(suggestion.getPropertyId(), suggestionId, "validated", null);
