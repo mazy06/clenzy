@@ -140,7 +140,26 @@ public class SupervisionSuggestionService {
                                                            String actionType, String actionParams,
                                                            Long estimatedImpactCents, String severity) {
         return createActionable(organizationId, propertyId, moduleKey, reservationId,
-                title, motif, actionType, actionParams, estimatedImpactCents, severity)
+                title, motif, actionType, actionParams, estimatedImpactCents, severity, true)
+                .map(SupervisionSuggestion::getId);
+    }
+
+    /**
+     * Variante de {@link #recordActionableWithId} pour le chemin d'AUTO-APPLICATION
+     * (Vague 1 autonomie) : la carte est créée avec les mêmes garanties (dédup,
+     * TTL, cooldown) mais SANS la notification « attend votre validation » — elle
+     * va être appliquée immédiatement par l'acteur système, la notification
+     * pertinente est {@code SUPERVISION_AUTO_APPLIED} (émise après succès).
+     * Si l'apply échoue ensuite, la carte reste PENDING (repli HITL naturel).
+     */
+    @Transactional
+    public java.util.Optional<Long> recordActionableForAutoApply(Long organizationId, Long propertyId,
+                                                                 String moduleKey, Long reservationId,
+                                                                 String title, String motif,
+                                                                 String actionType, String actionParams,
+                                                                 Long estimatedImpactCents, String severity) {
+        return createActionable(organizationId, propertyId, moduleKey, reservationId,
+                title, motif, actionType, actionParams, estimatedImpactCents, severity, false)
                 .map(SupervisionSuggestion::getId);
     }
 
@@ -148,6 +167,14 @@ public class SupervisionSuggestionService {
             Long organizationId, Long propertyId, String moduleKey, Long reservationId,
             String title, String motif, String actionType, String actionParams,
             Long estimatedImpactCents, String severity) {
+        return createActionable(organizationId, propertyId, moduleKey, reservationId,
+                title, motif, actionType, actionParams, estimatedImpactCents, severity, true);
+    }
+
+    private java.util.Optional<SupervisionSuggestion> createActionable(
+            Long organizationId, Long propertyId, String moduleKey, Long reservationId,
+            String title, String motif, String actionType, String actionParams,
+            Long estimatedImpactCents, String severity, boolean notifyPending) {
         if (organizationId == null || propertyId == null || moduleKey == null
                 || title == null || title.isBlank()) {
             throw new IllegalArgumentException(
@@ -177,7 +204,9 @@ public class SupervisionSuggestionService {
         s.setEstimatedImpactCents(estimatedImpactCents);
         s.setSeverity(severity);
         repository.save(s);
-        notifyIfActionable(organizationId, safeTitle, motif, severity);
+        if (notifyPending) {
+            notifyIfActionable(organizationId, safeTitle, motif, severity);
+        }
         return java.util.Optional.of(s);
     }
 
@@ -289,18 +318,26 @@ public class SupervisionSuggestionService {
      * <p>Double-clic / double-livraison : le 2e CAS ne matche rien → 400.
      * Pas de {@code @Transactional} ici : l'orchestration transactionnelle est
      * explicite via {@link TransactionTemplate} (évite l'auto-invocation proxy).</p>
+     *
+     * @param appliedBy auteur tracé de l'application : {@code user:<keycloakId>}
+     *                  (bouton humain) ou {@link SupervisionSuggestion#APPLIED_BY_AUTO}
+     *                  (auto-application Vague 1) — persisté par le CAS et visible
+     *                  de l'exécuteur (protections renforcées en mode auto).
      */
-    public void apply(Long organizationId, Long suggestionId) {
+    public void apply(Long organizationId, Long suggestionId, String appliedBy) {
         SupervisionSuggestion suggestion = transactionTemplate.execute(status -> {
             SupervisionSuggestion s = repository.findByIdAndOrganizationId(suggestionId, organizationId)
                     .orElseThrow(() -> new NotFoundException("Suggestion introuvable : " + suggestionId));
             if (s.getActionType() == null) {
                 throw new IllegalArgumentException("Cette suggestion n'est pas actionnable");
             }
-            int transitioned = repository.markApplied(suggestionId, organizationId, clock.instant());
+            int transitioned = repository.markApplied(suggestionId, organizationId, clock.instant(), appliedBy);
             if (transitioned == 0) {
                 throw new IllegalArgumentException("Suggestion déjà traitée");
             }
+            // Reflète l'auteur sur l'instance en mémoire (le CAS est un UPDATE bulk) :
+            // l'exécuteur s'en sert pour durcir les protections du chemin auto.
+            s.setAppliedBy(appliedBy);
             if (!actionExecutor.hasExternalEffect(s.getActionType())) {
                 actionExecutor.execute(s);
             }

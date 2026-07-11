@@ -74,7 +74,47 @@ public class SupervisionReportService {
 
         return new SupervisionReportDto(
                 days, autoActions, applied, dismissed, pending,
-                Math.round(acceptance * 100.0) / 100.0, minutes, humanDuration(minutes));
+                Math.round(acceptance * 100.0) / 100.0, minutes, humanDuration(minutes),
+                acceptanceByType(organizationId, since));
+    }
+
+    /**
+     * Acceptation PAR TYPE d'action (Vague 1 autonomie) : agrège les cartes
+     * actionnables créées dans la fenêtre par (module, actionType, statut) puis
+     * calcule le taux applied / (applied + dismissed). Trié par volume de
+     * décisions décroissant (les types les plus « mûrs » d'abord — aide à la
+     * décision d'activation des toggles d'auto-application).
+     */
+    private java.util.List<com.clenzy.dto.SupervisionTypeAcceptanceDto> acceptanceByType(
+            Long organizationId, Instant since) {
+        record Key(String moduleKey, String actionType) {}
+        final java.util.Map<Key, long[]> byType = new java.util.LinkedHashMap<>();
+        for (Object[] row : suggestionRepository.countActionableByTypeAndStatusSince(organizationId, since)) {
+            final Key key = new Key((String) row[0], (String) row[1]);
+            final long[] counts = byType.computeIfAbsent(key, k -> new long[3]);
+            final long count = (Long) row[3];
+            switch ((String) row[2]) {
+                case SupervisionSuggestion.STATUS_APPLIED -> counts[0] += count;
+                case SupervisionSuggestion.STATUS_DISMISSED -> counts[1] += count;
+                case SupervisionSuggestion.STATUS_PENDING -> counts[2] += count;
+                default -> { /* statut inconnu : ignoré */ }
+            }
+        }
+        return byType.entrySet().stream()
+                .map(e -> {
+                    final long applied = e.getValue()[0];
+                    final long dismissed = e.getValue()[1];
+                    final long decided = applied + dismissed;
+                    final double rate = decided > 0
+                            ? Math.round((double) applied / decided * 100.0) / 100.0 : 0.0;
+                    return new com.clenzy.dto.SupervisionTypeAcceptanceDto(
+                            e.getKey().moduleKey(), e.getKey().actionType(),
+                            applied, dismissed, e.getValue()[2], rate);
+                })
+                .sorted(java.util.Comparator.comparingLong(
+                        (com.clenzy.dto.SupervisionTypeAcceptanceDto d) -> d.applied() + d.dismissed())
+                        .reversed())
+                .toList();
     }
 
     private String humanDuration(long minutes) {

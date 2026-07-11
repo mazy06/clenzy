@@ -24,6 +24,11 @@ public class SupervisionSuggestion {
     /** Suggestion dont l'action exécutable a été appliquée par l'opérateur. */
     public static final String STATUS_APPLIED = "APPLIED";
 
+    /** Auteur d'application système (auto-application par l'AutoApplyGate, Vague 1). */
+    public static final String APPLIED_BY_AUTO = "auto:gate";
+    /** Préfixe de l'auteur humain : {@code user:<keycloakId>}. */
+    public static final String APPLIED_BY_USER_PREFIX = "user:";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -71,6 +76,13 @@ public class SupervisionSuggestion {
     /** Horodatage d'application de l'action (null tant que non appliquée). */
     @Column(name = "applied_at")
     private Instant appliedAt;
+
+    /**
+     * Auteur de l'application : {@code user:<keycloakId>} (bouton humain) ou
+     * {@link #APPLIED_BY_AUTO} (auto-application). Null = non appliquée / historique.
+     */
+    @Column(name = "applied_by", length = 80)
+    private String appliedBy;
 
     /** Horodatage de rejet (« Ignorer ») — sert le cooldown anti-re-suggestion d'une carte écartée. */
     @Column(name = "dismissed_at")
@@ -137,6 +149,9 @@ public class SupervisionSuggestion {
 
     public Instant getAppliedAt() { return appliedAt; }
     public void setAppliedAt(Instant appliedAt) { this.appliedAt = appliedAt; }
+
+    public String getAppliedBy() { return appliedBy; }
+    public void setAppliedBy(String appliedBy) { this.appliedBy = appliedBy; }
 
     public Instant getDismissedAt() { return dismissedAt; }
     public void setDismissedAt(Instant dismissedAt) { this.dismissedAt = dismissedAt; }
