@@ -244,8 +244,11 @@ public class InvoiceReminderExecutor implements AutomationActionExecutor {
                 + invoice.getInvoiceNumber() + " impayee (J+" + daysOverdue + ")"
                 + (emailSent && recipient != null ? " · envoyee a " + recipient.email()
                     : " · email client non resolu, action manuelle");
+            // invoiceId : le feed peut ouvrir la modale de détail facture
+            // (payer / envoyer un lien de paiement) depuis cette entrée.
             supervisionActivityService.recordModuleAct(
-                invoice.getOrganizationId(), propertyId, "fin", "deferred_payment_reminder", summary);
+                invoice.getOrganizationId(), propertyId, "fin", "deferred_payment_reminder", summary,
+                null, invoice.getId());
         } catch (Exception e) {
             log.debug("Relance facture: activite constellation non enregistree (facture {}): {}",
                 invoice.getId(), e.getMessage());

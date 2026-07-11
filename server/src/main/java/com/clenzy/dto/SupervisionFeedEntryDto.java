@@ -10,6 +10,8 @@ package com.clenzy.dto;
  * @param toolName     nom stable de l'outil (clé i18n front : {@code supervision.tools.<toolName>})
  * @param messageLogId id du {@code GuestMessageLog} lié (envois de message uniquement), pour
  *                     prévisualiser le contenu envoyé à la demande ; {@code null} sinon
+ * @param invoiceId    id de la facture liée (relances de paiement uniquement), pour ouvrir
+ *                     la modale de détail facture (payer / envoyer un lien) ; {@code null} sinon
  */
 public record SupervisionFeedEntryDto(
         String id,
@@ -17,6 +19,7 @@ public record SupervisionFeedEntryDto(
         String at,
         String text,
         String toolName,
-        Long messageLogId
+        Long messageLogId,
+        Long invoiceId
 ) {
 }

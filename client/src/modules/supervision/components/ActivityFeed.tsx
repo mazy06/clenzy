@@ -5,7 +5,7 @@
    Texte rendu en clair (jamais de HTML).
    ============================================================ */
 
-import { useState, type KeyboardEvent } from 'react';
+import { memo, useState, type KeyboardEvent } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { AutoAwesome, ChevronDown } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -14,13 +14,18 @@ import { AgentIcon } from '../renderers/agentIcon';
 import { toolIconFor } from '../renderers/toolIcon';
 import type { FeedEntry, PortfolioFeedEntry } from '../types';
 import { FeedMessageModal } from './FeedMessageModal';
+import { FeedInvoiceModal } from './FeedInvoiceModal';
 
 function hhmm(iso: string): string {
   const d = new Date(iso);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedEntry)[] }) {
+// Mémoïsé (audit perf) : ~40 lignes MUI — ne re-rendre que quand `entries` change,
+// pas à chaque re-render du panneau (events SSE agents, toasts, report).
+export const ActivityFeed = memo(ActivityFeedInner);
+
+function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEntry)[] }) {
   const { t } = useTranslation();
   // Détail métier replié par défaut : on ne montre que le libellé, la description
   // (motif d'échec, montant…) s'ouvre au clic sur le chevron.
@@ -35,6 +40,9 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
   // prévisualise le contenu envoyé. Seules les entrées porteuses d'un `messageLogId`
   // sont cliquables — les autres gardent leur détail dépliable (chevron).
   const [openMessageLogId, setOpenMessageLogId] = useState<number | null>(null);
+  // Relance de paiement : la ligne ouvre la modale de détail de la facture
+  // (rattachement réservation/prestation + payer / envoyer un lien de paiement).
+  const [openInvoiceId, setOpenInvoiceId] = useState<number | null>(null);
   // Feed RÉEL : le libellé est traduit via le nom d'outil stable
   // (`supervision.tools.<toolName>`). Repli sur `text` (résumé/mock) si pas de clé.
   const labelFor = (entry: FeedEntry | PortfolioFeedEntry) =>
@@ -60,26 +68,35 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
         const toolIcon = isOrchestrator ? null : toolIconFor(entry.toolName, 14);
         const propertyName = 'propertyName' in entry ? entry.propertyName : undefined;
         const messageLogId = entry.messageLogId ?? null;
+        const invoiceId = ('invoiceId' in entry ? entry.invoiceId : null) ?? null;
         const hasMessage = messageLogId != null;
-        // Détail dépliable réservé aux entrées SANS message : pour un message, la ligne
-        // ouvre la modale de prévisualisation (le chevron ferait doublon).
-        const detail = hasMessage ? null : detailFor(entry);
+        // Relance de paiement : cliquable vers la modale facture (le message, s'il
+        // existe aussi, garde priorité — c'est le contenu envoyé qui prime).
+        const hasInvoice = !hasMessage && invoiceId != null;
+        const clickable = hasMessage || hasInvoice;
+        const openModal = () =>
+          hasMessage ? setOpenMessageLogId(messageLogId) : setOpenInvoiceId(invoiceId);
+        // Détail dépliable réservé aux entrées SANS modale : pour les autres, la ligne
+        // ouvre la modale (le chevron ferait doublon).
+        const detail = clickable ? null : detailFor(entry);
         const isOpen = expanded.has(entry.id);
         return (
           <Box
             key={entry.id}
-            {...(hasMessage
+            {...(clickable
               ? {
                   role: 'button' as const,
                   tabIndex: 0,
-                  onClick: () => setOpenMessageLogId(messageLogId),
+                  onClick: openModal,
                   onKeyDown: (e: KeyboardEvent) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      setOpenMessageLogId(messageLogId);
+                      openModal();
                     }
                   },
-                  'aria-label': t('supervision.feed.openMessage', { defaultValue: 'Voir le message envoyé' }),
+                  'aria-label': hasMessage
+                    ? t('supervision.feed.openMessage', { defaultValue: 'Voir le message envoyé' })
+                    : t('supervision.feed.openInvoice', { defaultValue: 'Voir la facture' }),
                 }
               : {})}
             sx={{
@@ -89,7 +106,7 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
               px: 0.5,
               borderBottom: '1px solid var(--line, #eef0f4)',
               '&:last-of-type': { borderBottom: 'none' },
-              ...(hasMessage
+              ...(clickable
                 ? {
                     cursor: 'pointer',
                     borderRadius: '6px',
@@ -155,6 +172,7 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
       })}
     </Box>
     <FeedMessageModal logId={openMessageLogId} onClose={() => setOpenMessageLogId(null)} />
+    <FeedInvoiceModal invoiceId={openInvoiceId} onClose={() => setOpenInvoiceId(null)} />
     </>
   );
 }

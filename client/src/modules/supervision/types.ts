@@ -126,6 +126,12 @@ export interface FeedEntry {
    */
   messageLogId?: number;
   /**
+   * Id de la facture liée à cette entrée — présent uniquement pour les relances
+   * de paiement (agent Finance). Quand présent, la ligne est cliquable et ouvre
+   * la modale de détail facture (payer / envoyer un lien de paiement).
+   */
+  invoiceId?: number;
+  /**
    * Entrée issue de l'orchestrateur (réponse à une demande opérateur dans le
    * chat), pas d'un agent métier : rendu avec l'identité orchestrateur (icône +
    * couleur d'accent) au lieu de `AGENT_META[agentId]`.
