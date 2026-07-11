@@ -41,6 +41,7 @@ class PropertyServiceTest {
     @Mock private PortfolioClientRepository portfolioClientRepository;
     @Mock private PortfolioRepository portfolioRepository;
     @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
+    @Mock private PropertyPhotoRepository propertyPhotoRepository;
     @Mock private com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository listingMappingRepository;
     @Mock private NotificationService notificationService;
 
@@ -57,7 +58,8 @@ class PropertyServiceTest {
         propertyService = new PropertyService(
                 propertyRepository, userRepository, managerPropertyRepository,
                 portfolioClientRepository, portfolioRepository,
-                checkInInstructionsRepository, listingMappingRepository,
+                checkInInstructionsRepository, propertyPhotoRepository,
+                listingMappingRepository,
                 notificationService, tenantContext,
                 new com.clenzy.service.access.OrganizationAccessGuard(tenantContext));
     }
@@ -282,14 +284,16 @@ class PropertyServiceTest {
 
         @Test
         void whenListAllAsSuperAdmin_thenNoOrgFilter() {
+            // Platform staff : toujours via findAll(Specification) (fetch owner
+            // anti-N+1), mais le prédicat org est une conjunction (pas de filtre).
             tenantContext.setSuperAdmin(true);
-            when(propertyRepository.findAll()).thenReturn(List.of());
+            when(propertyRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class)))
+                    .thenReturn(List.of());
 
             propertyService.list();
 
-            verify(propertyRepository).findAll();
-            verify(propertyRepository, never())
-                    .findAll(any(org.springframework.data.jpa.domain.Specification.class));
+            verify(propertyRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class));
+            verify(propertyRepository, never()).findAll();
         }
 
         @Test

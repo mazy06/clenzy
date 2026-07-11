@@ -77,6 +77,26 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     long countByOrganizationId(Long organizationId);
 
     /**
+     * Compteurs du dashboard overview (org-scope, owner optionnel pour HOST) :
+     * total / par statut / par statut créés avant une date (calcul de croissance).
+     */
+    @Query("SELECT COUNT(p) FROM Property p WHERE p.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR p.owner.keycloakId = :ownerKc)")
+    long countForDashboard(@Param("orgId") Long orgId, @Param("ownerKc") String ownerKc);
+
+    @Query("SELECT COUNT(p) FROM Property p WHERE p.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR p.owner.keycloakId = :ownerKc) AND p.status = :status")
+    long countForDashboardByStatus(@Param("orgId") Long orgId, @Param("ownerKc") String ownerKc,
+                                   @Param("status") com.clenzy.model.PropertyStatus status);
+
+    @Query("SELECT COUNT(p) FROM Property p WHERE p.organizationId = :orgId "
+        + "AND (:ownerKc IS NULL OR p.owner.keycloakId = :ownerKc) AND p.status = :status "
+        + "AND p.createdAt < :cutoff")
+    long countForDashboardByStatusCreatedBefore(@Param("orgId") Long orgId, @Param("ownerKc") String ownerKc,
+                                                @Param("status") com.clenzy.model.PropertyStatus status,
+                                                @Param("cutoff") java.time.LocalDateTime cutoff);
+
+    /**
      * Liste les identifiants distincts des proprietaires qui possedent au moins
      * une propriete dans l'organisation. Utilise pour la generation batch de
      * reversements en fin de mois et le releve proprietaire mensuel automatique

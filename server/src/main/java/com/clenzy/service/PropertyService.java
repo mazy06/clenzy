@@ -5,10 +5,13 @@ import com.clenzy.dto.PropertyDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
 import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
+import com.clenzy.model.CheckInInstructions;
 import com.clenzy.model.Property;
+import com.clenzy.model.PropertyPhoto;
 import com.clenzy.model.PropertyType;
 import com.clenzy.model.User;
 import com.clenzy.repository.CheckInInstructionsRepository;
+import com.clenzy.repository.PropertyPhotoRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ManagerPropertyRepository;
@@ -26,14 +29,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 @Service
@@ -47,6 +56,7 @@ public class PropertyService {
     private final PortfolioClientRepository portfolioClientRepository;
     private final PortfolioRepository portfolioRepository;
     private final CheckInInstructionsRepository checkInInstructionsRepository;
+    private final PropertyPhotoRepository propertyPhotoRepository;
     private final AirbnbListingMappingRepository listingMappingRepository;
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
@@ -58,6 +68,7 @@ public class PropertyService {
                           PortfolioClientRepository portfolioClientRepository,
                           PortfolioRepository portfolioRepository,
                           CheckInInstructionsRepository checkInInstructionsRepository,
+                          PropertyPhotoRepository propertyPhotoRepository,
                           AirbnbListingMappingRepository listingMappingRepository,
                           NotificationService notificationService,
                           TenantContext tenantContext,
@@ -68,6 +79,7 @@ public class PropertyService {
         this.portfolioClientRepository = portfolioClientRepository;
         this.portfolioRepository = portfolioRepository;
         this.checkInInstructionsRepository = checkInInstructionsRepository;
+        this.propertyPhotoRepository = propertyPhotoRepository;
         this.listingMappingRepository = listingMappingRepository;
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
@@ -213,19 +225,25 @@ public class PropertyService {
         // analyze_portfolio) appelle cette méthode → sans garde, un HOST analysait
         // le parc de TOUTES les organisations. Garde fail-closed (bypass platform staff).
         Long tenantOrgId = tenantOrgIdOrNullForPlatformStaff();
-        List<Property> properties = tenantOrgId != null
-                ? propertyRepository.findAll((root, query, cb) -> cb.equal(root.get("organizationId"), tenantOrgId))
-                : propertyRepository.findAll();
-        return properties.stream().map(this::toDto).collect(Collectors.toList());
+        List<Property> properties = propertyRepository.findAll((root, query, cb) -> {
+            fetchOwner(root, query);
+            return tenantOrgId != null
+                    ? cb.equal(root.get("organizationId"), tenantOrgId)
+                    : cb.conjunction();
+        });
+        return toDtos(properties);
     }
 
     @Transactional(readOnly = true)
     public Page<PropertyDto> list(Pageable pageable) {
         Long tenantOrgId = tenantOrgIdOrNullForPlatformStaff();
-        return (tenantOrgId != null
-                ? propertyRepository.findAll(
-                        (root, query, cb) -> cb.equal(root.get("organizationId"), tenantOrgId), pageable)
-                : propertyRepository.findAll(pageable)).map(this::toDto);
+        Page<Property> page = propertyRepository.findAll((root, query, cb) -> {
+            fetchOwner(root, query);
+            return tenantOrgId != null
+                    ? cb.equal(root.get("organizationId"), tenantOrgId)
+                    : cb.conjunction();
+        }, pageable);
+        return new PageImpl<>(toDtos(page.getContent()), pageable, page.getTotalElements());
     }
 
     /** Org du tenant courant, ou null pour le platform staff (superAdmin / org SYSTEM) — bypass légitime. */
@@ -248,13 +266,16 @@ public class PropertyService {
         final Long tenantOrgId = (!tenantContext.isSuperAdmin() && !tenantContext.isSystemOrg())
                 ? tenantContext.getOrganizationId()
                 : null;
-        return propertyRepository.findAll((root, query, cb) -> cb.and(
-                tenantOrgId != null ? cb.equal(root.get("organizationId"), tenantOrgId) : cb.conjunction(),
-                ownerId != null ? cb.equal(root.get("owner").get("id"), ownerId) : cb.conjunction(),
-                status != null ? cb.equal(root.get("status"), status) : cb.conjunction(),
-                type != null ? cb.equal(root.get("type"), type) : cb.conjunction(),
-                city != null ? cb.like(cb.lower(root.get("city")), "%" + city.toLowerCase() + "%") : cb.conjunction()
-        ), pageable).map(this::toDto);
+        Page<Property> page = propertyRepository.findAll((root, query, cb) -> {
+            fetchOwner(root, query);
+            return cb.and(
+                    tenantOrgId != null ? cb.equal(root.get("organizationId"), tenantOrgId) : cb.conjunction(),
+                    ownerId != null ? cb.equal(root.get("owner").get("id"), ownerId) : cb.conjunction(),
+                    status != null ? cb.equal(root.get("status"), status) : cb.conjunction(),
+                    type != null ? cb.equal(root.get("type"), type) : cb.conjunction(),
+                    city != null ? cb.like(cb.lower(root.get("city")), "%" + city.toLowerCase() + "%") : cb.conjunction());
+        }, pageable);
+        return new PageImpl<>(toDtos(page.getContent()), pageable, page.getTotalElements());
     }
 
     @Transactional(readOnly = true)
@@ -265,10 +286,17 @@ public class PropertyService {
         final Long tenantOrgId = (!tenantContext.isSuperAdmin() && !tenantContext.isSystemOrg())
                 ? tenantContext.getOrganizationId()
                 : null;
-        return propertyRepository.findAll((root, query, cb) -> cb.and(
-                tenantOrgId != null ? cb.equal(root.get("organizationId"), tenantOrgId) : cb.conjunction(),
-                ownerKeycloakId != null ? cb.equal(root.get("owner").get("keycloakId"), ownerKeycloakId) : cb.conjunction()
-        ), pageable).map(this::toDtoWithManager);
+        Page<Property> page = propertyRepository.findAll((root, query, cb) -> {
+            fetchOwner(root, query);
+            return cb.and(
+                    tenantOrgId != null ? cb.equal(root.get("organizationId"), tenantOrgId) : cb.conjunction(),
+                    ownerKeycloakId != null ? cb.equal(root.get("owner").get("keycloakId"), ownerKeycloakId) : cb.conjunction());
+        }, pageable);
+        List<PropertyDto> dtos = toDtos(page.getContent());
+        for (int i = 0; i < dtos.size(); i++) {
+            enrichWithManager(page.getContent().get(i), dtos.get(i));
+        }
+        return new PageImpl<>(dtos, pageable, page.getTotalElements());
     }
 
     @CacheEvict(value = "properties", key = "#id")
@@ -373,7 +401,48 @@ public class PropertyService {
         }
     }
 
+    /**
+     * Mapping unitaire (détail, création, update) : photos lues via la relation
+     * lazy, check-in instructions via une requête dédiée. Pour les LISTES,
+     * utiliser {@link #toDtos(List)} qui batch ces deux chargements (le mapping
+     * unitaire en boucle = 3 requêtes par logement, N+1 constaté à l'audit perf).
+     */
     private PropertyDto toDto(Property p) {
+        PropertyDto dto = toDto(p, p.getPhotos(), null);
+
+        // Check-in instructions (optional 1:1 relation)
+        try {
+            checkInInstructionsRepository.findByPropertyId(p.getId())
+                .ifPresent(ci -> dto.checkInInstructions = CheckInInstructionsDto.fromEntity(ci));
+        } catch (Exception e) {
+            log.warn("PropertyService.toDto - Erreur lors du chargement des check-in instructions: {}", e.getMessage());
+        }
+
+        return dto;
+    }
+
+    /** Mapping batch pour les listes : photos + check-in instructions chargées en 2 requêtes pour toute la page. */
+    private List<PropertyDto> toDtos(List<Property> properties) {
+        if (properties.isEmpty()) {
+            return List.of();
+        }
+        final List<Long> ids = properties.stream().map(Property::getId).toList();
+
+        final Map<Long, List<PropertyPhoto>> photosByProperty = propertyPhotoRepository
+                .findByPropertyIdIn(ids).stream()
+                .collect(Collectors.groupingBy(ph -> ph.getProperty().getId()));
+        final Map<Long, CheckInInstructions> instructionsByProperty = checkInInstructionsRepository
+                .findByPropertyIdIn(ids).stream()
+                .collect(Collectors.toMap(CheckInInstructions::getPropertyId, ci -> ci, (a, b) -> a));
+
+        return properties.stream()
+                .map(p -> toDto(p,
+                        photosByProperty.getOrDefault(p.getId(), List.of()),
+                        instructionsByProperty.get(p.getId())))
+                .collect(Collectors.toList());
+    }
+
+    private PropertyDto toDto(Property p, Collection<PropertyPhoto> photos, CheckInInstructions checkIn) {
         try {
             PropertyDto dto = new PropertyDto();
             dto.id = p.getId();
@@ -387,16 +456,16 @@ public class PropertyService {
             dto.timezone = p.getTimezone();
             dto.defaultCleaningType = p.getDefaultCleaningType();
             // Photos : triees par sortOrder, puis id. coverPhotoUrl = premiere de la liste.
-            if (p.getPhotos() != null && !p.getPhotos().isEmpty()) {
-                java.util.Comparator<com.clenzy.model.PropertyPhoto> photoOrder = (a, b) -> {
+            if (photos != null && !photos.isEmpty()) {
+                java.util.Comparator<PropertyPhoto> photoOrder = (a, b) -> {
                     int s = Integer.compare(a.getSortOrder(), b.getSortOrder());
                     if (s != 0) return s;
                     return Long.compare(a.getId() != null ? a.getId() : 0L,
                             b.getId() != null ? b.getId() : 0L);
                 };
-                dto.photoUrls = p.getPhotos().stream()
+                dto.photoUrls = photos.stream()
                         .sorted(photoOrder)
-                        .map(com.clenzy.model.PropertyPhoto::getUrl)
+                        .map(PropertyPhoto::getUrl)
                         .toList();
                 dto.coverPhotoUrl = dto.photoUrls.isEmpty() ? null : dto.photoUrls.get(0);
             } else {
@@ -470,12 +539,10 @@ public class PropertyService {
             dto.createdAt = p.getCreatedAt();
             dto.updatedAt = p.getUpdatedAt();
 
-            // Check-in instructions (optional 1:1 relation)
-            try {
-                checkInInstructionsRepository.findByPropertyId(p.getId())
-                    .ifPresent(ci -> dto.checkInInstructions = CheckInInstructionsDto.fromEntity(ci));
-            } catch (Exception e) {
-                log.warn("PropertyService.toDto - Erreur lors du chargement des check-in instructions: {}", e.getMessage());
+            // Check-in instructions pré-chargées (batch) — le mapping unitaire
+            // toDto(Property) les charge lui-même via le repository.
+            if (checkIn != null) {
+                dto.checkInInstructions = CheckInInstructionsDto.fromEntity(checkIn);
             }
 
             return dto;
@@ -558,8 +625,12 @@ public class PropertyService {
 
     private PropertyDto toDtoWithManager(Property p) {
         PropertyDto dto = toDto(p);
-        
-        // Récupérer le manager associé à cette propriété
+        enrichWithManager(p, dto);
+        return dto;
+    }
+
+    /** Complète le DTO avec le manager associé à la propriété (premier ManagerProperty). */
+    private void enrichWithManager(Property p, PropertyDto dto) {
         List<com.clenzy.model.ManagerProperty> managerProperties = managerPropertyRepository.findByPropertyId(p.getId(), tenantContext.getRequiredOrganizationId());
         if (!managerProperties.isEmpty()) {
             com.clenzy.model.ManagerProperty managerProperty = managerProperties.get(0); // Prendre le premier
@@ -572,8 +643,18 @@ public class PropertyService {
                 dto.managerEmail = manager.getEmail();
             }
         }
-        
-        return dto;
+    }
+
+    /**
+     * Fetch-join du owner dans les requêtes de LISTE : la relation est EAGER et,
+     * sans fetch dans la Specification, Hibernate émet un SELECT owner par ligne
+     * (N+1 constaté à l'audit perf). Guard sur le resultType : le count query de
+     * la pagination ne supporte pas les join fetch.
+     */
+    private static void fetchOwner(Root<Property> root, CriteriaQuery<?> query) {
+        if (query != null && !Long.class.equals(query.getResultType()) && !long.class.equals(query.getResultType())) {
+            root.fetch("owner", JoinType.LEFT);
+        }
     }
     
     /**
