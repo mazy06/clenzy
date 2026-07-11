@@ -19,7 +19,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
-import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import { GridSection, AnalyticsWidgetCard } from './analytics';
 import { Money } from '../../components/Money';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
@@ -58,17 +57,6 @@ import type { DashboardPeriod } from './DashboardDateFilter';
 interface DashboardOverviewProps {
   period: DashboardPeriod;
 }
-
-// ─── Empty interventions for analytics engine ───────────────────────────────
-
-const EMPTY_INTERVENTIONS: Array<{
-  estimatedCost?: number;
-  actualCost?: number;
-  type: string;
-  status: string;
-  scheduledDate?: string;
-  createdAt?: string;
-}> = [];
 
 // ─── Hover lift wrapper sx (shared across all KPI cards) ────────────────────
 
@@ -120,25 +108,16 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   }, [user?.roles]);
 
   // ─── Data sources ───────────────────────────────────────────────────────
+  // Tout l'overview (KPI financiers inclus) vient du endpoint agrégé
+  // /dashboard/overview-summary — plus d'agrégation client ni d'analytics
+  // engine sur cet onglet (audit perf navigation 2026-07).
   const {
     stats,
+    financialKpis,
     alerts,
     pendingPaymentsCount,
     loading,
-  } = useDashboardOverview({
-    userRole,
-    user,
-    t,
-    isAdmin,
-    isManager,
-    isHost,
-    period,
-  });
-
-  const { analytics, loading: analyticsLoading } = useAnalyticsEngine({
-    period,
-    interventions: EMPTY_INTERVENTIONS,
-  });
+  } = useDashboardOverview({ period, t });
 
   const { data: pendingPayoutsData, isLoading: pendingPayoutsLoading } = usePendingPayouts();
   const { data: myPayoutData } = useMyPendingPayout();
@@ -156,7 +135,17 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const [hasChannels, setHasChannels] = useState(false);
   const [hasBillingProfile, setHasBillingProfile] = useState(false);
 
+  const globalData = financialKpis;
+  const isKpiLoading = loading;
+
+  // Hints onboarding (pricing/canaux/facturation) : 5 requêtes non critiques.
+  // Différées après le chargement des KPIs pour ne pas concurrencer les fetchs
+  // critiques du premier rendu (audit perf). Ref (pas un state) : un state
+  // re-déclencherait l'effet et son cleanup annulerait les fetchs en vol.
+  const hintsStartedRef = useRef(false);
   useEffect(() => {
+    if (isKpiLoading || hintsStartedRef.current) return;
+    hintsStartedRef.current = true;
     let cancelled = false;
     // Check if first property has rate plans (dynamic pricing configured)
     (async () => {
@@ -196,10 +185,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       }
     })();
     return () => { cancelled = true; };
-  }, []);
-
-  const globalData = analytics?.global ?? null;
-  const isKpiLoading = loading || analyticsLoading;
+  }, [isKpiLoading]);
 
   // Shared hover lift style
   const hoverLift = kpiHoverSx();
@@ -217,13 +203,13 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   // AI usage widget — respect admin toggle + only management & host
   const showAiWidget = hasAnyAiEnabled && (isAdmin || isManager || isHost);
 
-  // ─── Coordinated readiness: wait for all visible widgets ─────────────
-  const readyKeys = useMemo(() => {
-    const keys = ['kpis', 'onboarding', 'planning'];
-    if (showServices) keys.push('services');
-    if (showSidebar) keys.push('contractCta', 'channelHealth');
-    return keys;
-  }, [showServices, showSidebar]);
+  // ─── Coordinated readiness (perf) ─────────────────────────────────────
+  // Le skeleton global n'attend plus QUE l'essentiel above-the-fold (KPIs +
+  // onboarding). Avant, il attendait aussi planning/services/contractCta/
+  // channelHealth : le widget le plus lent bloquait TOUT le dashboard, alors
+  // que chacun a son propre skeleton interne (rendu progressif sans layout
+  // shift). Les callbacks onReady des autres widgets restent branchés (no-op).
+  const readyKeys = useMemo(() => ['kpis', 'onboarding'], []);
 
   const { isReady: widgetsReady, markReady } = useDashboardReady(readyKeys);
 

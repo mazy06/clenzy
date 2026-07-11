@@ -68,10 +68,15 @@ cleanupLegacyTokens()
 // Ce qu'on appelle ici DOIT etre une fonction asynchrone — d'ou le wrap
 // dans une IIFE async. La promise resultante est exportee pour que App.tsx
 // puisse l'await avant toute decision auth (cf. useEffect d'init App).
-export const keycloakInitPromise: Promise<boolean> = (async () => {
-  // Step 1 : demander au backend si le cookie HttpOnly porte une session valide.
-  // La reponse ne contient que des claims non sensibles (cf. SessionInfo).
-  let bootstrapSession: SessionInfo | null = null
+// Step 1 : demander au backend si le cookie HttpOnly porte une session valide.
+// La reponse ne contient que des claims non sensibles (cf. SessionInfo).
+//
+// PERF (audit navigation 2026-07) : ce fetch et keycloak.init() ci-dessous
+// sont INDEPENDANTS (backend vs iframe Keycloak) — ils partent donc en
+// PARALLELE. L'ancienne version awaitait la session avant de lancer init(),
+// ajoutant un round-trip complet au chemin critique du boot. La decision
+// (check-sso prioritaire, metadonnees en fallback) reste identique.
+const bootstrapSessionPromise: Promise<SessionInfo | null> = (async () => {
   try {
     const { API_CONFIG } = await import('./config/api')
     const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/auth/session`, {
@@ -82,14 +87,42 @@ export const keycloakInitPromise: Promise<boolean> = (async () => {
       const data = await response.json() as SessionInfo
       const stillValid = typeof data.expiresAt === 'number' && data.expiresAt * 1000 > Date.now()
       if (data.authenticated && stillValid) {
-        bootstrapSession = data
+        return data
       }
     }
   } catch {
     // Silent — backend pas joignable ou pas de cookie → on tombera sur check-sso
   }
+  return null
+})()
 
-  // Step 2 : init Keycloak avec check-sso classique.
+/**
+ * /api/me ANTICIPÉ (perf boot) : part dès que le backend confirme la session,
+ * en PARALLÈLE du check-sso Keycloak (l'étape la plus lente du boot). Le
+ * cookie HttpOnly suffit : TokenCookieFilter injecte l'Authorization côté
+ * serveur, pas besoin d'attendre le token Keycloak. AuthContext consomme ce
+ * résultat en priorité (une seule fois) et refetch normalement s'il est null.
+ * Résout en JSON (pas en Response) pour être consommable plusieurs fois
+ * (StrictMode double-run) sans erreur « body already read ».
+ */
+export const eagerMePromise: Promise<Record<string, unknown> | null> =
+  bootstrapSessionPromise.then(async (session) => {
+    if (!session) return null
+    try {
+      const { API_CONFIG } = await import('./config/api')
+      const response = await fetch(API_CONFIG.ENDPOINTS.ME, {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      })
+      if (!response.ok) return null
+      return await response.json() as Record<string, unknown>
+    } catch {
+      return null
+    }
+  })
+
+export const keycloakInitPromise: Promise<boolean> = (async () => {
+  // Step 2 : init Keycloak avec check-sso classique (en parallèle du step 1).
   // Si Keycloak retourne authenticated=true (cookies Keycloak natifs OK) → fin.
   // Sinon mais le backend a confirme la session (bootstrapSession) → on
   // restaure l'etat UI depuis les metadonnees (mode degrade sans token JS).
@@ -115,6 +148,7 @@ export const keycloakInitPromise: Promise<boolean> = (async () => {
     // hostname mismatch), mais le backend a confirme la session via le
     // cookie HttpOnly clenzy_auth. On restaure l'etat UI depuis les
     // metadonnees de session (sans token cote JS).
+    const bootstrapSession = await bootstrapSessionPromise
     if (bootstrapSession) {
       if (import.meta.env.DEV) {
         // eslint-disable-next-line no-console
@@ -132,6 +166,7 @@ export const keycloakInitPromise: Promise<boolean> = (async () => {
   } catch {
     // Silent — l'init peut echouer si Keycloak n'est pas joignable ;
     // l'app gere ce cas via les guards habituels.
+    const bootstrapSession = await bootstrapSessionPromise
     if (bootstrapSession) {
       // Meme en cas d'erreur init, si le backend a confirme la session, on restaure
       restoreSessionFromMetadata(bootstrapSession)

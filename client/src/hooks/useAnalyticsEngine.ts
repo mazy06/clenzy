@@ -56,9 +56,15 @@ export type {
 interface UseAnalyticsEngineParams {
   period: DashboardPeriod;
   interventions: InterventionLike[];
+  /**
+   * false = moteur inactif : aucun fetch, aucun compute (analytics=null).
+   * Permet aux surfaces qui n'affichent pas d'analytics (ex : onglet non
+   * visible) de monter le hook sans payer les 3 fetchs + l'agrégation lourde.
+   */
+  enabled?: boolean;
 }
 
-export function useAnalyticsEngine({ period, interventions }: UseAnalyticsEngineParams) {
+export function useAnalyticsEngine({ period, interventions, enabled = true }: UseAnalyticsEngineParams) {
   const days = periodToDays(period);
   const isMock = isMockEnabled('analytics');
 
@@ -67,6 +73,7 @@ export function useAnalyticsEngine({ period, interventions }: UseAnalyticsEngine
     queryKey: ['analytics-reservations', isMock],
     queryFn: () => reservationsApi.getAll(),
     staleTime: 60_000,
+    enabled,
   });
 
   // Fetch properties
@@ -80,6 +87,7 @@ export function useAnalyticsEngine({ period, interventions }: UseAnalyticsEngine
       return [];
     }),
     staleTime: 60_000,
+    enabled,
   });
 
   // Fetch interventions (mock mode only -- provides costs for margin/ROI)
@@ -87,7 +95,7 @@ export function useAnalyticsEngine({ period, interventions }: UseAnalyticsEngine
     queryKey: ['analytics-interventions', isMock],
     queryFn: () => interventionsApi.getAll({ size: 1000 }),
     staleTime: 60_000,
-    enabled: isMock,
+    enabled: enabled && isMock,
   });
 
   // Fetch service requests (for pending requests counter)
@@ -101,12 +109,14 @@ export function useAnalyticsEngine({ period, interventions }: UseAnalyticsEngine
       return [];
     }),
     staleTime: 60_000,
+    enabled,
   });
 
   const reservations = reservationsQuery.data || [];
   const properties = propertiesQuery.data || [];
   const serviceRequests = serviceRequestsQuery.data || [];
-  const loading = reservationsQuery.isLoading || propertiesQuery.isLoading || (isMock && interventionsQuery.isLoading);
+  const loading = enabled
+    && (reservationsQuery.isLoading || propertiesQuery.isLoading || (isMock && interventionsQuery.isLoading));
 
   // In mock mode: use mock interventions; otherwise the external parameter
   const effectiveInterventions = useMemo<InterventionLike[]>(() => {
@@ -124,6 +134,9 @@ export function useAnalyticsEngine({ period, interventions }: UseAnalyticsEngine
   }, [isMock, interventionsQuery.data, interventions]);
 
   const analytics = useMemo<AnalyticsData | null>(() => {
+    // Moteur inactif : ne pas payer l'agrégation (même si le cache react-query
+    // contient déjà les données via une autre instance du hook).
+    if (!enabled) return null;
     if (reservations.length === 0 && properties.length === 0) return null;
 
     const global = computeGlobalKPIs(reservations, properties, effectiveInterventions, serviceRequests, days);
@@ -149,7 +162,7 @@ export function useAnalyticsEngine({ period, interventions }: UseAnalyticsEngine
       benchmark,
       alerts,
     };
-  }, [reservations, properties, effectiveInterventions, serviceRequests, days]);
+  }, [enabled, reservations, properties, effectiveInterventions, serviceRequests, days]);
 
   return { analytics, loading };
 }

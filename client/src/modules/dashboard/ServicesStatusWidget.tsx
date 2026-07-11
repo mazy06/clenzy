@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Typography,
@@ -56,60 +57,50 @@ interface ServicesStatusWidgetProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+const PENDING_STATUS: ServiceStatus = { configured: false, count: 0, loading: true };
+const FAILED_STATUS: ServiceStatus = { configured: false, count: 0, loading: false };
+
 const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ onReady }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [noise, setNoise] = useState<ServiceStatus>({ configured: false, count: 0, loading: true });
-  const [locks, setLocks] = useState<ServiceStatus>({ configured: false, count: 0, loading: true });
-  const [keys, setKeys] = useState<ServiceStatus>({ configured: false, count: 0, loading: true });
-  const [booking, setBooking] = useState<ServiceStatus>({ configured: false, count: 0, loading: true });
+  // React Query (audit perf) : les 4 statuts étaient fetchés via useEffect à
+  // CHAQUE montage du widget (aucun cache) — une seule query cachée 60 s.
+  const { data: servicesStatus } = useQuery({
+    queryKey: ['dashboard', 'services-status'],
+    queryFn: async () => {
+      const [noiseRes, locksRes, keysRes, bookingRes] = await Promise.allSettled([
+        noiseDevicesApi.getAll(),
+        smartLockApi.getAll(),
+        keyExchangeApi.getPoints(),
+        bookingEngineApi.getStatus(),
+      ]);
+      return {
+        noise: noiseRes.status === 'fulfilled'
+          ? { configured: noiseRes.value.length > 0, count: noiseRes.value.length, loading: false }
+          : FAILED_STATUS,
+        locks: locksRes.status === 'fulfilled'
+          ? { configured: locksRes.value.length > 0, count: locksRes.value.length, loading: false }
+          : FAILED_STATUS,
+        keys: keysRes.status === 'fulfilled'
+          ? { configured: keysRes.value.length > 0, count: keysRes.value.length, loading: false }
+          : FAILED_STATUS,
+        booking: bookingRes.status === 'fulfilled'
+          ? {
+              configured: bookingRes.value.configured && bookingRes.value.enabled,
+              count: bookingRes.value.configured ? 1 : 0,
+              loading: false,
+            }
+          : FAILED_STATUS,
+      };
+    },
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    // Noise devices
-    (async () => {
-      try {
-        const devices = await noiseDevicesApi.getAll();
-        if (!cancelled) setNoise({ configured: devices.length > 0, count: devices.length, loading: false });
-      } catch {
-        if (!cancelled) setNoise((prev) => ({ ...prev, loading: false }));
-      }
-    })();
-
-    // Smart locks
-    (async () => {
-      try {
-        const devices = await smartLockApi.getAll();
-        if (!cancelled) setLocks({ configured: devices.length > 0, count: devices.length, loading: false });
-      } catch {
-        if (!cancelled) setLocks((prev) => ({ ...prev, loading: false }));
-      }
-    })();
-
-    // Key exchange points
-    (async () => {
-      try {
-        const points = await keyExchangeApi.getPoints();
-        if (!cancelled) setKeys({ configured: points.length > 0, count: points.length, loading: false });
-      } catch {
-        if (!cancelled) setKeys((prev) => ({ ...prev, loading: false }));
-      }
-    })();
-
-    // Booking engine
-    (async () => {
-      try {
-        const status = await bookingEngineApi.getStatus();
-        if (!cancelled) setBooking({ configured: status.configured && status.enabled, count: status.configured ? 1 : 0, loading: false });
-      } catch {
-        if (!cancelled) setBooking((prev) => ({ ...prev, loading: false }));
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, []);
+  const noise = servicesStatus?.noise ?? PENDING_STATUS;
+  const locks = servicesStatus?.locks ?? PENDING_STATUS;
+  const keys = servicesStatus?.keys ?? PENDING_STATUS;
+  const booking = servicesStatus?.booking ?? PENDING_STATUS;
 
   // Les services IoT pointent vers l'onglet unifié Objets connectés ; booking vers son module.
   const services = [
