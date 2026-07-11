@@ -3,9 +3,10 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
-import keycloak, { keycloakInitPromise, syncAuthCookie } from '../keycloak';
+import keycloak, { keycloakInitPromise, eagerMePromise, syncAuthCookie } from '../keycloak';
 import { API_CONFIG } from '../config/api';
 import { clearTokenCookie } from '../services/apiClient';
 import PermissionSyncService from '../services/PermissionSyncService';
@@ -104,6 +105,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const permissionSyncService = PermissionSyncService.getInstance();
+  // /me anticipé (cf. eagerMePromise dans keycloak.ts) : consommé UNE seule
+  // fois au boot — les rechargements suivants (refresh profil, changement de
+  // permissions, re-login) doivent refetcher des données fraîches.
+  const eagerMeUsedRef = useRef(false);
 
   useEffect(() => {
     // /!\ Pas de garde "ne run qu'une fois" via useRef ici. En React.StrictMode
@@ -136,20 +141,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    const loadUserFromKeycloak = async () => {
-      try {
-        const token = keycloak.token;
-        const response = await fetch(API_CONFIG.ENDPOINTS.ME, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include', // cookie HttpOnly clenzy_auth en repli du Bearer
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          const permissions = userData.permissions || [];
+    // Applique le payload /api/me au state (extrait pour être partagé entre le
+    // fetch normal et le /me anticipé du boot).
+    const applyMeData = async (userData: Record<string, any>) => {
+      const permissions = userData.permissions || [];
 
           let roles: string[] = [];
           if (userData.role) {
@@ -195,6 +190,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (error) {
             console.warn('AuthProvider - Erreur lors de la synchronisation forcée:', error);
           }
+    };
+
+    const loadUserFromKeycloak = async () => {
+      // /me ANTICIPÉ (perf boot) : keycloak.ts a lancé le fetch en parallèle du
+      // check-sso dès que la session cookie a été confirmée. On le consomme une
+      // seule fois ; s'il est null (pas de session, échec réseau, 401), on
+      // retombe sur le fetch normal ci-dessous.
+      if (!eagerMeUsedRef.current) {
+        eagerMeUsedRef.current = true;
+        const eagerData = await eagerMePromise.catch(() => null);
+        if (eagerData) {
+          await applyMeData(eagerData);
+          return;
+        }
+      }
+
+      try {
+        const token = keycloak.token;
+        const response = await fetch(API_CONFIG.ENDPOINTS.ME, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // cookie HttpOnly clenzy_auth en repli du Bearer
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          await applyMeData(userData);
         } else if (response.status === 400 || response.status === 401) {
           // Erreur d'auth : tenter un refresh, sinon logout
           try {

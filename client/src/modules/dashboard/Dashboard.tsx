@@ -98,10 +98,13 @@ const Dashboard: React.FC = () => {
   // Get the tab key for the current selection
   const activeTabKey = visibleTabs[tabValue]?.key ?? 'overview';
 
-  // Analytics engine (for simulator tab)
+  // Analytics engine (for simulator tab) — inactif tant que l'onglet Simulateur
+  // n'est pas affiché : sinon cette instance doublait les fetchs + l'agrégation
+  // lourde de celle de DashboardOverview à chaque montage du dashboard.
   const { analytics } = useAnalyticsEngine({
     period,
     interventions: EMPTY_INTERVENTIONS,
+    enabled: activeTabKey === 'simulator',
   });
 
   // ─── Titles ─────────────────────────────────────────────────────────────
