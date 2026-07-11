@@ -155,7 +155,30 @@
       "trigger_channel_sync": "Synchronisation canal lancée",
       "update_intervention_status": "Statut d'intervention mis à jour",
       "update_property_status": "Statut du logement mis à jour",
-      "update_reservation_status": "Statut de réservation mis à jour"
+      "update_reservation_status": "Statut de réservation mis à jour",
+      "yield_price_adjusted": "Tarif ajusté automatiquement (règle yield)",
+      "auto_applied": "Action appliquée automatiquement",
+      "suggestion_applied": "Suggestion validée et appliquée",
+      "concierge_replied": "Réponse envoyée au voyageur",
+      "concierge_drafted": "Brouillon de réponse voyageur préparé",
+      "owner_statement_sent": "Relevé propriétaire envoyé",
+      "deferred_payment_reminder": "Relance de paiement envoyée",
+      "SEND_MESSAGE": "Message envoyé (automatisation)",
+      "SEND_GUIDE": "Livret d'accueil envoyé (automatisation)",
+      "SEND_CHECKIN_LINK": "Lien de check-in envoyé (automatisation)",
+      "SEND_NOISE_WARNING": "Alerte bruit envoyée (automatisation)",
+      "SEND_REVIEW_REQUEST": "Demande d'avis envoyée (automatisation)",
+      "CREATE_CLEANING_REQUEST": "Ménage créé (automatisation)",
+      "CANCEL_LINKED_CLEANING_REQUEST": "Ménage lié annulé (automatisation)",
+      "CREATE_MAINTENANCE_INTERVENTION": "Intervention maintenance créée (automatisation)",
+      "NOTIFY_STAFF": "Équipe notifiée (automatisation)",
+      "REVOKE_ACCESS_CODE": "Code d'accès révoqué (automatisation)",
+      "SEND_INVOICE_REMINDER": "Relance de facture envoyée (automatisation)",
+      "SEND_OWNER_STATEMENT": "Relevé propriétaire envoyé (automatisation)",
+      "SUGGEST_DEPOSIT_REFUND": "Remboursement de caution suggéré (automatisation)",
+      "SUGGEST_DEPOSIT_RELEASE": "Libération de caution suggérée (automatisation)",
+      "NOTIFY_RATE_PARITY": "Écart de parité tarifaire signalé (automatisation)",
+      "SUGGEST_CALENDAR_BLOCK": "Blocage calendrier suggéré (automatisation)"
     },
     "approval": {
       "title": "Validation requise",
@@ -184,7 +207,8 @@
       "title": "En direct",
       "empty": "Aucune action récente des agents",
       "emptyOnboarding": "Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.",
-      "openMessage": "Voir le message envoyé"
+      "openMessage": "Voir le message envoyé",
+      "openInvoice": "Voir la facture"
     },
     "messageModal": {
       "title": "Message envoyé",
@@ -192,6 +216,32 @@
       "loading": "Chargement du message…",
       "unavailable": "Aperçu du message indisponible.",
       "close": "Fermer"
+    },
+    "invoiceModal": {
+      "title": "Facture",
+      "amount": "Montant TTC",
+      "dueDate": "Échéance",
+      "buyer": "Client",
+      "reservation": "Réservation",
+      "intervention": "Prestation",
+      "openBilling": "Ouvrir dans Facturation",
+      "pay": "Payer",
+      "sendLink": "Envoyer le lien de paiement",
+      "sentTo": "Lien de paiement envoyé à",
+      "notPayable": "Cette facture n’est pas (ou plus) payable en ligne.",
+      "loadError": "Facture introuvable ou inaccessible.",
+      "payError": "Lien de paiement non généré.",
+      "sendError": "Envoi impossible — aucun email client résolvable ou facture non payable.",
+      "close": "Fermer",
+      "status": {
+        "DRAFT": "Brouillon",
+        "SENT": "Envoyée",
+        "ISSUED": "Émise",
+        "PAID": "Payée",
+        "OVERDUE": "En retard",
+        "CANCELLED": "Annulée",
+        "CREDIT_NOTE": "Avoir"
+      }
     },
     "report": {
       "title": "Bilan · 30 jours",
@@ -6157,6 +6207,10 @@
           "label": "Planifier le ménage manquant",
           "description": "Départ de demain sans ménage : la demande est créée automatiquement (fréquence « après chaque séjour » uniquement, idempotent)."
         },
+        "REASSIGN_CLEANING": {
+          "label": "Remplacer le prestataire désisté",
+          "description": "Prestataire ménage désisté sans remplaçant immédiat : la réassignation est relancée automatiquement (idempotent — le scheduler 15 min continue en parallèle)."
+        },
         "REVIEW_DRAFT_REPLY": {
           "label": "Préparer le brouillon de réponse d'avis",
           "description": "Avis négatif : le brouillon est généré automatiquement (budget IA requis). La publication reste toujours manuelle."
@@ -6185,6 +6239,20 @@
           "description": "Solde différé en échec : un lien de paiement est régénéré et envoyé automatiquement au voyageur.",
           "conditions": "1ʳᵉ relance uniquement · 72 h min entre deux relances — les suivantes restent à valider."
         }
+      }
+    }
+  },
+  "planning": {
+    "importChooser": {
+      "title": "Importer des réservations",
+      "subtitle": "Choisissez comment connecter vos canaux de réservation.",
+      "ical": {
+        "title": "Import iCal",
+        "description": "Importez les réservations d’un calendrier externe via un lien .ics (Airbnb, Booking, Vrbo…). Synchronisation en lecture seule."
+      },
+      "channex": {
+        "title": "Channel Manager",
+        "description": "Connectez vos OTA via Channex : réservations, tarifs et disponibilités synchronisés dans les deux sens."
       }
     }
   }

@@ -1,8 +1,10 @@
 # Dev image: Vite dev server avec HMR.
 # Le code source est monte en volume depuis l'hote (voir docker-compose.dev.yml).
 # Seul package.json + lockfile sont copies ici pour installer les deps dans
-# l'image (cache layer stable). Les node_modules vivent dans un volume anonyme
-# cote compose pour eviter que le volume host ne les ecrase.
+# l'image (cache layer stable). Les node_modules vivent dans un volume NOMME
+# cote compose (frontend-node-modules-dev) pour eviter que le volume host ne
+# les ecrase ; start-dev.sh purge ce volume a chaque lancement pour re-seeder
+# depuis l'image fraiche (deps a jour apres un changement de package.json).
 FROM node:20-alpine
 WORKDIR /app
 
