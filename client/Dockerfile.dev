@@ -3,8 +3,9 @@
 # Seul package.json + lockfile sont copies ici pour installer les deps dans
 # l'image (cache layer stable). Les node_modules vivent dans un volume NOMME
 # cote compose (frontend-node-modules-dev) pour eviter que le volume host ne
-# les ecrase ; start-dev.sh purge ce volume a chaque lancement pour re-seeder
-# depuis l'image fraiche (deps a jour apres un changement de package.json).
+# les ecrase. Apres un changement de dependances (package.json), purger ce
+# volume pour le re-seeder depuis l'image fraiche — cf. la commande documentee
+# dans docker-compose.dev.yml (sinon l'ancien volume masque les nouvelles deps).
 FROM node:20-alpine
 WORKDIR /app
 
