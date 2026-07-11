@@ -66,6 +66,14 @@
 
 **Phase 4 TERMINÉE (2026-07-11)** — parité web+mobile sur tout le chantier. Non commitée (avec Phase 3).
 
+## Phase 5 — Vue admin versements (post-livraison)
+
+| # | Item | Statut |
+|---|---|---|
+| 5 (MM-5) | Onglet **« Versements prestataires »** dans BillingPage (`/billing`, adjacent à Reversements proprio + Dépenses prestataires) : liste org des HousekeeperPayoutRecord (listOrg existant), filtre statut, chips sobres, colonne Prestataire (DTO +userId/+stripeTransferId), lien mission, bouton **Relancer** (FAILED+BLOCKED, re-gate serveur, confirmation), deep-link highlight aligné sur l'actionUrl PAYOUT_FAILED. Lève le différé « vue admin payouts ». mvn+tsc=0. | ✅ |
+
+> ⚠️ Nœud à trancher (signalé, non résolu) : recouvrement `ProviderExpense` (coût déduit du relevé proprio) vs `HousekeeperPayoutRecord` (virement Stripe direct au pro) — pour une même mission ménage, les deux peuvent coexister. À clarifier selon le modèle éco (proprio finance le ménage vs plateforme l'absorbe).
+
 ## Différés
 
 - **P6** templates WhatsApp terrain (Meta UTILITY) — si demande des pros.

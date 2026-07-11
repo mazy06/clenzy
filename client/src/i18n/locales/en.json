@@ -3279,6 +3279,7 @@
       "invoices": "Invoices",
       "payouts": "Payouts",
       "expenses": "Expenses",
+      "housekeeperPayouts": "Provider payouts",
       "reportsExports": "Reports & Exports",
       "exportsSection": "Accounting Exports"
     },
@@ -5186,6 +5187,43 @@
       "downloading": "Downloading...",
       "error": "Error during download"
     },
+    "housekeeperPayouts": {
+      "help": {
+        "title": "Provider payouts (cleaning)",
+        "description": "Direct Stripe payouts to (cleaning) providers, triggered automatically on mission completion. Distinct from owner payouts and expense entry.",
+        "dismiss": "Don't show again"
+      },
+      "col": {
+        "provider": "Provider",
+        "mission": "Mission",
+        "net": "Net amount",
+        "commission": "Commission",
+        "status": "Status",
+        "date": "Date"
+      },
+      "provider": "Provider",
+      "missionRef": "Mission",
+      "statuses": {
+        "PENDING": "Pending",
+        "SENT": "Sent",
+        "FAILED": "Failed",
+        "BLOCKED": "Blocked"
+      },
+      "reasons": {
+        "PROOF_MISSING": "Proof missing",
+        "ONBOARDING_INCOMPLETE": "Stripe onboarding incomplete",
+        "AMOUNT_NOT_POSITIVE": "Non-positive amount"
+      },
+      "retry": "Retry payout",
+      "retryTitle": "Retry payout",
+      "retryConfirm": "Retry the payout of {{amount}} to {{provider}}?",
+      "retryConfirmBtn": "Retry",
+      "retrySuccess": "Payout retry triggered",
+      "retryError": "Payout conditions still not met (proof / onboarding).",
+      "empty": "No provider payout",
+      "emptyDescription": "Payouts will appear here automatically when cleaning missions are completed.",
+      "error": "Error loading provider payouts"
+    },
     "expenses": {
       "help": {
         "title": "How do expenses work?",
@@ -5510,6 +5548,7 @@
         "wallets": "Wallet balance per owner: movements, holds, withdrawals and detailed history.",
         "payouts": "Owner payouts schedule: SEPA calculations, status, bank exports.",
         "expenses": "Tracking operational expenses by category and property: supplier invoices, rebilling.",
+        "housekeeperPayouts": "Direct Stripe payouts to (cleaning) providers, triggered on mission completion — distinct from owner payouts.",
         "reportsExports": "Fiscal report (VAT, taxes, NF 525) and accounting exports formatted for your third-party tools."
       }
     },
