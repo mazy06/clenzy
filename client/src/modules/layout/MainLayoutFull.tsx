@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Box, IconButton } from '@mui/material';
 import { Menu as MenuIcon } from '../../icons';
@@ -11,7 +11,11 @@ import Sidebar from '../../components/Sidebar';
 import { LoadingStates } from '../../components/LoadingStates';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
-import AssistantWidget from '../../components/AssistantWidget';
+
+// Assistant en lazy : son sous-arbre (react-markdown, dialog plein écran, useAgent)
+// est lourd et monté sur CHAQUE page — le sortir du chunk layout permet au premier
+// écran de s'afficher sans lui (la bulle apparaît dès que son chunk arrive).
+const AssistantWidget = lazy(() => import('../../components/AssistantWidget'));
 
 interface MainLayoutFullProps {
   children: React.ReactNode;
@@ -162,7 +166,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       {/* Assistant : widget bulle (logo flottant) accessible depuis toutes les
           pages, agrandissable en plein ecran. Unique point d'entree de
           l'assistant (la page dediee /assistant a ete supprimee). */}
-      <AssistantWidget />
+      <Suspense fallback={null}>
+        <AssistantWidget />
+      </Suspense>
     </Box>
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
 import { propertiesApi, managersApi, reservationsApi, serviceRequestsApi } from '../../../services/api';
 import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
@@ -119,6 +119,33 @@ async function fetchProperties(
   }
 
   return mapToPlanning(propertyList);
+}
+
+// ─── Prefetch (perf boot) ─────────────────────────────────────────────────────
+
+/**
+ * Précharge la query « properties » du Planning dès que l'utilisateur est connu
+ * (appelé au montage d'AuthenticatedApp). Le Planning est la route d'atterrissage :
+ * sans prefetch, ce fetch ne part qu'au mount de PlanningPage (après téléchargement
+ * du chunk + gates de rendu), et les réservations n'en dérivent qu'ensuite.
+ * Même clé + même staleTime que la query du hook → aucun double fetch.
+ */
+export function prefetchPlanningProperties(
+  queryClient: import('@tanstack/react-query').QueryClient,
+  user: { id: string; roles?: string[] } | null,
+): void {
+  if (!user) return;
+  const roles = user.roles ?? [];
+  const isAdmin = roles.includes('SUPER_ADMIN');
+  const isManager = roles.includes('SUPER_MANAGER');
+  const isHost = roles.includes('HOST');
+  const isOperational = ['TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR', 'LAUNDRY', 'EXTERIOR_TECH']
+    .some((r) => roles.includes(r));
+  void queryClient.prefetchQuery({
+    queryKey: planningKeys.properties(user.id),
+    queryFn: () => fetchProperties(user, isAdmin, isManager, isHost, isOperational),
+    staleTime: 2 * 60 * 1000,
+  });
 }
 
 // ─── Transform reservations + interventions → PlanningEvent[] ────────────────
@@ -398,12 +425,53 @@ export function usePlanningData(
   const properties = propertiesQuery.data ?? [];
   const propertyIds = useMemo(() => properties.map((p) => p.id), [properties]);
 
+  // ── Priorisation des chunks (perf atterrissage) ────────────────────────────
+  // Le Planning est la route d'atterrissage : sans priorisation, les 4 groupes
+  // de queries fetchent TOUS les chunks du buffer d'emblée (burst 4×N requêtes).
+  // On fetch d'abord les chunks proches d'aujourd'hui (fenêtre visible), puis
+  // les chunks de buffer éloignés une fois les prioritaires résolus.
+  const priorityFroms = useMemo(() => {
+    const today = new Date();
+    const lo = new Date(today);
+    lo.setDate(lo.getDate() - DATA_CHUNK_SIZE_DAYS);
+    const hi = new Date(today);
+    hi.setDate(hi.getDate() + DATA_CHUNK_SIZE_DAYS);
+    const loStr = toDateStr(lo);
+    const hiStr = toDateStr(hi);
+    const set = new Set(
+      chunks.filter((c) => c.from <= hiStr && c.to >= loStr).map((c) => c.from),
+    );
+    // Navigation loin d'aujourd'hui : aucun chunk proche → tout est prioritaire.
+    return set.size > 0 ? set : new Set(chunks.map((c) => c.from));
+  }, [chunks]);
+
+  // « Réglé » = chaque query prioritaire a au moins un résultat (data ou erreur).
+  // Calculé à chaque render (pas de useMemo) : le state du queryClient change
+  // sans changer de référence — les queries prioritaires étant souscrites via
+  // useQueries ci-dessous, leur résolution re-render ce hook et rouvre la vanne.
+  const queryClient = useQueryClient();
+  const chunkKeyFns = [
+    planningKeys.reservations,
+    planningKeys.interventions,
+    planningKeys.awaitingPayment,
+    planningKeys.blockedDays,
+  ];
+  const prioritySettled = propertyIds.length > 0 && chunks
+    .filter((c) => priorityFroms.has(c.from))
+    .every((c) => chunkKeyFns.every((keyFn) => {
+      const state = queryClient.getQueryState(keyFn(propertyIds, c.from, c.to));
+      return !!state && (state.dataUpdatedAt > 0 || state.errorUpdatedAt > 0);
+    }));
+
+  const chunkEnabled = (chunk: { from: string }) =>
+    propertyIds.length > 0 && (priorityFroms.has(chunk.from) || prioritySettled);
+
   // Query 2: Reservations — one query per chunk
   const reservationQueries = useQueries({
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.reservations(propertyIds, chunk.from, chunk.to),
       queryFn: () => reservationsApi.getAll({ propertyIds, from: chunk.from, to: chunk.to }),
-      enabled: propertyIds.length > 0,
+      enabled: chunkEnabled(chunk),
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000, // keep cached 5 min after last use
     })),
@@ -414,7 +482,7 @@ export function usePlanningData(
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.interventions(propertyIds, chunk.from, chunk.to),
       queryFn: () => reservationsApi.getPlanningInterventions({ propertyIds, from: chunk.from, to: chunk.to }),
-      enabled: propertyIds.length > 0,
+      enabled: chunkEnabled(chunk),
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000,
     })),
@@ -425,7 +493,7 @@ export function usePlanningData(
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.awaitingPayment(propertyIds, chunk.from, chunk.to),
       queryFn: () => serviceRequestsApi.getPlanningAwaitingPayment({ propertyIds, from: chunk.from, to: chunk.to }),
-      enabled: propertyIds.length > 0,
+      enabled: chunkEnabled(chunk),
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000,
     })),
@@ -436,7 +504,7 @@ export function usePlanningData(
     queries: chunks.map((chunk) => ({
       queryKey: planningKeys.blockedDays(propertyIds, chunk.from, chunk.to),
       queryFn: () => calendarPricingApi.getBlockedDays(propertyIds, chunk.from, chunk.to),
-      enabled: propertyIds.length > 0,
+      enabled: chunkEnabled(chunk),
       staleTime: 30_000,
       gcTime: 5 * 60 * 1000,
     })),
@@ -515,11 +583,14 @@ export function usePlanningData(
     return [...resEvents, ...intEvents, ...srEvents, ...blockEvents];
   }, [reservations, interventions, awaitingPaymentSRs, blockedDays, propertyDefaultsMap]);
 
-  // Loading: only on initial load (all chunks loading). After initial, chunks load in background.
+  // Loading: only on initial load (no data yet, priority chunks in flight).
+  // After initial, remaining chunks load in background. Les chunks non
+  // prioritaires sont disabled au 1er rendu (isLoading=false) — le critère
+  // est donc « aucune data + au moins un fetch en cours », pas every(isLoading).
   const reservationsInitialLoading = propertyIds.length > 0 &&
-    reservationQueries.every((q) => q.isLoading);
+    reservationQueries.every((q) => !q.data) && reservationQueries.some((q) => q.isLoading);
   const interventionsInitialLoading = propertyIds.length > 0 &&
-    interventionQueries.every((q) => q.isLoading);
+    interventionQueries.every((q) => !q.data) && interventionQueries.some((q) => q.isLoading);
 
   const loading = propertiesQuery.isLoading
     || reservationsInitialLoading
