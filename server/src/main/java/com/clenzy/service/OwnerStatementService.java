@@ -54,15 +54,21 @@ public class OwnerStatementService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final ProviderExpenseRepository providerExpenseRepository;
+    private final com.clenzy.repository.PropertyRepository propertyRepository;
+    private final com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService;
 
     public OwnerStatementService(OwnerPayoutRepository payoutRepository,
                                   UserRepository userRepository,
                                   EmailService emailService,
-                                  ProviderExpenseRepository providerExpenseRepository) {
+                                  ProviderExpenseRepository providerExpenseRepository,
+                                  com.clenzy.repository.PropertyRepository propertyRepository,
+                                  com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService) {
         this.payoutRepository = payoutRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.providerExpenseRepository = providerExpenseRepository;
+        this.propertyRepository = propertyRepository;
+        this.supervisionActivityService = supervisionActivityService;
     }
 
     /**
@@ -137,9 +143,34 @@ public class OwnerStatementService {
         log.info("Owner statement sent: ownerId={}, orgId={}, period={}-{}, payouts={}, totalPaid={}",
             ownerId, orgId, from, to, payouts.size(), totalPaid);
 
+        recordConstellationActivity(ownerId, orgId, from, to, ownerName);
+
         return new OwnerStatementResult(
             email, ownerName, payouts.size(), totalPaid, totalGross, totalCommission, totalExpenses
         );
+    }
+
+    /**
+     * Fait remonter l'envoi du relevé dans le feed « En direct » des constellations
+     * des logements du propriétaire (agent Finance « fin ») — audit 2026-07 : le
+     * relevé était le seul flux fin sans trace constellation (sujet org-level sans
+     * logement unique). Une entrée par logement du propriétaire (org-scopé). Best-effort.
+     */
+    private void recordConstellationActivity(Long ownerId, Long orgId,
+                                             LocalDate from, LocalDate to, String ownerName) {
+        try {
+            String summary = "Releve proprietaire " + from.format(SHORT_DATE) + " → "
+                + to.format(SHORT_DATE) + " envoye a " + ownerName;
+            // REQUIRES_NEW : sendStatement est @Transactional(readOnly=true) — un
+            // record standard rejoindrait la transaction lecture seule et échouerait.
+            propertyRepository.findByOwnerId(ownerId).stream()
+                .filter(p -> orgId.equals(p.getOrganizationId()))
+                .forEach(p -> supervisionActivityService.recordModuleActNewTx(
+                    orgId, p.getId(), "fin", "owner_statement_sent", summary));
+        } catch (Exception e) {
+            log.debug("Releve proprietaire: activite constellation non enregistree (owner {}): {}",
+                ownerId, e.getMessage());
+        }
     }
 
     private String buildHtml(String ownerName, String conciergerieName,

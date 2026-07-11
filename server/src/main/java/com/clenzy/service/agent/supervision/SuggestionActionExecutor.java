@@ -149,10 +149,33 @@ public class SuggestionActionExecutor {
             case SupervisionActionType.CALENDAR_BLOCK -> applyCalendarBlock(suggestion);
             case SupervisionActionType.YIELD_PRICE_ADJUST -> applyYieldAdjust(suggestion);
             case SupervisionActionType.CLEANING_REQUEST -> applyCleaningRequest(suggestion);
+            case SupervisionActionType.REASSIGN_CLEANING -> applyReassignCleaning(suggestion);
             case SupervisionActionType.PAYMENT_REMINDER -> applyPaymentReminder(suggestion);
             case SupervisionActionType.REVIEW_DRAFT_REPLY -> applyReviewDraftReply(suggestion);
             default -> throw new IllegalStateException("Type d'action non supporté : " + type);
         }
+    }
+
+    /**
+     * REASSIGN_CLEANING — retente la réassignation d'une demande de ménage dont le
+     * prestataire s'est désisté. Idempotent (demande déjà réassignée entre-temps →
+     * succès) ; org-scopé strict côté service. Échec de recherche → la carte reste
+     * PENDING (l'opérateur peut réessayer plus tard ou assigner manuellement).
+     */
+    private void applyReassignCleaning(SupervisionSuggestion suggestion) {
+        final JsonNode params = parseParams(suggestion.getActionParams());
+        if (!params.path("serviceRequestId").isNumber()) {
+            throw new IllegalStateException("REASSIGN_CLEANING sans serviceRequestId");
+        }
+        final long serviceRequestId = params.path("serviceRequestId").asLong();
+        final boolean assigned = serviceRequestService.retryAutoAssignForSupervision(
+                suggestion.getOrganizationId(), serviceRequestId);
+        if (!assigned) {
+            throw new IllegalStateException(
+                    "Aucun prestataire disponible pour le moment — réessayer plus tard ou assigner manuellement");
+        }
+        log.info("REASSIGN_CLEANING appliqué org={} property={} serviceRequest={}",
+                suggestion.getOrganizationId(), suggestion.getPropertyId(), serviceRequestId);
     }
 
     /**

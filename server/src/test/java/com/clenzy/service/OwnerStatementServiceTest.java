@@ -41,13 +41,15 @@ class OwnerStatementServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private EmailService emailService;
     @Mock private ProviderExpenseRepository providerExpenseRepository;
+    @Mock private com.clenzy.repository.PropertyRepository propertyRepository;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionActivityService supervisionActivityService;
 
     private OwnerStatementService service;
 
     @BeforeEach
     void setUp() {
         service = new OwnerStatementService(payoutRepository, userRepository, emailService,
-                providerExpenseRepository);
+                providerExpenseRepository, propertyRepository, supervisionActivityService);
     }
 
     private User user(Long id, String email, String first, String last) {

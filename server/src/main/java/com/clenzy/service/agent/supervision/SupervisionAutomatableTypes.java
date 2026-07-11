@@ -39,6 +39,9 @@ public final class SupervisionAutomatableTypes {
     /** Catalogue ordonné (ordre d'affichage UI). */
     public static final List<AutomatableType> CATALOG = List.of(
             new AutomatableType(SupervisionActionType.CLEANING_REQUEST, "ops", SupervisionAutonomy.FULL),
+            // FULL : la réassignation silencieuse existe déjà (attemptAutoAssign +
+            // scheduler 15 min) — l'autonomie ne fait que la rendre visible/gouvernable.
+            new AutomatableType(SupervisionActionType.REASSIGN_CLEANING, "ops", SupervisionAutonomy.FULL),
             new AutomatableType(SupervisionActionType.REVIEW_DRAFT_REPLY, "rep", SupervisionAutonomy.FULL),
             new AutomatableType(SupervisionActionType.PRICE_DROP, "rev", SupervisionAutonomy.NOTIFY),
             new AutomatableType(SupervisionActionType.CALENDAR_BLOCK, "ops", SupervisionAutonomy.NOTIFY),
