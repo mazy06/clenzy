@@ -142,16 +142,30 @@ public class SupervisionActivityService {
     @Transactional
     public void recordModuleAct(Long organizationId, Long propertyId, String moduleKey,
                                 String toolName, String summary) {
+        recordModuleAct(organizationId, propertyId, moduleKey, toolName, summary, null);
+    }
+
+    /**
+     * Variante qui rattache une référence de message envoyé ({@code messageLogId}) à
+     * l'activité : le feed peut alors prévisualiser à la demande le contenu du message
+     * (endpoint {@code /guest-messaging/preview/{logId}}). {@code messageLogId} null =
+     * comportement identique à la variante courte.
+     */
+    @Transactional
+    public void recordModuleAct(Long organizationId, Long propertyId, String moduleKey,
+                                String toolName, String summary, Long messageLogId) {
         if (organizationId == null || propertyId == null || moduleKey == null) {
             return;
         }
         try {
-            SupervisionActivity saved = activityRepository.save(new SupervisionActivity(
+            SupervisionActivity activity = new SupervisionActivity(
                     organizationId, propertyId, moduleKey,
-                    SupervisionActivity.KIND_ACT, toolName, summary));
+                    SupervisionActivity.KIND_ACT, toolName, summary);
+            activity.setMessageLogId(messageLogId);
+            SupervisionActivity saved = activityRepository.save(activity);
             // Temps réel (T6) : pousse l'entrée aux opérateurs connectés (best-effort).
             realtimePublisher.publishFeedAdded(propertyId, saved.getId(), moduleKey, toolName,
-                    summary, saved.getCreatedAt());
+                    summary, saved.getCreatedAt(), messageLogId);
         } catch (Exception e) {
             log.debug("supervision activity record failed (module={} prop={}): {}",
                     moduleKey, propertyId, e.getMessage());
@@ -212,7 +226,8 @@ public class SupervisionActivityService {
                 a.getModuleKey(),
                 a.getCreatedAt() != null ? a.getCreatedAt().toString() : Instant.now().toString(),
                 text,
-                a.getToolName());
+                a.getToolName(),
+                a.getMessageLogId());
     }
 
     /** snake_case → libellé court lisible ; repli sur le module si vide. */

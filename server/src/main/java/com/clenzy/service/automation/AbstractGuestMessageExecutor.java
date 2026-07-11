@@ -1,6 +1,7 @@
 package com.clenzy.service.automation;
 
 import com.clenzy.model.AutomationRule;
+import com.clenzy.model.GuestMessageLog;
 import com.clenzy.model.MessageChannelType;
 import com.clenzy.model.MessageTemplate;
 import com.clenzy.model.Reservation;
@@ -46,9 +47,13 @@ abstract class AbstractGuestMessageExecutor implements AutomationActionExecutor 
 
         MessageChannelType channel = rule.getDeliveryChannel() != null
             ? rule.getDeliveryChannel() : MessageChannelType.EMAIL;
-        messagingService.sendForReservationViaChannel(
+        // On conserve l'id du log d'envoi cree : le moteur le rattache au journal de la
+        // constellation, ce qui permet ensuite de previsualiser le message envoye a la
+        // demande (cf. AutomationEvaluationService.recordConstellationActivity + endpoint
+        // /guest-messaging/preview/{logId}).
+        GuestMessageLog sent = messagingService.sendForReservationViaChannel(
             reservation, template, ctx.orgId(), channel, extraVariables(reservation));
-        return ExecutionResult.executed();
+        return ExecutionResult.executed(sent != null ? sent.getId() : null);
     }
 
     /** Hook pre-envoi : retourner un resultat SKIPPED pour sauter l'envoi, null pour continuer. */

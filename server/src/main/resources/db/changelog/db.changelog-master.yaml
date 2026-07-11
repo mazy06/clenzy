@@ -3287,3 +3287,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0342__add_supervision_auto_rule_trust_suggestion.sql
         relativeToChangelogFile: true
+
+  # Constellation : reference optionnelle d'un message envoye sur une entree de journal
+  # (previsualisation du contenu du message check-out depuis le feed).
+  - changeSet:
+      id: "0343-add-supervision-activity-message-log-ref"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0343__add_supervision_activity_message_log_ref.sql
+        relativeToChangelogFile: true

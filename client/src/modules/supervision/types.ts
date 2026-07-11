@@ -119,6 +119,13 @@ export interface FeedEntry {
   /** Nom stable de l'outil → clé i18n `supervision.tools.<toolName>` (feed réel). */
   toolName?: string;
   /**
+   * Id du message envoyé (GuestMessageLog) lié à cette entrée — présent uniquement pour
+   * les envois de message guest (ex. « Message de check-out »). Quand présent, la ligne
+   * est cliquable et ouvre une modale prévisualisant le contenu envoyé
+   * (GET /api/guest-messaging/preview/{messageLogId}).
+   */
+  messageLogId?: number;
+  /**
    * Entrée issue de l'orchestrateur (réponse à une demande opérateur dans le
    * chat), pas d'un agent métier : rendu avec l'identité orchestrateur (icône +
    * couleur d'accent) au lieu de `AGENT_META[agentId]`.

@@ -298,7 +298,7 @@ public class AutomationEvaluationService implements AutomationEngine {
                 execution.setStatus(AutomationExecutionStatus.EXECUTED);
                 execution.setExecutedAt(now());
                 meterRegistry.counter(EXECUTED_METRIC, "action", rule.getActionType().name()).increment();
-                recordConstellationActivity(rule, context);
+                recordConstellationActivity(rule, context, result.refId());
                 log.info("Automation {} ({}) executee pour sujet {}/{}",
                     rule.getName(), rule.getActionType(), context.subjectType(), context.subjectId());
             }
@@ -321,7 +321,8 @@ public class AutomationEvaluationService implements AutomationEngine {
      * propriété (réservation ou sujet PROPERTY) — les sujets org-level (relevé,
      * payout) restent hors constellation. {@code recordModuleAct} avale ses erreurs.
      */
-    private void recordConstellationActivity(AutomationRule rule, AutomationActionContext context) {
+    private void recordConstellationActivity(AutomationRule rule, AutomationActionContext context,
+                                             Long messageLogId) {
         String module = ACTION_MODULE.get(rule.getActionType());
         if (module == null) {
             return;
@@ -339,8 +340,10 @@ public class AutomationEvaluationService implements AutomationEngine {
         if (propertyId == null) {
             return;
         }
+        // messageLogId présent uniquement pour les envois de message guest → permet de
+        // prévisualiser le contenu envoyé depuis le journal de la constellation.
         supervisionActivityService.recordModuleAct(
-            context.orgId(), propertyId, module, rule.getActionType().name(), rule.getName());
+            context.orgId(), propertyId, module, rule.getActionType().name(), rule.getName(), messageLogId);
     }
 
     /**

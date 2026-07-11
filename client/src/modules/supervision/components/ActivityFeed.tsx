@@ -5,7 +5,7 @@
    Texte rendu en clair (jamais de HTML).
    ============================================================ */
 
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { AutoAwesome, ChevronDown } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -13,6 +13,7 @@ import { AGENT_META } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
 import { toolIconFor } from '../renderers/toolIcon';
 import type { FeedEntry, PortfolioFeedEntry } from '../types';
+import { FeedMessageModal } from './FeedMessageModal';
 
 function hhmm(iso: string): string {
   const d = new Date(iso);
@@ -30,6 +31,10 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  // Message envoyé (ex. « Message de check-out ») : la ligne ouvre une modale qui
+  // prévisualise le contenu envoyé. Seules les entrées porteuses d'un `messageLogId`
+  // sont cliquables — les autres gardent leur détail dépliable (chevron).
+  const [openMessageLogId, setOpenMessageLogId] = useState<number | null>(null);
   // Feed RÉEL : le libellé est traduit via le nom d'outil stable
   // (`supervision.tools.<toolName>`). Repli sur `text` (résumé/mock) si pas de clé.
   const labelFor = (entry: FeedEntry | PortfolioFeedEntry) =>
@@ -43,6 +48,7 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
     return text && text !== labelFor(entry) ? text : null;
   };
   return (
+    <>
     <Box data-activity-feed sx={{ display: 'flex', flexDirection: 'column' }}>
       {entries.map((entry) => {
         // Entrée orchestrateur (réponse chat) : identité d'accent + icône assistant.
@@ -53,12 +59,46 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
         // encode l'agent, donc l'icône n'a pas à le redoubler.
         const toolIcon = isOrchestrator ? null : toolIconFor(entry.toolName, 14);
         const propertyName = 'propertyName' in entry ? entry.propertyName : undefined;
-        const detail = detailFor(entry);
+        const messageLogId = entry.messageLogId ?? null;
+        const hasMessage = messageLogId != null;
+        // Détail dépliable réservé aux entrées SANS message : pour un message, la ligne
+        // ouvre la modale de prévisualisation (le chevron ferait doublon).
+        const detail = hasMessage ? null : detailFor(entry);
         const isOpen = expanded.has(entry.id);
         return (
           <Box
             key={entry.id}
-            sx={{ display: 'flex', gap: 1.25, py: 1, px: 0.5, borderBottom: '1px solid var(--line, #eef0f4)', '&:last-of-type': { borderBottom: 'none' } }}
+            {...(hasMessage
+              ? {
+                  role: 'button' as const,
+                  tabIndex: 0,
+                  onClick: () => setOpenMessageLogId(messageLogId),
+                  onKeyDown: (e: KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setOpenMessageLogId(messageLogId);
+                    }
+                  },
+                  'aria-label': t('supervision.feed.openMessage', { defaultValue: 'Voir le message envoyé' }),
+                }
+              : {})}
+            sx={{
+              display: 'flex',
+              gap: 1.25,
+              py: 1,
+              px: 0.5,
+              borderBottom: '1px solid var(--line, #eef0f4)',
+              '&:last-of-type': { borderBottom: 'none' },
+              ...(hasMessage
+                ? {
+                    cursor: 'pointer',
+                    borderRadius: '6px',
+                    transition: 'background 150ms ease',
+                    '&:hover': { background: 'var(--hover, rgba(107,138,154,0.08))' },
+                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '-2px' },
+                  }
+                : {}),
+            }}
           >
             <Box
               sx={{
@@ -114,5 +154,7 @@ export function ActivityFeed({ entries }: { entries: (FeedEntry | PortfolioFeedE
         );
       })}
     </Box>
+    <FeedMessageModal logId={openMessageLogId} onClose={() => setOpenMessageLogId(null)} />
+    </>
   );
 }
