@@ -399,8 +399,8 @@ public class InterventionService {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent recevoir des photos");
         }
 
-        if (!"before".equals(photoType) && !"after".equals(photoType)) {
-            throw new IllegalArgumentException("photoType doit etre 'before' ou 'after'");
+        if (!"before".equals(photoType) && !"after".equals(photoType) && !"issue".equals(photoType)) {
+            throw new IllegalArgumentException("photoType doit etre 'before', 'after' ou 'issue'");
         }
 
         long currentCount = photoService.getPhotoCount(intervention);

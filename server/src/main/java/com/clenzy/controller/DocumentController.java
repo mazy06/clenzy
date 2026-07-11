@@ -7,6 +7,7 @@ import com.clenzy.service.DocumentAccessService;
 import com.clenzy.service.DocumentComplianceService;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.DocumentStorageService;
+import com.clenzy.service.PropertyService;
 import com.clenzy.util.JwtRoleExtractor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,15 +46,18 @@ public class DocumentController {
     private final DocumentStorageService documentStorageService;
     private final DocumentComplianceService complianceService;
     private final DocumentAccessService documentAccessService;
+    private final PropertyService propertyService;
 
     public DocumentController(DocumentGeneratorService generatorService,
                                DocumentStorageService documentStorageService,
                                DocumentComplianceService complianceService,
-                               DocumentAccessService documentAccessService) {
+                               DocumentAccessService documentAccessService,
+                               PropertyService propertyService) {
         this.generatorService = generatorService;
         this.documentStorageService = documentStorageService;
         this.complianceService = complianceService;
         this.documentAccessService = documentAccessService;
+        this.propertyService = propertyService;
     }
 
     // ─── Templates ──────────────────────────────────────────────────────────
@@ -193,6 +197,31 @@ public class DocumentController {
             @AuthenticationPrincipal Jwt jwt,
             @jakarta.validation.Valid @RequestBody GenerateDocumentRequest request
     ) {
+        DocumentGenerationDto result = generatorService.generateDocument(request, jwt);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
+    /**
+     * Devis ménage interne (Moteur Ménage 3A — P8) : génère le PDF DEVIS_MENAGE
+     * du logement (prix conseillé par type, fourchette, durée, décomposition) et
+     * l'envoie au PROPRIÉTAIRE. Informatif — pas de signature.
+     * Propriété chargée org-scopée (garde fail-closed) ; 422 si owner sans email.
+     */
+    @PostMapping("/cleaning-quote/{propertyId}")
+    @Operation(summary = "Generer et envoyer le devis menage au proprietaire du logement")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
+    public ResponseEntity<DocumentGenerationDto> sendCleaningQuote(
+            @PathVariable Long propertyId,
+            @AuthenticationPrincipal Jwt jwt) {
+        Property property = propertyService.getSecuredPropertyEntity(propertyId);
+        String ownerEmail = property.getOwner() != null ? property.getOwner().getEmail() : null;
+        if (ownerEmail == null || ownerEmail.isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Le propriétaire de ce logement n'a pas d'adresse email — impossible d'envoyer le devis ménage.");
+        }
+        GenerateDocumentRequest request = new GenerateDocumentRequest(
+                DocumentType.DEVIS_MENAGE.name(), propertyId, "property", ownerEmail, true);
         DocumentGenerationDto result = generatorService.generateDocument(request, jwt);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }

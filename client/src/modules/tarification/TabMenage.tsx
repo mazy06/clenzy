@@ -11,8 +11,12 @@ import {
   MenuItem,
   Alert,
   Skeleton,
+  Switch,
+  FormControlLabel,
+  IconButton,
+  Button,
 } from '@mui/material';
-import { ExpandMore, Timer, Euro, CleaningServices, Speed } from '../../icons';
+import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { propertiesApi } from '../../services/api';
@@ -48,6 +52,14 @@ const BEDROOM_KEYS = ['0', '1', '2', '3', '4', '5plus'] as const;
 const MULTIPLIER_KEYS = ['EXPRESS_CLEANING', 'CLEANING', 'DEEP_CLEANING'] as const;
 const BREAKDOWN_KEYS = ['base', 'bathrooms', 'surface', 'floors', 'exterior', 'laundry', 'guests'] as const;
 
+/** Fenêtre de majoration saisonnière (MM-DD, wrap d'année autorisé, premier match gagne). */
+interface SeasonalModifierDraft {
+  from?: string;
+  to?: string;
+  percent?: number;
+  label?: string;
+}
+
 /** Shape éditable de la config moteur (tous champs optionnels — omis = défaut). */
 interface EngineConfigDraft {
   hourlyRate?: number;
@@ -66,6 +78,10 @@ interface EngineConfigDraft {
   rangePercent?: number;
   roundTo?: number;
   minPrice?: number;
+  /** Majorations saisonnières appliquées au CONSEIL moteur uniquement. */
+  seasonalModifiers?: SeasonalModifierDraft[];
+  /** Opt-in : promotion auto vers le meilleur housekeeper de l'équipe assignée. */
+  autoAssignBestPro?: boolean;
 }
 
 function parseDraft(json: string | null): EngineConfigDraft {
@@ -94,7 +110,17 @@ function pruneDraft(draft: EngineConfigDraft): EngineConfigDraft {
   if (draft.cleaningTypeMultipliers && Object.keys(draft.cleaningTypeMultipliers).length > 0) {
     out.cleaningTypeMultipliers = draft.cleaningTypeMultipliers;
   }
+  if (draft.seasonalModifiers && draft.seasonalModifiers.length > 0) {
+    out.seasonalModifiers = draft.seasonalModifiers;
+  }
+  if (draft.autoAssignBestPro) out.autoAssignBestPro = true;
   return out;
+}
+
+const MONTH_DAY_RE = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+
+function isValidPercent(value: number | undefined): boolean {
+  return value != null && value >= -50 && value <= 100;
 }
 
 const NUM_FIELD_SX = {
@@ -162,10 +188,42 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
     d.cleaningTypeMultipliers = mult;
   });
 
+  const setSeasonalField = (index: number, key: keyof SeasonalModifierDraft, value: string) => write((d) => {
+    const list = [...(d.seasonalModifiers ?? [])];
+    const mod = { ...(list[index] ?? {}) };
+    if (key === 'percent') {
+      const n = numOrUndef(value);
+      if (n == null) delete mod.percent;
+      else mod.percent = n;
+    } else if (value.trim() === '') {
+      delete mod[key];
+    } else {
+      mod[key] = value;
+    }
+    list[index] = mod;
+    d.seasonalModifiers = list;
+  });
+
+  const addSeasonalModifier = () => write((d) => {
+    d.seasonalModifiers = [...(d.seasonalModifiers ?? []), {}];
+  });
+
+  const removeSeasonalModifier = (index: number) => write((d) => {
+    const list = [...(d.seasonalModifiers ?? [])];
+    list.splice(index, 1);
+    d.seasonalModifiers = list;
+  });
+
+  const setAutoAssignBestPro = (enabled: boolean) => write((d) => {
+    d.autoAssignBestPro = enabled || undefined;
+  });
+
   const cm = draft.componentMinutes ?? {};
+  const seasonalModifiers = draft.seasonalModifiers ?? [];
 
   // ── Simulateur : propriété → estimate résolu + preview (grille ENREGISTRÉE) ──
   const [simPropertyId, setSimPropertyId] = useState<number | ''>('');
+  const [simServiceDate, setSimServiceDate] = useState<string>('');
 
   const propertiesQuery = useQuery({
     queryKey: ['tarification-menage-properties'],
@@ -182,7 +240,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
   });
 
   const previewQuery = useQuery<CleaningPreviewResponse>({
-    queryKey: ['tarification-menage-preview', simPropertyId],
+    queryKey: ['tarification-menage-preview', simPropertyId, simServiceDate],
     queryFn: () => propertiesApi.previewCleaningEstimate({
       bedrooms: simProperty?.bedroomCount ?? null,
       bathrooms: simProperty?.bathroomCount ?? null,
@@ -191,6 +249,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       hasExterior: simProperty?.hasExterior ?? null,
       hasLaundry: simProperty?.hasLaundry ?? null,
       maxGuests: simProperty?.maxGuests ?? null,
+      serviceDate: simServiceDate || null,
     }),
     enabled: !!simProperty,
     staleTime: 0,
@@ -332,6 +391,130 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
         </AccordionDetails>
       </Accordion>
 
+      {/* ─── Majorations saisonnières (conseil moteur uniquement) ──────────── */}
+      <Accordion expanded={expandedSection === 'seasonal'} onChange={handleAccordionChange('seasonal')}>
+        <AccordionSummary expandIcon={<ExpandMore />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarMonth size={18} strokeWidth={1.75} /></Box>
+            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.seasonal.title')}</Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mb: 1.5 }}>
+            {t('tarification.cleaning.seasonal.hint')}
+          </Typography>
+          {seasonalModifiers.map((mod, index) => {
+            const fromInvalid = mod.from != null && mod.from !== '' && !MONTH_DAY_RE.test(mod.from);
+            const toInvalid = mod.to != null && mod.to !== '' && !MONTH_DAY_RE.test(mod.to);
+            const percentInvalid = mod.percent != null && !isValidPercent(mod.percent);
+            return (
+              <Box key={index} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 1.25, flexWrap: 'wrap' }}>
+                <TextField
+                  label={t('tarification.cleaning.seasonal.from')}
+                  size="small"
+                  value={mod.from ?? ''}
+                  placeholder="07-01"
+                  onChange={(e) => setSeasonalField(index, 'from', e.target.value)}
+                  disabled={!canEdit}
+                  error={fromInvalid}
+                  helperText={fromInvalid ? t('tarification.cleaning.seasonal.formatHint') : undefined}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ width: 110, ...NUM_FIELD_SX }}
+                />
+                <TextField
+                  label={t('tarification.cleaning.seasonal.to')}
+                  size="small"
+                  value={mod.to ?? ''}
+                  placeholder="08-31"
+                  onChange={(e) => setSeasonalField(index, 'to', e.target.value)}
+                  disabled={!canEdit}
+                  error={toInvalid}
+                  helperText={toInvalid ? t('tarification.cleaning.seasonal.formatHint') : undefined}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ width: 110, ...NUM_FIELD_SX }}
+                />
+                <TextField
+                  label={t('tarification.cleaning.seasonal.percent')}
+                  size="small"
+                  type="number"
+                  value={mod.percent ?? ''}
+                  placeholder="20"
+                  onChange={(e) => setSeasonalField(index, 'percent', e.target.value)}
+                  disabled={!canEdit}
+                  error={percentInvalid}
+                  helperText={percentInvalid ? t('tarification.cleaning.seasonal.percentHint') : undefined}
+                  inputProps={{ min: -50, max: 100, step: 1 }}
+                  InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ width: 130, ...NUM_FIELD_SX }}
+                />
+                <TextField
+                  label={t('tarification.cleaning.seasonal.label')}
+                  size="small"
+                  value={mod.label ?? ''}
+                  onChange={(e) => setSeasonalField(index, 'label', e.target.value)}
+                  disabled={!canEdit}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ flex: 1, minWidth: 160 }}
+                />
+                {canEdit && (
+                  <IconButton
+                    size="small"
+                    onClick={() => removeSeasonalModifier(index)}
+                    aria-label={t('tarification.cleaning.seasonal.remove')}
+                    sx={{ mt: 0.5 }}
+                  >
+                    <Close size={16} strokeWidth={1.75} />
+                  </IconButton>
+                )}
+              </Box>
+            );
+          })}
+          {seasonalModifiers.length === 0 && (
+            <Typography sx={{ fontSize: '12.5px', color: 'var(--faint)', mb: 1.5 }}>
+              {t('tarification.cleaning.seasonal.empty')}
+            </Typography>
+          )}
+          {canEdit && (
+            <Button size="small" variant="text" startIcon={<Add size={15} strokeWidth={1.75} />} onClick={addSeasonalModifier}>
+              {t('tarification.cleaning.seasonal.add')}
+            </Button>
+          )}
+          {seasonalModifiers.length > 1 && (
+            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 1 }}>
+              {t('tarification.cleaning.seasonal.firstMatchHint')}
+            </Typography>
+          )}
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ─── Assignation (auto-assignation du meilleur pro) ────────────────── */}
+      <Accordion expanded={expandedSection === 'assignment'} onChange={handleAccordionChange('assignment')}>
+        <AccordionSummary expandIcon={<ExpandMore />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
+            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.assignment.title')}</Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={draft.autoAssignBestPro ?? false}
+                onChange={(e) => setAutoAssignBestPro(e.target.checked)}
+                disabled={!canEdit}
+              />
+            }
+            label={
+              <Box>
+                <Typography sx={{ fontSize: '13.5px', fontWeight: 600 }}>{t('tarification.cleaning.assignment.autoBestPro')}</Typography>
+                <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>{t('tarification.cleaning.assignment.autoBestProHint')}</Typography>
+              </Box>
+            }
+          />
+        </AccordionDetails>
+      </Accordion>
+
       {/* ─── Simulateur (grille ENREGISTRÉE côté serveur) ──────────────────── */}
       <Accordion expanded={expandedSection === 'simulator'} onChange={handleAccordionChange('simulator')}>
         <AccordionSummary expandIcon={<ExpandMore />}>
@@ -346,24 +529,47 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             {t('tarification.cleaning.simulatorSavedConfigHint')}
           </Alert>
 
-          <TextField
-            select
-            size="small"
-            label={t('tarification.cleaning.simulatorProperty')}
-            value={simPropertyId === '' ? '' : simPropertyId}
-            onChange={(e) => setSimPropertyId(Number(e.target.value))}
-            sx={{ minWidth: 280, mb: 2 }}
-            InputLabelProps={{ shrink: true }}
-            SelectProps={{ displayEmpty: true }}
-          >
-            <MenuItem value="" disabled>{t('tarification.cleaning.simulatorSelectProperty')}</MenuItem>
-            {(propertiesQuery.data ?? []).map((p) => (
-              <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-            ))}
-          </TextField>
+          <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
+            <TextField
+              select
+              size="small"
+              label={t('tarification.cleaning.simulatorProperty')}
+              value={simPropertyId === '' ? '' : simPropertyId}
+              onChange={(e) => setSimPropertyId(Number(e.target.value))}
+              sx={{ minWidth: 280 }}
+              InputLabelProps={{ shrink: true }}
+              SelectProps={{ displayEmpty: true }}
+            >
+              <MenuItem value="" disabled>{t('tarification.cleaning.simulatorSelectProperty')}</MenuItem>
+              {(propertiesQuery.data ?? []).map((p) => (
+                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              type="date"
+              size="small"
+              label={t('tarification.cleaning.simulatorDate')}
+              value={simServiceDate}
+              onChange={(e) => setSimServiceDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 180, ...NUM_FIELD_SX }}
+            />
+          </Box>
 
           {typeof simPropertyId === 'number' && (estimateQuery.isPending || previewQuery.isPending) && (
             <Skeleton variant="rounded" height={140} sx={{ borderRadius: '11px' }} />
+          )}
+
+          {(estimateQuery.isError || previewQuery.isError) && (
+            <Alert severity="error" sx={{ mb: 1.5, fontSize: '12.5px' }}>
+              {t('tarification.cleaning.simulatorError')}
+            </Alert>
+          )}
+
+          {simProperty && !simProperty.bedroomCount && !simProperty.squareMeters && (
+            <Alert severity="info" icon={false} sx={{ mb: 1.5, fontSize: '12.5px' }}>
+              {t('tarification.cleaning.simulatorInsufficientData')}
+            </Alert>
           )}
 
           {estimateQuery.data && (
@@ -377,7 +583,9 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
                 {estimateQuery.data.source === 'PROPERTY_OVERRIDE'
                   ? t('tarification.cleaning.sourceOverride')
-                  : t('tarification.cleaning.sourceEngine')}
+                  : estimateQuery.data.source === 'HOUSEKEEPER_RATE'
+                    ? t('tarification.cleaning.sourceHousekeeperRate')
+                    : t('tarification.cleaning.sourceEngine')}
               </Typography>
             </Box>
           )}

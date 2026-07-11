@@ -128,7 +128,8 @@ public class ICalCleaningScheduler {
         }
         // Prix résolu (override logement OU conseil moteur) + snapshot du conseil.
         ResolvedCleaningPrice resolvedPrice =
-                cleaningPricingEngine.resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING);
+                cleaningPricingEngine.resolveCleaningPrice(property,
+                        CleaningPricingEngine.STANDARD_CLEANING, null, checkOut);
         BigDecimal estimatedCost = resolvedPrice.amount();
 
         // Instructions speciales avec UID pour dedoublonnage

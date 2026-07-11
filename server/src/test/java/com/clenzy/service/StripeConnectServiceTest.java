@@ -46,7 +46,8 @@ class StripeConnectServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new StripeConnectService(configRepository, userRepository, stripeGateway);
+        service = new StripeConnectService(configRepository, userRepository, stripeGateway,
+                new org.springframework.beans.factory.support.StaticListableBeanFactory().getBeanProvider(com.clenzy.service.payout.HousekeeperPayoutService.class));
     }
 
     private static OwnerPayoutConfig cfg(boolean complete, String stripeId) {

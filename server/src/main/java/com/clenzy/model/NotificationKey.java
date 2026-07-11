@@ -43,9 +43,19 @@ public enum NotificationKey {
     SERVICE_REQUEST_ESCALATION(NotificationType.ERROR, NotificationCategory.SERVICE_REQUEST, true),
     SERVICE_REQUEST_TEAM_ASSIGNED(NotificationType.SUCCESS, NotificationCategory.SERVICE_REQUEST, true),
 
+    // ─── ANOMALIE TERRAIN / ISSUE (2 cles — Moteur Menage 3C) ──────────────────
+    // ISSUE_REPORTED  : signalement terrain (housekeeper/technicien) — admins/managers org + owner.
+    // ISSUE_CONVERTED : anomalie convertie en demande de maintenance pre-chiffree — owner.
+    ISSUE_REPORTED(NotificationType.WARNING, NotificationCategory.SERVICE_REQUEST, true),
+    ISSUE_CONVERTED(NotificationType.INFO, NotificationCategory.SERVICE_REQUEST, true),
+
     // ─── PAYMENT (10 cles) ──────────────────────────────────────────────────────
 
     PAYMENT_SESSION_CREATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
+    // Moteur Ménage 3B (P9) — payout prestataire ménage.
+    PAYOUT_SENT(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
+    PAYOUT_BLOCKED_ONBOARDING(NotificationType.WARNING, NotificationCategory.PAYMENT, true),
+    // (PAYOUT_FAILED existe déjà — section payouts owners — et est réutilisé par le payout pro.)
     PAYMENT_CONFIRMED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
     PAYMENT_FAILED(NotificationType.ERROR, NotificationCategory.PAYMENT, true),
     PAYMENT_GROUPED_SESSION_CREATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
@@ -209,10 +219,15 @@ public enum NotificationKey {
     REVIEW_RECEIVED(NotificationType.INFO, NotificationCategory.REVIEW, true),
     REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true),
 
-    // ─── SUPERVISION / CONSTELLATION (1 cle) ──────────────────────────────
+    // ─── SUPERVISION / CONSTELLATION (2 cles) ─────────────────────────────
     // Carte HITL actionnable (warning/critical) creee par un agent : l'operateur
     // doit la voir meme hors de l'ecran de supervision (anti « action manquee »).
     SUPERVISION_SUGGESTION(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    // Action auto-appliquee par la constellation en niveau NOTIFY (Vague 1
+    // autonomie) : l'org est prevenue de ce qui vient d'etre fait (montant/objet
+    // dans le message) et peut corriger. En FULL (silencieux), seule une entree
+    // de feed est produite — pas de notification.
+    SUPERVISION_AUTO_APPLIED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
 
     // ─── PAYOUT (7 cles) ──────────────────────────────────────────────────
     PAYOUT_BATCH_GENERATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),

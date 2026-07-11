@@ -31,6 +31,15 @@ function buildDeepLink(data: Record<string, unknown>): string | null {
       return entityId ? `clenzy://interventions/${entityId}` : 'clenzy://interventions';
     case 'SERVICE_REQUEST_ESCALATION':
       return 'clenzy://notifications';
+    // Moteur Ménage 4B : versements Stripe Connect du pro → écran Mes versements.
+    case 'PAYOUT_SENT':
+    case 'PAYOUT_FAILED':
+    case 'PAYOUT_BLOCKED_ONBOARDING':
+      return 'clenzy://profile/my-payouts';
+    // Anomalies terrain → suivi Mes signalements (rôle pro).
+    case 'ISSUE_REPORTED':
+    case 'ISSUE_CONVERTED':
+      return 'clenzy://profile/my-issues';
     case 'SERVICE_REQUEST_NEW':
     case 'SERVICE_REQUEST_STATUS':
       return 'clenzy://notifications';
@@ -60,6 +69,12 @@ function getInvalidationKeys(type: string | undefined): string[][] {
   }
   if (type === 'PAYMENT_RECEIVED') {
     return [['revenue-kpis'], ['dashboard-kpis']];
+  }
+  if (type.startsWith('PAYOUT_')) {
+    return [['housekeeper-payouts']];
+  }
+  if (type.startsWith('ISSUE_')) {
+    return [['issues']];
   }
   return [];
 }

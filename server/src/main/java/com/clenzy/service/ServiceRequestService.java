@@ -79,6 +79,7 @@ public class ServiceRequestService {
     private final AssignmentEventRepository assignmentEventRepository;
     private final WorkflowSettingsRepository workflowSettingsRepository;
     private final CleaningPricingEngine cleaningPricingEngine;
+    private final com.clenzy.service.pricing.HousekeeperScoreService housekeeperScoreService;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                   UserRepository userRepository,
@@ -93,7 +94,8 @@ public class ServiceRequestService {
                                   ServiceRequestMapper serviceRequestMapper,
                                   AssignmentEventRepository assignmentEventRepository,
                                   WorkflowSettingsRepository workflowSettingsRepository,
-                                  CleaningPricingEngine cleaningPricingEngine) {
+                                  CleaningPricingEngine cleaningPricingEngine,
+                                  com.clenzy.service.pricing.HousekeeperScoreService housekeeperScoreService) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -108,6 +110,7 @@ public class ServiceRequestService {
         this.assignmentEventRepository = assignmentEventRepository;
         this.workflowSettingsRepository = workflowSettingsRepository;
         this.cleaningPricingEngine = cleaningPricingEngine;
+        this.housekeeperScoreService = housekeeperScoreService;
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
@@ -558,6 +561,92 @@ public class ServiceRequestService {
     /**
      * Mappe le type de service vers le type d'intervention
      */
+    /**
+     * MM-3D — auto-assignation du meilleur pro (opt-in org, défaut FALSE).
+     * APRÈS la sélection d'équipe existante (le choix d'équipe ne change pas) :
+     * si la SR est un ménage, classe les membres HOUSEKEEPER de l'équipe et pose
+     * l'assignation sur le meilleur (assignedToType=user). Classement documenté :
+     *   1) score qualité 30 j décroissant ;
+     *   2) à score proche (±10 pts) : tarif résolu le plus PROCHE de la médiane
+     *      conseil (cohérent avec l'ancrage médiane — ni le moins cher ni le plus cher) ;
+     *   3) tie-break : le moins de missions ouvertes le jour de la demande (équilibrage).
+     * Gardes : jamais d'écrasement d'un user déjà assigné ; uniquement à la
+     * création auto. L'assignation user déclenche le tarif MM-2A (même logique
+     * que manualAssign) + push INTERVENTION_ASSIGNED_TO_USER (l'email MM-2B part
+     * à la création de l'intervention, hors périmètre SR).
+     */
+    private void maybeUpgradeToBestPro(ServiceRequest sr, Long teamId) {
+        try {
+            if (!cleaningPricingEngine.isAutoAssignBestProEnabled()) return;
+            if (sr.getServiceType() == null || !sr.getServiceType().isCleaningService()) return;
+            if (sr.getProperty() == null) return;
+
+            Team team = teamRepository.findById(teamId).orElse(null);
+            if (team == null || team.getMembers() == null || team.getMembers().isEmpty()) return;
+
+            Long orgId = sr.getOrganizationId();
+            java.time.LocalDateTime day = sr.getDesiredDate() != null ? sr.getDesiredDate() : LocalDateTime.now();
+            java.time.LocalDateTime dayStart = day.toLocalDate().atStartOfDay();
+            java.time.LocalDateTime dayEnd = dayStart.plusDays(1);
+            var median = cleaningPricingEngine
+                    .quote(sr.getProperty(), sr.getServiceType().name()).recommended();
+
+            record Candidate(User user, int score, java.math.BigDecimal rateDistance, long openCount) {}
+            java.util.List<Candidate> candidates = new java.util.ArrayList<>();
+            for (var member : team.getMembers()) {
+                User user = member.getUser();
+                if (user == null || user.getRole() != UserRole.HOUSEKEEPER) continue;
+                int score = housekeeperScoreService.computeScore(user.getId(), orgId).score();
+                var resolved = cleaningPricingEngine.resolveCleaningPrice(
+                        sr.getProperty(), sr.getServiceType().name(), user.getId());
+                java.math.BigDecimal distance = resolved.amount().subtract(median).abs();
+                long open = interventionRepository.countOpenOnDay(user.getId(), orgId, dayStart, dayEnd);
+                candidates.add(new Candidate(user, score, distance, open));
+            }
+            if (candidates.isEmpty()) return;
+
+            // Classement : score desc ; à ±10 pts, distance à la médiane asc ; puis charge asc.
+            candidates.sort((a, b) -> {
+                if (Math.abs(a.score() - b.score()) > 10) {
+                    return Integer.compare(b.score(), a.score());
+                }
+                int byDistance = a.rateDistance().compareTo(b.rateDistance());
+                if (byDistance != 0) return byDistance;
+                return Long.compare(a.openCount(), b.openCount());
+            });
+            User best = candidates.get(0).user();
+
+            // Garde absolue : jamais écraser une assignation USER existante.
+            if ("user".equals(sr.getAssignedToType())) return;
+
+            sr.setAssignedToType("user");
+            sr.setAssignedToId(best.getId());
+            // Tarif MM-2A : même logique que manualAssign (source HOUSEKEEPER_RATE seulement).
+            if (sr.getPaidAt() == null) {
+                var resolved = cleaningPricingEngine.resolveCleaningPrice(
+                        sr.getProperty(), sr.getServiceType().name(), best.getId());
+                if (resolved.source() == com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.HOUSEKEEPER_RATE) {
+                    sr.setEstimatedCost(resolved.amount());
+                }
+            }
+            logAssignmentEvent(sr, "AUTO_BEST_PRO", best.getId(), "user",
+                    "Meilleur pro de l'equipe " + teamId + " (score qualite)");
+            if (best.getKeycloakId() != null) {
+                String remuneration = sr.getEstimatedCost() != null
+                        ? " Remuneration: " + sr.getEstimatedCost().stripTrailingZeros().toPlainString() + " EUR."
+                        : "";
+                notificationService.send(best.getKeycloakId(), NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
+                        "Mission assignee",
+                        "Vous etes assigne a la mission '" + sr.getTitle() + "'." + remuneration,
+                        "/interventions?tab=service-requests&highlight=" + sr.getId(), orgId);
+            }
+            log.info("Auto-assign best pro: user {} (team {}) for SR {}", best.getId(), teamId, sr.getId());
+        } catch (Exception e) {
+            // Best-effort : l'échec du sélecteur laisse l'assignation ÉQUIPE intacte.
+            log.warn("maybeUpgradeToBestPro failed for SR {}: {}", sr.getId(), e.getMessage());
+        }
+    }
+
     private String mapServiceTypeToInterventionType(com.clenzy.model.ServiceType serviceType) {
         if (serviceType == null) {
             return InterventionType.PREVENTIVE_MAINTENANCE.name();
@@ -657,6 +746,10 @@ public class ServiceRequestService {
             if (availableTeamId.isPresent()) {
                 sr.setAssignedToId(availableTeamId.get());
                 sr.setAssignedToType("team");
+                // MM-3D : si l'org a activé autoAssignBestPro, promeut le MEILLEUR
+                // housekeeper de l'équipe retenue en assignation user (opt-in,
+                // défaut false = comportement actuel strictement intact).
+                maybeUpgradeToBestPro(sr, availableTeamId.get());
                 sr.setStatus(RequestStatus.AWAITING_PAYMENT);
                 sr.setAutoAssignStatus("found");
                 serviceRequestRepository.save(sr);
@@ -760,6 +853,10 @@ public class ServiceRequestService {
             if (availableTeamId.isPresent()) {
                 sr.setAssignedToId(availableTeamId.get());
                 sr.setAssignedToType("team");
+                // MM-3D : si l'org a activé autoAssignBestPro, promeut le MEILLEUR
+                // housekeeper de l'équipe retenue en assignation user (opt-in,
+                // défaut false = comportement actuel strictement intact).
+                maybeUpgradeToBestPro(sr, availableTeamId.get());
                 sr.setStatus(RequestStatus.AWAITING_PAYMENT);
                 sr.setAutoAssignStatus("found");
                 serviceRequestRepository.save(sr);
@@ -918,7 +1015,8 @@ public class ServiceRequestService {
         // Prix résolu (override logement prioritaire, sinon conseil moteur — plus
         // jamais null quand cleaningBasePrice est absent) + snapshot du conseil.
         ResolvedCleaningPrice resolvedPrice = cleaningPricingEngine
-                .resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING);
+                .resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING, null,
+                        desiredDate != null ? desiredDate.toLocalDate() : null);
         sr.setEstimatedCost(resolvedPrice.amount());
         sr.setRecommendedCost(resolvedPrice.quote().recommended());
         sr.setUser(owner);

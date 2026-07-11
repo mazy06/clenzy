@@ -36,13 +36,16 @@ public class StripeConnectService {
     private final OwnerPayoutConfigRepository configRepository;
     private final UserRepository userRepository;
     private final StripeGateway stripeGateway;
+    private final org.springframework.beans.factory.ObjectProvider<com.clenzy.service.payout.HousekeeperPayoutService> housekeeperPayoutService;
 
     public StripeConnectService(OwnerPayoutConfigRepository configRepository,
                                 UserRepository userRepository,
-                                StripeGateway stripeGateway) {
+                                StripeGateway stripeGateway,
+                                org.springframework.beans.factory.ObjectProvider<com.clenzy.service.payout.HousekeeperPayoutService> housekeeperPayoutService) {
         this.configRepository = configRepository;
         this.userRepository = userRepository;
         this.stripeGateway = stripeGateway;
+        this.housekeeperPayoutService = housekeeperPayoutService;
     }
 
     /**
@@ -136,6 +139,10 @@ public class StripeConnectService {
      */
     @Transactional
     public void handleAccountUpdated(String accountId, boolean chargesEnabled, boolean payoutsEnabled) {
+        // Moteur Ménage 3B : le même événement account.updated peut concerner un compte
+        // PRESTATAIRE (housekeeper_payout_configs) — dispatch additionnel, comportement
+        // owners strictement inchangé.
+        housekeeperPayoutService.ifAvailable(s -> s.handleAccountUpdated(accountId, chargesEnabled, payoutsEnabled));
         configRepository.findByStripeConnectedAccountId(accountId)
                 .ifPresent(config -> {
                     boolean wasComplete = config.isStripeOnboardingComplete();

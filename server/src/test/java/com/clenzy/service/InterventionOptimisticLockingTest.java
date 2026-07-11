@@ -33,6 +33,7 @@ class InterventionOptimisticLockingTest {
     @Mock private OutboxPublisher outboxPublisher;
     @Mock private ObjectMapper objectMapper;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
 
     private InterventionLifecycleService service;
 
@@ -40,7 +41,8 @@ class InterventionOptimisticLockingTest {
     void setUp() {
         service = new InterventionLifecycleService(
                 interventionRepository, interventionMapper, accessPolicy,
-                notificationService, outboxPublisher, objectMapper, tenantContext);
+                notificationService, outboxPublisher, objectMapper, tenantContext,
+                housekeeperPayoutService);
     }
 
     private Jwt mockJwtWithRole(String role) {

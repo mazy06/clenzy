@@ -5,6 +5,7 @@ export { notificationsApi, type Notification, type UnreadCountResponse } from '.
 export { teamsApi, type Team, type TeamMember } from './teamsApi';
 export { authApi } from './authApi';
 export { serviceRequestsApi, type ServiceRequest } from './serviceRequestsApi';
+export { issuesApi, type Issue, type CreateIssuePayload, type IssueSeverity, type IssueStatus } from './issuesApi';
 export { kpiApi, type KpiItem } from './kpiApi';
 export { calendarApi, type CalendarDay } from './calendarApi';
 export { contactApi, type ContactMessage } from './contactApi';

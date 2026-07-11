@@ -3255,3 +3255,27 @@ databaseChangeLog:
       sqlFile:
         path: changes/0338__create_housekeeper_rates.sql
         relativeToChangelogFile: true
+
+  # Moteur Menage 3C : anomalies terrain (Issue) convertibles en maintenance chiffree.
+  - changeSet:
+      id: "0339-create-issues"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0339__create_issues.sql
+        relativeToChangelogFile: true
+
+  # Moteur Menage 3B : payout Stripe Connect des prestataires (configs + records).
+  - changeSet:
+      id: "0340-create-housekeeper-payouts"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0340__create_housekeeper_payouts.sql
+        relativeToChangelogFile: true
+
+  # Autonomie constellation V1 : regles d'auto-application par type + applied_by.
+  - changeSet:
+      id: "0341-create-supervision-auto-rules"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0341__create_supervision_auto_rules.sql
+        relativeToChangelogFile: true

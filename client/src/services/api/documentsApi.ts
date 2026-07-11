@@ -240,6 +240,14 @@ export const documentsApi = {
     return apiClient.post<DocumentGeneration>('/documents/generate', request);
   },
 
+  /**
+   * Devis ménage interne (Moteur Ménage 3A) : génère le PDF DEVIS_MENAGE du
+   * logement et l'envoie au propriétaire. 422 si le propriétaire n'a pas d'email.
+   */
+  sendCleaningQuote(propertyId: number) {
+    return apiClient.post<DocumentGeneration>(`/documents/cleaning-quote/${propertyId}`, {});
+  },
+
   /** Contenu par défaut (objet + corps) du mail devis prospect, pour l'éditeur « Renvoyer ». */
   getQuoteEmailTemplate() {
     return apiClient.get<{ subject: string; body: string }>('/documents/quote-email-template');

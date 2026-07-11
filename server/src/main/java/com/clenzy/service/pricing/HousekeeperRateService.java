@@ -45,17 +45,20 @@ public class HousekeeperRateService {
     private final UserRepository userRepository;
     private final CleaningPricingEngine cleaningPricingEngine;
     private final TenantContext tenantContext;
+    private final HousekeeperScoreService housekeeperScoreService;
 
     public HousekeeperRateService(HousekeeperRateRepository rateRepository,
                                   PropertyRepository propertyRepository,
                                   UserRepository userRepository,
                                   CleaningPricingEngine cleaningPricingEngine,
-                                  TenantContext tenantContext) {
+                                  TenantContext tenantContext,
+                                  HousekeeperScoreService housekeeperScoreService) {
         this.rateRepository = rateRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.cleaningPricingEngine = cleaningPricingEngine;
         this.tenantContext = tenantContext;
+        this.housekeeperScoreService = housekeeperScoreService;
     }
 
     /** Résout l'entité User du porteur du JWT (le « moi » des endpoints /me). */
@@ -94,10 +97,12 @@ public class HousekeeperRateService {
                     quote.max()));
         }
 
+        var score = housekeeperScoreService.computeScore(userId, orgId);
         return new HousekeeperRatesDto(
                 BigDecimal.valueOf(cleaningPricingEngine.referenceHourlyRate()),
                 hourly,
-                propertyDtos);
+                propertyDtos,
+                new HousekeeperRatesDto.ScoreDto(score.score(), score.completedCount(), score.proofRate()));
     }
 
     /**

@@ -13,11 +13,14 @@ public class PropertyTagResolver implements ReferenceTagResolver {
 
     private final PropertyRepository propertyRepository;
     private final EntityTagBuilders builders;
+    private final CleaningQuoteTagBuilder cleaningQuoteTagBuilder;
 
     public PropertyTagResolver(PropertyRepository propertyRepository,
-                               EntityTagBuilders builders) {
+                               EntityTagBuilders builders,
+                               CleaningQuoteTagBuilder cleaningQuoteTagBuilder) {
         this.propertyRepository = propertyRepository;
         this.builders = builders;
+        this.cleaningQuoteTagBuilder = cleaningQuoteTagBuilder;
     }
 
     @Override
@@ -35,6 +38,10 @@ public class PropertyTagResolver implements ReferenceTagResolver {
             if (property.getOwner() != null) {
                 context.put("client", builders.clientTags(property.getOwner()));
             }
+
+            // Moteur Ménage 3A (P8) : tags ${menage.*} du devis ménage interne.
+            // Toujours posés (repli vide) — inoffensif pour les autres documents property.
+            context.put("menage", cleaningQuoteTagBuilder.menageTags(property));
         });
     }
 }

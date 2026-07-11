@@ -15,12 +15,21 @@ export interface HousekeeperPropertyRate {
   advisoryMax: number;
 }
 
+/** Score qualité 30 jours (MM-3D) : proofRate × min(1, missions/5) × 100. */
+export interface HousekeeperScore {
+  score: number;
+  completedCount: number;
+  proofRate: number;
+}
+
 export interface HousekeeperRates {
   /** Taux horaire de référence de l'org (contexte). */
   referenceHourlyRate: number;
   /** Taux horaire général du pro — null si non défini. */
   hourlyAmount: number | null;
   properties: HousekeeperPropertyRate[];
+  /** Score qualité fenêtre 30 j — null possible sur anciens payloads. */
+  score?: HousekeeperScore | null;
 }
 
 export interface UpdateHousekeeperRates {

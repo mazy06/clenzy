@@ -358,8 +358,9 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
     staleTime: 30_000,
   });
 
-  // Estimation du coût de ménage — VRAI estimateur d'intervention backend
-  // (PricingConfigService : basePrix forfait × coeffs type/surface/capacité, min + arrondi 5 €).
+  // Estimation du coût de ménage — prix résolu par CleaningPricingEngine côté
+  // backend : tarif prestataire (FLAT/HOURLY) > prix ménage du logement > conseil
+  // moteur (minutes normées × taux horaire, arrondi 5 €, plancher 30 €).
   // Création uniquement ; montant proposé (éditable) dans la modale.
   const cleaningEstimateQuery = useQuery({
     queryKey: ['reservation-dialog-cleaning-estimate', effectivePropertyId],

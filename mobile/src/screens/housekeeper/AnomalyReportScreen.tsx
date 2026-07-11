@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PhotoGrid } from '@/components/domain/PhotoGrid';
 import { useTheme } from '@/theme';
+import { useTranslation } from 'react-i18next';
 import { takePhoto, type CapturedPhoto } from '@/services/camera/cameraService';
-import { apiClient } from '@/api/apiClient';
+import { interventionsApi } from '@/api/endpoints/interventionsApi';
+import { issuesApi, type IssueSeverity } from '@/api/endpoints/issuesApi';
 
 type IoniconsName = keyof typeof Ionicons.glyphMap;
 
@@ -17,23 +19,26 @@ type RouteParams = {
   AnomalyReport: { interventionId: number };
 };
 
-const ANOMALY_CATEGORIES: { value: string; label: string; icon: IoniconsName }[] = [
-  { value: 'DAMAGE', label: 'Dommage constate', icon: 'warning-outline' },
-  { value: 'MISSING_ITEM', label: 'Objet manquant', icon: 'search-outline' },
-  { value: 'HYGIENE', label: 'Probleme d\'hygiene', icon: 'water-outline' },
-  { value: 'EQUIPMENT', label: 'Equipement defaillant', icon: 'build-outline' },
-  { value: 'SAFETY', label: 'Risque securite', icon: 'shield-outline' },
-  { value: 'OTHER', label: 'Autre', icon: 'ellipsis-horizontal-outline' },
+const ANOMALY_CATEGORIES: { value: string; icon: IoniconsName }[] = [
+  { value: 'DAMAGE', icon: 'warning-outline' },
+  { value: 'MISSING_ITEM', icon: 'search-outline' },
+  { value: 'HYGIENE', icon: 'water-outline' },
+  { value: 'EQUIPMENT', icon: 'build-outline' },
+  { value: 'SAFETY', icon: 'shield-outline' },
+  { value: 'OTHER', icon: 'ellipsis-horizontal-outline' },
 ];
 
+// 4 niveaux alignés sur IssueSeverity backend (CRITICAL n'est plus remappé sur HIGH).
 const SEVERITY_LEVELS = [
-  { value: 'LOW', label: 'Mineure', color: '#059669', icon: 'information-circle-outline' as IoniconsName },
-  { value: 'MEDIUM', label: 'Moyenne', color: '#D97706', icon: 'alert-circle-outline' as IoniconsName },
-  { value: 'HIGH', label: 'Critique', color: '#DC2626', icon: 'warning-outline' as IoniconsName },
+  { value: 'LOW', color: '#059669', icon: 'information-circle-outline' as IoniconsName },
+  { value: 'MEDIUM', color: '#D97706', icon: 'alert-circle-outline' as IoniconsName },
+  { value: 'HIGH', color: '#EA580C', icon: 'warning-outline' as IoniconsName },
+  { value: 'CRITICAL', color: '#DC2626', icon: 'alert-outline' as IoniconsName },
 ];
 
 export function AnomalyReportScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const route = useRoute<RouteProp<RouteParams, 'AnomalyReport'>>();
   const navigation = useNavigation();
   const { interventionId } = route.params;
@@ -53,29 +58,54 @@ export function AnomalyReportScreen() {
 
   const handleSubmit = useCallback(async () => {
     if (!category) {
-      Alert.alert('Categorie requise', 'Selectionnez le type d\'anomalie.');
+      Alert.alert(t('anomaly.categoryRequiredTitle'), t('anomaly.categoryRequiredMessage'));
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Description requise', 'Decrivez l\'anomalie constatee.');
+      Alert.alert(t('anomaly.descriptionRequiredTitle'), t('anomaly.descriptionRequiredMessage'));
       return;
     }
 
     setSubmitting(true);
     try {
-      await apiClient.post(`/interventions/${interventionId}/anomalies`, {
-        category,
-        severity,
-        location: location.trim() || undefined,
+      // Le ticket Issue backend exige un titre : categorie + localisation.
+      const categoryLabel = t(`anomaly.categories.${category}`, category);
+      const trimmedLocation = location.trim();
+      const title = trimmedLocation ? `${categoryLabel} — ${trimmedLocation}` : categoryLabel;
+
+      await issuesApi.create({
+        sourceInterventionId: interventionId,
+        title: title.slice(0, 150),
         description: description.trim(),
-        photoCount: photos.length,
+        category,
+        severity: severity as IssueSeverity,
       });
+
+      // Photos : mecanisme existant des photos d'intervention, phase ISSUE.
+      // Best-effort : le ticket est deja cree, un echec photo ne le remet pas en cause.
+      if (photos.length > 0) {
+        try {
+          const formData = new FormData();
+          formData.append('photoType', 'issue');
+          photos.forEach((photo, index) => {
+            formData.append('photos', {
+              uri: photo.uri,
+              type: 'image/jpeg',
+              name: `issue_${interventionId}_${index}.jpg`,
+            } as unknown as Blob);
+          });
+          await interventionsApi.uploadPhotos(interventionId, formData);
+        } catch {
+          Alert.alert(t('anomaly.photosFailedTitle'), t('anomaly.photosFailedMessage'));
+        }
+      }
+
       setSubmitted(true);
     } catch {
-      Alert.alert('Erreur', 'Impossible d\'envoyer le signalement. Reessayez.');
+      Alert.alert(t('common.error'), t('anomaly.submitError'));
     }
     setSubmitting(false);
-  }, [category, severity, location, description, photos, interventionId]);
+  }, [category, severity, location, description, photos, interventionId, t]);
 
   // Success state with contact option
   if (submitted) {
@@ -91,12 +121,26 @@ export function AnomalyReportScreen() {
             <Ionicons name="checkmark-circle" size={40} color={theme.colors.success.main} />
           </View>
           <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary, textAlign: 'center', marginBottom: 8 }}>
-            Signalement envoye
+            {t('anomaly.successTitle')}
           </Text>
           <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, textAlign: 'center', marginBottom: theme.SPACING['2xl'] }}>
-            L'anomalie a ete signalee au gestionnaire.
+            {t('anomaly.successMessage')}
           </Text>
           <View style={{ width: '100%', gap: theme.SPACING.sm }}>
+            <Pressable
+              onPress={() => (navigation as any).navigate('Profile', { screen: 'MyIssues' })}
+              style={({ pressed }) => ({
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                gap: 8, paddingVertical: 14,
+                borderRadius: theme.BORDER_RADIUS.lg,
+                backgroundColor: pressed ? theme.colors.primary.dark : theme.colors.primary.main,
+              })}
+            >
+              <Ionicons name="list-outline" size={18} color="#fff" />
+              <Text style={{ ...theme.typography.body2, color: '#fff', fontWeight: '600' }}>
+                {t('anomaly.viewMyIssues')}
+              </Text>
+            </Pressable>
             <Pressable
               onPress={() => (navigation as any).navigate('Messages')}
               style={({ pressed }) => ({
@@ -109,10 +153,10 @@ export function AnomalyReportScreen() {
             >
               <Ionicons name="chatbubbles-outline" size={18} color={theme.colors.primary.main} />
               <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600' }}>
-                Contacter le manager
+                {t('anomaly.contactManager')}
               </Text>
             </Pressable>
-            <Button title="Retour" variant="text" onPress={() => navigation.goBack()} fullWidth />
+            <Button title={t('common.back')} variant="text" onPress={() => navigation.goBack()} fullWidth />
           </View>
         </View>
       </SafeAreaView>
@@ -131,15 +175,15 @@ export function AnomalyReportScreen() {
           <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>Signaler une anomalie</Text>
-          <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>Documentez le probleme constate</Text>
+          <Text style={{ ...theme.typography.h3, color: theme.colors.text.primary }}>{t('anomaly.title')}</Text>
+          <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>{t('anomaly.subtitle')}</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: theme.SPACING.lg, paddingBottom: 120 }}>
         {/* Category chips */}
         <Card style={{ marginBottom: theme.SPACING.md }}>
-          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>Type d'anomalie</Text>
+          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>{t('anomaly.categorySection')}</Text>
           <View style={styles.chipRow}>
             {ANOMALY_CATEGORIES.map((cat) => {
               const isSelected = category === cat.value;
@@ -161,7 +205,7 @@ export function AnomalyReportScreen() {
                     ...theme.typography.caption, fontWeight: '600',
                     color: isSelected ? '#fff' : theme.colors.warning.main,
                   }}>
-                    {cat.label}
+                    {t(`anomaly.categories.${cat.value}`)}
                   </Text>
                 </Pressable>
               );
@@ -171,7 +215,7 @@ export function AnomalyReportScreen() {
 
         {/* Severity */}
         <Card style={{ marginBottom: theme.SPACING.md }}>
-          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>Gravite</Text>
+          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>{t('anomaly.severitySection')}</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {SEVERITY_LEVELS.map((sev) => {
               const isSelected = severity === sev.value;
@@ -192,7 +236,7 @@ export function AnomalyReportScreen() {
                     ...theme.typography.caption, fontWeight: '600',
                     color: isSelected ? '#fff' : sev.color,
                   }}>
-                    {sev.label}
+                    {t(`anomaly.severities.${sev.value}`)}
                   </Text>
                 </Pressable>
               );
@@ -202,11 +246,11 @@ export function AnomalyReportScreen() {
 
         {/* Location */}
         <Card style={{ marginBottom: theme.SPACING.md }}>
-          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>Localisation</Text>
+          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>{t('anomaly.locationSection')}</Text>
           <TextInput
             value={location}
             onChangeText={setLocation}
-            placeholder="Ex: Salle de bain, Cuisine, Chambre 2..."
+            placeholder={t('anomaly.locationPlaceholder')}
             placeholderTextColor={theme.colors.text.disabled}
             style={[styles.textInputSingle, {
               borderColor: theme.colors.border.main,
@@ -218,11 +262,11 @@ export function AnomalyReportScreen() {
 
         {/* Description */}
         <Card style={{ marginBottom: theme.SPACING.md }}>
-          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>Description</Text>
+          <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>{t('anomaly.descriptionSection')}</Text>
           <TextInput
             value={description}
             onChangeText={setDescription}
-            placeholder="Decrivez le probleme constate..."
+            placeholder={t('anomaly.descriptionPlaceholder')}
             placeholderTextColor={theme.colors.text.disabled}
             multiline
             numberOfLines={4}
@@ -238,16 +282,16 @@ export function AnomalyReportScreen() {
         {/* Photos */}
         <Card style={{ marginBottom: theme.SPACING.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: theme.SPACING.sm }}>
-            <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }}>Photos</Text>
+            <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary }}>{t('anomaly.photosSection')}</Text>
             <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled }}>
-              {photos.length} photo{photos.length > 1 ? 's' : ''}
+              {t('anomaly.photoCount', { count: photos.length })}
             </Text>
           </View>
           <PhotoGrid photos={photos.map((p) => p.uri)} onAddPhoto={handleTakePhoto} />
         </Card>
 
         <Button
-          title="Envoyer le signalement"
+          title={t('anomaly.submit')}
           onPress={handleSubmit}
           color="warning"
           fullWidth

@@ -42,6 +42,7 @@ class ServiceRequestAutoCleaningTest {
     @Mock private WorkflowSettingsRepository workflowSettingsRepository;
     @Mock
     private com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
+    @Mock private com.clenzy.service.pricing.HousekeeperScoreService housekeeperScoreService;
 
     private ServiceRequestService service;
 
@@ -61,11 +62,11 @@ class ServiceRequestAutoCleaningTest {
                 interventionRepository, reservationRepository, teamRepository, notificationService,
                 propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
                 assignmentEventRepository, workflowSettingsRepository,
-                cleaningPricingEngine);
+                cleaningPricingEngine, housekeeperScoreService);
 
         // Le moteur ménage est mocké : conseil 95 € (fourchette 80-110, 135 min).
         // lenient : certains tests s'arrêtent avant le calcul (skip idempotent).
-        lenient().when(cleaningPricingEngine.resolveCleaningPrice(any(), any()))
+        lenient().when(cleaningPricingEngine.resolveCleaningPrice(any(), any(), isNull(), any()))
                 .thenReturn(new com.clenzy.service.pricing.CleaningPricingEngine.ResolvedCleaningPrice(
                         java.math.BigDecimal.valueOf(95),
                         com.clenzy.service.pricing.CleaningPricingEngine.CleaningPriceSource.ENGINE,

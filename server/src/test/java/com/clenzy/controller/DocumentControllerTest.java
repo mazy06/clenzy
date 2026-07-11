@@ -44,6 +44,7 @@ class DocumentControllerTest {
     @Mock private DocumentComplianceService complianceService;
     @Mock private InterventionRepository interventionRepository;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.PropertyService propertyService;
 
     private DocumentController controller;
 
@@ -63,7 +64,8 @@ class DocumentControllerTest {
         // pour garder la couverture bout-en-bout (org isolation + ownership intervention).
         controller = new DocumentController(generatorService, documentStorageService, complianceService,
                 new DocumentAccessService(interventionRepository,
-                        new com.clenzy.service.access.OrganizationAccessGuard(tenantContext)));
+                        new com.clenzy.service.access.OrganizationAccessGuard(tenantContext)),
+                propertyService);
     }
 
     @Nested
@@ -529,6 +531,63 @@ class DocumentControllerTest {
             ResponseEntity<org.springframework.data.domain.Page<DocumentGenerationDto>> response =
                 controller.listGenerations(0, 0);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
+        }
+    }
+
+
+    // ─── Devis ménage (Moteur Ménage 3A — P8) ────────────────────────────────
+
+    @Nested
+    @DisplayName("POST /cleaning-quote/{propertyId}")
+    class CleaningQuote {
+
+        private com.clenzy.model.Property propertyWithOwnerEmail(String email) {
+            com.clenzy.model.User owner = new com.clenzy.model.User();
+            owner.setId(9L);
+            owner.setEmail(email);
+            com.clenzy.model.Property property = new com.clenzy.model.Property();
+            property.setId(3L);
+            property.setOrganizationId(7L);
+            property.setOwner(owner);
+            return property;
+        }
+
+        @Test
+        @DisplayName("owner avec email → génération DEVIS_MENAGE déléguée (sendEmail, destinataire owner)")
+        void whenOwnerHasEmail_thenDelegatesGeneration() {
+            when(propertyService.getSecuredPropertyEntity(3L)).thenReturn(propertyWithOwnerEmail("owner@x.fr"));
+            when(generatorService.generateDocument(any(GenerateDocumentRequest.class), any())).thenReturn(null);
+
+            ResponseEntity<DocumentGenerationDto> response = controller.sendCleaningQuote(3L, createJwt());
+
+            assertThat(response.getStatusCode().value()).isEqualTo(201);
+            verify(generatorService).generateDocument(argThat((GenerateDocumentRequest r) ->
+                    "DEVIS_MENAGE".equals(r.documentType())
+                            && r.referenceId().equals(3L)
+                            && "property".equals(r.referenceType())
+                            && "owner@x.fr".equals(r.emailTo())
+                            && r.sendEmail()), any());
+        }
+
+        @Test
+        @DisplayName("owner sans email → 422 clair, aucune génération")
+        void whenOwnerHasNoEmail_then422() {
+            when(propertyService.getSecuredPropertyEntity(3L)).thenReturn(propertyWithOwnerEmail(null));
+
+            assertThatThrownBy(() -> controller.sendCleaningQuote(3L, createJwt()))
+                    .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                    .hasMessageContaining("422");
+            verify(generatorService, never()).generateDocument(any(GenerateDocumentRequest.class), any());
+        }
+
+        @Test
+        @DisplayName("propriété hors org → l'AccessDeniedException du service se propage")
+        void whenForeignProperty_thenAccessDeniedPropagates() {
+            when(propertyService.getSecuredPropertyEntity(3L))
+                    .thenThrow(new org.springframework.security.access.AccessDeniedException("cross-org"));
+
+            assertThatThrownBy(() -> controller.sendCleaningQuote(3L, createJwt()))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
         }
     }
 }

@@ -641,7 +641,8 @@ public class ReservationService {
         // (override logement OU conseil moteur — plus jamais null). Le conseil
         // est snapshoté (recommended_cost) dans tous les cas.
         ResolvedCleaningPrice resolvedPrice = cleaningPricingEngine
-                .resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING);
+                .resolveCleaningPrice(property, CleaningPricingEngine.STANDARD_CLEANING, null,
+                        managedReservation.getCheckOut());
         BigDecimal estimatedCost = managedReservation.getCleaningFee() != null
                 ? managedReservation.getCleaningFee()
                 : resolvedPrice.amount();
