@@ -37,6 +37,7 @@ class InterventionLifecycleServiceTest {
     @Mock private OutboxPublisher outboxPublisher;
     @Mock private ObjectMapper objectMapper;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
 
     private InterventionLifecycleService service;
 
@@ -47,7 +48,8 @@ class InterventionLifecycleServiceTest {
     void setUp() {
         service = new InterventionLifecycleService(
                 interventionRepository, interventionMapper, accessPolicy,
-                notificationService, outboxPublisher, objectMapper, tenantContext);
+                notificationService, outboxPublisher, objectMapper, tenantContext,
+                housekeeperPayoutService);
 
         owner = new User();
         owner.setId(10L);

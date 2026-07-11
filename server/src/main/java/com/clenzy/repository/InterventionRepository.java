@@ -104,6 +104,23 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     @Query("SELECT COUNT(i) FROM Intervention i WHERE i.assignedUser.keycloakId = :userKeycloakId AND i.organizationId = :orgId")
     long countByAssignedUserKeycloakId(@Param("userKeycloakId") String userKeycloakId, @Param("orgId") Long orgId);
 
+    /** Score qualité housekeeper (MM-3D) : missions ménage complétées du user sur une fenêtre. */
+    @Query("SELECT i FROM Intervention i WHERE i.assignedUser.id = :userId AND i.organizationId = :orgId " +
+           "AND i.status = com.clenzy.model.InterventionStatus.COMPLETED " +
+           "AND i.type IN :types AND i.completedAt >= :since")
+    java.util.List<Intervention> findCompletedCleaningsSince(@Param("userId") Long userId,
+                                                             @Param("orgId") Long orgId,
+                                                             @Param("types") java.util.Collection<String> types,
+                                                             @Param("since") java.time.LocalDateTime since);
+
+    /** Équilibrage auto-assign (MM-3D) : missions OUVERTES du user planifiées un jour donné. */
+    @Query("SELECT COUNT(i) FROM Intervention i WHERE i.assignedUser.id = :userId AND i.organizationId = :orgId " +
+           "AND i.status IN (com.clenzy.model.InterventionStatus.PENDING, com.clenzy.model.InterventionStatus.IN_PROGRESS) " +
+           "AND i.scheduledDate >= :dayStart AND i.scheduledDate < :dayEnd")
+    long countOpenOnDay(@Param("userId") Long userId, @Param("orgId") Long orgId,
+                        @Param("dayStart") java.time.LocalDateTime dayStart,
+                        @Param("dayEnd") java.time.LocalDateTime dayEnd);
+
     @Query("SELECT COUNT(i) FROM Intervention i WHERE i.property.owner.keycloakId = :ownerKeycloakId AND i.organizationId = :orgId")
     long countByPropertyOwnerKeycloakId(@Param("ownerKeycloakId") String ownerKeycloakId, @Param("orgId") Long orgId);
 

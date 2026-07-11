@@ -326,13 +326,113 @@ flowchart LR
 - **Email** : `MissionAssignmentEmailComposer` (échappement HTML systématique), déclenché **après commit** (`TransactionSynchronization.afterCommit`) — règle projet : aucun effet externe dans une transaction DB. Une clé de notification désactivée coupe tous les canaux (choix documenté, en attendant la préférence par canal — différée, cf. P7).
 - Aucune migration : réutilisation intégrale de l'existant. Vérifications : `mvn package` complet + `tsc` client + `tsc` mobile = 0 ; 8 tests neufs (producteur ×4, composer ×4).
 
-### Phase 3 — Boucle opérationnelle *(à venir)*
+## 8. Phase 3 — Boucle opérationnelle
 
-- Devis ménage interne (PDF au propriétaire), paiement du prestataire à la complétion **conditionné à la checklist photo**, signalement d'anomalie → devis maintenance, auto-assignation (disponibilité + tarif + score qualité).
+### 8.1 Le devis ménage (livré)
+
+Un **PDF « Devis ménage »** généré par le moteur et envoyé au propriétaire d'un logement — typiquement à la mise en service ou lors d'une renégociation. Contenu : les trois types de ménage (express / standard / grand ménage) avec prix conseillé, fourchette et durée, la décomposition des minutes, le taux horaire — et la mention explicite « prix conseillé par la plateforme, à titre indicatif » (informatif, sans signature).
+
+**Comment l'envoyer** : fiche logement → bouton « Devis ménage » (gestionnaires uniquement) → confirmation → le propriétaire le reçoit par email. Si le propriétaire n'a pas d'email renseigné, le système le signale clairement au lieu d'échouer en silence.
+
+### 8.2 Les anomalies terrain (livré)
+
+**Avant** : l'écran mobile de signalement d'anomalie du housekeeper pointait vers un endpoint **qui n'existait pas** — chaque signalement partait dans le vide (404). Aucun suivi possible.
+
+**Maintenant**, la boucle complète existe :
+
+```mermaid
+flowchart LR
+    A["📱 Housekeeper signale<br/>(catégorie, sévérité,<br/>photos, description)"] --> B["🎫 Ticket « Anomalie »<br/>+ chiffrage auto depuis le<br/>catalogue travaux de l'org"]
+    B --> C{"Gestionnaire"}
+    C -- "Qualifier" --> D["Ajuste catégorie /<br/>sévérité / coût"]
+    C -- "Convertir" --> E["Demande de maintenance<br/>pré-chiffrée → flux normal<br/>(validation, paiement, intervention)"]
+    C -- "Rejeter" --> F["Clôturé avec motif"]
+    B -.-> G["🔔 Notif admins + propriétaire<br/>(+ push terrain)"]
+    E -.-> H["🔔 Notif propriétaire<br/>« coût estimé X € »"]
+```
+
+- **Chiffrage automatique** : la catégorie de l'anomalie est rapprochée du **catalogue de tarifs travaux** déjà configuré dans Tarification (plomberie, électricité…). Si elle correspond, le coût est pré-rempli ; sinon le gestionnaire chiffre à la qualification.
+- **Suivi** : onglet « Anomalies » dans les ordres de travail (web, gestionnaires) — liste filtrable, détail, actions Qualifier / Convertir / Rejeter.
+- **Traçabilité** : l'anomalie garde le lien vers la mission d'origine, le signaleur, les photos, et la demande de maintenance créée.
+
+C'est le gap que même Turno n'a pas comblé : chez eux, le signalement notifie mais ne se **monétise** pas ; chez Baitly il devient une demande de maintenance chiffrée dans le flux de paiement standard.
+
+### 🔧 Notes techniques 3A / 3C
+
+- **3A** : `DocumentType.DEVIS_MENAGE` + template `devis-menage-clenzy.odt` (fabriqué depuis le squelette du devis existant ; contrainte OpenDocument respectée : `mimetype` en première entrée zip non compressée ; smoke test de rendu XDocReport). Tags `${menage.*}` construits par `CleaningQuoteTagBuilder` (source unique : le moteur) injecté dans `PropertyTagResolver` — contrat « jamais de tag manquant » (chaîne vide en repli). Endpoint `POST /api/documents/cleaning-quote/{propertyId}` (org fail-closed, 422 si owner sans email) → pipeline outbox existant. Aucune migration.
+- **3C** : migration `0339__create_issues.sql` — table `issues` (org-scopée `@Filter`, statuts OPEN → QUALIFIED → CONVERTED | DISMISSED). Conversion protégée par **UPDATE conditionnel** (pas de double conversion concurrente) ; la demande de maintenance est créée via le flux `ServiceRequestService.create()` existant (aucune duplication), avec mapping sévérité → priorité et rollback total si échec. Chiffrage : normalisation (accents/casse) puis correspondance `interventionType`/`label`, repli par `domain`. Notifications `ISSUE_REPORTED` (admins + owner, **push terrain**) et `ISSUE_CONVERTED` (owner, avec montant). Mobile branché sur `POST /api/issues`, photos via la phase ISSUE du mécanisme photo d'intervention.
+- Vérifications : suite complète verte (arbre entier), `tsc` client + mobile = 0 ; 20 tests 3C, tests resolver/rendu/controller 3A.
+
+### 8.3 Paiement du prestataire (livré — ⚠️ à valider en Stripe test-mode avant déploiement)
+
+Le pattern « paiement à la complétion, conditionné à la preuve qualité » — que seuls les spécialistes (Turno, Breezeway) offrent, et qu'aucun PMS n'a en natif :
+
+```mermaid
+flowchart LR
+    A["Mission ménage<br/>terminée"] --> B{"Host a payé ?"}
+    B -- non --> S["Pas de versement<br/>(journalisé)"]
+    B -- oui --> C{"Preuve photo<br/>(≥1 photo « après ») ?"}
+    C -- non --> D["🟠 BLOQUÉ<br/>preuve manquante"]
+    C -- oui --> E{"Compte de versement<br/>du pro configuré ?"}
+    E -- non --> F["🟠 BLOQUÉ + notification<br/>au pro pour configurer"]
+    E -- oui --> G["💸 Versement automatique<br/>rémunération − commission éventuelle"]
+    G --> H["🔔 « Versement envoyé : X € »<br/>(notification + push)"]
+```
+
+- **Configuration par le pro, sans quitter Baitly** : Réglages → « Mes versements » → parcours d'identification Stripe **embarqué** dans la page (le formulaire réglementaire KYC est servi par Stripe à l'intérieur de notre interface).
+- **Jamais silencieux** : chaque versement impossible est enregistré avec sa raison (preuve manquante, compte non configuré) et visible ; un gestionnaire peut relancer après correction.
+- **Commission optionnelle** : le taux « entretien » de l'onglet Tarification, **désactivé par défaut** (le pro touche 100 % de sa rémunération) — premier branchement réel de cette configuration.
+- **Historique** pour le pro : chaque versement avec la mission liée, le montant, la commission éventuelle, le statut.
+
+### 🔧 Notes techniques 3B (money-path)
+
+- Migration `0340` : `housekeeper_payout_configs` (compte Express par pro, miroir volontaire de la config owners — zéro régression) + `housekeeper_payout_records` avec **UNIQUE(intervention_id)** = verrou anti-double-versement.
+- Déclencheur : `completeIntervention` (dans ce flux, la SR d'origine est déjà payée par le host). Gates en cascade, `BLOCKED` porteur de raison.
+- Règles d'audit respectées à la lettre : préparation en transaction courte → **transfert Stripe hors transaction** (`afterCommit`, idempotency key `payout-intervention-{id}`, `StripeAmounts.toMinorUnits`) → **UPDATE conditionnel** PENDING→SENT/FAILED dans un bean dédié (`HousekeeperPayoutRecorder`, contournement documenté de l'auto-invocation `@Transactional`).
+- Preuve = **photo de phase AFTER réellement persistée** (une ligne en base, pas un compteur déclaratif du mobile) — critère isolé dans `isProofComplete`, évolutif vers une checklist structurée.
+- Onboarding embarqué : `StripeGateway.createAccountSession` + `@stripe/connect-js` (composant `account-onboarding`), webhook `account.updated` dispatché aux configs owners **et** pros.
+- 15 tests (gate, idempotence, commission, échec+relance). **Aucun appel n'a encore été exercé contre un vrai environnement Stripe : test-mode requis avant déploiement.**
+
+### 8.4 Score qualité, auto-assignation intelligente & majorations (livré)
+
+**Le score qualité** — chaque housekeeper a un score 0-100 sur 30 jours glissants :
+
+```
+score = taux de preuve photo × facteur de volume × 100
+```
+
+- *Taux de preuve* : part des missions terminées avec photo « après ».
+- *Facteur de volume* : monte progressivement jusqu'à 5 missions (quelqu'un qui n'a fait qu'une mission parfaite n'obtient pas 100 d'emblée).
+- Zéro mission sur la fenêtre → score 0, sans malus caché. Le pro voit son score dans « Mes tarifs » ; le gestionnaire le voit sur la fiche tarifs du membre.
+
+**L'auto-assignation du meilleur pro** *(opt-in par organisation, désactivée par défaut)* — le choix d'équipe automatique existant (zone + type + disponibilité) est inchangé ; quand l'option est activée, le système promeut en plus **le meilleur membre** de l'équipe retenue :
+
+1. Score qualité le plus élevé ;
+2. À score comparable, le tarif le plus **proche de la médiane du conseil** (ni le moins cher ni le plus cher — cohérent avec toute la philosophie du moteur) ;
+3. En dernier départage, le moins chargé ce jour-là.
+
+L'assignation individuelle déclenche alors automatiquement le tarif du pro (Phase 2) et ses notifications (push + email avec rémunération). Un pro déjà assigné n'est **jamais** écrasé.
+
+**Les majorations saisonnières** — l'admin définit des fenêtres (ex. « Haute saison : 1ᵉʳ juil → 31 août : +10 % ») dans Tarification → Ménage ; le simulateur accepte une date pour en voir l'effet. Règle importante : la majoration s'applique **au prix conseillé uniquement** — jamais aux tarifs négociés des prestataires (un forfait convenu ne bouge pas sans l'accord du pro).
+
+### 🔧 Notes techniques 3D
+
+- `HousekeeperScoreService` : calcul à la volée (aucune table), fenêtre 30 j, preuve = photo AFTER persistée (même critère que le gate payout).
+- Auto-assign : promotion post-sélection d'équipe dans `ServiceRequestService` (2 sites), toggle `autoAssignBestPro` dans le JSON `cleaningEngineConfig` (défaut `false` — zéro changement de comportement sans opt-in), passe par la même logique d'application de tarif que l'assignation manuelle.
+- Saisonnier : `SeasonalModifier{from MM-JJ, to MM-JJ, percent, label}` avec **wrap d'année** (15 déc → 5 janv), premier match dans l'ordre de la liste ; surcharge `quote(…, serviceDate)` utilisée aux créations datées (checkout iCal, post-checkout, fin de séjour) — les signatures sans date sont intactes (non-régression calibration 95 € testée).
+- Vérification finale de phase : `mvn package` complet + `tsc` client + `tsc` mobile = 0 ; 20 tests 3D (score 6, best-pro 9, saisonnier 5).
 
 ---
 
-## 8. Glossaire
+## 8bis. Phase 4 — Alignement des surfaces (audit frontend)
+
+Un audit croisé (couverture backend→frontend + organisation UX) a suivi la livraison des 3 phases. Corrections livrées :
+
+**Web** : les tags de documents (`${intervention.*}`, `${menage.*}`) sont désormais **découvrables** dans l'éditeur de modèles ; les nouvelles notifications (anomalies, versements) sont **réglables** dans les préférences ; un gestionnaire peut **créer une anomalie depuis le web** ; les versements bloqués « preuve manquante » ont un lien direct vers la mission ; et la **vue manager des tarifs & score d'un membre** est disponible depuis la liste des utilisateurs (dialog « Tarifs & score »).
+
+**Mobile pro** (le canal principal des housekeepers) : nouveaux écrans **« Mes tarifs »** (score qualité, taux horaire, forfaits avec fourchette conseil), **« Mes versements »** (configuration Stripe par navigateur intégré, historique, liens de déblocage) et **« Mes signalements »** (suivi des anomalies) — pour housekeepers **et** techniciens. Le total du jour affiche « Montant des missions » (plus d'ambiguïté avec un gain), le détail de mission porte le badge barème, les notifications de versement/anomalie ouvrent le bon écran, et l'application est traduite en **arabe** (traductions complètes ; miroir layout RTL prévu séparément).
+
+## 9. Glossaire
 
 | Terme | Définition |
 |---|---|

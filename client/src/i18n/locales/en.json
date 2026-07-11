@@ -197,7 +197,19 @@
       },
       "timeSaved": "Time saved",
       "autoActions": "Auto actions",
-      "acceptance": "Acceptance"
+      "acceptance": "Acceptance",
+      "acceptanceByType": "Acceptance by type",
+      "decisions": "{{count}} dec.",
+      "types": {
+        "CLEANING_REQUEST": "Missing cleaning",
+        "REVIEW_DRAFT_REPLY": "Review reply draft",
+        "PRICE_DROP": "Price adjustment",
+        "YIELD_PRICE_ADJUST": "Yield adjustment",
+        "CALENDAR_BLOCK": "Calendar block",
+        "DEPOSIT_REFUND": "Deposit refund",
+        "DEPOSIT_RELEASE": "Deposit release",
+        "PAYMENT_REMINDER": "Payment reminder"
+      }
     },
     "reviewDrafts": {
       "title": "Reply drafts (AI)",
@@ -1631,6 +1643,14 @@
         "laundry": "Laundry / linen",
         "guests": "Guests above 4"
       }
+    },
+    "cleaningQuote": {
+      "button": "Cleaning quote",
+      "confirmTitle": "Send the cleaning quote?",
+      "confirmBody": "The cleaning quote (recommended price per type, range and duration) will be generated as a PDF and emailed to the property owner. Informational document, no signature.",
+      "confirmSend": "Send to owner",
+      "sent": "Cleaning quote sent to the owner",
+      "error": "Failed to send the cleaning quote"
     }
   },
   "serviceRequests": {
@@ -2669,7 +2689,14 @@
     "email": "Email",
     "role": "Role",
     "firstName": "First name",
-    "lastName": "Last name"
+    "lastName": "Last name",
+    "ratesDialog": {
+      "title": "Rates & score",
+      "inMarket": "In market range",
+      "loadError": "Could not load this provider's rates.",
+      "saveError": "Save failed.",
+      "saved": "Rates saved."
+    }
   },
   "settings": {
     "title": "Settings",
@@ -2782,7 +2809,7 @@
       "manualNote": "Manual transfer"
     },
     "myPayout": {
-      "tabLabel": "My payouts",
+      "tabLabel": "Owner payouts",
       "title": "My payout details",
       "subtitle": "Enter your bank details to receive your payouts.",
       "statusLabel": "Status",
@@ -2949,7 +2976,44 @@
       "save": "Save my rates",
       "saveSuccess": "Rates saved",
       "saveError": "Error while saving",
-      "loadError": "Unable to load your rates."
+      "loadError": "Unable to load your rates.",
+      "scoreSection": "Quality score (30 days)",
+      "scoreDetail": "{{count}} completed missions · {{proof}}% with photo proof",
+      "scoreHint": "Score = share of missions with an \"after\" photo × volume (5 missions = full weight). It influences auto-assignment if your organization enabled it."
+    },
+    "myProPayouts": {
+      "tabLabel": "My mission payouts",
+      "accountSection": "Payout account",
+      "accountHint": "Your cleaning mission payouts are sent to your Stripe account. Setup happens here, without leaving Baitly.",
+      "statusNotStarted": "not set up",
+      "statusInProgress": "in progress",
+      "statusComplete": "set up",
+      "startOnboarding": "Set up my payouts",
+      "resumeOnboarding": "Resume setup",
+      "refreshStatus": "Re-check",
+      "noPublishableKey": "Stripe configuration missing (publishable key).",
+      "onboardingError": "Unable to start Stripe setup.",
+      "loadError": "Unable to load your payouts.",
+      "historySection": "Payout history",
+      "noPayouts": "No payouts yet.",
+      "colDate": "Date",
+      "colMission": "Mission",
+      "colAmount": "Amount",
+      "colCommission": "Commission",
+      "colStatus": "Status",
+      "status": {
+        "SENT": "sent",
+        "PENDING": "pending",
+        "FAILED": "failed",
+        "BLOCKED": "blocked"
+      },
+      "reason": {
+        "PROOF_MISSING": "photo proof missing",
+        "ONBOARDING_INCOMPLETE": "account setup required",
+        "AMOUNT_NOT_POSITIVE": "non-positive amount"
+      },
+      "completeMission": "Complete the mission",
+      "finishOnboarding": "Finish payout account setup"
     }
   },
   "contracts": {
@@ -3231,12 +3295,82 @@
     "subtitle": "Manage service requests and interventions",
     "tabs": {
       "serviceRequests": "Service Requests",
-      "interventions": "Interventions"
+      "interventions": "Interventions",
+      "issues": "Issues"
     },
     "recommended": {
       "scale": "Recommended scale",
       "conform": "on scale",
       "vsScale": "vs scale"
+    }
+  },
+  "issues": {
+    "status": {
+      "open": "Open",
+      "qualified": "Qualified",
+      "converted": "Converted",
+      "dismissed": "Dismissed"
+    },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "filters": {
+      "all": "All"
+    },
+    "columns": {
+      "date": "Date",
+      "property": "Property",
+      "title": "Issue",
+      "severity": "Severity",
+      "suggestedCost": "Suggested cost",
+      "status": "Status"
+    },
+    "empty": {
+      "title": "No reported issues",
+      "description": "Field reports (cleaning, maintenance) will appear here for qualification."
+    },
+    "reportedBy": "Reported by",
+    "dismissedReason": "Dismissal reason",
+    "openServiceRequest": "View maintenance request",
+    "qualifySection": "Qualification",
+    "fields": {
+      "category": "Category",
+      "categoryHelp": "Aligned with the works catalog → automatic pricing",
+      "severity": "Severity",
+      "suggestedCost": "Cost (€)",
+      "dismissReason": "Dismissal reason (optional)"
+    },
+    "convertConfirm": "Create a pre-priced maintenance request at",
+    "convertConfirmSuffix": "confirm?",
+    "noCost": "manual pricing",
+    "actionError": "Action failed — check the issue status.",
+    "actions": {
+      "dismiss": "Dismiss",
+      "qualify": "Qualify",
+      "convert": "Convert to maintenance",
+      "confirmConvert": "Confirm conversion"
+    },
+    "create": {
+      "button": "Report an issue",
+      "title": "Report an issue",
+      "property": "Property",
+      "selectProperty": "Select a property",
+      "description": "Description (optional)",
+      "noCategory": "No category",
+      "submit": "Report",
+      "success": "Issue reported",
+      "error": "Creation failed — check the fields."
+    },
+    "categories": {
+      "damage": "Damage found",
+      "missing_item": "Missing item",
+      "hygiene": "Hygiene problem",
+      "equipment": "Faulty equipment",
+      "safety": "Safety risk",
+      "other": "Other"
     }
   },
   "propertiesPage": {
@@ -3673,7 +3807,30 @@
       "simulatorProperty": "Property",
       "simulatorSelectProperty": "Select a property",
       "sourceOverride": "Property price (override)",
-      "sourceEngine": "Engine recommendation"
+      "sourceEngine": "Engine recommendation",
+      "simulatorDate": "Service date (optional)",
+      "seasonal": {
+        "title": "Seasonal adjustments",
+        "hint": "Adjusts the engine RECOMMENDATION over a date window (MM-DD, year wrap allowed). Negotiated provider flat and hourly rates are never adjusted.",
+        "from": "From",
+        "to": "To",
+        "percent": "Adjustment",
+        "label": "Label",
+        "add": "Add a window",
+        "remove": "Remove",
+        "empty": "No seasonal adjustment — the engine recommendation is the same all year.",
+        "formatHint": "MM-DD format",
+        "percentHint": "Between -50 and +100",
+        "firstMatchHint": "If several windows cover the same date, the FIRST one in the list applies."
+      },
+      "assignment": {
+        "title": "Assignment",
+        "autoBestPro": "Auto-assign the best professional",
+        "autoBestProHint": "After team selection, the mission goes to the housekeeper with the best quality score (30 d). Off by default: assignment stays with the team."
+      },
+      "sourceHousekeeperRate": "Provider rate",
+      "simulatorError": "The estimate could not be computed — try again.",
+      "simulatorInsufficientData": "Insufficient data: fill in at least the bedrooms or the surface of the property for a reliable estimate."
     }
   },
   "channels": {
@@ -5243,7 +5400,7 @@
         "organization": "Organization",
         "payment": "Payment",
         "integrations": "Integrations",
-        "payouts": "Payouts",
+        "payouts": "Payouts (platform)",
         "amenitiesOta": "OTA Amenities"
       },
       "subtitle": {
@@ -5257,7 +5414,9 @@
         "payment": "Payment providers (Stripe, PayPal, PayTabs, CMI…) and split rules.",
         "integrations": "Connect your third-party tools: e-signature, accounting, KYC, legal compliance, OTA channels.",
         "payouts": "Schedule and calculation rules for owner payouts.",
-        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Baitly reference. Create your own amenities if nothing matches."
+        "amenitiesOta": "Map amenities detected on your OTA listings (Airbnb, Booking, etc.) to the Baitly reference. Create your own amenities if nothing matches.",
+        "myRates": "Your hourly rate, per-property flat rates and quality score.",
+        "myPayoutsPro": "Stripe payout account and history of your mission payouts."
       }
     },
     "dashboard": {
@@ -5901,6 +6060,33 @@
       "list": "List view",
       "card": "Card view"
     },
-    "emptyDesc": "Automation rules will appear here."
+    "emptyDesc": "Automation rules will appear here.",
+    "constellation": {
+      "title": "Constellation — automatic actions",
+      "subtitle": "Agents apply certain safe actions themselves, within an envelope. Each agent's level remains the ceiling; outside the envelope, a card to validate is created as today.",
+      "levelNotify": "Apply and notify",
+      "levelFull": "Apply silently",
+      "acceptance": "Acceptance",
+      "noDecisions": "No decisions yet",
+      "acceptanceTooltip": "Acceptance rate of this card type over 30 days ({{count}} decisions). Enable it once it stays consistently high.",
+      "cappedBySuggest": "Capped by the {{agent}} agent level: Suggest",
+      "cappedByNotify": "Capped by the {{agent}} agent level: Act then notify",
+      "cappedTooltip": "{{agent}} agent level: Suggest — switch it to \"Act then notify\" or \"Auto\" to enable.",
+      "maxSegmentPercent": "Max % / segment",
+      "types": {
+        "CLEANING_REQUEST": {
+          "label": "Schedule missing cleaning",
+          "description": "Tomorrow's checkout without cleaning: the request is created automatically (\"after each stay\" frequency only, idempotent)."
+        },
+        "REVIEW_DRAFT_REPLY": {
+          "label": "Prepare review reply draft",
+          "description": "Negative review: the draft is generated automatically (AI budget required). Publishing always stays manual."
+        },
+        "PRICE_DROP": {
+          "label": "Adjust prices on low-demand slots",
+          "description": "Under the yield frame (Auto mode, bounded magnitude, calendar protections): the proposed adjustment is applied automatically."
+        }
+      }
+    }
   }
 }

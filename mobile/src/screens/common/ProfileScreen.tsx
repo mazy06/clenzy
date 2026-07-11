@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { NotificationBell } from '@/components/ui/NotificationBell';
@@ -82,6 +83,9 @@ export function ProfileScreen() {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const { t } = useTranslation();
+  // Moteur Ménage 4B : entrées réservées aux pros terrain.
+  const isFieldPro = (user?.roles ?? []).some((r: string) => r === 'HOUSEKEEPER' || r === 'TECHNICIAN');
 
   const displayName = getDisplayName(user);
   const roleName = user?.roles?.[0] ? getRoleName(user.roles[0]) : null;
@@ -167,6 +171,32 @@ export function ProfileScreen() {
                   </Text>
                 </View>
               </View>
+            </Card>
+          )}
+
+          {/* Espace pro (Moteur Ménage 4B) : tarifs, versements, signalements */}
+          {isFieldPro && (
+            <Card style={{ marginBottom: theme.SPACING.lg }}>
+              <MenuRow
+                icon="pricetag-outline"
+                label={t('myRates.menuLabel')}
+                onPress={() => navigation.navigate('MyRates')}
+                theme={theme}
+              />
+              <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
+              <MenuRow
+                icon="cash-outline"
+                label={t('myPayouts.menuLabel')}
+                onPress={() => navigation.navigate('MyPayouts')}
+                theme={theme}
+              />
+              <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
+              <MenuRow
+                icon="alert-circle-outline"
+                label={t('myIssues.menuLabel')}
+                onPress={() => navigation.navigate('MyIssues')}
+                theme={theme}
+              />
             </Card>
           )}
 

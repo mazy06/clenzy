@@ -188,6 +188,59 @@ class CleaningPricingEngineTest {
     }
 
     @Nested
+    @DisplayName("majorations saisonnières (MM-3D)")
+    class Seasonal {
+
+        private static final String SEASONAL_CONFIG = """
+                {"seasonalModifiers": [
+                  {"from": "07-01", "to": "08-31", "percent": 20, "label": "Été"},
+                  {"from": "12-15", "to": "01-05", "percent": 10, "label": "Fêtes"},
+                  {"from": "07-15", "to": "07-20", "percent": 50, "label": "Jamais atteint (2e match)"}
+                ]}
+                """;
+
+        @Test
+        void whenDateInWindow_thenPercentApplied() {
+            when(pricingConfigService.getCleaningEngineConfigJson()).thenReturn(SEASONAL_CONFIG);
+            // Marrakech 94,50 € brut × 1,20 = 113,40 → arrondi 5 → 115.
+            CleaningQuote quote = engine().quote(marrakech(), "CLEANING", java.time.LocalDate.of(2026, 7, 20));
+            assertThat(quote.recommended()).isEqualByComparingTo("115");
+        }
+
+        @Test
+        void whenDateOutsideWindows_thenUnchanged() {
+            when(pricingConfigService.getCleaningEngineConfigJson()).thenReturn(SEASONAL_CONFIG);
+            CleaningQuote quote = engine().quote(marrakech(), "CLEANING", java.time.LocalDate.of(2026, 3, 10));
+            assertThat(quote.recommended()).isEqualByComparingTo("95");
+        }
+
+        @Test
+        void whenWindowWrapsYear_thenBothSidesCovered() {
+            when(pricingConfigService.getCleaningEngineConfigJson()).thenReturn(SEASONAL_CONFIG);
+            // 94,50 × 1,10 = 103,95 → arrondi 5 → 105 (des deux côtés du wrap 12-15 → 01-05).
+            assertThat(engine().quote(marrakech(), "CLEANING", java.time.LocalDate.of(2026, 12, 25)).recommended())
+                    .isEqualByComparingTo("105");
+            assertThat(engine().quote(marrakech(), "CLEANING", java.time.LocalDate.of(2027, 1, 3)).recommended())
+                    .isEqualByComparingTo("105");
+        }
+
+        @Test
+        void whenSeveralWindowsMatch_thenFirstInListWins() {
+            when(pricingConfigService.getCleaningEngineConfigJson()).thenReturn(SEASONAL_CONFIG);
+            // Le 18/07 matche « Été » (20 %) ET « Jamais atteint » (50 %) : PREMIER de la liste.
+            CleaningQuote quote = engine().quote(marrakech(), "CLEANING", java.time.LocalDate.of(2026, 7, 18));
+            assertThat(quote.recommended()).isEqualByComparingTo("115");
+        }
+
+        @Test
+        void whenNoDate_thenSignaturesUnchanged_noRegression() {
+            when(pricingConfigService.getCleaningEngineConfigJson()).thenReturn(SEASONAL_CONFIG);
+            // Non-régression : les signatures SANS date ignorent les modifiers (Marrakech 95 €).
+            assertThat(engine().quote(marrakech(), "CLEANING").recommended()).isEqualByComparingTo("95");
+        }
+    }
+
+    @Nested
     @DisplayName("resolveCleaningPrice — override logement vs moteur")
     class Resolver {
 

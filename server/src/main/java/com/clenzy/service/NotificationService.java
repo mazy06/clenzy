@@ -40,7 +40,12 @@ public class NotificationService {
             NotificationKey.INTERVENTION_ASSIGNED_TO_TEAM,
             NotificationKey.INTERVENTION_STARTED,
             NotificationKey.INTERVENTION_COMPLETED,
-            NotificationKey.SERVICE_REQUEST_ESCALATION);
+            NotificationKey.SERVICE_REQUEST_ESCALATION,
+            NotificationKey.ISSUE_REPORTED,
+            NotificationKey.PAYOUT_SENT,
+            // MM-4B : le pro doit voir passer le blocage onboarding sur mobile
+            // (deep link → écran Mes versements, CTA configuration).
+            NotificationKey.PAYOUT_BLOCKED_ONBOARDING);
 
     private final OutboxPublisher outboxPublisher;
     private final ObjectMapper objectMapper;

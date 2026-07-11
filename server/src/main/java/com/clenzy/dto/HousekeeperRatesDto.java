@@ -13,7 +13,12 @@ public record HousekeeperRatesDto(
         BigDecimal referenceHourlyRate,
         /** Taux horaire général du pro — null si non défini. */
         BigDecimal hourlyAmount,
-        List<PropertyRateDto> properties) {
+        List<PropertyRateDto> properties,
+        /** Score qualité 30 j (MM-3D) : preuve photo pondérée par le volume. */
+        ScoreDto score) {
+
+    public record ScoreDto(int score, int completedCount, double proofRate) {
+    }
 
     public record PropertyRateDto(
             Long propertyId,

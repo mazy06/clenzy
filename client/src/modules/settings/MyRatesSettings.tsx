@@ -138,6 +138,7 @@ export default function MyRatesSettings() {
   };
 
   const referenceRate = ratesQuery.data?.referenceHourlyRate;
+  const score = ratesQuery.data?.score;
   const properties = useMemo(() => ratesQuery.data?.properties ?? [], [ratesQuery.data]);
 
   if (ratesQuery.isLoading) {
@@ -155,6 +156,27 @@ export default function MyRatesSettings() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* ── Score qualité 30 jours (MM-3D) ───────────────────────────────── */}
+      {score != null && (
+        <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
+          <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.scoreSection')}</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
+            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
+              {score.score}<Box component="span" sx={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 500 }}>/100</Box>
+            </Typography>
+            <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+              {t('settings.myRates.scoreDetail', {
+                count: score.completedCount,
+                proof: Math.round(score.proofRate * 100),
+              })}
+            </Typography>
+          </Box>
+          <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 1 }}>
+            {t('settings.myRates.scoreHint')}
+          </Typography>
+        </Paper>
+      )}
+
       {/* ── Taux horaire général ─────────────────────────────────────────── */}
       <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
         <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.hourlySection')}</Typography>

@@ -90,6 +90,8 @@ const CATEGORIES: CategoryGroup[] = [
       { key: 'SERVICE_REQUEST_ASSIGNED', title: 'Demande assignee', description: 'Quand une demande est assignee a un intervenant' },
       { key: 'SERVICE_REQUEST_CANCELLED', title: 'Demande annulee', description: 'Quand une demande de service est annulee' },
       { key: 'SERVICE_REQUEST_URGENT', title: 'Demande urgente', description: 'Quand une demande urgente est recue' },
+      { key: 'ISSUE_REPORTED', title: 'Anomalie signalee', description: 'Quand une anomalie terrain est signalee sur un logement' },
+      { key: 'ISSUE_CONVERTED', title: 'Anomalie convertie', description: 'Quand une anomalie est convertie en demande de maintenance' },
     ],
   },
   {
@@ -108,6 +110,9 @@ const CATEGORIES: CategoryGroup[] = [
       { key: 'PAYMENT_DEFERRED_OVERDUE', title: 'Paiement differe en retard', description: 'Quand un paiement differe depasse la date limite' },
       { key: 'PAYMENT_REFUND_INITIATED', title: 'Remboursement initie', description: 'Quand un remboursement est lance' },
       { key: 'PAYMENT_REFUND_COMPLETED', title: 'Remboursement effectue', description: 'Quand un remboursement est termine' },
+      { key: 'PAYOUT_SENT', title: 'Versement envoye', description: 'Quand un versement de mission est envoye a votre compte' },
+      { key: 'PAYOUT_FAILED', title: 'Versement echoue', description: 'Quand un versement echoue' },
+      { key: 'PAYOUT_BLOCKED_ONBOARDING', title: 'Versement bloque (compte incomplet)', description: 'Quand un versement est bloque car le compte de paiement n\'est pas finalise' },
     ],
   },
   {

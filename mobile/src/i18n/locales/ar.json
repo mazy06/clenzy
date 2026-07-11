@@ -1,0 +1,202 @@
+{
+  "common": {
+    "loading": "جارٍ التحميل...",
+    "error": "خطأ",
+    "retry": "أعد المحاولة",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "back": "رجوع",
+    "next": "التالي",
+    "done": "تم",
+    "search": "بحث",
+    "noResults": "لا توجد نتائج",
+    "pullToRefresh": "اسحب للتحديث",
+    "offline": "أنت غير متصل بالإنترنت",
+    "syncPending": "المزامنة قيد الانتظار"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "sessionExpired": "انتهت الجلسة، يرجى تسجيل الدخول مجددًا"
+  },
+  "tabs": {
+    "dashboard": "لوحة التحكم",
+    "properties": "العقارات",
+    "calendar": "التقويم",
+    "reports": "التقارير",
+    "more": "المزيد",
+    "planning": "التخطيط",
+    "interventions": "التدخلات",
+    "teams": "الفرق",
+    "incidents": "الحوادث",
+    "today": "اليوم",
+    "history": "السجل",
+    "profile": "الملف الشخصي",
+    "tickets": "التذاكر"
+  },
+  "intervention": {
+    "status": {
+      "PENDING": "قيد الانتظار",
+      "SCHEDULED": "مجدولة",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "AWAITING_VALIDATION": "بانتظار التحقق",
+      "AWAITING_PAYMENT": "بانتظار الدفع",
+      "COMPLETED": "مكتملة",
+      "CANCELLED": "ملغاة"
+    },
+    "type": {
+      "CLEANING": "تنظيف",
+      "EXPRESS_CLEANING": "تنظيف سريع",
+      "DEEP_CLEANING": "تنظيف عميق",
+      "MAINTENANCE": "صيانة",
+      "REPAIR": "إصلاح",
+      "INSPECTION": "تفتيش",
+      "EMERGENCY_REPAIR": "إصلاح طارئ"
+    },
+    "priority": {
+      "LOW": "منخفضة",
+      "NORMAL": "عادية",
+      "HIGH": "عالية",
+      "URGENT": "عاجلة"
+    },
+    "startMission": "ابدأ",
+    "completeMission": "إنهاء",
+    "viewDetails": "عرض التفاصيل",
+    "takePhotosBefore": "صور قبل",
+    "takePhotosAfter": "صور بعد",
+    "reportAnomaly": "الإبلاغ عن خلل",
+    "sign": "توقيع"
+  },
+  "property": {
+    "status": {
+      "ACTIVE": "نشط",
+      "INACTIVE": "غير نشط",
+      "MAINTENANCE": "قيد الصيانة",
+      "ARCHIVED": "مؤرشف"
+    }
+  },
+  "notification": {
+    "title": "الإشعارات",
+    "markRead": "وضع علامة كمقروء",
+    "noNotifications": "لا توجد إشعارات"
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "darkMode": "الوضع الداكن",
+    "language": "اللغة",
+    "notifications": "الإشعارات",
+    "about": "حول التطبيق"
+  },
+  "anomaly": {
+    "title": "الإبلاغ عن خلل",
+    "subtitle": "وثّق المشكلة الملحوظة",
+    "categorySection": "نوع الخلل",
+    "severitySection": "الخطورة",
+    "locationSection": "الموقع",
+    "descriptionSection": "الوصف",
+    "photosSection": "الصور",
+    "categories": {
+      "DAMAGE": "ضرر ملحوظ",
+      "MISSING_ITEM": "غرض مفقود",
+      "HYGIENE": "مشكلة نظافة",
+      "EQUIPMENT": "معدات معطلة",
+      "SAFETY": "خطر على السلامة",
+      "OTHER": "أخرى"
+    },
+    "severities": {
+      "LOW": "طفيفة",
+      "MEDIUM": "متوسطة",
+      "HIGH": "مهمة",
+      "CRITICAL": "حرجة"
+    },
+    "locationPlaceholder": "مثال: الحمام، المطبخ، الغرفة 2…",
+    "descriptionPlaceholder": "صف المشكلة الملحوظة…",
+    "photoCount_zero": "{{count}} صورة",
+    "photoCount_one": "صورة واحدة",
+    "photoCount_two": "صورتان",
+    "photoCount_few": "{{count}} صور",
+    "photoCount_many": "{{count}} صورة",
+    "photoCount_other": "{{count}} صورة",
+    "submit": "إرسال البلاغ",
+    "successTitle": "تم إرسال البلاغ",
+    "successMessage": "تم إبلاغ المدير بالخلل.",
+    "contactManager": "التواصل مع المدير",
+    "viewMyIssues": "عرض بلاغاتي",
+    "categoryRequiredTitle": "الفئة مطلوبة",
+    "categoryRequiredMessage": "اختر نوع الخلل.",
+    "descriptionRequiredTitle": "الوصف مطلوب",
+    "descriptionRequiredMessage": "صف الخلل الملحوظ.",
+    "photosFailedTitle": "لم تُرسل الصور",
+    "photosFailedMessage": "تم إنشاء البلاغ، لكن تعذر إرسال الصور.",
+    "submitError": "تعذر إرسال البلاغ. أعد المحاولة."
+  },
+  "myRates": {
+    "title": "أسعاري",
+    "menuLabel": "أسعاري",
+    "loadError": "تعذر تحميل أسعارك.",
+    "scoreSection": "نتيجة الجودة (30 يومًا)",
+    "scoreDetail": "{{count}} مهمة مكتملة · {{proof}}٪ مع إثبات بالصور",
+    "scoreHint": "النتيجة = المهام مع صورة «بعد» × الحجم (5 مهام = الوزن الكامل).",
+    "hourlySection": "سعر الساعة",
+    "referenceRate": "السعر المرجعي للمنصة: {{rate}} €/س",
+    "flatSection": "أسعار ثابتة لكل سكن",
+    "flatHint": "السعر الثابت له الأولوية على سعر الساعة. يعرض النطاق توصية المنصة — غير ملزم أبدًا.",
+    "noProperties": "لا يوجد سكن متاح.",
+    "inMarket": "ضمن نطاق السوق",
+    "saveError": "تعذر الحفظ.",
+    "saved": "تم حفظ الأسعار."
+  },
+  "myPayouts": {
+    "title": "مدفوعاتي",
+    "menuLabel": "مدفوعاتي",
+    "loadError": "تعذر تحميل مدفوعاتك.",
+    "accountSection": "حساب الدفع",
+    "accountComplete": "تم إعداد حساب الدفع: مدفوعات المهام تلقائية.",
+    "accountInProgress": "بدأ الإعداد لكنه غير مكتمل — أكمله لاستلام مدفوعاتك.",
+    "accountNone": "أعد إعداد حساب الدفع (Stripe) لاستلام أجر مهامك تلقائيًا.",
+    "startOnboarding": "إعداد مدفوعاتي",
+    "resumeOnboarding": "إكمال الإعداد",
+    "onboardingError": "تعذر فتح صفحة الإعداد. أعد المحاولة.",
+    "historySection": "السجل",
+    "noPayouts": "لا توجد مدفوعات بعد.",
+    "mission": "المهمة رقم {{id}}",
+    "commission": "العمولة −{{amount}} €",
+    "status": {
+      "SENT": "أُرسل",
+      "PENDING": "قيد المعالجة",
+      "FAILED": "فشل",
+      "BLOCKED": "محظور"
+    },
+    "reason": {
+      "proofMissing": "إثبات الصور مفقود",
+      "onboardingIncomplete": "الحساب بحاجة إلى إعداد"
+    },
+    "completeMission": "أكمل المهمة (الصور)",
+    "finishOnboarding": "أكمل إعداد حساب الدفع"
+  },
+  "myIssues": {
+    "title": "بلاغاتي",
+    "menuLabel": "بلاغاتي",
+    "loadError": "تعذر تحميل بلاغاتك.",
+    "emptyTitle": "لا توجد بلاغات",
+    "emptyDescription": "ستظهر بلاغات الأخطاء الخاصة بك هنا مع حالتها.",
+    "status": {
+      "OPEN": "مفتوح",
+      "QUALIFIED": "مؤهل",
+      "CONVERTED": "محوّل",
+      "DISMISSED": "مرفوض"
+    },
+    "suggestedCost": "التكلفة المقترحة: {{amount}} €"
+  },
+  "todayMissions": {
+    "missionsAmount": "مبلغ المهام"
+  },
+  "mission": {
+    "scaleConform": "مطابق للتعرفة",
+    "scaleDelta": "{{delta}}٪ مقارنة بالتعرفة"
+  }
+}

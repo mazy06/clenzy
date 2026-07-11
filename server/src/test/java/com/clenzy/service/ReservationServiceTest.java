@@ -76,7 +76,7 @@ class ReservationServiceTest {
 
         // Moteur ménage mocké : émule le résolveur (override logement > 0 prioritaire,
         // sinon conseil 95 €). lenient : la plupart des tests ne créent pas de ménage.
-        lenient().when(cleaningPricingEngine.resolveCleaningPrice(any(), any())).thenAnswer(inv -> {
+        lenient().when(cleaningPricingEngine.resolveCleaningPrice(any(), any(), isNull(), any())).thenAnswer(inv -> {
             Property p = inv.getArgument(0);
             java.math.BigDecimal base = p.getCleaningBasePrice();
             var quote = new com.clenzy.service.pricing.CleaningPricingEngine.CleaningQuote(

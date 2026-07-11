@@ -22,6 +22,15 @@ export const linkingConfig: LinkingOptions<ReactNavigation.RootParamList> = {
             },
           },
           Notifications: 'notifications',
+          // Moteur Ménage 4B : écrans pro du ProfileStack (deep links push).
+          Profile: {
+            path: 'profile',
+            screens: {
+              MyRates: 'my-rates',
+              MyPayouts: 'my-payouts',
+              MyIssues: 'my-issues',
+            },
+          },
           Calendar: 'calendar',
           Reports: 'reports',
           // Appairage Tuya (modele C) — ouvert depuis le guide d'appairage du PMS web.

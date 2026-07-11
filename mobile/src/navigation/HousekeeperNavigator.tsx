@@ -17,6 +17,9 @@ import { ProfileDetailScreen } from '@/screens/common/ProfileDetailScreen';
 import { SubscriptionScreen } from '@/screens/common/SubscriptionScreen';
 import { SubscriptionCheckoutScreen } from '@/screens/common/SubscriptionCheckoutScreen';
 import { DeleteAccountScreen } from '@/screens/common/DeleteAccountScreen';
+import { MyRatesScreen } from '@/screens/shared/MyRatesScreen';
+import { MyPayoutsScreen } from '@/screens/shared/MyPayoutsScreen';
+import { MyIssuesScreen } from '@/screens/shared/MyIssuesScreen';
 import { ConversationScreen } from '@/screens/shared/ConversationScreen';
 import { ConversationDetailScreen } from '@/screens/shared/ConversationDetailScreen';
 
@@ -74,6 +77,10 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="Subscription" component={SubscriptionScreen} />
       <ProfileStack.Screen name="SubscriptionCheckout" component={SubscriptionCheckoutScreen} />
       <ProfileStack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
+      {/* Moteur Ménage 4B : tarifs, versements et signalements du pro. */}
+      <ProfileStack.Screen name="MyRates" component={MyRatesScreen} />
+      <ProfileStack.Screen name="MyPayouts" component={MyPayoutsScreen} />
+      <ProfileStack.Screen name="MyIssues" component={MyIssuesScreen} />
     </ProfileStack.Navigator>
   );
 }

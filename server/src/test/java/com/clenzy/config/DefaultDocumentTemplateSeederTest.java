@@ -35,7 +35,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Tests unitaires pour {@link DefaultDocumentTemplateSeeder} (8 templates systeme).
+ * Tests unitaires pour {@link DefaultDocumentTemplateSeeder} (9 templates systeme).
  *
  * <p>On mocke les repositories, le parser et le PlatformTransactionManager.
  * Le {@code TransactionTemplate} construit dans le constructeur execute le
@@ -56,10 +56,10 @@ import static org.mockito.Mockito.when;
 class DefaultDocumentTemplateSeederTest {
 
     private static final DocumentType[] ALL_TYPES = {
-            DocumentType.DEVIS, DocumentType.FACTURE, DocumentType.AUTORISATION_TRAVAUX,
-            DocumentType.BON_INTERVENTION, DocumentType.JUSTIFICATIF_PAIEMENT,
-            DocumentType.JUSTIFICATIF_REMBOURSEMENT, DocumentType.MANDAT_GESTION,
-            DocumentType.VALIDATION_FIN_MISSION
+            DocumentType.DEVIS, DocumentType.DEVIS_MENAGE, DocumentType.FACTURE,
+            DocumentType.AUTORISATION_TRAVAUX, DocumentType.BON_INTERVENTION,
+            DocumentType.JUSTIFICATIF_PAIEMENT, DocumentType.JUSTIFICATIF_REMBOURSEMENT,
+            DocumentType.MANDAT_GESTION, DocumentType.VALIDATION_FIN_MISSION
     };
 
     @Mock private DocumentTemplateRepository templateRepository;
@@ -90,7 +90,7 @@ class DefaultDocumentTemplateSeederTest {
     }
 
     @Test
-    @DisplayName("run: aucun template actif -> seede les 8 types configures, org Clenzy, actifs")
+    @DisplayName("run: aucun template actif -> seede les 9 types configures, org Clenzy, actifs")
     void run_noActiveTemplate_seedsAllConfiguredTypes() {
         Organization org = org(42L);
         stubNoTemplates();

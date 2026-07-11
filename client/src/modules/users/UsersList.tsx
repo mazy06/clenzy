@@ -48,9 +48,11 @@ import {
   Add,
   Sync,
   ManageAccounts,
+  Euro,
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import HousekeeperRatesDialog from './components/HousekeeperRatesDialog';
 import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
@@ -145,6 +147,8 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  // Tarifs & score d'un prestataire (staff plateforme) — MM-4A #6.
+  const [ratesUser, setRatesUser] = useState<{ id: number; name: string } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<UserFormData>>({});
@@ -154,7 +158,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   const [selectedRole, setSelectedRole] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const navigate = useNavigate();
-  const { user, hasPermissionAsync } = useAuth();
+  const { user, hasPermissionAsync, hasAnyRole } = useAuth();
   const { notify } = useNotification();
 
   // Vérifier la permission de gestion des utilisateurs
@@ -725,6 +729,21 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           </ListItemIcon>
           Modifier
         </MenuItem>
+        {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])
+          && selectedUser != null
+          && ['HOUSEKEEPER', 'TECHNICIAN'].includes(selectedUser.role) && (
+          <MenuItem
+            onClick={() => {
+              setRatesUser({ id: selectedUser.id, name: `${selectedUser.firstName} ${selectedUser.lastName}`.trim() });
+              setAnchorEl(null);
+            }}
+          >
+            <ListItemIcon>
+              <Euro size={18} strokeWidth={1.75} />
+            </ListItemIcon>
+            Tarifs & score
+          </MenuItem>
+        )}
         <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)' }}>
           <ListItemIcon>
             <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete size={18} strokeWidth={1.75} /></Box>
@@ -732,6 +751,13 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           Supprimer
         </MenuItem>
       </Menu>
+
+      {/* Tarifs & score d'un prestataire (staff plateforme) */}
+      <HousekeeperRatesDialog
+        userId={ratesUser?.id ?? null}
+        userName={ratesUser?.name}
+        onClose={() => setRatesUser(null)}
+      />
 
       {/* Dialog de modification */}
       <Dialog open={editDialogOpen} onClose={() => { setEditDialogOpen(false); setSelectedUser(null); }} maxWidth="sm" fullWidth>

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  */
 public enum DocumentType {
     DEVIS("Devis"),
+    DEVIS_MENAGE("Devis ménage"),
     FACTURE("Facture"),
     MANDAT_GESTION("Mandat de gestion"),
     AUTORISATION_TRAVAUX("Autorisation de travaux"),

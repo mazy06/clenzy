@@ -45,10 +45,14 @@ public class InterventionPhotoService {
      *
      * @param intervention the parent intervention (must already be persisted)
      * @param photos       multipart files uploaded by the user
-     * @param photoType    "before" or "after"
+     * @param photoType    "before", "after" or "issue" (anomalie terrain, Moteur Menage 3C)
      */
     public void savePhotos(Intervention intervention, List<MultipartFile> photos, String photoType) {
-        String photoTypeUpper = "before".equals(photoType) ? "BEFORE" : "AFTER";
+        String photoTypeUpper = switch (photoType) {
+            case "before" -> "BEFORE";
+            case "issue" -> "ISSUE";
+            default -> "AFTER";
+        };
 
         for (MultipartFile photo : photos) {
             if (!photo.isEmpty()) {

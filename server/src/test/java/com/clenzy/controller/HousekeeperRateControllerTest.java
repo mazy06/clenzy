@@ -58,7 +58,7 @@ class HousekeeperRateControllerTest {
     @DisplayName("PUT /me : le user modifié est résolu depuis le JWT — jamais un id client")
     void whenUpdateMyRates_thenTargetsJwtSubjectOnly() {
         UpdateRequest request = new UpdateRequest(BigDecimal.valueOf(35), List.of());
-        HousekeeperRatesDto dto = new HousekeeperRatesDto(BigDecimal.valueOf(42), BigDecimal.valueOf(35), List.of());
+        HousekeeperRatesDto dto = new HousekeeperRatesDto(BigDecimal.valueOf(42), BigDecimal.valueOf(35), List.of(), new HousekeeperRatesDto.ScoreDto(0, 0, 0.0));
         when(housekeeperRateService.requireCurrentUser("kc-me")).thenReturn(user(42L, "kc-me"));
         when(housekeeperRateService.updateRates(42L, request)).thenReturn(dto);
 
@@ -73,7 +73,7 @@ class HousekeeperRateControllerTest {
     @Test
     @DisplayName("GET /me : délégation avec le user du JWT")
     void whenGetMyRates_thenDelegatesWithJwtUser() {
-        HousekeeperRatesDto dto = new HousekeeperRatesDto(BigDecimal.valueOf(42), null, List.of());
+        HousekeeperRatesDto dto = new HousekeeperRatesDto(BigDecimal.valueOf(42), null, List.of(), new HousekeeperRatesDto.ScoreDto(0, 0, 0.0));
         when(housekeeperRateService.requireCurrentUser("kc-me")).thenReturn(user(42L, "kc-me"));
         when(housekeeperRateService.getRates(42L)).thenReturn(dto);
 
@@ -86,7 +86,7 @@ class HousekeeperRateControllerTest {
     @Test
     @DisplayName("GET /user/{id} (staff) : délégation directe")
     void whenGetUserRates_thenDelegates() {
-        HousekeeperRatesDto dto = new HousekeeperRatesDto(BigDecimal.valueOf(42), null, List.of());
+        HousekeeperRatesDto dto = new HousekeeperRatesDto(BigDecimal.valueOf(42), null, List.of(), new HousekeeperRatesDto.ScoreDto(0, 0, 0.0));
         when(housekeeperRateService.getRates(9L)).thenReturn(dto);
 
         var response = controller.getUserRates(9L);

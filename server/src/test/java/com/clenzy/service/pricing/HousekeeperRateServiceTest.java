@@ -42,13 +42,16 @@ class HousekeeperRateServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private CleaningPricingEngine cleaningPricingEngine;
     @Mock private TenantContext tenantContext;
+    @Mock private HousekeeperScoreService housekeeperScoreService;
 
     private HousekeeperRateService service;
 
     @BeforeEach
     void setUp() {
         service = new HousekeeperRateService(rateRepository, propertyRepository, userRepository,
-                cleaningPricingEngine, tenantContext);
+                cleaningPricingEngine, tenantContext, housekeeperScoreService);
+        lenient().when(housekeeperScoreService.computeScore(any(), any()))
+                .thenReturn(com.clenzy.service.pricing.HousekeeperScoreService.HousekeeperScore.empty());
         lenient().when(tenantContext.getRequiredOrganizationId()).thenReturn(7L);
         lenient().when(cleaningPricingEngine.referenceHourlyRate()).thenReturn(42.0);
         lenient().when(cleaningPricingEngine.quote(any(Property.class), any())).thenReturn(

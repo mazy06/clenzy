@@ -48,6 +48,12 @@ class SeedTemplateXDocReportSmokeTest {
         assertValidOdt(fill("seed/document-templates/devis-clenzy.odt", devisModel()), "devis-clenzy");
     }
 
+    @Test
+    @DisplayName("devis-menage-clenzy.odt se remplit sans erreur Freemarker")
+    void devisMenageTemplate_fillsWithoutError() throws Exception {
+        assertValidOdt(fill("seed/document-templates/devis-menage-clenzy.odt", menageModel()), "devis-menage-clenzy");
+    }
+
     /** Reproduit fidelement DocumentGeneratorService.fillTemplate (moteur Freemarker, put direct). */
     private static byte[] fill(String resourcePath, Map<String, Object> model) throws Exception {
         try (InputStream is = new ClassPathResource(resourcePath).getInputStream()) {
@@ -100,6 +106,25 @@ class SeedTemplateXDocReportSmokeTest {
                     "legal_mention_1", "TVA non applicable, art. 293 B du CGI",
                     "legal_mention_2", "Penalites de retard : 3x taux legal")),
             Map.entry("system", Map.of("numero_auto", "DOC-2026-001", "date", "03/06/2026")));
+    }
+
+    private static Map<String, Object> menageModel() {
+        return Map.of(
+            "entreprise", Map.of("nom", "Clenzy", "adresse", "12 rue X", "siret", "123",
+                    "email", "info@clenzy.fr", "telephone", "07 49 24 54 66"),
+            "client", Map.of("nom_complet", "Toufik Mazy", "email", "t@x.fr", "telephone", "06 00 00 00 00"),
+            "property", Map.of("nom", "Duplex Marrakech", "adresse", "1 rue Y", "code_postal", "40000",
+                    "ville", "Marrakech", "surface", "50 m²", "chambres", "2", "salles_bain", "1"),
+            "menage", Map.ofEntries(
+                    Map.entry("express_prix", "60 €"), Map.entry("express_fourchette", "50 € – 70 €"),
+                    Map.entry("express_duree", "2 h 15"),
+                    Map.entry("standard_prix", "95 €"), Map.entry("standard_fourchette", "80 € – 110 €"),
+                    Map.entry("standard_duree", "2 h 15"),
+                    Map.entry("deep_prix", "150 €"), Map.entry("deep_fourchette", "130 € – 175 €"),
+                    Map.entry("deep_duree", "2 h 15"),
+                    Map.entry("decomposition", "Base (chambres) : 120 min · Étages supplémentaires : 15 min"),
+                    Map.entry("taux_horaire", "42 €/h")),
+            "system", Map.of("numero_auto", "DM-2026-001", "date", "10/07/2026"));
     }
 
     private static Map<String, Object> devisModel() {

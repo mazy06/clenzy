@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Alert, Pressable, AppState } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useIntervention, useUpdateIntervention } from '@/hooks/useInterventions';
@@ -180,6 +181,7 @@ function generateDefaultChecklist(type: string): ChecklistItemData[] {
 
 export function CleaningChecklistScreen() {
   const theme = useTheme();
+  const { t } = useTranslation();
   const route = useRoute<RouteProp<RouteParams, 'CleaningChecklist'>>();
   const navigation = useNavigation<TodayStackNav>();
   const { interventionId } = route.params;
@@ -309,6 +311,43 @@ export function CleaningChecklistScreen() {
           </View>
           <StatusBadge status={intervention.status} />
         </View>
+
+        {/* Rémunération de mission + badge barème (Moteur Ménage 4B) : écart vs
+            conseil plateforme snapshoté (recommended_cost) — informatif, jamais
+            bloquant. Le net réellement versé vit dans « Mes versements ». */}
+        {intervention.estimatedCost != null && intervention.estimatedCost > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm, marginBottom: theme.SPACING.md, flexWrap: 'wrap' }}>
+            <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, fontVariant: ['tabular-nums'] }}>
+              {intervention.estimatedCost.toFixed(2).replace('.', ',')} €
+            </Text>
+            <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>
+              {t('todayMissions.missionsAmount')}
+            </Text>
+            {intervention.recommendedCost != null && intervention.recommendedCost > 0 && (() => {
+              const delta = intervention.estimatedCost! - intervention.recommendedCost!;
+              const conform = Math.abs(delta) <= 5;
+              const deltaPct = Math.round((delta / intervention.recommendedCost!) * 100);
+              return (
+                <View style={{
+                  borderRadius: 7,
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                  backgroundColor: conform ? `${theme.colors.success.main}1F` : theme.colors.background.default,
+                }}>
+                  <Text style={{
+                    fontSize: 10.5,
+                    fontWeight: '700',
+                    color: conform ? theme.colors.success.main : theme.colors.text.secondary,
+                  }}>
+                    {conform
+                      ? t('mission.scaleConform')
+                      : t('mission.scaleDelta', { delta: `${deltaPct > 0 ? '+' : ''}${deltaPct}` })}
+                  </Text>
+                </View>
+              );
+            })()}
+          </View>
+        )}
 
         {/* Timeline */}
         <Card style={{ marginBottom: theme.SPACING.md }}>

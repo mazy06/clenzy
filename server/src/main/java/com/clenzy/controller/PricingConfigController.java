@@ -128,7 +128,9 @@ public class PricingConfigController {
     public record CleaningPreviewRequest(
             Integer bedrooms, Integer bathrooms, Integer squareMeters, Integer floors,
             Boolean hasExterior, Boolean hasLaundry, Integer maxGuests,
-            List<String> cleaningTypes) {
+            List<String> cleaningTypes,
+            /** Date de prestation optionnelle (ISO) — applique la majoration saisonnière (MM-3D). */
+            String serviceDate) {
     }
 
     @PostMapping("/cleaning-estimate/preview")
@@ -142,9 +144,18 @@ public class PricingConfigController {
                 ? request.cleaningTypes()
                 : PREVIEW_CLEANING_TYPES;
 
+        java.time.LocalDate serviceDate = null;
+        if (request.serviceDate() != null && !request.serviceDate().isBlank()) {
+            try {
+                serviceDate = java.time.LocalDate.parse(request.serviceDate());
+            } catch (java.time.format.DateTimeParseException e) {
+                // Date invalide → preview sans majoration (jamais d'erreur bloquante).
+            }
+        }
+
         Map<String, Object> quotes = new LinkedHashMap<>();
         for (String type : types) {
-            CleaningQuote quote = cleaningPricingEngine.quote(inputs, type);
+            CleaningQuote quote = cleaningPricingEngine.quote(inputs, type, serviceDate);
             quotes.put(type, Map.of(
                     "durationMinutes", quote.durationMinutes(),
                     "recommended", quote.recommended(),

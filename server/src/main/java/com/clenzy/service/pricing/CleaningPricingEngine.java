@@ -108,6 +108,32 @@ public class CleaningPricingEngine {
     // ─── Config effective (défauts + surcharge JSON org) ──────────────────────
 
     /** Config effective du moteur, après application des défauts champ à champ. */
+    /**
+     * Majoration saisonnière (MM-3D) : fenêtre MM-JJ → MM-JJ (wrap d'année géré,
+     * ex. 12-15 → 01-05) + pourcentage appliqué au prix CONSEIL du moteur.
+     */
+    record SeasonalModifier(String from, String to, double percent, String label) {
+
+        /** Vrai si la date (mois-jour) tombe dans la fenêtre, wrap d'année inclus. */
+        boolean covers(java.time.LocalDate date) {
+            if (from == null || to == null) return false;
+            int d = date.getMonthValue() * 100 + date.getDayOfMonth();
+            int f = parseMonthDay(from);
+            int t = parseMonthDay(to);
+            if (f < 0 || t < 0) return false;
+            return f <= t ? (d >= f && d <= t) : (d >= f || d <= t); // wrap 12-15 → 01-05
+        }
+
+        private static int parseMonthDay(String mmdd) {
+            try {
+                String[] parts = mmdd.split("-");
+                return Integer.parseInt(parts[0]) * 100 + Integer.parseInt(parts[1]);
+            } catch (Exception e) {
+                return -1;
+            }
+        }
+    }
+
     record EngineConfig(
             double hourlyRate,
             Map<String, Integer> baseByBedrooms,
@@ -122,7 +148,9 @@ public class CleaningPricingEngine {
             Map<String, Double> typeMultipliers,
             int rangePercent,
             int roundTo,
-            int minPrice) {
+            int minPrice,
+            java.util.List<SeasonalModifier> seasonalModifiers,
+            boolean autoAssignBestPro) {
 
         static EngineConfig defaults() {
             return new EngineConfig(
@@ -132,7 +160,8 @@ public class CleaningPricingEngine {
                     DEFAULT_PER_EXTRA_FLOOR, DEFAULT_EXTERIOR_MINUTES,
                     DEFAULT_LAUNDRY_MINUTES, DEFAULT_PER_GUEST_ABOVE_4,
                     DEFAULT_TYPE_MULTIPLIERS, DEFAULT_RANGE_PERCENT,
-                    DEFAULT_ROUND_TO, DEFAULT_MIN_PRICE);
+                    DEFAULT_ROUND_TO, DEFAULT_MIN_PRICE,
+                    java.util.List.of(), false);
         }
     }
 
@@ -159,6 +188,21 @@ public class CleaningPricingEngine {
     public CleaningQuote quote(CleaningInputs inputs, String cleaningType) {
         EngineConfig config = currentConfig();
         return quoteWith(config, inputs, cleaningType);
+    }
+
+    /** Devis moteur DATÉ : applique la majoration saisonnière couvrant la date (MM-3D). */
+    public CleaningQuote quote(Property property, String cleaningType, java.time.LocalDate serviceDate) {
+        return quote(CleaningInputs.fromProperty(property), cleaningType, serviceDate);
+    }
+
+    /** Devis moteur DATÉ (inputs bruts). Date null → comportement inchangé. */
+    public CleaningQuote quote(CleaningInputs inputs, String cleaningType, java.time.LocalDate serviceDate) {
+        return quoteWith(currentConfig(), inputs, cleaningType, serviceDate);
+    }
+
+    /** Toggle org MM-3D : auto-assignation du meilleur pro (défaut FALSE — opt-in). */
+    public boolean isAutoAssignBestProEnabled() {
+        return currentConfig().autoAssignBestPro();
     }
 
     /**
@@ -193,7 +237,19 @@ public class CleaningPricingEngine {
      * 3) sinon résolution existante : override logement → conseil moteur.
      */
     public ResolvedCleaningPrice resolveCleaningPrice(Property property, String cleaningType, Long housekeeperUserId) {
-        CleaningQuote quote = quote(property, cleaningType);
+        return resolveCleaningPrice(property, cleaningType, housekeeperUserId, null);
+    }
+
+    /**
+     * Variante DATÉE (MM-3D) : la majoration saisonnière s'applique UNIQUEMENT au
+     * CONSEIL moteur (quote → recommended_cost, et prix résolu quand la source est
+     * ENGINE). Les tarifs négociés ne bougent pas sans accord : le forfait FLAT du
+     * pro est versé tel quel, son taux HOURLY suit la durée normée (non majorée),
+     * et l'override logement (cleaningBasePrice) reste le prix convenu.
+     */
+    public ResolvedCleaningPrice resolveCleaningPrice(Property property, String cleaningType,
+                                                      Long housekeeperUserId, java.time.LocalDate serviceDate) {
+        CleaningQuote quote = quote(property, cleaningType, serviceDate);
 
         if (housekeeperUserId != null && property.getOrganizationId() != null) {
             EngineConfig config = currentConfig();
@@ -246,12 +302,29 @@ public class CleaningPricingEngine {
     // ─── Calcul ────────────────────────────────────────────────────────────────
 
     CleaningQuote quoteWith(EngineConfig config, CleaningInputs inputs, String cleaningType) {
+        return quoteWith(config, inputs, cleaningType, null);
+    }
+
+    CleaningQuote quoteWith(EngineConfig config, CleaningInputs inputs, String cleaningType,
+                            java.time.LocalDate serviceDate) {
         int minutes = totalMinutes(config, inputs);
         double multiplier = config.typeMultipliers()
                 .getOrDefault(cleaningType != null ? cleaningType : STANDARD_CLEANING,
                         config.typeMultipliers().getOrDefault(STANDARD_CLEANING, 1.0));
 
-        double rawPrice = (minutes / 60.0) * config.hourlyRate() * multiplier;
+        // Majoration saisonnière (MM-3D) : PREMIER modifier de la liste couvrant la
+        // date (ordre de la config = priorité, documenté). Sans date ou sans match :
+        // aucun changement de comportement.
+        double seasonalFactor = 1.0;
+        if (serviceDate != null) {
+            seasonalFactor = config.seasonalModifiers().stream()
+                    .filter(m -> m.covers(serviceDate))
+                    .findFirst()
+                    .map(m -> 1.0 + m.percent() / 100.0)
+                    .orElse(1.0);
+        }
+
+        double rawPrice = (minutes / 60.0) * config.hourlyRate() * multiplier * seasonalFactor;
         BigDecimal recommended = roundAndFloor(rawPrice, config);
         // Fourchette ancrée sur la MÉDIANE (recommended), pas le plancher.
         BigDecimal min = roundAndFloor(recommended.doubleValue() * (1 - config.rangePercent() / 100.0), config);
@@ -351,6 +424,23 @@ public class CleaningPricingEngine {
                 multipliers,
                 root.path("rangePercent").asInt(DEFAULT_RANGE_PERCENT),
                 root.path("roundTo").asInt(DEFAULT_ROUND_TO),
-                root.path("minPrice").asInt(DEFAULT_MIN_PRICE));
+                root.path("minPrice").asInt(DEFAULT_MIN_PRICE),
+                parseSeasonalModifiers(root),
+                root.path("autoAssignBestPro").asBoolean(false));
+    }
+
+    private static java.util.List<SeasonalModifier> parseSeasonalModifiers(JsonNode root) {
+        if (!root.hasNonNull("seasonalModifiers") || !root.get("seasonalModifiers").isArray()) {
+            return java.util.List.of();
+        }
+        java.util.List<SeasonalModifier> out = new java.util.ArrayList<>();
+        for (JsonNode node : root.get("seasonalModifiers")) {
+            out.add(new SeasonalModifier(
+                    node.path("from").asText(null),
+                    node.path("to").asText(null),
+                    node.path("percent").asDouble(0),
+                    node.path("label").asText("")));
+        }
+        return java.util.List.copyOf(out);
     }
 }

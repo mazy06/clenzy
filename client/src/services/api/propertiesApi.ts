@@ -270,6 +270,8 @@ export interface CleaningPreviewInputs {
   maxGuests?: number | null;
   /** Types demandés (défaut serveur : EXPRESS_CLEANING, CLEANING, DEEP_CLEANING). */
   cleaningTypes?: string[];
+  /** Date de prestation optionnelle (ISO yyyy-MM-dd) — applique la majoration saisonnière. */
+  serviceDate?: string | null;
 }
 
 export interface CleaningQuoteDto {
@@ -281,7 +283,7 @@ export interface CleaningQuoteDto {
 
 export interface CleaningEstimateDetail {
   estimate: number;
-  source: 'PROPERTY_OVERRIDE' | 'ENGINE';
+  source: 'PROPERTY_OVERRIDE' | 'ENGINE' | 'HOUSEKEEPER_RATE';
   min: number;
   max: number;
   durationMinutes: number;
@@ -364,8 +366,9 @@ export const propertiesApi = {
   },
 
   /**
-   * Estimation du coût de ménage (vrai estimateur d'intervention côté backend :
-   * basePrix forfait × coeff type × surface × capacité, min + arrondi 5 €).
+   * Estimation du coût de ménage — prix résolu par CleaningPricingEngine :
+   * tarif prestataire (FLAT/HOURLY) > prix ménage du logement > conseil moteur
+   * (minutes normées × taux horaire, arrondi 5 €, plancher 30 €).
    * Montant proposé (éditable) dans la modale de réservation.
    */
   async getCleaningEstimate(propertyId: number): Promise<number> {
