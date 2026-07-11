@@ -13,6 +13,8 @@ import ReservationDialog from '../../components/reservations/ReservationDialog';
 import BlockPeriodDialog from './BlockPeriodDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
 import ICalImportModal from '../dashboard/ICalImportModal';
+import ImportSourceChooserDialog from './ImportSourceChooserDialog';
+import ChannexMappingDialog from '../settings/components/ChannexMappingDialog';
 import { usePlanningNavigation } from './hooks/usePlanningNavigation';
 import { useInfiniteTimeline } from './hooks/useInfiniteTimeline';
 import { usePlanningData } from './hooks/usePlanningData';
@@ -21,6 +23,7 @@ import { usePlanningLayout } from './hooks/usePlanningLayout';
 import { usePlanningSelection } from './hooks/usePlanningSelection';
 import { usePlanningDrag } from './hooks/usePlanningDrag';
 import { useReservationUpdate } from './hooks/useReservationUpdate';
+import { useUserPreference } from '../../hooks/useUserPreference';
 import { useInterventionActions } from './hooks/useInterventionActions';
 import { usePlanningPagination } from './hooks/usePlanningPagination';
 import { usePlanningPricing } from './hooks/usePlanningPricing';
@@ -51,8 +54,11 @@ import { isMockEnabled } from '../../services/storageService';
 const PlanningPage: React.FC = () => {
   const queryClient = useQueryClient();
 
-  // iCal import modal
+  // Import : choix du mécanisme (iCal ponctuel vs Channel Manager Channex),
+  // puis modale du flux retenu.
+  const [importChooserOpen, setImportChooserOpen] = useState(false);
   const [icalModalOpen, setIcalModalOpen] = useState(false);
+  const [channelManagerOpen, setChannelManagerOpen] = useState(false);
 
   // Block period dialog
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
@@ -78,11 +84,26 @@ const PlanningPage: React.FC = () => {
   // Fenêtre du bilan de la constellation, alignée sur le zoom du planning.
   const reportWindowDays = nav.zoom === 'week' ? 7 : nav.zoom === 'fortnight' ? 15 : 30;
   const [supervisionScope, setSupervisionScope] = useState<SupervisionScope>('property');
-  const [expandedPropertyId, setExpandedPropertyId] = useState<number | null>(null);
+  // Logement dont la constellation est déployée : PERSISTÉ en préférence UI
+  // (user_ui_preferences, cross-devices) → l'accordéon reste ouvert au reload
+  // et à la reconnexion. Arbre Storage §2 (préférence ad-hoc par écran).
+  // `null` = tous repliés. Un id périmé (logement filtré/supprimé) est inoffensif :
+  // orderedProperties le laisse passer et renderExpanded ne matche jamais.
+  const [expandedPropertyId, setExpandedPropertyId, { reset: resetExpandedProperty }] =
+    useUserPreference<number | null>('planning.expandedPropertyId', null);
   const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
   const handleToggleExpanded = useCallback((propertyId: number) => {
-    setExpandedPropertyId((prev) => (prev === propertyId ? null : propertyId));
-  }, []);
+    // Fermer = SUPPRIMER la préférence (retour au défaut null), et NON setPref(null) :
+    // un PUT à corps null est envoyé sans body (apiClient : `if (body)`) → le backend
+    // (@RequestBody requis) le rejette en 400, l'erreur est avalée et l'ancien id
+    // survivait → la constellation se rouvrait au reload. deletePref envoie un DELETE
+    // (sans corps, accepté) ET est immédiat (pas de debounce perdu au hard-reload du logout).
+    if (expandedPropertyId === propertyId) {
+      resetExpandedProperty();
+    } else {
+      setExpandedPropertyId(propertyId);
+    }
+  }, [expandedPropertyId, setExpandedPropertyId, resetExpandedProperty]);
   // Mode « Vue d'ensemble » : masque la grille + les contrôles propres au planning.
   const isOverview = canSupervise && supervisionScope === 'portfolio';
 
@@ -579,10 +600,10 @@ const PlanningPage: React.FC = () => {
                     {nav.isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
+                <Tooltip title="Importer des réservations (iCal) ou connecter vos canaux (Channel Manager)" arrow>
                   <IconButton
-                    aria-label="Importer iCal"
-                    onClick={() => setIcalModalOpen(true)}
+                    aria-label="Importer des réservations ou connecter vos canaux"
+                    onClick={() => setImportChooserOpen(true)}
                   >
                     <CloudDownload size={18} strokeWidth={1.85} />
                   </IconButton>
@@ -702,6 +723,7 @@ const PlanningPage: React.FC = () => {
             renderExpanded={
               canSupervise
                 ? (property: PlanningProperty) => {
+                    const mockMode = isMockEnabled('planning') || !isSupervisionLiveEnabled();
                     const firstResa = visibleEvents.find(
                       (e) => e.type === 'reservation' && e.propertyId === property.id && e.reservation,
                     );
@@ -714,14 +736,17 @@ const PlanningPage: React.FC = () => {
                           // Mode démo planning OU live désactivé → provider MOCK
                           // (constellation + « En direct » alimentés par des données
                           // fictives variées par logement). Sinon → moteur réel.
-                          isMockEnabled('planning') || !isSupervisionLiveEnabled()
+                          mockMode
                             ? new MockSupervisionProvider(String(property.id), { cometReservationId }, 'demo')
                             : new AgUiSupervisionProvider(String(property.id), {
                                 selectedPropertyId: Number(property.id),
                                 currentPage: '/planning',
                               })
                         }
-                        deps={[property.id, cometReservationId]}
+                        // cometReservationId ne pilote QUE le mock : en live, l'inclure
+                        // dans les deps détruisait/recréait le provider (teardown SSE +
+                        // re-snapshot) quand les réservations finissaient de charger.
+                        deps={mockMode ? [property.id, cometReservationId] : [property.id]}
                         propertyId={property.id}
                         reportWindowDays={reportWindowDays}
                         flush
@@ -805,11 +830,22 @@ const PlanningPage: React.FC = () => {
         events={filteredEvents}
       />
 
+      {/* Choix du mécanisme d'import : iCal ponctuel OU Channel Manager (Channex) */}
+      <ImportSourceChooserDialog
+        open={importChooserOpen}
+        onClose={() => setImportChooserOpen(false)}
+        onChooseIcal={() => setIcalModalOpen(true)}
+        onChooseChannelManager={() => setChannelManagerOpen(true)}
+      />
+
       {/* iCal Import Modal */}
       <ICalImportModal
         open={icalModalOpen}
         onClose={() => setIcalModalOpen(false)}
       />
+
+      {/* Channel Manager : même modale guidée Channex que le bouton du Dashboard */}
+      <ChannexMappingDialog open={channelManagerOpen} guided onClose={() => setChannelManagerOpen(false)} />
 
       {/* Block Period Dialog */}
       <BlockPeriodDialog
