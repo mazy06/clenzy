@@ -14,7 +14,7 @@
    Drop-in de <PendingQueue> (mêmes props). Réutilise onValidate/onEdit.
    ============================================================ */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Collapse, IconButton } from '@mui/material';
 import {
   Check, ChevronDown, Timer, CreditCard, Schedule, VisibilityOff, Undo,
@@ -251,30 +251,34 @@ function TaskStack({
   }
 
   // Deck replié : carte du dessus + jusqu'à 3 tranches derrière + pastille de comptage.
+  // Les tranches sont PLEINE LARGEUR (pas de rétrécissement latéral) et ne laissent
+  // dépasser qu'un fin liseré de PEEK px chacune sous la carte — on les entrevoit,
+  // elles ne réservent plus un bandeau vide. Ancrées sur la hauteur RÉELLE de la
+  // carte (carte en flux + débord bas), plus de hauteur codée en dur.
   const behind = Math.min(n - 1, 3);
-  const deckHeight = 146 + behind * 12;
+  const PEEK = 6;
   return (
     <Box
       onClick={dimmed ? onClose : onOpen}
       sx={{
-        position: 'relative', height: deckHeight, cursor: 'pointer',
+        position: 'relative', cursor: 'pointer', mb: `${behind * PEEK}px`,
         filter: dimmed ? 'blur(4px)' : 'none', opacity: dimmed ? 0.45 : 1,
         transition: 'filter .35s var(--ease-out, cubic-bezier(.16,1,.3,1)), opacity .35s',
       }}
     >
-      {/* Tranches derrière */}
+      {/* Tranches derrière : même largeur que la carte, débordent de PEEK px par niveau */}
       {Array.from({ length: behind }).map((_, i) => {
         const d = i + 1;
         return (
           <Box key={d} sx={{
-            position: 'absolute', top: d * 12, left: d * 8, right: d * 8,
-            height: 128, bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '16px',
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: -(d * PEEK),
+            bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: '16px',
             boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06))', zIndex: 3 - i,
           }} />
         );
       })}
-      {/* Carte du dessus */}
-      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 }}>
+      {/* Carte du dessus (en flux : donne sa hauteur au deck) */}
+      <Box sx={{ position: 'relative', zIndex: 5 }}>
         <TaskCard action={actions[0]} onValidate={onValidate} onEdit={onEdit} onAdjustPrice={onAdjustPrice} />
       </Box>
       {/* Pastille de comptage */}
@@ -295,7 +299,11 @@ function TaskStack({
 
 // ─── Conteneur ────────────────────────────────────────────────────────────────
 
-export function TaskDeckQueue({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: TaskDeckQueueProps) {
+// Mémoïsé (audit perf) : ne re-rendre le deck que quand la file ou les handlers
+// changent — pas à chaque re-render du panneau (report, toasts, events feed).
+export const TaskDeckQueue = memo(TaskDeckQueueInner);
+
+function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, variant = 'floating' }: TaskDeckQueueProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [openType, setOpenType] = useState<AgentId | null>(null);
