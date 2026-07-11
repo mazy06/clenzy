@@ -6,8 +6,10 @@ import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.agent.supervision.AutoApplyGate;
 import com.clenzy.service.agent.supervision.SupervisionActionType;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionAutoApplyService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,17 +47,23 @@ public class PaymentFailedTriggerService {
     private final AutomationEngine automationEngine;
     private final SupervisionActivityService supervisionActivityService;
     private final SupervisionSuggestionService supervisionSuggestionService;
+    private final AutoApplyGate autoApplyGate;
+    private final SupervisionAutoApplyService autoApplyService;
 
     public PaymentFailedTriggerService(InterventionRepository interventionRepository,
                                        ReservationRepository reservationRepository,
                                        AutomationEngine automationEngine,
                                        SupervisionActivityService supervisionActivityService,
-                                       SupervisionSuggestionService supervisionSuggestionService) {
+                                       SupervisionSuggestionService supervisionSuggestionService,
+                                       AutoApplyGate autoApplyGate,
+                                       SupervisionAutoApplyService autoApplyService) {
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
         this.automationEngine = automationEngine;
         this.supervisionActivityService = supervisionActivityService;
         this.supervisionSuggestionService = supervisionSuggestionService;
+        this.autoApplyGate = autoApplyGate;
+        this.autoApplyService = autoApplyService;
     }
 
     /**
@@ -139,6 +147,13 @@ public class PaymentFailedTriggerService {
      * uniquement si le solde différé est régénérable — réservation {@code PARTIALLY_PAID} avec un solde
      * dû &gt; 0 (seul cas où {@code BookingBalanceService.createBalanceCheckoutUrl} réussit). Sinon carte
      * informationnelle. L'état est re-résolu à l'apply — la carte ne fait que porter le reservationId.
+     *
+     * <p><b>V3 autonomie (N1 borné)</b> : l'{@link AutoApplyGate} décide avant la création. Enveloppe =
+     * 1ʳᵉ relance UNIQUEMENT (aucune relance déjà APPLIED pour cette résa, quel que soit l'acteur) +
+     * anti-rafale 72 h — la 2ᵉ relance et suivantes restent TOUJOURS des cartes HITL. En AUTO, l'apply
+     * ré-résout email/code/solde (exécuteur existant) HORS transaction avec compensation : un échec
+     * laisse la carte PENDING. La carte porte désormais le {@code reservationId} (colonne) pour que
+     * « déjà relancé » soit mesurable quel que soit le chemin (humain ou auto).</p>
      */
     private void recordPaymentFailedCard(Long orgId, Long propertyId, Long reservationId) {
         final String title = "Paiement échoué à relancer";
@@ -152,7 +167,21 @@ public class PaymentFailedTriggerService {
                 String params = String.format("{\"reservationId\":%d}", reservationId);
                 String motif = "Le paiement du solde (" + reservation.getAmountDue()
                         + ") a échoué — régénérer un lien de paiement et relancer le voyageur.";
-                supervisionSuggestionService.recordActionable(orgId, propertyId, "fin", title, motif,
+                AutoApplyGate.AutoDecision decision = autoApplyGate.decide(orgId, "fin",
+                        SupervisionActionType.PAYMENT_REMINDER,
+                        Map.of(AutoApplyGate.INPUT_PAYMENT_RESERVATION_ID, reservationId));
+                boolean auto = decision == AutoApplyGate.AutoDecision.AUTO_NOTIFY
+                        || decision == AutoApplyGate.AutoDecision.AUTO_SILENT;
+                if (auto) {
+                    supervisionSuggestionService.recordActionableForAutoApply(orgId, propertyId, "fin",
+                                    reservationId, title, motif, SupervisionActionType.PAYMENT_REMINDER,
+                                    params, null, "warning")
+                            .ifPresent(suggestionId -> autoApplyService.autoApply(decision, orgId,
+                                    propertyId, "fin", suggestionId, title, motif, null));
+                    return;
+                }
+                supervisionSuggestionService.recordActionableStrict(orgId, propertyId, "fin",
+                        reservationId, title, motif,
                         SupervisionActionType.PAYMENT_REMINDER, params, null, "warning");
                 return;
             }

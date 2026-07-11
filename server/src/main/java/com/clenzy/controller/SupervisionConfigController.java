@@ -73,4 +73,17 @@ public class SupervisionConfigController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return ResponseEntity.ok(autoRuleService.updateRules(orgId, request));
     }
+
+    /**
+     * POST /api/ai/supervision/auto-rules/{actionType}/dismiss-suggestion —
+     * « Ignorer » la suggestion d'automatisation d'un type (Règles de Confiance
+     * des cartes, V3) : cooldown de re-suggestion 30 j. Admins d'org.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/auto-rules/{actionType}/dismiss-suggestion")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<List<SupervisionAutoRuleDto>> dismissAutoRuleSuggestion(
+            @org.springframework.web.bind.annotation.PathVariable String actionType) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        return ResponseEntity.ok(autoRuleService.dismissSuggestion(orgId, actionType));
+    }
 }

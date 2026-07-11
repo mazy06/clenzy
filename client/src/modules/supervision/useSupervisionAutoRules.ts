@@ -1,10 +1,16 @@
 /* ============================================================
-   Règles d'auto-application par type (Vague 1 autonomie constellation)
+   Règles d'auto-application par type (Vagues 1-2 autonomie constellation)
 
    Lit/écrit GET|PUT /api/ai/supervision/auto-rules. Source de vérité =
-   backend (SupervisionConfigController). Catalogue V1 fixé côté serveur
-   (CLEANING_REQUEST, REVIEW_DRAFT_REPLY, PRICE_DROP) — défaut tout OFF.
-   Le plafond du module (moduleCeiling) est calculé serveur, lecture seule.
+   backend (SupervisionConfigController). Catalogue fixé côté serveur
+   (V1 : CLEANING_REQUEST, REVIEW_DRAFT_REPLY, PRICE_DROP · V2 :
+   CALENDAR_BLOCK, DEPOSIT_RELEASE, DEPOSIT_REFUND · V3 :
+   PAYMENT_REMINDER) — défaut tout OFF. Le plafond du module
+   (moduleCeiling) et le niveau MAX du type (maxLevel — « notify » pour
+   cautions/blocage/relance : jamais silencieux) sont calculés serveur,
+   lecture seule. V3 : les Règles de Confiance des cartes posent une
+   suggestion « automatiser ? » (suggestedAt + consecutiveApprovals) que
+   l'humain Active (toggle ON) ou Ignore (POST dismiss-suggestion).
    ============================================================ */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +31,12 @@ export interface SupervisionAutoRule {
   envelope: string | null;
   /** Plafond du module ('suggest'|'notify'|'full') — lecture seule. */
   moduleCeiling: AutonomyLevel;
+  /** Niveau MAX du type au catalogue serveur ('notify'|'full') — lecture seule. */
+  maxLevel: 'notify' | 'full';
+  /** Suggestion « automatiser ce type ? » active (ISO) ou null — lecture seule (V3). */
+  suggestedAt: string | null;
+  /** Approbations humaines consécutives (chip « Recommandé ») — lecture seule (V3). */
+  consecutiveApprovals: number;
 }
 
 const QUERY_KEY = ['supervision', 'auto-rules'] as const;
@@ -75,6 +87,30 @@ export function useUpdateSupervisionAutoRules() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: putAutoRules,
+    onSuccess: (data) => queryClient.setQueryData(QUERY_KEY, data),
+  });
+}
+
+async function dismissSuggestion(actionType: string): Promise<SupervisionAutoRule[]> {
+  const response = await fetch(
+    buildApiUrl(`/ai/supervision/auto-rules/${encodeURIComponent(actionType)}/dismiss-suggestion`),
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { accept: 'application/json', ...authHeaders() },
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`supervision auto-rule suggestion dismiss failed: ${response.status}`);
+  }
+  return (await response.json()) as SupervisionAutoRule[];
+}
+
+/** « Ignorer » la suggestion d'automatisation d'un type (cooldown 30 j côté serveur). */
+export function useDismissAutoRuleSuggestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: dismissSuggestion,
     onSuccess: (data) => queryClient.setQueryData(QUERY_KEY, data),
   });
 }

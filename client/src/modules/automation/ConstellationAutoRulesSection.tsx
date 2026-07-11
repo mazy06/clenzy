@@ -1,12 +1,15 @@
 /* ============================================================
-   « Constellation — actions automatiques » (Vague 1 autonomie)
+   « Constellation — actions automatiques » (Vagues 1-2 autonomie)
 
    Section du menu Automatisation : toggles d'auto-application PAR TYPE
-   d'action de la constellation (catalogue V1 serveur : ménage manquant,
-   brouillon d'avis, ajustement tarifaire). Par type : toggle, niveau
+   d'action de la constellation (catalogue serveur — V1 : ménage manquant,
+   brouillon d'avis, ajustement tarifaire · V2 : blocage calendrier,
+   libération/remboursement de caution). Par type : toggle, niveau
    (Notifier / Silencieux) borné par le PLAFOND du module (niveau de
-   l'agent — affiché quand il bride), enveloppe éditable et taux
-   d'acceptation du type (aide à la décision d'activation).
+   l'agent — affiché quand il bride) ET par le niveau MAX du type
+   (cautions/blocage = jamais silencieux), enveloppe éditable, conditions
+   non éditables affichées en texte informatif, et taux d'acceptation du
+   type (aide à la décision d'activation).
 
    Rien n'est activé par défaut (opt-in total). La section se masque si
    l'utilisateur n'a pas les rôles de supervision (403 sur le GET).
@@ -14,7 +17,7 @@
 
 import React, { useCallback } from 'react';
 import {
-  Box, Typography, Chip, Switch, Select, MenuItem, TextField, FormControl,
+  Box, Typography, Button, Chip, Switch, Select, MenuItem, TextField, FormControl,
   Card, Tooltip,
 } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -22,6 +25,7 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   useSupervisionAutoRules,
   useUpdateSupervisionAutoRules,
+  useDismissAutoRuleSuggestion,
   type SupervisionAutoRule,
 } from '../supervision/useSupervisionAutoRules';
 import { useSupervisionReport } from '../supervision/core/useSupervisionReport';
@@ -50,20 +54,53 @@ const switchSx = {
   '& .MuiSwitch-track': { borderRadius: 9, opacity: 1 },
 } as const;
 
-/** Enveloppe PRICE_DROP : borne de % par segment (défaut serveur 12). */
-const PRICE_DROP_DEFAULT_MAX_SEGMENT_PERCENT = 12;
-
-function parseMaxSegmentPercent(envelope: string | null): number {
-  if (!envelope) return PRICE_DROP_DEFAULT_MAX_SEGMENT_PERCENT;
+/** Lit une borne entière de l'enveloppe JSON (repli sur le défaut serveur). */
+function envelopeInt(envelope: string | null, key: string, defaultValue: number): number {
+  if (!envelope) return defaultValue;
   try {
-    const parsed = JSON.parse(envelope) as { maxSegmentPercent?: unknown };
-    return typeof parsed.maxSegmentPercent === 'number'
-      ? parsed.maxSegmentPercent
-      : PRICE_DROP_DEFAULT_MAX_SEGMENT_PERCENT;
+    const parsed = JSON.parse(envelope) as Record<string, unknown>;
+    return typeof parsed[key] === 'number' ? (parsed[key] as number) : defaultValue;
   } catch {
-    return PRICE_DROP_DEFAULT_MAX_SEGMENT_PERCENT;
+    return defaultValue;
   }
 }
+
+/** Champ d'enveloppe éditable d'un type (défauts alignés sur AutoApplyGate). */
+interface EnvelopeField {
+  key: string;
+  labelKey: string;
+  labelDefault: string;
+  defaultValue: number;
+  min: number;
+  max: number;
+}
+
+const ENVELOPE_FIELDS: Record<string, EnvelopeField> = {
+  PRICE_DROP: {
+    key: 'maxSegmentPercent',
+    labelKey: 'automation.constellation.maxSegmentPercent',
+    labelDefault: '% max / segment',
+    defaultValue: 12,
+    min: 1,
+    max: 50,
+  },
+  CALENDAR_BLOCK: {
+    key: 'maxAutoBlockDays',
+    labelKey: 'automation.constellation.maxAutoBlockDays',
+    labelDefault: 'Jours max (auto)',
+    defaultValue: 7,
+    min: 1,
+    max: 30,
+  },
+  DEPOSIT_RELEASE: {
+    key: 'minDaysAfterCheckout',
+    labelKey: 'automation.constellation.minDaysAfterCheckout',
+    labelDefault: 'Délai post-départ (j)',
+    defaultValue: 2,
+    min: 0,
+    max: 30,
+  },
+};
 
 const ConstellationAutoRulesSection: React.FC = () => {
   const { t } = useTranslation();
@@ -73,6 +110,7 @@ const ConstellationAutoRulesSection: React.FC = () => {
 
   const { data: rules, isError, isLoading } = useSupervisionAutoRules();
   const updateMutation = useUpdateSupervisionAutoRules();
+  const dismissSuggestionMutation = useDismissAutoRuleSuggestion();
   // Acceptation par type (fenêtre 30 j) — aide à la décision d'activation.
   const { report } = useSupervisionReport(30);
 
@@ -148,6 +186,11 @@ const ConstellationAutoRulesSection: React.FC = () => {
                 <Typography noWrap sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                   {t(`automation.constellation.types.${rule.actionType}.description`, '')}
                 </Typography>
+                {t(`automation.constellation.types.${rule.actionType}.conditions`, '') !== '' && (
+                  <Typography noWrap sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+                    {t(`automation.constellation.types.${rule.actionType}.conditions`, '')}
+                  </Typography>
+                )}
                 {cappedToSuggest && (
                   <Typography sx={{ fontSize: '0.6875rem', color: 'var(--warn)', fontWeight: 600 }}>
                     {t('automation.constellation.cappedBySuggest',
@@ -161,6 +204,41 @@ const ConstellationAutoRulesSection: React.FC = () => {
                       'Plafonné par le niveau de l’agent {{agent}} : Agir puis notifier',
                       { agent: moduleLabel })}
                   </Typography>
+                )}
+                {/* Règles de Confiance (V3) : recommandation « gagnée par l'historique »
+                    — INERTE, l'humain active ou ignore. Jamais sur un type déjà ON. */}
+                {!rule.enabled && rule.suggestedAt && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
+                    <Chip
+                      label={t('automation.constellation.recommended',
+                        'Recommandé — {{count}} approbations consécutives',
+                        { count: rule.consecutiveApprovals })}
+                      size="small"
+                      sx={{ ...pillSx('var(--ok-soft)', 'var(--ok)'), fontVariantNumeric: 'tabular-nums' }}
+                    />
+                    {canEdit && (
+                      <>
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => saveRule(rule, { enabled: true })}
+                          disabled={cappedToSuggest || updateMutation.isPending || dismissSuggestionMutation.isPending}
+                          sx={{ minWidth: 0, px: 0.75, fontSize: '0.6875rem', fontWeight: 700, textTransform: 'none' }}
+                        >
+                          {t('automation.constellation.enableSuggestion', 'Activer')}
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => dismissSuggestionMutation.mutate(rule.actionType)}
+                          disabled={updateMutation.isPending || dismissSuggestionMutation.isPending}
+                          sx={{ minWidth: 0, px: 0.75, fontSize: '0.6875rem', fontWeight: 600, textTransform: 'none', color: 'var(--muted)' }}
+                        >
+                          {t('automation.constellation.ignoreSuggestion', 'Ignorer')}
+                        </Button>
+                      </>
+                    )}
+                  </Box>
                 )}
               </Box>
 
@@ -194,26 +272,39 @@ const ConstellationAutoRulesSection: React.FC = () => {
                   <MenuItem value="notify" sx={{ fontSize: '0.8125rem' }}>
                     {t('automation.constellation.levelNotify', 'Appliquer et notifier')}
                   </MenuItem>
-                  <MenuItem value="full" disabled={ceiling !== 'full'} sx={{ fontSize: '0.8125rem' }}>
-                    {t('automation.constellation.levelFull', 'Appliquer en silence')}
-                  </MenuItem>
+                  {/* « Silencieux » : borné par le plafond du module ET le max du type
+                      (cautions / blocage calendrier = notify max, jamais proposé). */}
+                  {rule.maxLevel === 'full' && (
+                    <MenuItem value="full" disabled={ceiling !== 'full'} sx={{ fontSize: '0.8125rem' }}>
+                      {t('automation.constellation.levelFull', 'Appliquer en silence')}
+                    </MenuItem>
+                  )}
                 </Select>
               </FormControl>
 
-              {/* Enveloppe éditable : PRICE_DROP seulement en V1 (% max par segment). */}
-              {rule.actionType === 'PRICE_DROP' ? (
+              {/* Enveloppe éditable du type (défauts serveur AutoApplyGate) ; les
+                  conditions non éditables sont affichées en texte informatif. */}
+              {ENVELOPE_FIELDS[rule.actionType] ? (
                 <TextField
-                  label={t('automation.constellation.maxSegmentPercent', '% max / segment')}
+                  label={t(ENVELOPE_FIELDS[rule.actionType].labelKey,
+                    ENVELOPE_FIELDS[rule.actionType].labelDefault)}
                   type="number"
                   size="small"
-                  value={parseMaxSegmentPercent(rule.envelope)}
+                  value={envelopeInt(rule.envelope, ENVELOPE_FIELDS[rule.actionType].key,
+                    ENVELOPE_FIELDS[rule.actionType].defaultValue)}
                   onChange={(e) => {
-                    const value = Math.max(1, Math.min(50, Number(e.target.value) || 0));
-                    saveRule(rule, { envelope: JSON.stringify({ maxSegmentPercent: value }) });
+                    const field = ENVELOPE_FIELDS[rule.actionType];
+                    const value = Math.max(field.min, Math.min(field.max, Number(e.target.value) || 0));
+                    saveRule(rule, { envelope: JSON.stringify({ [field.key]: value }) });
                   }}
                   disabled={!canEdit || cappedToSuggest || updateMutation.isPending}
-                  inputProps={{ min: 1, max: 50, step: 1, style: { fontVariantNumeric: 'tabular-nums' } }}
-                  sx={{ width: 132 }}
+                  inputProps={{
+                    min: ENVELOPE_FIELDS[rule.actionType].min,
+                    max: ENVELOPE_FIELDS[rule.actionType].max,
+                    step: 1,
+                    style: { fontVariantNumeric: 'tabular-nums' },
+                  }}
+                  sx={{ width: 148 }}
                 />
               ) : (
                 <Box />

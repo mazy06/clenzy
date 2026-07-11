@@ -5,9 +5,11 @@ import com.clenzy.model.SupervisionAutoRule;
 import com.clenzy.model.SupervisionAutonomy;
 import com.clenzy.model.SupervisionModuleSettings;
 import com.clenzy.model.SupervisionSettings;
+import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.repository.SupervisionAutoRuleRepository;
 import com.clenzy.repository.SupervisionModuleSettingsRepository;
 import com.clenzy.repository.SupervisionSettingsRepository;
+import com.clenzy.repository.SupervisionSuggestionRepository;
 import com.clenzy.service.ai.AutonomyBudgetService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +19,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,31 +29,39 @@ import static com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision.AU
 import static com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision.AUTO_SILENT;
 import static com.clenzy.service.agent.supervision.AutoApplyGate.AutoDecision.CARD;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
- * Hiérarchie de commande du gate (Vague 1) : kill-switch global → plafond module
- * → toggle du type → enveloppe → budget premium. Défaut sûr : CARD (HITL).
+ * Hiérarchie de commande du gate (Vagues 1-2) : kill-switch global → plafond
+ * module → niveau MAX du type (catalogue) → toggle du type → enveloppe →
+ * budget premium. Défaut sûr : CARD (HITL).
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("AutoApplyGate.decide (autonomie Vague 1)")
+@DisplayName("AutoApplyGate.decide (autonomie Vagues 1-2)")
 class AutoApplyGateTest {
 
     private static final Long ORG = 1L;
+    private static final Long PROP = 7L;
 
     @Mock private SupervisionSettingsRepository settingsRepository;
     @Mock private SupervisionModuleSettingsRepository moduleSettingsRepository;
     @Mock private SupervisionAutoRuleRepository autoRuleRepository;
+    @Mock private SupervisionSuggestionRepository suggestionRepository;
     @Mock private AutonomyBudgetService autonomyBudgetService;
+
+    private final Clock clock = Clock.fixed(Instant.parse("2026-07-11T10:00:00Z"), ZoneOffset.UTC);
 
     private AutoApplyGate gate;
 
     @BeforeEach
     void setUp() {
         gate = new AutoApplyGate(settingsRepository, moduleSettingsRepository,
-                new SupervisionModuleRegistry(), autoRuleRepository,
-                autonomyBudgetService, new ObjectMapper());
+                new SupervisionModuleRegistry(), autoRuleRepository, suggestionRepository,
+                autonomyBudgetService, new ObjectMapper(), clock);
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────
@@ -209,15 +222,17 @@ class AutoApplyGateTest {
     }
 
     @Test
-    @DisplayName("PRICE_DROP : dans l'enveloppe (par defaut 12 %) -> AUTO")
-    void priceDropWithinEnvelope_auto() {
+    @DisplayName("PRICE_DROP : dans l'enveloppe (defaut 12 %) -> AUTO_NOTIFY (max type N1, jamais silencieux)")
+    void priceDropWithinEnvelope_autoNotifyAtMost() {
         globalEnabled();
         module("rev", true, SupervisionAutonomy.FULL);
         rule(SupervisionActionType.PRICE_DROP, true, SupervisionAutonomy.FULL, null);
 
+        // Regle FULL + module FULL, mais le catalogue plafonne PRICE_DROP a NOTIFY
+        // (matrice du plan : N1 via cadre yield) → jamais AUTO_SILENT.
         assertThat(gate.decide(ORG, "rev", SupervisionActionType.PRICE_DROP,
                 Map.of(AutoApplyGate.INPUT_MAX_SEGMENT_ABS_PERCENT, 10)))
-                .isEqualTo(AUTO_SILENT);
+                .isEqualTo(AUTO_NOTIFY);
     }
 
     @Test
@@ -292,5 +307,226 @@ class AutoApplyGateTest {
         assertThat(gate.decide(ORG, "ops", SupervisionActionType.CLEANING_REQUEST, Map.of()))
                 .isEqualTo(AUTO_NOTIFY);
         org.mockito.Mockito.verifyNoInteractions(autonomyBudgetService);
+    }
+
+    // ── 2 bis. Niveau MAX du type (catalogue serveur) ────────────────────────
+
+    @Test
+    @DisplayName("type hors catalogue (YIELD_PRICE_ADJUST : cadre yield dedie) -> CARD meme tout ouvert")
+    void unknownCatalogType_card() {
+        globalEnabled();
+        module("rev", true, SupervisionAutonomy.FULL);
+
+        assertThat(gate.decide(ORG, "rev", SupervisionActionType.YIELD_PRICE_ADJUST, Map.of()))
+                .isEqualTo(CARD);
+    }
+
+    // ── V2 : CALENDAR_BLOCK (N1 max) ─────────────────────────────────────────
+
+    private Map<String, Object> calendarInputs(int days) {
+        return Map.of(AutoApplyGate.INPUT_BLOCK_DAYS, days,
+                AutoApplyGate.INPUT_PROPERTY_ID, PROP);
+    }
+
+    @Test
+    @DisplayName("CALENDAR_BLOCK : regle FULL + module FULL -> AUTO_NOTIFY, JAMAIS silencieux (max type)")
+    void calendarBlockNeverSilent() {
+        globalEnabled();
+        module("ops", true, SupervisionAutonomy.FULL);
+        rule(SupervisionActionType.CALENDAR_BLOCK, true, SupervisionAutonomy.FULL, null);
+        when(suggestionRepository
+                .existsByOrganizationIdAndPropertyIdAndActionTypeAndStatusAndAppliedByAndAppliedAtAfter(
+                        eq(ORG), eq(PROP), eq(SupervisionActionType.CALENDAR_BLOCK),
+                        eq(SupervisionSuggestion.STATUS_APPLIED),
+                        eq(SupervisionSuggestion.APPLIED_BY_AUTO), any(Instant.class)))
+                .thenReturn(false);
+
+        assertThat(gate.decide(ORG, "ops", SupervisionActionType.CALENDAR_BLOCK, calendarInputs(7)))
+                .isEqualTo(AUTO_NOTIFY);
+    }
+
+    @Test
+    @DisplayName("CALENDAR_BLOCK : duree > maxAutoBlockDays (defaut 7) -> CARD")
+    void calendarBlockOverMaxDays_card() {
+        globalEnabled();
+        module("ops", true, SupervisionAutonomy.FULL);
+        rule(SupervisionActionType.CALENDAR_BLOCK, true, SupervisionAutonomy.NOTIFY, null);
+
+        assertThat(gate.decide(ORG, "ops", SupervisionActionType.CALENDAR_BLOCK, calendarInputs(10)))
+                .isEqualTo(CARD);
+    }
+
+    @Test
+    @DisplayName("CALENDAR_BLOCK : cap « 1 auto-blocage / bien / 7 jours » consomme -> CARD")
+    void calendarBlockWeeklyCapConsumed_card() {
+        globalEnabled();
+        module("ops", true, SupervisionAutonomy.FULL);
+        rule(SupervisionActionType.CALENDAR_BLOCK, true, SupervisionAutonomy.NOTIFY, null);
+        when(suggestionRepository
+                .existsByOrganizationIdAndPropertyIdAndActionTypeAndStatusAndAppliedByAndAppliedAtAfter(
+                        eq(ORG), eq(PROP), anyString(), anyString(), anyString(), any(Instant.class)))
+                .thenReturn(true);
+
+        assertThat(gate.decide(ORG, "ops", SupervisionActionType.CALENDAR_BLOCK, calendarInputs(7)))
+                .isEqualTo(CARD);
+    }
+
+    @Test
+    @DisplayName("CALENDAR_BLOCK : enveloppe editee ({maxAutoBlockDays:3}) plus stricte -> CARD a 7 j")
+    void calendarBlockCustomEnvelope_stricter() {
+        globalEnabled();
+        module("ops", true, SupervisionAutonomy.FULL);
+        rule(SupervisionActionType.CALENDAR_BLOCK, true, SupervisionAutonomy.NOTIFY,
+                "{\"maxAutoBlockDays\":3}");
+
+        assertThat(gate.decide(ORG, "ops", SupervisionActionType.CALENDAR_BLOCK, calendarInputs(7)))
+                .isEqualTo(CARD);
+    }
+
+    // ── V2 : DEPOSIT_RELEASE / DEPOSIT_REFUND (N1 max, liberation de hold seule) ─
+
+    @Test
+    @DisplayName("DEPOSIT_RELEASE : anomalie ouverte sur le logement -> CARD")
+    void depositReleaseWithOpenIssue_card() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.NOTIFY);
+        rule(SupervisionActionType.DEPOSIT_RELEASE, true, SupervisionAutonomy.NOTIFY, null);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.DEPOSIT_RELEASE, Map.of(
+                AutoApplyGate.INPUT_HAS_OPEN_ISSUES, true,
+                AutoApplyGate.INPUT_DAYS_SINCE_CHECKOUT, 5L)))
+                .isEqualTo(CARD);
+    }
+
+    @Test
+    @DisplayName("DEPOSIT_RELEASE : delai post-checkout non atteint (J+1 < 2) -> CARD")
+    void depositReleaseTooEarly_card() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.NOTIFY);
+        rule(SupervisionActionType.DEPOSIT_RELEASE, true, SupervisionAutonomy.NOTIFY, null);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.DEPOSIT_RELEASE, Map.of(
+                AutoApplyGate.INPUT_HAS_OPEN_ISSUES, false,
+                AutoApplyGate.INPUT_DAYS_SINCE_CHECKOUT, 1L)))
+                .isEqualTo(CARD);
+    }
+
+    @Test
+    @DisplayName("DEPOSIT_RELEASE : conditions reunies -> AUTO_NOTIFY (max NOTIFY meme en FULL partout)")
+    void depositReleaseAllGreen_autoNotify() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.FULL);
+        rule(SupervisionActionType.DEPOSIT_RELEASE, true, SupervisionAutonomy.FULL, null);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.DEPOSIT_RELEASE, Map.of(
+                AutoApplyGate.INPUT_HAS_OPEN_ISSUES, false,
+                AutoApplyGate.INPUT_DAYS_SINCE_CHECKOUT, 2L)))
+                .isEqualTo(AUTO_NOTIFY);
+    }
+
+    @Test
+    @DisplayName("DEPOSIT_RELEASE : input hasOpenIssues absent -> CARD (fail-safe)")
+    void depositReleaseMissingIssueInput_card() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.NOTIFY);
+        rule(SupervisionActionType.DEPOSIT_RELEASE, true, SupervisionAutonomy.NOTIFY, null);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.DEPOSIT_RELEASE,
+                Map.of(AutoApplyGate.INPUT_DAYS_SINCE_CHECKOUT, 5L)))
+                .isEqualTo(CARD);
+    }
+
+    @Test
+    @DisplayName("DEPOSIT_REFUND : annulation non confirmee (statut re-lu) -> CARD")
+    void depositRefundCancellationNotConfirmed_card() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.NOTIFY);
+        rule(SupervisionActionType.DEPOSIT_REFUND, true, SupervisionAutonomy.NOTIFY, null);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.DEPOSIT_REFUND, Map.of(
+                AutoApplyGate.INPUT_HAS_OPEN_ISSUES, false,
+                AutoApplyGate.INPUT_CANCELLATION_CONFIRMED, false)))
+                .isEqualTo(CARD);
+    }
+
+    @Test
+    @DisplayName("DEPOSIT_REFUND : annulation confirmee + aucune anomalie -> AUTO_NOTIFY")
+    void depositRefundAllGreen_autoNotify() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.NOTIFY);
+        rule(SupervisionActionType.DEPOSIT_REFUND, true, SupervisionAutonomy.NOTIFY, null);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.DEPOSIT_REFUND, Map.of(
+                AutoApplyGate.INPUT_HAS_OPEN_ISSUES, false,
+                AutoApplyGate.INPUT_CANCELLATION_CONFIRMED, true)))
+                .isEqualTo(AUTO_NOTIFY);
+    }
+
+    // ── V3 : PAYMENT_REMINDER (N1 max, 1ʳᵉ relance seulement) ────────────────
+
+    private static final Long RESA = 200L;
+
+    private Map<String, Object> reminderInputs() {
+        return Map.of(AutoApplyGate.INPUT_PAYMENT_RESERVATION_ID, RESA);
+    }
+
+    @Test
+    @DisplayName("PAYMENT_REMINDER : 1ʳᵉ relance -> AUTO_NOTIFY, jamais silencieux (max type meme en FULL/FULL)")
+    void paymentReminderFirst_autoNotify() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.FULL);
+        rule(SupervisionActionType.PAYMENT_REMINDER, true, SupervisionAutonomy.FULL, null);
+        when(suggestionRepository.existsByOrganizationIdAndReservationIdAndActionTypeAndStatus(
+                ORG, RESA, SupervisionActionType.PAYMENT_REMINDER, SupervisionSuggestion.STATUS_APPLIED))
+                .thenReturn(false);
+        when(suggestionRepository.existsByOrganizationIdAndReservationIdAndActionTypeAndCreatedAtAfter(
+                eq(ORG), eq(RESA), eq(SupervisionActionType.PAYMENT_REMINDER), any(Instant.class)))
+                .thenReturn(false);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.PAYMENT_REMINDER, reminderInputs()))
+                .isEqualTo(AUTO_NOTIFY);
+    }
+
+    @Test
+    @DisplayName("PAYMENT_REMINDER : une relance deja APPLIED (quel que soit l'acteur) -> CARD")
+    void paymentReminderAlreadyApplied_card() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.NOTIFY);
+        rule(SupervisionActionType.PAYMENT_REMINDER, true, SupervisionAutonomy.NOTIFY, null);
+        when(suggestionRepository.existsByOrganizationIdAndReservationIdAndActionTypeAndStatus(
+                ORG, RESA, SupervisionActionType.PAYMENT_REMINDER, SupervisionSuggestion.STATUS_APPLIED))
+                .thenReturn(true);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.PAYMENT_REMINDER, reminderInputs()))
+                .isEqualTo(CARD);
+    }
+
+    @Test
+    @DisplayName("PAYMENT_REMINDER : une carte relance creee < 72 h -> CARD (anti-rafale)")
+    void paymentReminderWithin72h_card() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.NOTIFY);
+        rule(SupervisionActionType.PAYMENT_REMINDER, true, SupervisionAutonomy.NOTIFY, null);
+        when(suggestionRepository.existsByOrganizationIdAndReservationIdAndActionTypeAndStatus(
+                ORG, RESA, SupervisionActionType.PAYMENT_REMINDER, SupervisionSuggestion.STATUS_APPLIED))
+                .thenReturn(false);
+        when(suggestionRepository.existsByOrganizationIdAndReservationIdAndActionTypeAndCreatedAtAfter(
+                eq(ORG), eq(RESA), eq(SupervisionActionType.PAYMENT_REMINDER),
+                eq(Instant.parse("2026-07-08T10:00:00Z")))) // now − 72 h (clock fixe)
+                .thenReturn(true);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.PAYMENT_REMINDER, reminderInputs()))
+                .isEqualTo(CARD);
+    }
+
+    @Test
+    @DisplayName("PAYMENT_REMINDER : input reservation manquant -> CARD (fail-safe)")
+    void paymentReminderMissingReservation_card() {
+        globalEnabled();
+        module("fin", true, SupervisionAutonomy.NOTIFY);
+        rule(SupervisionActionType.PAYMENT_REMINDER, true, SupervisionAutonomy.NOTIFY, null);
+
+        assertThat(gate.decide(ORG, "fin", SupervisionActionType.PAYMENT_REMINDER, Map.of()))
+                .isEqualTo(CARD);
     }
 }

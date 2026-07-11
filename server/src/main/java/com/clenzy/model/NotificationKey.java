@@ -219,7 +219,7 @@ public enum NotificationKey {
     REVIEW_RECEIVED(NotificationType.INFO, NotificationCategory.REVIEW, true),
     REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true),
 
-    // ─── SUPERVISION / CONSTELLATION (2 cles) ─────────────────────────────
+    // ─── SUPERVISION / CONSTELLATION (3 cles) ─────────────────────────────
     // Carte HITL actionnable (warning/critical) creee par un agent : l'operateur
     // doit la voir meme hors de l'ecran de supervision (anti « action manquee »).
     SUPERVISION_SUGGESTION(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
@@ -228,6 +228,10 @@ public enum NotificationKey {
     // dans le message) et peut corriger. En FULL (silencieux), seule une entree
     // de feed est produite — pas de notification.
     SUPERVISION_AUTO_APPLIED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
+    // Regles de Confiance des cartes (Vague 3) : « vous avez approuve N fois de
+    // suite ce type de carte — l'automatiser ? ». Suggestion INERTE : l'humain
+    // active (menu Automatisation) ou ignore ; jamais d'activation automatique.
+    SUPERVISION_AUTO_RULE_SUGGESTED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
 
     // ─── PAYOUT (7 cles) ──────────────────────────────────────────────────
     PAYOUT_BATCH_GENERATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),

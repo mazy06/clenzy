@@ -6,67 +6,61 @@ import com.clenzy.model.SupervisionAutonomy;
 import com.clenzy.model.SupervisionModuleSettings;
 import com.clenzy.repository.SupervisionAutoRuleRepository;
 import com.clenzy.repository.SupervisionModuleSettingsRepository;
+import com.clenzy.service.agent.supervision.SupervisionAutomatableTypes.AutomatableType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Config org-level des règles d'auto-application PAR TYPE (Vague 1 autonomie).
+ * Config org-level des règles d'auto-application PAR TYPE (Vagues 1-2 autonomie).
  *
- * <p>Le catalogue des types automatisables est fixé côté serveur
- * ({@link #AUTOMATABLE_TYPES} — V1 : 3 types sans risque). Une org sans ligne
- * pour un type = tout OFF (opt-in total). Le plafond du module reste porté par
- * {@link SupervisionModuleSettings} : il est exposé en lecture pour que l'UI
- * affiche « plafonné par le niveau de l'agent » quand il bride la règle.</p>
+ * <p>Le catalogue des types automatisables — et le <b>niveau maximum</b> de
+ * chacun — est fixé côté serveur ({@link SupervisionAutomatableTypes}, partagé
+ * avec le gate). Une org sans ligne pour un type = tout OFF (opt-in total). Le
+ * plafond du module reste porté par {@link SupervisionModuleSettings} : il est
+ * exposé en lecture pour que l'UI affiche « plafonné par le niveau de l'agent »
+ * quand il bride la règle ; le max du type borne en plus le sélecteur (les
+ * cautions et le blocage calendrier ne sont jamais silencieux).</p>
  */
 @Service
 public class SupervisionAutoRuleService {
 
-    /**
-     * Catalogue V1 des types automatisables → module (agent) porteur. Les types
-     * V2/V3 de la matrice (CALENDAR_BLOCK, DEPOSIT_*, PAYMENT_REMINDER) ne sont
-     * PAS exposés : ils arriveront avec leur vague (l'UI ne les affiche pas).
-     */
-    static final Map<String, String> AUTOMATABLE_TYPES;
-    static {
-        final Map<String, String> types = new LinkedHashMap<>();
-        types.put(SupervisionActionType.CLEANING_REQUEST, "ops");
-        types.put(SupervisionActionType.REVIEW_DRAFT_REPLY, "rep");
-        types.put(SupervisionActionType.PRICE_DROP, "rev");
-        AUTOMATABLE_TYPES = java.util.Collections.unmodifiableMap(types);
-    }
-
     private final SupervisionAutoRuleRepository autoRuleRepository;
     private final SupervisionModuleSettingsRepository moduleSettingsRepository;
     private final SupervisionModuleRegistry moduleRegistry;
+    private final SupervisionCardTrustService cardTrustService;
     private final ObjectMapper objectMapper;
+    private final java.time.Clock clock;
 
     public SupervisionAutoRuleService(SupervisionAutoRuleRepository autoRuleRepository,
                                       SupervisionModuleSettingsRepository moduleSettingsRepository,
                                       SupervisionModuleRegistry moduleRegistry,
-                                      ObjectMapper objectMapper) {
+                                      SupervisionCardTrustService cardTrustService,
+                                      ObjectMapper objectMapper,
+                                      java.time.Clock clock) {
         this.autoRuleRepository = autoRuleRepository;
         this.moduleSettingsRepository = moduleSettingsRepository;
         this.moduleRegistry = moduleRegistry;
+        this.cardTrustService = cardTrustService;
         this.objectMapper = objectMapper;
+        this.clock = clock;
     }
 
-    /** Règles effectives de l'org : une entrée par type du catalogue V1 (défaut OFF). */
+    /** Règles effectives de l'org : une entrée par type du catalogue (défaut OFF). */
     @Transactional(readOnly = true)
     public List<SupervisionAutoRuleDto> getRules(Long organizationId) {
         final Map<String, SupervisionAutoRule> byType = autoRuleRepository
                 .findByOrganizationId(organizationId).stream()
                 .collect(Collectors.toMap(SupervisionAutoRule::getActionType,
                         Function.identity(), (a, b) -> a));
-        return AUTOMATABLE_TYPES.entrySet().stream()
-                .map(entry -> toDto(organizationId, entry.getKey(), entry.getValue(),
-                        byType.get(entry.getKey())))
+        return SupervisionAutomatableTypes.CATALOG.stream()
+                .map(type -> toDto(organizationId, type, byType.get(type.actionType())))
                 .toList();
     }
 
@@ -79,19 +73,41 @@ public class SupervisionAutoRuleService {
                                                     List<SupervisionAutoRuleDto> updates) {
         if (updates != null) {
             for (SupervisionAutoRuleDto update : updates) {
-                if (update == null || update.actionType() == null
-                        || !AUTOMATABLE_TYPES.containsKey(update.actionType())) {
+                final Optional<AutomatableType> type = update == null || update.actionType() == null
+                        ? Optional.empty()
+                        : SupervisionAutomatableTypes.find(update.actionType());
+                if (type.isEmpty()) {
                     continue; // type inconnu / non automatisable → ignoré
                 }
                 final SupervisionAutoRule rule = autoRuleRepository
                         .findByOrganizationIdAndActionType(organizationId, update.actionType())
                         .orElseGet(() -> new SupervisionAutoRule(organizationId, update.actionType()));
                 rule.setEnabled(update.enabled());
-                rule.setLevel(parseLevel(update.level()));
+                rule.setLevel(clampToTypeMax(parseLevel(update.level()), type.get()));
                 rule.setEnvelope(validateEnvelope(update.envelope()));
+                if (update.enabled()) {
+                    // Règles de Confiance (V3) : « Activer » consomme la suggestion.
+                    rule.setSuggestedAt(null);
+                }
                 autoRuleRepository.save(rule);
             }
         }
+        return getRules(organizationId);
+    }
+
+    /**
+     * « Ignorer » la suggestion d'automatisation d'un type (Règles de Confiance
+     * des cartes, V3) : la suggestion active est effacée et un cooldown de
+     * re-suggestion de 30 j est posé. No-op si aucune règle / suggestion.
+     */
+    @Transactional
+    public List<SupervisionAutoRuleDto> dismissSuggestion(Long organizationId, String actionType) {
+        autoRuleRepository.findByOrganizationIdAndActionType(organizationId, actionType)
+                .ifPresent(rule -> {
+                    rule.setSuggestedAt(null);
+                    rule.setSuggestionDismissedAt(clock.instant());
+                    autoRuleRepository.save(rule);
+                });
         return getRules(organizationId);
     }
 
@@ -103,6 +119,16 @@ public class SupervisionAutoRuleService {
                     "Niveau de règle invalide (attendu notify|full) : " + wire);
         }
         return level;
+    }
+
+    /**
+     * Borne le niveau demandé au MAX du type (catalogue) : FULL demandé sur un
+     * type N1 (cautions, blocage calendrier) est ramené à NOTIFY — l'UI ne le
+     * propose pas, et le gate re-borne de toute façon (défense en profondeur).
+     */
+    private static SupervisionAutonomy clampToTypeMax(SupervisionAutonomy requested,
+                                                      AutomatableType type) {
+        return requested.ordinal() <= type.maxLevel().ordinal() ? requested : type.maxLevel();
     }
 
     /** L'enveloppe doit être un objet JSON valide (null/blank accepté = défauts serveur). */
@@ -118,16 +144,24 @@ public class SupervisionAutoRuleService {
         }
     }
 
-    private SupervisionAutoRuleDto toDto(Long organizationId, String actionType, String moduleKey,
+    private SupervisionAutoRuleDto toDto(Long organizationId, AutomatableType type,
                                          SupervisionAutoRule rule) {
+        final SupervisionAutonomy storedLevel = rule != null && rule.getLevel() != null
+                ? rule.getLevel() : SupervisionAutonomy.NOTIFY;
+        // Suggestion d'automatisation active (Règles de Confiance V3) : exposée
+        // seulement si le type est encore OFF ; le nb d'approbations consécutives
+        // est recalculé pour le libellé du chip (« Recommandé — N approbations »).
+        final boolean suggested = rule != null && !rule.isEnabled() && rule.getSuggestedAt() != null;
         return new SupervisionAutoRuleDto(
-                actionType,
-                moduleKey,
+                type.actionType(),
+                type.moduleKey(),
                 rule != null && rule.isEnabled(),
-                (rule != null && rule.getLevel() != null
-                        ? rule.getLevel() : SupervisionAutonomy.NOTIFY).toWire(),
+                clampToTypeMax(storedLevel, type).toWire(),
                 rule != null ? rule.getEnvelope() : null,
-                moduleCeiling(organizationId, moduleKey).toWire());
+                moduleCeiling(organizationId, type.moduleKey()).toWire(),
+                type.maxLevel().toWire(),
+                suggested ? rule.getSuggestedAt().toString() : null,
+                suggested ? cardTrustService.consecutiveHumanApprovals(organizationId, type.actionType()) : 0L);
     }
 
     /** Plafond effectif du module : override org, sinon défaut catalogue (SUGGEST). */

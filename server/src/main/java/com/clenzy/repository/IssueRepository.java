@@ -34,4 +34,12 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
     int transitionStatus(@Param("id") Long id,
                          @Param("to") Issue.IssueStatus to,
                          @Param("from") Collection<Issue.IssueStatus> from);
+
+    /**
+     * Enveloppe d'autonomie Vague 2 (cautions) : une anomalie terrain non résolue
+     * (statuts fournis, ex. OPEN/QUALIFIED) existe-t-elle sur le logement ?
+     * Org explicite : appelé depuis le moteur d'automatisation (hors filtre HTTP).
+     */
+    boolean existsByOrganizationIdAndPropertyIdAndStatusIn(
+            Long organizationId, Long propertyId, Collection<Issue.IssueStatus> statuses);
 }

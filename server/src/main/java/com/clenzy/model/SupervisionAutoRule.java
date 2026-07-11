@@ -56,6 +56,19 @@ public class SupervisionAutoRule {
     @Column(name = "envelope", columnDefinition = "TEXT")
     private String envelope;
 
+    /**
+     * Règles de Confiance des cartes (V3) : suggestion active « automatiser ce
+     * type ? » posée par l'évaluateur quotidien (N approbations humaines
+     * consécutives). NULL = aucune. Effacée à l'activation ou au rejet — la
+     * suggestion est INERTE tant que l'humain ne l'accepte pas.
+     */
+    @Column(name = "suggested_at")
+    private Instant suggestedAt;
+
+    /** Dernière suggestion écartée (« Ignorer ») — cooldown de re-suggestion 30 j. */
+    @Column(name = "suggestion_dismissed_at")
+    private Instant suggestionDismissedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;
@@ -87,6 +100,14 @@ public class SupervisionAutoRule {
 
     public String getEnvelope() { return envelope; }
     public void setEnvelope(String envelope) { this.envelope = envelope; }
+
+    public Instant getSuggestedAt() { return suggestedAt; }
+    public void setSuggestedAt(Instant suggestedAt) { this.suggestedAt = suggestedAt; }
+
+    public Instant getSuggestionDismissedAt() { return suggestionDismissedAt; }
+    public void setSuggestionDismissedAt(Instant suggestionDismissedAt) {
+        this.suggestionDismissedAt = suggestionDismissedAt;
+    }
 
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

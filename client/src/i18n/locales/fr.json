@@ -6100,6 +6100,11 @@
       "cappedByNotify": "Plafonné par le niveau de l’agent {{agent}} : Agir puis notifier",
       "cappedTooltip": "Niveau de l’agent {{agent}} : Suggestion — passez-le en « Agir puis notifier » ou « Auto » pour activer.",
       "maxSegmentPercent": "% max / segment",
+      "maxAutoBlockDays": "Jours max (auto)",
+      "minDaysAfterCheckout": "Délai post-départ (j)",
+      "recommended": "Recommandé — {{count}} approbations consécutives",
+      "enableSuggestion": "Activer",
+      "ignoreSuggestion": "Ignorer",
       "types": {
         "CLEANING_REQUEST": {
           "label": "Planifier le ménage manquant",
@@ -6112,6 +6117,26 @@
         "PRICE_DROP": {
           "label": "Ajuster les tarifs des créneaux creux",
           "description": "Sous le cadre yield (mode Auto, ampleur limitée, protections calendrier) : l'ajustement proposé est appliqué automatiquement."
+        },
+        "CALENDAR_BLOCK": {
+          "label": "Bloquer le calendrier (incidents bruit)",
+          "description": "Escalade bruit avérée : le calendrier est bloqué automatiquement sur une plage courte (refusé si des nuits sont réservées).",
+          "conditions": "Au plus 1 blocage automatique par logement et par 7 jours."
+        },
+        "DEPOSIT_RELEASE": {
+          "label": "Libérer la caution après le départ",
+          "description": "Séjour terminé, caution encore retenue : le hold Stripe est libéré automatiquement (aucun débit).",
+          "conditions": "Uniquement si aucune anomalie terrain n'est ouverte sur le logement."
+        },
+        "DEPOSIT_REFUND": {
+          "label": "Rembourser la caution après annulation",
+          "description": "Réservation annulée, caution encore retenue : le hold Stripe est libéré automatiquement (aucun débit).",
+          "conditions": "Uniquement si l'annulation est confirmée, sans anomalie ouverte ni débit en cours."
+        },
+        "PAYMENT_REMINDER": {
+          "label": "Relancer le paiement échoué",
+          "description": "Solde différé en échec : un lien de paiement est régénéré et envoyé automatiquement au voyageur.",
+          "conditions": "1ʳᵉ relance uniquement · 72 h min entre deux relances — les suivantes restent à valider."
         }
       }
     }
