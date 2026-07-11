@@ -60,6 +60,15 @@ public class SupervisionActivity {
     @Column(name = "message_log_id")
     private Long messageLogId;
 
+    /**
+     * Reference optionnelle vers la facture liee a cette activite (pose uniquement
+     * pour les relances de paiement). Permet a la constellation d'ouvrir a la
+     * demande la modale de detail de la facture (payer / envoyer un lien de
+     * paiement). Null pour toutes les autres activites. Miroir de messageLogId.
+     */
+    @Column(name = "invoice_id")
+    private Long invoiceId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;
@@ -102,6 +111,9 @@ public class SupervisionActivity {
 
     public Long getMessageLogId() { return messageLogId; }
     public void setMessageLogId(Long messageLogId) { this.messageLogId = messageLogId; }
+
+    public Long getInvoiceId() { return invoiceId; }
+    public void setInvoiceId(Long invoiceId) { this.invoiceId = invoiceId; }
 
     public Instant getCreatedAt() { return createdAt; }
 }

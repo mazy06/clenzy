@@ -3296,3 +3296,12 @@ databaseChangeLog:
       sqlFile:
         path: changes/0343__add_supervision_activity_message_log_ref.sql
         relativeToChangelogFile: true
+
+  # Constellation : reference optionnelle d'une facture sur une entree de journal
+  # (modale detail facture + payer / envoyer un lien de paiement depuis le feed).
+  - changeSet:
+      id: "0344-add-supervision-activity-invoice-ref"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0344__add_supervision_activity_invoice_ref.sql
+        relativeToChangelogFile: true

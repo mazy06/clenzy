@@ -73,7 +73,20 @@ function reduceProperty(snapshot: OrchestratorSnapshot, evt: StreamEvent): Orche
     case 'connection':
       return { ...snapshot, online: evt.online };
     case 'feed.added': {
-      const entry: FeedEntry = { id: evt.entry.id, agentId: evt.entry.agentId, at: evt.entry.at, text: evt.entry.text };
+      // Préserver les références optionnelles poussées par le SSE : toolName
+      // (libellé i18n), messageLogId (modale message) et invoiceId (modale
+      // facture) — sinon les entrées temps réel perdaient leur cliquabilité
+      // jusqu'au prochain rafraîchissement complet du snapshot.
+      const src = evt.entry as FeedEntry;
+      const entry: FeedEntry = {
+        id: src.id,
+        agentId: src.agentId,
+        at: src.at,
+        text: src.text,
+        ...(src.toolName != null ? { toolName: src.toolName } : {}),
+        ...(src.messageLogId != null ? { messageLogId: src.messageLogId } : {}),
+        ...(src.invoiceId != null ? { invoiceId: src.invoiceId } : {}),
+      };
       return { ...snapshot, feed: [entry, ...snapshot.feed].slice(0, FEED_CAP) };
     }
     case 'pending.added':

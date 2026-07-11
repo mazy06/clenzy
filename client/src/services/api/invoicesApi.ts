@@ -78,6 +78,11 @@ export interface TemplateStatus {
   templateName: string;
 }
 
+/** Résultat (partiel) de l'orchestrateur de paiement — seul le lien nous sert côté UI. */
+export interface InvoicePaymentInitResult {
+  paymentResult?: { success: boolean; redirectUrl?: string | null } | null;
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const invoicesApi = {
@@ -104,6 +109,16 @@ export const invoicesApi = {
 
   async markPaid(id: number): Promise<Invoice> {
     return apiClient.post<Invoice>(`/invoices/${id}/pay`);
+  },
+
+  /** Session de paiement (orchestrateur) → URL de checkout à ouvrir. */
+  async initiatePayment(id: number): Promise<InvoicePaymentInitResult> {
+    return apiClient.post<InvoicePaymentInitResult>(`/invoices/${id}/pay`);
+  },
+
+  /** Envoie le lien de paiement par email au client concerné (voyageur/demandeur). */
+  async sendPaymentLink(id: number): Promise<{ sentTo: string }> {
+    return apiClient.post<{ sentTo: string }>(`/invoices/${id}/send-payment-link`);
   },
 
   async cancel(id: number): Promise<Invoice> {
