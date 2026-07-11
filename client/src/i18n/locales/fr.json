@@ -3304,6 +3304,7 @@
       "invoices": "Factures",
       "payouts": "Reversements",
       "expenses": "Dépenses",
+      "housekeeperPayouts": "Versements prestataires",
       "reportsExports": "Rapports & Exports",
       "exportsSection": "Exports comptables"
     },
@@ -5213,6 +5214,43 @@
       "downloading": "Téléchargement...",
       "error": "Erreur lors du téléchargement"
     },
+    "housekeeperPayouts": {
+      "help": {
+        "title": "Versements prestataires (ménage)",
+        "description": "Versements Stripe directs aux prestataires (ménage), déclenchés automatiquement à la validation de mission. Distincts des reversements propriétaires et de la saisie de dépenses.",
+        "dismiss": "Ne plus afficher"
+      },
+      "col": {
+        "provider": "Prestataire",
+        "mission": "Mission",
+        "net": "Montant net",
+        "commission": "Commission",
+        "status": "Statut",
+        "date": "Date"
+      },
+      "provider": "Prestataire",
+      "missionRef": "Mission",
+      "statuses": {
+        "PENDING": "En attente",
+        "SENT": "Envoyé",
+        "FAILED": "Échoué",
+        "BLOCKED": "Bloqué"
+      },
+      "reasons": {
+        "PROOF_MISSING": "Preuve manquante",
+        "ONBOARDING_INCOMPLETE": "Onboarding Stripe incomplet",
+        "AMOUNT_NOT_POSITIVE": "Montant non positif"
+      },
+      "retry": "Relancer le versement",
+      "retryTitle": "Relancer le versement",
+      "retryConfirm": "Relancer le versement de {{amount}} à {{provider}} ?",
+      "retryConfirmBtn": "Relancer",
+      "retrySuccess": "Relance du versement effectuée",
+      "retryError": "Conditions du versement toujours non réunies (preuve / onboarding).",
+      "empty": "Aucun versement prestataire",
+      "emptyDescription": "Les versements apparaîtront ici automatiquement à la validation des missions de ménage.",
+      "error": "Erreur lors du chargement des versements prestataires"
+    },
     "expenses": {
       "help": {
         "title": "Comment fonctionnent les dépenses ?",
@@ -5537,6 +5575,7 @@
         "wallets": "Solde des portefeuilles par propriétaire : mouvements, blocages, retraits et historique détaillé.",
         "payouts": "Calendrier des reversements aux propriétaires : calculs SEPA, statut, exports bancaires.",
         "expenses": "Suivi des dépenses opérationnelles par catégorie et par bien : factures fournisseurs, refacturation.",
+        "housekeeperPayouts": "Versements Stripe directs aux prestataires (ménage), déclenchés à la validation de mission — distincts des reversements propriétaires.",
         "reportsExports": "Rapport fiscal (TVA, taxes, NF 525) et exports comptables formatés pour vos outils tiers."
       }
     },

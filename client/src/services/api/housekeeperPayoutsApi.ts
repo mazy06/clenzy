@@ -2,13 +2,20 @@ import apiClient from '../apiClient';
 
 // ─── Payout Stripe Connect des prestataires ménage (Moteur Ménage 3B) ─────────
 
+export type HousekeeperPayoutStatus = 'PENDING' | 'SENT' | 'FAILED' | 'BLOCKED';
+
 export interface HousekeeperPayoutRecord {
   id: number;
+  /** users.id du prestataire bénéficiaire (résolu en nom côté écran admin). */
+  userId: number;
   interventionId: number;
+  /** Montant NET versé au prestataire (rémunération − commission). */
   amount: number;
   commissionAmount: number;
-  status: 'PENDING' | 'SENT' | 'FAILED' | 'BLOCKED';
+  status: HousekeeperPayoutStatus;
   failureReason: string | null;
+  /** Référence du transfert Stripe (présent quand SENT). */
+  stripeTransferId: string | null;
   createdAt: string;
   updatedAt: string | null;
 }

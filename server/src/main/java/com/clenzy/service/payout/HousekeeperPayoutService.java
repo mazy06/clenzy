@@ -458,20 +458,34 @@ public class HousekeeperPayoutService {
         } catch (StripeException e) {
             log.error("Payout intervention {} : transfert Stripe en échec : {}", interventionId, e.getMessage());
             recorder.markFailed(recordId, e.getMessage());
-            notifyAdminsFailure(interventionId, title, net, e.getMessage());
+            notifyAdminsFailure(recordId, interventionId, title, net, e.getMessage());
         }
     }
 
 
 
     private void notifyAdminsFailure(Long interventionId, String title, BigDecimal amount, String reason) {
+        notifyAdminsFailure(null, interventionId, title, amount, reason);
+    }
+
+    /**
+     * Alerte admins/managers d'un versement prestataire en échec. Deep-link : quand le
+     * record existe ({@code recordId != null}, échec du transfert Stripe), pointe vers la
+     * vue admin des versements prestataires (onglet Facturation) avec surlignage de la
+     * ligne pour une relance en un clic ; sinon, repli sur l'intervention.
+     */
+    private void notifyAdminsFailure(Long recordId, Long interventionId, String title,
+                                     BigDecimal amount, String reason) {
         try {
+            String actionUrl = recordId != null
+                    ? "/billing?tab=housekeeper-payouts&highlight=" + recordId
+                    : "/interventions/" + interventionId;
             notificationService.notifyAdminsAndManagers(NotificationKey.PAYOUT_FAILED,
                     "Versement prestataire en échec",
                     "Le versement" + (amount != null ? " de " + amount.stripTrailingZeros().toPlainString() + " EUR" : "")
                             + " pour la mission '" + title + "' (intervention #" + interventionId
                             + ") a échoué : " + reason + ". Relance manuelle requise.",
-                    "/interventions/" + interventionId);
+                    actionUrl);
         } catch (Exception e) {
             log.error("Notification PAYOUT_FAILED impossible pour l'intervention {} : {}", interventionId, e.getMessage());
         }
