@@ -9,7 +9,7 @@
    temps réel et les actions arrivent en Phase 3/4.
    ============================================================ */
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { FramerConstellation } from '../renderers/FramerConstellation';
 import type {
   ConstellationAgentView,
@@ -96,6 +96,9 @@ export function AgentConstellation({
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
   const { agents, hud } = useMemo(() => normalize(snapshot), [snapshot]);
+  // Handler stable : une lambda inline casserait le memo du renderer
+  // (FramerConstellation) à chaque render.
+  const handleToggleFocus = useCallback(() => setFocused((f) => !f), []);
 
   return (
     <Renderer
@@ -104,7 +107,7 @@ export function AgentConstellation({
       online={online ?? snapshot.online}
       paused={snapshot.paused}
       focused={focused}
-      onToggleFocus={() => setFocused((f) => !f)}
+      onToggleFocus={handleToggleFocus}
       onSelectAgent={onSelectAgent}
       headerAction={headerAction}
       report={report}

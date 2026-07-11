@@ -94,12 +94,13 @@ public class SupervisionController {
     /**
      * GET /api/ai/supervision/stream/{propertyId} — flux SSE temps réel du logement (T6/B6) :
      * nouvelles entrées de feed + résolutions de cartes poussées instantanément à tous les
-     * opérateurs (fan-out inter-instances via Redis). Ownership validé (getSnapshot lève si non
-     * autorisé). Complète le polling 30 s (baseline), ne le remplace pas.
+     * opérateurs (fan-out inter-instances via Redis). Ownership validé par un contrôle LÉGER
+     * (l'ancien getSnapshot recalculait tout le feed juste pour ça — audit perf accordéon).
+     * Complète le polling (baseline), ne le remplace pas.
      */
     @GetMapping(value = "/stream/{propertyId}", produces = "text/event-stream")
     public SseEmitter stream(@PathVariable Long propertyId) {
-        activityService.getSnapshot(propertyId); // valide l'ownership org (lève sinon)
+        activityService.requirePropertyAccess(propertyId); // ownership org (lève si non autorisé)
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         sseRegistry.register(propertyId, emitter);
         try {
