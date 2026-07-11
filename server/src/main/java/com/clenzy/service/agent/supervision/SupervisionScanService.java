@@ -50,6 +50,7 @@ public class SupervisionScanService {
     private final BusinessAnalyticsScanner businessAnalyticsScanner;
     private final ReviewModerationScanner reviewModerationScanner;
     private final GuestInstructionsScanner guestInstructionsScanner;
+    private final GuestEmailMissingScanner guestEmailMissingScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -62,6 +63,7 @@ public class SupervisionScanService {
                                   BusinessAnalyticsScanner businessAnalyticsScanner,
                                   ReviewModerationScanner reviewModerationScanner,
                                   GuestInstructionsScanner guestInstructionsScanner,
+                                  GuestEmailMissingScanner guestEmailMissingScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -73,6 +75,7 @@ public class SupervisionScanService {
         this.businessAnalyticsScanner = businessAnalyticsScanner;
         this.reviewModerationScanner = reviewModerationScanner;
         this.guestInstructionsScanner = guestInstructionsScanner;
+        this.guestEmailMissingScanner = guestEmailMissingScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -136,6 +139,7 @@ public class SupervisionScanService {
         businessAnalyticsScanner.scanProperty(orgId, propertyId);
         reviewModerationScanner.scanProperty(orgId, propertyId);
         guestInstructionsScanner.scanProperty(orgId, propertyId);
+        guestEmailMissingScanner.scanProperty(orgId, propertyId);
     }
 
     /**
@@ -150,6 +154,7 @@ public class SupervisionScanService {
             businessAnalyticsScanner.scanProperty(orgId, propertyId);
             reviewModerationScanner.scanProperty(orgId, propertyId);
             guestInstructionsScanner.scanProperty(orgId, propertyId);
+            guestEmailMissingScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();

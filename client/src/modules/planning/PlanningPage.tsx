@@ -91,6 +91,10 @@ const PlanningPage: React.FC = () => {
   // orderedProperties le laisse passer et renderExpanded ne matche jamais.
   const [expandedPropertyId, setExpandedPropertyId, { reset: resetExpandedProperty }] =
     useUserPreference<number | null>('planning.expandedPropertyId', null);
+  // Ouverture pilotée du modal « Fiche client » depuis une carte de la constellation
+  // (« email voyageur manquant ») : signal contrôlé transmis à PlanningActionPanel →
+  // PanelFooterActions. Remis à null une fois consommé (permet une réouverture).
+  const [autoOpenGuestCardReservationId, setAutoOpenGuestCardReservationId] = useState<string | null>(null);
   const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
   const handleToggleExpanded = useCallback((propertyId: number) => {
     // Fermer = SUPPRIMER la préférence (retour au défaut null), et NON setPref(null) :
@@ -309,6 +313,24 @@ const PlanningPage: React.FC = () => {
     }
     selectEvent(event);
   }, [filteredEvents, selectEvent, setPanelTab]);
+
+  // Ouvre la fiche client d'une réservation depuis la carte « email voyageur manquant » :
+  // sélectionne la réservation (ouvre PlanningActionPanel) PUIS arme l'ouverture du modal
+  // GuestCardDialog. Le handler exposé au provider DOIT rester stable (le provider ne se
+  // recrée pas — cf. deps `[property.id]`), donc on passe par une ref « dernière valeur »
+  // qui lit les données courantes sans changer d'identité.
+  const openGuestCardRef = useRef<(reservationId: string) => void>(() => {});
+  openGuestCardRef.current = (reservationId: string) => {
+    const resEvent = filteredEvents.find(
+      (e) => e.type === 'reservation' && e.reservation && String(e.reservation.id) === String(reservationId),
+    );
+    if (!resEvent) return;
+    selectEvent(resEvent);
+    setAutoOpenGuestCardReservationId(String(reservationId));
+  };
+  const handleOpenGuestCard = useCallback((reservationId: string) => {
+    openGuestCardRef.current(reservationId);
+  }, []);
 
   // Reservation update (dates & times from panel, with validation)
   // Conflict validation must run against the FULL event set, not the UI-filtered one,
@@ -737,10 +759,15 @@ const PlanningPage: React.FC = () => {
                           // (constellation + « En direct » alimentés par des données
                           // fictives variées par logement). Sinon → moteur réel.
                           mockMode
-                            ? new MockSupervisionProvider(String(property.id), { cometReservationId }, 'demo')
+                            ? new MockSupervisionProvider(
+                                String(property.id),
+                                { cometReservationId, onOpenGuestCard: handleOpenGuestCard },
+                                'demo',
+                              )
                             : new AgUiSupervisionProvider(String(property.id), {
                                 selectedPropertyId: Number(property.id),
                                 currentPage: '/planning',
+                                onOpenGuestCard: handleOpenGuestCard,
                               })
                         }
                         // cometReservationId ne pilote QUE le mock : en live, l'inclure
@@ -802,6 +829,8 @@ const PlanningPage: React.FC = () => {
         onGenerateInvoice={generateInvoice}
         onPaymentComplete={handlePaymentComplete}
         onDuplicateReservation={duplicateReservation}
+        autoOpenGuestCardForReservationId={autoOpenGuestCardReservationId}
+        onGuestCardAutoOpenHandled={() => setAutoOpenGuestCardReservationId(null)}
       />
 
       {/* Quick Create Dialog */}

@@ -123,6 +123,10 @@
       "action": "Appliquer",
       "dismiss": "Ignorer"
     },
+    "guestCard": {
+      "badge": "À compléter",
+      "cta": "Compléter la fiche client"
+    },
     "tools": {
       "ical_sync_failed": "Échec sync calendrier",
       "sensor_anomaly": "Anomalie capteur",

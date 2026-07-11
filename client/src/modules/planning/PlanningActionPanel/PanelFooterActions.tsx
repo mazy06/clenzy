@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -44,6 +44,10 @@ interface PanelFooterActionsProps {
   onChangeProperty?: (reservationId: number, newPropertyId: number, newPropertyName: string) => Promise<ActionResult>;
   onCancelReservation?: (reservationId: number) => Promise<ActionResult>;
   onUpdateGuestInfo?: (reservationId: number, updates: { guestName?: string; guestEmail?: string; guestPhone?: string }) => Promise<ActionResult>;
+  /** Signal contrôlé : ouvre la fiche client si l'id correspond à la réservation courante. */
+  autoOpenGuestCardForReservationId?: string | number | null;
+  /** Appelé une fois le signal consommé (le parent le remet à null → réouverture possible). */
+  onGuestCardAutoOpenHandled?: () => void;
 }
 
 const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
@@ -53,9 +57,26 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
   onChangeProperty,
   onCancelReservation,
   onUpdateGuestInfo,
+  autoOpenGuestCardForReservationId,
+  onGuestCardAutoOpenHandled,
 }) => {
   const reservation = event.reservation;
   const [guestCardOpen, setGuestCardOpen] = useState(false);
+
+  // Ouverture pilotée (carte constellation « email voyageur manquant ») : quand le signal
+  // cible la réservation actuellement sélectionnée, on ouvre la fiche client puis on
+  // consomme le signal (le parent le remet à null → l'ouverture manuelle et une future
+  // réouverture restent possibles).
+  useEffect(() => {
+    if (
+      autoOpenGuestCardForReservationId != null &&
+      reservation &&
+      String(autoOpenGuestCardForReservationId) === String(reservation.id)
+    ) {
+      setGuestCardOpen(true);
+      onGuestCardAutoOpenHandled?.();
+    }
+  }, [autoOpenGuestCardForReservationId, reservation?.id, onGuestCardAutoOpenHandled]);
   const [changePropertyOpen, setChangePropertyOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);

@@ -59,6 +59,15 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     Optional<SupervisionSuggestion> findByIdAndOrganizationId(Long id, Long organizationId);
 
     /**
+     * Cartes d'un scanner donné (par {@code tool_name}) dans un statut, pour un logement.
+     * Sert l'auto-résolution du scanner « email voyageur manquant » : charger les cartes
+     * PENDING encore ouvertes pour les fermer quand la situation ne tient plus (email
+     * renseigné, réservation annulée ou check-in passé).
+     */
+    List<SupervisionSuggestion> findByOrganizationIdAndPropertyIdAndToolNameAndStatus(
+            Long organizationId, Long propertyId, String toolName, String status);
+
+    /**
      * Cap d'auto-application par fenêtre glissante (Vague 2, CALENDAR_BLOCK) :
      * une carte de ce type a-t-elle déjà été AUTO-appliquée ({@code appliedBy}
      * = {@code auto:gate}) sur ce logement depuis {@code appliedAfter} ?

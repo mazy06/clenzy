@@ -188,6 +188,25 @@ function buildPending(seed: number, propertyId: string): PendingAction[] {
       amountEur: 138,
     });
   }
+  if (variant === 0 || variant === 2) {
+    // Carte « email voyageur manquant » (agent Communication, severity warning) : le
+    // CTA « Compléter la fiche client » ouvre le modal GuestCardDialog (action front,
+    // aucun /apply). reservationId = résa mock existante (surchargée par le provider
+    // avec une réservation réelle du planning si disponible).
+    out.push({
+      id: `guest-email-${propertyId}`,
+      agentId: "com",
+      title: "Fiche client incomplète — email voyageur manquant",
+      motif:
+        "Le voyageur arrive dans 2 jours mais aucun email n’est renseigné : les messages et documents automatiques ne pourront pas être envoyés.",
+      reasoning:
+        "Sans email voyageur, les instructions d’arrivée, le livret d’accueil et les relances ne peuvent pas partir. Complète la fiche client pour rétablir l’envoi automatique.",
+      reservationId: MOCK_RESERVATION_FAMILLE_ROUX,
+      createdAt: isoMinutesAgo(8),
+      expiresAt: isoHoursFromNow(48),
+      opensGuestCard: true,
+    });
+  }
   return out;
 }
 

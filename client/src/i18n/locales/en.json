@@ -123,6 +123,10 @@
       "action": "Apply",
       "dismiss": "Dismiss"
     },
+    "guestCard": {
+      "badge": "To complete",
+      "cta": "Complete guest details"
+    },
     "tools": {
       "ical_sync_failed": "Calendar sync failed",
       "sensor_anomaly": "Sensor anomaly",
