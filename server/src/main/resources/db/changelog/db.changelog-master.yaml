@@ -3279,3 +3279,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0341__create_supervision_auto_rules.sql
         relativeToChangelogFile: true
+
+  # Autonomie constellation V3 : Regles de Confiance des cartes (suggestion d'automatisation).
+  - changeSet:
+      id: "0342-add-supervision-auto-rule-trust-suggestion"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0342__add_supervision_auto_rule_trust_suggestion.sql
+        relativeToChangelogFile: true

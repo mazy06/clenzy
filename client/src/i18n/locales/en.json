@@ -6073,6 +6073,11 @@
       "cappedByNotify": "Capped by the {{agent}} agent level: Act then notify",
       "cappedTooltip": "{{agent}} agent level: Suggest — switch it to \"Act then notify\" or \"Auto\" to enable.",
       "maxSegmentPercent": "Max % / segment",
+      "maxAutoBlockDays": "Max days (auto)",
+      "minDaysAfterCheckout": "Post-checkout delay (d)",
+      "recommended": "Recommended — {{count}} consecutive approvals",
+      "enableSuggestion": "Enable",
+      "ignoreSuggestion": "Ignore",
       "types": {
         "CLEANING_REQUEST": {
           "label": "Schedule missing cleaning",
@@ -6085,6 +6090,26 @@
         "PRICE_DROP": {
           "label": "Adjust prices on low-demand slots",
           "description": "Under the yield frame (Auto mode, bounded magnitude, calendar protections): the proposed adjustment is applied automatically."
+        },
+        "CALENDAR_BLOCK": {
+          "label": "Block calendar (noise incidents)",
+          "description": "Confirmed noise escalation: the calendar is blocked automatically on a short range (refused if nights are booked).",
+          "conditions": "At most 1 automatic block per property per 7 days."
+        },
+        "DEPOSIT_RELEASE": {
+          "label": "Release deposit after checkout",
+          "description": "Stay over, deposit still held: the Stripe hold is released automatically (no charge).",
+          "conditions": "Only when no field issue is open on the property."
+        },
+        "DEPOSIT_REFUND": {
+          "label": "Refund deposit after cancellation",
+          "description": "Reservation cancelled, deposit still held: the Stripe hold is released automatically (no charge).",
+          "conditions": "Only when cancellation is confirmed, with no open issue nor pending charge."
+        },
+        "PAYMENT_REMINDER": {
+          "label": "Retry failed payment reminder",
+          "description": "Deferred balance failed: a payment link is regenerated and sent automatically to the guest.",
+          "conditions": "1st reminder only · 72 h min between reminders — subsequent ones stay manual."
         }
       }
     }

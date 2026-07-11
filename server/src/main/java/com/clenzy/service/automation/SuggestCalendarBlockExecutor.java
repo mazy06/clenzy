@@ -6,7 +6,9 @@ import com.clenzy.model.NoiseAlert;
 import com.clenzy.model.Property;
 import com.clenzy.repository.NoiseAlertRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.agent.supervision.AutoApplyGate;
 import com.clenzy.service.agent.supervision.SupervisionActionType;
+import com.clenzy.service.agent.supervision.SupervisionAutoApplyService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -14,12 +16,19 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 /**
- * Executeur {@code SUGGEST_CALENDAR_BLOCK} (fiche 08, F6c — vague 3 HITL) :
- * sur alerte bruit (trigger NOISE_ALERT), propose de bloquer le calendrier du
- * logement — JAMAIS d'execution automatique (risque eleve : fermeture de ventes).
- * L'apply de la suggestion ({@code CALENDAR_BLOCK}) appelle CalendarEngine.block
- * sur une plage courte a partir d'aujourd'hui ({@value #DEFAULT_BLOCK_DAYS} jours,
+ * Executeur {@code SUGGEST_CALENDAR_BLOCK} (fiche 08, F6c) : sur alerte bruit
+ * (trigger NOISE_ALERT), propose de bloquer le calendrier du logement. L'apply
+ * de la suggestion ({@code CALENDAR_BLOCK}) appelle CalendarEngine.block sur une
+ * plage courte a partir d'aujourd'hui ({@value #DEFAULT_BLOCK_DAYS} jours,
  * parametrable dans les donnees de la suggestion).
+ *
+ * <p><b>Vague 2 autonomie (N1 max)</b> : l'{@link AutoApplyGate} decide avant la
+ * creation de la carte. Si le toggle org CALENDAR_BLOCK est actif ET l'enveloppe
+ * satisfaite (duree ≤ {@code maxAutoBlockDays}, cap « 1 blocage auto / bien /
+ * 7 jours » libre), la carte est appliquee par le pipeline d'apply avec l'acteur
+ * systeme + notification — JAMAIS silencieux (max NOTIFY au catalogue). Les
+ * protections d'apply (nuits BOOKED refusees, MAX_BLOCK_DAYS=30, ownership)
+ * restent la deuxieme ligne : un refus → carte PENDING (repli HITL).</p>
  *
  * <p>Regle recommandee : conditions {@code {"alertsLast24h": {"gte": 3}}} — le
  * moteur n'evalue la regle que sur une escalade averree (conditions numeriques
@@ -39,15 +48,21 @@ public class SuggestCalendarBlockExecutor implements AutomationActionExecutor {
     private final NoiseAlertRepository noiseAlertRepository;
     private final PropertyRepository propertyRepository;
     private final SupervisionSuggestionService suggestionService;
+    private final AutoApplyGate autoApplyGate;
+    private final SupervisionAutoApplyService autoApplyService;
     private final ObjectMapper objectMapper;
 
     public SuggestCalendarBlockExecutor(NoiseAlertRepository noiseAlertRepository,
                                         PropertyRepository propertyRepository,
                                         SupervisionSuggestionService suggestionService,
+                                        AutoApplyGate autoApplyGate,
+                                        SupervisionAutoApplyService autoApplyService,
                                         ObjectMapper objectMapper) {
         this.noiseAlertRepository = noiseAlertRepository;
         this.propertyRepository = propertyRepository;
         this.suggestionService = suggestionService;
+        this.autoApplyGate = autoApplyGate;
+        this.autoApplyService = autoApplyService;
         this.objectMapper = objectMapper;
     }
 
@@ -100,11 +115,35 @@ public class SuggestCalendarBlockExecutor implements AutomationActionExecutor {
                 + ". Appliquer bloque le calendrier " + DEFAULT_BLOCK_DAYS
                 + " jours a partir d'aujourd'hui (refuse si des nuits reservees existent "
                 + "dans la plage) pour laisser le temps de traiter l'incident.";
+        String title = "Bloquer le calendrier de " + property.getName() + " suite aux incidents bruit";
+
+        // Vague 2 : gate AVANT la creation (enveloppe : duree ≤ maxAutoBlockDays +
+        // cap 1 auto-blocage / bien / 7 jours). Refus → carte HITL comme avant.
+        AutoApplyGate.AutoDecision decision = autoApplyGate.decide(
+                ctx.orgId(), MODULE_OPS, SupervisionActionType.CALENDAR_BLOCK,
+                Map.of(AutoApplyGate.INPUT_BLOCK_DAYS, DEFAULT_BLOCK_DAYS,
+                        AutoApplyGate.INPUT_PROPERTY_ID, property.getId()));
+        boolean auto = decision == AutoApplyGate.AutoDecision.AUTO_NOTIFY
+                || decision == AutoApplyGate.AutoDecision.AUTO_SILENT;
+        if (auto) {
+            // Carte creee SANS notif « en attente » puis appliquee par le MEME pipeline
+            // que le bouton humain (CalendarEngine.block refuse les nuits BOOKED →
+            // echec = carte PENDING, repli HITL).
+            return suggestionService.recordActionableForAutoApply(
+                            ctx.orgId(), property.getId(), MODULE_OPS, null, title, motif,
+                            SupervisionActionType.CALENDAR_BLOCK, params, null, "critical")
+                    .map(suggestionId -> {
+                        autoApplyService.autoApply(decision, ctx.orgId(), property.getId(),
+                                MODULE_OPS, suggestionId, title, motif, null);
+                        return ExecutionResult.executed();
+                    })
+                    .orElseGet(() -> ExecutionResult.skipped(
+                            "Suggestion de blocage deja en attente pour ce logement"));
+        }
 
         boolean created = suggestionService.recordActionableStrict(
                 ctx.orgId(), property.getId(), MODULE_OPS, null,
-                "Bloquer le calendrier de " + property.getName() + " suite aux incidents bruit",
-                motif, SupervisionActionType.CALENDAR_BLOCK, params, null, "critical");
+                title, motif, SupervisionActionType.CALENDAR_BLOCK, params, null, "critical");
         return created
                 ? ExecutionResult.executed()
                 : ExecutionResult.skipped("Suggestion de blocage deja en attente pour ce logement");

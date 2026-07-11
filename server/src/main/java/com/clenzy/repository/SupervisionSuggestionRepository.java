@@ -59,6 +59,45 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     Optional<SupervisionSuggestion> findByIdAndOrganizationId(Long id, Long organizationId);
 
     /**
+     * Cap d'auto-application par fenêtre glissante (Vague 2, CALENDAR_BLOCK) :
+     * une carte de ce type a-t-elle déjà été AUTO-appliquée ({@code appliedBy}
+     * = {@code auto:gate}) sur ce logement depuis {@code appliedAfter} ?
+     */
+    boolean existsByOrganizationIdAndPropertyIdAndActionTypeAndStatusAndAppliedByAndAppliedAtAfter(
+            Long organizationId, Long propertyId, String actionType, String status,
+            String appliedBy, Instant appliedAfter);
+
+    /**
+     * Enveloppe PAYMENT_REMINDER (V3, « 1ʳᵉ relance seulement ») : une carte de
+     * ce type a-t-elle déjà été appliquée pour cette réservation — quel que soit
+     * l'acteur (humain ou auto) ?
+     */
+    boolean existsByOrganizationIdAndReservationIdAndActionTypeAndStatus(
+            Long organizationId, Long reservationId, String actionType, String status);
+
+    /**
+     * Enveloppe PAYMENT_REMINDER (V3, anti-rafale 72 h) : une carte relance a-t-elle
+     * été créée pour cette réservation depuis {@code createdAfter} (tout statut) ?
+     */
+    boolean existsByOrganizationIdAndReservationIdAndActionTypeAndCreatedAtAfter(
+            Long organizationId, Long reservationId, String actionType, Instant createdAfter);
+
+    /**
+     * Règles de Confiance des cartes (V3) : cartes DÉCIDÉES d'un type (APPLIED ou
+     * DISMISSED), les plus récentes d'abord (instant de décision), pour le calcul
+     * des approbations humaines consécutives. Les lignes historiques sans instant
+     * de décision (avant 0334) sont exclues — elles ne peuvent ni compter ni
+     * casser une série.
+     */
+    @Query("SELECT s FROM SupervisionSuggestion s WHERE s.organizationId = :orgId "
+            + "AND s.actionType = :actionType AND s.status IN ('APPLIED', 'DISMISSED') "
+            + "AND (s.appliedAt IS NOT NULL OR s.dismissedAt IS NOT NULL) "
+            + "ORDER BY COALESCE(s.appliedAt, s.dismissedAt) DESC")
+    List<SupervisionSuggestion> findDecidedByTypeOrderByDecisionDesc(
+            @Param("orgId") Long orgId, @Param("actionType") String actionType,
+            org.springframework.data.domain.Pageable pageable);
+
+    /**
      * Transition atomique {@code PENDING → APPLIED} (CAS, jamais check-then-act) :
      * n'affecte la ligne que si elle est encore en attente et dans l'org. Retourne
      * le nombre de lignes modifiées (1 = transition acquise, 0 = déjà résolue/absente).

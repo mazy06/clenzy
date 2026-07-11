@@ -6,8 +6,11 @@ import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.SecurityDepositStatus;
+import com.clenzy.repository.IssueRepository;
 import com.clenzy.repository.SecurityDepositRepository;
+import com.clenzy.service.agent.supervision.AutoApplyGate;
 import com.clenzy.service.agent.supervision.SupervisionActionType;
+import com.clenzy.service.agent.supervision.SupervisionAutoApplyService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.service.automation.AutomationActionExecutor.ExecutionResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,8 +22,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.argThat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,13 +50,17 @@ class SuggestDepositRefundExecutorTest {
 
     @Mock private SecurityDepositRepository depositRepository;
     @Mock private SupervisionSuggestionService suggestionService;
+    @Mock private AutoApplyGate autoApplyGate;
+    @Mock private SupervisionAutoApplyService autoApplyService;
+    @Mock private IssueRepository issueRepository;
 
     private SuggestDepositRefundExecutor executor;
 
     @BeforeEach
     void setUp() {
         executor = new SuggestDepositRefundExecutor(
-                depositRepository, suggestionService, new ObjectMapper());
+                depositRepository, suggestionService, autoApplyGate, autoApplyService,
+                issueRepository, new ObjectMapper(), Clock.systemDefaultZone());
     }
 
     private static AutomationRule rule() {
@@ -164,6 +174,54 @@ class SuggestDepositRefundExecutorTest {
                 contains("\"depositId\":9"),
                 eq(35000L),                            // impact estime en centimes (HALF_UP)
                 eq("warning"));
+    }
+
+    @Test
+    @DisplayName("V2 : annulation confirmee (statut re-lu) + aucune anomalie -> le gate recoit les inputs")
+    void gateReceivesCancellationConfirmedInput() {
+        Reservation cancelled = reservation();
+        cancelled.setStatus("cancelled");
+        when(depositRepository.findByOrganizationIdAndReservationId(ORG_ID, RESERVATION_ID))
+                .thenReturn(Optional.of(deposit(SecurityDepositStatus.HELD)));
+        when(issueRepository.existsByOrganizationIdAndPropertyIdAndStatusIn(
+                eq(ORG_ID), eq(PROPERTY_ID), any())).thenReturn(false);
+        when(autoApplyGate.decide(eq(ORG_ID), eq("fin"), eq(SupervisionActionType.DEPOSIT_REFUND), any()))
+                .thenReturn(AutoApplyGate.AutoDecision.CARD);
+        when(suggestionService.recordActionableStrict(anyLong(), anyLong(), anyString(), anyLong(),
+                anyString(), anyString(), anyString(), anyString(), anyLong(), anyString()))
+                .thenReturn(true);
+
+        executor.execute(rule(), ctx(cancelled));
+
+        verify(autoApplyGate).decide(eq(ORG_ID), eq("fin"), eq(SupervisionActionType.DEPOSIT_REFUND),
+                argThat(inputs -> Boolean.FALSE.equals(inputs.get(AutoApplyGate.INPUT_HAS_OPEN_ISSUES))
+                        && Boolean.TRUE.equals(inputs.get(AutoApplyGate.INPUT_CANCELLATION_CONFIRMED))));
+    }
+
+    @Test
+    @DisplayName("V2 : gate AUTO_NOTIFY -> remboursement auto via le pipeline (liberation de hold, zero debit)")
+    void gateAllowsAuto_autoRefundViaPipeline() {
+        Reservation cancelled = reservation();
+        cancelled.setStatus("cancelled");
+        when(depositRepository.findByOrganizationIdAndReservationId(ORG_ID, RESERVATION_ID))
+                .thenReturn(Optional.of(deposit(SecurityDepositStatus.HELD)));
+        when(issueRepository.existsByOrganizationIdAndPropertyIdAndStatusIn(
+                eq(ORG_ID), eq(PROPERTY_ID), any())).thenReturn(false);
+        when(autoApplyGate.decide(eq(ORG_ID), eq("fin"), eq(SupervisionActionType.DEPOSIT_REFUND), any()))
+                .thenReturn(AutoApplyGate.AutoDecision.AUTO_NOTIFY);
+        when(suggestionService.recordActionableForAutoApply(eq(ORG_ID), eq(PROPERTY_ID), eq("fin"),
+                eq(RESERVATION_ID), anyString(), anyString(), eq(SupervisionActionType.DEPOSIT_REFUND),
+                anyString(), eq(35000L), eq("warning")))
+                .thenReturn(Optional.of(55L));
+
+        ExecutionResult result = executor.execute(rule(), ctx(cancelled));
+
+        assertThat(result.skipped()).isFalse();
+        verify(autoApplyService).autoApply(eq(AutoApplyGate.AutoDecision.AUTO_NOTIFY), eq(ORG_ID),
+                eq(PROPERTY_ID), eq("fin"), eq(55L), contains("350.00 EUR"), anyString(), eq(35000L));
+        verify(suggestionService, org.mockito.Mockito.never()).recordActionableStrict(
+                anyLong(), anyLong(), anyString(), anyLong(), anyString(), anyString(),
+                anyString(), anyString(), anyLong(), anyString());
     }
 
     @Test
