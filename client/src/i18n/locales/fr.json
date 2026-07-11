@@ -183,7 +183,15 @@
     "feed": {
       "title": "En direct",
       "empty": "Aucune action récente des agents",
-      "emptyOnboarding": "Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord."
+      "emptyOnboarding": "Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.",
+      "openMessage": "Voir le message envoyé"
+    },
+    "messageModal": {
+      "title": "Message envoyé",
+      "subject": "Sujet",
+      "loading": "Chargement du message…",
+      "unavailable": "Aperçu du message indisponible.",
+      "close": "Fermer"
     },
     "report": {
       "title": "Bilan · 30 jours",

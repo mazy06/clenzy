@@ -183,7 +183,15 @@
     "feed": {
       "title": "Live",
       "empty": "No recent agent actions",
-      "emptyOnboarding": "The agents are watching your properties. Their actions and suggestions to approve will appear here — nothing runs without your consent."
+      "emptyOnboarding": "The agents are watching your properties. Their actions and suggestions to approve will appear here — nothing runs without your consent.",
+      "openMessage": "View the message sent"
+    },
+    "messageModal": {
+      "title": "Message sent",
+      "subject": "Subject",
+      "loading": "Loading message…",
+      "unavailable": "Message preview unavailable.",
+      "close": "Close"
     },
     "report": {
       "title": "Report · 30 days",

@@ -79,7 +79,7 @@ interface PendingActionDtoShape {
 
 /** Réponse de GET /api/ai/supervision/activity/{id} (feed + métriques réels). */
 interface ActivitySnapshotShape {
-  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string }>;
+  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string; messageLogId?: number | null }>;
   autoActions: number;
 }
 
@@ -298,6 +298,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       at: e.at,
       text: e.text,
       toolName: e.toolName,
+      ...(e.messageLogId != null ? { messageLogId: e.messageLogId } : {}),
     }));
 
     // Démarre (une seule fois) le rafraîchissement périodique + le flux SSE temps réel.

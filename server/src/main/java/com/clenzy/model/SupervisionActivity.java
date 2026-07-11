@@ -51,6 +51,15 @@ public class SupervisionActivity {
     @Column(name = "reservation_id")
     private Long reservationId;
 
+    /**
+     * Reference optionnelle vers le {@code GuestMessageLog} lie a cette activite (pose
+     * uniquement pour les envois de message guest). Permet a la constellation de
+     * previsualiser a la demande le contenu du message envoye (endpoint
+     * {@code /guest-messaging/preview/{logId}}). Null pour toutes les autres activites.
+     */
+    @Column(name = "message_log_id")
+    private Long messageLogId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;
@@ -90,6 +99,9 @@ public class SupervisionActivity {
 
     public Long getReservationId() { return reservationId; }
     public void setReservationId(Long reservationId) { this.reservationId = reservationId; }
+
+    public Long getMessageLogId() { return messageLogId; }
+    public void setMessageLogId(Long messageLogId) { this.messageLogId = messageLogId; }
 
     public Instant getCreatedAt() { return createdAt; }
 }
