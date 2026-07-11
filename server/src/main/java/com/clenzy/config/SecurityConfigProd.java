@@ -215,7 +215,7 @@ public class SecurityConfigProd {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.setAllowedOrigins(getAllowedOriginsList());
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Organization-Id", "X-Booking-Key"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Organization-Id", "X-Booking-Key", "X-Refresh-Token"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setExposedHeaders(List.of("Authorization", "Content-Type", "X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After", "X-Request-Id", "X-Response-Time", "X-Organization-Id"));
         config.setMaxAge(3600L);
@@ -241,7 +241,7 @@ public class SecurityConfigProd {
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowCredentials(true);
         cfg.setAllowedOrigins(getAllowedOriginsList());
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Organization-Id", "X-Booking-Key"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Organization-Id", "X-Booking-Key", "X-Refresh-Token"));
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         cfg.setExposedHeaders(List.of("Authorization", "Content-Type", "X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After", "X-Request-Id", "X-Response-Time", "X-Organization-Id"));
         cfg.setMaxAge(3600L);
@@ -265,7 +265,7 @@ public class SecurityConfigProd {
                 registry.addMapping("/**")
                         .allowedOrigins(origins.toArray(new String[0]))
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                        .allowedHeaders("Authorization", "Content-Type", "Accept", "X-Requested-With")
+                        .allowedHeaders("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Refresh-Token")
                         .allowCredentials(true)
                         .maxAge(3600);
             }

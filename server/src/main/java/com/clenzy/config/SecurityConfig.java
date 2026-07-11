@@ -250,6 +250,7 @@ public class SecurityConfig {
         config.addAllowedHeader("Accept");
         config.addAllowedHeader("X-Organization-Id");
         config.addAllowedHeader("X-Booking-Key");
+        config.addAllowedHeader("X-Refresh-Token");
         config.addExposedHeader("X-Organization-Id");
         config.addExposedHeader("X-RateLimit-Limit");
         config.addExposedHeader("X-RateLimit-Remaining");

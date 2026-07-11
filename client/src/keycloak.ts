@@ -37,7 +37,26 @@ const keycloak = new Keycloak({
 // useAuth.ts pose son propre onAuthSuccess pour la logique utilisateur,
 // donc on n'utilise pas onAuthSuccess ici pour eviter le conflit.
 keycloak.onAuthRefreshSuccess = () => {
-  if (keycloak.token) setSessionCookie(keycloak.token)
+  if (keycloak.token) {
+    setSessionCookie(keycloak.token)
+    // Re-pousse le couple access+refresh vers les cookies HttpOnly backend
+    // (clenzy_auth + clenzy_refresh) et re-arme le refresh proactif sur la
+    // nouvelle expiration.
+    void pushSessionToBackend()
+    scheduleProactiveRefresh()
+  }
+}
+
+// Keycloak declenche onTokenExpired quand l'access token en memoire expire.
+// On tente un renouvellement immediat (JS si refresh token dispo, sinon cookie
+// serveur). Sans ce handler, keycloak-js ne rafraichit rien de lui-meme.
+keycloak.onTokenExpired = () => {
+  void triggerRefresh().then((ok) => {
+    // Ne re-arme que sur succes : sinon (session non renouvelable) on laisse le
+    // 401 de la prochaine requete API declencher le flow naturel, plutot que de
+    // boucler toutes les 5 s sur un refresh voue a l'echec.
+    if (ok) scheduleProactiveRefresh()
+  })
 }
 
 keycloak.onAuthLogout = () => {
@@ -141,6 +160,10 @@ export const keycloakInitPromise: Promise<boolean> = (async () => {
         console.log('[keycloak] check-sso reussi — session restauree via Keycloak natif')
       }
       setSessionCookie(keycloak.token)
+      // Pousse access + refresh vers les cookies HttpOnly backend (login ou
+      // check-sso reussi) et arme le refresh proactif.
+      await pushSessionToBackend()
+      scheduleProactiveRefresh()
       return true
     }
 
@@ -207,6 +230,59 @@ function restoreSessionFromMetadata(session: SessionInfo): void {
   if (session.expiresAt) {
     setSessionCookieUntil(session.expiresAt)
   }
+  // Mode degrade : pas de refresh token JS, mais le cookie HttpOnly
+  // clenzy_refresh (pose lors d'un login precedent) permet un renouvellement
+  // cote serveur. On arme le refresh proactif qui empruntera ce chemin cookie.
+  scheduleProactiveRefresh()
+}
+
+// ─── Refresh proactif de session ─────────────────────────────────────────────
+
+/**
+ * Pousse le couple access + refresh token vers les cookies HttpOnly backend
+ * (clenzy_auth + clenzy_refresh). Best-effort : le refresh token n'est transmis
+ * qu'ici, une seule fois, et n'est jamais persiste cote JS.
+ */
+async function pushSessionToBackend(): Promise<void> {
+  if (!keycloak.token) return
+  const { syncTokenCookie } = await import('./services/apiClient')
+  await syncTokenCookie(keycloak.token, keycloak.refreshToken)
+}
+
+/**
+ * Renouvelle la session via le mutex partage d'apiClient (chemin JS si refresh
+ * token en memoire, sinon cookie serveur clenzy_refresh). Retourne true si OK.
+ */
+async function triggerRefresh(): Promise<boolean> {
+  const { refreshSession } = await import('./services/apiClient')
+  return refreshSession()
+}
+
+let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Programme un renouvellement de session ~60 s AVANT l'expiration de l'access
+ * token courant, puis se re-arme sur la nouvelle expiration. Fonctionne dans
+ * les deux modes (token JS present ou mode degrade cookie-only), ce qui evite
+ * de dependre uniquement d'un 401 pour renouveler la session (onglet idle,
+ * WebSocket, etc.). Sans jeton exploitable, ne fait rien.
+ */
+function scheduleProactiveRefresh(): void {
+  if (proactiveRefreshTimer) {
+    clearTimeout(proactiveRefreshTimer)
+    proactiveRefreshTimer = null
+  }
+  const exp = getParsedAccessToken()?.exp
+  if (!exp) return
+  // 60 s de marge avant expiration ; plancher a 5 s pour ne pas boucler serre.
+  const delayMs = Math.max(exp * 1000 - Date.now() - 60_000, 5_000)
+  proactiveRefreshTimer = setTimeout(() => {
+    void triggerRefresh().then((ok) => {
+      // Re-arme uniquement sur succes (cf. onTokenExpired) pour eviter toute
+      // boucle serree quand la session n'est plus renouvelable.
+      if (ok) scheduleProactiveRefresh()
+    })
+  }, delayMs)
 }
 
 /**
@@ -271,7 +347,9 @@ export async function syncAuthCookie(): Promise<void> {
   if (!token) return
   // Lazy import to avoid circular: keycloak -> apiClient -> keycloak
   const { syncTokenCookie } = await import('./services/apiClient')
-  await syncTokenCookie(token)
+  // Transmet aussi le refresh token (quand present) pour tenir a jour le cookie
+  // HttpOnly clenzy_refresh utilise par le renouvellement cote serveur.
+  await syncTokenCookie(token, keycloak.refreshToken)
 }
 
 export default keycloak
