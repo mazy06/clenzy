@@ -7,6 +7,7 @@ import com.clenzy.model.ServiceRequest;
 import com.clenzy.model.SupervisionSuggestion;
 import com.stripe.exception.StripeException;
 import com.clenzy.booking.service.BookingBalanceService;
+import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -61,6 +62,7 @@ class SuggestionActionExecutorTest {
     @Mock private SecurityDepositRepository securityDepositRepository;
     @Mock private SecurityDepositPaymentService securityDepositPaymentService;
     @Mock private CalendarEngine calendarEngine;
+    @Mock private CalendarDayRepository calendarDayRepository;
     @Mock private YieldAdjustmentRepository yieldAdjustmentRepository;
     @Mock private ServiceRequestService serviceRequestService;
     @Mock private ReservationRepository reservationRepository;
@@ -76,9 +78,9 @@ class SuggestionActionExecutorTest {
     void setUp() {
         executor = new SuggestionActionExecutor(priceEngine, rateOverrideRepository,
                 propertyRepository, searchCacheInvalidator, securityDepositRepository,
-                securityDepositPaymentService, calendarEngine, yieldAdjustmentRepository,
-                serviceRequestService, reservationRepository, bookingBalanceService, emailService,
-                reviewReplyDraftService, new ObjectMapper(), clock);
+                securityDepositPaymentService, calendarEngine, calendarDayRepository,
+                yieldAdjustmentRepository, serviceRequestService, reservationRepository,
+                bookingBalanceService, emailService, reviewReplyDraftService, new ObjectMapper(), clock);
     }
 
     private static SupervisionSuggestion suggestion(String actionType, String params) {

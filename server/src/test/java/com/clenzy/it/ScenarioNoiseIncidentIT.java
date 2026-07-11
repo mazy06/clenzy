@@ -236,7 +236,8 @@ class ScenarioNoiseIncidentIT extends AbstractIntegrationTest {
                 .filter(d -> d.getStatus() == CalendarDayStatus.BLOCKED)).isEmpty();
 
         // ── Apply de la suggestion → CalendarEngine.block EFFECTIF. ──
-        suggestionService.apply(orgAId, suggestion.getId());
+        suggestionService.apply(orgAId, suggestion.getId(),
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "operator-it");
 
         assertThat(suggestionRepository.findById(suggestion.getId()).orElseThrow().getStatus())
                 .isEqualTo(SupervisionSuggestion.STATUS_APPLIED);

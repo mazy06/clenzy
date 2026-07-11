@@ -79,6 +79,38 @@ class SupervisionReportServiceTest {
         assertThat(r.estimatedTimeSaved()).isEqualTo("≈ 0 min");
     }
 
+    @Test
+    void acceptanceByType_aggregatesAppliedDismissedPendingPerType() {
+        when(activityRepository.countByOrganizationIdAndKindAndCreatedAtAfter(
+                eq(ORG), eq(SupervisionActivity.KIND_ACT), any())).thenReturn(0L);
+        when(suggestionRepository.countByOrganizationIdAndStatusAndAppliedAtAfter(
+                eq(ORG), eq(SupervisionSuggestion.STATUS_APPLIED), any())).thenReturn(0L);
+        when(suggestionRepository.countByOrganizationIdAndStatusAndCreatedAtAfter(
+                eq(ORG), eq(SupervisionSuggestion.STATUS_DISMISSED), any())).thenReturn(0L);
+        when(suggestionRepository.countByOrganizationIdAndStatusAndExpiresAtAfter(
+                eq(ORG), eq(SupervisionSuggestion.STATUS_PENDING), any())).thenReturn(0L);
+        when(suggestionRepository.countActionableByTypeAndStatusSince(eq(ORG), any()))
+                .thenReturn(java.util.List.of(
+                        new Object[]{"ops", "CLEANING_REQUEST", "APPLIED", 19L},
+                        new Object[]{"ops", "CLEANING_REQUEST", "DISMISSED", 1L},
+                        new Object[]{"rev", "PRICE_DROP", "PENDING", 3L}));
+
+        SupervisionReportDto r = service.getReport(ORG);
+
+        assertThat(r.acceptanceByType()).hasSize(2);
+        // Trié par nb de décisions décroissant : CLEANING_REQUEST (20 décisions) d'abord.
+        var cleaning = r.acceptanceByType().get(0);
+        assertThat(cleaning.moduleKey()).isEqualTo("ops");
+        assertThat(cleaning.actionType()).isEqualTo("CLEANING_REQUEST");
+        assertThat(cleaning.applied()).isEqualTo(19);
+        assertThat(cleaning.dismissed()).isEqualTo(1);
+        assertThat(cleaning.acceptanceRate()).isEqualTo(0.95);
+        var priceDrop = r.acceptanceByType().get(1);
+        assertThat(priceDrop.actionType()).isEqualTo("PRICE_DROP");
+        assertThat(priceDrop.pending()).isEqualTo(3);
+        assertThat(priceDrop.acceptanceRate()).isZero(); // aucune décision → 0
+    }
+
     /**
      * La fenêtre paramétrable (Jour/Semaine/Quinzaine/Mois) borne bien le comptage :
      * {@code since = now − windowDays}. Une fenêtre plus courte compte STRICTEMENT

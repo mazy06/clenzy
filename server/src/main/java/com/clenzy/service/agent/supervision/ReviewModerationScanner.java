@@ -44,13 +44,19 @@ public class ReviewModerationScanner {
     private final GuestReviewRepository reviewRepository;
     private final PropertyRepository propertyRepository;
     private final SupervisionSuggestionService suggestionService;
+    private final AutoApplyGate autoApplyGate;
+    private final SupervisionAutoApplyService autoApplyService;
 
     public ReviewModerationScanner(GuestReviewRepository reviewRepository,
                                    PropertyRepository propertyRepository,
-                                   SupervisionSuggestionService suggestionService) {
+                                   SupervisionSuggestionService suggestionService,
+                                   AutoApplyGate autoApplyGate,
+                                   SupervisionAutoApplyService autoApplyService) {
         this.reviewRepository = reviewRepository;
         this.propertyRepository = propertyRepository;
         this.suggestionService = suggestionService;
+        this.autoApplyGate = autoApplyGate;
+        this.autoApplyService = autoApplyService;
     }
 
     /**
@@ -103,8 +109,25 @@ public class ReviewModerationScanner {
         // Carte APPLICABLE (« Générer un brouillon de réponse ») : l'apply génère un brouillon
         // LLM (host_response_draft), jamais publié — l'opérateur valide/édite/publie ensuite.
         final String params = String.format("{\"reviewId\":%d}", review.getId());
-        suggestionService.recordActionable(orgId, propertyId, "rep", title, motif.toString(),
-                SupervisionActionType.REVIEW_DRAFT_REPLY, params, null, "warning");
+        // Vague 1 autonomie : le gate décide HITL vs auto (enveloppe = budget premium OK,
+        // vérifié à l'étape 5 du gate — la génération du brouillon consomme des crédits LLM).
+        // En AUTO_*, la GÉNÉRATION du brouillon est auto-appliquée via le pipeline d'apply
+        // (effet externe hors transaction, compensation si échec) ; la PUBLICATION de la
+        // réponse reste manuelle dans tous les cas.
+        final AutoApplyGate.AutoDecision decision = autoApplyGate.decide(
+                orgId, "rep", SupervisionActionType.REVIEW_DRAFT_REPLY, java.util.Map.of());
+        final boolean auto = decision == AutoApplyGate.AutoDecision.AUTO_NOTIFY
+                || decision == AutoApplyGate.AutoDecision.AUTO_SILENT;
+        if (!auto) {
+            suggestionService.recordActionable(orgId, propertyId, "rep", title, motif.toString(),
+                    SupervisionActionType.REVIEW_DRAFT_REPLY, params, null, "warning");
+            return;
+        }
+        suggestionService.recordActionableForAutoApply(orgId, propertyId, "rep", null,
+                        title, motif.toString(), SupervisionActionType.REVIEW_DRAFT_REPLY,
+                        params, null, "warning")
+                .ifPresent(suggestionId -> autoApplyService.autoApply(
+                        decision, orgId, propertyId, "rep", suggestionId, title, motif.toString(), null));
     }
 
     /** Timezone de la propriété (repli Europe/Paris) — findById org-validé. */

@@ -199,10 +199,17 @@ public class SupervisionController {
      * (CAS PENDING→APPLIED côté service). 400 si non actionnable / déjà traitée.
      */
     @PostMapping("/suggestions/{id}/apply")
-    public ResponseEntity<Void> applySuggestion(@PathVariable Long id) {
+    public ResponseEntity<Void> applySuggestion(@PathVariable Long id,
+                                                @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        suggestionService.apply(orgId, id);
+        suggestionService.apply(orgId, id, appliedBy(jwt));
         return ResponseEntity.noContent().build();
+    }
+
+    /** Auteur tracé d'une application humaine : {@code user:<keycloakId>}. */
+    private static String appliedBy(Jwt jwt) {
+        return com.clenzy.model.SupervisionSuggestion.APPLIED_BY_USER_PREFIX
+                + (jwt != null ? jwt.getSubject() : "unknown");
     }
 
     /** Segment de prix édité dans la modale : plage [from, to) (to exclusif) + remise % (baisse). */
@@ -245,9 +252,11 @@ public class SupervisionController {
      * Org-scopé, CAS PENDING→APPLIED côté service.
      */
     @PostMapping("/suggestions/{id}/apply-custom")
-    public ResponseEntity<Void> applyCustomPricing(@PathVariable Long id, @RequestBody ApplyCustomRequest req) {
+    public ResponseEntity<Void> applyCustomPricing(@PathVariable Long id, @RequestBody ApplyCustomRequest req,
+                                                   @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
-        priceSuggestionService.applyCustom(orgId, id, toSegments(req.segments()), isRaise(req.direction()));
+        priceSuggestionService.applyCustom(orgId, id, toSegments(req.segments()), isRaise(req.direction()),
+                appliedBy(jwt));
         return ResponseEntity.noContent().build();
     }
 

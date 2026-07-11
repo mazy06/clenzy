@@ -11,8 +11,10 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.ServiceRequestService;
 import com.clenzy.service.access.StayTimes;
+import com.clenzy.service.agent.supervision.AutoApplyGate;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
 import com.clenzy.service.agent.supervision.SupervisionActionType;
+import com.clenzy.service.agent.supervision.SupervisionAutoApplyService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import com.clenzy.service.automation.AutomationEngine;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -60,6 +62,8 @@ public class CleaningBackfillScheduler {
     private final MeterRegistry meterRegistry;
     private final SupervisionActivityService supervisionActivityService;
     private final SupervisionSuggestionService supervisionSuggestionService;
+    private final AutoApplyGate autoApplyGate;
+    private final SupervisionAutoApplyService autoApplyService;
 
     public CleaningBackfillScheduler(AutomationRuleRepository automationRuleRepository,
                                      ReservationRepository reservationRepository,
@@ -67,7 +71,9 @@ public class CleaningBackfillScheduler {
                                      ServiceRequestService serviceRequestService,
                                      MeterRegistry meterRegistry,
                                      SupervisionActivityService supervisionActivityService,
-                                     SupervisionSuggestionService supervisionSuggestionService) {
+                                     SupervisionSuggestionService supervisionSuggestionService,
+                                     AutoApplyGate autoApplyGate,
+                                     SupervisionAutoApplyService autoApplyService) {
         this.automationRuleRepository = automationRuleRepository;
         this.reservationRepository = reservationRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -75,6 +81,8 @@ public class CleaningBackfillScheduler {
         this.meterRegistry = meterRegistry;
         this.supervisionActivityService = supervisionActivityService;
         this.supervisionSuggestionService = supervisionSuggestionService;
+        this.autoApplyGate = autoApplyGate;
+        this.autoApplyService = autoApplyService;
     }
 
     @Scheduled(cron = "0 30 6 * * *") // Tous les jours a 6h30, avant la journee de menage
@@ -229,8 +237,25 @@ public class CleaningBackfillScheduler {
                 reservation.getId(),
                 reservation.getCheckIn() != null ? "\"" + reservation.getCheckIn() + "\"" : "null",
                 reservation.getCheckOut());
-            supervisionSuggestionService.recordActionable(orgId, propertyId, "ops", title, motif,
-                SupervisionActionType.CLEANING_REQUEST, params, null, "warning");
+            // Vague 1 autonomie : le gate decide HITL vs auto AVANT la creation de la
+            // carte. Enveloppe vide (les garanties AFTER_EACH_STAY + idempotence sont
+            // structurelles). En AUTO_*, la carte est creee SANS notification « attend
+            // votre validation » puis appliquee par le MEME pipeline que le bouton
+            // humain ; un echec la laisse en PENDING (repli HITL naturel).
+            AutoApplyGate.AutoDecision decision = autoApplyGate.decide(
+                orgId, "ops", SupervisionActionType.CLEANING_REQUEST, java.util.Map.of());
+            boolean auto = decision == AutoApplyGate.AutoDecision.AUTO_NOTIFY
+                || decision == AutoApplyGate.AutoDecision.AUTO_SILENT;
+            if (!auto) {
+                supervisionSuggestionService.recordActionable(orgId, propertyId, "ops", title, motif,
+                    SupervisionActionType.CLEANING_REQUEST, params, null, "warning");
+            } else {
+                supervisionSuggestionService.recordActionableForAutoApply(orgId, propertyId, "ops",
+                        reservation.getId(), title, motif,
+                        SupervisionActionType.CLEANING_REQUEST, params, null, "warning")
+                    .ifPresent(suggestionId -> autoApplyService.autoApply(
+                        decision, orgId, propertyId, "ops", suggestionId, title, motif, null));
+            }
         } else {
             supervisionSuggestionService.record(orgId, propertyId, "ops", "cleaning_missing", title, motif);
         }

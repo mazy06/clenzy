@@ -12,7 +12,9 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.ServiceRequestService;
 import com.clenzy.service.ServiceRequestService.AutoCleaningOutcome;
+import com.clenzy.service.agent.supervision.AutoApplyGate;
 import com.clenzy.service.agent.supervision.SupervisionActivityService;
+import com.clenzy.service.agent.supervision.SupervisionAutoApplyService;
 import com.clenzy.service.agent.supervision.SupervisionSuggestionService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +44,8 @@ class CleaningBackfillSchedulerTest {
     @Mock private ServiceRequestService serviceRequestService;
     @Mock private SupervisionActivityService supervisionActivityService;
     @Mock private SupervisionSuggestionService supervisionSuggestionService;
+    @Mock private AutoApplyGate autoApplyGate;
+    @Mock private SupervisionAutoApplyService autoApplyService;
 
     private CleaningBackfillScheduler scheduler;
 
@@ -54,7 +58,7 @@ class CleaningBackfillSchedulerTest {
     void setUp() {
         scheduler = new CleaningBackfillScheduler(automationRuleRepository, reservationRepository,
             serviceRequestRepository, serviceRequestService, new SimpleMeterRegistry(),
-            supervisionActivityService, supervisionSuggestionService);
+            supervisionActivityService, supervisionSuggestionService, autoApplyGate, autoApplyService);
 
         property = new Property();
         property.setId(100L);
@@ -170,6 +174,47 @@ class CleaningBackfillSchedulerTest {
             eq(ORG_ID), eq(100L), eq("ops"),
             eq("Menage manquant pour le depart de demain"), any(),
             eq("CLEANING_REQUEST"), any(), any(), eq("warning"));
+    }
+
+    @Test
+    void whenGateAllowsAuto_thenCardCreatedQuietlyAndAutoAppliedViaPipeline() {
+        reservation.setCheckOut(LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(1));
+        when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(cleaningRule(ORG_ID)));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation));
+        when(serviceRequestRepository.findByReservationId(42L, ORG_ID)).thenReturn(List.of());
+        when(autoApplyGate.decide(eq(ORG_ID), eq("ops"), eq("CLEANING_REQUEST"), any()))
+            .thenReturn(AutoApplyGate.AutoDecision.AUTO_SILENT);
+        when(supervisionSuggestionService.recordActionableForAutoApply(eq(ORG_ID), eq(100L), eq("ops"),
+                eq(42L), any(), any(), eq("CLEANING_REQUEST"), any(), any(), eq("warning")))
+            .thenReturn(java.util.Optional.of(77L));
+
+        scheduler.scanTomorrowCheckoutsMissingCleaning();
+
+        // Chemin auto : carte créée SANS notif « en attente » puis appliquée par le pipeline.
+        verify(autoApplyService).autoApply(eq(AutoApplyGate.AutoDecision.AUTO_SILENT),
+            eq(ORG_ID), eq(100L), eq("ops"), eq(77L), any(), any(), eq(null));
+        verify(supervisionSuggestionService, never()).recordActionable(
+            any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void whenGateSaysCard_thenHitlCardAsBefore() {
+        reservation.setCheckOut(LocalDate.now(java.time.ZoneId.of("Europe/Paris")).plusDays(1));
+        when(automationRuleRepository.findByEnabledTrue()).thenReturn(List.of(cleaningRule(ORG_ID)));
+        when(reservationRepository.findConfirmedByCheckOutRange(any(), any(), eq(ORG_ID)))
+            .thenReturn(List.of(reservation));
+        when(serviceRequestRepository.findByReservationId(42L, ORG_ID)).thenReturn(List.of());
+        when(autoApplyGate.decide(eq(ORG_ID), eq("ops"), eq("CLEANING_REQUEST"), any()))
+            .thenReturn(AutoApplyGate.AutoDecision.CARD);
+
+        scheduler.scanTomorrowCheckoutsMissingCleaning();
+
+        verify(supervisionSuggestionService).recordActionable(
+            eq(ORG_ID), eq(100L), eq("ops"),
+            eq("Menage manquant pour le depart de demain"), any(),
+            eq("CLEANING_REQUEST"), any(), any(), eq("warning"));
+        verifyNoInteractions(autoApplyService);
     }
 
     @Test

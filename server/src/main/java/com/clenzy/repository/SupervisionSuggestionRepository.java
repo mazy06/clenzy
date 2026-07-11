@@ -64,9 +64,11 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
      * le nombre de lignes modifiées (1 = transition acquise, 0 = déjà résolue/absente).
      */
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE SupervisionSuggestion s SET s.status = 'APPLIED', s.appliedAt = :now "
+    @Query("UPDATE SupervisionSuggestion s SET s.status = 'APPLIED', s.appliedAt = :now, "
+            + "s.appliedBy = :appliedBy "
             + "WHERE s.id = :id AND s.organizationId = :orgId AND s.status = 'PENDING'")
-    int markApplied(@Param("id") Long id, @Param("orgId") Long orgId, @Param("now") Instant now);
+    int markApplied(@Param("id") Long id, @Param("orgId") Long orgId, @Param("now") Instant now,
+                    @Param("appliedBy") String appliedBy);
 
     /**
      * Compensation d'une action a EFFET EXTERNE (Stripe) echouee : la transition
@@ -75,7 +77,22 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
      * (CAS, meme garantie anti-course que {@link #markApplied}).
      */
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE SupervisionSuggestion s SET s.status = 'PENDING', s.appliedAt = NULL "
+    @Query("UPDATE SupervisionSuggestion s SET s.status = 'PENDING', s.appliedAt = NULL, "
+            + "s.appliedBy = NULL "
             + "WHERE s.id = :id AND s.organizationId = :orgId AND s.status = 'APPLIED'")
     int revertApplied(@Param("id") Long id, @Param("orgId") Long orgId);
+
+    /**
+     * Agrégat d'acceptation PAR TYPE (Vague 1 autonomie) : nb de suggestions
+     * ACTIONNABLES par (module, actionType, statut) créées depuis {@code since}.
+     * Une ligne {@code [moduleKey, actionType, status, count]} par combinaison.
+     * Alimente le tableau « Acceptation par type » du rapport et l'aide à la
+     * décision d'activation des toggles d'auto-application.
+     */
+    @Query("SELECT s.moduleKey, s.actionType, s.status, COUNT(s) FROM SupervisionSuggestion s "
+            + "WHERE s.organizationId = :orgId AND s.actionType IS NOT NULL "
+            + "AND s.createdAt > :since "
+            + "GROUP BY s.moduleKey, s.actionType, s.status")
+    List<Object[]> countActionableByTypeAndStatusSince(@Param("orgId") Long orgId,
+                                                       @Param("since") Instant since);
 }

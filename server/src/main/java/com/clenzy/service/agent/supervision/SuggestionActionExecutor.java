@@ -9,6 +9,7 @@ import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.SecurityDepositStatus;
 import com.clenzy.model.SupervisionSuggestion;
 import com.clenzy.model.YieldAdjustment;
+import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -79,6 +80,7 @@ public class SuggestionActionExecutor {
     private final SecurityDepositRepository securityDepositRepository;
     private final SecurityDepositPaymentService securityDepositPaymentService;
     private final CalendarEngine calendarEngine;
+    private final CalendarDayRepository calendarDayRepository;
     private final YieldAdjustmentRepository yieldAdjustmentRepository;
     private final ServiceRequestService serviceRequestService;
     private final ReservationRepository reservationRepository;
@@ -95,6 +97,7 @@ public class SuggestionActionExecutor {
                                     SecurityDepositRepository securityDepositRepository,
                                     SecurityDepositPaymentService securityDepositPaymentService,
                                     CalendarEngine calendarEngine,
+                                    CalendarDayRepository calendarDayRepository,
                                     YieldAdjustmentRepository yieldAdjustmentRepository,
                                     ServiceRequestService serviceRequestService,
                                     ReservationRepository reservationRepository,
@@ -110,6 +113,7 @@ public class SuggestionActionExecutor {
         this.securityDepositRepository = securityDepositRepository;
         this.securityDepositPaymentService = securityDepositPaymentService;
         this.calendarEngine = calendarEngine;
+        this.calendarDayRepository = calendarDayRepository;
         this.yieldAdjustmentRepository = yieldAdjustmentRepository;
         this.serviceRequestService = serviceRequestService;
         this.reservationRepository = reservationRepository;
@@ -329,6 +333,20 @@ public class SuggestionActionExecutor {
         // Sens de l'ajustement : "up" = hausse (facteur 1+p/100), sinon baisse (1−p/100). Défaut baisse.
         final boolean raise = "up".equalsIgnoreCase(params.path("direction").asText("down"));
 
+        // Chemin AUTO (Vague 1, appliedBy = auto:gate) : protections du cadre yield
+        // ré-appliquées AU MOMENT de l'apply (règle audit n°1 — jamais de confiance
+        // aveugle aux conditions du scan) : bornes plancher/plafond OBLIGATOIRES,
+        // overrides MANUAL/OTA jamais écrasés, nuits BOOKED jamais re-tarifées.
+        // Le chemin humain (bouton/modale) reste inchangé : l'opérateur décide.
+        final boolean auto = SupervisionSuggestion.APPLIED_BY_AUTO.equals(suggestion.getAppliedBy());
+        final BigDecimal floor = property.getYieldPriceFloor();
+        final BigDecimal ceiling = property.getYieldPriceCeiling();
+        if (auto && (floor == null || ceiling == null)) {
+            throw new IllegalStateException(
+                    "Plancher/plafond yield absents sur le logement " + propertyId
+                            + " — auto-application refusée (la carte reste à valider)");
+        }
+
         // Yield multi-segment : {"direction":…,"segments":[{from,to,percent}, …]} ; rétro-compat {from,to,percent}.
         final List<JsonNode> segments = new ArrayList<>();
         if (params.has("segments") && params.get("segments").isArray()) {
@@ -351,33 +369,62 @@ public class SuggestionActionExecutor {
             if (percent <= 0 || percent > MAX_PERCENT) {
                 throw new IllegalStateException("Pourcentage d'ajustement hors bornes : " + percent);
             }
-            applied += applyAdjustOnRange(property, orgId, propertyId, from, to, percent, raise, currency);
+            final java.util.Set<LocalDate> bookedNights = auto
+                    ? new java.util.HashSet<>(calendarDayRepository.findBookedDatesInRange(
+                            propertyId, from, to, orgId))
+                    : java.util.Set.of();
+            applied += applyAdjustOnRange(property, orgId, propertyId, from, to, percent, raise,
+                    currency, auto, bookedNights, floor, ceiling);
         }
         searchCacheInvalidator.onAvailabilityOrPriceChanged();
-        log.info("PRICE_{} appliqué org={} property={} : {} segment(s), {} nuit(s)",
-                raise ? "RAISE" : "DROP", orgId, propertyId, segments.size(), applied);
+        log.info("PRICE_{} appliqué org={} property={} : {} segment(s), {} nuit(s){}",
+                raise ? "RAISE" : "DROP", orgId, propertyId, segments.size(), applied,
+                auto ? " [auto]" : "");
     }
 
-    /** Applique un ajustement de {@code percent}% (hausse si {@code raise}, sinon baisse) sur chaque nuit de [from, to). */
+    /**
+     * Applique un ajustement de {@code percent}% (hausse si {@code raise}, sinon baisse) sur
+     * chaque nuit de [from, to). En mode {@code auto}, les nuits BOOKED et les overrides
+     * d'une autre source (MANUAL / OTA / externe) sont sautés, et le prix cible est borné
+     * par le plancher/plafond yield du bien.
+     */
     private int applyAdjustOnRange(Property property, Long orgId, Long propertyId,
-                                   LocalDate from, LocalDate to, int percent, boolean raise, String currency) {
+                                   LocalDate from, LocalDate to, int percent, boolean raise,
+                                   String currency, boolean auto,
+                                   java.util.Set<LocalDate> bookedNights,
+                                   BigDecimal floor, BigDecimal ceiling) {
         final BigDecimal delta = BigDecimal.valueOf(percent).divide(BigDecimal.valueOf(100));
         final BigDecimal factor = raise ? BigDecimal.ONE.add(delta) : BigDecimal.ONE.subtract(delta);
         int applied = 0;
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
+            if (auto && bookedNights.contains(date)) {
+                continue; // nuit réservée : jamais re-tarifée automatiquement
+            }
+            final LocalDate d = date;
+            final var existing = rateOverrideRepository.findByPropertyIdAndDate(propertyId, d, orgId);
+            if (auto && existing.isPresent()
+                    && !OVERRIDE_SOURCE.equals(existing.get().getSource())
+                    && !YIELD_OVERRIDE_SOURCE.equals(existing.get().getSource())) {
+                continue; // override MANUAL / OTA / externe : jamais écrasé automatiquement
+            }
             final BigDecimal current = priceEngine.resolvePrice(propertyId, date, orgId);
             if (current == null || current.signum() <= 0) {
                 continue; // pas de prix résolu → rien à baisser ce jour
             }
-            final BigDecimal newPrice = current.multiply(factor).setScale(2, RoundingMode.HALF_UP);
-            final LocalDate d = date;
-            final RateOverride override = rateOverrideRepository
-                    .findByPropertyIdAndDate(propertyId, d, orgId)
-                    .orElseGet(() -> new RateOverride(property, d, newPrice, OVERRIDE_SOURCE, orgId));
-            override.setNightlyPrice(newPrice);
+            BigDecimal newPrice = current.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+            if (auto) {
+                newPrice = newPrice.max(floor).min(ceiling);
+                if (newPrice.compareTo(current) == 0) {
+                    continue; // déjà à la borne (ou variation nulle)
+                }
+            }
+            final BigDecimal target = newPrice;
+            final RateOverride override = existing
+                    .orElseGet(() -> new RateOverride(property, d, target, OVERRIDE_SOURCE, orgId));
+            override.setNightlyPrice(target);
             override.setSource(OVERRIDE_SOURCE);
             override.setCurrency(currency);
-            override.setCreatedBy("system:supervisor");
+            override.setCreatedBy(auto ? "auto:gate" : "system:supervisor");
             rateOverrideRepository.save(override);
             applied++;
         }

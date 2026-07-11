@@ -10,6 +10,16 @@ import { useEffect, useState } from 'react';
 import { buildApiUrl } from '../../../config/api';
 import { getAccessToken } from '../../../keycloak';
 
+/** Acceptation par type d'action (Vague 1 autonomie) — aide à l'activation des toggles. */
+export interface SupervisionTypeAcceptance {
+  moduleKey: string;
+  actionType: string;
+  applied: number;
+  dismissed: number;
+  pending: number;
+  acceptanceRate: number; // 0..1 (0 si aucune décision)
+}
+
 export interface SupervisionReport {
   windowDays: number;
   autoActions: number;
@@ -19,6 +29,7 @@ export interface SupervisionReport {
   acceptanceRate: number; // 0..1
   estimatedTimeSavedMinutes: number;
   estimatedTimeSaved: string; // "≈ 4 h 30"
+  acceptanceByType: SupervisionTypeAcceptance[];
 }
 
 /**

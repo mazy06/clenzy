@@ -23,6 +23,7 @@ import { useUserPreference } from '../../hooks/useUserPreference';
 import EmptyState from '../../components/EmptyState';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import ConditionsEditor from './ConditionsEditor';
+import ConstellationAutoRulesSection from './ConstellationAutoRulesSection';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { SPACING } from '../../theme/spacing';
@@ -573,6 +574,13 @@ const AutomationRulesPage: React.FC = () => {
           </Grid>
         </Box>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          Constellation — actions automatiques (Vague 1 autonomie)
+          Toggles d'auto-application par type (opt-in, plafonnés par le niveau
+          de chaque agent). Se masque pour les rôles sans supervision.
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <ConstellationAutoRulesSection />
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Create / Edit Dialog
