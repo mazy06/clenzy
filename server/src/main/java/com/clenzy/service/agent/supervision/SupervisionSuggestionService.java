@@ -89,6 +89,52 @@ public class SupervisionSuggestionService {
     }
 
     /**
+     * Enregistre une suggestion INFORMATIONNELLE portant une {@code reservationId} et une
+     * {@code severity} (best-effort, dédupliquée par intitulé PENDING comme {@link #record}).
+     * {@code actionType} reste {@code null} → aucune exécution serveur, aucun {@code /apply} :
+     * le front discrimine la carte sur son {@code toolName}. Utilisée par les scanners qui
+     * doivent porter la réservation liée sans rendre la carte applicable (ex. « email
+     * voyageur manquant » : le CTA ouvre la fiche client côté front).
+     */
+    @Transactional
+    public void record(Long organizationId, Long propertyId, String moduleKey,
+                       String toolName, String title, String motif,
+                       Long reservationId, String severity) {
+        if (organizationId == null || propertyId == null || moduleKey == null
+                || title == null || title.isBlank()) {
+            return;
+        }
+        String safeTitle = truncate(title.strip(), TITLE_MAX);
+        try {
+            boolean dup = repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
+                    organizationId, propertyId, moduleKey, safeTitle, SupervisionSuggestion.STATUS_PENDING);
+            if (dup) {
+                return; // déjà proposé, en attente → on ne duplique pas
+            }
+            SupervisionSuggestion s = new SupervisionSuggestion(
+                    organizationId, propertyId, moduleKey, toolName, safeTitle,
+                    truncate(motif, MOTIF_MAX), Instant.now().plus(TTL));
+            s.setReservationId(reservationId);
+            s.setSeverity(severity);
+            repository.save(s); // actionType reste null → carte informationnelle
+        } catch (Exception e) {
+            log.debug("supervision suggestion record failed (module={} prop={}): {}",
+                    moduleKey, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Cartes PENDING d'un scanner (par {@code toolName}) pour un logement — support de
+     * l'auto-résolution déterministe d'un scanner (fermer les cartes dont la situation
+     * ne tient plus). Lecture interne au domaine supervision (pas exposée en REST).
+     */
+    @Transactional(readOnly = true)
+    public List<SupervisionSuggestion> findPendingByTool(Long organizationId, Long propertyId, String toolName) {
+        return repository.findByOrganizationIdAndPropertyIdAndToolNameAndStatus(
+                organizationId, propertyId, toolName, SupervisionSuggestion.STATUS_PENDING);
+    }
+
+    /**
      * Enregistre une suggestion ACTIONNABLE (scanner analytics déterministe) :
      * porte un {@code actionType} exécutable + params + impact estimé. Best-effort,
      * dédupliquée par intitulé (comme {@link #record}). Un même intitulé encore en
@@ -380,7 +426,8 @@ public class SupervisionSuggestionService {
                 s.getActionType(),
                 s.getEstimatedImpactCents(),
                 s.getSeverity(),
-                s.getActionParams());
+                s.getActionParams(),
+                s.getToolName());
     }
 
     private static String truncate(String value, int max) {

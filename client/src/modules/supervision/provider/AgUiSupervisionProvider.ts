@@ -100,6 +100,8 @@ interface SuggestionShape {
   severity?: string | null;
   /** Params bruts de l'action (JSON segments) pour la modale d'ajustement, optionnel. */
   actionParams?: string | null;
+  /** Nom stable du scanner à l'origine (ex. `guest_email_missing`), discriminant front. */
+  tool?: string | null;
 }
 
 /** Rappel J-1 de reversement (GET /api/ai/supervision/payout-reminder, cf. PayoutReminderDto). */
@@ -139,6 +141,11 @@ export interface AgUiProviderOptions {
   currentPage?: string;
   /** Propriété sélectionnée transmise au backend (contexte UI). */
   selectedPropertyId?: number;
+  /**
+   * Ouvre le modal de fiche client (GuestCardDialog) pour une réservation. Appelé quand
+   * l'opérateur valide une carte `guest_email_missing` : action 100 % front (pas d'`/apply`).
+   */
+  onOpenGuestCard?: (reservationId: string) => void;
 }
 
 /** Agent AG-UI exposé par le backend (cf. AgUiController.AGENT_NAME). */
@@ -177,6 +184,11 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    * « Valider » sur ces cartes = appliquer l'action serveur, pas rejeter.
    */
   private readonly applicableSuggestionIds = new Set<string>();
+  /**
+   * Cartes « email voyageur manquant » de la file courante → id de carte mappé sur son
+   * reservationId. « Valider » sur ces cartes ouvre la fiche client (front), aucun `/apply`.
+   */
+  private readonly guestCardReservationIds = new Map<string, string>();
   /** true tant qu'un run SSE est en cours → le polling se met en pause pour ne pas
    *  écraser l'état live (conversation, interrupt inline). */
   private runActive = false;
@@ -299,22 +311,30 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       });
     }
     this.applicableSuggestionIds.clear();
+    this.guestCardReservationIds.clear();
     pendingQueue.push(
       ...suggestions.map((s) => {
+        const reservationId = s.reservationId != null ? String(s.reservationId) : null;
+        // Carte « email voyageur manquant » : informationnelle → « Compléter la fiche
+        // client » ouvre le modal côté front (pas d'/apply). On NE l'ajoute PAS à
+        // applicableSuggestionIds ; on retient son reservationId pour l'ouverture.
+        const opensGuestCard = s.tool === 'guest_email_missing' && reservationId != null;
+        if (opensGuestCard) this.guestCardReservationIds.set(s.id, reservationId!);
         // Suggestion actionnable : mémorise l'id → « Valider » = Appliquer (exécution serveur).
-        if (s.actionType) this.applicableSuggestionIds.add(s.id);
+        else if (s.actionType) this.applicableSuggestionIds.add(s.id);
         return {
           id: s.id,
           agentId: s.agentId as AgentId,
           title: s.title,
           motif: s.motif ?? '',
           reasoning: s.motif ?? '',
-          reservationId: s.reservationId != null ? String(s.reservationId) : null,
+          reservationId,
           createdAt: s.createdAt,
           expiresAt: s.expiresAt ?? s.createdAt,
-          applyActionType: s.actionType ?? undefined,
+          applyActionType: opensGuestCard ? undefined : (s.actionType ?? undefined),
           amountEur: s.estimatedImpactCents != null ? s.estimatedImpactCents / 100 : undefined,
           actionParams: s.actionParams ?? undefined,
+          ...(opensGuestCard ? { opensGuestCard: true } : {}),
         };
       }),
     );
@@ -991,6 +1011,13 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
     }
     if (actionId.startsWith(PAYOUT_REMINDER_PREFIX)) {
       await this.postReminderAction(actionId, 'ack');
+      return;
+    }
+    // Carte « email voyageur manquant » : ouvre la fiche client (front), aucun effet
+    // serveur — la carte reste jusqu'à ce que le backend l'auto-résolve (email complété).
+    const guestCardResId = this.guestCardReservationIds.get(actionId);
+    if (guestCardResId) {
+      this.options.onOpenGuestCard?.(guestCardResId);
       return;
     }
     // Suggestion actionnable → applique l'action serveur (au lieu de rejeter).

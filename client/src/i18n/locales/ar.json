@@ -123,6 +123,10 @@
       "action": "تطبيق",
       "dismiss": "تجاهل"
     },
+    "guestCard": {
+      "badge": "للإكمال",
+      "cta": "أكمل بطاقة النزيل"
+    },
     "tools": {
       "ical_sync_failed": "فشل مزامنة التقويم",
       "sensor_anomaly": "شذوذ في المستشعر",

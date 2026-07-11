@@ -90,6 +90,13 @@ export interface PendingAction {
    * pour préremplir la modale d'ajustement de prix. Absent si non actionnable.
    */
   actionParams?: string;
+  /**
+   * Carte informationnelle « email voyageur manquant » (scanner backend
+   * {@code guest_email_missing}) : le CTA n'exécute AUCUNE action serveur — il ouvre,
+   * côté front, le modal de fiche client (GuestCardDialog) pour compléter l'email.
+   * Nécessite un `reservationId` pour cibler la réservation. Jamais d'`/apply`.
+   */
+  opensGuestCard?: boolean;
 }
 
 // ─── Approbation inline (interrupt AG-UI, chemin live) ───────────────────────

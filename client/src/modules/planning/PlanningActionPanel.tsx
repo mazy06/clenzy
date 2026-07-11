@@ -82,6 +82,11 @@ interface PlanningActionPanelProps {
   onPaymentComplete?: () => void;
   // Actions (PanelActions)
   onDuplicateReservation?: (reservationId: number, newCheckIn: string, newCheckOut: string) => Promise<ActionResult>;
+  // Ouverture pilotée du modal « Fiche client » (carte constellation « email voyageur
+  // manquant ») : quand cet id correspond à la réservation sélectionnée, le modal s'ouvre.
+  autoOpenGuestCardForReservationId?: string | number | null;
+  /** Appelé une fois le signal consommé (le parent le remet à null → réouverture possible). */
+  onGuestCardAutoOpenHandled?: () => void;
 }
 
 // ─── Tab configs ──────────────────────────────────────────────────────────────
@@ -177,6 +182,8 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   onGenerateInvoice,
   onPaymentComplete,
   onDuplicateReservation,
+  autoOpenGuestCardForReservationId,
+  onGuestCardAutoOpenHandled,
 }) => {
   const theme = useTheme();
   const { currentView, isSubView, pushView, popView } = usePanelNavigation(event?.id ?? null);
@@ -445,6 +452,8 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           onChangeProperty={onChangeProperty}
           onCancelReservation={onCancelReservation}
           onUpdateGuestInfo={onUpdateGuestInfo}
+          autoOpenGuestCardForReservationId={autoOpenGuestCardForReservationId}
+          onGuestCardAutoOpenHandled={onGuestCardAutoOpenHandled}
         />
       )}
     </Drawer>
