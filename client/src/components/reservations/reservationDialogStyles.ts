@@ -4,6 +4,17 @@ import { Box } from '@mui/material';
 // ─── Styles « Signature » partagés par ReservationDialog et ses sous-composants ──
 // Tokens var(--…) de theme/signature/tokens.css. Aucune logique — présentation pure.
 
+/** Pied d'actions du dialogue (barre boutons) — partagé wizard / édition / blocage. */
+export const FOOT_SX = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+  padding: '14px 22px',
+  borderTop: '1px solid var(--line)',
+  backgroundColor: 'var(--surface-2)',
+  flexShrink: 0,
+} as const;
+
 /** Overline de section (.rm-sec) */
 export const SEC_SX = {
   fontSize: '10.5px',

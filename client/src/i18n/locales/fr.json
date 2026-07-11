@@ -2264,7 +2264,21 @@
       "errorPaymentNeedsEmail": "Un email voyageur est requis pour envoyer le lien de paiement.",
       "paymentLinkError": "Réservation créée (en attente), mais l'envoi du lien de paiement a échoué. Réessayez, ou envoyez-le depuis la réservation.",
       "submitCreating": "Création…",
-      "submitSaving": "Enregistrement…"
+      "submitSaving": "Enregistrement…",
+      "modeReservation": "Réservation",
+      "modeBlock": "Blocage",
+      "blockTitle": "Bloquer une période",
+      "blockTypeLabel": "Type",
+      "blockTypeBlocked": "Bloqué (indisponible)",
+      "blockTypeMaintenance": "Maintenance / Travaux",
+      "blockReason": "Raison (optionnel)",
+      "blockReasonPlaceholder": "Ex : séjour propriétaire, travaux plomberie…",
+      "blockSubmit": "Bloquer",
+      "blockSubmitting": "Blocage…",
+      "blockNight": "nuit bloquée",
+      "blockNights": "nuits bloquées",
+      "blockErrorRequired": "Veuillez sélectionner un logement et des dates.",
+      "blockErrorFailed": "Erreur lors du blocage"
     },
     "compliance": {
       "title": "Fiche de police",

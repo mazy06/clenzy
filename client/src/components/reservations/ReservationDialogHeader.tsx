@@ -4,15 +4,22 @@ import { Close, Home, Public as GlobeIcon, Schedule, CheckCircle } from '../../i
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ReservationStatus } from '../../services/api';
 import type { UseReservationFormResult } from './useReservationForm';
+import type { ReservationDialogEntryMode } from './ReservationDialog';
 import { SEG_WRAP_SX, segBtnSx } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
   onClose: () => void;
+  /** Mode d'entrée (création) : réservation OU blocage. */
+  entryMode: ReservationDialogEntryMode;
+  onEntryModeChange: (m: ReservationDialogEntryMode) => void;
+  /** Affiche le toggle réservation/blocage (création uniquement). */
+  showModeToggle: boolean;
 }
 
-const ReservationDialogHeader: React.FC<Props> = ({ form, onClose }) => {
+const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, onEntryModeChange, showModeToggle }) => {
   const { t } = useTranslation();
+  const isBlock = entryMode === 'block';
 
   const renderStatusIcon = (s: ReservationStatus) => {
     if (form.isEdit) return null; // segmented compact (labels seuls) en édition
@@ -45,27 +52,46 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose }) => {
           whiteSpace: 'nowrap',
         }}
       >
-        {form.headerTitle}
+        {isBlock ? t('reservations.dialog.blockTitle') : form.headerTitle}
       </Typography>
 
-      {/* Pilule canal (.rm-chan) */}
-      <Box
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          fontSize: '11px',
-          fontWeight: 700,
-          color: 'var(--accent)',
-          backgroundColor: 'var(--accent-soft)',
-          borderRadius: '20px',
-          padding: '4px 11px',
-          flexShrink: 0,
-        }}
-      >
-        <GlobeIcon size={13} strokeWidth={2} />
-        {t(`reservations.source.${form.sourceKey}`)}
-      </Box>
+      {/* Toggle réservation / blocage (création uniquement) */}
+      {showModeToggle && (
+        <Box sx={{ ...SEG_WRAP_SX, flexShrink: 0 }}>
+          {(['reservation', 'block'] as const).map((m) => (
+            <Box
+              key={m}
+              component="button"
+              type="button"
+              onClick={() => onEntryModeChange(m)}
+              sx={segBtnSx(entryMode === m)}
+            >
+              {m === 'reservation' ? t('reservations.dialog.modeReservation') : t('reservations.dialog.modeBlock')}
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {/* Pilule canal (.rm-chan) — masquée en mode blocage (pas de canal). */}
+      {!isBlock && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            fontWeight: 700,
+            color: 'var(--accent)',
+            backgroundColor: 'var(--accent-soft)',
+            borderRadius: '20px',
+            padding: '4px 11px',
+            flexShrink: 0,
+          }}
+        >
+          <GlobeIcon size={13} strokeWidth={2} />
+          {t(`reservations.source.${form.sourceKey}`)}
+        </Box>
+      )}
 
       {/* Édition : segmented STATUT (cycle de vie). Création : le statut dérive de
           l'intention de paiement, choisie à l'étape « Finalisation » du wizard. */}
@@ -80,26 +106,29 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose }) => {
         </Box>
       )}
 
-      {/* Propriété (.rm-prop) — nom seul. Le sélecteur (création libre) vit à l'étape 1. */}
-      <Box
-        sx={{
-          marginInlineStart: 'auto',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '7px',
-          fontSize: '13px',
-          fontWeight: 600,
-          color: form.propertyName ? 'var(--ink)' : 'var(--faint)',
-          minWidth: 0,
-        }}
-      >
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
-          <Home size={16} strokeWidth={1.75} />
+      {/* Propriété (.rm-prop) — nom seul, uniquement quand le logement est verrouillé.
+          En création libre, le sélecteur vit dans le corps (étape 1 / blocage) → pas de doublon. */}
+      {!form.showPropertySelector && (
+        <Box
+          sx={{
+            marginInlineStart: 'auto',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: form.propertyName ? 'var(--ink)' : 'var(--faint)',
+            minWidth: 0,
+          }}
+        >
+          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+            <Home size={16} strokeWidth={1.75} />
+          </Box>
+          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {form.propertyName || t('reservations.dialog.propertyPlaceholder')}
+          </Box>
         </Box>
-        <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {form.propertyName || t('reservations.dialog.propertyPlaceholder')}
-        </Box>
-      </Box>
+      )}
 
       {/* ✕ (.rm-x) */}
       <Box
@@ -108,6 +137,8 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose }) => {
         aria-label={t('common.cancel')}
         onClick={onClose}
         sx={{
+          // Quand le bloc logement est masqué (création libre), le X reprend le push à droite.
+          marginInlineStart: form.showPropertySelector ? 'auto' : undefined,
           width: 34,
           height: 34,
           borderRadius: '10px',

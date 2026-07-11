@@ -2239,7 +2239,21 @@
       "errorPaymentNeedsEmail": "A guest email is required to send the payment link.",
       "paymentLinkError": "Reservation created (pending), but sending the payment link failed. Retry, or send it from the reservation.",
       "submitCreating": "Creating…",
-      "submitSaving": "Saving…"
+      "submitSaving": "Saving…",
+      "modeReservation": "Reservation",
+      "modeBlock": "Block",
+      "blockTitle": "Block a period",
+      "blockTypeLabel": "Type",
+      "blockTypeBlocked": "Blocked (unavailable)",
+      "blockTypeMaintenance": "Maintenance / Works",
+      "blockReason": "Reason (optional)",
+      "blockReasonPlaceholder": "E.g. owner stay, plumbing works…",
+      "blockSubmit": "Block",
+      "blockSubmitting": "Blocking…",
+      "blockNight": "night blocked",
+      "blockNights": "nights blocked",
+      "blockErrorRequired": "Please select a property and dates.",
+      "blockErrorFailed": "Failed to block the period"
     },
     "compliance": {
       "title": "Police record",
