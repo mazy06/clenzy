@@ -34,6 +34,8 @@ export interface ReservationDialogProps {
   open: boolean;
   onClose: () => void;
   mode: 'create' | 'edit';
+  /** Mode d'entrée initial (création) : nouvelle réservation (défaut) OU blocage de période. */
+  initialMode?: 'reservation' | 'block';
   /** Propriété imposée (Planning). Absente en création → sélecteur de propriété. */
   lockedProperty?: LockedProperty;
   /** Dates présélectionnées (Planning : clic Gantt). */

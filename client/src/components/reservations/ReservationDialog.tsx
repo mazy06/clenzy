@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Box, Typography, useMediaQuery } from '@mui/material';
-import { Check, Warning as WarningIcon, ArrowBack, ArrowForward } from '../../icons';
+import { Check, ArrowBack, ArrowForward } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useReservationForm } from './useReservationForm';
 import type { ReservationDialogProps, UseReservationFormResult } from './useReservationForm';
-import { BTN_GHOST_SX, BTN_PRIMARY_SX } from './reservationDialogStyles';
+import { BTN_GHOST_SX, BTN_PRIMARY_SX, FOOT_SX } from './reservationDialogStyles';
 import ReservationDialogHeader from './ReservationDialogHeader';
 import ReservationWizardSteps from './ReservationWizardSteps';
 import PropertySelectField from './PropertySelectField';
@@ -13,53 +13,20 @@ import GuestSection from './GuestSection';
 import PricingSection from './PricingSection';
 import ExtrasSection from './ExtrasSection';
 import FinalizeStep from './FinalizeStep';
+import ConflictAlert from './ConflictAlert';
+import BlockBody from './BlockBody';
 
 export type { ReservationDialogProps, LockedProperty } from './useReservationForm';
+
+/** Mode d'entrée du dialogue (création) : nouvelle réservation OU blocage de période. */
+export type ReservationDialogEntryMode = 'reservation' | 'block';
 
 // ─── Dialogue de réservation « Signature » ────────────────────────────────────
 //
 // Orchestrateur MINCE. Logique → useReservationForm ; styles → reservationDialogStyles ;
-// rendu → sous-composants. CRÉATION = assistant 4 étapes (wizard) ; ÉDITION = écran
-// unique 2 colonnes. Soumission INTERNE : invalide planningKeys.all ET reservationsKeys.all.
-
-// ─── Alerte conflit (partagée) ────────────────────────────────────────────────
-const ConflictAlert: React.FC<{ form: UseReservationFormResult; fullWidth?: boolean }> = ({ form, fullWidth }) => {
-  const { t } = useTranslation();
-  if (!form.hasConflict) return null;
-  return (
-    <Box
-      sx={{
-        ...(fullWidth ? { gridColumn: '1 / -1', margin: '0 22px 20px' } : {}),
-        backgroundColor: 'var(--warn-soft)',
-        border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
-        borderRadius: '12px',
-        padding: '13px 16px',
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 700, color: 'var(--ink)' }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
-          <WarningIcon size={17} strokeWidth={1.75} />
-        </Box>
-        {t('reservations.dialog.conflictTitle')}
-      </Box>
-      {form.conflictWarnings.map((w, i) => (
-        <Typography key={i} sx={{ fontSize: '12.5px', color: 'var(--body)', marginTop: '4px', paddingInlineStart: '26px' }}>
-          {w}
-        </Typography>
-      ))}
-    </Box>
-  );
-};
-
-const FOOT_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  padding: '14px 22px',
-  borderTop: '1px solid var(--line)',
-  backgroundColor: 'var(--surface-2)',
-  flexShrink: 0,
-} as const;
+// rendu → sous-composants. CRÉATION = assistant 4 étapes (wizard) OU écran blocage ;
+// ÉDITION = écran unique 2 colonnes. Soumission INTERNE : invalide planningKeys.all ET
+// reservationsKeys.all.
 
 // ─── Corps édition (écran unique, 2 colonnes) ─────────────────────────────────
 const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }> = ({ form, onClose }) => {
@@ -206,11 +173,19 @@ const ReservationDialog: React.FC<ReservationDialogProps> = (props) => {
 
   // Étape du wizard (création) — remise à 1 à chaque ouverture.
   const [step, setStep] = useState(1);
+  // Mode d'entrée (création) : réservation OU blocage. Réinitialisé sur `initialMode`
+  // à chaque ouverture ; le toggle du header permet de basculer.
+  const [entryMode, setEntryMode] = useState<ReservationDialogEntryMode>(props.initialMode ?? 'reservation');
   useEffect(() => {
-    if (open) setStep(1);
-  }, [open]);
+    if (open) {
+      setStep(1);
+      setEntryMode(props.initialMode ?? 'reservation');
+    }
+  }, [open, props.initialMode]);
 
   if (props.mode === 'edit' && !props.reservation) return null;
+
+  const isBlock = isCreate && entryMode === 'block';
 
   return (
     <Dialog
@@ -241,8 +216,16 @@ const ReservationDialog: React.FC<ReservationDialogProps> = (props) => {
       }}
       slotProps={{ backdrop: { sx: { backgroundColor: 'rgba(10,18,24,.5)', backdropFilter: 'blur(3px)' } } }}
     >
-      <ReservationDialogHeader form={form} onClose={onClose} />
-      {isCreate ? (
+      <ReservationDialogHeader
+        form={form}
+        onClose={onClose}
+        entryMode={entryMode}
+        onEntryModeChange={setEntryMode}
+        showModeToggle={isCreate}
+      />
+      {isBlock ? (
+        <BlockBody form={form} onClose={onClose} />
+      ) : isCreate ? (
         <CreateWizard form={form} onClose={onClose} step={step} setStep={setStep} />
       ) : (
         <EditBody form={form} onClose={onClose} />

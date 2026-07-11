@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Box, CircularProgress, Alert, Typography, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
-import { CalendarMonth, Add, CloudDownload, Lock, Fullscreen, FullscreenExit } from '../../icons';
+import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
 import HeaderSearchField from '../../components/HeaderSearchField';
@@ -10,7 +10,6 @@ import PlanningFilterButton from './PlanningFilterButton';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
-import BlockPeriodDialog from './BlockPeriodDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
 import ICalImportModal from '../dashboard/ICalImportModal';
 import ImportSourceChooserDialog from './ImportSourceChooserDialog';
@@ -32,7 +31,7 @@ import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
 import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
 import { ACTION_PANEL_WIDTH, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
-import { formatMonthYear, toDateStr, addDays } from './utils/dateUtils';
+import { formatMonthYear } from './utils/dateUtils';
 import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent, PlanningProperty } from './types';
 import type { ReservationStatus } from '../../services/api';
@@ -60,8 +59,9 @@ const PlanningPage: React.FC = () => {
   const [icalModalOpen, setIcalModalOpen] = useState(false);
   const [channelManagerOpen, setChannelManagerOpen] = useState(false);
 
-  // Block period dialog
-  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  // Création « libre » (bouton +) : ouvre le ReservationDialog SANS logement verrouillé
+  // → le sélecteur de logement s'affiche dans le corps (Réservation ET Blocage via le toggle).
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Navigation (dates, zoom, density)
   const nav = usePlanningNavigation();
@@ -278,26 +278,13 @@ const PlanningPage: React.FC = () => {
     closeQuickCreate,
   } = usePlanningSelection(filteredEvents);
 
-  // « + Réservation » (header) : réutilise le flux quick-create existant
-  // (ReservationDialog en mode création). Le dialog est lié à UNE propriété (pas de
-  // sélecteur interne) : on préselectionne le premier logement visible avec
-  // un séjour aujourd'hui → demain ; les dates restent modifiables dans le dialog.
+  // « + Réservation » (header) : ouvre le ReservationDialog en création LIBRE — aucun
+  // logement préselectionné, l'utilisateur choisit le logement (et les dates) dans le
+  // modal, en mode Réservation ou Blocage. Les clics sur une cellule/résa continuent
+  // d'ouvrir le dialog verrouillé sur le logement concerné (via openQuickCreate).
   const handleCreateReservation = useCallback(() => {
-    const prop = filteredProperties[0] ?? properties[0];
-    if (!prop) return;
-    const today = new Date();
-    openQuickCreate({
-      propertyId: prop.id,
-      propertyName: prop.name,
-      startDate: toDateStr(today),
-      endDate: toDateStr(addDays(today, 1)),
-      nightlyPrice: prop.nightlyPrice ?? 0,
-      defaultCheckInTime: prop.defaultCheckInTime,
-      defaultCheckOutTime: prop.defaultCheckOutTime,
-      cleaningFrequency: prop.cleaningFrequency,
-      cleaningBasePrice: prop.cleaningBasePrice,
-    });
-  }, [filteredProperties, properties, openQuickCreate]);
+    setCreateOpen(true);
+  }, []);
 
   // Handle event click: SR blocks redirect to linked reservation's Paiement tab
   const handleEventClick = useCallback((event: PlanningEvent) => {
@@ -606,14 +593,6 @@ const PlanningPage: React.FC = () => {
                   activeStatuses={activeStatuses}
                   onToggleStatus={toggleStatus}
                 />
-                <Tooltip title="Bloquer une période (indisponible)" arrow>
-                  <IconButton
-                    aria-label="Bloquer une période"
-                    onClick={() => setBlockDialogOpen(true)}
-                  >
-                    <Lock size={18} strokeWidth={1.75} />
-                  </IconButton>
-                </Tooltip>
                 <Tooltip title={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'} arrow>
                   <IconButton
                     aria-label={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
@@ -833,11 +812,16 @@ const PlanningPage: React.FC = () => {
         onGuestCardAutoOpenHandled={() => setAutoOpenGuestCardReservationId(null)}
       />
 
-      {/* Quick Create Dialog */}
+      {/* Quick Create Dialog — création verrouillée (clic cellule/résa) OU création libre
+          (bouton +, sélecteur de logement dans le corps). Sert aussi le mode « Blocage »
+          via le toggle interne Réservation/Blocage (le blocage de période a fusionné ici). */}
       <ReservationDialog
         mode="create"
-        open={!!quickCreateData}
-        onClose={closeQuickCreate}
+        open={!!quickCreateData || createOpen}
+        onClose={() => {
+          closeQuickCreate();
+          setCreateOpen(false);
+        }}
         lockedProperty={
           quickCreateData
             ? {
@@ -875,16 +859,6 @@ const PlanningPage: React.FC = () => {
 
       {/* Channel Manager : même modale guidée Channex que le bouton du Dashboard */}
       <ChannexMappingDialog open={channelManagerOpen} guided onClose={() => setChannelManagerOpen(false)} />
-
-      {/* Block Period Dialog */}
-      <BlockPeriodDialog
-        open={blockDialogOpen}
-        onClose={() => setBlockDialogOpen(false)}
-        propertyId={null}
-        startDate={null}
-        endDate={null}
-        properties={properties}
-      />
     </Box>
   );
 };

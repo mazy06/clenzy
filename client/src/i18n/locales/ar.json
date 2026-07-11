@@ -2238,7 +2238,21 @@
       "errorPaymentNeedsEmail": "بريد الضيف الإلكتروني مطلوب لإرسال رابط الدفع.",
       "paymentLinkError": "تم إنشاء الحجز (معلّق)، لكن فشل إرسال رابط الدفع. أعد المحاولة أو أرسله من الحجز.",
       "submitCreating": "جارٍ الإنشاء…",
-      "submitSaving": "جارٍ الحفظ…"
+      "submitSaving": "جارٍ الحفظ…",
+      "modeReservation": "حجز",
+      "modeBlock": "حظر",
+      "blockTitle": "حظر فترة",
+      "blockTypeLabel": "النوع",
+      "blockTypeBlocked": "محظور (غير متاح)",
+      "blockTypeMaintenance": "صيانة / أعمال",
+      "blockReason": "السبب (اختياري)",
+      "blockReasonPlaceholder": "مثال: إقامة المالك، أعمال سباكة…",
+      "blockSubmit": "حظر",
+      "blockSubmitting": "جارٍ الحظر…",
+      "blockNight": "ليلة محظورة",
+      "blockNights": "ليالٍ محظورة",
+      "blockErrorRequired": "يرجى اختيار عقار وتواريخ.",
+      "blockErrorFailed": "فشل حظر الفترة"
     },
     "compliance": {
       "title": "بطاقة الشرطة",
