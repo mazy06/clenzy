@@ -11,7 +11,7 @@
    métier ici : présentation pure, swappable.
    ============================================================ */
 
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
@@ -154,31 +154,29 @@ const Root = styled.div<{ $flush?: boolean }>`
     stroke-width: 1.2;
     stroke-dasharray: 1 7;
   }
+  /* PERF : pas de filter: drop-shadow sur les faisceaux — ils vivent dans la
+     couche en ROTATION continue, le filtre repeignait la zone à chaque frame
+     (audit perf). Le halo est rendu par un léger épaississement du trait. */
   .wire.think {
     stroke: #9b9bf0;
-    stroke-width: 2;
+    stroke-width: 2.2;
     stroke-dasharray: 4 5;
-    filter: drop-shadow(0 0 4px rgba(124, 124, 236, 0.5));
   }
   .wire.act {
     stroke: #37d98a;
-    stroke-width: 2.4;
-    filter: drop-shadow(0 0 5px rgba(55, 217, 138, 0.5));
+    stroke-width: 2.6;
   }
   .wire.wait {
     stroke: #f0b24b;
-    stroke-width: 2.2;
-    filter: drop-shadow(0 0 5px rgba(240, 178, 75, 0.5));
+    stroke-width: 2.4;
   }
   .wire.esc {
     stroke: #ff5a5f;
-    stroke-width: 2.2;
-    filter: drop-shadow(0 0 5px rgba(255, 90, 95, 0.5));
+    stroke-width: 2.4;
   }
   .wire.err {
     stroke: #dc2626;
-    stroke-width: 2.4;
-    filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.55));
+    stroke-width: 2.6;
   }
   /* flux animé : paquet qui file du cœur vers l'agent (délégation en direct) */
   .wire-flow {
@@ -380,12 +378,14 @@ const Root = styled.div<{ $flush?: boolean }>`
     font-size: 11.5px;
     font-weight: 700;
     color: #e7e9fb;
-    background: rgba(255, 255, 255, 0.09);
+    /* PERF : pas de backdrop-filter ici — ces labels ORBITENT en continu, un
+       blur forçait la re-rasterisation du fond à chaque frame (jank constaté à
+       l'audit). Plaque semi-opaque plate à la place. */
+    background: rgba(30, 34, 72, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.07);
     padding: 3px 10px;
     border-radius: 8px;
     white-space: nowrap;
-    backdrop-filter: blur(4px);
   }
   .sat:not(.on) .sat__nm {
     color: #c2c7ea;
@@ -517,11 +517,12 @@ const Root = styled.div<{ $flush?: boolean }>`
   }
   .cst__hud {
     position: relative;
-    background: rgba(20, 24, 58, 0.66);
+    /* PERF : pas de backdrop-filter — le HUD recouvre la constellation animée,
+       un blur re-rasterisait le canvas à chaque frame. Fond quasi opaque. */
+    background: rgba(20, 24, 58, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 13px;
     padding: 11px 15px;
-    backdrop-filter: blur(8px);
     box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.6);
     flex-shrink: 0;
   }
@@ -881,7 +882,7 @@ const Root = styled.div<{ $flush?: boolean }>`
   }
   html:not([data-theme='dark']) & .sat__nm {
     color: #2b3a44;
-    background: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.92);
     border-color: rgba(43, 63, 73, 0.1);
   }
   html:not([data-theme='dark']) & .sat:not(.on) .sat__nm {
@@ -987,7 +988,7 @@ const REPORT_WINDOWS: { days: number; key: string; fallback: string }[] = [
   { days: 30, key: 'supervision.report.win.month', fallback: 'Mois' },
 ];
 
-export function FramerConstellation({
+function FramerConstellationInner({
   agents,
   hud,
   online,
@@ -1338,3 +1339,10 @@ export function FramerConstellation({
     </Root>
   );
 }
+
+/**
+ * Mémoïsé (audit perf) : le renderer est le plus gros sous-arbre du panneau —
+ * sans memo, chaque re-render du parent (report chargé, event SSE sans lien
+ * avec les agents, toast) redessinait tout le canvas (layout géométrique inclus).
+ */
+export const FramerConstellation = memo(FramerConstellationInner);

@@ -79,7 +79,7 @@ interface PendingActionDtoShape {
 
 /** Réponse de GET /api/ai/supervision/activity/{id} (feed + métriques réels). */
 interface ActivitySnapshotShape {
-  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string; messageLogId?: number | null }>;
+  feed: Array<{ id: string; agentId: string; at: string; text: string; toolName?: string; messageLogId?: number | null; invoiceId?: number | null }>;
   autoActions: number;
 }
 
@@ -186,6 +186,10 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
   private polling = false;
   /** Flux SSE temps réel du feed/résolutions (T6/B6), hors run. */
   private eventStream: AbortController | null = null;
+  /** true tant que le flux SSE est connecté → le poll complet s'espace (fallback). */
+  private streamHealthy = false;
+  /** Horodatage du dernier snapshot complet (throttle du poll quand le SSE est sain). */
+  private lastFullRefreshAt = 0;
 
   constructor(
     private readonly propertyId: string,
@@ -203,6 +207,47 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    * Le reste (feed, activité) se construit ensuite par les StreamEvents du moteur.
    */
   async getSnapshot(): Promise<OrchestratorSnapshot> {
+    // Rendu en DEUX TEMPS (audit perf accordéon) : la constellation s'affiche
+    // immédiatement sur le roster statique — l'ancien Promise.all des 6 fetches
+    // bloquait le skeleton jusqu'au plus lent. Les données réelles (file HITL,
+    // feed, suggestions, autonomie) arrivent juste derrière via
+    // `snapshot.refreshed` (pipeline existant du poll).
+    const base = buildPropertySnapshot(this.propertyId, 'calm');
+    void this.hydrateInBackground();
+    this.ensurePolling();
+    this.ensureEventStream();
+    return {
+      ...base,
+      online: true,
+      paused: false,
+      pending: [],
+      feed: [],
+      agents: base.agents.map((a) => ({
+        ...a,
+        status: 'veille' as const,
+        task: null,
+        reservationId: null,
+        metrics: [],
+      })),
+      dayMetrics: { timeSaved: '—', autoActions: 0, awaiting: 0 },
+      summary: 'Connexion au moteur multi-agent…',
+    };
+  }
+
+  /** Hydratation différée du snapshot réel, poussée via `snapshot.refreshed`. */
+  private async hydrateInBackground(): Promise<void> {
+    try {
+      const next = await this.buildFullSnapshot();
+      if (!this.disposed && !this.runActive) {
+        this.emit({ type: 'snapshot.refreshed', snapshot: next });
+      }
+    } catch {
+      // buildFullSnapshot est tolérant aux pannes ; on ignore tout résidu.
+    }
+  }
+
+  /** Snapshot COMPLET (6 fetches parallèles + assemblage) — chemin du poll et de l'hydratation. */
+  private async buildFullSnapshot(): Promise<OrchestratorSnapshot> {
     const base = buildPropertySnapshot(this.propertyId, 'calm');
     const [hitlPending, activity, suggestions, payoutReminder, unpaidSrCards, autonomy] = await Promise.all([
       this.fetchPending(),
@@ -299,11 +344,10 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       text: e.text,
       toolName: e.toolName,
       ...(e.messageLogId != null ? { messageLogId: e.messageLogId } : {}),
+      ...(e.invoiceId != null ? { invoiceId: e.invoiceId } : {}),
     }));
 
-    // Démarre (une seule fois) le rafraîchissement périodique + le flux SSE temps réel.
-    this.ensurePolling();
-    this.ensureEventStream();
+    this.lastFullRefreshAt = Date.now();
 
     const awaiting = hitlPending.length + pendingQueue.length;
     return {
@@ -677,6 +721,7 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
         signal,
       });
       if (!response.ok || !response.body) return;
+      this.streamHealthy = true;
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -692,6 +737,8 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
       }
     } catch {
       // abandon volontaire (dispose) ou perte réseau → le polling 30 s prend le relais
+    } finally {
+      this.streamHealthy = false;
     }
   }
 
@@ -719,14 +766,20 @@ export class AgUiSupervisionProvider implements SupervisionProvider<Orchestrator
    */
   private async pollRefresh(): Promise<void> {
     if (this.disposed || this.runActive || this.polling) return;
+    // SSE sain → le direct est déjà couvert (feed, résolutions) : le re-fetch
+    // complet (6 requêtes) devient un simple filet de sécurité espacé à 2 min
+    // (nouvelles suggestions produites par les scans autonomes). SSE perdu →
+    // le poll 30 s redevient le baseline (comportement historique).
+    const minInterval = this.streamHealthy ? 4 * POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+    if (Date.now() - this.lastFullRefreshAt < minInterval) return;
     this.polling = true;
     try {
-      const next = await this.getSnapshot();
+      const next = await this.buildFullSnapshot();
       if (!this.disposed && !this.runActive) {
         this.emit({ type: 'snapshot.refreshed', snapshot: next });
       }
     } catch {
-      // getSnapshot est déjà tolérant aux pannes ; on ignore tout résidu.
+      // buildFullSnapshot est déjà tolérant aux pannes ; on ignore tout résidu.
     } finally {
       this.polling = false;
     }

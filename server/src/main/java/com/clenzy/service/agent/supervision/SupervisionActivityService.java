@@ -32,9 +32,6 @@ public class SupervisionActivityService {
 
     private static final Logger log = LoggerFactory.getLogger(SupervisionActivityService.class);
     private static final int FEED_LIMIT = 20;
-    // Fenêtre élargie côté requête : on filtre ensuite les entrées read-only
-    // (héritage) pour garantir jusqu'à FEED_LIMIT vraies actions au rendu.
-    private static final int FEED_FETCH_LIMIT = 200;
     private static final Duration AUTO_ACTIONS_WINDOW = Duration.ofHours(24);
 
     private final SupervisionActivityRepository activityRepository;
@@ -142,7 +139,7 @@ public class SupervisionActivityService {
     @Transactional
     public void recordModuleAct(Long organizationId, Long propertyId, String moduleKey,
                                 String toolName, String summary) {
-        recordModuleAct(organizationId, propertyId, moduleKey, toolName, summary, null);
+        recordModuleAct(organizationId, propertyId, moduleKey, toolName, summary, null, null);
     }
 
     /**
@@ -154,6 +151,17 @@ public class SupervisionActivityService {
     @Transactional
     public void recordModuleAct(Long organizationId, Long propertyId, String moduleKey,
                                 String toolName, String summary, Long messageLogId) {
+        recordModuleAct(organizationId, propertyId, moduleKey, toolName, summary, messageLogId, null);
+    }
+
+    /**
+     * Variante complète : rattache en plus une référence de facture ({@code invoiceId},
+     * relances de paiement) — le feed ouvre alors la modale de détail facture
+     * (payer / envoyer un lien de paiement). Références null = variante courte.
+     */
+    @Transactional
+    public void recordModuleAct(Long organizationId, Long propertyId, String moduleKey,
+                                String toolName, String summary, Long messageLogId, Long invoiceId) {
         if (organizationId == null || propertyId == null || moduleKey == null) {
             return;
         }
@@ -162,10 +170,11 @@ public class SupervisionActivityService {
                     organizationId, propertyId, moduleKey,
                     SupervisionActivity.KIND_ACT, toolName, summary);
             activity.setMessageLogId(messageLogId);
+            activity.setInvoiceId(invoiceId);
             SupervisionActivity saved = activityRepository.save(activity);
             // Temps réel (T6) : pousse l'entrée aux opérateurs connectés (best-effort).
             realtimePublisher.publishFeedAdded(propertyId, saved.getId(), moduleKey, toolName,
-                    summary, saved.getCreatedAt(), messageLogId);
+                    summary, saved.getCreatedAt(), messageLogId, invoiceId);
         } catch (Exception e) {
             log.debug("supervision activity record failed (module={} prop={}): {}",
                     moduleKey, propertyId, e.getMessage());
@@ -185,6 +194,19 @@ public class SupervisionActivityService {
         recordModuleAct(organizationId, propertyId, moduleKey, toolName, summary);
     }
 
+    /**
+     * Contrôle d'accès LÉGER pour le flux SSE : ownership org sans recalculer le
+     * feed (l'ancien appel à {@link #getSnapshot} recomptait 200 lignes + un count
+     * uniquement pour valider l'accès — audit perf accordéon). Même tolérance que
+     * getSnapshot : propriété inconnue → no-op (le flux ne diffusera rien).
+     */
+    @Transactional(readOnly = true)
+    public void requirePropertyAccess(Long propertyId) {
+        propertyRepository.findById(propertyId).ifPresent(property ->
+                organizationAccessGuard.requireSameOrganization(
+                        property.getOrganizationId(), "Propriété hors de votre organisation"));
+    }
+
     /** Feed + compteur d'actions d'une propriété (ownership-checked). */
     @Transactional(readOnly = true)
     public SupervisionActivitySnapshotDto getSnapshot(Long propertyId) {
@@ -197,16 +219,17 @@ public class SupervisionActivityService {
                 property.getOrganizationId(), "Propriété hors de votre organisation");
 
         Long orgId = property.getOrganizationId();
-        // On récupère une fenêtre plus large puis on MASQUE les entrées d'outils
-        // read-only déjà présentes en base (héritage d'avant le filtre d'écriture) :
-        // le feed « En direct » ne montre que de vraies actions. Les entrées
-        // d'automatisation (tool_name non répertorié) sont conservées.
-        List<SupervisionFeedEntryDto> feed = activityRepository
-                .findByOrganizationIdAndPropertyIdOrderByCreatedAtDesc(
-                        orgId, propertyId, PageRequest.of(0, FEED_FETCH_LIMIT))
-                .stream()
-                .filter(a -> !isReadOnlyTool(a.getToolName()))
-                .limit(FEED_LIMIT)
+        // Les entrées d'outils read-only (héritage d'avant le filtre d'écriture)
+        // sont MASQUÉES en SQL (le feed « En direct » ne montre que de vraies
+        // actions) ; les entrées d'automatisation (tool_name absent/inconnu) sont
+        // conservées. Avant : fetch de 200 lignes filtré en mémoire (audit perf).
+        List<String> readOnlyTools = readOnlyToolNames();
+        List<SupervisionActivity> rows = readOnlyTools.isEmpty()
+                ? activityRepository.findByOrganizationIdAndPropertyIdOrderByCreatedAtDesc(
+                        orgId, propertyId, PageRequest.of(0, FEED_LIMIT))
+                : activityRepository.findFeedExcludingTools(
+                        orgId, propertyId, readOnlyTools, PageRequest.of(0, FEED_LIMIT));
+        List<SupervisionFeedEntryDto> feed = rows.stream()
                 .map(this::toFeedEntry)
                 .toList();
 
@@ -215,6 +238,14 @@ public class SupervisionActivityService {
                 Instant.now().minus(AUTO_ACTIONS_WINDOW));
 
         return new SupervisionActivitySnapshotDto(feed, (int) autoActions);
+    }
+
+    /** Noms des outils de LECTURE du registre (exclus du feed en SQL). */
+    private List<String> readOnlyToolNames() {
+        return toolRegistry.listDescriptors().stream()
+                .filter(d -> !d.requiresConfirmation())
+                .map(com.clenzy.config.ai.ToolDescriptor::name)
+                .toList();
     }
 
     private SupervisionFeedEntryDto toFeedEntry(SupervisionActivity a) {
@@ -227,7 +258,8 @@ public class SupervisionActivityService {
                 a.getCreatedAt() != null ? a.getCreatedAt().toString() : Instant.now().toString(),
                 text,
                 a.getToolName(),
-                a.getMessageLogId());
+                a.getMessageLogId(),
+                a.getInvoiceId());
     }
 
     /** snake_case → libellé court lisible ; repli sur le module si vide. */

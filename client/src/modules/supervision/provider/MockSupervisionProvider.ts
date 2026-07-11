@@ -86,7 +86,10 @@ export class MockSupervisionProvider implements SupervisionProvider<Orchestrator
 
   getSnapshot(): Promise<OrchestratorSnapshot> {
     const snapshot = buildPropertySnapshot(this.propertyId, this.scenario);
-    const latency = this.options.latencyMs ?? 600;
+    // Latence simulée COURTE : elle mime un aller-retour réseau pour exercer le
+    // skeleton, sans pénaliser l'ouverture de l'accordéon (600 ms auparavant —
+    // ressenti « lent » pointé par l'audit perf).
+    const latency = this.options.latencyMs ?? 120;
     if (latency <= 0) return Promise.resolve(snapshot);
     return new Promise((resolve) => this.hub.after(latency, () => resolve(snapshot)));
   }

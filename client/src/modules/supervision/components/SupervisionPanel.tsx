@@ -133,13 +133,100 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
     return agent ? { id: agent.id, status: agent.status, task: agent.task ?? '', items: [], metrics: agent.metrics } : null;
   }, [selected, snapshot]);
 
+  // Narrow explicite : les champs conversation/pendingAction n'existent que sur
+  // le snapshot par logement (OrchestratorSnapshot). Calculé AVANT l'early
+  // return : les useMemo ci-dessous en dépendent (Rules of Hooks).
+  const propertySnapshot = snapshot && snapshot.scope === 'property' ? snapshot : null;
+
+  // Props STABILISÉES (audit perf) : ces objets/éléments étaient recréés inline à
+  // chaque render du panneau et cassaient le memo de tout le sous-arbre
+  // constellation (FramerConstellation, ActivityFeed).
+  const hudReport = useMemo(
+    () =>
+      report
+        ? {
+            windowDays: report.windowDays,
+            autoActions: report.autoActions,
+            acceptanceRate: report.acceptanceRate,
+            estimatedTimeSaved: report.estimatedTimeSaved,
+          }
+        : undefined,
+    [report],
+  );
+
+  const headerAction = useMemo(
+    () =>
+      canKickoff && propertyId != null ? (
+        <Tooltip
+          title={scanning ? t('supervision.scan.running', 'Scan en cours…') : t('supervision.scan.button', 'Scanner')}
+          arrow
+        >
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleScan}
+              disabled={scanning}
+              aria-label={t('supervision.scan.button', 'Scanner')}
+              sx={{
+                width: 26,
+                height: 26,
+                color: 'var(--accent)',
+                '&:hover': { bgcolor: 'var(--accent-soft)' },
+              }}
+            >
+              {scanning ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Radar size={16} />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      ) : undefined,
+    [canKickoff, propertyId, scanning, handleScan, t],
+  );
+
+  const feed = propertySnapshot?.feed;
+  const belowHud = useMemo(
+    () =>
+      feed ? (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            bgcolor: 'var(--card)',
+            border: '1px solid var(--line)',
+            borderRadius: '13px',
+            boxShadow: '0 10px 28px -18px rgba(0, 0, 0, 0.35)',
+            overflow: 'hidden',
+          }}
+        >
+          <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75, fontWeight: 800, fontSize: 12.5, color: 'var(--ink)' }}>
+            {t('supervision.feed.title')}
+          </Box>
+          {/* data-vertical-scroll : le planning ne détourne PAS la molette
+              au-dessus de cette zone (cf. useInfiniteTimeline) ; overscroll
+              contain : le scroll ne chaîne pas non plus à la page au bord. */}
+          <Box
+            data-vertical-scroll
+            sx={{ px: 1, pb: 1, overflowY: 'auto', minHeight: 0, overscrollBehavior: 'contain' }}
+          >
+            {feed.length > 0 ? (
+              <ActivityFeed entries={feed} />
+            ) : (
+              <Box sx={{ px: 1, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                {t(
+                  'supervision.feed.emptyOnboarding',
+                  'Les agents observent ce logement. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
+                )}
+              </Box>
+            )}
+          </Box>
+        </Box>
+      ) : undefined,
+    [feed, t],
+  );
+
   if (status === 'loading' || !snapshot) {
     return <ConstellationSkeleton flush={flush} />;
   }
-
-  // Narrow explicite : les champs conversation/pendingAction n'existent que sur
-  // le snapshot par logement (OrchestratorSnapshot).
-  const propertySnapshot = snapshot.scope === 'property' ? snapshot : null;
 
   return (
     <Box
@@ -164,81 +251,11 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         online={status === 'live'}
         flush={flush}
         onSelectAgent={handleSelect}
-        report={
-          report
-            ? {
-                windowDays: report.windowDays,
-                autoActions: report.autoActions,
-                acceptanceRate: report.acceptanceRate,
-                estimatedTimeSaved: report.estimatedTimeSaved,
-              }
-            : undefined
-        }
+        report={hudReport}
         reportWindow={reportWindow}
         onReportWindowChange={setReportWindow}
-        headerAction={
-          canKickoff && propertyId != null ? (
-            <Tooltip
-              title={scanning ? t('supervision.scan.running', 'Scan en cours…') : t('supervision.scan.button', 'Scanner')}
-              arrow
-            >
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={handleScan}
-                  disabled={scanning}
-                  aria-label={t('supervision.scan.button', 'Scanner')}
-                  sx={{
-                    width: 26,
-                    height: 26,
-                    color: 'var(--accent)',
-                    '&:hover': { bgcolor: 'var(--accent-soft)' },
-                  }}
-                >
-                  {scanning ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Radar size={16} />}
-                </IconButton>
-              </span>
-            </Tooltip>
-          ) : undefined
-        }
-        belowHud={
-          propertySnapshot ? (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0,
-                bgcolor: 'var(--card)',
-                border: '1px solid var(--line)',
-                borderRadius: '13px',
-                boxShadow: '0 10px 28px -18px rgba(0, 0, 0, 0.35)',
-                overflow: 'hidden',
-              }}
-            >
-              <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75, fontWeight: 800, fontSize: 12.5, color: 'var(--ink)' }}>
-                {t('supervision.feed.title')}
-              </Box>
-              {/* data-vertical-scroll : le planning ne détourne PAS la molette
-                  au-dessus de cette zone (cf. useInfiniteTimeline) ; overscroll
-                  contain : le scroll ne chaîne pas non plus à la page au bord. */}
-              <Box
-                data-vertical-scroll
-                sx={{ px: 1, pb: 1, overflowY: 'auto', minHeight: 0, overscrollBehavior: 'contain' }}
-              >
-                {propertySnapshot.feed.length > 0 ? (
-                  <ActivityFeed entries={propertySnapshot.feed} />
-                ) : (
-                  <Box sx={{ px: 1, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-                    {t(
-                      'supervision.feed.emptyOnboarding',
-                      'Les agents observent ce logement. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
-                    )}
-                  </Box>
-                )}
-              </Box>
-            </Box>
-          ) : undefined
-        }
+        headerAction={headerAction}
+        belowHud={belowHud}
       />
 
       {/* Entrée de chat opérateur (chemin live) : un message déclenche un run du
