@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import keycloak, { keycloakInitPromise, eagerMePromise, syncAuthCookie } from '../keycloak';
 import { API_CONFIG } from '../config/api';
-import { clearTokenCookie } from '../services/apiClient';
+import { clearTokenCookie, refreshSession } from '../services/apiClient';
 import PermissionSyncService from '../services/PermissionSyncService';
 import { clearTokens, clearSessionCookie } from '../services/storageService';
 import { idbCache } from '../services/indexedDbCache';
@@ -220,15 +220,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userData = await response.json();
           await applyMeData(userData);
         } else if (response.status === 400 || response.status === 401) {
-          // Erreur d'auth : tenter un refresh, sinon logout
+          // Erreur d'auth : tenter un refresh, sinon logout.
+          // refreshSession couvre les DEUX chemins : refresh token JS si dispo,
+          // sinon renouvellement cote serveur via le cookie HttpOnly clenzy_refresh
+          // (mode degrade apres un hard refresh — c'etait le trou historique :
+          // sans keycloak.refreshToken, aucun refresh n'etait tente).
           try {
-            if (keycloak.refreshToken) {
-              const refreshed = await keycloak.updateToken(30);
-              if (refreshed && keycloak.token) {
-                syncAuthCookie().catch(() => { /* best-effort */ });
-                await loadUserFromKeycloak();
-                return;
-              }
+            const refreshed = await refreshSession();
+            if (refreshed) {
+              await loadUserFromKeycloak();
+              return;
             }
           } catch (refreshError) {
             console.error('AuthProvider - Erreur lors du rafraîchissement du token:', refreshError);

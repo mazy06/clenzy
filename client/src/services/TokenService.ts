@@ -1,6 +1,6 @@
 import Keycloak from 'keycloak-js';
 import keycloak from '../keycloak';
-import apiClient, { type ApiError, syncTokenCookie } from './apiClient';
+import apiClient, { type ApiError, syncTokenCookie, refreshSession } from './apiClient';
 import storageService, { STORAGE_KEYS, setSessionCookie } from './storageService';
 
 // Types pour les événements de token
@@ -252,11 +252,13 @@ class TokenService {
       // cascade dans handleTokenExpired() (line 170 → keycloak.logout()) →
       // onAuthLogout → handleGlobalLogout() → window.location = /login.
       //
-      // Tant que le refresh token n'est pas dans le cookie, on traite l'absence
-      // comme "pas de refresh possible" en succes silencieux (le token actuel
-      // reste valide jusqu'a son expiration naturelle ~1h, l'user fera un re-login
-      // a ce moment-la). C'est une degradation gracieuse, pas un logout force.
+      // Mode degrade (hard refresh) : pas de refresh token JS. Depuis le pattern
+      // BFF, un cookie HttpOnly clenzy_refresh permet un renouvellement cote
+      // serveur — on le tente ici. Qu'il aboutisse ou non, on ne force PAS le
+      // logout (le 401 d'une requete API reelle pilotera la suite) : succes
+      // silencieux conserve, degradation gracieuse.
       if (!keycloak.refreshToken) {
+        await refreshSession().catch(() => false);
         return { success: true };
       }
 
