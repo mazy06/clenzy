@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
@@ -12,22 +12,31 @@ import { usePostHogIdentify, usePostHogPageTracking } from '../providers/PostHog
 import { useCrispIdentify } from '../hooks/useCrispIdentify';
 import Login from './auth/Login';
 import Inscription from './auth/Inscription';
-import InscriptionSuccess from './auth/InscriptionSuccess';
-import InscriptionConfirm from './auth/InscriptionConfirm';
-import Support from './auth/Support';
-import Cgu from './legal/Cgu';
-import Privacy from './legal/Privacy';
-import AcceptInvitationPage from './invitations/AcceptInvitationPage';
-import PublicKeyVerification from '../pages/PublicKeyVerification';
-import PublicGuide from './welcome-guide/PublicGuide';
-import PublicOwnerConstellation from './owner-portal/PublicOwnerConstellation';
-import ContractSignPage from './contracts/public/ContractSignPage';
-import PublicBookingPage from './booking-engine/public/PublicBookingPage';
-import { SupervisionDemo } from './supervision';
-import CancelBookingPage from './booking-engine/public/CancelBookingPage';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
+import RouteFallback from '../components/RouteFallback';
 import { clearTokens } from '../services/storageService';
+
+// Pages publiques secondaires : lazy (code-splitting). Elles n'ont aucune raison
+// d'être dans le bundle d'entrée des utilisateurs authentifiés du PMS —
+// PublicBookingPage tire tout le SDK booking, PublicGuide tire mapbox-gl,
+// SupervisionDemo tire le module supervision + framer-motion. Seuls Login et
+// Inscription restent statiques (chemin d'auth chaud).
+const InscriptionSuccess = lazy(() => import('./auth/InscriptionSuccess'));
+const InscriptionConfirm = lazy(() => import('./auth/InscriptionConfirm'));
+const Support = lazy(() => import('./auth/Support'));
+const Cgu = lazy(() => import('./legal/Cgu'));
+const Privacy = lazy(() => import('./legal/Privacy'));
+const AcceptInvitationPage = lazy(() => import('./invitations/AcceptInvitationPage'));
+const PublicKeyVerification = lazy(() => import('../pages/PublicKeyVerification'));
+const PublicGuide = lazy(() => import('./welcome-guide/PublicGuide'));
+const PublicOwnerConstellation = lazy(() => import('./owner-portal/PublicOwnerConstellation'));
+const ContractSignPage = lazy(() => import('./contracts/public/ContractSignPage'));
+const PublicBookingPage = lazy(() => import('./booking-engine/public/PublicBookingPage'));
+const CancelBookingPage = lazy(() => import('./booking-engine/public/CancelBookingPage'));
+const SupervisionDemo = lazy(() =>
+  import('./supervision/components/SupervisionDemo').then((m) => ({ default: m.SupervisionDemo })),
+);
 
 /**
  * URL de redirection /login avec cache-buster timestamp. Indispensable car
@@ -296,6 +305,8 @@ const App: React.FC = () => {
   return (
     <CustomPermissionsProvider>
       <UserUiPreferencesProvider>
+        {/* Frontière Suspense des pages publiques lazy (AuthenticatedApp a la sienne). */}
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           {/* Route publique pour le login */}
           <Route
@@ -405,6 +416,7 @@ const App: React.FC = () => {
           } 
         />
         </Routes>
+        </Suspense>
       </UserUiPreferencesProvider>
     </CustomPermissionsProvider>
   );

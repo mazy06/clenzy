@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, ListItemButton, Tooltip, useTheme } from '@mui/material';
 import type { MenuItem } from '../hooks/useNavigationMenu';
+import { prefetchRoute } from '../modules/routePrefetch';
 
 interface SidebarNavItemProps {
   item: MenuItem;
@@ -68,6 +69,10 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
   const content = (
     <ListItemButton
       onClick={() => onClick(item.path)}
+      // Précharge le chunk de la page dès l'intention de navigation (survol /
+      // focus clavier) : le clic n'attend plus le téléchargement du chunk.
+      onMouseEnter={() => prefetchRoute(item.path)}
+      onFocus={() => prefetchRoute(item.path)}
       sx={{
         height: 36,
         minHeight: 36,

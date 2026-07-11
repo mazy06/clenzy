@@ -87,9 +87,17 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     replaysOnErrorSampleRate: 1.0,
     integrations: [
       Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration(),
     ],
   });
+  // Session Replay : intégration lourde (instrumentation DOM complète) —
+  // ajoutée à l'idle pour ne pas peser sur le boot (audit perf). Les erreurs
+  // survenant avant l'ajout sont capturées normalement, sans replay associé.
+  const addReplay = () => Sentry.addIntegration(Sentry.replayIntegration());
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(addReplay, { timeout: 10_000 });
+  } else {
+    window.setTimeout(addReplay, 3_000);
+  }
 }
 
 // ─── PostHog — Product analytics & session replay ────────────────────────────

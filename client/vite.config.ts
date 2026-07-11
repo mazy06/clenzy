@@ -163,6 +163,7 @@ export default defineConfig({
           'vendor-stripe': ['@stripe/react-stripe-js', '@stripe/stripe-js'],
           'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/modifiers', '@dnd-kit/utilities'],
           'vendor-map': ['mapbox-gl'],
+          'vendor-motion': ['framer-motion'],
         },
       },
     },

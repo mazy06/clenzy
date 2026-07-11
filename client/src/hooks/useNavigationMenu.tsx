@@ -23,11 +23,12 @@ import {
   type HubAccess,
   type HubDef,
 } from '../config/navigationHubs';
-import {
-  useCanSuperviseAgents,
-  useSupervisionConfig,
-  useSupervisionPendingCounts,
-} from '../modules/supervision';
+// Imports PROFONDS (pas le barrel '../modules/supervision') : ce hook est monté
+// globalement via la sidebar — passer par le barrel tirerait tout le module
+// supervision (constellation + framer-motion) dans le chunk chargé partout.
+import { useCanSuperviseAgents } from '../modules/supervision/useCanSuperviseAgents';
+import { useSupervisionConfig } from '../modules/supervision/useSupervisionConfig';
+import { useSupervisionPendingCounts } from '../modules/supervision/useSupervisionPendingCounts';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
