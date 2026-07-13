@@ -383,7 +383,7 @@ class PaymentControllerTest {
             ResponseEntity<?> response = controller.createEmbeddedPaymentSession(request, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(400);
-            verify(stripeService, never()).createEmbeddedCheckoutSession(anyLong(), any(), anyString());
+            verify(orchestrationService, never()).initiatePayment(any(com.clenzy.dto.PaymentOrchestrationRequest.class));
         }
 
         @Test
@@ -397,7 +397,7 @@ class PaymentControllerTest {
 
             assertThatThrownBy(() -> controller.createEmbeddedPaymentSession(request, jwt))
                     .isInstanceOf(AccessDeniedException.class);
-            verify(stripeService, never()).createEmbeddedCheckoutSession(anyLong(), any(), anyString());
+            verify(orchestrationService, never()).initiatePayment(any(com.clenzy.dto.PaymentOrchestrationRequest.class));
         }
     }
 
