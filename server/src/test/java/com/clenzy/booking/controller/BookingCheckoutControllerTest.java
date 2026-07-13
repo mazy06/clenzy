@@ -8,15 +8,19 @@ import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.service.BookingCheckoutQuoteService;
 import com.clenzy.booking.service.BookingServiceOptionsService;
 import com.clenzy.booking.service.PublicBookingService;
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.model.Organization;
+import com.clenzy.model.PaymentProviderType;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
+import com.clenzy.payment.PaymentResult;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.service.PaymentOrchestrationService;
 import com.stripe.exception.ApiException;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
-import com.stripe.param.checkout.SessionCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -59,6 +63,7 @@ class BookingCheckoutControllerTest {
     @Mock private PublicBookingService publicBookingService;
     @Mock private com.clenzy.booking.security.BookingPublicRateLimiter rateLimiter;
     @Mock private com.clenzy.booking.service.BookingPaymentPolicyService paymentPolicyService;
+    @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private jakarta.servlet.http.HttpServletRequest httpRequest;
 
     private BookingCheckoutController controller;
@@ -69,12 +74,24 @@ class BookingCheckoutControllerTest {
         // pour conserver la couverture bout-en-bout (stubs/verify inchanges).
         BookingCheckoutQuoteService quoteService = new BookingCheckoutQuoteService(
             propertyRepository, serviceOptionsService, publicBookingService);
-        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter, paymentPolicyService);
+        controller = new BookingCheckoutController(quoteService, publicBookingService, rateLimiter,
+            paymentPolicyService, orchestrationService);
         setField("stripeSecretKey", "sk_test_xxx");
         setField("currency", "eur");
         org.mockito.Mockito.lenient().when(rateLimiter.tryAcquireHold(any(), anyLong())).thenReturn(true);
         org.mockito.Mockito.lenient().when(paymentPolicyService.resolve(anyLong()))
             .thenReturn(com.clenzy.booking.service.BookingPaymentPolicyService.BookingPaymentPolicy.none());
+    }
+
+    /** Résultat d'orchestration embedded réussi (clientSecret + providerTxId). */
+    private PaymentOrchestrationResult orchEmbedded(String sessionId, String clientSecret) {
+        return new PaymentOrchestrationResult(null,
+            PaymentResult.embedded(sessionId, clientSecret), PaymentProviderType.STRIPE);
+    }
+
+    private void stubOrchestrator(String sessionId, String clientSecret) {
+        when(orchestrationService.initiatePayment(anyLong(), any(), any(PaymentOrchestrationRequest.class)))
+            .thenReturn(orchEmbedded(sessionId, clientSecret));
     }
 
     private void setField(String fieldName, Object value) throws Exception {
@@ -199,42 +216,40 @@ class BookingCheckoutControllerTest {
         }
 
         @Test
-        @DisplayName("charges the SERVER amount, creates the hold and attaches the session")
-        void whenStripeSuccess_returns200WithClientSecretAndServerAmount() {
+        @DisplayName("charges the SERVER amount via the orchestrator (embedded), creates the hold and attaches the session")
+        void whenOrchestratorSuccess_returns200WithClientSecretAndServerAmount() {
             stubServerQuote("100.00");
             Reservation hold = buildHold(55L);
             when(publicBookingService.createEmbeddedCheckoutHold(
                 any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
+            stubOrchestrator("cs_test_abc", "cs_test_abc_secret");
 
             BookingCheckoutRequest request = buildRequest(
                 PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_test_abc");
-            when(session.getClientSecret()).thenReturn("cs_test_abc_secret");
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
-            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
-                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
-                    .thenReturn(session);
-
-                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                @SuppressWarnings("unchecked")
-                Map<String, Object> body = (Map<String, Object>) response.getBody();
-                assertThat(body.get("sessionId")).isEqualTo("cs_test_abc");
-                assertThat(body.get("clientSecret")).isEqualTo("cs_test_abc_secret");
-                assertThat(body.get("reservationCode")).isEqualTo("RES-HOLD01");
-
-                // Le montant facture est le devis serveur (jamais le montant client brut)
-                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
-                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
-                SessionCreateParams params = paramsCaptor.getValue();
-                assertThat(params.getLineItems().get(0).getPriceData().getUnitAmount()).isEqualTo(10000L);
-                assertThat(params.getExpiresAt()).isNotNull();
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = (Map<String, Object>) response.getBody();
+            assertThat(body.get("sessionId")).isEqualTo("cs_test_abc");
+            assertThat(body.get("clientSecret")).isEqualTo("cs_test_abc_secret");
+            assertThat(body.get("reservationCode")).isEqualTo("RES-HOLD01");
             verify(publicBookingService).attachStripeSessionToHold(55L, "cs_test_abc");
+
+            // Le montant facture est le devis serveur (jamais le montant client brut) + flux embedded.
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(eq(ORG_ID), any(), reqCaptor.capture());
+            PaymentOrchestrationRequest req = reqCaptor.getValue();
+            assertThat(req.amount()).isEqualByComparingTo("100.00");
+            assertThat(req.embedded()).isTrue();
+            assertThat(req.expiresAtEpochSeconds()).isNotNull();
+            assertThat(req.sourceType()).isEqualTo(BookingCheckoutController.SOURCE_TYPE);
+            assertThat(req.sourceId()).isEqualTo(55L);
+            assertThat(req.metadata()).containsEntry("type", "booking_engine")
+                .containsEntry("reservation_id", "55");
         }
 
         @Test
@@ -253,27 +268,19 @@ class BookingCheckoutControllerTest {
             when(publicBookingService.createEmbeddedCheckoutHold(
                 any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
+            stubOrchestrator("cs_tax", "cs_tax_secret");
 
             BookingCheckoutRequest request = buildRequest(
                 PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_tax");
-            when(session.getClientSecret()).thenReturn("cs_tax_secret");
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
-            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
-                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
-                    .thenReturn(session);
-
-                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
-                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
-                // 105.00 EUR factures (total serveur complet, taxe incluse)
-                assertThat(paramsCaptor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
-                    .isEqualTo(10500L);
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(anyLong(), any(), reqCaptor.capture());
+            // 105.00 factures (total serveur complet, taxe incluse)
+            assertThat(reqCaptor.getValue().amount()).isEqualByComparingTo("105.00");
         }
 
         @Test
@@ -294,25 +301,22 @@ class BookingCheckoutControllerTest {
         }
 
         @Test
-        @DisplayName("releases the hold and returns 500 when Stripe fails")
-        void whenStripeThrows_thenReleasesHoldAndReturns500() {
+        @DisplayName("releases the hold and returns 500 when the orchestrator fails")
+        void whenOrchestratorFails_thenReleasesHoldAndReturns500() {
             stubServerQuote("100.00");
             Reservation hold = buildHold(55L);
             when(publicBookingService.createEmbeddedCheckoutHold(
                 any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
+            when(orchestrationService.initiatePayment(anyLong(), any(), any(PaymentOrchestrationRequest.class)))
+                .thenReturn(new PaymentOrchestrationResult(null, PaymentResult.failure("Stripe down"), null));
 
             BookingCheckoutRequest request = buildRequest(
                 PROPERTY_ID, ORG_ID, new BigDecimal("100"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
 
-            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
-                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
-                    .thenThrow(new ApiException("Stripe down", null, "code", 500, null));
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
-                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
-
-                assertThat(response.getStatusCode().value()).isEqualTo(500);
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(500);
             verify(publicBookingService).releaseEmbeddedCheckoutHold(55L);
             verify(publicBookingService, never()).attachStripeSessionToHold(anyLong(), anyString());
         }
@@ -331,29 +335,21 @@ class BookingCheckoutControllerTest {
                 any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(),
                 eq(new BigDecimal("30.00")), eq(services)))
                 .thenReturn(hold);
+            stubOrchestrator("cs_test_so", "cs_test_so_secret");
 
             BookingCheckoutRequest request = buildRequest(
                 PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", services);
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_test_so");
-            when(session.getClientSecret()).thenReturn("cs_test_so_secret");
+            ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
 
-            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
-                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
-                    .thenReturn(session);
-
-                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
-                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
-                // 100.00 sejour + 30.00 options = 13000 cents
-                assertThat(paramsCaptor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
-                    .isEqualTo(13000L);
-                // Z4A-BUGS-10 : selections serialisees en metadata pour le fallback webhook
-                assertThat(paramsCaptor.getValue().getMetadata().get("service_options")).isNotNull();
-            }
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(anyLong(), any(), reqCaptor.capture());
+            // 100.00 sejour + 30.00 options = 130.00
+            assertThat(reqCaptor.getValue().amount()).isEqualByComparingTo("130.00");
+            // Z4A-BUGS-10 : selections serialisees en metadata pour le fallback webhook
+            assertThat(reqCaptor.getValue().metadata().get("service_options")).isNotNull();
         }
 
         @Test
@@ -369,55 +365,43 @@ class BookingCheckoutControllerTest {
             when(publicBookingService.createEmbeddedCheckoutHold(
                 any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
+            stubOrchestrator("cs_usd", "cs_usd_secret");
 
             BookingCheckoutRequest request = buildRequest(
                 PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_usd");
-            when(session.getClientSecret()).thenReturn("cs_usd_secret");
+            controller.createCheckoutSession(request, httpRequest);
 
-            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
-                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
-                    .thenReturn(session);
-
-                ResponseEntity<?> response = controller.createCheckoutSession(request, httpRequest);
-
-                assertThat(response.getStatusCode().value()).isEqualTo(200);
-                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
-                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
-                assertThat(paramsCaptor.getValue().getLineItems().get(0).getPriceData().getCurrency())
-                    .isEqualTo("usd");
-            }
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(anyLong(), any(), reqCaptor.capture());
+            assertThat(reqCaptor.getValue().currency()).isEqualTo("USD");
         }
 
         @Test
         @DisplayName("falls back to stripe.currency when the property has no default currency")
         void whenPropertyCurrencyMissing_thenFallsBackToConfigCurrency() {
-            stubServerQuote("100.00");
+            Property noCurrencyProperty = buildProperty();
+            noCurrencyProperty.setDefaultCurrency(null); // force le repli sur la devise config
+            when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(noCurrencyProperty));
+            when(publicBookingService.resolveOrgById(ORG_ID)).thenReturn(buildCtx());
+            when(publicBookingService.checkAvailability(any(), any(AvailabilityRequestDto.class)))
+                .thenReturn(availableQuote("100.00"));
             Reservation hold = buildHold(59L);
             when(publicBookingService.createEmbeddedCheckoutHold(
                 any(), eq(PROPERTY_ID), any(), any(), eq(2), any(), any(), any(), any(), any()))
                 .thenReturn(hold);
+            stubOrchestrator("cs_eur", "cs_eur_secret");
 
             BookingCheckoutRequest request = buildRequest(
                 PROPERTY_ID, ORG_ID, new BigDecimal("100.00"), CHECK_IN, CHECK_OUT, 2, "g@test.com", null);
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_eur");
-            when(session.getClientSecret()).thenReturn("cs_eur_secret");
+            controller.createCheckoutSession(request, httpRequest);
 
-            try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
-                sessionStatic.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
-                    .thenReturn(session);
-
-                controller.createCheckoutSession(request, httpRequest);
-
-                ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
-                sessionStatic.verify(() -> Session.create(paramsCaptor.capture(), any(RequestOptions.class)));
-                assertThat(paramsCaptor.getValue().getLineItems().get(0).getPriceData().getCurrency())
-                    .isEqualTo("eur");
-            }
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(anyLong(), any(), reqCaptor.capture());
+            assertThat(reqCaptor.getValue().currency()).isEqualTo("eur");
         }
 
         @Test

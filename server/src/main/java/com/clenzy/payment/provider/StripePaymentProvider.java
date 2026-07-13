@@ -40,9 +40,10 @@ public class StripePaymentProvider implements PaymentProvider {
     @Override
     public Set<PaymentCapability> getCapabilities() {
         // Stripe couvre toute la palette : paiement, pré-autorisation (caution),
-        // remboursement, payout (Connect) et card-on-file.
+        // remboursement, payout (Connect), card-on-file et checkout embarqué.
         return Set.of(PaymentCapability.PAY, PaymentCapability.PREAUTH,
-                PaymentCapability.REFUND, PaymentCapability.PAYOUT, PaymentCapability.CUSTOMER);
+                PaymentCapability.REFUND, PaymentCapability.PAYOUT, PaymentCapability.CUSTOMER,
+                PaymentCapability.EMBEDDED_CHECKOUT);
     }
 
     @Override
@@ -58,6 +59,9 @@ public class StripePaymentProvider implements PaymentProvider {
     @Override
     @CircuitBreaker(name = "stripe-api")
     public PaymentResult createPayment(PaymentRequest request) {
+        if (request.embedded()) {
+            return createEmbeddedPayment(request);
+        }
         try {
             log.info("Creating Stripe payment: {} {}", request.amount(), request.currency());
 
@@ -102,6 +106,69 @@ public class StripePaymentProvider implements PaymentProvider {
             return PaymentResult.success(session.getId(), session.getUrl());
         } catch (com.stripe.exception.StripeException e) {
             log.error("Stripe createPayment failed: {}", e.getMessage());
+            return PaymentResult.failure("Stripe error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Crée une session Stripe Checkout en mode <strong>embarqué</strong> (inline) et
+     * renvoie son {@code clientSecret} (pas de redirection). Honore l'expiration
+     * demandée et, si {@code saveCardForFutureUse}, enregistre la carte off-session
+     * (customer + setup_future_usage) pour une mise en place de caution ultérieure.
+     */
+    private PaymentResult createEmbeddedPayment(PaymentRequest request) {
+        try {
+            log.info("Creating Stripe embedded payment: {} {} (saveCard={})",
+                request.amount(), request.currency(), request.saveCardForFutureUse());
+
+            com.stripe.param.checkout.SessionCreateParams.Builder builder =
+                com.stripe.param.checkout.SessionCreateParams.builder()
+                    .setMode(com.stripe.param.checkout.SessionCreateParams.Mode.PAYMENT)
+                    .setUiMode(com.stripe.param.checkout.SessionCreateParams.UiMode.EMBEDDED)
+                    .setRedirectOnCompletion(
+                        com.stripe.param.checkout.SessionCreateParams.RedirectOnCompletion.NEVER)
+                    .addPaymentMethodType(com.stripe.param.checkout.SessionCreateParams.PaymentMethodType.CARD)
+                    .addLineItem(
+                        com.stripe.param.checkout.SessionCreateParams.LineItem.builder()
+                            .setQuantity(1L)
+                            .setPriceData(
+                                com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.builder()
+                                    .setCurrency(request.currency().toLowerCase())
+                                    .setUnitAmount(StripeAmounts.toMinorUnits(request.amount()))
+                                    .setProductData(
+                                        com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                            .setName(request.description() != null ? request.description() : "Payment")
+                                            .build())
+                                    .build())
+                            .build());
+
+            if (request.expiresAtEpochSeconds() != null) {
+                builder.setExpiresAt(request.expiresAtEpochSeconds());
+            }
+            if (request.customerEmail() != null) {
+                builder.setCustomerEmail(request.customerEmail());
+            }
+            // Caution : enregistre la carte (customer + off-session) pour un hold manuel ultérieur.
+            if (request.saveCardForFutureUse()) {
+                builder
+                    .setCustomerCreation(com.stripe.param.checkout.SessionCreateParams.CustomerCreation.ALWAYS)
+                    .setPaymentIntentData(
+                        com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder()
+                            .setSetupFutureUsage(
+                                com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.SetupFutureUsage.OFF_SESSION)
+                            .build());
+            }
+            if (request.metadata() != null) {
+                builder.putAllMetadata(request.metadata());
+            }
+
+            com.stripe.model.checkout.Session session = com.stripe.model.checkout.Session.create(
+                builder.build(),
+                com.stripe.net.RequestOptions.builder().setApiKey(secretKey).build());
+
+            return PaymentResult.embedded(session.getId(), session.getClientSecret());
+        } catch (com.stripe.exception.StripeException e) {
+            log.error("Stripe embedded createPayment failed: {}", e.getMessage());
             return PaymentResult.failure("Stripe error: " + e.getMessage());
         }
     }
