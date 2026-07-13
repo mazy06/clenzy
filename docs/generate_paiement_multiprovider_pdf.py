@@ -876,6 +876,55 @@ for t in [
 ]:
     story.append(Paragraph("•&nbsp; " + t, BULLET))
 
+# ── 16.4 — Matrice complète services x PSP ────────────────────────────────────
+story.append(PageBreak())
+story.append(Paragraph("16.4 Matrice complète : services Baitly &times; PSP", H2))
+story.append(Paragraph("Vue d'ensemble « qui couvre quoi ». Colonnes : les 4 fournisseurs déjà intégrés "
+                       "(Stripe + régionaux) et les 3 candidats full-stack. Lignes : les services dont Baitly "
+                       "a besoin.", BODY))
+
+
+def _mk(code):
+    return {"y": yes(), "n": no(), "p": part()}[code]
+
+
+def _mrow(label, codes):
+    return [Paragraph(label, CELL)] + [_mk(c) for c in codes]
+
+# codes dans l'ordre : Stripe · PayZone · CMI · PayTabs · Checkout · Adyen · Rapyd
+matrix_rows = [
+    ("<b>Encaissement (PAY)</b>", "yyyyyyy"),
+    ("Remboursement par API", "yynyyyy"),
+    ("Checkout embarqué (inline)", "ypnpyyp"),
+    ("Caution / pré-autorisation", "ynnpyyp"),
+    ("Carte enregistrée (vault)", "ynnnyyy"),
+    ("Abonnement récurrent", "ynnpyyy"),
+    ("<b>Payout / reversement</b>", "ynnnyyy"),
+    ("Mandat SEPA (payout récurrent)", "ynnnyyy"),
+    ("3-D Secure / PCI-DSS", "yyyyyyy"),
+    ("Devise MAD (Maroc)", "nyynppp"),
+    ("Devise SAR (Golfe)", "ynnyyyy"),
+    ("Devise EUR / USD (international)", "ypppyyy"),
+    ("<b>Acquiring LOCAL carte MAD</b>", "nyynppn"),
+    ("Éligibilité startup", "yyyyyny"),
+]
+
+mheader = hcells("Service dont Baitly a besoin", "Stripe", "PayZone", "CMI", "PayTabs", "Checkout", "Adyen", "Rapyd")
+mdata = [mheader] + [_mrow(lab, codes) for lab, codes in matrix_rows]
+pspw = (USABLE_W - 46 * mm) / 7
+story.append(table(mdata, [46 * mm] + [pspw] * 7, align_center_cols=(1, 2, 3, 4, 5, 6, 7)))
+story.append(Paragraph("<font color='#4A9B8E'><b>&bull;</b></font> supporté &nbsp;·&nbsp; "
+                       "<font color='#D4A574'><b>~</b></font> partiel / à confirmer &nbsp;·&nbsp; "
+                       "<font color='#B9C4CA'><b>&mdash;</b></font> non. "
+                       "Régional (PayZone/CMI/PayTabs) : périmètre <b>réellement intégré</b> aujourd'hui "
+                       "(certains supportent plus nativement — à confirmer à l'onboarding). Full-stack "
+                       "(Checkout.com / Adyen / Rapyd) : capacité <b>native</b> du PSP.", SMALL))
+story.append(Paragraph("<b>Lecture</b> : Stripe et les trois full-stack couvrent l'essentiel des services ; "
+                       "les PSP régionaux excellent sur l'<b>acquiring local carte MAD</b> (que ni Stripe ni "
+                       "les full-stack ne couvrent). D'où la cible <b>multi-fournisseur</b> : un full-stack "
+                       "(Checkout.com) pour l'abonnement + payout + caution + international, <b>en parallèle</b> "
+                       "d'un acquéreur local (PayZone/CMI) pour les cartes marocaines.", BODY))
+
 story.append(PageBreak())
 story.append(Paragraph("17. Plan de certification sandbox par PSP", H1))
 story.append(Paragraph("Le code des adaptateurs est prêt et audité ; il reste la <b>certification en sandbox "
