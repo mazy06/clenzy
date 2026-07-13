@@ -267,6 +267,17 @@ class PaymentEventConsumerTest {
         }
 
         @Test
+        void upsellSourceType_reconciles() {
+            Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
+                    "transactionRef", "TX-UP",
+                    "sourceType", "UPSELL");
+
+            consumer.handlePaymentEvent(event);
+
+            verify(peripheralPaymentReconciliationService).reconcileUpsell("TX-UP");
+        }
+
+        @Test
         void otherSourceType_isIgnored() {
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-789",

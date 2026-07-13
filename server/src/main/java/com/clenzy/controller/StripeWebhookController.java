@@ -372,7 +372,8 @@ public class StripeWebhookController {
             || ReservationPaymentService.SOURCE_TYPE.equals(sourceType)
             || com.clenzy.booking.service.BookingBalanceService.SOURCE_TYPE.equals(sourceType)
             || com.clenzy.service.ai.AiCreditPurchaseService.SOURCE_TYPE.equals(sourceType)
-            || com.clenzy.service.ServiceRequestPaymentService.SOURCE_TYPE.equals(sourceType);
+            || com.clenzy.service.ServiceRequestPaymentService.SOURCE_TYPE.equals(sourceType)
+            || com.clenzy.service.UpsellService.SOURCE_TYPE.equals(sourceType);
     }
 
     private void updatePaymentTransaction(Session session, boolean success) {

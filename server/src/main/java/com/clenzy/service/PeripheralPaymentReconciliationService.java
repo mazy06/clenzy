@@ -29,13 +29,16 @@ public class PeripheralPaymentReconciliationService {
     private final PaymentTransactionRepository transactionRepository;
     private final AiCreditGrantService aiCreditGrantService;
     private final StripePaymentConfirmationService paymentConfirmationService;
+    private final UpsellService upsellService;
 
     public PeripheralPaymentReconciliationService(PaymentTransactionRepository transactionRepository,
                                                   AiCreditGrantService aiCreditGrantService,
-                                                  StripePaymentConfirmationService paymentConfirmationService) {
+                                                  StripePaymentConfirmationService paymentConfirmationService,
+                                                  UpsellService upsellService) {
         this.transactionRepository = transactionRepository;
         this.aiCreditGrantService = aiCreditGrantService;
         this.paymentConfirmationService = paymentConfirmationService;
+        this.upsellService = upsellService;
     }
 
     /**
@@ -87,6 +90,27 @@ public class PeripheralPaymentReconciliationService {
         }
         paymentConfirmationService.confirmServiceRequestPayment(providerTxId);
         log.info("Reconciliation demande de service OK : tx={} providerSession={}", transactionRef, providerTxId);
+    }
+
+    /**
+     * Confirme une commande d'upsell (PENDING → PAID + split hôte/plateforme/conciergerie).
+     * Idempotent. La commande est retrouvée par la réf de session provider ({@code stripeSessionId}
+     * = {@code providerTxId}).
+     */
+    @Transactional
+    public void reconcileUpsell(String transactionRef) {
+        PaymentTransaction tx = requireTx(transactionRef, "upsell");
+        if (tx == null) {
+            return;
+        }
+        String providerTxId = tx.getProviderTxId();
+        if (providerTxId == null || providerTxId.isBlank()) {
+            log.error("Reconciliation upsell : providerTxId absent sur tx {} — "
+                    + "reconciliation impossible, verification manuelle requise", transactionRef);
+            return;
+        }
+        upsellService.markPaidBySession(providerTxId);
+        log.info("Reconciliation upsell OK : tx={} providerSession={}", transactionRef, providerTxId);
     }
 
     private PaymentTransaction requireTx(String transactionRef, String flux) {
