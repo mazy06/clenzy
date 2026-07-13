@@ -95,6 +95,18 @@ public class StripePaymentProvider implements PaymentProvider {
                 builder.setCustomerEmail(request.customerEmail());
             }
 
+            // Collecte d'adresse de livraison (biens physiques : shop hardware).
+            if (request.shippingAddressCountries() != null && !request.shippingAddressCountries().isEmpty()) {
+                com.stripe.param.checkout.SessionCreateParams.ShippingAddressCollection.Builder shipping =
+                    com.stripe.param.checkout.SessionCreateParams.ShippingAddressCollection.builder();
+                for (String country : request.shippingAddressCountries()) {
+                    shipping.addAllowedCountry(
+                        com.stripe.param.checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry.valueOf(
+                            country.toUpperCase()));
+                }
+                builder.setShippingAddressCollection(shipping.build());
+            }
+
             if (request.metadata() != null) {
                 builder.putAllMetadata(request.metadata());
             }

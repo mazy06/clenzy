@@ -4,7 +4,6 @@ import com.clenzy.dto.HardwareOrderDto;
 import com.clenzy.dto.ShopCheckoutRequest;
 import com.clenzy.model.HardwareCatalog;
 import com.clenzy.service.ShopService;
-import com.stripe.exception.StripeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +36,7 @@ public class ShopController {
     @PostMapping("/checkout")
     public ResponseEntity<Map<String, String>> checkout(
             @RequestBody ShopCheckoutRequest request,
-            @AuthenticationPrincipal Jwt jwt) throws StripeException {
+            @AuthenticationPrincipal Jwt jwt) {
         final String email = jwt.getClaimAsString("email");
         final String keycloakId = jwt.getSubject();
 

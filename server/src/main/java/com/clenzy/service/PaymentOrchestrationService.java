@@ -114,7 +114,8 @@ public class PaymentOrchestrationService {
             request.description(), request.customerEmail(), null,
             request.successUrl(), request.cancelUrl(),
             tx.getTransactionRef(), metadata,
-            request.embedded(), request.expiresAtEpochSeconds(), request.saveCardForFutureUse()
+            request.embedded(), request.expiresAtEpochSeconds(), request.saveCardForFutureUse(),
+            request.shippingAddressCountries()
         );
 
         // 5. Appel provider — HORS de toute transaction DB
