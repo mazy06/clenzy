@@ -3,7 +3,6 @@ package com.clenzy.controller;
 import com.clenzy.dto.ServiceRequestDto;
 import com.clenzy.service.ServiceRequestPaymentService;
 import com.clenzy.service.ServiceRequestService;
-import com.clenzy.service.StripeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -42,7 +41,6 @@ import static org.mockito.Mockito.when;
 class ServiceRequestControllerTest {
 
     @Mock private ServiceRequestService service;
-    @Mock private StripeService stripeService;
     @Mock private ServiceRequestPaymentService serviceRequestPaymentService;
 
     private ServiceRequestController controller;
@@ -59,7 +57,7 @@ class ServiceRequestControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ServiceRequestController(service, stripeService, serviceRequestPaymentService);
+        controller = new ServiceRequestController(service, serviceRequestPaymentService);
     }
 
     @Nested
@@ -215,10 +213,10 @@ class ServiceRequestControllerTest {
     @DisplayName("createPaymentSession")
     class CreatePaymentSession {
         @Test
-        void whenStripeFails_thenReturns400() throws Exception {
+        void whenServiceFails_thenReturns400() throws Exception {
             Jwt jwt = createJwt();
-            when(stripeService.createServiceRequestCheckoutSession(eq(1L), anyString()))
-                    .thenThrow(new RuntimeException("Stripe error"));
+            when(serviceRequestPaymentService.createPaymentSession(eq(1L), anyString()))
+                    .thenThrow(new RuntimeException("orchestration error"));
 
             ResponseEntity<Map<String, String>> result = controller.createPaymentSession(1L, jwt);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -228,15 +226,12 @@ class ServiceRequestControllerTest {
         @Test
         void whenSuccess_thenReturnsCheckoutUrl() throws Exception {
             Jwt jwt = createJwt();
-            com.stripe.model.checkout.Session session = org.mockito.Mockito.mock(
-                    com.stripe.model.checkout.Session.class);
-            when(session.getUrl()).thenReturn("https://stripe.test/checkout/abc");
-            when(stripeService.createServiceRequestCheckoutSession(eq(1L), anyString()))
-                    .thenReturn(session);
+            when(serviceRequestPaymentService.createPaymentSession(eq(1L), anyString()))
+                    .thenReturn(Map.of("checkoutUrl", "https://pay.test/checkout/abc"));
 
             ResponseEntity<Map<String, String>> result = controller.createPaymentSession(1L, jwt);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(result.getBody()).containsEntry("checkoutUrl", "https://stripe.test/checkout/abc");
+            assertThat(result.getBody()).containsEntry("checkoutUrl", "https://pay.test/checkout/abc");
         }
     }
 
@@ -246,12 +241,8 @@ class ServiceRequestControllerTest {
         @Test
         void whenSuccess_thenReturnsSessionAndClientSecret() throws Exception {
             Jwt jwt = createJwt();
-            com.stripe.model.checkout.Session session = org.mockito.Mockito.mock(
-                    com.stripe.model.checkout.Session.class);
-            when(session.getId()).thenReturn("sess_emb_1");
-            when(session.getClientSecret()).thenReturn("cs_xyz");
-            when(stripeService.createServiceRequestEmbeddedCheckoutSession(eq(2L), anyString()))
-                    .thenReturn(session);
+            when(serviceRequestPaymentService.createEmbeddedPaymentSession(eq(2L), anyString()))
+                    .thenReturn(Map.of("sessionId", "sess_emb_1", "clientSecret", "cs_xyz"));
 
             ResponseEntity<?> result = controller.createEmbeddedPaymentSession(2L, jwt);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -264,7 +255,7 @@ class ServiceRequestControllerTest {
         @Test
         void whenError_thenReturns400() throws Exception {
             Jwt jwt = createJwt();
-            when(stripeService.createServiceRequestEmbeddedCheckoutSession(any(), anyString()))
+            when(serviceRequestPaymentService.createEmbeddedPaymentSession(any(), anyString()))
                     .thenThrow(new RuntimeException("embed error"));
 
             ResponseEntity<?> result = controller.createEmbeddedPaymentSession(2L, jwt);
