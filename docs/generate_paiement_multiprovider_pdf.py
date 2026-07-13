@@ -959,6 +959,38 @@ story.append(Paragraph("<b>Conséquence pour Baitly</b> : aucune banque marocain
                        "pour l'encaissement carte MAD, tout en gardant un full-stack (Checkout.com) pour "
                        "l'abonnement + payout + caution.", BODY))
 
+# ── 16.6 — Zoom : composer la stack marocaine ─────────────────────────────────
+story.append(PageBreak())
+story.append(Paragraph("16.6 Zoom technique : composer la stack marocaine (Attijari Payment, CMI, Chari Pay)", H2))
+story.append(Paragraph("Aucun acteur marocain ne fait tout, mais <b>les briques existent localement</b> et "
+                       "s'améliorent vite. Les ports de Baitly permettent de les <b>composer</b>.", BODY))
+story.append(table([
+    hcells("Acteur", "Rôle dans la stack", "Capacités confirmées", "Effort d'intégration"),
+    cells("<b>Attijari Payment</b> (Attijariwafa)", "PORT ENTRANT (acquiring MAD)", "Chaîne complète émission→acquisition ; plugins + API simples ; 3DS ; reporting temps réel", "<b>Faible</b> : protocole type CMI (SHA-512 + Client ID/Store Key + callback) → réutilise notre adaptateur CMI"),
+    cells("<b>CMI</b> (a absorbé Maroc Telecommerce)", "PORT ENTRANT + tokenisation", "Acquiring MAD ; <b>tokenisation</b> (card-on-file) ; <b>récurrent + paiement en N fois</b> ; mPOS ; PayPal/UnionPay", "Faible : adaptateur CMI déjà en place (à étendre : tokenisation/récurrent)"),
+    cells("<b>PayZone</b>", "PORT ENTRANT + tokenisation", "Acquiring MAD ; tokenisation ; abonnement <b>partiel</b> ; liens de paiement", "Faible : adaptateur PayZone déjà en place"),
+    cells("<b>Chari Pay</b> (ChariBaaS)", "PORT ABONNEMENT (récurrent)", "<b>API d'abonnement moderne</b> : REST + webhooks, retry auto, <b>dunning</b> (email/SMS), account updater, tokenisation PCI-DSS L1", "Moyen : nouvel adaptateur SubscriptionProvider"),
+    cells("<b>NAPS</b>", "PORT ENTRANT (alternatif)", "Paiement en ligne « sans friction »", "Faible (à évaluer)"),
+    cells("Virement bancaire / <b>Manuel</b>", "PORT SORTANT (payouts)", "Reversement mensuel proprio par virement (déjà : ManualPayoutExecutor)", "Nul (rail existant)"),
+], [40 * mm, 34 * mm, USABLE_W - 40 * mm - 34 * mm - 42 * mm, 42 * mm]))
+story.append(Paragraph("<b>Deux enseignements clés</b> :", H3))
+for t in [
+    "<b>Intégration à faible coût</b> — Attijari Payment (et les autres établissements bancaires) "
+    "utilisent le <b>même protocole que le CMI</b> (hash SHA-512, Client ID / Store Key, callback "
+    "serveur-à-serveur). Notre adaptateur <code>CmiPaymentProvider</code> existant sert de base : "
+    "brancher un acquéreur bancaire marocain de plus = un adaptateur quasi-identique.",
+    "<b>Le récurrent local existe</b> — CMI fait déjà tokenisation + paiement en N fois, et "
+    "<b>Chari Pay</b> offre une vraie API d'abonnement (retry, dunning). Pour l'abonnement SaaS "
+    "marocain, on n'est donc pas obligé de passer par l'international : Chari Pay (ou une passerelle "
+    "tokenisante) branché sur le <b>port abonnement</b> est une option locale crédible.",
+]:
+    story.append(Paragraph("•&nbsp; " + t, BULLET))
+story.append(Paragraph("<b>Stack Maroc cible (composée via les ports)</b> : encaissement carte MAD = CMI / "
+                       "PayZone / Attijari Payment · abonnement = Chari Pay <i>ou</i> Stripe Billing · payout = "
+                       "virement (Manual) · caution = Stripe ou empreinte manuelle (D3). Aucune dépendance à un "
+                       "fournisseur unique — c'est précisément ce que l'orchestration « switch &amp; parallèle » "
+                       "rend possible.", BODY))
+
 story.append(PageBreak())
 story.append(Paragraph("17. Plan de certification sandbox par PSP", H1))
 story.append(Paragraph("Le code des adaptateurs est prêt et audité ; il reste la <b>certification en sandbox "

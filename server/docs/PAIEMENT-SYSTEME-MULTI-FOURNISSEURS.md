@@ -287,6 +287,22 @@ renforce l'archi multi-fournisseur : un adaptateur « acquéreur bancaire maroca
 Payment) pourra encaisser les cartes MAD, un full-stack (Checkout.com) portant abonnement + payout +
 caution. Détail : §16.5 du dossier PDF.
 
+**Zoom technique (composer la stack Maroc — §16.6 du PDF)** — deux enseignements pour l'ingénierie :
+
+- **Intégration à faible coût** : Attijari Payment (et les autres établissements bancaires) utilisent
+  le **même protocole que le CMI** (hash **SHA-512** + Client ID / Store Key + callback
+  serveur-à-serveur). Notre adaptateur `CmiPaymentProvider` sert de **base réutilisable** — brancher
+  un acquéreur bancaire marocain de plus = un adaptateur quasi-identique.
+- **Le récurrent local existe** : le **CMI** (qui a absorbé Maroc Telecommerce en 2016) fait déjà
+  **tokenisation + paiement en N fois** ; **Chari Pay (ChariBaaS)** offre une vraie **API d'abonnement**
+  (REST + webhooks, retry auto, dunning email/SMS, account updater). Pour l'abonnement SaaS marocain,
+  Chari Pay branché sur le **port abonnement** (`SubscriptionProvider`) est une option locale crédible,
+  sans passer par l'international.
+
+**Stack Maroc cible (composée via les ports)** : encaissement carte MAD = CMI / PayZone / Attijari
+Payment · abonnement = Chari Pay *ou* Stripe Billing · payout = virement (`ManualPayoutExecutor`) ·
+caution = Stripe ou empreinte manuelle (D3). Aucune dépendance à un fournisseur unique.
+
 ## 10. Glossaire
 
 | Terme | Définition |
