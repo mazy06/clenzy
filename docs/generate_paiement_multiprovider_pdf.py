@@ -394,10 +394,25 @@ toc = [
         "19. Processus d'intégration"]),
     ("IV", "Annexes", ["20. UML des composants", "21. Glossaire"]),
 ]
+story.append(HRFlowable(width=USABLE_W, thickness=0.6, color=LINE, spaceBefore=1, spaceAfter=7))
+_toc_part = ParagraphStyle("toc_part", parent=BODY, fontName=FONT_DEMI, fontSize=11.5,
+                           textColor=PRIMARY, spaceBefore=8, spaceAfter=4, leading=15)
+_toc_sec = ParagraphStyle("toc_sec", parent=BODY, fontSize=9.4, leading=16,
+                          spaceAfter=0, leftIndent=10 * mm)
 for num, title, items in toc:
-    story.append(Paragraph(f"<b>Partie {num} — {title}</b>", ParagraphStyle("tp", parent=BODY, textColor=PRIMARY, spaceBefore=4)))
+    story.append(Paragraph("<font color='#4A9B8E'><b>PARTIE %s</b></font>&nbsp;&nbsp;·&nbsp;&nbsp;%s"
+                           % (num, title), _toc_part))
     for it in items:
-        story.append(Paragraph("&nbsp;&nbsp;&nbsp;" + it, ParagraphStyle("ti", parent=BODY, spaceAfter=1)))
+        n, _, rest = it.partition(". ")
+        story.append(Paragraph("<font color='#6B8A9A'>%s.</font>&nbsp;&nbsp;%s" % (n, rest), _toc_sec))
+    story.append(Spacer(1, 1.5 * mm))
+story.append(Spacer(1, 5 * mm))
+story.append(HRFlowable(width=USABLE_W, thickness=0.6, color=LINE, spaceBefore=1, spaceAfter=6))
+story.append(Paragraph("<b>Comment lire ce dossier.</b> La partie I fixe la décision d'architecture "
+                       "(le « pourquoi » et le « quoi »). La partie II montre le système en marche "
+                       "(schémas, séquence, états). La partie III est l'outil de terrain pour démarcher "
+                       "et certifier les PSP (exigences, plan par pays, grille). La partie IV regroupe "
+                       "les annexes (UML, glossaire).", BODY))
 story.append(PageBreak())
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -911,5 +926,6 @@ story.append(Paragraph("Document généré depuis les sources internes Baitly (A
                        "multi-fournisseurs ». Générateur : docs/generate_paiement_multiprovider_pdf.py.", SMALL))
 
 make_doc(OUT, title="Baitly - Paiement multi-fournisseurs (switch & parallele)",
-         footer_label="Baitly \u00b7 Paiement multi-fournisseurs (switch & parall\u00e8le) \u00b7 2026-07-14 \u00b7 Confidentiel").build(story)
+         footer_label="Baitly \u00b7 Paiement multi-fournisseurs (switch & parall\u00e8le) \u00b7 2026-07-14 \u00b7 Confidentiel",
+         cover_ref="Baitly \u00b7 analyse-concurrentielle/pdf/paiement-multi-fournisseurs-dossier.pdf").build(story)
 print("OK ->", OUT)

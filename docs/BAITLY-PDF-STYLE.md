@@ -30,8 +30,15 @@ story.append(table([hcells("Colonne A", "Colonne B"),
 
 make_doc("sortie.pdf",
          title="Baitly - Mon document",
-         footer_label="Baitly · Mon document · 2026-07-14 · Confidentiel").build(story)
+         footer_label="Baitly · Mon document · 2026-07-14 · Confidentiel",
+         cover_ref="Baitly · chemin/source.md").build(story)   # cover_ref : optionnel
 ```
+
+`make_doc` gère automatiquement la **pagination « p. X / Y »** (nombre total de pages)
+et un footer à glyphe. `table()` produit des **tableaux à coins arrondis** (en-tête clair
++ filet d'accent teal). `build_cover` produit une couverture façon ADR (logo dessiné,
+barre gradient, titre bi-ton, filet teal, table meta **sans en-tête** à 1re valeur en gras,
+motif constellation en filigrane).
 
 Le générateur se lance avec `python3 docs/mon_generateur.py` (le dossier `docs/` est sur
 le `sys.path`, donc `from baitly_pdf_theme import *` fonctionne).

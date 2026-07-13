@@ -39,6 +39,7 @@ from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph,
                                 Table, TableStyle, PageBreak, KeepTogether,
                                 NextPageTemplate, HRFlowable)
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Circle
+from reportlab.pdfgen import canvas as _canvas
 
 __all__ = [
     # palette
@@ -110,9 +111,9 @@ H2 = ParagraphStyle("H2", parent=_ss["Heading2"], fontName=FONT_DEMI, fontSize=1
 H3 = ParagraphStyle("H3", parent=_ss["Heading3"], fontName=FONT_DEMI, fontSize=10,
                     textColor=ACCENT, spaceBefore=7, spaceAfter=3, leading=12.5)
 BODY = ParagraphStyle("BODY", parent=_ss["Normal"], fontName=FONT, fontSize=9.2,
-                      textColor=INK, leading=13.6, spaceAfter=5)
+                      textColor=INK, leading=14.6, spaceAfter=7)
 BULLET = ParagraphStyle("BULLET", parent=BODY, leftIndent=5 * mm, bulletIndent=1.5 * mm,
-                        spaceAfter=2.5)
+                        spaceAfter=4)
 CAP = ParagraphStyle("CAP", parent=BODY, fontSize=7.6, textColor=MUTED, leading=9.5,
                      alignment=TA_CENTER, spaceBefore=1, spaceAfter=6)
 SMALL = ParagraphStyle("SMALL", parent=BODY, fontSize=7.6, textColor=MUTED, leading=9.6)
@@ -129,22 +130,69 @@ USABLE_W = A4[0] - 36 * mm
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Classes de base : tableau à coins arrondis + pagination « p. X / Y »
+# ══════════════════════════════════════════════════════════════════════════════
+
+class RoundedTable(Table):
+    """Table dont le contour est un rectangle ARRONDI (le contenu est clippé aux
+    coins ; un liseré arrondi est tracé par-dessus). Les lignes internes restent."""
+    _radius = 6
+
+    def draw(self):
+        c = self.canv
+        w, h = self._width, self._height
+        c.saveState()
+        pth = c.beginPath()
+        pth.roundRect(0, 0, w, h, self._radius)
+        c.clipPath(pth, stroke=0, fill=0)
+        Table.draw(self)
+        c.restoreState()
+        c.saveState()
+        c.setStrokeColor(LINE)
+        c.setLineWidth(0.8)
+        c.roundRect(0, 0, w, h, self._radius, stroke=1, fill=0)
+        c.restoreState()
+
+
+class NumberedCanvas(_canvas.Canvas):
+    """Canvas qui connaît le nombre total de pages → footer « p. X / Y »."""
+
+    def __init__(self, *a, **k):
+        _canvas.Canvas.__init__(self, *a, **k)
+        self._saved = []
+
+    def showPage(self):
+        self._saved.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        total = len(self._saved)
+        for state in self._saved:
+            self.__dict__.update(state)
+            self.setFont(FONT, 7)
+            self.setFillColor(MUTED)
+            self.drawRightString(A4[0] - 18 * mm, 9.4 * mm, "p. %d / %d" % (self._pageNumber, total))
+            _canvas.Canvas.showPage(self)
+        _canvas.Canvas.save(self)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Helpers texte / tableaux
 # ══════════════════════════════════════════════════════════════════════════════
 
 def table(data, widths, header=True, zebra=True, align_center_cols=()):
-    """Tableau Baitly : en-tête CLAIR (gris-bleu) + texte foncé + filet d'accent teal
-    sous l'en-tête. Bordures fines, zébrures douces. Utiliser hcells() pour l'en-tête."""
-    t = Table(data, colWidths=widths, repeatRows=1 if header else 0)
+    """Tableau Baitly : COINS ARRONDIS, en-tête CLAIR (gris-bleu) + texte foncé +
+    filet d'accent teal sous l'en-tête. Bordures internes fines, zébrures douces.
+    Utiliser hcells() pour l'en-tête."""
+    t = RoundedTable(data, colWidths=widths, repeatRows=1 if header else 0)
     style = [
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 5),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE),
-        ("LINEAFTER", (0, 0), (-2, -1), 0.4, LINE),
-        ("BOX", (0, 0), (-1, -1), 0.5, LINE),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LINEBELOW", (0, 0), (-1, -2), 0.4, LINE),   # séparateurs de lignes (pas la dernière)
+        ("LINEAFTER", (0, 0), (-2, -1), 0.4, LINE),   # séparateurs de colonnes
     ]
     if header:
         style.append(("BACKGROUND", (0, 0), (-1, 0), HEADER_BG))
@@ -271,16 +319,17 @@ def baitly_logo():
 
 
 def _footer(canvas, doc):
+    """Footer : filet fin + glyphe constellation + libellé. La pagination
+    « p. X / Y » est tracée par NumberedCanvas (nombre total de pages)."""
     label = getattr(doc, "_footer_label", "Baitly")
     canvas.saveState()
-    constellation(canvas, 19 * mm, 10.6 * mm, 2.6, colors.HexColor("#AEBEC6"),
+    canvas.setStrokeColor(LINE)
+    canvas.line(18 * mm, 13 * mm, A4[0] - 18 * mm, 13 * mm)
+    constellation(canvas, 19 * mm, 10.4 * mm, 2.4, colors.HexColor("#AEBEC6"),
                   node_r=0.8, lw=0.4, center_scale=1.6)
     canvas.setFillColor(MUTED)
     canvas.setFont(FONT, 7)
     canvas.drawString(23 * mm, 9.4 * mm, label)
-    canvas.drawRightString(A4[0] - 18 * mm, 9.4 * mm, "p. %d" % doc.page)
-    canvas.setStrokeColor(LINE)
-    canvas.line(18 * mm, 13 * mm, A4[0] - 18 * mm, 13 * mm)
     canvas.restoreState()
 
 
@@ -299,6 +348,7 @@ def _on_cover(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(colors.white)
     canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
+    # Barre gradient arrondie.
     x, w, h = 18 * mm, A4[0] - 36 * mm, 7 * mm
     y = A4[1] - 24 * mm
     canvas.saveState()
@@ -307,24 +357,42 @@ def _on_cover(canvas, doc):
     canvas.clipPath(p, stroke=0, fill=0)
     canvas.linearGradient(x, y, x + w, y, [GRAD0, GRAD1], extend=True)
     canvas.restoreState()
-    constellation(canvas, A4[0] - 26 * mm, 32 * mm, 30 * mm, FAINT,
-                  node_r=5.5, lw=1.4, center_scale=1.7)
+    # Motif constellation en filigrane, grand, bas-droite (partiellement hors-page).
+    constellation(canvas, A4[0] - 18 * mm, 24 * mm, 40 * mm, FAINT,
+                  node_r=6.2, lw=1.6, center_scale=1.7)
+    # Ligne de référence (source) au-dessus du footer, façon ADR.
+    ref = getattr(doc, "_cover_ref", None)
+    if ref:
+        constellation(canvas, 19 * mm, 20.4 * mm, 2.4, colors.HexColor("#AEBEC6"),
+                      node_r=0.8, lw=0.4, center_scale=1.6)
+        canvas.setFillColor(MUTED)
+        canvas.setFont(FONT, 7.5)
+        canvas.drawString(23 * mm, 19.2 * mm, ref)
     canvas.restoreState()
     _footer(canvas, doc)
 
 
-def make_doc(path, title="Baitly", footer_label=None):
-    """Document Baitly : gabarit « cover » (1re page) + « content » (reste).
-    Basculer vers content dans le story via NextPageTemplate('content') après la couverture
-    (build_cover le fait déjà)."""
+def make_doc(path, title="Baitly", footer_label=None, cover_ref=None):
+    """Document Baitly : gabarit « cover » (1re page) + « content » (reste), pagination
+    « p. X / Y » automatique. `cover_ref` = ligne de référence source sur la couverture.
+    Le story bascule sur content via build_cover (NextPageTemplate)."""
     doc = BaseDocTemplate(path, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
                           topMargin=18 * mm, bottomMargin=16 * mm, title=title, author="Baitly")
     doc._footer_label = footer_label or title
+    doc._cover_ref = cover_ref
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="main")
     doc.addPageTemplates([
         PageTemplate(id="cover", frames=[frame], onPage=_on_cover),
         PageTemplate(id="content", frames=[frame], onPage=_on_content),
     ])
+    # Pagination « p. X / Y » automatique (NumberedCanvas) sans changer l'appel .build().
+    _orig_build = doc.build
+
+    def _build(flowables, **kw):
+        kw.setdefault("canvasmaker", NumberedCanvas)
+        return _orig_build(flowables, **kw)
+
+    doc.build = _build
     return doc
 
 
@@ -345,24 +413,24 @@ def build_cover(story, eyebrow, title_lines, subtitle, meta_rows, meta_label_w=3
     story.append(HRFlowable(width=22 * mm, thickness=2.4, color=ACCENT,
                             spaceBefore=1, spaceAfter=5, hAlign="LEFT"))
     story.append(Paragraph(subtitle, SUB))
-    story.append(Spacer(1, 9 * mm))
-    # Table meta façon ADR : pas de ligne d'en-tête ; colonne label sur fond clair,
-    # colonne valeur ; 1re valeur en gras.
+    story.append(Spacer(1, 12 * mm))
+    # Table meta façon ADR : COINS ARRONDIS, pas de ligne d'en-tête ; colonne label sur
+    # fond clair, colonne valeur ; 1re valeur en gras.
     _lab = ParagraphStyle("mlab", parent=CELL, fontName=FONT_DEMI, textColor=MUTED, fontSize=8.5, leading=11)
     _val = ParagraphStyle("mval", parent=CELL, fontSize=8.5, leading=11.5, textColor=INK)
     _valb = ParagraphStyle("mvalb", parent=_val, fontName=FONT_DEMI)
     rows = [[Paragraph(k, _lab), Paragraph(v, _valb if i == 0 else _val)]
             for i, (k, v) in enumerate(meta_rows)]
-    mt = Table(rows, colWidths=[meta_label_w, USABLE_W - meta_label_w])
+    mt = RoundedTable(rows, colWidths=[meta_label_w, USABLE_W - meta_label_w])
     mt.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
         ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
         ("BACKGROUND", (0, 0), (0, -1), LIGHT),
         ("LINEBELOW", (0, 0), (-1, -2), 0.5, LINE),
-        ("BOX", (0, 0), (-1, -1), 0.6, LINE),
+        ("LINEAFTER", (0, 0), (0, -1), 0.5, LINE),
     ]))
     story.append(mt)
     story.append(NextPageTemplate("content"))
