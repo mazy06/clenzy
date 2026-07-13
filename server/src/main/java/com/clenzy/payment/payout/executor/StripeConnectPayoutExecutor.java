@@ -4,13 +4,10 @@ import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.model.OwnerPayoutConfig;
 import com.clenzy.model.PayoutMethod;
-import com.clenzy.payment.StripeAmounts;
-import com.clenzy.payment.StripeGateway;
 import com.clenzy.payment.payout.PayoutExecutor;
 import com.clenzy.payment.payout.PayoutNotifier;
+import com.clenzy.payment.payout.StripeConnectTransferClient;
 import com.clenzy.repository.OwnerPayoutRepository;
-import com.stripe.model.Transfer;
-import com.stripe.param.TransferCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -44,14 +41,14 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(StripeConnectPayoutExecutor.class);
 
-    private final StripeGateway stripeGateway;
+    private final StripeConnectTransferClient transferClient;
     private final OwnerPayoutRepository payoutRepository;
     private final PayoutNotifier notifier;
 
-    public StripeConnectPayoutExecutor(StripeGateway stripeGateway,
+    public StripeConnectPayoutExecutor(StripeConnectTransferClient transferClient,
                                         OwnerPayoutRepository payoutRepository,
                                         PayoutNotifier notifier) {
-        this.stripeGateway = stripeGateway;
+        this.transferClient = transferClient;
         this.payoutRepository = payoutRepository;
         this.notifier = notifier;
     }
@@ -72,35 +69,26 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
         payout.setPayoutMethod(PayoutMethod.STRIPE_CONNECT);
         payoutRepository.save(payout);
 
+        String description = "Payout #" + payout.getId()
+            + " - " + payout.getPeriodStart() + " to " + payout.getPeriodEnd();
+
         // Le try est restreint au transfert lui-meme : seul un echec du virement
-        // doit conduire a FAILED (retryable).
-        Transfer transfer;
+        // doit conduire a FAILED (retryable). L'appel Stripe est encapsulé dans
+        // l'adaptateur partagé StripeConnectTransferClient.
+        String transferId;
         try {
-            transfer = stripeGateway.createTransfer(
-                buildTransferParams(payout, config),
+            transferId = transferClient.createTransfer(
+                payout.getNetAmount(), payout.getCurrency(),
+                config.getStripeConnectedAccountId(), description,
                 "payout-" + payout.getId());
         } catch (Exception e) {
             return failPayout(payout, e.getMessage());
         }
 
-        OwnerPayout saved = persistTransferResult(payout, transfer);
+        OwnerPayout saved = persistTransferResult(payout, transferId);
         notifySuccessQuietly(saved);
-        log.info("Stripe transfer {} completed for payout {}", transfer.getId(), payout.getId());
+        log.info("Stripe transfer {} completed for payout {}", transferId, payout.getId());
         return saved;
-    }
-
-    private TransferCreateParams buildTransferParams(OwnerPayout payout, OwnerPayoutConfig config) {
-        long amountInCents = StripeAmounts.toMinorUnits(payout.getNetAmount());
-
-        String description = "Payout #" + payout.getId()
-            + " - " + payout.getPeriodStart() + " to " + payout.getPeriodEnd();
-
-        return TransferCreateParams.builder()
-            .setAmount(amountInCents)
-            .setCurrency(payout.getCurrency().toLowerCase())
-            .setDestination(config.getStripeConnectedAccountId())
-            .setDescription(description)
-            .build();
     }
 
     /**
@@ -110,20 +98,20 @@ public class StripeConnectPayoutExecutor implements PayoutExecutor {
      * seulement un log — regle audit n°7) puis propagation d'une exception
      * explicite — le re-essai est sans risque grace a l'idempotency key Stripe.
      */
-    private OwnerPayout persistTransferResult(OwnerPayout payout, Transfer transfer) {
+    private OwnerPayout persistTransferResult(OwnerPayout payout, String transferId) {
         try {
-            payout.setStripeTransferId(transfer.getId());
-            payout.setPaymentReference(transfer.getId());
+            payout.setStripeTransferId(transferId);
+            payout.setPaymentReference(transferId);
             payout.setStatus(PayoutStatus.PAID);
             payout.setPaidAt(Instant.now());
             return payoutRepository.save(payout);
         } catch (Exception e) {
             log.error("Transfert Stripe {} emis pour le payout {} mais la persistance a echoue — "
                 + "reconciliation requise (re-executer ce payout est sans risque : idempotency key payout-{}).",
-                transfer.getId(), payout.getId(), payout.getId(), e);
-            notifyReconciliationQuietly(payout, transfer.getId());
+                transferId, payout.getId(), payout.getId(), e);
+            notifyReconciliationQuietly(payout, transferId);
             throw new PayoutExecutionException(
-                "Le virement Stripe a ete emis (ref " + transfer.getId()
+                "Le virement Stripe a ete emis (ref " + transferId
                 + ") mais son enregistrement a echoue. Ne pas re-executer via un autre rail — "
                 + "relancer ce payout est sans risque (idempotence Stripe).", e);
         }

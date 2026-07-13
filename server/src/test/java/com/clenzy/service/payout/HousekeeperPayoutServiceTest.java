@@ -9,8 +9,6 @@ import com.clenzy.service.PricingConfigService;
 import com.clenzy.payment.StripeGateway;
 import com.stripe.model.Account;
 import com.stripe.model.AccountLink;
-import com.stripe.model.Transfer;
-import com.stripe.param.TransferCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -50,6 +48,7 @@ class HousekeeperPayoutServiceTest {
     @Mock private PricingConfigService pricingConfigService;
     @Mock private NotificationService notificationService;
     @Mock private HousekeeperPayoutRecorder recorder;
+    @Mock private com.clenzy.payment.payout.StripeConnectTransferClient transferClient;
 
     private HousekeeperPayoutService service;
 
@@ -57,7 +56,7 @@ class HousekeeperPayoutServiceTest {
     void setUp() {
         service = new HousekeeperPayoutService(configRepository, recordRepository,
                 interventionRepository, interventionPhotoRepository, userRepository,
-                stripeGateway, pricingConfigService, notificationService, recorder);
+                stripeGateway, pricingConfigService, notificationService, recorder, transferClient);
         // Commission désactivée par défaut (aucune config).
         PricingConfigDto dto = new PricingConfigDto();
         dto.setCommissionConfigs(List.of());
@@ -177,7 +176,7 @@ class HousekeeperPayoutServiceTest {
 
             verify(recorder).insertRecord(eq(intervention), any(), any(), any(),
                     eq(Status.BLOCKED), eq(HousekeeperPayoutRecord.REASON_PROOF_MISSING));
-            verify(stripeGateway, never()).createTransfer(any(), any());
+            verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
         }
 
         @Test
@@ -192,7 +191,7 @@ class HousekeeperPayoutServiceTest {
 
             verify(notificationService).send(eq("kc-pro"), eq(NotificationKey.PAYOUT_BLOCKED_ONBOARDING),
                     any(), contains("compte de versement"), any(), eq(7L));
-            verify(stripeGateway, never()).createTransfer(any(), any());
+            verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
         }
 
         @Test
@@ -202,7 +201,7 @@ class HousekeeperPayoutServiceTest {
             service.processPayoutForIntervention(intervention);
 
             verify(recorder, never()).insertRecord(any(), any(), any(), any(), any(), any());
-            verify(stripeGateway, never()).createTransfer(any(), any());
+            verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
         }
 
         @Test
@@ -216,7 +215,7 @@ class HousekeeperPayoutServiceTest {
             service.processPayoutForIntervention(unassigned);
 
             verify(recorder, never()).insertRecord(any(), any(), any(), any(), any(), any());
-            verify(stripeGateway, never()).createTransfer(any(), any());
+            verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
         }
     }
 
@@ -240,18 +239,17 @@ class HousekeeperPayoutServiceTest {
             when(recorder.insertRecord(any(), any(), eq(BigDecimal.valueOf(95).setScale(2)), any(),
                     eq(Status.PENDING), isNull())).thenReturn(true);
             stubPendingRecord(77L);
-            Transfer transfer = new Transfer();
-            transfer.setId("tr_123");
-            when(stripeGateway.createTransfer(any(), any())).thenReturn(transfer);
+            when(transferClient.createTransfer(any(), any(), any(), any(), any())).thenReturn("tr_123");
             when(recorder.markSent(77L, "tr_123")).thenReturn(1);
 
             service.processPayoutForIntervention(intervention);
 
-            ArgumentCaptor<TransferCreateParams> params = ArgumentCaptor.forClass(TransferCreateParams.class);
+            ArgumentCaptor<BigDecimal> amount = ArgumentCaptor.forClass(BigDecimal.class);
+            ArgumentCaptor<String> dest = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<String> idem = ArgumentCaptor.forClass(String.class);
-            verify(stripeGateway).createTransfer(params.capture(), idem.capture());
-            assertThat(params.getValue().getAmount()).isEqualTo(9500L); // StripeAmounts exact
-            assertThat(params.getValue().getDestination()).isEqualTo("acct_123");
+            verify(transferClient).createTransfer(amount.capture(), any(), dest.capture(), any(), idem.capture());
+            assertThat(amount.getValue()).isEqualByComparingTo("95.00"); // net exact
+            assertThat(dest.getValue()).isEqualTo("acct_123");
             assertThat(idem.getValue()).isEqualTo("payout-intervention-11");
             verify(notificationService).send(eq("kc-pro"), eq(NotificationKey.PAYOUT_SENT),
                     any(), contains("95"), any(), eq(7L));
@@ -267,16 +265,14 @@ class HousekeeperPayoutServiceTest {
                     new BigDecimal("85.50"), new BigDecimal("9.50"), Status.PENDING);
             record.setId(77L);
             when(recordRepository.findByInterventionId(11L)).thenReturn(Optional.of(record));
-            Transfer transfer = new Transfer();
-            transfer.setId("tr_123");
-            when(stripeGateway.createTransfer(any(), any())).thenReturn(transfer);
+            when(transferClient.createTransfer(any(), any(), any(), any(), any())).thenReturn("tr_123");
             when(recorder.markSent(anyLong(), any())).thenReturn(1);
 
             service.processPayoutForIntervention(intervention);
 
-            ArgumentCaptor<TransferCreateParams> params = ArgumentCaptor.forClass(TransferCreateParams.class);
-            verify(stripeGateway).createTransfer(params.capture(), any());
-            assertThat(params.getValue().getAmount()).isEqualTo(8550L);
+            ArgumentCaptor<BigDecimal> amount = ArgumentCaptor.forClass(BigDecimal.class);
+            verify(transferClient).createTransfer(amount.capture(), any(), any(), any(), any());
+            assertThat(amount.getValue()).isEqualByComparingTo("85.50");
         }
 
         @Test
@@ -288,7 +284,7 @@ class HousekeeperPayoutServiceTest {
 
             verify(recorder).insertRecord(any(), any(), any(), any(),
                     eq(Status.BLOCKED), eq("AMOUNT_NOT_POSITIVE"));
-            verify(stripeGateway, never()).createTransfer(any(), any());
+            verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
         }
 
         @Test
@@ -301,7 +297,7 @@ class HousekeeperPayoutServiceTest {
             service.processPayoutForIntervention(intervention);
             service.processPayoutForIntervention(intervention);
 
-            verify(stripeGateway, never()).createTransfer(any(), any());
+            verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
         }
 
         @Test
@@ -310,7 +306,7 @@ class HousekeeperPayoutServiceTest {
             when(recorder.insertRecord(any(), any(), any(), any(), eq(Status.PENDING), isNull()))
                     .thenReturn(true);
             stubPendingRecord(77L);
-            when(stripeGateway.createTransfer(any(), any()))
+            when(transferClient.createTransfer(any(), any(), any(), any(), any()))
                     .thenThrow(new com.stripe.exception.ApiException("insufficient funds", null, null, 400, null));
 
             service.processPayoutForIntervention(intervention);
@@ -341,14 +337,12 @@ class HousekeeperPayoutServiceTest {
             when(configRepository.findByUserIdAndOrganizationId(42L, 7L))
                     .thenReturn(Optional.of(onboardedConfig()));
             when(recorder.requeueRecord(eq(77L), eq(Status.FAILED), any(), any())).thenReturn(1);
-            Transfer transfer = new Transfer();
-            transfer.setId("tr_retry");
-            when(stripeGateway.createTransfer(any(), any())).thenReturn(transfer);
+            when(transferClient.createTransfer(any(), any(), any(), any(), any())).thenReturn("tr_retry");
             when(recorder.markSent(77L, "tr_retry")).thenReturn(1);
 
             service.retryPayout(77L, 7L);
 
-            verify(stripeGateway).createTransfer(any(), eq("payout-intervention-11"));
+            verify(transferClient).createTransfer(any(), any(), any(), any(), eq("payout-intervention-11"));
         }
 
         @Test
@@ -360,7 +354,7 @@ class HousekeeperPayoutServiceTest {
 
             service.retryPayout(77L, 7L);
 
-            verify(stripeGateway, never()).createTransfer(any(), any());
+            verify(transferClient, never()).createTransfer(any(), any(), any(), any(), any());
         }
 
         @Test
