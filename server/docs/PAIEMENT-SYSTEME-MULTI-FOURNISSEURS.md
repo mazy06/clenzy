@@ -255,6 +255,26 @@ Un nouveau rail de payout se branche via le `PayoutExecutorRegistry` **sans touc
 flux métier**. Détail des exigences (E2.5) et démarchage **par pays** : voir le dossier
 `analyse-concurrentielle/pdf/paiement-multi-fournisseurs-dossier.pdf`.
 
+## 9 ter. Alternatives full-stack à Stripe (3 ports + caution)
+
+Les adaptateurs régionaux intégrés (PayZone/CMI/PayTabs) ne font que l'**encaissement**
+(`PAY`/`REFUND`). Pour couvrir les **trois ports + caution** avec un autre fournisseur que
+Stripe, trois PSP **full-stack** sont éligibles — chacun se branche via **un seul adaptateur**
+qui déclarerait le même jeu de capacités que Stripe (`PAY`, `PREAUTH`, `CUSTOMER`, `PAYOUT`,
+`RECURRING`, `REFUND`), **sans modifier les flux métier** :
+
+- **Checkout.com** — full-stack, forte présence MENA/Golfe, règlement en MAD, onboarding
+  accessible à une startup. **Candidat recommandé** pour le contexte Baitly.
+- **Rapyd** — full-stack (Collect + Disburse + Wallet + payouts récurrents), fort sur les
+  marchés émergents ; caution partielle (hold via wallet).
+- **Adyen** — full-stack complet mais **enterprise-only** (seuils de volume élevés) → à l'échelle.
+
+> **Nuance Maroc** : même un PSP full-stack ne remplace pas totalement l'acquiring **local
+> carte MAD** (dominé par CMI). D'où la cible **multi-fournisseur** : un PSP full-stack
+> (international + abonnement + payout + caution) **en parallèle** d'un acquéreur local
+> (CMI/PayZone). Baitly n'est donc **pas verrouillé sur Stripe**. Comparatif détaillé
+> (capacités, éligibilité, couverture Maroc) : §16 du dossier PDF.
+
 ## 10. Glossaire
 
 | Terme | Définition |

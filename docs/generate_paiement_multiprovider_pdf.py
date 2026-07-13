@@ -175,6 +175,13 @@ def soon(txt="prévu"):
     return Paragraph(txt, _SOON)
 
 
+_PART = ParagraphStyle("part", parent=CELLB, textColor=WARN, alignment=TA_CENTER)
+
+
+def part(txt="~"):
+    return Paragraph(txt, _PART)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Primitives de dessin vectoriel
 # ══════════════════════════════════════════════════════════════════════════════
@@ -561,9 +568,10 @@ toc = [
         "13. Cahier des exigences (obligatoire / important / optionnel)",
         "14. Reversements mensuels & mandat SEPA (exigence)",
         "15. Démarchage des PSP par pays d'action",
-        "16. Plan de certification sandbox par PSP", "17. Grille d'évaluation (à remplir)",
-        "18. Processus d'intégration"]),
-    ("IV", "Annexes", ["19. UML des composants", "20. Glossaire"]),
+        "16. PSP full-stack : couvrir les trois ports comme Stripe",
+        "17. Plan de certification sandbox par PSP", "18. Grille d'évaluation (à remplir)",
+        "19. Processus d'intégration"]),
+    ("IV", "Annexes", ["20. UML des composants", "21. Glossaire"]),
 ]
 for num, title, items in toc:
     story.append(Paragraph(f"<b>Partie {num} — {title}</b>", ParagraphStyle("tp", parent=BODY, textColor=PRIMARY, spaceBefore=4)))
@@ -594,7 +602,7 @@ story.append(table([
     [Paragraph("1", CELL), Paragraph("~41 fichiers appelaient Stripe <b>en direct</b> — le switch ne valait que pour les flux orchestrés.", CELL), ok("migré")],
     [Paragraph("2", CELL), Paragraph("Flux non couverts : caution/pré-autorisation, abonnement récurrent, checkout sessions.", CELL), ok("couvert")],
     [Paragraph("3", CELL), Paragraph("Pas de modèle de <b>capacités</b> : le resolver pouvait choisir un fournisseur incapable du flux.", CELL), ok("capabilities")],
-    [Paragraph("4", CELL), Paragraph("Adaptateurs régionaux non certifiés (champs API « à confirmer à l'onboarding »).", CELL), Paragraph("runbook §16", ParagraphStyle("w", parent=CELLB, textColor=WARN, alignment=TA_CENTER))],
+    [Paragraph("4", CELL), Paragraph("Adaptateurs régionaux non certifiés (champs API « à confirmer à l'onboarding »).", CELL), Paragraph("runbook §17", ParagraphStyle("w", parent=CELLB, textColor=WARN, alignment=TA_CENTER))],
     [Paragraph("5", CELL), Paragraph("<b>Entorse money-safety</b> : appel HTTP externe DANS une transaction DB.", CELL), ok("corrigé")],
 ], [8 * mm, USABLE_W - 8 * mm - 24 * mm, 24 * mm], align_center_cols=(0, 2)))
 
@@ -625,7 +633,7 @@ story.append(table([
     [Paragraph("<b>V3</b> Abonnement", CELL), Paragraph("SubscriptionProvider (Stripe Billing)", CELL), Paragraph("Inscription + upgrade multi-pays", CELL), ok()],
     [Paragraph("<b>V4</b> Payouts", CELL), Paragraph("Owner + housekeeper via PayoutExecutor", CELL), Paragraph("Payout multi-rail (dont Manuel MA)", CELL), ok()],
     [Paragraph("<b>V5</b> Périphérie", CELL), Paragraph("Shop, upsells, crédits IA, mobile", CELL), Paragraph("Plus aucun Stripe direct hors adaptateurs", CELL), ok()],
-    [Paragraph("<b>V6</b> Certification", CELL), Paragraph("Sandbox PayZone/CMI/PayTabs + E2E", CELL), Paragraph("Adaptateurs régionaux prouvés", CELL), Paragraph("code prêt<br/>sandbox §16", ParagraphStyle("w", parent=CELL, textColor=WARN, alignment=TA_CENTER))],
+    [Paragraph("<b>V6</b> Certification", CELL), Paragraph("Sandbox PayZone/CMI/PayTabs + E2E", CELL), Paragraph("Adaptateurs régionaux prouvés", CELL), Paragraph("code prêt<br/>sandbox §17", ParagraphStyle("w", parent=CELL, textColor=WARN, alignment=TA_CENTER))],
 ], [26 * mm, 52 * mm, 52 * mm, USABLE_W - 26 * mm - 104 * mm], align_center_cols=(3,)))
 story.append(Paragraph("<b>Méthode par vague</b> : tests de caractérisation → bascule derrière l'orchestration "
                        "→ vérification E2E → suppression du code Stripe direct devenu mort (preuve avant "
@@ -810,9 +818,66 @@ story.append(Paragraph("<b>Séquencement recommandé</b> : (1) Maroc — PayZone
                        "CMI (volume/confiance bancaire) ; (2) UE — banque partenaire SEPA pour les payouts "
                        "mensuels ; (3) Golfe — PayTabs si expansion KSA ; (4) international — Stripe assure la "
                        "couverture par défaut.", BODY))
+story.append(Paragraph("Pour un fournisseur <b>full-stack unique</b> (3 ports + caution) alternatif à Stripe — "
+                       "notamment Checkout.com pour le contexte MENA — voir la section 16.", BODY))
+
+# ── §16 — PSP full-stack (alternatives à Stripe) ──────────────────────────────
+story.append(PageBreak())
+story.append(Paragraph("16. PSP full-stack : couvrir les trois ports comme Stripe", H1))
+story.append(Paragraph("Les PSP régionaux intégrés (PayZone, CMI, PayTabs) ne couvrent que l'<b>encaissement</b> "
+                       "(PAY / REFUND). Aujourd'hui, seul <b>Stripe</b> couvre les trois ports + caution. Mais "
+                       "Stripe n'opère pas au Maroc — d'où la question : existe-t-il un autre PSP <b>full-stack</b> "
+                       "aussi complet ? La réponse est <b>oui</b> : trois candidats couvrent l'ensemble "
+                       "(encaissement + abonnement + payouts + caution + carte enregistrée).", BODY))
+story.append(Paragraph("16.1 Couverture par capacité (full-stack)", H2))
+story.append(table([
+    hcells("Capacité / port", "Stripe", "Checkout.com", "Adyen", "Rapyd"),
+    [Paragraph("<b>PORT ENTRANT</b> — encaissement", CELL), yes(), yes(), yes(), yes()],
+    [Paragraph("<b>PORT ABONNEMENT</b> — récurrent", CELL), yes(), yes(), yes(), yes()],
+    [Paragraph("<b>PORT SORTANT</b> — payouts / reversements", CELL), yes(), yes(), yes(), yes()],
+    [Paragraph("Caution / pré-autorisation", CELL), yes(), yes(), yes(), part()],
+    [Paragraph("Carte enregistrée (vault / card-on-file)", CELL), yes(), yes(), yes(), yes()],
+    [Paragraph("Mandat SEPA / virement récurrent (payout)", CELL), yes(), yes(), yes(), yes()],
+    [Paragraph("Remboursement par API", CELL), yes(), yes(), yes(), yes()],
+], [USABLE_W - 4 * (24 * mm), 24 * mm, 24 * mm, 24 * mm, 24 * mm],
+    align_center_cols=(1, 2, 3, 4)))
+story.append(Paragraph("<font color='#4A9B8E'><b>&bull;</b></font> = supporté &nbsp;·&nbsp; "
+                       "<font color='#D4A574'><b>~</b></font> = partiel (Rapyd : hold via wallet, pas une "
+                       "pré-autorisation carte au sens strict).", SMALL))
+
+story.append(Paragraph("16.2 Contexte, éligibilité et couverture Maroc", H2))
+story.append(table([
+    hcells("Critère", "Stripe", "Checkout.com", "Adyen", "Rapyd"),
+    cells("Force régionale", "International / UE", "<b>MENA / Golfe</b>", "Entreprise, global", "Marchés émergents, payouts"),
+    cells("Couverture Maroc (MAD)", "Partenariats (limité)", "Règlement MAD, présence MENA", "Réseau ~100 pays", "Virement / redirect MA"),
+    cells("Acquiring LOCAL carte MAD", "Non (partenariat)", "Cross-border / partenariat", "Cross-border", "Non (virement)"),
+    cells("Éligibilité startup", "Oui", "<b>Oui</b> (onboarding souple)", "Non (&gt; 10 M$/an, minimums)", "Oui"),
+], [30 * mm, 26 * mm, USABLE_W - 30 * mm - 26 * mm - 2 * (30 * mm), 30 * mm, 30 * mm]))
+
+story.append(Paragraph("16.3 Recommandation", H2))
+for t in [
+    "<b>Trois PSP full-stack</b> peuvent, comme Stripe, couvrir les trois ports + caution + vault + "
+    "récurrent : <b>Checkout.com</b>, <b>Adyen</b> et <b>Rapyd</b>. Chacun se branche via <b>un seul "
+    "adaptateur</b> qui déclare le même jeu de capacités que Stripe (PAY, PREAUTH, CUSTOMER, PAYOUT, "
+    "RECURRING, REFUND) — <b>sans modifier les flux métier</b>.",
+    "<b>Candidat recommandé : Checkout.com</b> — le meilleur compromis pour Baitly : full-stack, forte "
+    "présence MENA / Golfe, règlement en MAD, et onboarding accessible à une startup (contrairement à "
+    "Adyen, réservé à l'échelle &gt; 10 M$/an). <b>Rapyd</b> = alternative payouts / marchés émergents ; "
+    "<b>Adyen</b> = option entreprise à terme.",
+    "<b>Nuance Maroc (décisive)</b> : même un PSP full-stack ne remplace pas totalement l'acquiring "
+    "<b>local carte MAD</b>, dominé par <b>CMI</b> — ces acteurs couvrent le Maroc surtout en "
+    "cross-border / virement / partenariat. La cible reste donc l'<b>architecture multi-fournisseur</b> : "
+    "un PSP full-stack (international + abonnement + payout + caution) <b>en parallèle</b> d'un acquéreur "
+    "local (CMI / PayZone) pour les cartes marocaines.",
+    "<b>Conséquence stratégique</b> : Baitly <b>n'est pas verrouillé sur Stripe</b>. Le port "
+    "d'encaissement, le port abonnement et le port sortant acceptent tous un adaptateur Checkout.com / "
+    "Adyen / Rapyd. Le « switch » de fournisseur full-stack est un changement d'adaptateur, pas de "
+    "plateforme.",
+]:
+    story.append(Paragraph("•&nbsp; " + t, BULLET))
 
 story.append(PageBreak())
-story.append(Paragraph("16. Plan de certification sandbox par PSP", H1))
+story.append(Paragraph("17. Plan de certification sandbox par PSP", H1))
 story.append(Paragraph("Le code des adaptateurs est prêt et audité ; il reste la <b>certification en sandbox "
                        "réel</b>, dépendante de l'onboarding marchand. Plan par PSP :", BODY))
 story.append(table([
@@ -838,7 +903,7 @@ story.append(table([
 ], [12 * mm, 62 * mm, USABLE_W - 12 * mm - 62 * mm], align_center_cols=(0,)))
 
 story.append(PageBreak())
-story.append(Paragraph("17. Grille d'évaluation PSP (à remplir en rendez-vous)", H1))
+story.append(Paragraph("18. Grille d'évaluation PSP (à remplir en rendez-vous)", H1))
 story.append(Paragraph("PSP : _______________________   Pays : ___________   Date : __________   "
                        "Interlocuteur : ______________________", BODY))
 allreq = ([(r, "OBLIGATOIRE") for r, _ in must] +
@@ -861,13 +926,13 @@ story.append(Paragraph("Toute E1.x à « Non » est éliminatoire en l'état →
                        "Les E2.x/E3.x à « Non » n'excluent pas : le repli documenté s'applique et la "
                        "capacité pourra être activée sans re-développement.", BODY))
 
-story.append(Paragraph("18. Processus d'intégration", H1))
+story.append(Paragraph("19. Processus d'intégration", H1))
 story.append(table([
     hcells("Phase", "Contenu", "Charge"),
     cells("1. Cadrage", "Grille remplie, accès sandbox + doc, compte marchand de test", "~1 sem. (dépend du PSP)"),
     cells("2. Adaptateur", "Module fournisseur (create/refund/signature/capabilities)", "3–5 j"),
     cells("3. Webhook", "Endpoint dédié + vérif signature + tests de re-livraison", "1–2 j"),
-    cells("4. Certification", "Scénarios C1–C10 en sandbox (§16)", "2–3 j"),
+    cells("4. Certification", "Scénarios C1–C10 en sandbox (§17)", "2–3 j"),
     cells("5. Pilote prod", "Org pilote, montants réels faibles, supervision", "~2 sem."),
     cells("6. Généralisation", "Activation par organisation", "—"),
 ], [26 * mm, USABLE_W - 26 * mm - 34 * mm, 34 * mm]))
@@ -880,12 +945,12 @@ story.append(PageBreak())
 # ══════════════════════════════════════════════════════════════════════════════
 story.append(part_banner("IV", "Annexes"))
 story.append(Spacer(1, 4 * mm))
-story.append(Paragraph("19. UML des composants (ports & adaptateurs)", H1))
+story.append(Paragraph("20. UML des composants (ports & adaptateurs)", H1))
 story.append(fig(diagram_uml(),
                  "Figure 7 — Vue UML : trois interfaces (ports) et leurs implémentations (adaptateurs). "
                  "Des registries résolvent l'implémentation par capacité + devise + pays. * = à venir."))
 
-story.append(Paragraph("20. Glossaire", H1))
+story.append(Paragraph("21. Glossaire", H1))
 story.append(table([
     hcells("Terme", "Définition"),
     cells("PSP", "Prestataire de services de paiement (Stripe, CMI, PayZone, PayTabs…)."),
