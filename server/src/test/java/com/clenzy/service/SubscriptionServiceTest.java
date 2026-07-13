@@ -35,12 +35,15 @@ class SubscriptionServiceTest {
     @Mock private AuditLogService auditLogService;
     @Mock private PricingConfigService pricingConfigService;
     @Mock private StripeGateway stripeGateway;
+    @Mock private com.clenzy.payment.subscription.SubscriptionProviderRegistry subscriptionProviderRegistry;
+    @Mock private com.clenzy.payment.subscription.SubscriptionProvider subscriptionProvider;
 
     private SubscriptionService subscriptionService;
 
     @BeforeEach
     void setUp() throws Exception {
-        subscriptionService = new SubscriptionService(userRepository, auditLogService, pricingConfigService, stripeGateway);
+        subscriptionService = new SubscriptionService(userRepository, auditLogService, pricingConfigService,
+                stripeGateway, subscriptionProviderRegistry);
 
         setField(subscriptionService, "currency", "EUR");
         setField(subscriptionService, "frontendUrl", "http://localhost:3000");
@@ -311,16 +314,16 @@ class SubscriptionServiceTest {
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
             when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
             when(pricingConfigService.getAiMonthlySurchargeCents("confort")).thenReturn(2900);
-            Session session = mock(Session.class);
-            when(session.getUrl()).thenReturn("https://stripe.test/checkout");
-            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
+            when(subscriptionProviderRegistry.resolve(any())).thenReturn(subscriptionProvider);
+            when(subscriptionProvider.createSubscriptionCheckout(any()))
+                    .thenReturn(com.clenzy.payment.PaymentResult.success("cs_x", "https://stripe.test/checkout"));
 
             subscriptionService.createUpgradeCheckout("kc-1", "confort");
 
-            ArgumentCaptor<SessionCreateParams> captor = ArgumentCaptor.forClass(SessionCreateParams.class);
-            verify(stripeGateway).createSession(captor.capture());
-            assertThat(captor.getValue().getLineItems().get(0).getPriceData().getUnitAmount())
-                    .isEqualTo(5900L); // 30 € PMS + 29 € supplément IA Confort
+            ArgumentCaptor<com.clenzy.payment.subscription.SubscriptionCheckoutRequest> captor =
+                    ArgumentCaptor.forClass(com.clenzy.payment.subscription.SubscriptionCheckoutRequest.class);
+            verify(subscriptionProvider).createSubscriptionCheckout(captor.capture());
+            assertThat(captor.getValue().unitAmountMinor()).isEqualTo(5900L); // 30 € PMS + 29 € supplément IA Confort
         }
 
         @Test
@@ -479,19 +482,19 @@ class SubscriptionServiceTest {
             when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
             when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(2900);
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_upg_1");
-            when(session.getUrl()).thenReturn("https://checkout.stripe.com/cs_upg_1");
-            when(stripeGateway.createSession(any(SessionCreateParams.class))).thenReturn(session);
+            when(subscriptionProviderRegistry.resolve(any())).thenReturn(subscriptionProvider);
+            when(subscriptionProvider.createSubscriptionCheckout(any()))
+                    .thenReturn(com.clenzy.payment.PaymentResult.success("cs_upg_1", "https://checkout.stripe.com/cs_upg_1"));
 
             Map<String, String> result = subscriptionService.createUpgradeCheckout("kc-1", "premium");
 
             assertThat(result).containsEntry("checkoutUrl", "https://checkout.stripe.com/cs_upg_1");
 
-            // T-SOLID-3 : les params passent par le gateway (plus de Stripe.apiKey statique)
-            ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
-            verify(stripeGateway).createSession(paramsCaptor.capture());
-            assertThat(paramsCaptor.getValue().getMetadata())
+            // Le checkout d'abonnement passe par le port SubscriptionProvider avec les metadata attendues.
+            ArgumentCaptor<com.clenzy.payment.subscription.SubscriptionCheckoutRequest> paramsCaptor =
+                    ArgumentCaptor.forClass(com.clenzy.payment.subscription.SubscriptionCheckoutRequest.class);
+            verify(subscriptionProvider).createSubscriptionCheckout(paramsCaptor.capture());
+            assertThat(paramsCaptor.getValue().metadata())
                     .containsEntry("type", "upgrade")
                     .containsEntry("forfait", "premium")
                     .containsEntry("previousForfait", "essentiel");
