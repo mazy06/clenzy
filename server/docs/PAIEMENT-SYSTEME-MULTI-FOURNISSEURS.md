@@ -126,13 +126,19 @@ Légende : ✅ = le fournisseur est résolu dynamiquement (devise/pays/config or
 | Capacité | Stripe | PayZone | CMI | PayTabs | Signification métier |
 |---|---|---|---|---|---|
 | `PAY` | ✅ | ✅ | ✅ | ✅ | encaisser un paiement one-shot |
-| `REFUND` | ✅ | ✅ | ✅ | ✅ | rembourser |
+| `REFUND` | ✅ | ✅ | ❌¹ | ✅ | rembourser via le port (API) |
 | `PREAUTH` | ✅ | — | — | — | caution (pré-autorisation, capture différée) |
 | `CUSTOMER` | ✅ | — | — | — | carte enregistrée (off-session) |
 | `PAYOUT` | ✅ | — | — | — | reversement via le provider |
 | `EMBEDDED_CHECKOUT` | ✅ | — | — | — | checkout inline (clientSecret) |
 | `SHIPPING_ADDRESS` | ✅ | — | — | — | collecte d'adresse de livraison |
 | `RECURRING` | ✅ (Billing) | *(prévu)* | — | — | abonnement récurrent |
+
+> ¹ **CMI ne rembourse pas via le port** : les remboursements CMI se font
+> manuellement au back-office marchand (pas d'API de refund). L'adaptateur ne
+> déclare donc pas `REFUND` (honnêteté des capacités). Un remboursement d'une
+> transaction CMI renvoie un échec explicite invitant à l'opération manuelle.
+> Voir le [runbook de certification](PAIEMENT-CERTIFICATION-PSP-RUNBOOK.md).
 
 ### 6.2 Règles de résolution (dans l'ordre)
 
