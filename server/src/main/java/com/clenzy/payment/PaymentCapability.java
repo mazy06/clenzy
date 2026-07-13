@@ -34,5 +34,12 @@ public enum PaymentCapability {
      * Capacité différenciante (Stripe Embedded Checkout) : les PSP régionaux ne la
      * déclarent pas → le resolver capability-aware réserve les flux embedded à Stripe.
      */
-    EMBEDDED_CHECKOUT
+    EMBEDDED_CHECKOUT,
+
+    /**
+     * Abonnement <strong>récurrent</strong> (Stripe Billing, PayZone récurrent…).
+     * Déclarée par les {@code SubscriptionProvider} ; sémantique distincte du
+     * paiement one-shot (décision D1 de l'ADR : port abonnement dédié).
+     */
+    RECURRING
 }

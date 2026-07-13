@@ -3,7 +3,11 @@ package com.clenzy.service;
 import com.clenzy.dto.CreateUserDto;
 import com.clenzy.dto.InscriptionDto;
 import com.clenzy.model.*;
+import com.clenzy.payment.PaymentResult;
 import com.clenzy.payment.StripeGateway;
+import com.clenzy.payment.subscription.SubscriptionCheckoutRequest;
+import com.clenzy.payment.subscription.SubscriptionInterval;
+import com.clenzy.payment.subscription.SubscriptionProviderRegistry;
 import com.clenzy.repository.PendingInscriptionRepository;
 import com.clenzy.util.StringUtils;
 import com.clenzy.repository.UserRepository;
@@ -54,6 +58,7 @@ public class InscriptionService {
     private final PlatformPromoCodeService promoCodeService;
     private final BrevoContactService brevoContactService;
     private final StripeGateway stripeGateway;
+    private final SubscriptionProviderRegistry subscriptionProviderRegistry;
 
     @Value("${stripe.currency}")
     private String currency;
@@ -86,7 +91,8 @@ public class InscriptionService {
             RestTemplate restTemplate,
             PlatformPromoCodeService promoCodeService,
             BrevoContactService brevoContactService,
-            StripeGateway stripeGateway) {
+            StripeGateway stripeGateway,
+            SubscriptionProviderRegistry subscriptionProviderRegistry) {
         this.pendingInscriptionRepository = pendingInscriptionRepository;
         this.userRepository = userRepository;
         this.keycloakService = keycloakService;
@@ -97,6 +103,7 @@ public class InscriptionService {
         this.promoCodeService = promoCodeService;
         this.brevoContactService = brevoContactService;
         this.stripeGateway = stripeGateway;
+        this.subscriptionProviderRegistry = subscriptionProviderRegistry;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -157,32 +164,31 @@ public class InscriptionService {
         int priceInCents = basePmsCents
                 + pricingConfigService.getAiMonthlySurchargeCents(dto.getForfait());
 
-        // Determiner l'intervalle Stripe et le montant selon la periode de facturation
+        // Determiner l'intervalle et le montant selon la periode de facturation
         BillingPeriod period = dto.getBillingPeriodEnum();
-        SessionCreateParams.LineItem.PriceData.Recurring.Interval stripeInterval;
+        SubscriptionInterval interval;
         long stripePriceAmount;
-        // Nombre de periodes Stripe par cycle de facturation : 1 an (annuel) ou
-        // 2 ans (bisannuel). Pilote setIntervalCount sur le Recurring.
-        long stripeIntervalCount = 1L;
+        // Nombre de periodes par cycle de facturation : 1 an (annuel) ou 2 ans (bisannuel).
+        long intervalCount = 1L;
         String billingDescription;
 
         switch (period) {
             case ANNUAL:
-                stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.YEAR;
+                interval = SubscriptionInterval.YEAR;
                 // Total sur 12 mois au tarif annuel (computeTotalPriceCents = mensuel remise * mois).
                 stripePriceAmount = period.computeTotalPriceCents(priceInCents);
                 billingDescription = "Abonnement annuel (-20%)";
                 break;
             case BIENNIAL:
-                stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.YEAR;
+                interval = SubscriptionInterval.YEAR;
                 // Facture pour 2 ANS d'un coup : total sur 24 mois (mensuel remise * 24)
-                // + cycle Stripe de 2 ans (intervalCount=2), pas un montant annuel.
+                // + cycle de 2 ans (intervalCount=2), pas un montant annuel.
                 stripePriceAmount = period.computeTotalPriceCents(priceInCents);
-                stripeIntervalCount = 2L;
+                intervalCount = 2L;
                 billingDescription = "Abonnement 2 ans (-35%), facture pour 2 ans";
                 break;
             default: // MONTHLY
-                stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH;
+                interval = SubscriptionInterval.MONTH;
                 stripePriceAmount = priceInCents;
                 billingDescription = "Abonnement mensuel";
                 break;
@@ -194,61 +200,35 @@ public class InscriptionService {
         // continue sans discount (le code brut est tout de meme stocke pour audit).
         String stripeCouponId = applyPromoCodeIfValid(dto.getPromoCode(), dto.getEmail());
 
-        SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
-                .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
-                .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
-                .setReturnUrl(inscriptionReturnUrl + "?session_id={CHECKOUT_SESSION_ID}")
-                .addLineItem(
-                        SessionCreateParams.LineItem.builder()
-                                .setQuantity(1L)
-                                .setPriceData(
-                                        SessionCreateParams.LineItem.PriceData.builder()
-                                                .setCurrency(currency.toLowerCase())
-                                                .setUnitAmount(stripePriceAmount)
-                                                .setRecurring(
-                                                        SessionCreateParams.LineItem.PriceData.Recurring.builder()
-                                                                .setInterval(stripeInterval)
-                                                                .setIntervalCount(stripeIntervalCount)
-                                                                .build()
-                                                )
-                                                .setProductData(
-                                                        SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                .setName("Baitly - Abonnement plateforme" + (isSyncMode ? " + Synchro auto" : ""))
-                                                                .setDescription(billingDescription + " a la plateforme de gestion Baitly - Forfait " + dto.getForfaitDisplayName() + (isSyncMode ? " (avec synchronisation calendrier automatique)" : ""))
-                                                                .build()
-                                                )
-                                                .build()
-                                )
-                                .build()
-                )
-                .setCustomerEmail(dto.getEmail())
-                // Metadata sur la session pour identifier le type dans le webhook
-                .putMetadata("type", "inscription")
-                .putMetadata("email", dto.getEmail())
-                .putMetadata("forfait", dto.getForfait())
-                .putMetadata("billingPeriod", period.name())
-                // Metadata sur la subscription pour les evenements futurs (invoice.paid, customer.subscription.deleted, etc.)
-                .setSubscriptionData(
-                        SessionCreateParams.SubscriptionData.builder()
-                                .putMetadata("type", "inscription")
-                                .putMetadata("email", dto.getEmail())
-                                .putMetadata("forfait", dto.getForfait())
-                                .putMetadata("billingPeriod", period.name())
-                                .build()
-                );
+        // Checkout d'abonnement EMBARQUÉ via le port SubscriptionProvider (Vague 3).
+        // Metadata posées sur la session ET l'abonnement par l'adaptateur.
+        Map<String, String> metadata = new java.util.LinkedHashMap<>();
+        metadata.put("type", "inscription");
+        metadata.put("email", dto.getEmail());
+        metadata.put("forfait", dto.getForfait());
+        metadata.put("billingPeriod", period.name());
 
-        // Attachement du coupon Stripe (1 seul discount par session, applique sur
-        // la premiere facture seulement — voir Duration.ONCE dans buildStripeCoupon).
-        if (stripeCouponId != null) {
-            paramsBuilder.addDiscount(
-                    SessionCreateParams.Discount.builder()
-                            .setCoupon(stripeCouponId)
-                            .build()
-            );
+        SubscriptionCheckoutRequest subRequest = new SubscriptionCheckoutRequest(
+                stripePriceAmount,
+                currency,
+                interval,
+                intervalCount,
+                "Baitly - Abonnement plateforme" + (isSyncMode ? " + Synchro auto" : ""),
+                billingDescription + " a la plateforme de gestion Baitly - Forfait "
+                        + dto.getForfaitDisplayName() + (isSyncMode ? " (avec synchronisation calendrier automatique)" : ""),
+                dto.getEmail(),
+                null,                                                       // pas de customer existant à l'inscription
+                true,                                                       // embarqué
+                inscriptionReturnUrl + "?session_id={CHECKOUT_SESSION_ID}",
+                null,                                                       // cancelUrl : N/A en embarqué
+                stripeCouponId,                                             // coupon (nullable)
+                metadata);
+
+        PaymentResult subResult = subscriptionProviderRegistry.resolve(currency).createSubscriptionCheckout(subRequest);
+        if (!subResult.success()) {
+            throw new RuntimeException("Echec de creation de la session d'abonnement: " + subResult.errorMessage());
         }
-
-        // Creer la session Stripe Checkout (cle resolue par le gateway, pas d'etat statique)
-        Session session = stripeGateway.createSession(paramsBuilder.build());
+        final String sessionId = subResult.providerTxId();
 
         // Sauvegarder l'inscription en attente (SANS le mot de passe)
         PendingInscription pending = new PendingInscription();
@@ -285,20 +265,20 @@ public class InscriptionService {
         // est faite via applyPromoCodeIfValid() plus haut (coupon attache a la session).
         pending.setPromoCode(dto.getPromoCode());
         pending.setReferralSource(dto.getReferralSource());
-        pending.setStripeSessionId(session.getId());
+        pending.setStripeSessionId(sessionId);
         pending.setStatus(PendingInscriptionStatus.PENDING_PAYMENT);
         // Expiration apres 24h si non paye
         pending.setExpiresAt(LocalDateTime.now().plusHours(24));
 
         pendingInscriptionRepository.save(pending);
 
-        logger.info("Inscription en attente creee pour {}, session Stripe: {}", dto.getEmail(), session.getId());
+        logger.info("Inscription en attente creee pour {}, session Stripe: {}", dto.getEmail(), sessionId);
 
         // Retourner le clientSecret + les prix reels pour affichage coherent dans le frontend
         int monthlyPriceCents = period.computeMonthlyPriceCents(priceInCents);
         Map<String, Object> result = new java.util.LinkedHashMap<>();
-        result.put("clientSecret", session.getClientSecret());
-        result.put("sessionId", session.getId());
+        result.put("clientSecret", subResult.clientSecret());
+        result.put("sessionId", sessionId);
         result.put("pmsBaseCents", priceInCents);
         result.put("monthlyPriceCents", monthlyPriceCents);
         result.put("stripePriceAmount", stripePriceAmount);
