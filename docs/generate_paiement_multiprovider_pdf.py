@@ -451,7 +451,7 @@ def diagram_payout_sepa():
 # ── 7. UML composants (ports & adaptateurs) ───────────────────────────────────
 
 def diagram_uml():
-    W, H = USABLE_W, 60 * mm
+    W, H = USABLE_W, 58 * mm
     d = Drawing(W, H)
 
     def iface(x, y, w, name, methods):
@@ -468,29 +468,44 @@ def diagram_uml():
         return h
 
     def impl(x, y, w, name, c):
-        d.add(Rect(x, y - 9, w, 9, fillColor=colors.white, strokeColor=c, strokeWidth=0.8, rx=2, ry=2))
-        d.add(String(x + w / 2, y - 6.5, name, fontName="Helvetica", fontSize=6.5,
+        d.add(Rect(x, y - 10, w, 10, fillColor=colors.white, strokeColor=c, strokeWidth=0.8, rx=2, ry=2))
+        d.add(String(x + w / 2, y - 7, name, fontName="Helvetica", fontSize=6.5,
                      fillColor=INK, textAnchor="middle"))
 
     colw = W * 0.31
-    # 3 interfaces
-    h1 = iface(0, H - 4, colw, "PaymentProvider",
-               ["createPayment()", "refundPayment()", "getCapabilities()", "verifyWebhook()"])
-    iface(W * 0.345, H - 4, colw, "SubscriptionProvider",
-          ["createSubscription", "Checkout()", "getCapabilities()"])
-    iface(W - colw, H - 4, colw, "PayoutExecutor",
-          ["execute()", "supports()", "getCapabilities()"])
-    # impl under each
-    ys = H - 4 - h1 - 8
-    for i, m in enumerate(["StripePaymentProvider", "PayzonePaymentProvider", "CmiPaymentProvider", "PayTabsPaymentProvider"]):
-        impl(0, ys - i * 11, colw, m, SKY)
-        _arrow(d, colw / 2, ys - i * 11, colw / 2, ys - i * 11 + 3, dashed=True, w=0.6)
-    for i, m in enumerate(["StripeBillingSubscription", "PayzoneRecurrent*"]):
-        impl(W * 0.345, ys - i * 11, colw, m, WARN)
-    for i, m in enumerate(["StripeConnectExecutor", "SepaPayoutExecutor", "OpenBankingExecutor", "ManualPayoutExecutor"]):
-        impl(W - colw, ys - i * 11, colw, m, GREEN)
-    d.add(String(0, 2, "Registries : PaymentProviderRegistry / SubscriptionProviderRegistry / PayoutExecutorRegistry resolvent l'implementation par capacite + devise + pays.",
-                 fontName="Helvetica-Oblique", fontSize=6.6, fillColor=MUTED))
+    xs = [0, W * 0.345, W - colw]
+    ifaces = [
+        ("PaymentProvider", ["createPayment()", "refundPayment()", "getCapabilities()", "verifyWebhook()"]),
+        ("SubscriptionProvider", ["createSubscriptionCheckout()", "getCapabilities()"]),
+        ("PayoutExecutor", ["execute()", "supports()", "getCapabilities()"]),
+    ]
+    impls = [
+        ["StripePaymentProvider", "PayzonePaymentProvider", "CmiPaymentProvider", "PayTabsPaymentProvider"],
+        ["StripeBillingSubscription", "PayzoneRecurrent*"],
+        ["StripeConnectExecutor", "SepaPayoutExecutor", "OpenBankingExecutor", "ManualPayoutExecutor"],
+    ]
+    cols = [SKY, WARN, GREEN]
+
+    ytop = H - 6
+    # Interfaces (hauteurs différentes selon le nombre de méthodes).
+    iface_h = []
+    for x, (name, methods) in zip(xs, ifaces):
+        iface_h.append(iface(x, ytop, colw, name, methods))
+
+    # Écart net entre le bas de l'interface la plus haute et le sommet des implémentations.
+    gap = 22
+    y_impl_top = ytop - max(iface_h) - gap
+    impl_step = 12
+
+    for col, (x, items, c) in enumerate(zip(xs, impls, cols)):
+        iface_bottom = ytop - iface_h[col]
+        # Flèche de réalisation (pointillée, pointe vers l'interface), bien visible.
+        _arrow(d, x + colw / 2, y_impl_top, x + colw / 2, iface_bottom, dashed=True, w=0.8)
+        for i, m in enumerate(items):
+            impl(x, y_impl_top - i * impl_step, colw, m, c)
+
+    d.add(String(0, 2, "Realisation (fleche pointillee) : chaque adaptateur implemente son port ; un registry resout l'implementation par capacite + devise + pays.",
+                 fontName="Helvetica-Oblique", fontSize=6.4, fillColor=MUTED))
     return d
 
 
