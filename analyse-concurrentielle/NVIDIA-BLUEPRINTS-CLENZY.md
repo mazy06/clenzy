@@ -1,7 +1,7 @@
-# NVIDIA Blueprints appliqués à Clenzy — recommandation
+# NVIDIA Blueprints appliqués à Baitly — recommandation
 
 > Recherche + reco produit/tech. Mapping des **NVIDIA AI Blueprints** (https://build.nvidia.com/blueprints)
-> aux besoins du PMS Clenzy (location courte durée multi-tenant).
+> aux besoins du PMS Baitly (location courte durée multi-tenant).
 > Auteur : recherche assistée. Date : 2026-06-26.
 > **Statut : document de cadrage. Aucun code applicatif modifié.**
 
@@ -15,7 +15,7 @@
 prêt à forker. Exemples : RAG d'entreprise, extraction PDF multimodale, assistant virtuel, digital human,
 video search & summarization, PDF-to-podcast, traduction (Riva).
 
-**Le point structurant pour Clenzy — hosted vs self-hosted.** Il existe **deux mondes NVIDIA** qu'il faut
+**Le point structurant pour Baitly — hosted vs self-hosted.** Il existe **deux mondes NVIDIA** qu'il faut
 distinguer :
 
 | | Modèles NIM **hébergés** (`build.nvidia.com` / `integrate.api.nvidia.com`) | **Blueprints** (le pipeline complet) |
@@ -23,34 +23,34 @@ distinguer :
 | Nature | endpoints API OpenAI-compatibles | docker-compose / Helm qui orchestre N NIM |
 | GPU | **aucun** côté client | souvent **self-hosted GPU** pour le pipeline complet |
 | Coût | free tier (1 000 crédits, ~40 req/min, sans CB) puis NVIDIA AI Enterprise (~4 500 $/GPU/an ou ~1 $/GPU·h) | idem + coût GPU si self-hosté |
-| Déjà utilisé par Clenzy | **OUI** (voir §2) | non |
+| Déjà utilisé par Baitly | **OUI** (voir §2) | non |
 
-**Fait clé sur l'archi actuelle (vérifié dans le code).** Clenzy **consomme déjà NVIDIA Build comme
+**Fait clé sur l'archi actuelle (vérifié dans le code).** Baitly **consomme déjà NVIDIA Build comme
 provider LLM** : `OpenAiChatProvider` est un client générique OpenAI-compatible qui cible n'importe quel
 `baseUrl` (OpenAI / NVIDIA Build / proxy Bedrock), routé par `ChatLLMRouter` selon le `PlatformAiModel`
 choisi. Donc **brancher un modèle NIM hébergé supplémentaire = config (une ligne de catalogue), pas du code.**
 En revanche, **un Blueprint complet self-hosté = nouveau chantier infra GPU** (hors stack Docker actuelle CPU
 sur VPS OVH).
 
-**Conséquence stratégique.** Les Blueprints ne sont, pour Clenzy, **pas à déployer tels quels**. Ils sont
+**Conséquence stratégique.** Les Blueprints ne sont, pour Baitly, **pas à déployer tels quels**. Ils sont
 intéressants comme **architectures de référence à ré-implémenter en mode "tool du multi-agent"**, en
-réutilisant **uniquement les NIM hébergés** (zéro GPU à gérer), OU comme **modèles que Clenzy fait déjà
+réutilisant **uniquement les NIM hébergés** (zéro GPU à gérer), OU comme **modèles que Baitly fait déjà
 mieux** (le RAG existe déjà en pgvector). Le vrai gain est sur **3-4 capacités d'ingestion documentaire et
-multimodale** que Clenzy n'a pas encore.
+multimodale** que Baitly n'a pas encore.
 
 ### Top recommandations (détail §3 et §4)
 
-| # | Blueprint NVIDIA | Besoin Clenzy | Faisabilité | Priorité |
+| # | Blueprint NVIDIA | Besoin Baitly | Faisabilité | Priorité |
 |---|---|---|---|---|
 | 1 | **Multimodal PDF / Document extraction** (NeMo Retriever) | Factures fournisseurs, contrats, états des lieux, pièces d'identité guests | Moyenne (NIM hébergés OCR/table dispo en API) | **Quick win prioritaire** |
 | 2 | **RAG / Enterprise RAG** (NeMo Retriever embed+rerank) | KB assistant — **existe déjà en pgvector** | Faible effort (swap d'embedding provider, déjà abstrait) | **Quick win (optionnel)** |
-| 3 | **AI Virtual Assistant** (LangGraph) | L'assistant multi-agent Clenzy — **existe déjà, plus avancé** | N/A (référence d'archi, pas à adopter) | Inspiration |
+| 3 | **AI Virtual Assistant** (LangGraph) | L'assistant multi-agent Baitly — **existe déjà, plus avancé** | N/A (référence d'archi, pas à adopter) | Inspiration |
 | 4 | **Video Search & Summarization (VSS)** | Caméras go2rtc : résumé/recherche d'événements vidéo | Faible (GPU lourd, self-hosté obligatoire) | Gros chantier / différé |
 | 5 | **Riva Translation** | Multi-langue booking engine (déjà fait via LLM `translate-html`) | N/A (déjà couvert, Riva = speech surtout) | Non prioritaire |
 
 ---
 
-## 2. État des lieux IA Clenzy (pour calibrer la faisabilité)
+## 2. État des lieux IA Baitly (pour calibrer la faisabilité)
 
 Vérifié dans le repo :
 
@@ -80,21 +80,21 @@ Vérifié dans le repo :
 
 ---
 
-## 3. Catalogue des Blueprints pertinents → besoin Clenzy
+## 3. Catalogue des Blueprints pertinents → besoin Baitly
 
 Tableau central. **Faisabilité** = adéquation avec l'archi actuelle (API hébergées vs GPU à héberger).
 **Intégration** = comment ça se branche (tool du multi-agent vs intégration séparée).
 
-| Blueprint NVIDIA | Brique(s) NIM | Besoin business Clenzy | Valeur | Faisabilité (hosted vs GPU) | Effort | Intégration | Priorité |
+| Blueprint NVIDIA | Brique(s) NIM | Besoin business Baitly | Valeur | Faisabilité (hosted vs GPU) | Effort | Intégration | Priorité |
 |---|---|---|---|---|---|---|---|
 | **Multimodal PDF / Document Extraction** (NeMo Retriever : page-elements, table-structure, graphic-elements, PaddleOCR) | OCR + détection tables/charts + VLM | Lire **factures fournisseurs**, **contrats/mandats**, **états des lieux**, **pièces d'identité guests**, justificatifs → champs structurés | **Élevée** : automatise une saisie 100% manuelle, réduit erreurs facturation/NF | **Moyenne** : les NIM d'extraction sont exposés en API hébergée (démo catalogue) → pas de GPU si on appelle l'API ; mais débit/SLA limités en free tier, prod = AI Enterprise | M (1 service + 1 tool + parsing) | **Tool** `extract_document_fields` (déléguant à un `DocumentExtractionService`) **+** hook d'ingestion (à l'upload d'une facture/pièce) | **P1 — quick win** |
-| **RAG / Enterprise RAG** (NeMo Retriever embed `llama-nemoretriever`, rerank, guardrails) | embedding + rerank + LLM | Base de connaissances de l'assistant | **Faible-moyenne** : Clenzy a **déjà** un RAG pgvector équivalent | **Élevée** : `EmbeddingProvider` est déjà une abstraction → ajouter `NvidiaEmbeddingProvider` (API hébergée) à côté de Voyage/OpenAI ; rerank idem | S (1 provider + config) | Pas un nouveau tool : **swap de provider** d'embedding/rerank derrière l'interface existante | **P3 — option** (seulement si benchmark recall meilleur ou pour rester mono-fournisseur NVIDIA) |
-| **AI Virtual Assistant** (LangGraph, 3 sous-agents, Llama 3.3 70B + NeMoTron embed/rerank) | LLM + RAG orchestrés | L'assistant Clenzy | **Référence** : valide l'archi multi-agent (Clenzy fait déjà ça, en plus métier) | N/A | — | Étudier comme **modèle d'archi** (sous-agents spécialisés, routing) pour `service/agent/multiagent/`. **Ne pas adopter le code** (déprécié avr. 2026). | Inspiration |
+| **RAG / Enterprise RAG** (NeMo Retriever embed `llama-nemoretriever`, rerank, guardrails) | embedding + rerank + LLM | Base de connaissances de l'assistant | **Faible-moyenne** : Baitly a **déjà** un RAG pgvector équivalent | **Élevée** : `EmbeddingProvider` est déjà une abstraction → ajouter `NvidiaEmbeddingProvider` (API hébergée) à côté de Voyage/OpenAI ; rerank idem | S (1 provider + config) | Pas un nouveau tool : **swap de provider** d'embedding/rerank derrière l'interface existante | **P3 — option** (seulement si benchmark recall meilleur ou pour rester mono-fournisseur NVIDIA) |
+| **AI Virtual Assistant** (LangGraph, 3 sous-agents, Llama 3.3 70B + NeMoTron embed/rerank) | LLM + RAG orchestrés | L'assistant Baitly | **Référence** : valide l'archi multi-agent (Baitly fait déjà ça, en plus métier) | N/A | — | Étudier comme **modèle d'archi** (sous-agents spécialisés, routing) pour `service/agent/multiagent/`. **Ne pas adopter le code** (déprécié avr. 2026). | Inspiration |
 | **Video Search & Summarization (VSS)** (VLM + LLM + RAG vidéo, CV pipeline) | VLM + ASR + LLM | Analyser les flux **caméras (go2rtc)** : détecter événements (présence hors créneau, fête, dégâts), résumer une plage horaire, recherche en langage naturel ("montre les arrivées hier soir") | **Élevée** (sécurité/conciergerie) mais **niche** | **Faible** : VSS **exige du GPU self-hosté** (A100/H100/H200, ou edge RTX 6000 Pro / DGX Spark) + licence AI Enterprise. Hors stack VPS CPU actuelle. Données vidéo = **RGPD sensible**. | XL | **Intégration séparée** (microservice GPU) exposée à l'assistant via un tool `search_camera_events` ; **pas** dans le monolithe | **P4 — gros chantier / différé** |
 | **Digital Human** (ACE / Tokkio : avatar 3D + ASR + TTS + LLM) | ASR + TTS + animation + LLM | Avatar conciergerie / check-in guest animé | **Faible** (gadget pour un PMS B2B), fort effet démo | **Très faible** : 2×T4/L4 min, ~700 Go RAM, GPU GDN. Latence + coût disproportionnés. | XL | Séparée | **Non recommandé** (sauf besoin marketing ponctuel) |
 | **PDF-to-Podcast** | LLM + TTS | Générer un **audio** du livret d'accueil / d'un récap réservation pour le guest | **Faible-moyenne** (différenciant livret d'accueil) | **Moyenne** : LLM hébergé OK ; TTS = soit NIM hébergé, soit service tiers (ElevenLabs/Polly) plus simple | M | **Tool** `generate_audio_guide` ou job côté livret d'accueil | P3 — nice-to-have |
 | **Structured Data Extraction / Data Flywheel** (NeMo microservices fine-tuning) | LLM + fine-tuning | Améliorer en continu l'extraction documentaire sur les formats récurrents (mêmes modèles de factures) | Moyenne (optimisation de #1) | **Faible** : fine-tuning = GPU + MLOps lourds, prématuré | L+ | — | Différé (après #1 en prod) |
-| **Riva Translation** (NMT / Riva-Translate-4B) | NMT (et ASR/TTS) | Multi-langue booking engine | **Faible** : Clenzy traduit **déjà** le Studio via LLM (`translate-html`, jsoup+LLM) | **Faible** : Riva orienté **speech temps réel** ; pour du texte le LLM actuel suffit | — | — | **Non prioritaire** (déjà couvert) |
+| **Riva Translation** (NMT / Riva-Translate-4B) | NMT (et ASR/TTS) | Multi-langue booking engine | **Faible** : Baitly traduit **déjà** le Studio via LLM (`translate-html`, jsoup+LLM) | **Faible** : Riva orienté **speech temps réel** ; pour du texte le LLM actuel suffit | — | — | **Non prioritaire** (déjà couvert) |
 
 ---
 
@@ -102,7 +102,7 @@ Tableau central. **Faisabilité** = adéquation avec l'archi actuelle (API hébe
 
 ### ⭐ Reco 1 — Extraction documentaire multimodale (PRIORITÉ HAUTE)
 
-**Besoin Clenzy.** Aujourd'hui, factures fournisseurs, mandats/contrats, états des lieux et pièces
+**Besoin Baitly.** Aujourd'hui, factures fournisseurs, mandats/contrats, états des lieux et pièces
 d'identité guests sont traités à la main. C'est le **gap IA le plus concret** : aucune brique OCR/extraction
 n'existe dans le code.
 
@@ -138,7 +138,7 @@ de consolidation fournisseur**.
 d'embedding hébergé (`llama-nemoretriever-*`, OpenAI-compatible) = **une classe + config**, aucune migration.
 Idem pour un reranker NVIDIA hébergé à la place de `NoOpRerankProvider`.
 
-**Quand le faire.** Seulement si (a) un benchmark recall montre un gain net sur la doc Clenzy FR, ou
+**Quand le faire.** Seulement si (a) un benchmark recall montre un gain net sur la doc Baitly FR, ou
 (b) volonté de réduire le nombre de fournisseurs IA. Sinon **ne rien changer** (YAGNI).
 
 **Intégration.** **Pas un tool** : swap derrière l'interface existante. **Effort : S.**
@@ -147,7 +147,7 @@ Idem pour un reranker NVIDIA hébergé à la place de `NoOpRerankProvider`.
 
 Le blueprint LangGraph (3 sous-agents : routing + spécialistes) **valide la direction** du chantier
 `service/agent/multiagent/` en cours. À lire comme **modèle de découpage** (un agent par domaine, un
-routeur). **Ne pas porter le code** (Python/LangGraph, déprécié avr. 2026, et Clenzy est Java/Spring avec
+routeur). **Ne pas porter le code** (Python/LangGraph, déprécié avr. 2026, et Baitly est Java/Spring avec
 une couche tools déjà plus riche et plus sûre — multi-tenant + ownership). Valeur = **confirmation
 d'archi**, zéro effort d'intégration.
 
@@ -175,13 +175,13 @@ tool `search_camera_events`, **pas** dans le monolithe Spring. **Effort : XL.** 
 ## 5. Pièges & prérequis (à lire avant tout POC)
 
 1. **Hosted ≠ Blueprint.** Les modèles **NIM hébergés** (chat, embedding, OCR) s'appellent en API sans GPU —
-   c'est ça que Clenzy peut consommer immédiatement. Un **Blueprint complet** (RAG entreprise, VSS, digital
+   c'est ça que Baitly peut consommer immédiatement. Un **Blueprint complet** (RAG entreprise, VSS, digital
    human) est un **pipeline self-hosté** : ne pas confondre "tester la démo en ligne" et "déployer le
    blueprint".
 2. **Coût.** Free tier dev : 1 000 crédits (jusqu'à 5 000 sur demande), ~40 req/min, sans CB — **OK pour
    POC, pas pour la prod**. Production = **NVIDIA AI Enterprise** (~4 500 $/GPU/an, ou ~1 $/GPU·h cloud ;
    éval 90 j gratuite). Le **self-hosting GPU** (VSS, digital human) ajoute le coût matériel/cloud GPU.
-3. **Pas de GPU dans la stack actuelle.** Le déploiement Clenzy (Docker Compose / VPS OVH) est **CPU**.
+3. **Pas de GPU dans la stack actuelle.** Le déploiement Baitly (Docker Compose / VPS OVH) est **CPU**.
    Tout blueprint self-hosté = **nouvelle infra** (cloud GPU ou edge). Règle CLAUDE.md : **ne jamais
    relancer/modifier les containers sans demander**.
 4. **RGPD / données sensibles.** Pièces d'identité, vidéos de caméras, messages guests → vérifier la

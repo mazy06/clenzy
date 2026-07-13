@@ -46,8 +46,8 @@ Voici ce que chacun devient dans la refonte GrapesJS.
 | **Parcours** | `WorkflowComposer` (118 l.) : installe le **funnel complet en 1 clic** (recherche→panier→coordonnées→Stripe→confirmation) | **Supprimé.** Parcours = **template-driven runtime** (le flux émerge des pages du template + persistance SDK). Pas d'onglet Parcours | ⚠️ **R3 — feature retirée délibérément** |
 | **Site** | Aperçu du widget **posé sur un site**, placement **Bas / Flottant / Haut** | Reframe : le **site entier EST le produit** (multi-page GrapesJS + SSR). L'embed reste possible (SDK `BaitlyWidget` + `data-clenzy-widget`) mais l'**aperçu/placement UI** disparaît | ⚠️ **R4 — capacité conservée, UI d'aperçu perdue** |
 
-Annexe — **MediaPicker** (`main`, intégré au stockage photo Clenzy S3/BYTEA) → remplacé par l'**Asset
-Manager natif GrapesJS**. ⚠️ **R5 — à brancher** sur l'upload Clenzy (sinon URLs externes uniquement).
+Annexe — **MediaPicker** (`main`, intégré au stockage photo Baitly S3/BYTEA) → remplacé par l'**Asset
+Manager natif GrapesJS**. ⚠️ **R5 — à brancher** sur l'upload Baitly (sinon URLs externes uniquement).
 
 ---
 
@@ -63,7 +63,7 @@ Manager natif GrapesJS**. ⚠️ **R5 — à brancher** sur l'upload Clenzy (sin
 | **R2** | Config par widget moins profonde que `WidgetComposer` | Ajouter des **traits GrapesJS** par widget = les options de `WidgetComposer` (labels, champs, comportements) | Garder le set granulaire + props minimales ; enrichir au besoin |
 | **R3** | Plus de « funnel en 1 clic » (onglet Parcours) | Ajouter une **commande GrapesJS « Installer le funnel »** qui insère les blocs du parcours d'un coup | Assumer le template-driven (le funnel vient des templates de galerie) |
 | **R4** | Plus d'aperçu « widget sur site externe » + placement | Ré-ajouter un **mode aperçu embed** (bas/flottant/haut) au-dessus du canvas | Assumer le site complet comme produit ; l'embed reste via SDK sans aperçu dédié |
-| **R5** | Asset Manager non branché au stockage Clenzy | **Brancher** l'upload GrapesJS sur l'endpoint photo Clenzy (PhotoStorageService) | URLs externes seulement (insuffisant pour la prod) |
+| **R5** | Asset Manager non branché au stockage Baitly | **Brancher** l'upload GrapesJS sur l'endpoint photo Baitly (PhotoStorageService) | URLs externes seulement (insuffisant pour la prod) |
 
 **Reco** : **R5 = obligatoire** (sinon upload média cassé). **R2 = à faire** progressivement (la profondeur
 de config est un attendu client). **R3 et R4 = décision produit** : la refonte est plus moderne (template-driven,
@@ -86,10 +86,10 @@ site-complet), mais retire deux conforts. À trancher ensemble.
 > Ré-implémentation **GrapesJS-native** (pas de checkout) des features que la refonte avait retirées.
 > Réf. code retiré : `main`/`booking-engine-wip~`(WidgetComposer, WorkflowComposer, MediaPicker).
 
-- [ ] **R5 — Média (Asset Manager → upload Clenzy)** *(critique, fondation édition)*
-  - Brancher l'Asset Manager GrapesJS sur l'upload photo Clenzy (réf. `MediaPicker` : endpoint + storageKey/url ticketée).
+- [ ] **R5 — Média (Asset Manager → upload Baitly)** *(critique, fondation édition)*
+  - Brancher l'Asset Manager GrapesJS sur l'upload photo Baitly (réf. `MediaPicker` : endpoint + storageKey/url ticketée).
   - Au montage de l'éditeur (`GrapesStudio` init) : config `assetManager` (upload custom → POST endpoint → renvoyer l'URL).
-  - Accept: glisser une image / bloc Image → ouvrir l'Asset Manager → uploader → l'image s'insère avec une URL Clenzy.
+  - Accept: glisser une image / bloc Image → ouvrir l'Asset Manager → uploader → l'image s'insère avec une URL Baitly.
 - [x] **R5 — Média** : Asset Manager GrapesJS branché sur `mediaApi` (upload + préchargement médiathèque org). `tsc` vert. ✅
 - [ ] **R2 — Traits par primitive booking** *(profondeur config)* — **REDÉFINI suite découverte ci-dessous**
   - Pour chaque widget de `bookingWidgetDefs`/`bookingComponents` : exposer en **traits GrapesJS** les options de l'ex-`WidgetComposer` (libellés, champs visibles, comportements).
@@ -136,6 +136,6 @@ Toutes les features de main sont **conservées**. GrapesJS s'adapte pour tout po
 | **R2** | Ré-ajouter la config par widget | **Traits GrapesJS** par primitive = options de `WidgetComposer` |
 | **R3** | **Ré-ajouter le funnel 1-clic** | **Commande GrapesJS** « Installer le funnel » qui insère tout le parcours d'un coup (en plus du template-driven) |
 | **R4** | **Ré-ajouter l'aperçu embed** | **Mode aperçu** « widget sur site externe » + placement bas/flottant/haut au-dessus du canvas |
-| **R5** | Brancher le média | **Asset Manager** GrapesJS câblé sur l'upload PhotoStorage Clenzy |
+| **R5** | Brancher le média | **Asset Manager** GrapesJS câblé sur l'upload PhotoStorage Baitly |
 
 → Le bloc **PF (no-regression)** du plan traite les 4. Rien de l'éditeur 4-modes actuel n'est perdu.

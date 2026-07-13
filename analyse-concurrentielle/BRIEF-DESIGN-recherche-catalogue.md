@@ -1,4 +1,4 @@
-# BRIEF DESIGN — Template « Recherche Catalogue » pour le Booking Engine Clenzy
+# BRIEF DESIGN — Template « Recherche Catalogue » pour le Booking Engine Baitly
 
 > Prompt à copier-coller dans **Claude Design**. Premier d'une série : **un template par parcours de
 > réservation (funnel)**. On commence par le plus complet et le plus populaire : **Recherche Catalogue**.
@@ -8,7 +8,7 @@
 ---
 
 ## 1. Contexte produit
-Clenzy est un PMS SaaS de location courte durée. Son **booking engine** est un module de
+Baitly est un PMS SaaS de location courte durée. Son **booking engine** est un module de
 réservation **embarquable** sur le site d'un hébergeur (conciergerie, agence, multi-propriétés).
 Les **templates** sont des sites complets (multi-pages, HTML + CSS standard) que nos utilisateurs
 chargent en 1 clic puis personnalisent.
@@ -116,7 +116,7 @@ recherche une **disposition en rangée** responsive (champs qui grandissent, bou
 - Structure la réponse **page par page** (titre du rôle + chemin + type + HTML + CSS) pour que
   l'intégration dans notre format `GalleryTemplate` (un objet `pages[]`) soit directe.
 
-## 8. Règles de design Clenzy (do / don't)
+## 8. Règles de design Baitly (do / don't)
 - **Interdits (AI-slop)** : dégradés purple→blue, texte en dégradé, glassmorphism décoratif, glow néon,
   bord latéral coloré >1px, 3 cartes identiques en rang, badge-icône arrondi au-dessus de chaque titre,
   noir/blanc purs, em-dash décoratifs, copy « Elevate / Seamless / Unleash ».
@@ -137,7 +137,7 @@ recherche une **disposition en rangée** responsive (champs qui grandissent, bou
 
 ---
 
-## Annexe — Notes d'intégration (côté Clenzy, ne pas envoyer à Claude Design)
+## Annexe — Notes d'intégration (côté Baitly, ne pas envoyer à Claude Design)
 - La sortie devient un fichier `client/src/modules/booking-engine/studio/grapes/import/templates/<id>.ts`
   exportant un `GalleryTemplate` `{ id, name, description, theme:{primaryColor, fontFamily}, pages:[{path,type,title,seoTitle,seoDescription,html,css}] }`,
   puis ajouté à `GALLERY_TEMPLATES` dans `import/galleryTemplates.ts`.

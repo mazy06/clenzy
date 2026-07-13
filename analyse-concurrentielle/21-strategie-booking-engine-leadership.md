@@ -1,6 +1,6 @@
-# Stratégie — Devenir leader du booking engine (Clenzy / Baitly Studio)
+# Stratégie — Devenir leader du booking engine (Baitly / Baitly Studio)
 
-> **But** : plan détaillé pour faire du booking engine de Clenzy le **meilleur du marché** sur son créneau,
+> **But** : plan détaillé pour faire du booking engine de Baitly le **meilleur du marché** sur son créneau,
 > en s'appuyant sur l'analyse [B11](benchmark/B11-booking-engine-builder.md). **Date** : 2026-06-20.
 > **Sources concurrents** : RoomRaccoon, Lodgify, Hostaway, Smoobu, Guesty, Cloudbeds, Mews, **Asterio/Septeo**.
 
@@ -19,7 +19,7 @@ défaut**, et on **dépasse** par 4 choses que personne ne combine : **import mu
 
 ## 1. Diagnostic — les failles du marché = nos ouvertures
 
-| Concurrent | Sa force | Sa faille | Ce que Clenzy exploite |
+| Concurrent | Sa force | Sa faille | Ce que Baitly exploite |
 |---|---|---|---|
 | **Lodgify / Hostaway** | Template + éditeur visuel complet (la norme STR) | Pas d'import externe ; pas de profondeur FR/conciergerie | **Import** + conformité + conciergerie multi-marque |
 | **RoomRaccoon / Smoobu / Guesty** | Simplicité (template bridé) | Personnalisation faible, pas d'import | Liberté progressive (guidé → libre) |

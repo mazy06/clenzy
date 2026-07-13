@@ -1,6 +1,6 @@
 # Objectifs techniques — Cap multi-pays & parité Hostaway/Guesty
 
-> **Amendement stratégique (2026-06-14).** Cette note **modifie la Décision n°1** de [20-strategie.md](20-strategie.md) : Clenzy n'est plus positionné « niche France-only » mais **plateforme multi-pays conçue pour France + Maroc + Arabie Saoudite**. La conformité reste un fossé, mais **multi-juridiction** (FR + MA + KSA) au lieu de FR seule.
+> **Amendement stratégique (2026-06-14).** Cette note **modifie la Décision n°1** de [20-strategie.md](20-strategie.md) : Baitly n'est plus positionné « niche France-only » mais **plateforme multi-pays conçue pour France + Maroc + Arabie Saoudite**. La conformité reste un fossé, mais **multi-juridiction** (FR + MA + KSA) au lieu de FR seule.
 >
 > Source des objectifs : 11 agents-architectes (code lu + veille datée). Détail à la feature près : [data/40-feature-evolution.csv](data/40-feature-evolution.csv) (**189 features**). Architecture multi-pays détaillée : [41-strategie-multipays.md](41-strategie-multipays.md).
 

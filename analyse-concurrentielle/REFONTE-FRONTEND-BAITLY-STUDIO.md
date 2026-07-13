@@ -127,7 +127,7 @@ Primitives à créer (réutilisables, états complets) : `StudioShell` (topbar +
 
 ## G. Approche technique
 
-- **Stack** : React 18 + TypeScript (existant). Thème **Baitly Signature** = nouveau thème MUI (tokens OKLCH → variables CSS) **dédié à la surface Studio**, coexistant avec le thème Clenzy PMS (migration progressive possible vers tout le PMS plus tard).
+- **Stack** : React 18 + TypeScript (existant). Thème **Baitly Signature** = nouveau thème MUI (tokens OKLCH → variables CSS) **dédié à la surface Studio**, coexistant avec le thème Baitly PMS (migration progressive possible vers tout le PMS plus tard).
 - **Preview** : le canvas réutilise le **moteur de rendu** du widget/site (mêmes blocs que la sortie publique) → vrai WYSIWYG, pas une simulation.
 - **Données** : le Studio lit/écrit la config booking engine via l'API admin existante (`BookingEngineConfig`) étendue par les modèles de la refonte (Site/SitePage/BlogPost/SiteTemplate… — Lot 1 backend) ; les features Lot 0 (devises, leads, caution, IA contenu, webhooks) sont **déjà câblées** côté API.
 - **Dépendances builder** : drag/réordonnancement (dnd-kit), pas de lib lourde de page-builder (composeur par blocs maison = contrôle + cohérence Baitly Signature).
@@ -154,7 +154,7 @@ Primitives à créer (réutilisables, états complets) : `StudioShell` (topbar +
 
 - **D-1. Hue signature** : ✅ **indigo-violet** `oklch(~0.55 0.17 274)` (~#5654D8) — vibe builder moderne (Webflow/Framer/Linear).
 - **D-2. Wordmark** : display géométrique (Outfit) réservé au logotype — logotype Baitly à affiner (non bloquant pour F0).
-- **D-3. Thème** : ✅ **tout le PMS d'emblée** — Baitly Signature devient le thème PMS (remplace le thème Clenzy). Les primitives consommant les tokens du thème adoptent la nouvelle identité automatiquement ; les couleurs hardcodées seront migrées au fil de l'eau.
+- **D-3. Thème** : ✅ **tout le PMS d'emblée** — Baitly Signature devient le thème PMS (remplace le thème Baitly). Les primitives consommant les tokens du thème adoptent la nouvelle identité automatiquement ; les couleurs hardcodées seront migrées au fil de l'eau.
 - **D-4. Mode clair/sombre** : ✅ **clair ET sombre dès F0** (les deux jeux de tokens), **polir/valider le clair en premier**.
 - **D-5. Drag** : ✅ **composeur par blocs** (réordonnancement vertical) ; freeform différé.
 - **D-6. Densité** : ✅ **équilibrée** (pro mais accessible — audience hôte/conciergerie).

@@ -1,123 +1,113 @@
-# Phase 2 — Roadmap priorisée (RICE)
+# Phase 2 — Roadmap (juin 2026 + révision juillet 2026)
 
-> Agrège les initiatives des 13 sous-agents. **RICE = (Reach × Impact × Confiance) ÷ Effort**, avec Reach 1–3, Impact 1–3, Confiance 0–1, Effort S=1 / M=2 / L=3. Score élevé = priorité haute.
-> Catégories : `Rattrapage` (gap critique) · `Différenciation` · `Optimisation` · `Innovation`. Date : 2026-06-13.
+> **Historique RICE juin** conservé pour traçabilité + **bilan de statut** (§1), **backlog résiduel prioritaire** (§2), **nouvelle roadmap 2026-H2 → 2027** (§3).
+> RICE = (Reach × Impact × Confiance) ÷ Effort. Catégories : `Rattrapage` · `Différenciation` · `Optimisation` · `Innovation`.
 
-**Insight de priorisation :** beaucoup des meilleurs scores RICE sont des **déverrouillages** (activer un flag, brancher l'existant) — impact fort, effort minime. C'est la conséquence directe du constat « capacités construites mais coupées ».
-
----
-
-## Top 15 initiatives (par RICE)
-
-| # | Initiative | Domaine | Catégorie | R | I | C | Eff | **RICE** | Horizon |
-|---|-----------|---------|-----------|:-:|:-:|:-:|:-:|:----:|:------:|
-| 1 | Activer l'IA de suggestion de réponse + brancher RAG à l'inbox | Communication/IA | Différenciation | 3 | 3 | 0.9 | S | **8.1** | Now |
-| 2 | Brancher l'email de confirmation du booking direct + rappels | Booking | Rattrapage | 3 | 3 | 0.7 | S | **6.3** | Now |
-| 3 | Intégrer la synchro OTA au socle + Yield IA en add-on | Pricing/Packaging | Optimisation | 3 | 2 | 0.9 | S | **5.4** | Now |
-| 4 | Exposer la comparaison N vs N-1 (dashboards & rapports) | Reporting | Rattrapage | 3 | 2 | 0.8 | S | **4.8** | Now |
-| 5 | 2FA/TOTP applicative obligatoire (via Keycloak) | Sécurité | Rattrapage | 3 | 2 | 0.8 | S | **4.8** | Now |
-| 6 | Connecteur Zapier/Make sur les webhooks existants | Intégrations | Rattrapage | 3 | 3 | 0.7 | S+ | **4.2** | Now |
-| 7 | Programme partenaire conciergerie (multi-org, white-glove) | GTM | Différenciation | 3 | 2 | 0.7 | S | **4.2** | Now |
-| 8 | Module SEO du site direct (meta/schema/sitemap/hreflang) | Booking | Différenciation | 3 | 3 | 0.9 | M | **4.05** | Now→Next |
-| 9 | Caution/dépôt via pré-autorisation Stripe (auth-hold) | Finance/GuestExp | Rattrapage | 3 | 3 | 0.9 | M | **4.05** | Now |
-| 10 | Aligner pitch & pricing sur le code (retirer « 39 €/bien », claims honnêtes) | GTM | Optimisation | 2 | 2 | 0.95 | S | **3.8** | Now |
-| 11 | Câbler la biométrie mobile OU retirer la promesse | Mobile | Optimisation | 2 | 2 | 0.9 | S | **3.6** | Now |
-| 12 | Mapping complet des restrictions Channex + tests anti-régression | Channel | Rattrapage | 3 | 3 | 0.8 | M | **3.6** | Now |
-| 13 | Déclaration voyageurs FR via Chekin (sortir du stub) ⏰ | Conformité | Rattrapage | 3 | 3 | 0.8 | M | **3.6** | Now (urgent) |
-| 14 | Relevé propriétaire transparent (PDF multi-période + portail) | Finance/GTM | Différenciation | 3 | 3 | 0.8 | M | **3.6** | Now→Next |
-| 15 | Ticket d'anomalie de 1er ordre (Issue → bon de travail) | Opérations | Rattrapage | 3 | 3 | 0.8 | M | **3.6** | Next |
+> ⚠️ **Révision 2026-07-12.** La roadmap de juin partait du constat « capacités construites mais coupées » → beaucoup de « déverrouillages ». **La majorité est livrée** (vagues V2 juin + V3 juillet). Statut : **✅ Fait · 🟡 Partiel · ⬜ À faire / oublié**.
 
 ---
 
-## Horizon NOW (0–3 mois) — quick wins, urgences réglementaires, gaps critiques
+## 1. Bilan de la roadmap de juin — statut par initiative
 
-| Initiative | Domaine | Catégorie | RICE | Dépendances |
-|-----------|---------|-----------|:----:|-------------|
-| Activer l'IA de suggestion de réponse + RAG inbox | Communication/IA | Différenciation | 8.1 | flags `messaging-ai` ; UX inbox |
-| Brancher l'email de confirmation booking direct + rappels | Booking | Rattrapage | 6.3 | templates ; `PublicBookingService` |
-| Synchro OTA au socle + Yield IA en add-on | Packaging | Optimisation | 5.4 | refonte plans (init. pricing) |
-| Exposer la comparaison N vs N-1 | Reporting | Rattrapage | 4.8 | donnée déjà présente |
-| 2FA/TOTP obligatoire | Sécurité | Rattrapage | 4.8 | Keycloak |
-| Connecteur Zapier/Make | Intégrations | Rattrapage | 4.2 | webhooks existants |
-| Programme partenaire conciergerie | GTM | Différenciation | 4.2 | grille pricing multi-org |
-| Caution via pré-autorisation Stripe | Finance/GuestExp | Rattrapage | 4.05 | `StripeGateway` ; check-in |
-| Aligner pitch & pricing sur le code | GTM | Optimisation | 3.8 | décision commerciale |
-| Câbler/retirer la biométrie mobile | Mobile | Optimisation | 3.6 | `expo-local-authentication` |
-| Mapping restrictions Channex + tests | Channel | Rattrapage | 3.6 | API Channex |
-| **Déclaration voyageurs FR (Chekin) ⏰** | Conformité | Rattrapage | 3.6 | échéance registre 20/05/2026 **dépassée** |
-| **Capacité de réception Factur-X ⏰** | Conformité | Rattrapage | 3.5 | échéance 01/09/2026 |
-| Activités affiliées live (Viator) + reporting commission | GuestExp | Innovation | 3.2 | clé partenaire Viator |
-| Livrer l'insight IA reporting (lever `analytics-ai`) | Reporting/IA | Rattrapage | 2.8 | flag |
+### Top 15 (RICE juin) → statut juillet
 
-## Horizon NEXT (3–9 mois) — différenciation & rattrapages structurants
+| # | Initiative | RICE | **Statut** | Note |
+|---|-----------|:----:|:----------:|------|
+| 1 | Activer l'IA de suggestion de réponse + RAG inbox | 8.1 | ✅ **Fait** | Copilote de réponse + RAG/KB (agent Com) |
+| 2 | Email de confirmation booking direct + rappels | 6.3 | ✅ **Fait** | Emails confirmation + relance panier |
+| 3 | Synchro OTA au socle + Yield IA en add-on | 5.4 | 🟡 Partiel | Yield HITL livré ; « OTA au socle » = décision pricing (Axe 5) non prise |
+| 4 | Comparaison N vs N-1 | 4.8 | ✅ **Fait** | Serveur + agrégation multi-devise |
+| 5 | 2FA/TOTP obligatoire | 4.8 | ✅ **Fait** | Policy org `mfaRequired` (Keycloak) |
+| 6 | Connecteur Zapier/Make | 4.2 | ⬜ **À faire** | Webhooks sortants prêts, connecteur non fait |
+| 7 | Programme partenaire conciergerie | 4.2 | ⬜ **À faire** | GTM, pas du code |
+| 8 | Module SEO du site direct | 4.05 | ✅ **Fait** | SSR + JSON-LD/sitemap/hreflang |
+| 9 | Caution/dépôt pré-auth Stripe | 4.05 | ✅ **Fait** | Pré-auth + exécuteurs release/refund (V3) |
+| 10 | Aligner pitch & pricing sur le code | 3.8 | 🟡 Partiel | Rebrand Baitly fait ; alignement pricing non tranché |
+| 11 | Câbler/retirer la biométrie mobile | 3.6 | ⬜ **À faire** | Toujours déclarée non câblée |
+| 12 | Mapping restrictions Channex + tests | 3.6 | ✅ **Fait** | Restrictions + reconciliation/watchdog + certif Channex |
+| 13 | Déclaration voyageurs FR (Chekin) ⏰ | 3.6 | ✅ **Fait** | `GuestDeclaration` + soumission Chekin réelle |
+| 14 | Relevé propriétaire transparent (PDF + portail) | 3.6 | 🟡 Partiel | Relevé email + montants ; **portail propriétaire** manquant |
+| 15 | Ticket d'anomalie 1er ordre (Issue → bon de travail) | 3.6 | ✅ **Fait** | Entité `Issue` → maintenance chiffrée (juillet) |
 
-| Initiative | Domaine | Catégorie | RICE | Dépendances |
-|-----------|---------|-----------|:----:|-------------|
-| Module SEO du site direct | Booking | Différenciation | 4.05 | — |
-| Relevé propriétaire transparent (PDF + portail) | Finance/GTM | Différenciation | 3.6 | owner-portal |
-| Ticket d'anomalie de 1er ordre | Opérations | Rattrapage | 3.6 | modèle `Issue` |
-| Activer l'IA de tarification (shadow/reco) | Pricing/IA | Différenciation | 3.15 | flag `pricing-ai` |
-| Auto-traduction bidirectionnelle inbox | Communication | Optimisation | 3.2 | `TranslationService` |
-| OTA longue traîne via Channex (Agoda, GVR, Trip.com) | Channel | Optimisation | 2.8 | Channex |
-| Canal SMS natif (`SmsChannel`) | Communication | Rattrapage | 2.7 | provider SMS |
-| Grille de commission dégressive (`ManagementContract`) | Finance | Optimisation | 2.6 | — |
-| Bascule pricing per-listing hybride + grandfathering | Business model | Différenciation | 2.4 | migration tarifaire |
-| **Générateur Factur-X + pont PDP (émission) ⏰** | Conformité | Différenciation | 2.4 | échéance 09/2027 PME |
-| Édition groupée (bulk) depuis le planning | Calendrier | Optimisation | 2.4 | — |
-| Checklists custom par unité + photos de référence | Opérations | Optimisation | 2.4 | — |
-| Brancher KYC réel (Sumsub) au check-in | Conformité/GuestExp | Rattrapage | 2.4 | `integration/kyc` |
-| Orphan-day / gap-fill explicite avec reco | Pricing | Optimisation | 2.4 | `YieldRule` |
-| Paliers dégressifs + minimum mensuel (plan Business) | Pricing | Optimisation | 2.25 | refonte plans |
-| Report builder léger (vues sauvegardables + partage) | Reporting | Rattrapage | 2.1 | — |
-| Multi-agent IA en bêta encadrée | IA | Différenciation | 2.1 | flag multi-agent |
-| Finaliser l'adapter Airbnb (host-profile) + statut partenaire | Channel | Rattrapage | 2.1 | API Airbnb |
-| Catalogue d'add-ons aligné marché | Monétisation | Optimisation | 2.1 | refonte plans |
-| Injecter taxes/frais dans la simulation de prix | Pricing | Optimisation | 1.8 | `FiscalEngine` |
-| Sync réelle QuickBooks + Xero | Finance | Rattrapage | 1.7 | OAuth déjà câblé |
-| Connecteur Beyond Pricing | Pricing | Optimisation | 1.6 | interface `ExternalPricingService` |
-| KB messagerie branchée à l'IA (RAG) | Communication/IA | Différenciation | 1.6 | RAG pgvector |
+**Top 15 : 9 ✅ · 3 🟡 · 3 ⬜.**
 
-## Horizon LATER (9+ mois) — innovation, gros efforts, expansion
+### Horizons NOW / NEXT / LATER → statut synthétique
 
-| Initiative | Domaine | Catégorie | RICE | Dépendances |
-|-----------|---------|-----------|:----:|-------------|
-| Website builder no-code + templates STR | Booking | Différenciation | 2.4 | gros chantier front |
-| Détection d'anomalies / fraude paiement | IA/Sécurité | Rattrapage | 1.6 | socle IA |
-| Autopilot guest IA avec garde-fous | IA | Différenciation | 1.4 | init. IA messagerie |
-| Dashboard santé connectivité OTA (watchdog UI) | Channel | Différenciation | 1.4 | OTA watchdog |
-| Vision métier + résumés IA | IA | Optimisation | 1.4 | `VisionTokenUsageService` |
-| Multi-langue auto-traduit + RTL côté guest | GuestExp | Différenciation | 1.4 | (ambition MENA) |
-| Approfondir le portail propriétaire côté calendrier | Calendrier | Différenciation | 1.4 | owner-portal |
-| Compléter le forecast (projection CA + horizon) | Reporting | Différenciation | 1.2 | `AiAnalyticsService` |
-| Optimisation de tournée (ordonnancement géo) | Opérations/Mobile | Optimisation | 1.2 | auto-assign |
-| Connectivité OTA MENA (Almosafer/Cleartrip/Hala) | Channel | Innovation | 1.2 | partenariats régionaux |
-| Trajectoire SOC 2 Type I → II | Sécurité | Différenciation | 1.2 | audit externe |
-| Marketplace ouvert (portail dev + self-service) | Intégrations | Différenciation | 0.8 | — |
-| Déclaration/registration voyageurs MENA | Conformité | Différenciation | 0.8 | (ambition MENA) |
-| Connecteur données marché (Key Data) | Reporting | Différenciation | 0.67 | partenariat data |
-| Rapprochement bancaire via Open Banking | Finance | Différenciation | 0.4 | Open Banking PIS |
+**✅ Fait (au-delà du Top 15) :** auto-traduction inbox · édition groupée planning · **multi-agent (constellation DÉPLOYÉE, pas bêta)** · report builder léger · **website builder (Studio GrapesJS)** · KB messagerie RAG · injection taxes/frais dans la simulation de prix · détection d'anomalies (double-booking).
+
+**🟡 Partiel :** OTA longue traîne (quelques-unes) · adapter Airbnb host-profile (sans statut partenaire) · grille de commission dégressive (`ManagementContract` livré, grille dégressive non exposée) · vision métier IA (images) · forecast CA (basique) · dashboard santé OTA (watchdog back, UI manquante) · multi-langue/RTL guest (contenu oui, layout RTL partiel).
+
+**⬜ À faire / oublié :** réception & émission **Factur-X + PDP** ⏰ · **per-listing** + paliers + catalogue add-ons · IA de tarification (shadow/reco, `pricing-ai` OFF) · **SMS natif** · KYC réel (Sumsub) · checklists custom par unité · sync réelle QuickBooks/Xero · connecteur Beyond Pricing · orphan-day/gap-fill · optimisation de tournée · autopilot guest IA · connectivité + déclaration voyageurs **MENA** · SOC 2 · marketplace ouvert · Key Data · rapprochement bancaire · activités affiliées Viator.
+
+> **Hors roadmap de juin, livrés en plus (juillet) :** **Moteur Ménage complet** (prix conseil + tarifs prestataires + payout gaté preuve photo + anomalie→maintenance + score qualité) · **autonomie déterministe de la constellation** (AutoApplyGate + Règles de Confiance) · versements prestataires (onglet Finance) · parité mobile pro (tarifs/versements/signalements) + locale arabe.
 
 ---
 
-## Vue timeline (Now / Next / Later)
+## 2. Manques de la roadmap de juin — à traiter EN PREMIER
 
-```
-        NOW (0-3 mois)            NEXT (3-9 mois)              LATER (9+ mois)
-        ┌───────────────────┐    ┌───────────────────────┐    ┌────────────────────────┐
-IA      │ Activer IA msg/RAG │    │ IA pricing · multi-ag │    │ Autopilot · anomalies  │
-        │ Insight IA report  │    │ KB messagerie         │    │ Vision · résumés       │
-Conf.   │ Décl. voyageurs ⏰ │    │ Factur-X émission ⏰  │    │ Décl. MENA · SOC 2     │
-        │ Réception Factur-X │    │ KYC Sumsub check-in   │    │                        │
-Finance │ Caution Stripe     │    │ Relevé proprio · QB/Xero │ Rappro. bancaire       │
-Channel │ Restrictions Channex│   │ OTA traîne · Airbnb HP │    │ MENA · watchdog UI     │
-Booking │ Email confirm.     │    │ SEO site direct       │    │ Website builder        │
-Reporting│ N vs N-1          │    │ Report builder        │    │ Forecast CA · Key Data │
-Pricing │ OTA socle+add-on   │    │ Per-listing · paliers │    │                        │
-Comm.   │                    │    │ SMS · auto-traduction │    │                        │
-Ops/Mob │ Biométrie          │    │ Ticket anomalie · checklists │ Optim. tournée      │
-Sécu/Int│ 2FA · Zapier       │    │                       │    │ Marketplace ouvert     │
-GTM     │ Partenaire · pitch │    │ Add-ons · commission dégr. │                        │
-        └───────────────────┘    └───────────────────────┘    └────────────────────────┘
-```
+> Le résidu du 🟡/⬜, ordonné par priorité. C'est le **socle de la nouvelle roadmap** avant d'ajouter du neuf.
 
-⏰ = échéance réglementaire critique. Les quick wins NOW (RICE > 4) sont majoritairement des **activations de l'existant** — à traiter en premier (ROI immédiat).
+1. **Repricing per-listing hybride** + grandfathering + **catalogue d'add-ons facturables** *(Axe 5 — priorité stratégique n°1 ; frein économique majeur, produit sous-valorisé sur la cible conciergerie).*
+2. **Conformité e-invoicing : réception Factur-X ⏰ (09/2026) → émission + pont PDP** *(Axe 2 — daté, fossé réglementaire).*
+3. **Zapier/Make** sur les webhooks existants *(faible effort, gros déblocage d'écosystème).*
+4. **GTM :** programme partenaire conciergerie + alignement pitch/pricing + **portail propriétaire transparent** (relevé + payouts + docs signés — killer feature conciergerie).
+5. **Vérification Stripe test-mode du payout ménage** *(pré-requis de déploiement — money-path non exercé en réel).*
+6. **IA de tarification** en mode reco (`pricing-ai`) · **SMS natif** · **KYC Sumsub** réel · checklists custom · sync réelle QuickBooks/Xero · statut partenaire Airbnb + OTA longue traîne.
+7. *(Later)* SOC 2 Type II · connectivité + déclaration voyageurs **MENA** · marketplace ouvert · forecast CA complet · rapprochement bancaire.
+
+---
+
+## 3. Nouvelle roadmap 2026-H2 → 2027 (nouveaux éléments détaillés)
+
+### North star
+> Baitly a rattrapé la parité (V3 = 2.31, ex æquo Hostaway) et détient **2 moats** (conformité multi-pays + économie du ménage). La prochaine étape n'est plus le rattrapage : c'est **capturer la valeur créée**, rendre les 2 moats **irrattrapables**, et fermer les **2 derniers trous core** (Yield 1.9, Intégrations 1.5).
+
+<!--ROADMAP-TIMELINE-->
+
+### Les 3 paris structurants
+
+**Pari 1 — Capturer la valeur (levier n°1, surtout non-technique).**
+Bascule **per-listing hybride** (quota de sièges généreux inclus, anti-Smoobu) + grandfathering des clients actuels + **catalogue d'add-ons** : payout ménage à la preuve, IA premium, yield, IoT, signature QTSP. *Rationnel : une conciergerie 50 lots paie ~70 €/mois pour du Guesty-grade → ARPA potentiellement ×5 sans nouvelle feature. Composants : refonte des plans, `ManagementContract`, facturation.*
+
+**Pari 2 — Hisser le Yield au niveau marché (dernier trou core).**
+Déverrouiller l'**IA de tarification** en gradué **shadow → reco → auto** via l'agent **Revenue de la constellation** (réutilise cartes HITL + autonomie) ; **connecteurs PriceLabs/Beyond** ; **market data** ; yield avancé (**orphan-day / gap-fill**, pricing événementiel, injection taxes/TTC déjà là). *Rationnel : Tarification/Yield = 1.9, le domaine core le plus faible (Guesty/Hostaway 2.7) — meilleur ROI compétitif. Composants : `YieldRule`, `pricing-ai`, `ExternalPricingService`.*
+
+**Pari 3 — Creuser le moat ménage jusqu'au bout.**
+On a la chaîne économique ; il manque le **seul avantage restant de Turno** : **marketplace de sourcing de prestataires** + **auto-assignation par score qualité** (déjà calculé) + **inspection photo par IA (vision)** + suivi des consommables + notation croisée. *Rationnel : faire du ménage un « mini-Turno intégré » — impossible à répliquer pour un PMS généraliste sans refondre ses opérations. Composants : `HousekeeperRate`, score qualité, `InterventionPhotoService`, Vision.*
+
+### 🟢 NOW (0-3 mois) — capturer, déverrouiller, finir le réglementaire
+
+| Initiative | Détail | Pari / Axe |
+|---|---|---|
+| **Repricing per-listing hybride** | Métrique socle par logement + quota sièges inclus + grandfathering ; migration tarifaire outillée | Pari 1 |
+| **Catalogue d'add-ons facturables** | Payout ménage à la preuve, IA premium, yield, IoT, signature — en options | Pari 1 |
+| **IA de tarification en reco** | Déverrouiller `pricing-ai` en mode shadow/reco via l'agent Revenue (cartes HITL) | Pari 2 |
+| **Réception Factur-X ⏰** | Capacité de réception avant l'échéance 09/2026 | Axe 2 |
+| **Zapier/Make** | Connecteur sur les webhooks sortants existants (HMAC/retry déjà là) | Axe 4 |
+| **Vérif Stripe test-mode payout ménage → déploiement** | AccountLink + Account Sessions + Transfers en test-mode, puis prod | Pari 3 |
+| **Portail propriétaire transparent** | Relevé + payouts + documents signés en self-service — killer conciergerie | Pari 1 / GTM |
+
+### 🟡 NEXT (3-9 mois) — creuser les moats, fermer les gaps
+
+| Initiative | Détail | Pari / Axe |
+|---|---|---|
+| **Marketplace prestataires ménage** | Vivier de prestataires bookables + backup auto | Pari 3 |
+| **Auto-assignation par score qualité** | Le score 30 j pilote l'attribution des missions | Pari 3 |
+| **Inspection photo par IA (Vision)** | Contrôle qualité automatique des photos de fin de mission | Pari 3 |
+| **Yield avancé** | PriceLabs/Beyond, market data, orphan-day/gap-fill, pricing événementiel | Pari 2 |
+| **Factur-X émission + PDP · ZATCA émission live (KSA)** | Émission conforme multi-pays | Axe 2 |
+| **Autopilot messagerie IA** | Réponses auto sous garde-fous, via l'agent Com | Axe 3 |
+| **SMS natif · KYC Sumsub réel · sync QuickBooks/Xero** | Combler les gaps résiduels | Axes 2/4 |
+
+### 🔵 LATER (9m+) — expansion & fondations
+
+| Initiative | Détail | Pari / Axe |
+|---|---|---|
+| **MENA go-live** | Shomoos/DGSN, connectivité OTA régionale, layout RTL guest | Axes 1/2 |
+| **Constellation v2** | Orchestration cross-domaine + **prédictif** (anticiper annulations/incidents) + agent portefeuille | Axe 3 |
+| **Marketplace ouvert** | Portail développeur + intégrations self-service | Axe 4 |
+| **SOC 2 Type II** | Trajectoire de certification | Axe 2 |
+| **Revenue management suite** | Forecast CA, pacing, benchmarking (Key Data) | Pari 2 |
+
+### Fil rouge — la constellation comme multiplicateur
+Chaque nouvelle capacité (Yield IA, autopilot, prédictif, auto-assign ménage) se branche sur **le même socle multi-agent** (agent dédié + cartes HITL + autonomie graduée déjà construits). C'est un **avantage cumulatif** que les concurrents à IA « bolt-on » n'ont pas : plus on ajoute de domaines, plus l'orchestration prend de valeur.

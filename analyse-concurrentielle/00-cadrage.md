@@ -1,6 +1,6 @@
 # Phase 0 — Cadrage de la campagne d'analyse concurrentielle
 
-> **Produit analysé :** Clenzy — PMS (Property Management System) SaaS multi-tenant pour la location courte durée.
+> **Produit analysé :** Baitly — PMS (Property Management System) SaaS multi-tenant pour la location courte durée.
 > **Date du cadrage :** 2026-06-13
 > **Méthode :** inventaire interne adossé au code (vérité terrain, statut + preuve fichier) ; benchmark concurrents daté et sourcé en Phase 1.
 > **Source de vérité interne :** ce document + les fichiers `inventaire/` et la section « Inventaire interne » de chaque rapport `benchmark/`.
@@ -11,10 +11,10 @@
 
 | Couche | Technologie | Constat code |
 |--------|-------------|--------------|
-| Backend | Java 21 / Spring Boot 3.2, JPA/Hibernate | `server/src/main/java/com/clenzy/` — packages `booking/ payment/ fiscal/ integration/ service/ controller/ tenant/` |
+| Backend | Java 21 / Spring Boot 3.2, JPA/Hibernate | `server/src/main/java/com/baitly/` — packages `booking/ payment/ fiscal/ integration/ service/ controller/ tenant/` |
 | Frontend | React 18 / TS / MUI | `client/src/modules/` — 40+ modules métier |
 | Mobile | React Native / Expo | `mobile/src/screens/` — **85 écrans .tsx**, MMKV, biométrie, EAS OTA updates |
-| Auth | Keycloak 24 (realms `clenzy` + `clenzy-guests`) | `config/SecurityConfig.java`, `tenant/TenantFilter.java` |
+| Auth | Keycloak 24 (realms `baitly` + `baitly-guests`) | `config/SecurityConfig.java`, `tenant/TenantFilter.java` |
 | BDD | PostgreSQL 16 + pgvector | migrations Liquibase `db/changelog/changes/NNNN__*.sql` |
 | Messaging | Kafka (KRaft) — Outbox pattern | `config/KafkaConfig.java` (topic `calendar.updates`) → `ChannexSyncService` |
 | Paiement | Stripe + PayTabs + CMI + Payzone (PayPal retiré) | `payment/provider/` |
@@ -48,7 +48,7 @@ Preuves code :
 | Acteur | Pourquoi pertinent | Axe de comparaison fort |
 |--------|--------------------|--------------------------|
 | **Hostaway** | PM/agences en croissance, channel manager natif, marketplace | Référence « PMS pro » direct |
-| **Guesty** | Enterprise PM, multi-propriétaires, owner portals, trust accounting | Cible aspirationnelle de Clenzy (B2B2C) |
+| **Guesty** | Enterprise PM, multi-propriétaires, owner portals, trust accounting | Cible aspirationnelle de Baitly (B2B2C) |
 | **Smoobu** | Très présent Europe/France, petits hôtes | Bas de gamme / entrée de marché |
 | **Lodgify** | Orienté site web + booking direct | Booking engine / site direct |
 | **Hospitable** | Automatisation messagerie + IA, hôtes indépendants | Communication / IA / automation |
@@ -76,7 +76,7 @@ Pondération calibrée pour le segment **conciergerie pro / multi-owner FR** (so
 | 5 | Opérations — Ménage & Maintenance | **9 %** | Différenciateur conciergerie (équipes terrain) |
 | 6 | Communication voyageurs | **11 %** | Volume de travail n°1 d'une conciergerie |
 | 7 | Guest Experience & Livret | **7 %** | Upsell + satisfaction ; marché de spécialistes |
-| 8 | Finance & Compta | **11 %** | Reversements + conformité NF = bunker Clenzy |
+| 8 | Finance & Compta | **11 %** | Reversements + conformité NF = bunker Baitly |
 | 9 | Reporting & Analytics / BI | **7 %** | Pilotage + reporting propriétaires |
 | 10 | Intégrations & API / Écosystème | **6 %** | IoT/serrures + extensibilité |
 | 11 | Application mobile | **5 %** | Terrain + gestion nomade |
@@ -140,7 +140,7 @@ Scores provisoires (0–3) adossés au code (Phase 0). Les sous-agents valident 
 | Claim pitch (23 mai 2026) | Réalité code | Verdict |
 |----------------------------|--------------|---------|
 | « Channel Manager via Channex (M2-M3, à venir) » | Channex **déjà implémenté & mature** | ✅ Meilleur que le pitch |
-| « 4 QTSP FR (Yousign/Universign/DocaPoste) + DocuSign + eIDAS » | Seul **CLENZY_CUSTOM (SES)** actif ; DocuSeal non branché ; QTSP = enums | ❌ **Faux** |
+| « 4 QTSP FR (Yousign/Universign/DocaPoste) + DocuSign + eIDAS » | Seul **BAITLY_CUSTOM (SES)** actif ; DocuSeal non branché ; QTSP = enums | ❌ **Faux** |
 | « SMS Twilio + WhatsApp » | **SMS absent** ; WhatsApp Meta+OpenWA OK | ⚠️ Partiel |
 | « Réponses IA / suggestions » | **Absent** (sentiment analysis seul) | ❌ |
 | « OTAs MENA Almosafer/Cleartrip/Hala (stubs activables) » | **Enums sans adapter** | ❌ |

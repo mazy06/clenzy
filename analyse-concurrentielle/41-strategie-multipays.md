@@ -1,7 +1,7 @@
 # Phase 4 — Architecture technique multi-pays (FR / MA / KSA)
 
 > Document d'architecture transverse. Override du cap « France-only ».
-> Cible : rendre Clenzy **nativement multi-pays**, pensé pour France + Maroc + Arabie Saoudite.
+> Cible : rendre Baitly **nativement multi-pays**, pensé pour France + Maroc + Arabie Saoudite.
 > Date : 2026-06-14. Auteur : architecte technique multi-pays.
 
 **État réel du code (audit du 2026-06-14 — à connaître avant tout chiffrage).** Les fondations ne sont pas « à créer de zéro » : une partie substantielle existe déjà, mais **désactivée et incomplète**. Inventaire vérifié :
@@ -31,7 +31,7 @@
 
 ## 1. Vision & principes
 
-**Vision.** Clenzy doit être un PMS où le **pays est une donnée de premier ordre** : chaque propriété appartient à un pays, et c'est ce pays qui résout, de façon déclarative, *toute* la chaîne réglementaire et culturelle — fiscalité, e-invoicing, déclaration voyageurs, devise, fuseau, week-end de pricing, langue/RTL, format de date, signature légale. Aucun `if (country == "FR")` dispersé dans la logique métier : tout passe par des **Strategy résolues par pays** (le code en a déjà la bonne ossature).
+**Vision.** Baitly doit être un PMS où le **pays est une donnée de premier ordre** : chaque propriété appartient à un pays, et c'est ce pays qui résout, de façon déclarative, *toute* la chaîne réglementaire et culturelle — fiscalité, e-invoicing, déclaration voyageurs, devise, fuseau, week-end de pricing, langue/RTL, format de date, signature légale. Aucun `if (country == "FR")` dispersé dans la logique métier : tout passe par des **Strategy résolues par pays** (le code en a déjà la bonne ossature).
 
 **Principes directeurs.**
 
@@ -69,12 +69,12 @@
 - **Graphiques** (KPI dashboard, reporting). Recharts/MUI X Charts ne sont pas RTL-aware par défaut : axes, légendes, tooltips à inverser.
 - **PDF/documents.** iText (utilisé pour le certificat de signature) nécessite un `BaseFont` arabe + `PdfWriter.RUN_DIRECTION_RTL` + reshaping arabe (ligatures contextuelles). Les templates email arabes : tester le rendu RTL des clients mail (Outlook casse souvent le RTL).
 - **Mobile RTL.** RN exige `I18nManager.forceRTL(true)` + **redémarrage de l'app** pour basculer le layout. À architecturer dès le départ (le flip RN est global, pas par écran).
-- **Polices arabes.** Embarquer **Tajawal** (déjà référencée) ou **IBM Plex Sans Arabic** (couvre latin+arabe, cohérence visuelle avec l'identité Clenzy). Self-host (pas de Google Fonts en prod, RGPD). Subset pour le poids.
+- **Polices arabes.** Embarquer **Tajawal** (déjà référencée) ou **IBM Plex Sans Arabic** (couvre latin+arabe, cohérence visuelle avec l'identité Baitly). Self-host (pas de Google Fonts en prod, RGPD). Subset pour le poids.
 
 ### 2.3 Formats date / nombre / devise
 
 - Utiliser **`Intl.DateTimeFormat` / `Intl.NumberFormat`** côté client, paramétrés par locale **et** par pays/devise de l'entité (pas par la langue UI). Ex : un host français regardant une propriété saoudienne voit le prix en SAR.
-- **Chiffres arabes** : choix produit — chiffres arabes occidentaux (0-9, dits « arabic numerals ») recommandés pour la lisibilité business, vs chiffres arabo-indiens (٠-٩). Garder occidentaux + `font-variant-numeric: tabular-nums` (règle design Clenzy).
+- **Chiffres arabes** : choix produit — chiffres arabes occidentaux (0-9, dits « arabic numerals ») recommandés pour la lisibilité business, vs chiffres arabo-indiens (٠-٩). Garder occidentaux + `font-variant-numeric: tabular-nums` (règle design Baitly).
 - **Calendrier Hijri** affichable en complément (cf. §8) via `Intl.DateTimeFormat('ar-SA-u-ca-islamic')`.
 
 ---
@@ -149,12 +149,12 @@ Implémentations : `FrancePdpProvider`, `MoroccoDgiProvider`, `ZatcaFatooraProvi
 
 ### 4.1 France — NF + FEC + Factur-X / PDP
 
-**Existant.** Clenzy génère déjà des documents NF (numérotation séquentielle, immutabilité, mentions légales via `FranceComplianceStrategy`). C'est l'avance la plus importante (cf. stratégie Axe 2).
+**Existant.** Baitly génère déjà des documents NF (numérotation séquentielle, immutabilité, mentions légales via `FranceComplianceStrategy`). C'est l'avance la plus importante (cf. stratégie Axe 2).
 
 **Cible.**
 - **Factur-X** : facture hybride **PDF/A-3 + XML CII embarqué** (norme EN 16931). Générer le XML structuré et l'embarquer dans le PDF actuel.
 - **PDP (Plateforme de Dématérialisation Partenaire)** : à partir du **1er septembre 2026**, toutes les entreprises assujetties TVA doivent pouvoir **recevoir** des factures électroniques via une plateforme agréée ; les GE/ETI doivent aussi **émettre**. **1er septembre 2027** : émission obligatoire pour TPE/PME/micro. Le Portail Public de Facturation (PPF) ne joue plus le rôle de plateforme de transit gratuit dans la version actuelle de la réforme — la majorité des entreprises passeront par une **PDP privée agréée**. [Confiance : élevée — calendrier confirmé multi-sources 2026 ; **paramètre mouvant** : périmètre exact PPF/PDP a déjà été révisé une fois.]
-- **Architecture** : `FrancePdpProvider` parle à une PDP via API (Clenzy ne deviendra pas PDP — c'est un agrément lourd ; intégrer une PDP partenaire). Sanctions : **50 € / facture non conforme, plafond 15 000 €/an**.
+- **Architecture** : `FrancePdpProvider` parle à une PDP via API (Baitly ne deviendra pas PDP — c'est un agrément lourd ; intégrer une PDP partenaire). Sanctions : **50 € / facture non conforme, plafond 15 000 €/an**.
 - **FEC** : export du Fichier des Écritures Comptables (déjà attendu) — vérifier la complétude vs schéma DGFiP.
 
 ### 4.2 Maroc — TVA 20% + clearance DGI (Simpl-TVA)
@@ -287,7 +287,7 @@ public interface GuestRegistrationProvider {
 **Cible.**
 - **Trois rôles de devise à ne pas confondre** :
   1. **Devise d'affichage** (cosmétique, locale guest/host) — conversion à titre indicatif via `ExchangeRate`.
-  2. **Devise de règlement** (celle débitée au guest) — déterminée par le provider/pays, **pas** convertie côté Clenzy.
+  2. **Devise de règlement** (celle débitée au guest) — déterminée par le provider/pays, **pas** convertie côté Baitly.
   3. **Devise comptable** (celle de la facture / du FEC / de la TVA) — devise du `FiscalProfile` de l'org émettrice ; **figée à la date de facture** (taux historique `rateDate`).
 - **Source des taux** : pour la **comptabilité**, privilégier des taux officiels : **ECB** (EUR, déjà défaut), **Bank Al-Maghrib (BAM)** pour MAD, **SAMA** pour SAR. La source actuelle (open.er-api) convient pour l'affichage mais **pas** pour une conversion fiscale opposable → ajouter des providers BAM/SAMA ou documenter le taux retenu. Le champ `source` existe déjà pour tracer.
 - **Arrondis par devise** : `RoundingMode` explicite + nombre de décimales mineures par devise (EUR/MAD/SAR = 2 ; généraliser `StripeAmounts.toMinorUnits` qui est aujourd'hui Stripe-only). **BigDecimal `compareTo` jamais `equals`** (règle audit #10).

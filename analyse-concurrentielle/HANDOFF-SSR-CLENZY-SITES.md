@@ -1,4 +1,4 @@
-# Handoff — Service SSR « Clenzy Sites » + Cloudflare for SaaS (P1.1 c/d)
+# Handoff — Service SSR « Baitly Sites » + Cloudflare for SaaS (P1.1 c/d)
 
 > Cadrage de l'étape **infra** de P1.1 : ce qui reste après le backend in-repo (livré : entités
 > `Site`/`SitePage`/`SiteDomain`/`BlogPost`, CRUD admin, **contrat REST de livraison**, sitemap).
@@ -13,7 +13,7 @@
 |---|---|---|---|
 | **Backend in-repo** | Modèles + CRUD + **contrat REST** + sitemap | ✅ FAIT | `clenzy` |
 | **Bridge Cloudflare** | Appel Custom Hostnames API à l'ajout de domaine + réconciliation statut | ⬜ in-repo (je peux faire) — **nécessite un token CF (secret)** | `clenzy` |
-| **Service Next.js** | App SSR/ISR « Clenzy Sites » consommant le contrat REST | ⬜ **nouveau repo/app** | `clenzy-sites` (nouveau) |
+| **Service Next.js** | App SSR/ISR « Baitly Sites » consommant le contrat REST | ⬜ **nouveau repo/app** | `clenzy-sites` (nouveau) |
 | **Cloudflare for SaaS** | Zone `clenzy.site`, wildcard, fallback origin, plan SaaS | ⬜ **toi** (compte/console CF) | — |
 | **Déploiement** | docker-compose + reverse-proxy + CD | ⬜ **toi** (+ je peux préparer les fichiers) | `clenzy-infra` |
 
@@ -26,7 +26,7 @@ Voyageur
   │  https://{slug}.clenzy.site   ou   https://reservation.monhotel.com
   ▼
 Cloudflare (TLS auto via for SaaS / wildcard)  ──►  Fallback origin (clenzy-infra)
-  │                                                   nginx → service Next.js « Clenzy Sites »
+  │                                                   nginx → service Next.js « Baitly Sites »
   ▼
 Next.js (SSR/ISR)
   │  1) middleware lit l'Host → GET /api/public/sites/resolve?hostname=<host>
@@ -58,7 +58,7 @@ Base : `${CLENZY_API_BASE_URL}` (URL interne du backend, ex. `http://pms-server:
 
 ---
 
-## 3. Service Next.js « Clenzy Sites » (nouveau repo `clenzy-sites`)
+## 3. Service Next.js « Baitly Sites » (nouveau repo `clenzy-sites`)
 
 ### 3.1 Structure (App Router, Next 14+)
 ```

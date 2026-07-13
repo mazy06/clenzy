@@ -10,7 +10,7 @@
 
 **Architecture actuelle** : le booking engine est un **widget JavaScript vanilla** (`BaitlyWidget`, isolation Shadow DOM) que l'hôte **embarque sur son propre site**. Il consomme l'API publique `/api/public/booking/{slug}/**` (Spring). Il existe aussi un **SDK headless** (`booking-sdk/`, classe `ClenzyBooking`) et une **preview React** côté PMS (admin).
 
-- **Aucun rendu serveur (SSR).** Aucun site hébergé par Clenzy, aucun sous-domaine, aucun domaine custom.
+- **Aucun rendu serveur (SSR).** Aucun site hébergé par Baitly, aucun sous-domaine, aucun domaine custom.
 - **Aucun modèle de site / page / CMS / blog** (greenfield total côté données).
 - **Personnalisation** = design tokens (21 props) + 6 presets de thème + CSS/JS custom + extraction IA de tokens depuis une URL (`AiDesignService`). **Pas de page builder.**
 - **Panier multi-séjours** = uniquement dans la preview PMS (React). **Le widget public ne fait pas de multi-séjour.**
@@ -61,7 +61,7 @@
 
 ## B. Thèse d'avantage comparatif (pourquoi on GAGNE, pas juste la parité)
 
-Les leaders du « site direct » (Lodgify, Guesty, Smily, Avantio) offrent un **website builder + SEO + blog** corrects mais **génériques et mono-marché (EU/US, LTR)**. L'avantage défendable de Clenzy se construit sur **3 différenciateurs que le panel n'a pas** :
+Les leaders du « site direct » (Lodgify, Guesty, Smily, Avantio) offrent un **website builder + SEO + blog** corrects mais **génériques et mono-marché (EU/US, LTR)**. L'avantage défendable de Baitly se construit sur **3 différenciateurs que le panel n'a pas** :
 
 1. **Trifecta de distribution** : *hosted SSR site* + *widget embarquable* + *SDK headless/API* — un même moteur, trois modes. Aucun concurrent ne propose les trois proprement. Le widget et le headless existent **déjà** ; il manque le site hébergé SSR.
 2. **Booking engine IA-natif multilingue + RTL + arabe-first** : génération de contenu/SEO (titres, descriptions, blog, schema) en fr/en/**ar**, concierge IA RAG sur le site, SEO multilingue `hreflang`. C'est l'angle **MENA (Maroc/Arabie Saoudite)** de la stratégie multi-pays — un marché où les builders généralistes sont faibles (arabe, RTL, devises locales, moyens de paiement locaux PayTabs/CMI déjà intégrés).
@@ -77,13 +77,13 @@ C'est le **verrou n°1** : sans rendu serveur, SEO / site inclus / builder / blo
 
 | Option | Description | Plafond SEO/Site | Coût |
 |---|---|---|---|
-| **1. Embed-only (statu quo+)** | Garder le widget, exposer `sitemap.xml`/JSON-LD que l'hôte injecte sur SON site | ❌ ~2 (SEO du site de l'hôte, pas de Clenzy) | S |
+| **1. Embed-only (statu quo+)** | Garder le widget, exposer `sitemap.xml`/JSON-LD que l'hôte injecte sur SON site | ❌ ~2 (SEO du site de l'hôte, pas de Baitly) | S |
 | **2. Sites hébergés SSR** | Chaque org a un site `{slug}.clenzy.site` + domaine custom (`reservation.monhotel.com` via CNAME + TLS auto), **rendu serveur** | ✅ 3 | **XL (infra)** |
 | **3. Hybride trifecta** *(recommandé)* | Sites hébergés SSR **+** widget embarquable **+** SDK headless/API. Le moteur de données est commun | ✅ 3 + différenciation | XL puis incrémental |
 
 **Recommandation : Option 3, bâtie sur la fondation SSR de l'Option 2.**
 
-**Choix techno SSR** : service dédié **Next.js « Clenzy Sites »** consommant l'API Spring (ISR/SSG pour la perf + Core Web Vitals, `hreflang`, domaines custom, edge cache). Alternative plus légère : SSR Spring + Thymeleaf (moins d'infra, DX/SEO plus faible) — acceptable en MVP mais l'angle « avantage comparatif » justifie Next.js.
+**Choix techno SSR** : service dédié **Next.js « Baitly Sites »** consommant l'API Spring (ISR/SSG pour la perf + Core Web Vitals, `hreflang`, domaines custom, edge cache). Alternative plus légère : SSR Spring + Thymeleaf (moins d'infra, DX/SEO plus faible) — acceptable en MVP mais l'angle « avantage comparatif » justifie Next.js.
 - **Domaines custom** : CNAME `*.clenzy.site` + émission TLS automatique (Caddy on-demand TLS, ou cert-manager/ACME, ou couche managée type Cloudflare for SaaS). À trancher (infra clenzy-infra).
 - **À trancher D-1** (section H) : Next.js dédié vs Thymeleaf ; provider TLS domaines custom.
 
@@ -110,7 +110,7 @@ Notation effort : **S** (jours) / **M** (1-2 sem) / **L** (3-5 sem) / **XL** (>5
 
 ### D.4 — Panier multi-séjours / multi-propriétés · 2→3 · **M**
 - **Construire** : porter le panier multi-séjours (qui existe en preview PMS) dans le **widget public + SDK** : recherche multi-dates/multi-biens → 1 panier → **1 checkout Stripe** (déjà agrégé côté preview). Gérer dispo/hold par item (réutiliser le hold calendrier 30 min existant), remboursement/annulation par item.
-- **Avantage** : « **Trip builder** » — itinéraires multi-propriétés (rare dans le panel : tous à 0-1 sauf Clenzy à 2). Productisé = vrai différenciateur.
+- **Avantage** : « **Trip builder** » — itinéraires multi-propriétés (rare dans le panel : tous à 0-1 sauf Baitly à 2). Productisé = vrai différenciateur.
 
 ### D.5 — Multi-devise · 2→3 · **S/M** (réutilise tout)
 - **Construire** : sélecteur de devise (front) → backend convertit les prix via `CurrencyConverterService` (date de séjour) dans les réponses `PublicBookingService` + checkout dans la devise choisie (Stripe multi-devise ; gérer settlement). Court-circuit même-devise.
@@ -174,7 +174,7 @@ Notation effort : **S** (jours) / **M** (1-2 sem) / **L** (3-5 sem) / **XL** (>5
 
 ```
                     ┌─────────────────────────────────────────────┐
-                    │  Clenzy Sites (Next.js SSR/ISR) — NOUVEAU    │
+                    │  Baitly Sites (Next.js SSR/ISR) — NOUVEAU    │
    {slug}.clenzy.site / domaine custom  ──►  pages + blog + SEO    │
                     │  (sitemap, JSON-LD, hreflang, CWV, edge)     │
                     └───────────────┬─────────────────────────────┘
@@ -202,7 +202,7 @@ Notation effort : **S** (jours) / **M** (1-2 sem) / **L** (3-5 sem) / **XL** (>5
 | Lot | Contenu | Axes débloqués | Effort | Dépend |
 |---|---|---|---|---|
 | **0 — Quick wins (in-repo, sans SSR)** | Multi-devise câblée (D.5) ; panier multi-séjours dans le widget (D.4) ; API v1 + OpenAPI + portail (D.10) ; SecurityDeposit→Stripe + Radar/3DS (D.8) ; lead capture + abandoned-cart (D.9, sans site) ; IA copywriting descriptions/biens (D.11 partiel) | 5, 4, 10, 8, 9 partiel, 11 partiel | M–L | — |
-| **1 — Fondation Sites hébergés SSR** | Service Next.js « Clenzy Sites » + modèles `Site`/`SitePage`/`SiteDomain` + domaines custom + TLS + déploiement (clenzy-infra) | prérequis 1,2,3,6,7 | **XL** | Décisions D-1/D-2 |
+| **1 — Fondation Sites hébergés SSR** | Service Next.js « Baitly Sites » + modèles `Site`/`SitePage`/`SiteDomain` + domaines custom + TLS + déploiement (clenzy-infra) | prérequis 1,2,3,6,7 | **XL** | Décisions D-1/D-2 |
 | **2 — Builder + Templates** | Composeur par blocs (D.2) + catalogue templates (D.3) + site inclus (D.1) | 1, 2, 3 | L | Lot 1 |
 | **3 — SEO + Blog + IA contenu** | SEO complet (D.6) + blog (D.7) + génération IA contenu/SEO multilingue + concierge RAG (D.11) | 6, 7, 11 | M–L | Lot 1 |
 | **4 — Différenciation conversion** | Book Direct & Save, upsells, gift cards, comptes/wishlist, analytics/A-B, paiements locaux, consentement RGPD, reviews/snippets (E.1-12) | features E | L–XL | Lots 0-3 |
@@ -213,8 +213,8 @@ Notation effort : **S** (jours) / **M** (1-2 sem) / **L** (3-5 sem) / **XL** (>5
 
 ## H. Décisions arrêtées (2026-06-14)
 
-- **D-1. Techno SSR** : ✅ **Next.js « Clenzy Sites »** (SSR/ISR dédié, consommant l'API Spring) — meilleur SEO/CWV/hreflang/domaines custom.
-- **D-2. Domaines custom + TLS** : ✅ **Cloudflare for SaaS** — Clenzy est déjà sur Cloudflare, infra docker-compose (pas K8s) ; zéro ops TLS, émission instantanée, CDN/DDoS inclus. Sous-domaines `*.clenzy.site` = cert wildcard. *Repli si coût/hostname problématique : Caddy on-demand TLS.*
+- **D-1. Techno SSR** : ✅ **Next.js « Baitly Sites »** (SSR/ISR dédié, consommant l'API Spring) — meilleur SEO/CWV/hreflang/domaines custom.
+- **D-2. Domaines custom + TLS** : ✅ **Cloudflare for SaaS** — Baitly est déjà sur Cloudflare, infra docker-compose (pas K8s) ; zéro ops TLS, émission instantanée, CDN/DDoS inclus. Sous-domaines `*.clenzy.site` = cert wildcard. *Repli si coût/hostname problématique : Caddy on-demand TLS.*
 - **D-3. Builder** : ✅ **composeur par blocs** (bibliothèque de blocs réorganisables) — atteint 3, parité builders concurrents. Vrai drag-drop freeform = différé (build-vs-buy).
 - **D-4. Email marketing** : ✅ **Brevo maintenant**, derrière une abstraction **`EmailCampaignProvider`** (mêmes patterns que le multi-provider IA/paiement) pour basculer en **campagnes natives** plus tard sans réécrire.
 - **D-5a. Anti-fraude** : ✅ **Stripe Radar (règles par défaut) + 3DS/SCA** au lancement (gratuit, conforme). Règles custom (Radar for Teams) = différé, ajouté si les données de fraude le justifient.
