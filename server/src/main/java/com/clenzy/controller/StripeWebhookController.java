@@ -3,11 +3,10 @@ package com.clenzy.controller;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.integration.direct.service.DirectBookingService;
 import com.clenzy.payment.StripeGateway;
-import com.clenzy.service.DeferredPaymentService;
+import com.clenzy.service.ConsumerReconciledSourceTypes;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
-import com.clenzy.service.ReservationPaymentService;
 import com.clenzy.service.ShopService;
 import com.clenzy.service.StripeConnectService;
 import com.clenzy.service.StripeService;
@@ -366,14 +365,9 @@ public class StripeWebhookController {
      */
     private boolean isOrchestratedTotalPayment(Session session) {
         if (session.getMetadata() == null) return false;
-        String sourceType = session.getMetadata().get("sourceType");
-        if (sourceType == null) return false;
-        return sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)
-            || ReservationPaymentService.SOURCE_TYPE.equals(sourceType)
-            || com.clenzy.booking.service.BookingBalanceService.SOURCE_TYPE.equals(sourceType)
-            || com.clenzy.service.ai.AiCreditPurchaseService.SOURCE_TYPE.equals(sourceType)
-            || com.clenzy.service.ServiceRequestPaymentService.SOURCE_TYPE.equals(sourceType)
-            || com.clenzy.service.UpsellService.SOURCE_TYPE.equals(sourceType);
+        // Source de vérité unique (partagée avec PaymentEventConsumer) : le contrôleur
+        // ne ré-encode plus la liste des sourceTypes réconciliés par le consumer.
+        return ConsumerReconciledSourceTypes.isReconciledByConsumer(session.getMetadata().get("sourceType"));
     }
 
     private void updatePaymentTransaction(Session session, boolean success) {

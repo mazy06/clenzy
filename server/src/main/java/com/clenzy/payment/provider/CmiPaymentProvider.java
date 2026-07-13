@@ -91,7 +91,7 @@ public class CmiPaymentProvider implements PaymentProvider {
 
             // Valide que les credentials sont presents (le hash sera calcule
             // au moment du redirect endpoint, pas ici — voir CmiRedirectController).
-            Long orgId = readOrgId(request);
+            Long orgId = PaymentAdapterSupport.requireOrgId(request, "CMI");
             CmiCredentials creds = loadCredentials(orgId);
             if (creds.storeKey == null || creds.storeKey.isBlank()) {
                 return PaymentResult.failure("CMI : store_key non configure pour l'org");
@@ -193,13 +193,6 @@ public class CmiPaymentProvider implements PaymentProvider {
         return hashService;
     }
 
-    private Long readOrgId(PaymentRequest request) {
-        if (request.metadata() == null || !request.metadata().containsKey("orgId")) {
-            throw new IllegalStateException(
-                "CMI createPayment called without orgId metadata — orchestrator must inject it");
-        }
-        return Long.parseLong(request.metadata().get("orgId"));
-    }
 
     /** Parser minimal form-urlencoded → Map. Suffisant pour les callbacks CMI. */
     private static Map<String, String> parseFormUrlEncoded(String body) {

@@ -105,7 +105,8 @@ public class CmiHashService {
         String receivedHash = params.get("HASH");
         if (receivedHash == null || receivedHash.isBlank()) return false;
         String computed = computeHash(params, storeKey);
-        return constantTimeEquals(computed, receivedHash.trim());
+        // Hash CMI sensible à la casse (base64/hex) → comparaison constant-time exacte.
+        return WebhookSignatures.constantTimeEquals(computed, receivedHash.trim());
     }
 
     /**
