@@ -3,18 +3,18 @@ package com.clenzy.service;
 import com.clenzy.dto.HostBalanceSummaryDto;
 import com.clenzy.dto.HostBalanceSummaryDto.PropertyBalanceDto;
 import com.clenzy.dto.HostBalanceSummaryDto.UnpaidInterventionDto;
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.PaymentStatus;
+import com.clenzy.model.PaymentProviderType;
 import com.clenzy.model.Property;
 import com.clenzy.model.User;
-import com.clenzy.payment.StripeGateway;
+import com.clenzy.payment.PaymentResult;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
-import com.stripe.exception.StripeException;
-import com.stripe.model.checkout.Session;
-import com.stripe.param.checkout.SessionCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,7 +33,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +41,8 @@ class DeferredPaymentServiceTest {
 
     @Mock private InterventionRepository interventionRepository;
     @Mock private UserRepository userRepository;
-    @Mock private StripeGateway stripeGateway;
+    @Mock private PaymentOrchestrationService orchestrationService;
+    @Mock private CurrencyConverterService currencyConverter;
     @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private TenantContext tenantContext;
@@ -54,7 +54,8 @@ class DeferredPaymentServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         service = new DeferredPaymentService(
-                interventionRepository, userRepository, tenantContext, stripeGateway, transactionManager);
+                interventionRepository, userRepository, tenantContext, orchestrationService,
+                currencyConverter, transactionManager);
 
         setField(service, "currency", "EUR");
         setField(service, "successUrl", "http://localhost:3000/payment/success");
@@ -286,8 +287,8 @@ class DeferredPaymentServiceTest {
         }
 
         @Test
-        @DisplayName("when unpaid interventions exist then creates session via gateway and marks PROCESSING")
-        void whenUnpaidInterventions_thenCreatesSessionViaGateway() throws StripeException {
+        @DisplayName("when unpaid interventions exist then routes through orchestrator and marks PROCESSING")
+        void whenUnpaidInterventions_thenRoutesThroughOrchestrator() {
             // Arrange
             User host = buildHost(1L, "Jean", "Dupont", "jean@test.com");
             when(userRepository.findById(1L)).thenReturn(Optional.of(host));
@@ -296,12 +297,14 @@ class DeferredPaymentServiceTest {
             Intervention i1 = buildIntervention(100L, "Menage", BigDecimal.valueOf(80), property, PaymentStatus.PENDING);
             Intervention i2 = buildIntervention(101L, "Reparation", BigDecimal.valueOf(55), property, PaymentStatus.PENDING);
             when(interventionRepository.findUnpaidByHostId(1L, ORG_ID)).thenReturn(List.of(i1, i2));
-            when(interventionRepository.sumUnpaidByHostId(1L, ORG_ID)).thenReturn(BigDecimal.valueOf(135));
+            // Lot mono-devise (EUR par défaut) → conversion no-op (identité).
+            when(currencyConverter.convert(any(), any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_grouped_1");
-            when(session.getUrl()).thenReturn("https://checkout.stripe.com/cs_grouped_1");
-            when(stripeGateway.createSession(any(SessionCreateParams.class), any())).thenReturn(session);
+            PaymentOrchestrationResult orchResult = new PaymentOrchestrationResult(
+                    null,
+                    PaymentResult.success("cs_grouped_1", "https://checkout.stripe.com/cs_grouped_1"),
+                    PaymentProviderType.STRIPE);
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class))).thenReturn(orchResult);
 
             // Act
             String url = service.createGroupedPaymentSession(1L);
@@ -310,16 +313,78 @@ class DeferredPaymentServiceTest {
             assertThat(url).isEqualTo("https://checkout.stripe.com/cs_grouped_1");
             assertThat(i1.getPaymentStatus()).isEqualTo(PaymentStatus.PROCESSING);
             assertThat(i2.getPaymentStatus()).isEqualTo(PaymentStatus.PROCESSING);
+            // La réf de session provider est stockée pour la traçabilité (pas de stripeSessionId dur).
             assertThat(i1.getStripeSessionId()).isEqualTo("cs_grouped_1");
 
-            // T-SOLID-3 : montant et metadata passent par le gateway (plus de Stripe.apiKey statique)
-            ArgumentCaptor<SessionCreateParams> paramsCaptor = ArgumentCaptor.forClass(SessionCreateParams.class);
-            verify(stripeGateway).createSession(paramsCaptor.capture(), any());
-            SessionCreateParams params = paramsCaptor.getValue();
-            assertThat(params.getMetadata())
-                    .containsEntry("type", "grouped_deferred")
+            // Vague 2 : montant recalculé serveur + sourceType/sourceId/metadata portés par la requête d'orchestration.
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                    ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(reqCaptor.capture());
+            PaymentOrchestrationRequest request = reqCaptor.getValue();
+            assertThat(request.amount()).isEqualByComparingTo("135");
+            assertThat(request.currency()).isEqualTo("EUR");
+            assertThat(request.sourceType()).isEqualTo(DeferredPaymentService.SOURCE_TYPE_HOST);
+            assertThat(request.sourceId()).isEqualTo(1L);
+            assertThat(request.customerEmail()).isEqualTo("jean@test.com");
+            assertThat(request.idempotencyKey()).startsWith("deferred-host-1-");
+            assertThat(request.metadata())
                     .containsEntry("host_id", "1")
                     .containsEntry("intervention_ids", "100,101");
+        }
+
+        @Test
+        @DisplayName("when orchestrator fails then throws and leaves interventions unchanged")
+        void whenOrchestratorFails_thenThrows() {
+            // Arrange
+            User host = buildHost(1L, "Jean", "Dupont", "jean@test.com");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(host));
+
+            Property property = buildProperty(10L, "Appart Paris");
+            Intervention i1 = buildIntervention(100L, "Menage", BigDecimal.valueOf(80), property, PaymentStatus.PENDING);
+            when(interventionRepository.findUnpaidByHostId(1L, ORG_ID)).thenReturn(List.of(i1));
+            when(currencyConverter.convert(any(), any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
+
+            PaymentOrchestrationResult failure = new PaymentOrchestrationResult(
+                    null, PaymentResult.failure("provider indisponible"), null);
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class))).thenReturn(failure);
+
+            // Act & Assert
+            assertThatThrownBy(() -> service.createGroupedPaymentSession(1L))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Echec de creation de la session");
+            assertThat(i1.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("when interventions are in MAD then bills in MAD (multi-provider switch)")
+        void whenMadInterventions_thenBillsInMad() {
+            // Arrange
+            User host = buildHost(1L, "Yassine", "Alaoui", "yassine@test.ma");
+            when(userRepository.findById(1L)).thenReturn(Optional.of(host));
+
+            Property property = buildProperty(10L, "Riad Marrakech");
+            Intervention i1 = buildIntervention(100L, "Menage", BigDecimal.valueOf(300), property, PaymentStatus.PENDING);
+            Intervention i2 = buildIntervention(101L, "Reparation", BigDecimal.valueOf(200), property, PaymentStatus.PENDING);
+            i1.setCurrency("MAD");
+            i2.setCurrency("MAD");
+            when(interventionRepository.findUnpaidByHostId(1L, ORG_ID)).thenReturn(List.of(i1, i2));
+            when(currencyConverter.convert(any(), any(), any(), any())).thenAnswer(inv -> inv.getArgument(0));
+
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class))).thenReturn(
+                    new PaymentOrchestrationResult(null,
+                            PaymentResult.success("cs_mad", "https://pay.example.ma/cs_mad"),
+                            PaymentProviderType.PAYZONE));
+
+            // Act
+            service.createGroupedPaymentSession(1L);
+
+            // Assert : la devise du lot pilote la résolution provider (MAD → PayZone/CMI).
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                    ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(reqCaptor.capture());
+            PaymentOrchestrationRequest request = reqCaptor.getValue();
+            assertThat(request.currency()).isEqualTo("MAD");
+            assertThat(request.amount()).isEqualByComparingTo("500");
         }
     }
 }

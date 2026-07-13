@@ -24,13 +24,16 @@ public class PaymentEventConsumer {
     private final SplitPaymentService splitPaymentService;
     private final EscrowHoldRepository escrowHoldRepository;
     private final ReservationRepository reservationRepository;
+    private final DeferredPaymentReconciliationService deferredPaymentReconciliationService;
 
     public PaymentEventConsumer(SplitPaymentService splitPaymentService,
                                  EscrowHoldRepository escrowHoldRepository,
-                                 ReservationRepository reservationRepository) {
+                                 ReservationRepository reservationRepository,
+                                 DeferredPaymentReconciliationService deferredPaymentReconciliationService) {
         this.splitPaymentService = splitPaymentService;
         this.escrowHoldRepository = escrowHoldRepository;
         this.reservationRepository = reservationRepository;
+        this.deferredPaymentReconciliationService = deferredPaymentReconciliationService;
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_PAYMENT_EVENTS, groupId = "clenzy-payment-consumer")
@@ -88,9 +91,33 @@ public class PaymentEventConsumer {
         }
     }
 
+    /**
+     * PAYMENT_COMPLETED : réconciliation provider-agnostique de l'entité métier
+     * rattachée à la transaction (ADR paiement multi-provider, Vague 2). Le
+     * dispatch se fait sur {@code sourceType} ; les autres sourceTypes (ex.
+     * INTERVENTION unitaire, réconciliés par le webhook Stripe) sont ignorés ici.
+     *
+     * <p>Pas de {@code catch} avaleur (règle #7) : un échec de réconciliation
+     * remonte → retry Kafka puis DLT. La réconciliation elle-même est idempotente,
+     * donc un retry est sûr.</p>
+     */
     private void handlePaymentCompleted(Map<String, Object> event) {
-        log.info("Payment completed event received: {}", event.get("transactionRef"));
-        // Future: trigger post-payment workflows
+        String sourceType = String.valueOf(event.getOrDefault("sourceType", ""));
+        Object rawRef = event.get("transactionRef");
+        String transactionRef = rawRef != null ? String.valueOf(rawRef) : null;
+        if (transactionRef == null || transactionRef.isBlank()) {
+            log.warn("PAYMENT_COMPLETED sans transactionRef — ignore");
+            return;
+        }
+
+        if (sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)) {
+            log.info("PAYMENT_COMPLETED differe : tx={} sourceType={} → reconciliation interventions",
+                    transactionRef, sourceType);
+            deferredPaymentReconciliationService.reconcile(transactionRef);
+        } else {
+            log.debug("PAYMENT_COMPLETED tx={} sourceType={} — aucune reconciliation dediee dans ce consumer",
+                    transactionRef, sourceType);
+        }
     }
 
     private Long toLong(Object value) {
