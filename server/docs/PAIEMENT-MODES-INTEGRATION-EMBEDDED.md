@@ -92,3 +92,21 @@ Le front ne doit **jamais** brancher sur le type de provider ni sur la présence
 d'un `clientSecret` : **toujours** sur `presentationMode`. Tout nouveau mode in-page
 = une valeur d'enum + un adaptateur qui la renvoie + un bout de rendu front. Le
 contrat du port reste stable.
+
+## 7. Flux Stripe-only **par nature** (hors port multi-provider, intentionnel)
+
+Certains flux n'ont **aucun analogue PSP** : les router via le port multi-provider
+n'apporterait aucun bénéfice et y ferait fuiter des concepts Stripe. Ils restent
+**Stripe-direct assumés** (même statut que la caution, décision D3 de l'ADR) :
+
+| Flux | Pourquoi Stripe-only | Traitement |
+|---|---|---|
+| **Caution / dépôt de garantie** | Pré-autorisation + capture manuelle + carte enregistrée off-session (PREAUTH + CUSTOMER) ; PSP régionaux ne l'exposent pas (D3). | Stripe-direct (`BookingEngineDepositService`, `SecurityDepositPaymentService`) ; capability-gated côté port pour le checkout séjour. |
+| **Payment Sheet mobile** | Assemble `Customer` + **EphemeralKey** + `PaymentIntent`/`Subscription` + `publishableKey` pour le SDK Stripe React Native. L'EphemeralKey et le Payment Sheet sont **spécifiques au SDK mobile Stripe** ; aucun équivalent PayZone/CMI/PayTabs (redirect/iframe web uniquement). La variante `subscription` relève par ailleurs de la Vague 3 (récurrent). | Stripe-direct (`MobilePaymentService`). **Ne PAS forcer dans le port** : ce serait une méthode Stripe-only sans valeur multi-provider. |
+| **Livraison de biens physiques (shop)** | La collecte d'adresse de livraison **et** sa relecture à la complétion (`session.getShippingDetails()`) sont Stripe-spécifiques. | Migré via le port (create-side orchestré + champ `shippingAddressCountries`) mais **provider épinglé Stripe** (`preferredProvider=STRIPE`). Relaxable si un PSP expose un jour la collecte d'adresse. |
+
+> Règle : un flux « Stripe-only par nature » passe le port **uniquement** si l'appel
+> Stripe se déplace dans l'adaptateur `StripeProvider` sans introduire d'abstraction
+> multi-provider factice. Sinon il reste Stripe-direct assumé et **documenté ici**.
+> Objectif ADR « plus aucun Stripe direct hors adaptateurs » = pour l'**entrant
+> multi-provider** ; ces flux Stripe-only en sont l'exception explicite.
