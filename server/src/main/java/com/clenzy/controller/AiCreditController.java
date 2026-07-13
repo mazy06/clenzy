@@ -3,7 +3,6 @@ package com.clenzy.controller;
 import com.clenzy.service.ai.AiCreditGrantService;
 import com.clenzy.service.ai.AiCreditPurchaseService;
 import com.clenzy.tenant.TenantContext;
-import com.stripe.exception.StripeException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -96,10 +95,10 @@ public class AiCreditController {
         return grantService.grantInitialToAllOrgs(millicredits);
     }
 
-    /** Cree une session Stripe Checkout pour un pack. Retourne {checkoutUrl}. */
+    /** Cree une session de paiement (orchestrée) pour un pack. Retourne {checkoutUrl}. */
     @PostMapping("/topup")
     public Map<String, String> topUp(@RequestBody TopUpRequest request,
-                                     @AuthenticationPrincipal Jwt jwt) throws StripeException {
+                                     @AuthenticationPrincipal Jwt jwt) {
         return purchaseService.createTopUpCheckout(jwt.getSubject(), request.pack());
     }
 }

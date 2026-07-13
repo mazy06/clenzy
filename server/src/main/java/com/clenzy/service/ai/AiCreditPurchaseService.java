@@ -1,14 +1,15 @@
 package com.clenzy.service.ai;
 
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.model.User;
-import com.clenzy.payment.StripeGateway;
+import com.clenzy.service.PaymentOrchestrationService;
 import com.clenzy.repository.UserRepository;
-import com.stripe.exception.StripeException;
-import com.stripe.model.checkout.Session;
-import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,9 @@ import java.util.Map;
 @Service
 public class AiCreditPurchaseService {
 
+    /** {@code sourceType} de la {@code PaymentTransaction} d'un achat de crédits IA. */
+    public static final String SOURCE_TYPE = "AI_CREDIT_TOPUP";
+
     /** Pack de credits (prix serveur, degression au volume — grille Phase 2 §9). */
     public record CreditPack(String key, long millicredits, long priceCents, String label) {}
 
@@ -37,7 +41,7 @@ public class AiCreditPurchaseService {
     }
 
     private final UserRepository userRepository;
-    private final StripeGateway stripeGateway;
+    private final PaymentOrchestrationService orchestrationService;
 
     @Value("${stripe.currency:eur}")
     private String currency;
@@ -45,9 +49,10 @@ public class AiCreditPurchaseService {
     @Value("${FRONTEND_URL:http://localhost:3000}")
     private String frontendUrl;
 
-    public AiCreditPurchaseService(UserRepository userRepository, StripeGateway stripeGateway) {
+    public AiCreditPurchaseService(UserRepository userRepository,
+                                   PaymentOrchestrationService orchestrationService) {
         this.userRepository = userRepository;
-        this.stripeGateway = stripeGateway;
+        this.orchestrationService = orchestrationService;
     }
 
     /** Packs disponibles (affichage UX T-08). */
@@ -59,8 +64,7 @@ public class AiCreditPurchaseService {
      * Cree la session Checkout d'un pack pour l'organisation du demandeur.
      * Le montant et le nombre de credits viennent de la table serveur.
      */
-    public Map<String, String> createTopUpCheckout(String keycloakId, String packKey)
-            throws StripeException {
+    public Map<String, String> createTopUpCheckout(String keycloakId, String packKey) {
         CreditPack pack = PACKS.get(packKey);
         if (pack == null) {
             throw new IllegalArgumentException("Pack inconnu : " + packKey
@@ -71,29 +75,34 @@ public class AiCreditPurchaseService {
         if (user.getOrganizationId() == null) {
             throw new IllegalStateException("Utilisateur sans organisation : top-up impossible");
         }
+        Long orgId = user.getOrganizationId();
 
-        SessionCreateParams params = SessionCreateParams.builder()
-                .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(frontendUrl + "/settings?tab=ai&topup=success")
-                .setCancelUrl(frontendUrl + "/settings?tab=ai&topup=cancelled")
-                .putMetadata("type", "ai_credit_topup")
-                .putMetadata("org_id", String.valueOf(user.getOrganizationId()))
-                .putMetadata("pack_key", pack.key())
-                .putMetadata("millicredits", String.valueOf(pack.millicredits()))
-                .addLineItem(SessionCreateParams.LineItem.builder()
-                        .setQuantity(1L)
-                        .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
-                                .setCurrency(currency.toLowerCase())
-                                .setUnitAmount(pack.priceCents())
-                                .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                        .setName("Baitly — " + pack.label())
-                                        .setDescription("Recharge de crédits IA (valables 12 mois)")
-                                        .build())
-                                .build())
-                        .build())
-                .build();
+        // Montant et crédits TOUJOURS serveur (règle #1) : issus de la table des packs.
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("type", "ai_credit_topup");
+        metadata.put("org_id", String.valueOf(orgId));
+        metadata.put("pack_key", pack.key());
+        metadata.put("millicredits", String.valueOf(pack.millicredits()));
 
-        Session session = stripeGateway.createSession(params);
-        return Map.of("checkoutUrl", session.getUrl());
+        PaymentOrchestrationRequest request = new PaymentOrchestrationRequest(
+                BigDecimal.valueOf(pack.priceCents()).movePointLeft(2), // cents → unités
+                currency,
+                SOURCE_TYPE,
+                orgId,
+                "Baitly — " + pack.label(),
+                user.getEmail(),
+                null,
+                frontendUrl + "/settings?tab=ai&topup=success",
+                frontendUrl + "/settings?tab=ai&topup=cancelled",
+                metadata,
+                null); // pas de clé d'idempotence : plusieurs achats du même pack possibles
+
+        // Flux authentifié (org résolue du JWT) : org explicite, pas de dépendance au TenantContext.
+        PaymentOrchestrationResult result = orchestrationService.initiatePayment(orgId, null, request);
+        if (!result.isSuccess()) {
+            String err = result.paymentResult() != null ? result.paymentResult().errorMessage() : "erreur inconnue";
+            throw new IllegalStateException("Echec de creation du paiement de crédits IA: " + err);
+        }
+        return Map.of("checkoutUrl", result.paymentResult().redirectUrl());
     }
 }

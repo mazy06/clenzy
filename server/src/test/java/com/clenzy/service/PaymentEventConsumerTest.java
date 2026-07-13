@@ -32,6 +32,7 @@ class PaymentEventConsumerTest {
     @Mock private DeferredPaymentReconciliationService deferredPaymentReconciliationService;
     @Mock private ReservationPaymentReconciliationService reservationPaymentReconciliationService;
     @Mock private com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService;
+    @Mock private PeripheralPaymentReconciliationService peripheralPaymentReconciliationService;
 
     private PaymentEventConsumer consumer;
 
@@ -39,7 +40,7 @@ class PaymentEventConsumerTest {
     void setUp() {
         consumer = new PaymentEventConsumer(splitPaymentService, escrowHoldRepository, reservationRepository,
                 deferredPaymentReconciliationService, reservationPaymentReconciliationService,
-                bookingBalanceReconciliationService);
+                bookingBalanceReconciliationService, peripheralPaymentReconciliationService);
     }
 
     private EscrowHold escrow() {
@@ -242,6 +243,19 @@ class PaymentEventConsumerTest {
         }
 
         @Test
+        void aiCreditTopUpSourceType_reconciles() {
+            Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
+                    "transactionRef", "TX-AI",
+                    "sourceType", "AI_CREDIT_TOPUP");
+
+            consumer.handlePaymentEvent(event);
+
+            verify(peripheralPaymentReconciliationService).reconcileAiCreditTopUp("TX-AI");
+            verifyNoInteractions(deferredPaymentReconciliationService, reservationPaymentReconciliationService,
+                    bookingBalanceReconciliationService);
+        }
+
+        @Test
         void otherSourceType_isIgnored() {
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-789",
@@ -252,6 +266,7 @@ class PaymentEventConsumerTest {
             verifyNoInteractions(deferredPaymentReconciliationService,
                     reservationPaymentReconciliationService,
                     bookingBalanceReconciliationService,
+                    peripheralPaymentReconciliationService,
                     splitPaymentService, escrowHoldRepository, reservationRepository);
         }
 

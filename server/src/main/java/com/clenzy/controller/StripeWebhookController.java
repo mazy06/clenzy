@@ -370,7 +370,8 @@ public class StripeWebhookController {
         if (sourceType == null) return false;
         return sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)
             || ReservationPaymentService.SOURCE_TYPE.equals(sourceType)
-            || com.clenzy.booking.service.BookingBalanceService.SOURCE_TYPE.equals(sourceType);
+            || com.clenzy.booking.service.BookingBalanceService.SOURCE_TYPE.equals(sourceType)
+            || com.clenzy.service.ai.AiCreditPurchaseService.SOURCE_TYPE.equals(sourceType);
     }
 
     private void updatePaymentTransaction(Session session, boolean success) {
