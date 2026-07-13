@@ -26,5 +26,13 @@ public enum PaymentCapability {
     PAYOUT,
 
     /** Profil client persistant / carte enregistrée (card-on-file). */
-    CUSTOMER
+    CUSTOMER,
+
+    /**
+     * Checkout <strong>embarqué</strong> (inline) renvoyant un {@code clientSecret}
+     * pour un composant de paiement côté client, plutôt qu'une redirection hébergée.
+     * Capacité différenciante (Stripe Embedded Checkout) : les PSP régionaux ne la
+     * déclarent pas → le resolver capability-aware réserve les flux embedded à Stripe.
+     */
+    EMBEDDED_CHECKOUT
 }

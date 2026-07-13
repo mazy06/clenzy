@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,8 +91,9 @@ public class PaymentOrchestrationService {
                 PaymentResult.success(existingTx.getProviderTxId(), null), existingTx.getProviderType());
         }
 
-        // 2. Résolution du provider (local — pas d'appel externe)
-        PaymentProvider provider = resolveProvider(orgId, countryCode, request);
+        // 2. Résolution du provider (local — pas d'appel externe), capability-aware :
+        //    un checkout embarqué et/ou une carte enregistrée restreignent aux providers capables.
+        PaymentProvider provider = resolveProvider(orgId, countryCode, request, requiredCapabilities(request));
         log.info("Resolved payment provider: {} for org {} country {}",
             provider.getProviderType(), orgId, countryCode);
 
@@ -111,7 +113,8 @@ public class PaymentOrchestrationService {
             request.amount(), request.currency(),
             request.description(), request.customerEmail(), null,
             request.successUrl(), request.cancelUrl(),
-            tx.getTransactionRef(), metadata
+            tx.getTransactionRef(), metadata,
+            request.embedded(), request.expiresAtEpochSeconds(), request.saveCardForFutureUse()
         );
 
         // 5. Appel provider — HORS de toute transaction DB
@@ -205,24 +208,20 @@ public class PaymentOrchestrationService {
     }
 
     /**
-     * Résout le provider à utiliser pour une transaction donnée.
-     *
-     * <h2>Ordre de priorité</h2>
-     * <ol>
-     *   <li><strong>preferredProvider</strong> : préférence explicite de l'appelant.</li>
-     *   <li><strong>Currency match</strong> : devise régionale forte (SAR → PayTabs,
-     *       MAD → CMI/Payzone) si le provider est activé pour l'org.</li>
-     *   <li><strong>Country match</strong> : premier provider activé pour le pays.</li>
-     *   <li><strong>Fallback Stripe</strong>.</li>
-     * </ol>
-     *
-     * <p>Une org peut avoir plusieurs providers {@code enabled=true} en
-     * parallèle (ex. SAR via PayTabs ET EUR via Stripe) — la devise tranche.</p>
+     * Capacités requises par un flux d'initiation : {@link PaymentCapability#PAY} de
+     * base, plus les capacités différenciantes déduites de la requête (checkout
+     * embarqué, carte enregistrée pour caution). Le resolver n'active le filtrage que
+     * pour ces dernières — le flux hébergé standard conserve la résolution historique.
      */
-    private PaymentProvider resolveProvider(Long orgId, String countryCode,
-                                             PaymentOrchestrationRequest request) {
-        // Flux createPayment standard : capacité de base PAY (pas de filtrage).
-        return resolveProvider(orgId, countryCode, request, Set.of(PaymentCapability.PAY));
+    private Set<PaymentCapability> requiredCapabilities(PaymentOrchestrationRequest request) {
+        EnumSet<PaymentCapability> caps = EnumSet.of(PaymentCapability.PAY);
+        if (request.embedded()) {
+            caps.add(PaymentCapability.EMBEDDED_CHECKOUT);
+        }
+        if (request.saveCardForFutureUse()) {
+            caps.add(PaymentCapability.CUSTOMER);
+        }
+        return caps;
     }
 
     /**
