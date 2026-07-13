@@ -220,7 +220,12 @@ public class PaymentPersistence {
 
     private void publishEvent(PaymentTransaction tx, String eventType, Long orgId) {
         try {
+            // eventType DOIT figurer dans le payload : l'OutboxRelay ne publie QUE le
+            // payload sur Kafka (pas l'eventType de la ligne outbox). Sans ce champ, le
+            // PaymentEventConsumer (qui dispatche sur event.get("eventType")) ne routerait
+            // jamais PAYMENT_COMPLETED → aucune réconciliation d'entité (Vague 2).
             String payload = objectMapper.writeValueAsString(Map.of(
+                "eventType", eventType,
                 "transactionRef", tx.getTransactionRef(),
                 "providerType", tx.getProviderType().name(),
                 "status", tx.getStatus().name(),

@@ -29,12 +29,14 @@ class PaymentEventConsumerTest {
     @Mock private SplitPaymentService splitPaymentService;
     @Mock private EscrowHoldRepository escrowHoldRepository;
     @Mock private ReservationRepository reservationRepository;
+    @Mock private DeferredPaymentReconciliationService deferredPaymentReconciliationService;
 
     private PaymentEventConsumer consumer;
 
     @BeforeEach
     void setUp() {
-        consumer = new PaymentEventConsumer(splitPaymentService, escrowHoldRepository, reservationRepository);
+        consumer = new PaymentEventConsumer(splitPaymentService, escrowHoldRepository, reservationRepository,
+                deferredPaymentReconciliationService);
     }
 
     private EscrowHold escrow() {
@@ -185,14 +187,54 @@ class PaymentEventConsumerTest {
         }
     }
 
-    @Test
-    void paymentCompleted_logsOnly() {
-        Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
-                "transactionRef", "TX-123");
+    @Nested
+    @DisplayName("PAYMENT_COMPLETED")
+    class PaymentCompleted {
 
-        consumer.handlePaymentEvent(event);
+        @Test
+        void deferredSourceType_reconciles() {
+            Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
+                    "transactionRef", "TX-123",
+                    "sourceType", "DEFERRED_INTERVENTIONS_HOST");
 
-        verifyNoInteractions(splitPaymentService, escrowHoldRepository, reservationRepository);
+            consumer.handlePaymentEvent(event);
+
+            verify(deferredPaymentReconciliationService).reconcile("TX-123");
+            verifyNoInteractions(splitPaymentService, escrowHoldRepository, reservationRepository);
+        }
+
+        @Test
+        void propertyScopeSourceType_reconciles() {
+            Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
+                    "transactionRef", "TX-456",
+                    "sourceType", "DEFERRED_INTERVENTIONS_PROPERTY");
+
+            consumer.handlePaymentEvent(event);
+
+            verify(deferredPaymentReconciliationService).reconcile("TX-456");
+        }
+
+        @Test
+        void otherSourceType_isIgnored() {
+            Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
+                    "transactionRef", "TX-789",
+                    "sourceType", "INTERVENTION");
+
+            consumer.handlePaymentEvent(event);
+
+            verifyNoInteractions(deferredPaymentReconciliationService,
+                    splitPaymentService, escrowHoldRepository, reservationRepository);
+        }
+
+        @Test
+        void missingTransactionRef_isIgnored() {
+            Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
+                    "sourceType", "DEFERRED_INTERVENTIONS_HOST");
+
+            consumer.handlePaymentEvent(event);
+
+            verifyNoInteractions(deferredPaymentReconciliationService);
+        }
     }
 
     @Test
