@@ -24,10 +24,12 @@ class PaymentProviderCapabilitiesTest {
 
         assertThat(stripe.getCapabilities()).containsExactlyInAnyOrder(
                 PaymentCapability.PAY, PaymentCapability.PREAUTH, PaymentCapability.REFUND,
-                PaymentCapability.PAYOUT, PaymentCapability.CUSTOMER, PaymentCapability.EMBEDDED_CHECKOUT);
+                PaymentCapability.PAYOUT, PaymentCapability.CUSTOMER, PaymentCapability.EMBEDDED_CHECKOUT,
+                PaymentCapability.SHIPPING_ADDRESS);
         assertThat(stripe.supports(PaymentCapability.PREAUTH)).isTrue();
         assertThat(stripe.supports(PaymentCapability.PAYOUT)).isTrue();
         assertThat(stripe.supports(PaymentCapability.EMBEDDED_CHECKOUT)).isTrue();
+        assertThat(stripe.supports(PaymentCapability.SHIPPING_ADDRESS)).isTrue();
     }
 
     @Test

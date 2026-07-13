@@ -65,7 +65,7 @@ class StripeServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         StripeCheckoutSessionFactory checkoutSessionFactory = new StripeCheckoutSessionFactory(
-                interventionRepository, reservationRepository, serviceRequestRepository,
+                interventionRepository, reservationRepository,
                 new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), stripeGateway);
         StripePaymentConfirmationService paymentConfirmationService = new StripePaymentConfirmationService(
                 interventionRepository, reservationRepository, serviceRequestRepository,
@@ -1278,71 +1278,8 @@ class StripeServiceTest {
         }
     }
 
-    @Nested
-    @DisplayName("createServiceRequestCheckoutSession - validation paths")
-    class CreateServiceRequestCheckoutSession {
-        @Test
-        void whenSrNotFound_thenThrows() {
-            when(serviceRequestRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(99L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class);
-        }
-
-        @Test
-        void whenSrNotInAwaitingPayment_thenThrows() {
-            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.PENDING, PaymentStatus.PROCESSING);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("AWAITING_PAYMENT");
-        }
-
-        @Test
-        void whenAmountInvalid_thenThrows() {
-            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            sr.setEstimatedCost(BigDecimal.ZERO);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Montant invalide");
-        }
-
-        @Test
-        void whenAmountNull_thenThrows() {
-            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            sr.setEstimatedCost(null);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestCheckoutSession(1L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class);
-        }
-    }
-
-    @Nested
-    @DisplayName("createServiceRequestEmbeddedCheckoutSession - validation paths")
-    class CreateServiceRequestEmbedded {
-        @Test
-        void whenAmountInvalid_thenThrows() {
-            ServiceRequest sr = buildServiceRequest(1L, RequestStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            sr.setEstimatedCost(BigDecimal.ZERO);
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestEmbeddedCheckoutSession(1L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Montant invalide");
-        }
-
-        @Test
-        void whenSrNotFound_thenThrows() {
-            when(serviceRequestRepository.findById(99L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> stripeService.createServiceRequestEmbeddedCheckoutSession(99L, "u@h.com"))
-                .isInstanceOf(RuntimeException.class);
-        }
-    }
+    // Les sections createServiceRequest* ont été supprimées (Vague 5) : les validations
+    // (AWAITING_PAYMENT, montant > 0) sont désormais testées dans ServiceRequestPaymentServiceTest.
 
     // ─── Idempotence des confirmations (Z3-BUGS-01 / Z3-SEC-02) ──────────────
 

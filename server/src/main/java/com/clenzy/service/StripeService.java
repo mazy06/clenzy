@@ -148,45 +148,9 @@ public class StripeService {
             customerEmail, guestName, propertyName, expiresIn, successUrl, riskMetadata);
     }
 
-    /**
-     * Cree une session Stripe EMBEDDED pour un upsell guest (clientSecret cote livret).
-     * Chargee sur le compte plateforme comme les reservations ; la repartition part
-     * hote / part plateforme est creditee au ledger a la confirmation du paiement
-     * (cf. UpsellService.markPaidBySession via le webhook checkout.session.completed).
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createUpsellCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
-                                               String title, String customerEmail) throws StripeException {
-        return checkoutSessionFactory.createUpsellCheckoutSession(upsellOrderId, amount, currencyCode,
-            title, customerEmail);
-    }
-
-    /** Upsell HOSTED (redirection) — booking engine (cf. factory). */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createUpsellHostedCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
-                                                     String title, String customerEmail, String successUrl) throws StripeException {
-        return checkoutSessionFactory.createUpsellHostedCheckoutSession(upsellOrderId, amount, currencyCode,
-            title, customerEmail, successUrl);
-    }
-
-    /**
-     * Cree une session de paiement Stripe pour une demande de service assignee.
-     * Le demandeur paie le montant estimatedCost de la SR.
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createServiceRequestCheckoutSession(Long serviceRequestId, String customerEmail) throws StripeException {
-        return checkoutSessionFactory.createServiceRequestSession(serviceRequestId, customerEmail, false);
-    }
-
-    /**
-     * Cree une session de paiement Stripe en mode EMBEDDED pour une demande de service.
-     * Identique a createEmbeddedCheckoutSession mais pour les ServiceRequest.
-     * Retourne une session avec clientSecret pour EmbeddedCheckout cote frontend.
-     */
-    @CircuitBreaker(name = "stripe-api")
-    public Session createServiceRequestEmbeddedCheckoutSession(Long serviceRequestId, String customerEmail) throws StripeException {
-        return checkoutSessionFactory.createServiceRequestSession(serviceRequestId, customerEmail, true);
-    }
+    // Les wrappers createUpsell* / createServiceRequest* ont été supprimés (Vague 5) :
+    // ces flux passent par PaymentOrchestrationService (UpsellService,
+    // ServiceRequestPaymentService). Preuve par grep : plus aucun appelant.
 
     // ════════════════════════════════════════════════════════════════════════
     // Interrogation / expiration de sessions Checkout (Z4A-BUGS-02)

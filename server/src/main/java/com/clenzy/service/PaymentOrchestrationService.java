@@ -222,6 +222,9 @@ public class PaymentOrchestrationService {
         if (request.saveCardForFutureUse()) {
             caps.add(PaymentCapability.CUSTOMER);
         }
+        if (request.shippingAddressCountries() != null && !request.shippingAddressCountries().isEmpty()) {
+            caps.add(PaymentCapability.SHIPPING_ADDRESS);
+        }
         return caps;
     }
 

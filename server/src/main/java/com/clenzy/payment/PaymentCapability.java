@@ -41,5 +41,14 @@ public enum PaymentCapability {
      * Déclarée par les {@code SubscriptionProvider} ; sémantique distincte du
      * paiement one-shot (décision D1 de l'ADR : port abonnement dédié).
      */
-    RECURRING
+    RECURRING,
+
+    /**
+     * Collecte d'<strong>adresse de livraison</strong> au checkout (biens physiques,
+     * ex. shop matériel IoT). Déclarée par Stripe aujourd'hui ; un flux qui demande
+     * {@code shippingAddressCountries} est routé vers un provider capable par le
+     * resolver — <strong>sans épinglage en dur</strong> : le jour où un PSP expose la
+     * collecte d'adresse, il suffit de déclarer cette capacité dans son adaptateur.
+     */
+    SHIPPING_ADDRESS
 }

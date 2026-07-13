@@ -40,10 +40,11 @@ public class StripePaymentProvider implements PaymentProvider {
     @Override
     public Set<PaymentCapability> getCapabilities() {
         // Stripe couvre toute la palette : paiement, pré-autorisation (caution),
-        // remboursement, payout (Connect), card-on-file et checkout embarqué.
+        // remboursement, payout (Connect), card-on-file, checkout embarqué et
+        // collecte d'adresse de livraison.
         return Set.of(PaymentCapability.PAY, PaymentCapability.PREAUTH,
                 PaymentCapability.REFUND, PaymentCapability.PAYOUT, PaymentCapability.CUSTOMER,
-                PaymentCapability.EMBEDDED_CHECKOUT);
+                PaymentCapability.EMBEDDED_CHECKOUT, PaymentCapability.SHIPPING_ADDRESS);
     }
 
     @Override
