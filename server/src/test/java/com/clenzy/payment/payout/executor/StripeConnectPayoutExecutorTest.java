@@ -4,14 +4,12 @@ import com.clenzy.model.OwnerPayout;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.model.OwnerPayoutConfig;
 import com.clenzy.model.PayoutMethod;
-import com.clenzy.payment.StripeGateway;
 import com.clenzy.payment.payout.PayoutExecutor;
 import com.clenzy.payment.payout.PayoutNotifier;
+import com.clenzy.payment.payout.StripeConnectTransferClient;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.stripe.exception.ApiException;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Transfer;
-import com.stripe.param.TransferCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,29 +32,23 @@ import static org.mockito.Mockito.when;
 /**
  * Tests unitaires pour {@link StripeConnectPayoutExecutor}.
  *
- * <h2>Focus</h2>
- * <ul>
- *   <li>getSupportedMethod retourne STRIPE_CONNECT</li>
- *   <li>execute refuse si compte Stripe Connect absent</li>
- *   <li>execute happy path : PROCESSING -> PAID + notify, idempotency key payout-{id}</li>
- *   <li>echec du transfert -> FAILED + notifyFailure + retryCount++</li>
- *   <li>echec de persistance APRES transfert reussi -> PAS de FAILED (Z3-BUGS-03)</li>
- *   <li>echec de notification -> n'echoue pas l'execution</li>
- * </ul>
+ * <p>Le transfert Stripe est encapsulé dans {@link StripeConnectTransferClient}
+ * (mocké ici) ; la conversion des montants / params Stripe est testée dans
+ * {@code StripeConnectTransferClientTest}.</p>
  */
 class StripeConnectPayoutExecutorTest {
 
-    private StripeGateway stripeGateway;
+    private StripeConnectTransferClient transferClient;
     private OwnerPayoutRepository payoutRepository;
     private PayoutNotifier notifier;
     private StripeConnectPayoutExecutor executor;
 
     @BeforeEach
     void setUp() {
-        stripeGateway = mock(StripeGateway.class);
+        transferClient = mock(StripeConnectTransferClient.class);
         payoutRepository = mock(OwnerPayoutRepository.class);
         notifier = mock(PayoutNotifier.class);
-        executor = new StripeConnectPayoutExecutor(stripeGateway, payoutRepository, notifier);
+        executor = new StripeConnectPayoutExecutor(transferClient, payoutRepository, notifier);
 
         when(payoutRepository.save(any(OwnerPayout.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -91,10 +83,7 @@ class StripeConnectPayoutExecutorTest {
     @Test
     @DisplayName("execute throws when stripeConnectedAccountId is null")
     void execute_nullStripeAccount_throwsExecutionException() {
-        OwnerPayoutConfig config = config(null);
-        OwnerPayout p = payout();
-
-        assertThatThrownBy(() -> executor.execute(p, config))
+        assertThatThrownBy(() -> executor.execute(payout(), config(null)))
                 .isInstanceOf(PayoutExecutor.PayoutExecutionException.class)
                 .hasMessageContaining("compte connecte manquant");
 
@@ -104,25 +93,17 @@ class StripeConnectPayoutExecutorTest {
     @Test
     @DisplayName("execute throws when stripeConnectedAccountId is blank")
     void execute_blankStripeAccount_throwsExecutionException() {
-        OwnerPayoutConfig config = config("   ");
-        OwnerPayout p = payout();
-
-        assertThatThrownBy(() -> executor.execute(p, config))
+        assertThatThrownBy(() -> executor.execute(payout(), config("   ")))
                 .isInstanceOf(PayoutExecutor.PayoutExecutionException.class);
     }
 
     @Test
     @DisplayName("execute happy path : creates transfer, sets PAID + paidAt + notifies success")
     void execute_happyPath_paid() throws StripeException {
-        OwnerPayoutConfig config = config("acct_123");
         OwnerPayout p = payout();
+        when(transferClient.createTransfer(any(), any(), any(), any(), anyString())).thenReturn("tr_xyz");
 
-        Transfer transfer = mock(Transfer.class);
-        when(transfer.getId()).thenReturn("tr_xyz");
-        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
-                .thenReturn(transfer);
-
-        OwnerPayout result = executor.execute(p, config);
+        OwnerPayout result = executor.execute(p, config("acct_123"));
 
         assertThat(result.getStatus()).isEqualTo(PayoutStatus.PAID);
         assertThat(result.getStripeTransferId()).isEqualTo("tr_xyz");
@@ -130,46 +111,40 @@ class StripeConnectPayoutExecutorTest {
         assertThat(result.getPaidAt()).isNotNull();
         assertThat(result.getPayoutMethod()).isEqualTo(PayoutMethod.STRIPE_CONNECT);
 
-        // save called at least twice (PROCESSING then PAID)
         verify(payoutRepository, org.mockito.Mockito.atLeast(2)).save(any(OwnerPayout.class));
         verify(notifier).notifySuccess(result);
         verify(notifier, never()).notifyFailure(any(), any());
     }
 
     @Test
-    @DisplayName("execute passes Stripe idempotency key payout-{id} and converted params (Z3-BUGS-03)")
-    void execute_usesIdempotencyKeyAndConvertedParams() throws StripeException {
-        OwnerPayoutConfig config = config("acct_123");
-        OwnerPayout p = payout();
+    @DisplayName("execute passes idempotency key payout-{id} + montant/devise/destination/description")
+    void execute_usesIdempotencyKeyAndArgs() throws StripeException {
+        when(transferClient.createTransfer(any(), any(), any(), any(), eq("payout-101"))).thenReturn("tr_idem");
 
-        Transfer transfer = mock(Transfer.class);
-        when(transfer.getId()).thenReturn("tr_idem");
-        ArgumentCaptor<TransferCreateParams> paramsCaptor = ArgumentCaptor.forClass(TransferCreateParams.class);
-        when(stripeGateway.createTransfer(paramsCaptor.capture(), eq("payout-101")))
-                .thenReturn(transfer);
+        executor.execute(payout(), config("acct_123"));
 
-        executor.execute(p, config);
-
-        TransferCreateParams params = paramsCaptor.getValue();
-        assertThat(params.getAmount()).isEqualTo(50000L);
-        assertThat(params.getCurrency()).isEqualTo("eur");
-        assertThat(params.getDestination()).isEqualTo("acct_123");
-        assertThat(params.getDescription()).contains("Payout #101")
+        ArgumentCaptor<BigDecimal> amount = ArgumentCaptor.forClass(BigDecimal.class);
+        ArgumentCaptor<String> currency = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> destination = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> description = ArgumentCaptor.forClass(String.class);
+        verify(transferClient).createTransfer(amount.capture(), currency.capture(),
+                destination.capture(), description.capture(), eq("payout-101"));
+        assertThat(amount.getValue()).isEqualByComparingTo("500");
+        assertThat(currency.getValue()).isEqualTo("EUR");
+        assertThat(destination.getValue()).isEqualTo("acct_123");
+        assertThat(description.getValue()).contains("Payout #101")
                 .contains("2026-01-01").contains("2026-01-31");
     }
 
     @Test
     @DisplayName("execute Stripe API failure -> FAILED + notifyFailure + retryCount incremented")
     void execute_stripeApiThrows_failsAndNotifies() throws StripeException {
-        OwnerPayoutConfig config = config("acct_123");
         OwnerPayout p = payout();
         p.setRetryCount(2);
+        when(transferClient.createTransfer(any(), any(), any(), any(), anyString()))
+                .thenThrow(new ApiException("rate limit", "req_1", "code_x", 429, null));
 
-        StripeException ex = new ApiException("rate limit", "req_1", "code_x", 429, null);
-        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
-                .thenThrow(ex);
-
-        OwnerPayout result = executor.execute(p, config);
+        OwnerPayout result = executor.execute(p, config("acct_123"));
 
         assertThat(result.getStatus()).isEqualTo(PayoutStatus.FAILED);
         assertThat(result.getFailureReason()).contains("rate limit");
@@ -181,23 +156,16 @@ class StripeConnectPayoutExecutorTest {
     @Test
     @DisplayName("persistence failure AFTER successful transfer -> NOT marked FAILED, no failure notification")
     void whenSaveFailsAfterTransfer_thenNotMarkedFailed() throws StripeException {
-        OwnerPayoutConfig config = config("acct_123");
         OwnerPayout p = payout();
-
-        Transfer transfer = mock(Transfer.class);
-        when(transfer.getId()).thenReturn("tr_ok");
-        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
-                .thenReturn(transfer);
-        // 1er save (PROCESSING) ok, 2e save (PAID) echoue
+        when(transferClient.createTransfer(any(), any(), any(), any(), anyString())).thenReturn("tr_ok");
         when(payoutRepository.save(any(OwnerPayout.class)))
                 .thenAnswer(inv -> inv.getArgument(0))
                 .thenThrow(new RuntimeException("db down"));
 
-        assertThatThrownBy(() -> executor.execute(p, config))
+        assertThatThrownBy(() -> executor.execute(p, config("acct_123")))
                 .isInstanceOf(PayoutExecutor.PayoutExecutionException.class)
                 .hasMessageContaining("tr_ok");
 
-        // L'echec post-transfert ne doit PAS passer par le chemin FAILED/retry
         assertThat(p.getStatus()).isNotEqualTo(PayoutStatus.FAILED);
         assertThat(p.getRetryCount()).isZero();
         verify(notifier, never()).notifyFailure(any(), any());
@@ -206,21 +174,15 @@ class StripeConnectPayoutExecutorTest {
     @Test
     @DisplayName("persistence failure AFTER successful transfer -> raises a structured reconciliation alert")
     void whenSaveFailsAfterTransfer_thenReconciliationAlertRaised() throws StripeException {
-        OwnerPayoutConfig config = config("acct_123");
         OwnerPayout p = payout();
-
-        Transfer transfer = mock(Transfer.class);
-        when(transfer.getId()).thenReturn("tr_recon");
-        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
-                .thenReturn(transfer);
+        when(transferClient.createTransfer(any(), any(), any(), any(), anyString())).thenReturn("tr_recon");
         when(payoutRepository.save(any(OwnerPayout.class)))
                 .thenAnswer(inv -> inv.getArgument(0))
                 .thenThrow(new RuntimeException("db down"));
 
-        assertThatThrownBy(() -> executor.execute(p, config))
+        assertThatThrownBy(() -> executor.execute(p, config("acct_123")))
                 .isInstanceOf(PayoutExecutor.PayoutExecutionException.class);
 
-        // Un humain doit etre notifie de l'incoherence transfert-reussi / DB-non-persistee.
         verify(notifier).notifyReconciliationRequired(p, "tr_recon");
         verify(notifier, never()).notifyFailure(any(), any());
         verify(notifier, never()).notifySuccess(any());
@@ -229,20 +191,15 @@ class StripeConnectPayoutExecutorTest {
     @Test
     @DisplayName("reconciliation alert failure does not mask the original persistence incident")
     void whenReconciliationAlertThrows_thenOriginalIncidentStillPropagates() throws StripeException {
-        OwnerPayoutConfig config = config("acct_123");
         OwnerPayout p = payout();
-
-        Transfer transfer = mock(Transfer.class);
-        when(transfer.getId()).thenReturn("tr_mask");
-        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
-                .thenReturn(transfer);
+        when(transferClient.createTransfer(any(), any(), any(), any(), anyString())).thenReturn("tr_mask");
         when(payoutRepository.save(any(OwnerPayout.class)))
                 .thenAnswer(inv -> inv.getArgument(0))
                 .thenThrow(new RuntimeException("db down"));
         doThrow(new RuntimeException("notif down"))
                 .when(notifier).notifyReconciliationRequired(any(), anyString());
 
-        assertThatThrownBy(() -> executor.execute(p, config))
+        assertThatThrownBy(() -> executor.execute(p, config("acct_123")))
                 .isInstanceOf(PayoutExecutor.PayoutExecutionException.class)
                 .hasMessageContaining("tr_mask");
     }
@@ -250,16 +207,11 @@ class StripeConnectPayoutExecutorTest {
     @Test
     @DisplayName("success notification failure does not fail the execution")
     void whenNotifySuccessThrows_thenExecutionStillSucceeds() throws StripeException {
-        OwnerPayoutConfig config = config("acct_123");
         OwnerPayout p = payout();
-
-        Transfer transfer = mock(Transfer.class);
-        when(transfer.getId()).thenReturn("tr_n");
-        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
-                .thenReturn(transfer);
+        when(transferClient.createTransfer(any(), any(), any(), any(), anyString())).thenReturn("tr_n");
         doThrow(new RuntimeException("smtp down")).when(notifier).notifySuccess(any());
 
-        OwnerPayout result = executor.execute(p, config);
+        OwnerPayout result = executor.execute(p, config("acct_123"));
 
         assertThat(result.getStatus()).isEqualTo(PayoutStatus.PAID);
         assertThat(result.getStripeTransferId()).isEqualTo("tr_n");
@@ -268,14 +220,12 @@ class StripeConnectPayoutExecutorTest {
     @Test
     @DisplayName("failure notification failure does not prevent FAILED status")
     void whenNotifyFailureThrows_thenStillReturnsFailed() throws StripeException {
-        OwnerPayoutConfig config = config("acct_123");
         OwnerPayout p = payout();
-
-        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
+        when(transferClient.createTransfer(any(), any(), any(), any(), anyString()))
                 .thenThrow(new ApiException("boom", "req", "c", 500, null));
         doThrow(new RuntimeException("smtp down")).when(notifier).notifyFailure(any(), any());
 
-        OwnerPayout result = executor.execute(p, config);
+        OwnerPayout result = executor.execute(p, config("acct_123"));
 
         assertThat(result.getStatus()).isEqualTo(PayoutStatus.FAILED);
     }
@@ -283,17 +233,11 @@ class StripeConnectPayoutExecutorTest {
     @Test
     @DisplayName("execute sets PROCESSING + payoutMethod first, then PAID")
     void execute_setsProcessingFirst() throws StripeException {
-        OwnerPayoutConfig config = config("acct_z");
         OwnerPayout p = payout();
+        when(transferClient.createTransfer(any(), any(), any(), any(), anyString())).thenReturn("tr_p");
 
-        Transfer transfer = mock(Transfer.class);
-        when(transfer.getId()).thenReturn("tr_p");
-        when(stripeGateway.createTransfer(any(TransferCreateParams.class), anyString()))
-                .thenReturn(transfer);
+        executor.execute(p, config("acct_z"));
 
-        executor.execute(p, config);
-
-        // The same payout instance progresses through PROCESSING -> PAID; final state is PAID.
         assertThat(p.getStatus()).isEqualTo(PayoutStatus.PAID);
         assertThat(p.getPayoutMethod()).isEqualTo(PayoutMethod.STRIPE_CONNECT);
     }

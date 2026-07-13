@@ -24,11 +24,9 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
 import com.stripe.model.AccountLink;
 import com.stripe.model.AccountSession;
-import com.stripe.model.Transfer;
 import com.stripe.param.AccountCreateParams;
 import com.stripe.param.AccountLinkCreateParams;
 import com.stripe.param.AccountSessionCreateParams;
-import com.stripe.param.TransferCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -88,6 +86,7 @@ public class HousekeeperPayoutService {
     private final PricingConfigService pricingConfigService;
     private final NotificationService notificationService;
     private final HousekeeperPayoutRecorder recorder;
+    private final com.clenzy.payment.payout.StripeConnectTransferClient transferClient;
 
     public HousekeeperPayoutService(HousekeeperPayoutConfigRepository configRepository,
                                     HousekeeperPayoutRecordRepository recordRepository,
@@ -97,7 +96,8 @@ public class HousekeeperPayoutService {
                                     StripeGateway stripeGateway,
                                     PricingConfigService pricingConfigService,
                                     NotificationService notificationService,
-                                    HousekeeperPayoutRecorder recorder) {
+                                    HousekeeperPayoutRecorder recorder,
+                                    com.clenzy.payment.payout.StripeConnectTransferClient transferClient) {
         this.configRepository = configRepository;
         this.recordRepository = recordRepository;
         this.interventionRepository = interventionRepository;
@@ -107,6 +107,7 @@ public class HousekeeperPayoutService {
         this.pricingConfigService = pricingConfigService;
         this.notificationService = notificationService;
         this.recorder = recorder;
+        this.transferClient = transferClient;
     }
 
     // ─── Onboarding (compte Express + Account Session embarquée) ───────────────
@@ -438,15 +439,15 @@ public class HousekeeperPayoutService {
     void executeTransfer(Long recordId, Long interventionId, String title, BigDecimal net,
                          String stripeAccountId, String proKeycloakId, Long orgId) {
         try {
-            TransferCreateParams params = TransferCreateParams.builder()
-                    .setAmount(StripeAmounts.toMinorUnits(net))
-                    .setCurrency("eur")
-                    .setDestination(stripeAccountId)
-                    .setDescription("Versement mission ménage #" + interventionId)
-                    .build();
-            Transfer transfer = stripeGateway.createTransfer(params, "payout-intervention-" + interventionId);
+            // Versement Stripe Connect via l'adaptateur partagé (plus de types Stripe ici).
+            // Le versement ménage reste Stripe-Connect-only par design (HousekeeperPayoutConfig
+            // ne porte que stripeAccountId) — cf. doc §7 flux Stripe-only.
+            String transferId = transferClient.createTransfer(
+                    net, "eur", stripeAccountId,
+                    "Versement mission ménage #" + interventionId,
+                    "payout-intervention-" + interventionId);
 
-            int updated = recorder.markSent(recordId, transfer.getId());
+            int updated = recorder.markSent(recordId, transferId);
             if (updated > 0 && proKeycloakId != null) {
                 notificationService.send(proKeycloakId, NotificationKey.PAYOUT_SENT,
                         "Versement envoyé",
@@ -454,7 +455,7 @@ public class HousekeeperPayoutService {
                                 + " EUR pour la mission '" + title + "' a été envoyé.",
                         "/settings?tab=my-payouts-pro", orgId);
             }
-            log.info("Payout intervention {} : transfert {} envoyé ({} EUR)", interventionId, transfer.getId(), net);
+            log.info("Payout intervention {} : transfert {} envoyé ({} EUR)", interventionId, transferId, net);
         } catch (StripeException e) {
             log.error("Payout intervention {} : transfert Stripe en échec : {}", interventionId, e.getMessage());
             recorder.markFailed(recordId, e.getMessage());
