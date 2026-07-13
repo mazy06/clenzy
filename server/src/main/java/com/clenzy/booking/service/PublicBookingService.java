@@ -1628,9 +1628,21 @@ public class PublicBookingService {
         } catch (NumberFormatException e) {
             return;
         }
-        Reservation reservation = reservationRepository.findById(resId).orElse(null);
+        confirmBookingEngineBalanceById(resId, session.getId());
+    }
+
+    /**
+     * Réconciliation du solde par identifiant de réservation + référence de session
+     * provider (chemin provider-agnostique de la Vague 2 : consumer PAYMENT_COMPLETED).
+     * Passe la résa de {@code PARTIALLY_PAID} à {@code PAID} et déclenche les effets
+     * complets (ledger, facture) via {@link StripeService#confirmReservationPayment}.
+     * Idempotent.
+     */
+    @Transactional
+    public void confirmBookingEngineBalanceById(Long reservationId, String providerSessionId) {
+        Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
         if (reservation == null) {
-            log.error("Booking Engine balance: réservation {} introuvable (session {})", resId, session.getId());
+            log.error("Booking Engine balance: réservation {} introuvable (session {})", reservationId, providerSessionId);
             return;
         }
         if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
@@ -1639,11 +1651,11 @@ public class PublicBookingService {
         }
         // Rattache la session du solde puis délègue la confirmation COMPLÈTE (PARTIALLY_PAID → PAID
         // + ledger + facture) à confirmReservationPayment (keyé par stripeSessionId).
-        reservation.setStripeSessionId(session.getId());
+        reservation.setStripeSessionId(providerSessionId);
         reservation.setAmountPaid(reservation.getTotalPrice());
         reservation.setAmountDue(BigDecimal.ZERO);
         reservationRepository.save(reservation);
-        stripeService.confirmReservationPayment(session.getId());
+        stripeService.confirmReservationPayment(providerSessionId);
     }
 
     /** Donnees extraites des metadata Stripe du flux Embedded Checkout. */

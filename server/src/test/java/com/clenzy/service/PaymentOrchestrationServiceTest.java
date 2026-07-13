@@ -122,6 +122,30 @@ class PaymentOrchestrationServiceTest {
         }
 
         @Test
+        @DisplayName("explicit org/country variant bypasses TenantContext")
+        void whenExplicitOrgCountry_thenUsesThemNotTenantContext() {
+            Long explicitOrg = 99L; // != ORG_ID (42) du TenantContext
+            PaymentOrchestrationRequest req = buildRequest("EUR", PaymentProviderType.STRIPE, null);
+            when(paymentPersistence.consumeIdempotentReplay(any())).thenReturn(Optional.empty());
+            PaymentTransaction pending = buildTx("TX-EXP", TransactionStatus.PENDING, PaymentProviderType.STRIPE);
+            when(paymentPersistence.createPending(eq(explicitOrg), eq(PaymentProviderType.STRIPE), any(), any()))
+                    .thenReturn(pending);
+            when(providerRegistry.get(PaymentProviderType.STRIPE)).thenReturn(stripeProvider);
+            when(stripeProvider.getProviderType()).thenReturn(PaymentProviderType.STRIPE);
+            when(stripeProvider.createPayment(any(PaymentRequest.class)))
+                    .thenReturn(PaymentResult.success("pi_x", "https://stripe.test/x"));
+            when(paymentPersistence.finalizeInitiation(eq("TX-EXP"), any(), eq(explicitOrg)))
+                    .thenReturn(buildTx("TX-EXP", TransactionStatus.PROCESSING, PaymentProviderType.STRIPE));
+
+            PaymentOrchestrationResult result = service.initiatePayment(explicitOrg, "MA", req);
+
+            assertThat(result.isSuccess()).isTrue();
+            // Les écritures utilisent l'org EXPLICITE (99), pas celui du TenantContext (42).
+            verify(paymentPersistence).createPending(eq(explicitOrg), eq(PaymentProviderType.STRIPE), any(), any());
+            verify(paymentPersistence).finalizeInitiation(eq("TX-EXP"), any(), eq(explicitOrg));
+        }
+
+        @Test
         @DisplayName("marks initiation FAILED (no finalize) when provider throws")
         void whenProviderThrows_thenMarkedFailed() {
             PaymentOrchestrationRequest req = buildRequest("EUR", PaymentProviderType.STRIPE, null);
