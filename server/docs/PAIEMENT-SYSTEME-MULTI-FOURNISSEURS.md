@@ -275,6 +275,18 @@ qui déclarerait le même jeu de capacités que Stripe (`PAY`, `PREAUTH`, `CUSTO
 > (CMI/PayZone). Baitly n'est donc **pas verrouillé sur Stripe**. Comparatif détaillé
 > (capacités, éligibilité, couverture Maroc) : §16 du dossier PDF.
 
+**Banques marocaines & libéralisation 2026.** Bank Al-Maghrib a mis fin au **monopole du CMI**
+(désormais limité au switch technique) et plafonné l'interchange à **0,50 %**. Le portefeuille
+commerçants du CMI a été cédé à **six établissements de paiement bancaires** : **Attijari
+Payment** (Attijariwafa), **M2T/Chaabi Payment** (BCP), **Lana Cash** (CIH), **CDM Pay** (Crédit
+du Maroc), **Al Filahi Cash** (Crédit Agricole), **Damane Cash** (Bank of Africa). Ils couvrent
+l'**acquiring carte + gateway e-commerce + POS + règlement** (récurrent émergent via tokenisation),
+mais **pas encore** le payout-as-a-service, la pré-autorisation/caution ni un moteur d'abonnement
+complet. **Aucune banque marocaine ne fait donc le full-stack** aujourd'hui — mais la libéralisation
+renforce l'archi multi-fournisseur : un adaptateur « acquéreur bancaire marocain » (ex. Attijari
+Payment) pourra encaisser les cartes MAD, un full-stack (Checkout.com) portant abonnement + payout +
+caution. Détail : §16.5 du dossier PDF.
+
 ## 10. Glossaire
 
 | Terme | Définition |

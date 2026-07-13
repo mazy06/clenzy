@@ -925,6 +925,40 @@ story.append(Paragraph("<b>Lecture</b> : Stripe et les trois full-stack couvrent
                        "(Checkout.com) pour l'abonnement + payout + caution + international, <b>en parallèle</b> "
                        "d'un acquéreur local (PayZone/CMI) pour les cartes marocaines.", BODY))
 
+# ── 16.5 — Banques marocaines & libéralisation 2026 ───────────────────────────
+story.append(PageBreak())
+story.append(Paragraph("16.5 Banques marocaines : une banque marocaine couvre-t-elle tout ?", H2))
+story.append(Paragraph("<b>Non — mais le marché s'ouvre vite.</b> En 2026, Bank Al-Maghrib a <b>mis fin au "
+                       "monopole du CMI</b> (désormais limité au traitement technique / switch) et plafonné "
+                       "l'interchange domestique à <b>0,50 %</b> (au 1er oct. 2026). Le portefeuille commerçants "
+                       "du CMI a été cédé à <b>six établissements de paiement adossés aux grandes banques</b>, qui "
+                       "font désormais l'acquiring carte + les passerelles e-commerce.", BODY))
+story.append(table([
+    hcells("Établissement de paiement", "Banque", "Ce qu'il couvre"),
+    cells("<b>Attijari Payment</b>", "Attijariwafa Bank", "Acquiring + gateway e-commerce + POS (licence mars 2025, « services digitaux complets ») — le plus avancé"),
+    cells("<b>M2T / Chaabi Payment</b>", "Banque Populaire (BCP)", "Acquiring + gateway + POS + services de paiement"),
+    cells("<b>Lana Cash</b>", "CIH Bank", "Acquiring + gateway e-commerce + POS"),
+    cells("<b>CDM Pay</b>", "Crédit du Maroc", "Acquiring + gateway e-commerce"),
+    cells("<b>Al Filahi Cash</b>", "Crédit Agricole du Maroc", "Acquiring + gateway e-commerce"),
+    cells("<b>Damane Cash</b>", "Bank of Africa (BMCE)", "Acquiring + gateway + POS"),
+    cells("<i>CMI</i>", "<i>Consortium bancaire</i>", "<i>Traitement technique (switch) — n'est plus l'acquéreur exclusif</i>"),
+], [34 * mm, 40 * mm, USABLE_W - 34 * mm - 40 * mm]))
+story.append(Paragraph("<b>Ce qu'ils couvrent</b> : encaissement carte (acquiring), passerelle e-commerce, "
+                       "POS, règlement au compte (D+1 à D+3), 3-D Secure / PCI-DSS, tokenisation → "
+                       "<b>récurrent émergent</b>.", BODY))
+story.append(Paragraph("<b>Ce qui manque encore</b> (à ce jour, non documenté chez ces acteurs) : "
+                       "<b>payout-as-a-service</b> (verser des tiers par API), <b>pré-autorisation / caution</b>, "
+                       "et un <b>moteur d'abonnement</b> complet. Ces briques restent couvertes par un PSP "
+                       "full-stack (Checkout.com) ou séparément (virement bancaire pour les payouts, caution "
+                       "manuelle au lancement — décision D3).", BODY))
+story.append(Paragraph("<b>Conséquence pour Baitly</b> : aucune banque marocaine n'offre aujourd'hui le "
+                       "<b>full-stack</b> (les 3 ports + caution) en une seule API. Mais la libéralisation est "
+                       "une <b>bonne nouvelle</b> : plus d'acquéreurs locaux, interchange plus bas, relation "
+                       "bancaire directe. Elle <b>renforce l'architecture multi-fournisseur</b> — on peut ajouter "
+                       "un adaptateur « acquéreur bancaire marocain » (ex. <b>Attijari Payment</b>, à suivre) "
+                       "pour l'encaissement carte MAD, tout en gardant un full-stack (Checkout.com) pour "
+                       "l'abonnement + payout + caution.", BODY))
+
 story.append(PageBreak())
 story.append(Paragraph("17. Plan de certification sandbox par PSP", H1))
 story.append(Paragraph("Le code des adaptateurs est prêt et audité ; il reste la <b>certification en sandbox "
