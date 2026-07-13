@@ -239,6 +239,22 @@ décision documentée, avec son degré de réversibilité et son chemin de sorti
 7. **Rien d'autre** : ni l'orchestrateur, ni les flux métier, ni la réconciliation
    ne changent.
 
+## 9 bis. Reversements mensuels & mandat SEPA (payouts)
+
+Baitly reverse chaque mois aux propriétaires/gestionnaires leur part nette. Ces
+reversements passent par le **port sortant `PayoutExecutor`** (rails `StripeConnect`,
+`SEPA`, `Wise`, `OpenBanking`, `Manual`). Pour automatiser des virements récurrents
+sans re-saisie d'IBAN, on privilégie un PSP (ou une banque partenaire) capable de :
+
+- enregistrer un **mandat SEPA** (SEPA Direct Debit/Credit, référence unique UMR + IBAN) — zone euro ;
+- déclencher des **virements récurrents** par API, **idempotents**, avec référence marchande restituée ;
+- hors SEPA (Maroc) : un **virement bancaire** adossé à une banque partenaire, avec export de règlement rapprochable ;
+- notifier l'**issue du payout** (exécuté / rejeté / retourné) pour la réconciliation + alerte admin.
+
+Un nouveau rail de payout se branche via le `PayoutExecutorRegistry` **sans toucher les
+flux métier**. Détail des exigences (E2.5) et démarchage **par pays** : voir le dossier
+`analyse-concurrentielle/pdf/paiement-multi-fournisseurs-dossier.pdf`.
+
 ## 10. Glossaire
 
 | Terme | Définition |

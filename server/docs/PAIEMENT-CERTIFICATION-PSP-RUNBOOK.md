@@ -62,6 +62,16 @@ Chaque scénario doit passer **pour chaque PSP** avant activation. Cocher au fur
 | C8 | Idempotence / re-livraison | Rejouer le webhook de succès → pas de double crédit (transition CAS `COMPLETED`) | ☐ | ☐ | ☐ |
 | C9 | Remboursement API | PayZone/PayTabs : refund total + partiel OK. **CMI : refund renvoie un échec explicite (manuel back-office)** — comportement attendu | ☐ | ☐ (échec attendu) | ☐ |
 | C10 | Filet de secours (statut) | Notification volontairement non livrée → réconciliation par interrogation de statut (à câbler si le PSP l'expose) | ☐ | ☐ | ☐ |
+| C11 | **Payout / mandat SEPA** (si le PSP l'expose) | Mise en place d'un mandat SEPA (UMR + IBAN) → virement récurrent déclenché par API → notification d'issue (exécuté/rejeté/retourné). Cf. exigence E2.5 du dossier PDF. | ☐ | ☐ | ☐ |
+
+> **Exigence payout (E2.5)** — pour faciliter les reversements mensuels aux
+> propriétaires, on privilégie un PSP (ou une banque partenaire) capable
+> d'enregistrer des **mandats SEPA** (zone euro) et de déclencher des **virements
+> récurrents** par API (idempotents, avec notification d'issue). Hors zone SEPA
+> (Maroc), un **virement bancaire** adossé à une banque partenaire, avec export de
+> règlement rapprochable, tient le même rôle. Côté Baitly ces payouts passent déjà
+> par le port `PayoutExecutor` (rails SEPA / OpenBanking / Wise / StripeConnect /
+> Manuel) : aucun flux métier à retoucher pour brancher un nouveau rail.
 
 ## 4. Points d'attention relevés par l'audit de code (2026-07-13)
 

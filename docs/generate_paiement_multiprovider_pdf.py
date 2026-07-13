@@ -1,28 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Genere le PDF « Systeme de paiement multi-fournisseurs » (doc technique + metier).
+"""Genere le DOSSIER COMPLET « Paiement multi-fournisseurs — switch & parallele ».
 
-Public vise : equipes metier Baitly qui presentent le systeme a des banques /
-PSP, avec le cahier des exigences complet et la grille d'evaluation a remplir.
-Source de verite : server/docs/PAIEMENT-SYSTEME-MULTI-FOURNISSEURS.md (+ ADR).
+Fusionne :
+  - l'ADR « Architecture de paiement multi-fournisseurs (switch + parallele) »
+    (server/docs/ADR-paiement-multi-provider.md),
+  - la doc systeme technique + metier
+    (server/docs/PAIEMENT-SYSTEME-MULTI-FOURNISSEURS.md),
+  - le runbook de certification
+    (server/docs/PAIEMENT-CERTIFICATION-PSP-RUNBOOK.md),
+et ajoute : le demarchage des PSP par pays, un plan de certification sandbox par
+PSP, et l'exigence de mandat SEPA / virement bancaire pour les payouts mensuels.
+
+Public : direction Baitly, equipes metier, partenaires bancaires & PSP candidats.
+Riche en schemas, tableaux et UML pour une comprehension visuelle rapide.
 
 Usage : python3 docs/generate_paiement_multiprovider_pdf.py
-Sortie : analyse-concurrentielle/pdf/systeme-paiement-multi-fournisseurs.pdf
+Sortie : analyse-concurrentielle/pdf/paiement-multi-fournisseurs-dossier.pdf
 """
 import os
+import math
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer,
                                 Table, TableStyle, PageBreak, KeepTogether)
-from reportlab.graphics.shapes import Drawing, Rect, String, Line
+from reportlab.graphics.shapes import Drawing, Rect, String, Line, Polygon, Circle
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(os.path.dirname(BASE), "analyse-concurrentielle", "pdf")
 os.makedirs(OUT_DIR, exist_ok=True)
-OUT = os.path.join(OUT_DIR, "systeme-paiement-multi-fournisseurs.pdf")
+OUT = os.path.join(OUT_DIR, "paiement-multi-fournisseurs-dossier.pdf")
 
 # ── Palette maison (identique aux autres livrables Baitly) ─────────────────────
 PRIMARY = colors.HexColor("#3E5A68")
@@ -34,32 +44,37 @@ INK = colors.HexColor("#1F2A30")
 MUTED = colors.HexColor("#5C6B73")
 LIGHT = colors.HexColor("#EEF2F4")
 LINE = colors.HexColor("#C9D4D9")
+GREEN = colors.HexColor("#4A9B8E")
+SKY = colors.HexColor("#7BA3C2")
 
 ss = getSampleStyleSheet()
-H1 = ParagraphStyle("H1", parent=ss["Heading1"], fontName="Helvetica-Bold", fontSize=16,
-                    textColor=PRIMARY, spaceBefore=6, spaceAfter=8, leading=19)
-H2 = ParagraphStyle("H2", parent=ss["Heading2"], fontName="Helvetica-Bold", fontSize=12,
-                    textColor=PRIMARY, spaceBefore=11, spaceAfter=5, leading=15)
+PART = ParagraphStyle("PART", parent=ss["Heading1"], fontName="Helvetica-Bold", fontSize=13,
+                      textColor=colors.white, leading=16, alignment=TA_LEFT)
+H1 = ParagraphStyle("H1", parent=ss["Heading1"], fontName="Helvetica-Bold", fontSize=15,
+                    textColor=PRIMARY, spaceBefore=6, spaceAfter=7, leading=18)
+H2 = ParagraphStyle("H2", parent=ss["Heading2"], fontName="Helvetica-Bold", fontSize=11.5,
+                    textColor=PRIMARY, spaceBefore=10, spaceAfter=4, leading=14)
 H3 = ParagraphStyle("H3", parent=ss["Heading3"], fontName="Helvetica-Bold", fontSize=10,
-                    textColor=ACCENT, spaceBefore=8, spaceAfter=3, leading=12.5)
-BODY = ParagraphStyle("BODY", parent=ss["Normal"], fontName="Helvetica", fontSize=9.2,
-                      textColor=INK, leading=13.2, spaceAfter=5)
+                    textColor=ACCENT, spaceBefore=7, spaceAfter=3, leading=12.5)
+BODY = ParagraphStyle("BODY", parent=ss["Normal"], fontName="Helvetica", fontSize=9,
+                      textColor=INK, leading=13, spaceAfter=5)
 BULLET = ParagraphStyle("BULLET", parent=BODY, leftIndent=5 * mm, bulletIndent=1.5 * mm,
                         spaceAfter=2.5)
+CAP = ParagraphStyle("CAP", parent=BODY, fontSize=7.6, textColor=MUTED, leading=9.5,
+                     alignment=TA_CENTER, spaceBefore=1, spaceAfter=6)
 SMALL = ParagraphStyle("SMALL", parent=BODY, fontSize=7.6, textColor=MUTED, leading=9.6)
-CELL = ParagraphStyle("CELL", parent=BODY, fontSize=7.6, leading=9.4, spaceAfter=0)
+CELL = ParagraphStyle("CELL", parent=BODY, fontSize=7.5, leading=9.3, spaceAfter=0)
 CELLB = ParagraphStyle("CELLB", parent=CELL, fontName="Helvetica-Bold")
 CELLW = ParagraphStyle("CELLW", parent=CELLB, textColor=colors.white)
-TIT = ParagraphStyle("TIT", parent=BODY, fontName="Helvetica-Bold", fontSize=25,
-                     textColor=PRIMARY, leading=30, alignment=TA_LEFT)
-SUB = ParagraphStyle("SUB", parent=BODY, fontSize=11.5, textColor=MUTED, leading=16)
+TIT = ParagraphStyle("TIT", parent=BODY, fontName="Helvetica-Bold", fontSize=24,
+                     textColor=PRIMARY, leading=28, alignment=TA_LEFT)
+SUB = ParagraphStyle("SUB", parent=BODY, fontSize=11.5, textColor=MUTED, leading=15)
 
 USABLE_W = A4[0] - 36 * mm
 
 
 def on_page(canvas, doc):
     canvas.saveState()
-    # Fond blanc explicite (lecteurs PDF en mode sombre).
     canvas.setFillColor(colors.white)
     canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
     canvas.setFillColor(PRIMARY)
@@ -67,7 +82,7 @@ def on_page(canvas, doc):
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 7)
     canvas.drawString(18 * mm, 10 * mm,
-                      "Baitly - Systeme de paiement multi-fournisseurs . 2026-07-13 . Confidentiel")
+                      "Baitly - Paiement multi-fournisseurs (switch & parallele) . 2026-07-14 . Confidentiel")
     canvas.drawRightString(A4[0] - 18 * mm, 10 * mm, "p. %d" % doc.page)
     canvas.setStrokeColor(LINE)
     canvas.line(18 * mm, 13 * mm, A4[0] - 18 * mm, 13 * mm)
@@ -77,14 +92,18 @@ def on_page(canvas, doc):
 def make_doc(path):
     doc = BaseDocTemplate(path, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
                           topMargin=16 * mm, bottomMargin=16 * mm,
-                          title="Baitly - Systeme de paiement multi-fournisseurs",
+                          title="Baitly - Paiement multi-fournisseurs (switch & parallele) - Dossier complet",
                           author="Baitly")
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="main")
     doc.addPageTemplates([PageTemplate(id="all", frames=[frame], onPage=on_page)])
     return doc
 
 
-def table(data, widths, header=True, zebra=True, align_center_cols=()):
+# ══════════════════════════════════════════════════════════════════════════════
+# Helpers texte / tableaux
+# ══════════════════════════════════════════════════════════════════════════════
+
+def table(data, widths, header=True, zebra=True, align_center_cols=(), fs=None):
     t = Table(data, colWidths=widths, repeatRows=1 if header else 0)
     style = [
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -95,7 +114,7 @@ def table(data, widths, header=True, zebra=True, align_center_cols=()):
         ("GRID", (0, 0), (-1, -1), 0.4, LINE),
     ]
     if header:
-        style += [("BACKGROUND", (0, 0), (-1, 0), PRIMARY)]
+        style.append(("BACKGROUND", (0, 0), (-1, 0), PRIMARY))
     if zebra:
         for i in range(1 if header else 0, len(data)):
             if i % 2 == (0 if header else 1):
@@ -115,484 +134,732 @@ def cells(*texts):
 
 
 def crit_cell(level):
-    """Pastille de criticite coloree."""
     color = {"OBLIGATOIRE": DANGER, "IMPORTANTE": WARN, "OPTIONNELLE": ACCENT}[level]
-    p = ParagraphStyle("crit", parent=CELLB, textColor=color)
-    return Paragraph(level, p)
+    return Paragraph(level, ParagraphStyle("crit", parent=CELLB, textColor=color))
 
 
-# ── Schema d'architecture (dessin vectoriel simple) ───────────────────────────
+def part_banner(num, title):
+    """Bandeau de partie pleine largeur."""
+    t = Table([[Paragraph(f"PARTIE {num}", ParagraphStyle("pn", parent=PART, fontSize=9, textColor=colors.HexColor("#BcCdd4"))),
+                Paragraph(title, PART)]],
+              colWidths=[26 * mm, USABLE_W - 26 * mm])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), PRIMARY),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (0, 0), 8),
+    ]))
+    return t
 
-def архi_diagram():  # nom volontairement unique
-    W = USABLE_W
-    H = 96 * mm
+
+def ok(txt="fait"):
+    return Paragraph(txt, ParagraphStyle("ok", parent=CELLB, textColor=GREEN, alignment=TA_CENTER))
+
+
+# Marqueurs de matrice sûrs pour Helvetica (pas d'emoji : ils s'affichent en carrés noirs).
+_YES = ParagraphStyle("yes", parent=CELLB, textColor=GREEN, alignment=TA_CENTER, fontSize=9)
+_NO = ParagraphStyle("no", parent=CELL, textColor=colors.HexColor("#B9C4CA"), alignment=TA_CENTER)
+_SOON = ParagraphStyle("soon", parent=CELL, textColor=WARN, alignment=TA_CENTER, fontSize=6.6)
+
+
+def yes():
+    return Paragraph("&bull;", _YES)
+
+
+def no():
+    return Paragraph("&mdash;", _NO)
+
+
+def soon(txt="prévu"):
+    return Paragraph(txt, _SOON)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Primitives de dessin vectoriel
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _box(d, x, y, w, h, title, subs=None, fill=LIGHT, stroke=PRIMARY2, tcolor=INK, fs=8, bold=True):
+    d.add(Rect(x, y, w, h, fillColor=fill, strokeColor=stroke, strokeWidth=0.9, rx=3, ry=3))
+    fname = "Helvetica-Bold" if bold else "Helvetica"
+    d.add(String(x + w / 2, y + h - 11, title, fontName=fname, fontSize=fs,
+                 fillColor=tcolor, textAnchor="middle"))
+    if subs:
+        for i, s in enumerate(subs):
+            d.add(String(x + w / 2, y + h - 20.5 - i * 8.3, s, fontName="Helvetica",
+                         fontSize=6.4, fillColor=MUTED, textAnchor="middle"))
+
+
+def _arrow(d, x1, y1, x2, y2, color=PRIMARY2, label=None, dashed=False, w=0.9, lcolor=MUTED, ldy=2.5):
+    ln = Line(x1, y1, x2, y2, strokeColor=color, strokeWidth=w)
+    if dashed:
+        ln.strokeDashArray = [3, 2]
+    d.add(ln)
+    ang = math.atan2(y2 - y1, x2 - x1)
+    for da in (2.5, -2.5):
+        d.add(Line(x2, y2, x2 - 5.5 * math.cos(ang + da), y2 - 5.5 * math.sin(ang + da),
+                   strokeColor=color, strokeWidth=w))
+    if label:
+        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+        d.add(String(mx, my + ldy, label, fontName="Helvetica", fontSize=6.2,
+                     fillColor=lcolor, textAnchor="middle"))
+
+
+def _pill(d, x, y, w, h, text, fill, tcolor=colors.white, fs=7.2):
+    d.add(Rect(x, y, w, h, fillColor=fill, strokeColor=fill, rx=h / 2, ry=h / 2))
+    d.add(String(x + w / 2, y + h / 2 - 2.4, text, fontName="Helvetica-Bold", fontSize=fs,
+                 fillColor=tcolor, textAnchor="middle"))
+
+
+# ── 1. Ports & adaptateurs (hexagonal) ────────────────────────────────────────
+
+def diagram_ports():
+    W, H = USABLE_W, 108 * mm
     d = Drawing(W, H)
+    cx = W / 2
+    # Coeur : orchestrateur
+    _box(d, cx - 46, H - 46 * mm, 92, 30 * mm, "Orchestrateur de paiement",
+         ["resolution du fournisseur", "ledger PaymentTransaction", "idempotence . transactions courtes"],
+         fill=colors.HexColor("#DDE7EB"), stroke=PRIMARY, fs=8.5)
+    # Flux metier au-dessus
+    _box(d, 0, H - 14 * mm, W, 11 * mm,
+         "Flux metier (sejour . solde . differe . interventions . upsells . boutique . credits IA . abonnements . reversements)",
+         fill=colors.white, stroke=PRIMARY, fs=7.2)
+    _arrow(d, cx, H - 14 * mm, cx, H - 16 * mm)
 
-    def box(x, y, w, h, label, sub=None, fill=LIGHT, stroke=PRIMARY2, bold=True, fs=8):
-        d.add(Rect(x, y, w, h, fillColor=fill, strokeColor=stroke, strokeWidth=0.8, rx=3, ry=3))
-        f = "Helvetica-Bold" if bold else "Helvetica"
-        d.add(String(x + w / 2, y + h - 11, label, fontName=f, fontSize=fs,
-                     fillColor=INK, textAnchor="middle"))
-        if sub:
-            for i, line in enumerate(sub):
-                d.add(String(x + w / 2, y + h - 21 - i * 9, line, fontName="Helvetica",
-                             fontSize=6.7, fillColor=MUTED, textAnchor="middle"))
-
-    def arrow(x1, y1, x2, y2, label=None):
-        d.add(Line(x1, y1, x2, y2, strokeColor=PRIMARY2, strokeWidth=0.9))
-        # pointe
-        import math
-        ang = math.atan2(y2 - y1, x2 - x1)
-        for da in (2.6, -2.6):
-            d.add(Line(x2, y2, x2 - 4 * math.cos(ang + da), y2 - 4 * math.sin(ang + da),
-                       strokeColor=PRIMARY2, strokeWidth=0.9))
-        if label:
-            d.add(String((x1 + x2) / 2 + 2, (y1 + y2) / 2 + 2, label, fontName="Helvetica",
-                         fontSize=6.5, fillColor=MUTED, textAnchor="start"))
-
-    # Rangee 1 : flux metier
-    box(0, H - 16 * mm, W, 12 * mm,
-        "Flux metier Baitly (sejour, solde, differe, interventions, upsells, boutique, credits IA, abonnements, reversements)",
-        fill=colors.white, stroke=PRIMARY, fs=7.6)
-
-    # Rangee 2 : orchestrateur
-    box(W * 0.18, H - 34 * mm, W * 0.64, 14 * mm, "Orchestrateur de paiement",
-        sub=["idempotence . choix du fournisseur (capacites, devise, pays) . registre des transactions (ledger)"],
-        fill=LIGHT, stroke=PRIMARY)
-    arrow(W / 2, H - 16 * mm, W / 2, H - 20 * mm)
-
-    # Rangee 3 : les 3 familles de fournisseurs
+    yports = H - 78 * mm
     bw = W * 0.30
-    box(0, H - 56 * mm, bw, 17 * mm, "Encaissement",
-        sub=["Stripe . PayZone . CMI", "PayTabs (PayPal prevu)"], fill=colors.white)
-    box(W * 0.35, H - 56 * mm, bw, 17 * mm, "Abonnement SaaS",
-        sub=["Stripe Billing", "(PayZone recurrent prevu)"], fill=colors.white)
-    box(W * 0.70, H - 56 * mm, bw, 17 * mm, "Reversement",
-        sub=["Stripe Connect . SEPA . Wise", "Open Banking . Manuel (Maroc)"], fill=colors.white)
-    arrow(W * 0.34, H - 34 * mm, W * 0.15, H - 39 * mm)
-    arrow(W / 2, H - 34 * mm, W / 2, H - 39 * mm)
-    arrow(W * 0.66, H - 34 * mm, W * 0.85, H - 39 * mm)
+    _box(d, 0, yports, bw, 26 * mm, "PORT ENTRANT", ["PaymentProvider", "+ capabilities"],
+         fill=LIGHT, stroke=ACCENT, fs=8)
+    _box(d, cx - bw / 2, yports, bw, 26 * mm, "PORT ABONNEMENT", ["SubscriptionProvider", "+ capabilities"],
+         fill=LIGHT, stroke=ACCENT, fs=8)
+    _box(d, W - bw, yports, bw, 26 * mm, "PORT SORTANT", ["PayoutExecutor", "+ capabilities"],
+         fill=LIGHT, stroke=ACCENT, fs=8)
+    _arrow(d, cx - 30, H - 46 * mm, W * 0.15, yports + 26 * mm)
+    _arrow(d, cx, H - 46 * mm, cx, yports + 26 * mm)
+    _arrow(d, cx + 30, H - 46 * mm, W * 0.85, yports + 26 * mm)
 
-    # Rangee 4 : retour webhook -> ledger -> reconciliation
-    box(0, H - 78 * mm, W * 0.30, 15 * mm, "Notification signee",
-        sub=["webhook / IPN du fournisseur", "(succes ou echec)"], fill=colors.white, stroke=ACCENT)
-    box(W * 0.35, H - 78 * mm, W * 0.30, 15 * mm, "Ledger interne",
-        sub=["PaymentTransaction", "COMPLETED + evenement"], fill=colors.white, stroke=ACCENT)
-    box(W * 0.70, H - 78 * mm, W * 0.30, 15 * mm, "Reconciliation metier",
-        sub=["reservation / intervention / credits", "passes PAYE - idempotent"], fill=colors.white, stroke=ACCENT)
-    arrow(W * 0.15, H - 56 * mm, W * 0.15, H - 63 * mm, "paiement confirme")
-    arrow(W * 0.30, H - 70.5 * mm, W * 0.35, H - 70.5 * mm)
-    arrow(W * 0.65, H - 70.5 * mm, W * 0.70, H - 70.5 * mm)
+    # Adaptateurs sous chaque port
+    yad = H - 100 * mm
+    for (bx, items, c) in [
+        (0, ["Stripe", "PayZone", "CMI . PayTabs"], SKY),
+        (cx - bw / 2, ["Stripe Billing", "PayZone recurrent*"], WARN),
+        (W - bw, ["StripeConnect . Wise", "SEPA . OpenBanking", "Manuel (Maroc)"], GREEN),
+    ]:
+        for i, it in enumerate(items):
+            _pill(d, bx + 4, yad + (len(items) - 1 - i) * 8.5, bw - 8, 7, it, c)
+        _arrow(d, bx + bw / 2, yports, bx + bw / 2, yad + len(items) * 8.5 - 1)
 
-    d.add(String(0, 2, "Le meme circuit de confirmation sert TOUS les fournisseurs : "
-                       "en ajouter un ne change ni les flux metier, ni la reconciliation.",
-                 fontName="Helvetica-Oblique", fontSize=7.2, fillColor=MUTED))
+    d.add(String(0, 2, "Config par organisation (enabled / sandbox / cles chiffrees) : plusieurs fournisseurs actifs EN PARALLELE, la devise tranche.",
+                 fontName="Helvetica-Oblique", fontSize=6.8, fillColor=MUTED))
     return d
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── 2. Chaine d'execution (orchestration + reconciliation) ────────────────────
+
+def diagram_orchestration():
+    W, H = USABLE_W, 92 * mm
+    d = Drawing(W, H)
+    _box(d, 0, H - 13 * mm, W, 10 * mm, "Flux metier — appelle initiatePayment(request)  (aucun appel PSP direct)",
+         fill=colors.white, stroke=PRIMARY, fs=7.4)
+    _box(d, W * 0.14, H - 34 * mm, W * 0.72, 17 * mm, "Orchestrateur",
+         ["1. idempotence  2. resolution (capacite/devise/pays)  3. persist PENDING (tx courte)",
+          "4. appel fournisseur HORS tx  5. persist resultat + evenement (tx courte)"],
+         fill=colors.HexColor("#DDE7EB"), stroke=PRIMARY, fs=8)
+    _arrow(d, W / 2, H - 13 * mm, W / 2, H - 17 * mm)
+    # 3 fournisseurs
+    yf = H - 50 * mm
+    _box(d, 0, yf, W * 0.30, 10 * mm, "Stripe (intl)", fill=colors.white, stroke=SKY, fs=7.6)
+    _box(d, W * 0.35, yf, W * 0.30, 10 * mm, "PayZone / CMI (MA)", fill=colors.white, stroke=SKY, fs=7.6)
+    _box(d, W * 0.70, yf, W * 0.30, 10 * mm, "PayTabs (KSA/Golfe)", fill=colors.white, stroke=SKY, fs=7.6)
+    _arrow(d, W * 0.32, H - 34 * mm, W * 0.15, yf + 10 * mm)
+    _arrow(d, W / 2, H - 34 * mm, W / 2, yf + 10 * mm)
+    _arrow(d, W * 0.68, H - 34 * mm, W * 0.85, yf + 10 * mm)
+    d.add(String(W / 2, yf - 6, "le client paie chez le fournisseur -> notification signee (webhook / IPN)",
+                 fontName="Helvetica-Oblique", fontSize=6.6, fillColor=MUTED, textAnchor="middle"))
+    # reconciliation
+    yr = H - 78 * mm
+    _box(d, 0, yr, W * 0.30, 14 * mm, "Notification signee",
+         ["signature verifiee", "-> completeTransaction"], fill=colors.white, stroke=ACCENT, fs=7.4)
+    _box(d, W * 0.35, yr, W * 0.30, 14 * mm, "Ledger COMPLETED",
+         ["outbox -> Kafka", "PAYMENT_COMPLETED"], fill=colors.white, stroke=ACCENT, fs=7.4)
+    _box(d, W * 0.70, yr, W * 0.30, 14 * mm, "Reconciliation metier",
+         ["par sourceType", "entite -> PAYE (idempotent)"], fill=colors.white, stroke=ACCENT, fs=7.4)
+    _arrow(d, W * 0.15, yf, W * 0.15, yr + 14 * mm)
+    _arrow(d, W * 0.30, yr + 7 * mm, W * 0.35, yr + 7 * mm)
+    _arrow(d, W * 0.65, yr + 7 * mm, W * 0.70, yr + 7 * mm)
+    d.add(String(0, 2, "Le meme circuit de confirmation sert TOUS les fournisseurs : en ajouter un ne change ni les flux metier, ni la reconciliation.",
+                 fontName="Helvetica-Oblique", fontSize=6.8, fillColor=MUTED))
+    return d
+
+
+# ── 3. Diagramme de sequence (parcours d'un paiement) ─────────────────────────
+
+def diagram_sequence():
+    W, H = USABLE_W, 118 * mm
+    d = Drawing(W, H)
+    actors = ["Voyageur", "Baitly", "Orchestr.", "PSP", "Ledger"]
+    n = len(actors)
+    xs = [W * (i + 0.5) / n for i in range(n)]
+    top = H - 8 * mm
+    bot = 6 * mm
+    for i, a in enumerate(actors):
+        _box(d, xs[i] - 22, top, 44, 8 * mm, a, fill=PRIMARY, stroke=PRIMARY, tcolor=colors.white, fs=7.4)
+        ln = Line(xs[i], top, xs[i], bot, strokeColor=LINE, strokeWidth=0.7)
+        ln.strokeDashArray = [2, 2]
+        d.add(ln)
+
+    def msg(y, i, j, label, dashed=False, color=PRIMARY2):
+        _arrow(d, xs[i], y, xs[j], y, color=color, label=label, dashed=dashed, ldy=2.2)
+
+    y = top - 6 * mm
+    step = 9.2 * mm
+    msg(y, 0, 1, "clique payer"); y -= step
+    d.add(String(xs[1], y + 3, "recalcule le montant (serveur)", fontName="Helvetica-Oblique",
+                 fontSize=6.2, fillColor=DANGER, textAnchor="middle")); y -= step * 0.55
+    msg(y, 1, 2, "initiatePayment(montant serveur)"); y -= step
+    d.add(String(xs[2], y + 3, "resout le fournisseur + persist PENDING", fontName="Helvetica-Oblique",
+                 fontSize=6.2, fillColor=MUTED, textAnchor="middle")); y -= step * 0.55
+    msg(y, 2, 3, "createPayment (HORS tx, cle idempotence)"); y -= step
+    msg(y, 3, 2, "URL / clientSecret", dashed=True); y -= step
+    msg(y, 2, 1, "session de paiement", dashed=True); y -= step
+    msg(y, 1, 0, "redirige vers le PSP", dashed=True); y -= step
+    d.add(String(xs[3], y + 3, "le voyageur paie sur la page du PSP", fontName="Helvetica-Oblique",
+                 fontSize=6.2, fillColor=MUTED, textAnchor="middle")); y -= step * 0.6
+    msg(y, 3, 4, "webhook SIGNE (succes)", color=ACCENT); y -= step
+    d.add(String(xs[4], y + 3, "ledger COMPLETED -> event -> entite PAYE (idempotent)",
+                 fontName="Helvetica-Oblique", fontSize=6.2, fillColor=ACCENT, textAnchor="middle"))
+    return d
+
+
+# ── 4. Machine a etats (PaymentTransaction) ───────────────────────────────────
+
+def diagram_states():
+    W, H = USABLE_W, 46 * mm
+    d = Drawing(W, H)
+    bw, bh = 66, 12 * mm
+    y = H - 20 * mm
+    # Rangée principale : PENDING -> PROCESSING -> COMPLETED -> REFUNDED
+    x0 = 6
+    gap = (W - 12 - 4 * bw) / 3
+    xs = [x0 + i * (bw + gap) for i in range(4)]
+    _box(d, xs[0], y, bw, bh, "PENDING", fill=LIGHT, stroke=PRIMARY2, fs=8)
+    _box(d, xs[1], y, bw, bh, "PROCESSING", fill=LIGHT, stroke=PRIMARY2, fs=8)
+    _box(d, xs[2], y, bw, bh, "COMPLETED", fill=colors.HexColor("#DDEEE9"), stroke=GREEN, fs=8)
+    _box(d, xs[3], y, bw, bh, "REFUNDED", fill=colors.white, stroke=SKY, fs=8)
+    _arrow(d, xs[0] + bw, y + bh / 2, xs[1], y + bh / 2, label="init")
+    _arrow(d, xs[1] + bw, y + bh / 2, xs[2], y + bh / 2, label="webhook OK")
+    _arrow(d, xs[2] + bw, y + bh / 2, xs[3], y + bh / 2, color=SKY, label="refund")
+    # États d'échec sous PROCESSING
+    yb = y - 16 * mm
+    _box(d, xs[1] - bw / 2 - 6, yb, bw, 10 * mm, "FAILED", fill=colors.white, stroke=DANGER, fs=7.6)
+    _box(d, xs[1] + bw / 2 + 6, yb, bw, 10 * mm, "CANCELLED", fill=colors.white, stroke=WARN, fs=7.6)
+    _arrow(d, xs[1] + bw / 2 - 8, y, xs[1] - 6, yb + 10 * mm, color=DANGER, label="échec/refus", lcolor=DANGER, ldy=0)
+    _arrow(d, xs[1] + bw / 2 + 8, y, xs[1] + bw + 6, yb + 10 * mm, color=WARN, label="expire", lcolor=WARN, ldy=0)
+    return d
+
+
+# ── 5. Arbre de resolution du fournisseur ─────────────────────────────────────
+
+def diagram_resolution():
+    W, H = USABLE_W, 74 * mm
+    d = Drawing(W, H)
+    xL = 6
+    step = 13 * mm
+    y = H - 12 * mm
+    nodes = [
+        ("1. preference explicite ?", "rare - a eviter"),
+        ("2. capacites requises ?", "ecarte les fournisseurs incapables (embedded, shipping, recurrent, SEPA...)"),
+        ("3. devise regionale ?", "MAD -> CMI puis PayZone . SAR -> PayTabs"),
+        ("4. pays de l'organisation ?", "1er fournisseur active pour le pays"),
+        ("5. repli Stripe", "couvre toutes capacites, international"),
+    ]
+    for i, (t, s) in enumerate(nodes):
+        yy = y - i * step
+        c = GREEN if i == len(nodes) - 1 else PRIMARY2
+        _box(d, xL, yy - 10 * mm, W * 0.52, 10 * mm, t, fill=LIGHT, stroke=c, fs=7.8)
+        d.add(String(xL + W * 0.54, yy - 6, s, fontName="Helvetica", fontSize=6.8,
+                     fillColor=MUTED, textAnchor="start"))
+        if i < len(nodes) - 1:
+            _arrow(d, xL + W * 0.26, yy - 10 * mm, xL + W * 0.26, yy - step, label="sinon", ldy=1)
+    return d
+
+
+# ── 6. Reversement mensuel + mandat SEPA ──────────────────────────────────────
+
+def diagram_payout_sepa():
+    W, H = USABLE_W, 74 * mm
+    d = Drawing(W, H)
+    # Setup mandat (une fois)
+    d.add(String(4, H - 6 * mm, "A. Mise en place (une fois) — mandat SEPA",
+                 fontName="Helvetica-Bold", fontSize=8, fillColor=PRIMARY, textAnchor="start"))
+    yA = H - 24 * mm
+    _box(d, 4, yA, W * 0.30, 12 * mm, "Proprietaire", ["IBAN + signature", "mandat SEPA"], fill=colors.white, stroke=PRIMARY2, fs=7.4)
+    _box(d, W * 0.37, yA, W * 0.28, 12 * mm, "Baitly / PSP", ["enregistre le", "mandat (UMR)"], fill=LIGHT, stroke=PRIMARY, fs=7.4)
+    _box(d, W * 0.70, yA, W * 0.30, 12 * mm, "Banque", ["mandat actif", "(recurrent)"], fill=colors.white, stroke=GREEN, fs=7.4)
+    _arrow(d, W * 0.34, yA + 6 * mm, W * 0.37, yA + 6 * mm, label="signe")
+    _arrow(d, W * 0.65, yA + 6 * mm, W * 0.70, yA + 6 * mm, label="depose")
+    # Payout mensuel (recurrent)
+    d.add(String(4, yA - 8 * mm, "B. Chaque mois — reversement automatique",
+                 fontName="Helvetica-Bold", fontSize=8, fillColor=PRIMARY, textAnchor="start"))
+    yB = yA - 30 * mm
+    _box(d, 4, yB, W * 0.24, 12 * mm, "Ledger", ["solde net du", "proprietaire"], fill=colors.white, stroke=PRIMARY2, fs=7.4)
+    _box(d, W * 0.30, yB, W * 0.26, 12 * mm, "PayoutExecutor", ["SEPA / virement", "(idempotent)"], fill=LIGHT, stroke=PRIMARY, fs=7.4)
+    _box(d, W * 0.62, yB, W * 0.16, 12 * mm, "PSP / Banque", None, fill=colors.white, stroke=GREEN, fs=7.4)
+    _box(d, W * 0.82, yB, W * 0.18, 12 * mm, "Compte proprio", None, fill=colors.white, stroke=PRIMARY2, fs=7.4)
+    _arrow(d, W * 0.28, yB + 6 * mm, W * 0.30, yB + 6 * mm)
+    _arrow(d, W * 0.56, yB + 6 * mm, W * 0.62, yB + 6 * mm, label="virement")
+    _arrow(d, W * 0.78, yB + 6 * mm, W * 0.82, yB + 6 * mm, color=GREEN)
+    d.add(String(4, 2, "Le mandat SEPA evite de re-saisir l'IBAN chaque mois : virement recurrent declenche par Baitly, trace au ledger (rail SEPA / OpenBanking).",
+                 fontName="Helvetica-Oblique", fontSize=6.8, fillColor=MUTED))
+    return d
+
+
+# ── 7. UML composants (ports & adaptateurs) ───────────────────────────────────
+
+def diagram_uml():
+    W, H = USABLE_W, 60 * mm
+    d = Drawing(W, H)
+
+    def iface(x, y, w, name, methods):
+        h = 30 + len(methods) * 7.5
+        d.add(Rect(x, y - h, w, h, fillColor=colors.HexColor("#EAF0F2"), strokeColor=PRIMARY, strokeWidth=1))
+        d.add(String(x + w / 2, y - 8, "<<interface>>", fontName="Helvetica-Oblique", fontSize=6.2,
+                     fillColor=MUTED, textAnchor="middle"))
+        d.add(String(x + w / 2, y - 16, name, fontName="Helvetica-Bold", fontSize=7.6,
+                     fillColor=PRIMARY, textAnchor="middle"))
+        d.add(Line(x, y - 19, x + w, y - 19, strokeColor=PRIMARY, strokeWidth=0.6))
+        for i, m in enumerate(methods):
+            d.add(String(x + 4, y - 27 - i * 7.5, "+ " + m, fontName="Helvetica", fontSize=6.3,
+                         fillColor=INK, textAnchor="start"))
+        return h
+
+    def impl(x, y, w, name, c):
+        d.add(Rect(x, y - 9, w, 9, fillColor=colors.white, strokeColor=c, strokeWidth=0.8, rx=2, ry=2))
+        d.add(String(x + w / 2, y - 6.5, name, fontName="Helvetica", fontSize=6.5,
+                     fillColor=INK, textAnchor="middle"))
+
+    colw = W * 0.31
+    # 3 interfaces
+    h1 = iface(0, H - 4, colw, "PaymentProvider",
+               ["createPayment()", "refundPayment()", "getCapabilities()", "verifyWebhook()"])
+    iface(W * 0.345, H - 4, colw, "SubscriptionProvider",
+          ["createSubscription", "Checkout()", "getCapabilities()"])
+    iface(W - colw, H - 4, colw, "PayoutExecutor",
+          ["execute()", "supports()", "getCapabilities()"])
+    # impl under each
+    ys = H - 4 - h1 - 8
+    for i, m in enumerate(["StripePaymentProvider", "PayzonePaymentProvider", "CmiPaymentProvider", "PayTabsPaymentProvider"]):
+        impl(0, ys - i * 11, colw, m, SKY)
+        _arrow(d, colw / 2, ys - i * 11, colw / 2, ys - i * 11 + 3, dashed=True, w=0.6)
+    for i, m in enumerate(["StripeBillingSubscription", "PayzoneRecurrent*"]):
+        impl(W * 0.345, ys - i * 11, colw, m, WARN)
+    for i, m in enumerate(["StripeConnectExecutor", "SepaPayoutExecutor", "OpenBankingExecutor", "ManualPayoutExecutor"]):
+        impl(W - colw, ys - i * 11, colw, m, GREEN)
+    d.add(String(0, 2, "Registries : PaymentProviderRegistry / SubscriptionProviderRegistry / PayoutExecutorRegistry resolvent l'implementation par capacite + devise + pays.",
+                 fontName="Helvetica-Oblique", fontSize=6.6, fillColor=MUTED))
+    return d
+
+
+def fig(drawing, caption):
+    return KeepTogether([drawing, Paragraph(caption, CAP)])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Contenu
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 
 story = []
 
 # ── Couverture ────────────────────────────────────────────────────────────────
-story.append(Spacer(1, 30 * mm))
-story.append(Paragraph("Système de paiement<br/>multi-fournisseurs", TIT))
-story.append(Spacer(1, 6 * mm))
-story.append(Paragraph("Documentation technique &amp; métier — présentation aux partenaires "
-                       "bancaires et prestataires de paiement (PSP)", SUB))
-story.append(Spacer(1, 10 * mm))
+story.append(Spacer(1, 24 * mm))
+story.append(Paragraph("Paiement multi-fournisseurs", TIT))
+story.append(Paragraph("switch &amp; parallèle", ParagraphStyle("t2", parent=TIT, textColor=ACCENT)))
+story.append(Spacer(1, 5 * mm))
+story.append(Paragraph("Dossier complet — décision d'architecture, système en fonctionnement, "
+                       "exigences &amp; démarchage des prestataires de paiement (PSP)", SUB))
+story.append(Spacer(1, 9 * mm))
 cover = table([
     hcells("Document", "Détail"),
-    cells("Objet", "Comprendre le système de paiement Baitly et évaluer l'adéquation d'un PSP "
-                   "à nos exigences (cahier des exigences + grille d'évaluation en sections 5 et 6)."),
-    cells("Public", "Équipes métier Baitly, direction, partenaires bancaires, PSP candidats."),
-    cells("Version", "1.0 — 13 juillet 2026 (après refonte multi-fournisseurs, vagues 1 à 5)."),
-    cells("Références internes", "ADR paiement multi-provider · PAIEMENT-SYSTEME-MULTI-FOURNISSEURS.md · "
-                                 "PAIEMENT-MODES-INTEGRATION-EMBEDDED.md"),
+    cells("Objet", "Comprendre l'architecture de paiement multi-fournisseurs de Baitly, la présenter "
+                   "aux banques / PSP, et piloter leur démarchage + certification par pays."),
+    cells("Fusionne", "ADR « paiement multi-fournisseurs (switch + parallèle) » + documentation système "
+                      "technique &amp; métier + runbook de certification PSP + démarchage par pays."),
+    cells("Public", "Direction Baitly, équipes métier, partenaires bancaires, PSP candidats."),
+    cells("Version", "2.0 — 14 juillet 2026 (architecture multi-fournisseurs achevée côté encaissement)."),
     cells("Confidentialité", "Document interne — diffusion externe uniquement sous NDA."),
-], [32 * mm, USABLE_W - 32 * mm])
+], [30 * mm, USABLE_W - 30 * mm])
 story.append(cover)
+story.append(Spacer(1, 6 * mm))
+story.append(Paragraph("<b>Comment lire ce dossier.</b> La partie I fixe la décision d'architecture "
+                       "(le « pourquoi » et le « quoi »). La partie II montre le système en marche "
+                       "(schémas, séquence, états). La partie III est l'outil de terrain pour démarcher "
+                       "et certifier les PSP (exigences, plan par pays, grille). La partie IV regroupe "
+                       "les annexes (UML, glossaire).", BODY))
 story.append(PageBreak())
 
 # ── Sommaire ──────────────────────────────────────────────────────────────────
 story.append(Paragraph("Sommaire", H1))
-for i, (num, titre) in enumerate([
-    ("1", "Contexte et enjeux métier"),
-    ("2", "Ce que le système sait faire"),
-    ("3", "Architecture en clair"),
-    ("4", "Parcours d'un paiement, de bout en bout"),
-    ("5", "Cahier des exigences pour un PSP"),
-    ("6", "Grille d'évaluation PSP (à remplir en rendez-vous)"),
-    ("7", "Processus d'intégration et certification"),
-    ("8", "Sécurité, conformité et règles d'or « money-safety »"),
-    ("9", "Questions types à poser au PSP"),
-    ("10", "Glossaire"),
-]):
-    story.append(Paragraph(f"<b>{num}.</b>  {titre}", BODY))
-story.append(Spacer(1, 4 * mm))
-story.append(Paragraph(
-    "<b>Comment utiliser ce document :</b> les sections 1 à 4 donnent la compréhension du système "
-    "(15 minutes de lecture). Les sections 5 et 6 sont l'outil de travail en rendez-vous : le cahier "
-    "des exigences dit précisément ce qu'un PSP doit savoir faire, la grille permet de noter ses "
-    "réponses. Les sections 7 à 9 préparent l'intégration.", BODY))
-
-# ── 1. Contexte ───────────────────────────────────────────────────────────────
-story.append(Paragraph("1. Contexte et enjeux métier", H1))
-story.append(Paragraph(
-    "Baitly est une plateforme SaaS de gestion locative courte durée (PMS) : elle permet à des "
-    "conciergeries et des hôtes de gérer logements, réservations, ménage, facturation et encaissements. "
-    "Chaque client de Baitly est une <b>organisation</b> indépendante (multi-tenant) : les paiements "
-    "de l'un ne se mélangent jamais avec ceux de l'autre, et chaque organisation dispose de "
-    "<b>ses propres comptes</b> chez les fournisseurs de paiement.", BODY))
-story.append(Paragraph(
-    "Le lancement commercial est <b>Maroc d'abord</b>. Or Stripe — notre fournisseur historique — "
-    "n'opère pas au Maroc. Le système de paiement a donc été refondu pour être "
-    "<b>multi-fournisseurs</b> :", BODY))
-for txt in [
-    "faire coexister <b>Stripe</b> (international : EUR, USD…) et des <b>PSP régionaux</b> "
-    "(PayZone / CMI au Maroc, PayTabs en Arabie Saoudite) <b>en parallèle</b> — une même organisation "
-    "peut encaisser des euros via Stripe et des dirhams via un PSP marocain ;",
-    "<b>choisir automatiquement</b> le bon fournisseur pour chaque paiement, selon la devise, le pays, "
-    "la configuration de l'organisation et les fonctionnalités requises ;",
-    "pouvoir <b>ajouter un nouveau PSP sans réécrire la plateforme</b> : l'intégration d'un fournisseur "
-    "est un module isolé (« adaptateur »), le reste du système ne change pas.",
-]:
-    story.append(Paragraph("•  " + txt, BULLET))
-story.append(Paragraph(
-    "<b>Ce que cela signifie pour un PSP partenaire :</b> l'intégration est encadrée par un contrat "
-    "technique précis (section 5). Si le PSP répond aux exigences obligatoires, l'intégration est "
-    "rapide et sans dérogation d'architecture ; les exigences optionnelles ouvrent des cas d'usage "
-    "supplémentaires (caution, abonnement, reversements).", BODY))
-
-# ── 2. Ce que le systeme sait faire ──────────────────────────────────────────
-story.append(Paragraph("2. Ce que le système sait faire", H1))
-story.append(Paragraph(
-    "Le système couvre quatre besoins d'argent distincts. Chacun est isolé derrière une "
-    "interface (« port ») à laquelle plusieurs fournisseurs peuvent se brancher.", BODY))
-story.append(table([
-    hcells("Besoin métier", "Exemples de flux Baitly", "Fournisseurs branchés aujourd'hui"),
-    cells("<b>Encaisser un paiement ponctuel</b>",
-          "Séjour réservé sur le moteur de réservation, solde d'un acompte, lien de paiement d'une "
-          "réservation, interventions (ménage/maintenance), services additionnels (upsells), "
-          "boutique matériel IoT, recharge de crédits IA",
-          "Stripe · PayZone · CMI · PayTabs"),
-    cells("<b>Abonner un client</b> (SaaS récurrent)",
-          "Inscription d'une nouvelle organisation (mensuel / annuel / 2 ans, code promo), "
-          "montée en gamme de forfait",
-          "Stripe Billing (PayZone récurrent prévu pour le Maroc)"),
-    cells("<b>Reverser de l'argent</b>",
-          "Reversement mensuel au propriétaire, versement au personnel de ménage après mission",
-          "Stripe Connect · virement SEPA · Wise · Open Banking · <b>Manuel</b> "
-          "(= versé hors plateforme mais tracé — le rail Maroc au lancement)"),
-    cells("<b>Poser une caution</b>",
-          "Empreinte bancaire avec capture différée en cas de dégâts",
-          "Stripe uniquement (décision assumée « D3 » — voir section 5, exigence E3.1)"),
-], [34 * mm, USABLE_W - 34 * mm - 52 * mm, 52 * mm]))
-story.append(Spacer(1, 2 * mm))
-story.append(Paragraph(
-    "Chaque paiement, quel que soit le fournisseur, est tracé dans un <b>registre interne unique</b> "
-    "(le « ledger ») : une ligne par tentative, avec notre référence, la référence du fournisseur, "
-    "le montant, la devise et l'objet payé. C'est la base de la comptabilité, de la réconciliation "
-    "et des reversements.", BODY))
-
-# ── 3. Architecture en clair ─────────────────────────────────────────────────
-story.append(Paragraph("3. Architecture en clair", H1))
-story.append(архi_diagram())
-story.append(Spacer(1, 3 * mm))
-story.append(Paragraph("Trois principes structurants", H2))
-story.append(Paragraph(
-    "<b>1. Un adaptateur par fournisseur.</b> Tout le dialogue avec un PSP (création du paiement, "
-    "remboursement, vérification des notifications) vit dans un module dédié. Le reste de la "
-    "plateforme ignore quel fournisseur encaisse. Ajouter un PSP = écrire cet adaptateur, rien d'autre.", BODY))
-story.append(Paragraph(
-    "<b>2. Des capacités déclarées, jamais de câblage en dur.</b> Chaque adaptateur déclare ce que "
-    "son fournisseur sait faire (payer, rembourser, pré-autoriser, encaisser en récurrent, collecter "
-    "une adresse de livraison…). Quand un flux a besoin d'une fonctionnalité, l'orchestrateur ne "
-    "choisit que parmi les fournisseurs <b>capables</b>. Conséquence : dès qu'un PSP acquiert une "
-    "capacité, il devient éligible <b>sans modification des flux métier</b>.", BODY))
-story.append(Paragraph(
-    "<b>3. Une confirmation unique pour tous.</b> Le fournisseur notifie le paiement par un message "
-    "signé (webhook). Ce message met à jour le ledger, qui publie un événement interne ; un "
-    "« réconciliateur » unique passe alors l'objet métier (réservation, intervention…) au statut "
-    "PAYÉ — de façon <b>idempotente</b> (une notification livrée deux fois ne crédite jamais deux fois).", BODY))
-story.append(Paragraph("Règles de choix du fournisseur (dans l'ordre)", H2))
-story.append(table([
-    hcells("Ordre", "Règle", "Exemple"),
-    cells("1", "Capacités requises par le flux : les fournisseurs incapables sont écartés",
-          "La boutique exige la collecte d'adresse de livraison → seuls les PSP qui la proposent restent en lice"),
-    cells("2", "Devise régionale forte", "MAD → CMI puis PayZone · SAR → PayTabs (s'ils sont activés pour l'organisation)"),
-    cells("3", "Pays de l'organisation", "Premier fournisseur activé pour le pays"),
-    cells("4", "Repli Stripe", "Couvre toutes les capacités, toutes devises internationales"),
-], [12 * mm, 72 * mm, USABLE_W - 12 * mm - 72 * mm], align_center_cols=(0,)))
-
-# ── 4. Parcours d'un paiement ────────────────────────────────────────────────
-story.append(Paragraph("4. Parcours d'un paiement, de bout en bout", H1))
-story.append(Paragraph(
-    "Exemple concret : un voyageur règle le solde de son acompte pour un séjour à Marrakech "
-    "(réservation en dirhams, organisation ayant activé un PSP marocain).", BODY))
-story.append(table([
-    hcells("Étape", "Ce qui se passe", "Garantie"),
-    cells("1. Demande de paiement",
-          "Le voyageur clique « payer le solde ». Baitly <b>recalcule le montant côté serveur</b> "
-          "(jamais le montant envoyé par le navigateur).",
-          "Anti-fraude : montant inviolable"),
-    cells("2. Choix du fournisseur",
-          "Devise MAD + PSP marocain activé → le PSP local est retenu. Une ligne est créée au ledger "
-          "(notre référence unique + l'objet payé).",
-          "Traçabilité complète"),
-    cells("3. Paiement",
-          "Le voyageur est dirigé vers la page de paiement du fournisseur (redirection, iframe ou "
-          "module intégré selon le fournisseur). Baitly ne voit <b>jamais</b> le numéro de carte.",
-          "Conformité PCI (SAQ-A)"),
-    cells("4. Notification",
-          "Le fournisseur envoie une notification serveur-à-serveur <b>signée</b> (succès ou échec), "
-          "contenant notre référence. Baitly vérifie la signature puis met le ledger à jour.",
-          "Authenticité vérifiée"),
-    cells("5. Réconciliation",
-          "Un événement interne déclenche la mise à jour métier : réservation soldée, facture émise, "
-          "répartition comptable, notifications. Rejouable sans double effet.",
-          "Idempotence de bout en bout"),
-], [30 * mm, USABLE_W - 30 * mm - 38 * mm, 38 * mm]))
-story.append(Paragraph(
-    "En cas de notification perdue, un <b>filet de secours</b> interroge le statut du paiement "
-    "directement par API chez le fournisseur — d'où l'exigence E1.9.", BODY))
-
-# ── 5. Cahier des exigences ──────────────────────────────────────────────────
+toc = [
+    ("I", "Décision d'architecture (switch & parallèle)", [
+        "1. Contexte & enjeux métier", "2. Le problème (les gaps)",
+        "3. Décisions de conception (D1–D4)", "4. Architecture cible — ports & adaptateurs",
+        "5. Plan de migration (vagues V1–V6) & statut", "6. Invariants « money-safety »"]),
+    ("II", "Le système en fonctionnement", [
+        "7. Quatre besoins, trois ports", "8. Chaîne d'exécution & réconciliation",
+        "9. Parcours d'un paiement (séquence)", "10. Cycle de vie d'une transaction (états)",
+        "11. Résolution du fournisseur & matrice des capacités", "12. Flux métier & sourceTypes"]),
+    ("III", "Exigences PSP & démarchage", [
+        "13. Cahier des exigences (obligatoire / important / optionnel)",
+        "14. Reversements mensuels & mandat SEPA (exigence)",
+        "15. Démarchage des PSP par pays d'action",
+        "16. Plan de certification sandbox par PSP", "17. Grille d'évaluation (à remplir)",
+        "18. Processus d'intégration"]),
+    ("IV", "Annexes", ["19. UML des composants", "20. Glossaire"]),
+]
+for num, title, items in toc:
+    story.append(Paragraph(f"<b>Partie {num} — {title}</b>", ParagraphStyle("tp", parent=BODY, textColor=PRIMARY, spaceBefore=4)))
+    for it in items:
+        story.append(Paragraph("&nbsp;&nbsp;&nbsp;" + it, ParagraphStyle("ti", parent=BODY, spaceAfter=1)))
 story.append(PageBreak())
-story.append(Paragraph("5. Cahier des exigences pour un PSP", H1))
-story.append(Paragraph(
-    "Cette section liste <b>tout ce que notre système attend d'un fournisseur de paiement</b>, en "
-    "trois niveaux : <font color='#C97A7A'><b>OBLIGATOIRE</b></font> (éliminatoire — sans cela, "
-    "l'intégration est impossible), <font color='#D4A574'><b>IMPORTANTE</b></font> (fortement "
-    "souhaitée — son absence dégrade l'expérience ou reporte des cas d'usage), "
-    "<font color='#4A9B8E'><b>OPTIONNELLE</b></font> (différenciante — ouvre des fonctionnalités "
-    "supplémentaires ; en son absence, un repli existe).", BODY))
 
-story.append(Paragraph("5.1 Exigences obligatoires (éliminatoires)", H2))
-req_must = [
-    ("E1.1", "Création de paiement par API serveur-à-serveur",
-     "API REST/HTTPS : montant exact (en plus petite unité de la devise, sans arrondi silencieux), devise, "
-     "<b>notre référence marchande</b>, e-mail client, description, URLs de retour (succès / annulation). "
-     "En retour : une page de paiement hébergée par le PSP (URL de redirection)."),
-    ("E1.2", "Référence marchande de bout en bout",
-     "Notre référence de transaction (ex. « TX-a1b2c3 ») doit être attachée au paiement et "
-     "<b>restituée telle quelle</b> dans toutes les notifications et consultations. C'est la clé de "
-     "réconciliation entre le PSP et notre ledger."),
-    ("E1.3", "Notifications serveur-à-serveur signées (webhook / IPN)",
-     "Notification à chaque changement d'état (payé, refusé, erreur) avec <b>signature cryptographique "
-     "vérifiable</b> (HMAC, hash avec clé secrète…) et <b>re-livraison automatique</b> si notre serveur "
-     "ne répond pas. Les motifs d'échec doivent être distingués (refus carte vs erreur technique)."),
-    ("E1.4", "Remboursement par API",
-     "Remboursement total <b>et partiel</b> d'un paiement, par API, avec référence de remboursement restituée."),
-    ("E1.5", "Protection contre les doublons (idempotence)",
-     "Deux appels identiques de création (re-essai réseau, double clic) ne doivent pas créer deux "
-     "paiements : clé d'idempotence API, ou unicité garantie sur notre référence marchande."),
-    ("E1.6", "Environnement de test complet",
-     "Sandbox fonctionnellement identique à la production : cartes de test (succès / refus), webhooks "
-     "réels, documentation technique en libre accès. Notre certification (section 7) s'y déroule "
-     "intégralement avant toute mise en production."),
-    ("E1.7", "Sécurité et conformité",
-     "PSP certifié <b>PCI-DSS</b> ; page de paiement hébergée chez le PSP (Baitly reste en périmètre "
-     "SAQ-A : aucune donnée carte ne transite par nos serveurs) ; <b>3-D Secure</b> ; TLS partout ; "
-     "identifiants d'API <b>par marchand</b> (chaque organisation Baitly = un marchand distinct, "
-     "clés stockées chiffrées chez nous)."),
-    ("E1.8", "Devise locale",
-     "Pour le Maroc : encaissement en <b>MAD</b>, cartes locales (CMI) et internationales (Visa / "
-     "Mastercard). Montants au centime exact."),
-    ("E1.9", "Consultation du statut par API",
-     "Pouvoir interroger l'état d'un paiement à partir de notre référence (filet de secours si une "
-     "notification se perd)."),
+# ══════════════════════════════════════════════════════════════════════════════
+# PARTIE I
+# ══════════════════════════════════════════════════════════════════════════════
+story.append(part_banner("I", "Décision d'architecture — switch & parallèle"))
+story.append(Spacer(1, 4 * mm))
+
+story.append(Paragraph("1. Contexte & enjeux métier", H1))
+story.append(Paragraph("Baitly encaisse et reverse de l'argent sur <b>plusieurs juridictions</b>, avec des "
+                       "fournisseurs différents, <b>en parallèle</b> et <b>switchables</b> sans réécrire les "
+                       "flux métier. Le lancement est <b>Maroc d'abord</b> — or Stripe n'y opère pas. "
+                       "L'architecture doit donc faire coexister Stripe (international) et des PSP régionaux "
+                       "(PayZone/CMI au Maroc, PayTabs en Arabie Saoudite) et choisir le bon fournisseur "
+                       "selon l'organisation, le pays, la devise et le type de flux.", BODY))
+story.append(Paragraph("Constat d'audit : <b>la fondation existait déjà et était bien conçue</b> (ports & "
+                       "adaptateurs, orchestrateur, config par organisation). La décision ne crée pas "
+                       "l'architecture — elle la <b>formalise, la complète et la généralise</b> à tous les flux.", BODY))
+
+story.append(Paragraph("2. Le problème (les gaps corrigés)", H1))
+story.append(table([
+    hcells("#", "Gap identifié", "Résolution"),
+    [Paragraph("1", CELL), Paragraph("~41 fichiers appelaient Stripe <b>en direct</b> — le switch ne valait que pour les flux orchestrés.", CELL), ok("migré")],
+    [Paragraph("2", CELL), Paragraph("Flux non couverts : caution/pré-autorisation, abonnement récurrent, checkout sessions.", CELL), ok("couvert")],
+    [Paragraph("3", CELL), Paragraph("Pas de modèle de <b>capacités</b> : le resolver pouvait choisir un fournisseur incapable du flux.", CELL), ok("capabilities")],
+    [Paragraph("4", CELL), Paragraph("Adaptateurs régionaux non certifiés (champs API « à confirmer à l'onboarding »).", CELL), Paragraph("runbook §16", ParagraphStyle("w", parent=CELLB, textColor=WARN, alignment=TA_CENTER))],
+    [Paragraph("5", CELL), Paragraph("<b>Entorse money-safety</b> : appel HTTP externe DANS une transaction DB.", CELL), ok("corrigé")],
+], [8 * mm, USABLE_W - 8 * mm - 24 * mm, 24 * mm], align_center_cols=(0, 2)))
+
+story.append(Paragraph("3. Décisions de conception (D1–D4)", H1))
+story.append(table([
+    hcells("#", "Décision", "Choix retenu"),
+    cells("D1", "Abonnement SaaS récurrent", "Port dédié <b>SubscriptionProvider</b> (Stripe Billing / PayZone récurrent), séparé du paiement one-shot — la sémantique récurrente diffère trop."),
+    cells("D2", "Capacités des providers", "<b>Capacités déclarées</b> (PAY / PREAUTH / REFUND / PAYOUT / RECURRING / CUSTOMER / EMBEDDED / SHIPPING) + resolver capability-aware ; plus de UnsupportedOperationException dans le chemin de résolution."),
+    cells("D3", "Caution au Maroc", "<b>Capability-gated</b> : pré-autorisation via Stripe uniquement ; au lancement MA, caution manuelle / empreinte (pas de pré-auth PSP local)."),
+    cells("D4", "Ordre de migration", "<b>Strangler, non-breaking</b>, par vagues (§5) — tests de caractérisation avant bascule."),
+], [8 * mm, 42 * mm, USABLE_W - 8 * mm - 42 * mm], align_center_cols=(0,)))
+
+story.append(PageBreak())
+story.append(Paragraph("4. Architecture cible — ports & adaptateurs", H1))
+story.append(Paragraph("Tous les flux métier passent par l'orchestration ; <b>plus aucun appel Stripe direct "
+                       "hors des adaptateurs</b>. Trois ports isolent le métier des fournisseurs ; chaque "
+                       "adaptateur déclare ses capacités ; la configuration par organisation active plusieurs "
+                       "fournisseurs en parallèle.", BODY))
+story.append(fig(diagram_ports(),
+                 "Figure 1 — Architecture hexagonale : un orchestrateur central, trois ports (entrant, "
+                 "abonnement, sortant), des adaptateurs interchangeables. * = à venir."))
+
+story.append(Paragraph("5. Plan de migration (vagues V1–V6) & statut", H1))
+story.append(table([
+    hcells("Vague", "Contenu", "Sortie", "Statut"),
+    [Paragraph("<b>V1</b> Fondations", CELL), Paragraph("Capabilities + resolver + fix transactionnel", CELL), Paragraph("Socle prêt, zéro régression", CELL), ok()],
+    [Paragraph("<b>V2</b> Encaissement", CELL), Paragraph("Booking checkout, cautions, balance/deferred", CELL), Paragraph("Paiements voyageur multi-provider", CELL), ok()],
+    [Paragraph("<b>V3</b> Abonnement", CELL), Paragraph("SubscriptionProvider (Stripe Billing)", CELL), Paragraph("Inscription + upgrade multi-pays", CELL), ok()],
+    [Paragraph("<b>V4</b> Payouts", CELL), Paragraph("Owner + housekeeper via PayoutExecutor", CELL), Paragraph("Payout multi-rail (dont Manuel MA)", CELL), ok()],
+    [Paragraph("<b>V5</b> Périphérie", CELL), Paragraph("Shop, upsells, crédits IA, mobile", CELL), Paragraph("Plus aucun Stripe direct hors adaptateurs", CELL), ok()],
+    [Paragraph("<b>V6</b> Certification", CELL), Paragraph("Sandbox PayZone/CMI/PayTabs + E2E", CELL), Paragraph("Adaptateurs régionaux prouvés", CELL), Paragraph("code prêt<br/>sandbox §16", ParagraphStyle("w", parent=CELL, textColor=WARN, alignment=TA_CENTER))],
+], [26 * mm, 52 * mm, 52 * mm, USABLE_W - 26 * mm - 104 * mm], align_center_cols=(3,)))
+story.append(Paragraph("<b>Méthode par vague</b> : tests de caractérisation → bascule derrière l'orchestration "
+                       "→ vérification E2E → suppression du code Stripe direct devenu mort (preuve avant "
+                       "suppression). Résultat : <b>plus aucun Session.create hors de la couche adaptateur</b>.", BODY))
+
+story.append(Paragraph("6. Invariants « money-safety » (préservés)", H1))
+for t in [
+    "<b>Le serveur fixe le montant</b> — recalculé depuis l'entité métier ; le montant client n'est qu'un cross-check.",
+    "<b>Aucun appel HTTP externe dans une transaction DB</b> — tx courte (persist PENDING) → appel fournisseur hors tx (idempotent) → tx courte (persist résultat) ; effets externes post-commit.",
+    "<b>Idempotence de bout en bout</b> — clé d'idempotence à la création ; transitions de statut en UPDATE conditionnel (CAS) → pas de double-crédit sur re-livraison webhook.",
+    "<b>Conversion monétaire sûre</b> — arrondi HALF_UP, jamais de troncature ; attention aux devises à 3 décimales / sans sous-unité (PSP régionaux).",
+    "<b>Pas de catch(Exception) avaleur</b> — un échec produit un statut de réconciliation explicite + une alerte admin.",
+    "<b>Webhooks signés</b> — signature vérifiée avant tout changement d'état ; secrets par organisation, chiffrés au repos.",
+]:
+    story.append(Paragraph("•&nbsp; " + t, BULLET))
+story.append(PageBreak())
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PARTIE II
+# ══════════════════════════════════════════════════════════════════════════════
+story.append(part_banner("II", "Le système en fonctionnement"))
+story.append(Spacer(1, 4 * mm))
+
+story.append(Paragraph("7. Quatre besoins, trois ports", H1))
+story.append(table([
+    hcells("Besoin métier", "Exemples de flux", "Port", "Fournisseurs"),
+    cells("Encaisser un paiement ponctuel", "Séjour, solde, différé, interventions, upsells, boutique, crédits IA", "PaymentProvider", "Stripe · PayZone · CMI · PayTabs"),
+    cells("Abonner un client (SaaS)", "Inscription, montée en gamme de forfait", "SubscriptionProvider", "Stripe Billing (PayZone récurrent à venir)"),
+    cells("Reverser de l'argent", "Reversement mensuel propriétaire, versement ménage", "PayoutExecutor", "StripeConnect · SEPA · Wise · OpenBanking · Manuel"),
+    cells("Poser une caution", "Empreinte + capture différée", "— (Stripe, D3)", "Stripe (manuel au MA)"),
+], [40 * mm, USABLE_W - 40 * mm - 34 * mm - 44 * mm, 34 * mm, 44 * mm]))
+
+story.append(Paragraph("8. Chaîne d'exécution & réconciliation", H1))
+story.append(fig(diagram_orchestration(),
+                 "Figure 2 — De l'appel métier au marquage « PAYÉ » : l'orchestrateur résout et séquence, "
+                 "le fournisseur encaisse, la notification signée alimente le ledger, un consumer unique "
+                 "réconcilie l'entité — de façon provider-agnostique."))
+
+story.append(PageBreak())
+story.append(Paragraph("9. Parcours d'un paiement (séquence)", H1))
+story.append(fig(diagram_sequence(),
+                 "Figure 3 — Diagramme de séquence d'un encaissement. Le montant est recalculé serveur ; "
+                 "l'appel au PSP se fait hors transaction ; la confirmation arrive par webhook signé et "
+                 "déclenche une réconciliation idempotente."))
+
+story.append(Paragraph("10. Cycle de vie d'une transaction (états)", H1))
+story.append(fig(diagram_states(),
+                 "Figure 4 — Machine à états d'une PaymentTransaction au ledger. Les transitions sont des "
+                 "UPDATE conditionnels (CAS)."))
+
+story.append(Paragraph("11. Résolution du fournisseur & matrice des capacités", H1))
+story.append(fig(diagram_resolution(),
+                 "Figure 5 — Ordre de résolution du fournisseur. Une fonctionnalité différenciante est "
+                 "toujours exprimée en capacité (jamais un fournisseur épinglé en dur)."))
+story.append(Paragraph("<b>Matrice des capacités</b> (déclarées par chaque adaptateur ; "
+                       "<font color='#4A9B8E'><b>&bull;</b></font> = supporté) :", BODY))
+story.append(table([
+    hcells("Capacité", "Stripe", "PayZone", "CMI", "PayTabs", "Signification"),
+    [Paragraph("PAY", CELL), yes(), yes(), yes(), yes(), Paragraph("encaisser un paiement one-shot", CELL)],
+    [Paragraph("REFUND", CELL), yes(), yes(), no(), yes(), Paragraph("rembourser via API (CMI : manuel¹)", CELL)],
+    [Paragraph("PREAUTH", CELL), yes(), no(), no(), no(), Paragraph("caution (pré-autorisation)", CELL)],
+    [Paragraph("CUSTOMER", CELL), yes(), no(), no(), no(), Paragraph("carte enregistrée (off-session)", CELL)],
+    [Paragraph("PAYOUT", CELL), yes(), no(), no(), no(), Paragraph("reversement via le fournisseur", CELL)],
+    [Paragraph("EMBEDDED_CHECKOUT", CELL), yes(), no(), no(), no(), Paragraph("paiement inline (clientSecret)", CELL)],
+    [Paragraph("SHIPPING_ADDRESS", CELL), yes(), no(), no(), no(), Paragraph("collecte d'adresse de livraison", CELL)],
+    [Paragraph("RECURRING", CELL), yes(), soon(), no(), no(), Paragraph("abonnement récurrent", CELL)],
+], [40 * mm, 15 * mm, 17 * mm, 12 * mm, 16 * mm, USABLE_W - 40 * mm - 60 * mm],
+    align_center_cols=(1, 2, 3, 4)))
+story.append(Paragraph("¹ CMI ne rembourse pas via API (back-office manuel) : la capacité REFUND n'est pas "
+                       "déclarée (honnêteté des capacités).", SMALL))
+
+story.append(PageBreak())
+story.append(Paragraph("12. Flux métier & sourceTypes", H1))
+story.append(Paragraph("Chaque flux est tracé au ledger par un <b>sourceType</b> + <b>sourceId</b> (clé de "
+                       "réconciliation neutre, indépendante du fournisseur).", BODY))
+story.append(table([
+    hcells("Flux", "sourceType", "Mode", "Réconciliation"),
+    cells("Différé groupé (host/logement)", "DEFERRED_INTERVENTIONS_*", "hébergé", "consumer"),
+    cells("Lien de paiement réservation", "RESERVATION", "hébergé", "consumer"),
+    cells("Checkout booking engine", "RESERVATION", "hébergé", "consumer"),
+    cells("Solde d'acompte", "BOOKING_BALANCE", "hébergé", "consumer"),
+    cells("Checkout séjour embarqué", "BOOKING_CHECKOUT", "embarqué", "webhook (hold/acompte/caution)"),
+    cells("Intervention unitaire", "INTERVENTION", "hébergé + embarqué", "webhook (par session)"),
+    cells("Demande de service", "SERVICE_REQUEST", "hébergé + embarqué", "consumer"),
+    cells("Upsell livret / booking", "UPSELL", "embarqué / hébergé", "consumer"),
+    cells("Crédits IA", "AI_CREDIT_TOPUP", "hébergé", "consumer"),
+    cells("Boutique matériel IoT", "HARDWARE_ORDER", "hébergé", "webhook (adresse livraison)"),
+    cells("Inscription / upgrade", "(port abonnement)", "embarqué / hébergé", "webhook"),
+], [50 * mm, 42 * mm, 30 * mm, USABLE_W - 50 * mm - 72 * mm]))
+story.append(PageBreak())
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PARTIE III
+# ══════════════════════════════════════════════════════════════════════════════
+story.append(part_banner("III", "Exigences PSP & démarchage"))
+story.append(Spacer(1, 4 * mm))
+
+story.append(Paragraph("13. Cahier des exigences pour un PSP", H1))
+story.append(Paragraph("Trois niveaux : <font color='#C97A7A'><b>OBLIGATOIRE</b></font> (éliminatoire), "
+                       "<font color='#D4A574'><b>IMPORTANTE</b></font> (fortement souhaitée), "
+                       "<font color='#4A9B8E'><b>OPTIONNELLE</b></font> (différenciante, avec repli).", BODY))
+story.append(Paragraph("13.1 Obligatoires (éliminatoires)", H2))
+must = [
+    ("E1.1", "Création de paiement par API serveur-à-serveur (montant exact, devise, notre référence, URLs de retour → page hébergée)."),
+    ("E1.2", "Référence marchande restituée telle quelle dans toutes les notifications et consultations (clé de réconciliation)."),
+    ("E1.3", "Webhooks / IPN signés (signature vérifiable) avec re-livraison automatique et motifs d'échec distincts."),
+    ("E1.4", "Remboursement total et partiel par API, avec référence de remboursement."),
+    ("E1.5", "Idempotence : deux créations identiques ne créent pas deux paiements."),
+    ("E1.6", "Environnement de test complet (sandbox iso-prod, cartes de test, webhooks réels, doc en libre accès)."),
+    ("E1.7", "Sécurité : PCI-DSS, page hébergée (Baitly reste SAQ-A), 3-D Secure, TLS, clés d'API par marchand."),
+    ("E1.8", "Devise locale au centime exact (MAD pour le Maroc ; cartes locales + internationales)."),
+    ("E1.9", "Consultation du statut par API (filet de secours si une notification se perd)."),
 ]
-rows = [hcells("Réf.", "Exigence", "Détail attendu")]
-for ref, t, dtl in req_must:
-    rows.append([Paragraph(f"<b>{ref}</b>", CELL), Paragraph(f"<b>{t}</b>", CELL), Paragraph(dtl, CELL)])
-story.append(table(rows, [11 * mm, 44 * mm, USABLE_W - 11 * mm - 44 * mm]))
+rows = [hcells("Réf.", "Exigence")]
+for r, t in must:
+    rows.append([Paragraph(f"<b>{r}</b>", CELL), Paragraph(t, CELL)])
+story.append(table(rows, [12 * mm, USABLE_W - 12 * mm]))
 
-story.append(Paragraph("5.2 Exigences importantes", H2))
-req_should = [
-    ("E2.1", "Paiement intégrable dans notre tunnel (iframe)",
-     "Page de paiement affichable dans une iframe sur notre site (en-têtes l'autorisant), avec "
-     "signal de fin de paiement (postMessage ou équivalent). À défaut, la redirection pleine page "
-     "(E1.1) reste utilisée — expérience moins fluide."),
-    ("E2.2", "Paiement récurrent / abonnement",
-     "Prélèvement récurrent (mensuel / annuel) initié par API, avec gestion du cycle de vie "
-     "(échec de prélèvement, annulation). Nécessaire pour vendre l'abonnement Baitly en dirhams ; "
-     "à défaut, l'abonnement des clients marocains reste sur circuit international."),
-    ("E2.3", "Rapports de règlement et réconciliation",
-     "Relevés des règlements (settlement) exportables (API ou fichiers), délais de versement "
-     "documentés, frais détaillés par transaction."),
-    ("E2.4", "Gestion des litiges (chargebacks)",
-     "Notification des litiges/impayés, procédure de contestation documentée, idéalement par API."),
+story.append(Paragraph("13.2 Importantes", H2))
+should = [
+    ("E2.1", "Paiement intégrable en iframe dans notre tunnel (+ signal de fin) ; à défaut, redirection pleine page."),
+    ("E2.2", "Paiement récurrent / abonnement par API (nécessaire pour vendre l'abonnement Baitly en dirhams)."),
+    ("E2.3", "Rapports de règlement (settlement) exportables, délais de versement documentés, frais détaillés."),
+    ("E2.4", "Gestion des litiges (chargebacks) : notification + procédure de contestation, idéalement par API."),
+    ("E2.5", "<b>Mandat SEPA / virement bancaire pour les payouts</b> — voir §14 (exigence dédiée)."),
 ]
-rows = [hcells("Réf.", "Exigence", "Détail attendu")]
-for ref, t, dtl in req_should:
-    rows.append([Paragraph(f"<b>{ref}</b>", CELL), Paragraph(f"<b>{t}</b>", CELL), Paragraph(dtl, CELL)])
-story.append(table(rows, [11 * mm, 44 * mm, USABLE_W - 11 * mm - 44 * mm]))
+rows = [hcells("Réf.", "Exigence")]
+for r, t in should:
+    rows.append([Paragraph(f"<b>{r}</b>", CELL), Paragraph(t, CELL)])
+story.append(table(rows, [12 * mm, USABLE_W - 12 * mm]))
 
-story.append(Paragraph("5.3 Exigences optionnelles (différenciantes)", H2))
-story.append(Paragraph(
-    "Chacune correspond à une « capacité » de notre système : si le PSP la propose, elle est activée "
-    "par simple déclaration dans son adaptateur ; sinon un repli existe.", BODY))
-req_nice = [
-    ("E3.1", "Pré-autorisation + capture différée", "Caution / dépôt de garantie sur empreinte bancaire",
-     "Caution gérée via Stripe, ou en manuel (empreinte papier) au Maroc"),
-    ("E3.2", "Carte enregistrée (vault, off-session)", "Prélèvement ultérieur sans re-saisie (caution après séjour)",
-     "Idem E3.1"),
-    ("E3.3", "Collecte d'adresse de livraison", "Vente de matériel physique (boutique IoT)",
-     "Boutique servie par Stripe"),
-    ("E3.4", "Module de paiement embarqué", "Paiement inline dans nos pages (équivalent « clientSecret »)",
-     "Redirection ou iframe (E2.1)"),
-    ("E3.5", "Reversements sortants (payouts)", "Verser propriétaires / personnel via le PSP",
-     "Rails existants : SEPA, Wise, Open Banking, Manuel tracé"),
-    ("E3.6", "Multi-devises au-delà de la devise locale", "Encaisser EUR/USD via le même PSP",
-     "Stripe assure l'international"),
+story.append(Paragraph("13.3 Optionnelles (différenciantes, avec repli)", H2))
+nice = [
+    ("E3.1", "Pré-autorisation + capture différée (caution)", "Stripe, ou empreinte manuelle au MA"),
+    ("E3.2", "Carte enregistrée (vault, off-session)", "idem E3.1"),
+    ("E3.3", "Collecte d'adresse de livraison (boutique)", "Stripe"),
+    ("E3.4", "Module de paiement embarqué (clientSecret)", "redirection ou iframe (E2.1)"),
+    ("E3.5", "Reversements sortants (payouts) via le PSP", "SEPA / Wise / OpenBanking / Manuel"),
+    ("E3.6", "Multi-devises au-delà de la devise locale", "Stripe pour l'international"),
 ]
-rows = [hcells("Réf.", "Fonctionnalité", "Cas d'usage Baitly", "Repli si absente")]
-for ref, t, u, f in req_nice:
-    rows.append([Paragraph(f"<b>{ref}</b>", CELL), Paragraph(f"<b>{t}</b>", CELL),
-                 Paragraph(u, CELL), Paragraph(f, CELL)])
-story.append(table(rows, [11 * mm, 46 * mm, 58 * mm, USABLE_W - 11 * mm - 46 * mm - 58 * mm]))
+rows = [hcells("Réf.", "Fonctionnalité", "Repli si absente")]
+for r, t, f in nice:
+    rows.append([Paragraph(f"<b>{r}</b>", CELL), Paragraph(t, CELL), Paragraph(f, CELL)])
+story.append(table(rows, [12 * mm, (USABLE_W - 12 * mm) * 0.56, (USABLE_W - 12 * mm) * 0.44]))
 
-# ── 6. Grille d'evaluation ───────────────────────────────────────────────────
-story.append(Paragraph("6. Grille d'évaluation PSP (à remplir en rendez-vous)", H1))
-story.append(Paragraph(
-    "PSP évalué : ______________________________    Date : ____________    Interlocuteur : "
-    "______________________________", BODY))
-story.append(Spacer(1, 1.5 * mm))
-grid_rows = [hcells("Réf.", "Exigence", "Criticité", "Oui", "Partiel", "Non", "Commentaires / conditions")]
-all_reqs = ([(r, t, "OBLIGATOIRE") for r, t, _ in req_must] +
-            [(r, t, "IMPORTANTE") for r, t, _ in req_should] +
-            [(r, t, "OPTIONNELLE") for r, t, _, _ in req_nice])
-for ref, t, crit in all_reqs:
-    grid_rows.append([Paragraph(f"<b>{ref}</b>", CELL), Paragraph(t, CELL), crit_cell(crit),
-                      Paragraph("", CELL), Paragraph("", CELL), Paragraph("", CELL), Paragraph("", CELL)])
-story.append(table(grid_rows,
-                   [11 * mm, 52 * mm, 22 * mm, 9 * mm, 12 * mm, 9 * mm,
-                    USABLE_W - 11 * mm - 52 * mm - 22 * mm - 30 * mm],
+story.append(PageBreak())
+story.append(Paragraph("14. Reversements mensuels & mandat SEPA (exigence)", H1))
+story.append(Paragraph("Baitly reverse chaque mois aux propriétaires/gestionnaires leur part nette. Pour "
+                       "automatiser ces virements récurrents sans re-saisie d'IBAN, le PSP (ou la banque "
+                       "partenaire) doit prendre en charge les <b>mandats SEPA</b> (zone euro) et, hors zone "
+                       "SEPA, le <b>virement bancaire adossé à une banque</b>.", BODY))
+story.append(fig(diagram_payout_sepa(),
+                 "Figure 6 — Reversement mensuel : le mandat SEPA se met en place une fois (signature + "
+                 "enregistrement UMR), puis chaque mois le PayoutExecutor déclenche un virement récurrent, "
+                 "tracé au ledger."))
+story.append(Paragraph("<b>Exigence E2.5 — détaillée</b> :", H3))
+story.append(table([
+    hcells("Réf.", "Attendu du PSP / de la banque", "Zone"),
+    cells("E2.5a", "Enregistrement d'un <b>mandat SEPA</b> (SEPA Direct Debit / Credit) avec référence unique de mandat (UMR) et IBAN du bénéficiaire.", "UE / SEPA"),
+    cells("E2.5b", "Déclenchement de <b>virements récurrents</b> (payouts mensuels) par API, idempotents, avec référence marchande restituée.", "UE / SEPA"),
+    cells("E2.5c", "Hors SEPA : <b>virement bancaire</b> adossé à une banque partenaire (ex. Maroc), export de règlement rapprochable.", "MA / hors-UE"),
+    cells("E2.5d", "Notifications d'issue du payout (exécuté / rejeté / retourné) pour la réconciliation et l'alerte admin.", "toutes"),
+    cells("E2.5e", "Délais de règlement documentés + gestion des retours (R-transactions SEPA).", "toutes"),
+], [12 * mm, USABLE_W - 12 * mm - 24 * mm, 24 * mm], align_center_cols=(2,)))
+story.append(Paragraph("Côté Baitly, ces reversements passent déjà par le port <b>PayoutExecutor</b> "
+                       "(rails SEPA / OpenBanking / Wise / StripeConnect / Manuel) : un PSP qui expose SEPA "
+                       "+ virement récurrent devient le rail préféré pour les payouts mensuels, sans "
+                       "modification des flux métier.", BODY))
+
+story.append(PageBreak())
+story.append(Paragraph("15. Démarchage des PSP par pays d'action", H1))
+story.append(Paragraph("Le démarchage se pilote par <b>pays / zone d'action</b>. Pour chaque zone : la devise, "
+                       "les PSP candidats, la priorité, et le point de vigilance principal.", BODY))
+story.append(table([
+    hcells("Zone", "Devise", "PSP candidats (priorité)", "Payout / SEPA", "Point de vigilance"),
+    cells("<b>Maroc</b> (lancement)", "MAD", "1. PayZone · 2. CMI · (repli Stripe hors MA)", "Virement bancaire local + Manuel tracé ; SEPA non applicable", "Onboarding CMI (NDA + délai) ; PayZone plus rapide ; encaissement local obligatoire"),
+    cells("<b>Arabie Saoudite / Golfe</b>", "SAR (+ AED, KWD…)", "1. PayTabs · (HyperPay en veille)", "Virement bancaire local", "Devises à 3 décimales (KWD/BHD/OMR) : échelle du montant"),
+    cells("<b>France / UE</b>", "EUR", "1. Stripe · (banque SEPA pour payouts)", "Mandat SEPA + virement récurrent (E2.5)", "Entité juridique d'encaissement (Stripe Atlas FR/US) pour la part EUR"),
+    cells("<b>International</b> (USD…)", "USD & autres", "Stripe", "Wise / OpenBanking", "Change + conformité selon pays"),
+], [26 * mm, 20 * mm, 42 * mm, 34 * mm, USABLE_W - 26 * mm - 20 * mm - 42 * mm - 34 * mm]))
+story.append(Paragraph("<b>Séquencement recommandé</b> : (1) Maroc — PayZone d'abord (démarrage rapide) puis "
+                       "CMI (volume/confiance bancaire) ; (2) UE — banque partenaire SEPA pour les payouts "
+                       "mensuels ; (3) Golfe — PayTabs si expansion KSA ; (4) international — Stripe assure la "
+                       "couverture par défaut.", BODY))
+
+story.append(PageBreak())
+story.append(Paragraph("16. Plan de certification sandbox par PSP", H1))
+story.append(Paragraph("Le code des adaptateurs est prêt et audité ; il reste la <b>certification en sandbox "
+                       "réel</b>, dépendante de l'onboarding marchand. Plan par PSP :", BODY))
+story.append(table([
+    hcells("PSP", "Pré-requis", "Identifiants", "Webhook", "Effort*", "Point-clé à confirmer"),
+    cells("<b>PayZone</b> (MA)", "Compte sandbox (rapide)", "api_key + webhook_secret", "HMAC-SHA256, en-tête X-Payzone-Signature", "~1 sem.", "Noms de champs + valeurs de statut ; format du montant"),
+    cells("<b>CMI</b> (MA)", "Onboarding (NDA + délai)", "client_id + store_key", "HASH SHA-512 dans le body", "~2-3 sem.", "Ordre des champs du hash ; ProcReturnCode ; refund manuel assumé"),
+    cells("<b>PayTabs</b> (KSA)", "Compte sandbox", "profile_id + server_key", "HMAC-SHA256, en-tête signature", "~1 sem.", "response_status ; cart_amount (échelle 3 décimales Golfe)"),
+], [22 * mm, 26 * mm, 30 * mm, 34 * mm, 14 * mm, USABLE_W - 22 * mm - 26 * mm - 30 * mm - 34 * mm - 14 * mm],
+    align_center_cols=(4,)))
+story.append(Paragraph("* effort côté Baitly une fois les accès obtenus (hors délai d'onboarding externe).", SMALL))
+story.append(Paragraph("<b>Scénarios de certification</b> (à passer pour chaque PSP) :", H3))
+story.append(table([
+    hcells("#", "Scénario", "Attendu"),
+    cells("C1", "Paiement accepté", "webhook signé → COMPLETED, entité PAYÉE"),
+    cells("C2", "Paiement refusé (carte de refus)", "webhook signé → FAILED, message exploitable"),
+    cells("C3", "Montant exact au centime", "débité = montant du ledger (attention devises 3 déc.)"),
+    cells("C4", "Devise correcte", "pas de conversion silencieuse"),
+    cells("C5 / C6", "Signature valide / invalide", "traité / rejeté 401 sans modif"),
+    cells("C7", "Référence marchande restituée", "lookup transaction OK"),
+    cells("C8", "Idempotence / re-livraison", "pas de double-crédit (CAS)"),
+    cells("C9", "Remboursement API", "PayZone/PayTabs OK ; CMI = échec attendu (manuel)"),
+    cells("C10", "Payout / mandat SEPA (si applicable)", "virement récurrent + notification d'issue (E2.5)"),
+], [12 * mm, 62 * mm, USABLE_W - 12 * mm - 62 * mm], align_center_cols=(0,)))
+
+story.append(PageBreak())
+story.append(Paragraph("17. Grille d'évaluation PSP (à remplir en rendez-vous)", H1))
+story.append(Paragraph("PSP : _______________________   Pays : ___________   Date : __________   "
+                       "Interlocuteur : ______________________", BODY))
+allreq = ([(r, "OBLIGATOIRE") for r, _ in must] +
+          [("E2.1", "IMPORTANTE"), ("E2.2", "IMPORTANTE"), ("E2.3", "IMPORTANTE"),
+           ("E2.4", "IMPORTANTE"), ("E2.5 (SEPA/payout)", "IMPORTANTE")] +
+          [(r, "OPTIONNELLE") for r, _, _ in nice])
+labels = {r: t for r, t in must}
+labels.update({"E2.1": "Iframe intégrable", "E2.2": "Récurrent / abonnement",
+               "E2.3": "Rapports de règlement", "E2.4": "Litiges (chargebacks)",
+               "E2.5 (SEPA/payout)": "Mandat SEPA / virement payout"})
+labels.update({r: t for r, t, _ in nice})
+grid = [hcells("Réf.", "Exigence", "Criticité", "Oui", "Part.", "Non", "Commentaire")]
+for r, crit in allreq:
+    grid.append([Paragraph(f"<b>{r}</b>", CELL), Paragraph(labels.get(r, ""), CELL), crit_cell(crit),
+                 Paragraph("", CELL), Paragraph("", CELL), Paragraph("", CELL), Paragraph("", CELL)])
+story.append(table(grid, [20 * mm, 46 * mm, 22 * mm, 9 * mm, 11 * mm, 9 * mm,
+                          USABLE_W - 20 * mm - 46 * mm - 22 * mm - 29 * mm],
                    align_center_cols=(2, 3, 4, 5)))
-story.append(Spacer(1, 2 * mm))
-story.append(Paragraph(
-    "<b>Lecture du résultat :</b> toute exigence E1.x à « Non » est éliminatoire en l'état — demander "
-    "la feuille de route du PSP. Les E2.x/E3.x à « Non » ne bloquent pas : le repli documenté "
-    "s'applique, et la capacité pourra être activée plus tard sans re-développement de notre côté.", BODY))
-story.append(Paragraph(
-    "<b>Questions financières à traiter en parallèle</b> (hors périmètre technique) : frais par "
-    "transaction et par remboursement, frais fixes / minimums mensuels, délai et fréquence des "
-    "règlements, devise de règlement, rétention / rolling reserve, frais de litige.", BODY))
+story.append(Paragraph("Toute E1.x à « Non » est éliminatoire en l'état → demander la feuille de route. "
+                       "Les E2.x/E3.x à « Non » n'excluent pas : le repli documenté s'applique et la "
+                       "capacité pourra être activée sans re-développement.", BODY))
 
-# ── 7. Integration & certification ───────────────────────────────────────────
-story.append(Paragraph("7. Processus d'intégration et certification", H1))
+story.append(Paragraph("18. Processus d'intégration", H1))
 story.append(table([
-    hcells("Phase", "Contenu", "Charge indicative"),
-    cells("1. Cadrage", "Grille d'évaluation complétée, accès sandbox + documentation, "
-                        "création du compte marchand de test", "1 semaine (dépend du PSP)"),
-    cells("2. Adaptateur", "Développement du module fournisseur chez Baitly : création de paiement, "
-                           "remboursement, vérification de signature, déclaration des capacités", "3 à 5 jours"),
-    cells("3. Webhook", "Branchement de l'endpoint de notification dédié + vérification de signature "
-                        "+ tests de re-livraison", "1 à 2 jours"),
-    cells("4. Certification sandbox", "Scénarios obligatoires : paiement accepté · carte refusée · "
-                                      "remboursement total · remboursement partiel · notification signée valide / invalide · "
-                                      "re-livraison après panne simulée · exactitude des montants au centime · "
-                                      "référence marchande restituée · consultation de statut", "2 à 3 jours"),
-    cells("5. Pilote production", "Activation pour une organisation pilote, montants réels faibles, "
-                                  "supervision renforcée, vérification des règlements bancaires", "2 semaines"),
-    cells("6. Généralisation", "Ouverture à toutes les organisations éligibles (activation par "
-                               "organisation, dans leurs réglages)", "—"),
-], [30 * mm, USABLE_W - 30 * mm - 34 * mm, 34 * mm]))
-story.append(Paragraph(
-    "<b>Point clé pour le PSP :</b> l'étape 2 est la seule qui touche notre code, et elle est "
-    "strictement bornée à l'adaptateur. Ni les flux métier, ni la comptabilité, ni la réconciliation "
-    "ne sont modifiés — c'est la garantie d'une intégration courte et sans régression.", BODY))
+    hcells("Phase", "Contenu", "Charge"),
+    cells("1. Cadrage", "Grille remplie, accès sandbox + doc, compte marchand de test", "~1 sem. (dépend du PSP)"),
+    cells("2. Adaptateur", "Module fournisseur (create/refund/signature/capabilities)", "3–5 j"),
+    cells("3. Webhook", "Endpoint dédié + vérif signature + tests de re-livraison", "1–2 j"),
+    cells("4. Certification", "Scénarios C1–C10 en sandbox (§16)", "2–3 j"),
+    cells("5. Pilote prod", "Org pilote, montants réels faibles, supervision", "~2 sem."),
+    cells("6. Généralisation", "Activation par organisation", "—"),
+], [26 * mm, USABLE_W - 26 * mm - 34 * mm, 34 * mm]))
+story.append(Paragraph("Seule l'étape 2 touche notre code, bornée à l'adaptateur : ni les flux métier, ni la "
+                       "comptabilité, ni la réconciliation ne changent.", BODY))
+story.append(PageBreak())
 
-# ── 8. Securite / money-safety ───────────────────────────────────────────────
-story.append(Paragraph("8. Sécurité, conformité et règles d'or « money-safety »", H1))
-story.append(Paragraph("Ce que Baitly garantit par construction", H3))
-for txt in [
-    "<b>Le serveur fixe les montants.</b> Aucun montant venant d'un navigateur ou d'une application "
-    "n'est facturé tel quel : tout est recalculé depuis nos données (devis, réservation, catalogue).",
-    "<b>Aucune donnée carte chez Baitly.</b> La saisie se fait toujours sur les pages ou modules du "
-    "PSP (périmètre PCI SAQ-A pour Baitly).",
-    "<b>Idempotence de bout en bout.</b> Doubles clics, re-essais réseau, notifications livrées deux "
-    "fois, rejeux d'événements internes : aucun ne produit de double encaissement ni de double crédit.",
-    "<b>Traçabilité intégrale.</b> Chaque tentative de paiement laisse une ligne au ledger avec les "
-    "deux références (la nôtre et celle du PSP) — auditable et réconciliable.",
-    "<b>Alertes de réconciliation.</b> Toute incohérence (paiement confirmé mais écriture comptable "
-    "en échec) déclenche une alerte humaine — jamais un simple message dans un journal technique.",
-    "<b>Identifiants chiffrés, par organisation.</b> Les clés d'API de chaque organisation sont "
-    "chiffrées au repos et fournies au fournisseur appel par appel.",
-]:
-    story.append(Paragraph("•  " + txt, BULLET))
-story.append(Paragraph("Ce que Baitly attend du PSP en miroir", H3))
-for txt in [
-    "Signatures de notification robustes et documentées (algorithme, encodage, exemples).",
-    "Aucune exigence de stocker des secrets partagés en clair ou d'ouvrir des ports entrants exotiques.",
-    "Séparation stricte sandbox / production (clés, URLs, données).",
-    "Engagements de disponibilité (SLA) et canal de support technique avec délais de réponse.",
-]:
-    story.append(Paragraph("•  " + txt, BULLET))
+# ══════════════════════════════════════════════════════════════════════════════
+# PARTIE IV
+# ══════════════════════════════════════════════════════════════════════════════
+story.append(part_banner("IV", "Annexes"))
+story.append(Spacer(1, 4 * mm))
+story.append(Paragraph("19. UML des composants (ports & adaptateurs)", H1))
+story.append(fig(diagram_uml(),
+                 "Figure 7 — Vue UML : trois interfaces (ports) et leurs implémentations (adaptateurs). "
+                 "Des registries résolvent l'implémentation par capacité + devise + pays. * = à venir."))
 
-# ── 9. Questions types ───────────────────────────────────────────────────────
-story.append(Paragraph("9. Questions types à poser au PSP", H1))
-story.append(table([
-    hcells("Thème", "Questions"),
-    cells("Couverture", "Quelles devises et quels moyens de paiement (cartes locales, internationales, "
-                        "wallets) ? Des restrictions sur la location courte durée / conciergerie ?"),
-    cells("Intégration", "API REST documentée publiquement ? Sandbox en libre accès ? Peut-on attacher "
-                         "notre référence et la retrouver partout ? L'iframe est-elle autorisée ?"),
-    cells("Notifications", "Comment sont signés les webhooks ? Politique de re-livraison (combien de "
-                           "tentatives, sur quelle durée) ? Les échecs portent-ils un motif exploitable ?"),
-    cells("Multi-marchand", "Chaque organisation Baitly peut-elle avoir son propre compte marchand ? "
-                            "Quel parcours et quels délais d'onboarding (KYC/KYB) pour nos clients ?"),
-    cells("Argent", "Délais et fréquence des règlements ? Frais complets (transaction, remboursement, "
-                    "litige, change) ? Rétention / réserve ? Devise de règlement ?"),
-    cells("Litiges", "Processus de chargeback ? Notification par API ? Délais et pièces attendues ?"),
-    cells("Évolutions", "Feuille de route : récurrent, pré-autorisation, vault, payouts ? "
-                        "(chaque « oui » futur = une capacité activable chez nous sans re-développement)"),
-    cells("Contrat & support", "SLA de disponibilité ? Support technique dédié à l'intégration ? "
-                               "Environnement de test permanent après mise en production ?"),
-], [30 * mm, USABLE_W - 30 * mm]))
-
-# ── 10. Glossaire ────────────────────────────────────────────────────────────
-story.append(Paragraph("10. Glossaire", H1))
+story.append(Paragraph("20. Glossaire", H1))
 story.append(table([
     hcells("Terme", "Définition"),
-    cells("PSP", "Prestataire de services de paiement : l'acteur qui encaisse la carte (Stripe, CMI, "
-                 "PayZone, PayTabs…)."),
-    cells("Port / adaptateur", "Le « port » est la prise standard côté Baitly ; l'« adaptateur » est le "
-                               "module qui branche un PSP donné sur cette prise."),
-    cells("Orchestrateur", "Le composant qui choisit le fournisseur, trace la transaction et séquence "
-                           "les étapes en toute sécurité."),
-    cells("Capacité", "Fonctionnalité déclarée par un adaptateur (payer, rembourser, pré-autoriser, "
-                      "récurrent, iframe, adresse de livraison…). Le choix du fournisseur en dépend."),
-    cells("Ledger", "Registre interne des transactions : une ligne par tentative de paiement, avec notre "
-                    "référence, celle du PSP, le montant et l'objet payé."),
-    cells("Webhook / IPN", "Notification serveur-à-serveur envoyée par le PSP pour signaler l'issue d'un "
-                           "paiement. Toujours signée, toujours vérifiée."),
-    cells("Référence marchande", "Notre identifiant unique de transaction, attaché au paiement chez le "
-                                 "PSP et restitué dans chaque notification."),
-    cells("Idempotence", "Propriété qui garantit qu'une même opération répétée (re-essai, double clic, "
-                         "notification dupliquée) ne produit qu'un seul effet."),
-    cells("Réconciliation", "Mise à jour de l'objet métier (réservation, intervention…) après confirmation "
-                            "du paiement, avec écritures comptables et notifications."),
-    cells("Pré-autorisation", "Blocage temporaire d'un montant sur la carte (caution) avec capture "
-                              "ultérieure totale, partielle ou nulle."),
-    cells("Vault / carte enregistrée", "Conservation sécurisée de la carte chez le PSP pour un prélèvement "
-                                       "ultérieur sans re-saisie (« off-session »)."),
-    cells("Settlement", "Règlement : versement par le PSP des fonds encaissés, net de frais, sur le compte "
-                        "bancaire du marchand."),
-    cells("Chargeback", "Litige : contestation d'un paiement par le porteur de carte auprès de sa banque."),
-    cells("SAQ-A", "Périmètre PCI-DSS allégé : les données carte ne touchent jamais les serveurs du "
-                   "marchand (saisie chez le PSP)."),
-    cells("Sandbox", "Environnement de test du PSP, sans argent réel, utilisé pour la certification."),
-], [36 * mm, USABLE_W - 36 * mm]))
-
-story.append(Spacer(1, 6 * mm))
-story.append(Paragraph(
-    "Document généré depuis les sources internes Baitly (ADR paiement multi-provider, documentation "
-    "métier du système, code en vigueur au 2026-07-13). Pour toute question technique : équipe "
-    "plateforme Baitly.", SMALL))
+    cells("PSP", "Prestataire de services de paiement (Stripe, CMI, PayZone, PayTabs…)."),
+    cells("Port / adaptateur", "Le « port » est la prise standard côté Baitly ; l'« adaptateur » branche un PSP sur cette prise."),
+    cells("Orchestrateur", "Choisit le fournisseur, trace la transaction, séquence les étapes en toute sécurité."),
+    cells("Capacité", "Fonctionnalité déclarée par un adaptateur ; le resolver écarte les fournisseurs incapables."),
+    cells("Ledger", "Registre interne : une ligne par tentative, avec notre référence, celle du PSP, montant, objet payé."),
+    cells("sourceType / sourceId", "Le « pour quoi » du paiement — clé de réconciliation neutre."),
+    cells("Webhook / IPN", "Notification serveur-à-serveur signée signalant l'issue d'un paiement."),
+    cells("Idempotence", "Une même opération répétée (retry, double-clic, re-livraison) ne produit qu'un seul effet."),
+    cells("CAS", "Compare-and-set : transition de statut par UPDATE conditionnel (anti double-crédit)."),
+    cells("Mandat SEPA", "Autorisation récurrente de virement/prélèvement (UMR + IBAN) pour automatiser les payouts."),
+    cells("Settlement", "Règlement : versement par le PSP des fonds encaissés, net de frais."),
+    cells("Chargeback", "Litige : contestation d'un paiement par le porteur de carte."),
+    cells("SAQ-A", "Périmètre PCI-DSS allégé : aucune donnée carte ne touche nos serveurs (saisie chez le PSP)."),
+    cells("D1 / D3", "Décisions ADR : D1 = port abonnement dédié ; D3 = caution Stripe-only (empreinte manuelle au MA)."),
+], [34 * mm, USABLE_W - 34 * mm]))
+story.append(Spacer(1, 5 * mm))
+story.append(Paragraph("Document généré depuis les sources internes Baitly (ADR paiement multi-provider, "
+                       "documentation système, runbook de certification, code en vigueur au 2026-07-14). "
+                       "Fusionne et remplace les PDF « ADR switch & parallèle » et « système de paiement "
+                       "multi-fournisseurs ». Générateur : docs/generate_paiement_multiprovider_pdf.py.", SMALL))
 
 make_doc(OUT).build(story)
 print("OK ->", OUT)
