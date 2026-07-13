@@ -115,6 +115,8 @@ class StripePaymentProviderTest {
                 assertThat(result.providerTxId()).isEqualTo("cs_emb");
                 assertThat(result.clientSecret()).isEqualTo("cs_emb_secret");
                 assertThat(result.redirectUrl()).isNull();
+                assertThat(result.presentationMode())
+                        .isEqualTo(com.clenzy.payment.PaymentPresentationMode.CLIENT_SECRET);
             }
         }
 

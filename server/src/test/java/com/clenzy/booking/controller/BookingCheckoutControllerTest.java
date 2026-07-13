@@ -236,6 +236,8 @@ class BookingCheckoutControllerTest {
             assertThat(body.get("sessionId")).isEqualTo("cs_test_abc");
             assertThat(body.get("clientSecret")).isEqualTo("cs_test_abc_secret");
             assertThat(body.get("reservationCode")).isEqualTo("RES-HOLD01");
+            // Réponse auto-descriptive : le front sait qu'il faut le composant clientSecret.
+            assertThat(body.get("presentationMode")).isEqualTo("CLIENT_SECRET");
             verify(publicBookingService).attachStripeSessionToHold(55L, "cs_test_abc");
 
             // Le montant facture est le devis serveur (jamais le montant client brut) + flux embedded.

@@ -119,19 +119,29 @@ public class BookingCheckoutController {
                 throw new RuntimeException("Echec de creation du paiement: " + err);
             }
 
-            String sessionId = orchResult.paymentResult().providerTxId();
-            String clientSecret = orchResult.paymentResult().clientSecret();
+            var paymentResult = orchResult.paymentResult();
+            String sessionId = paymentResult.providerTxId();
             publicBookingService.attachStripeSessionToHold(hold.getId(), sessionId);
 
-            log.info("Booking engine checkout session créée: {}, provider={}, property={}, amount={}, serviceOptions={}, hold={}",
-                sessionId, orchResult.providerUsed(), request.propertyId(), quote.totalAmount(),
-                quote.serviceOptionsTotal(), hold.getConfirmationCode());
+            log.info("Booking engine checkout session créée: {}, provider={}, mode={}, property={}, amount={}, serviceOptions={}, hold={}",
+                sessionId, orchResult.providerUsed(), paymentResult.presentationMode(), request.propertyId(),
+                quote.totalAmount(), quote.serviceOptionsTotal(), hold.getConfirmationCode());
 
-            return ResponseEntity.ok(Map.of(
-                "clientSecret", clientSecret,
-                "sessionId", sessionId,
-                "reservationCode", hold.getConfirmationCode()
-            ));
+            // Réponse auto-descriptive : le front lit presentationMode (CLIENT_SECRET pour Stripe
+            // embedded aujourd'hui ; IFRAME/REDIRECT prêts pour les PSP régionaux, sans rework).
+            Map<String, Object> body = new HashMap<>();
+            body.put("sessionId", sessionId);
+            body.put("reservationCode", hold.getConfirmationCode());
+            if (paymentResult.presentationMode() != null) {
+                body.put("presentationMode", paymentResult.presentationMode().name());
+            }
+            if (paymentResult.clientSecret() != null) {
+                body.put("clientSecret", paymentResult.clientSecret());
+            }
+            if (paymentResult.redirectUrl() != null) {
+                body.put("redirectUrl", paymentResult.redirectUrl());
+            }
+            return ResponseEntity.ok(body);
         } catch (CalendarConflictException | RestrictionViolationException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "Dates non disponibles"));
