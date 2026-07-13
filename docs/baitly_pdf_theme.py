@@ -76,7 +76,7 @@ HEADER_BG = colors.HexColor("#EAF0F2")   # en-tête de tableau (clair)
 CODE_BG = colors.HexColor("#EEF1F3")     # surlignage code inline
 GRAD0 = colors.HexColor("#5B7A8C")       # barre gradient couverture (début)
 GRAD1 = colors.HexColor("#93B0C2")       # barre gradient couverture (fin)
-FAINT = colors.HexColor("#E3E9EC")       # motif constellation en filigrane
+FAINT = colors.HexColor("#D9E1E5")       # motif constellation en filigrane (couverture)
 
 # ── Police géométrique Avenir Next (repli Helvetica si absente) ────────────────
 FONT, FONT_MED, FONT_DEMI, FONT_BOLD = "Helvetica", "Helvetica", "Helvetica-Bold", "Helvetica-Bold"
@@ -251,20 +251,21 @@ def constellation(canvas, cx, cy, r, color, node_r=2.2, lw=0.7, center_scale=1.7
 
 
 def baitly_logo():
-    """Logo Baitly dessiné (mark 8 nœuds « orchestration » + wordmark « baitly »).
+    """Logo Baitly dessiné (mark « orchestration » fin + wordmark « baitly »).
+    Rendu délicat façon ADR : rayons minces + petits nœuds.
     NE PAS utiliser client/src/assets/Baitly_logo.png (ancien logo Clenzy)."""
     w, h = 70 * mm, 17 * mm
     d = Drawing(w, h)
-    cx, cy, r = 9 * mm, h / 2, 6.4 * mm
+    cx, cy, r = 8.5 * mm, h / 2, 6.2 * mm
     for k in range(8):
         a = math.pi / 2 - k * math.pi / 4
         px, py = cx + r * math.cos(a), cy + r * math.sin(a)
-        d.add(Line(cx, cy, px, py, strokeColor=PRIMARY2, strokeWidth=1.1))
+        d.add(Line(cx, cy, px, py, strokeColor=PRIMARY2, strokeWidth=0.7))
     for k in range(8):
         a = math.pi / 2 - k * math.pi / 4
         px, py = cx + r * math.cos(a), cy + r * math.sin(a)
-        d.add(Circle(px, py, 1.7, fillColor=PRIMARY, strokeColor=None))
-    d.add(Circle(cx, cy, 2.8, fillColor=PRIMARY, strokeColor=None))
+        d.add(Circle(px, py, 1.15, fillColor=PRIMARY, strokeColor=None))
+    d.add(Circle(cx, cy, 2.0, fillColor=PRIMARY, strokeColor=None))
     d.add(String(cx + r + 5 * mm, cy - 7.5, "baitly", fontName=FONT_BOLD, fontSize=23, fillColor=PRIMARY))
     return d
 
@@ -327,13 +328,13 @@ def make_doc(path, title="Baitly", footer_label=None):
     return doc
 
 
-def build_cover(story, eyebrow, title_lines, subtitle, meta_rows,
-                meta_header=("Document", "Détail"), meta_label_w=30 * mm):
+def build_cover(story, eyebrow, title_lines, subtitle, meta_rows, meta_label_w=32 * mm):
     """Ajoute la couverture Baitly au story (logo + eyebrow + titre bi-ton + filet teal
-    + sous-titre + table meta), puis bascule sur le gabarit content et saute une page.
+    + sous-titre + table meta SANS en-tête façon ADR), puis bascule sur le gabarit
+    content et saute une page.
 
     title_lines : liste de lignes HTML (bi-ton via <font color='#6B8A9A'>…</font>).
-    meta_rows   : liste de (label, valeur)."""
+    meta_rows   : liste de (label, valeur) ; la 1re valeur est mise en gras."""
     story.append(Spacer(1, 22 * mm))
     story.append(baitly_logo())
     story.append(Spacer(1, 15 * mm))
@@ -345,7 +346,24 @@ def build_cover(story, eyebrow, title_lines, subtitle, meta_rows,
                             spaceBefore=1, spaceAfter=5, hAlign="LEFT"))
     story.append(Paragraph(subtitle, SUB))
     story.append(Spacer(1, 9 * mm))
-    story.append(table([hcells(*meta_header)] + [cells(k, v) for k, v in meta_rows],
-                       [meta_label_w, USABLE_W - meta_label_w]))
+    # Table meta façon ADR : pas de ligne d'en-tête ; colonne label sur fond clair,
+    # colonne valeur ; 1re valeur en gras.
+    _lab = ParagraphStyle("mlab", parent=CELL, fontName=FONT_DEMI, textColor=MUTED, fontSize=8.5, leading=11)
+    _val = ParagraphStyle("mval", parent=CELL, fontSize=8.5, leading=11.5, textColor=INK)
+    _valb = ParagraphStyle("mvalb", parent=_val, fontName=FONT_DEMI)
+    rows = [[Paragraph(k, _lab), Paragraph(v, _valb if i == 0 else _val)]
+            for i, (k, v) in enumerate(meta_rows)]
+    mt = Table(rows, colWidths=[meta_label_w, USABLE_W - meta_label_w])
+    mt.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("BACKGROUND", (0, 0), (0, -1), LIGHT),
+        ("LINEBELOW", (0, 0), (-1, -2), 0.5, LINE),
+        ("BOX", (0, 0), (-1, -1), 0.6, LINE),
+    ]))
+    story.append(mt)
     story.append(NextPageTemplate("content"))
     story.append(PageBreak())
