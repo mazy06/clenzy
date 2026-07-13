@@ -15,6 +15,18 @@ public interface PaymentProvider {
     /** Provider type identifier */
     PaymentProviderType getProviderType();
 
+    /**
+     * Capacités supportées par ce provider (au minimum {@link PaymentCapability#PAY}).
+     * Le resolver s'appuie dessus pour ne jamais router un flux vers un provider
+     * incapable de l'exécuter.
+     */
+    Set<PaymentCapability> getCapabilities();
+
+    /** Raccourci : ce provider supporte-t-il la capacité demandée ? */
+    default boolean supports(PaymentCapability capability) {
+        return getCapabilities().contains(capability);
+    }
+
     /** Countries this provider supports */
     Set<String> getSupportedCountries();
 

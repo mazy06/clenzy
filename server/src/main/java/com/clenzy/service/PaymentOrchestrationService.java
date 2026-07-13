@@ -1,91 +1,92 @@
 package com.clenzy.service;
 
-import com.clenzy.config.KafkaConfig;
 import com.clenzy.dto.PaymentOrchestrationRequest;
 import com.clenzy.dto.PaymentOrchestrationResult;
-import com.clenzy.model.*;
-import com.clenzy.payment.*;
-import com.clenzy.repository.PaymentTransactionRepository;
+import com.clenzy.model.PaymentMethodConfig;
+import com.clenzy.model.PaymentProviderType;
+import com.clenzy.model.PaymentTransaction;
+import com.clenzy.payment.PaymentCapability;
+import com.clenzy.payment.PaymentProvider;
+import com.clenzy.payment.PaymentProviderRegistry;
+import com.clenzy.payment.PaymentRequest;
+import com.clenzy.payment.PaymentResult;
+import com.clenzy.payment.RefundContext;
 import com.clenzy.tenant.TenantContext;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
+/**
+ * Orchestre les paiements entrants (checkout, refund) à travers le meilleur
+ * provider disponible.
+ *
+ * <h2>Frontières transactionnelles (ADR paiement multi-provider, Vague 1b)</h2>
+ * <p>Ce service <strong>n'est pas transactionnel</strong> : il résout le
+ * provider et effectue l'appel externe (HTTP) <em>hors de toute transaction
+ * DB</em>. Toutes les écritures passent par {@link PaymentPersistence}, dont
+ * chaque méthode ouvre une transaction courte — respectant la règle
+ * « jamais d'appel HTTP externe dans une transaction DB ».</p>
+ */
 @Service
-@Transactional
 public class PaymentOrchestrationService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentOrchestrationService.class);
 
     private final PaymentProviderRegistry providerRegistry;
     private final PaymentMethodConfigService configService;
-    private final PaymentTransactionRepository transactionRepository;
-    private final OutboxPublisher outboxPublisher;
+    private final PaymentPersistence paymentPersistence;
     private final TenantContext tenantContext;
-    private final ObjectMapper objectMapper;
 
     public PaymentOrchestrationService(PaymentProviderRegistry providerRegistry,
                                         PaymentMethodConfigService configService,
-                                        PaymentTransactionRepository transactionRepository,
-                                        OutboxPublisher outboxPublisher,
-                                        TenantContext tenantContext,
-                                        ObjectMapper objectMapper) {
+                                        PaymentPersistence paymentPersistence,
+                                        TenantContext tenantContext) {
         this.providerRegistry = providerRegistry;
         this.configService = configService;
-        this.transactionRepository = transactionRepository;
-        this.outboxPublisher = outboxPublisher;
+        this.paymentPersistence = paymentPersistence;
         this.tenantContext = tenantContext;
-        this.objectMapper = objectMapper;
     }
 
     /**
-     * Initiates a payment through the best available provider.
-     * Supports idempotency: if a transaction with the same idempotency key already exists,
-     * it returns the existing result without creating a new transaction.
+     * Initie un paiement via le meilleur provider disponible.
+     *
+     * <p>Séquence : idempotence (tx courte) → résolution du provider → persist
+     * PENDING (tx courte) → <strong>appel provider hors transaction</strong> →
+     * persist résultat + outbox (tx courte, atomique).</p>
      */
     @CircuitBreaker(name = "payment-orchestrator", fallbackMethod = "initiatePaymentFallback")
     public PaymentOrchestrationResult initiatePayment(PaymentOrchestrationRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         String countryCode = tenantContext.getCountryCode();
 
-        // 1. Idempotency check — prevent duplicate transactions on client retry
-        String idempotencyKey = request.idempotencyKey();
-        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            Optional<PaymentTransaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
-            if (existing.isPresent()) {
-                PaymentTransaction existingTx = existing.get();
-                if (existingTx.getStatus() == TransactionStatus.FAILED) {
-                    // Allow retry on FAILED transactions — clear the old key so a new tx can be created
-                    log.info("Previous transaction {} with key={} was FAILED, allowing retry",
-                        existingTx.getTransactionRef(), idempotencyKey);
-                    existingTx.setIdempotencyKey(null);
-                    transactionRepository.save(existingTx);
-                } else {
-                    log.info("Idempotent request detected (key={}), returning existing transaction {}",
-                        idempotencyKey, existingTx.getTransactionRef());
-                    return new PaymentOrchestrationResult(existingTx,
-                        PaymentResult.success(existingTx.getProviderTxId(), null),
-                        existingTx.getProviderType());
-                }
-            }
+        // 1. Idempotence — court-circuit si une transaction non-FAILED existe déjà
+        Optional<PaymentTransaction> replay = paymentPersistence.consumeIdempotentReplay(request.idempotencyKey());
+        if (replay.isPresent()) {
+            PaymentTransaction existingTx = replay.get();
+            log.info("Idempotent request detected (key={}), returning existing transaction {}",
+                request.idempotencyKey(), existingTx.getTransactionRef());
+            return new PaymentOrchestrationResult(existingTx,
+                PaymentResult.success(existingTx.getProviderTxId(), null), existingTx.getProviderType());
         }
 
-        // 2. Resolve provider
+        // 2. Résolution du provider (local — pas d'appel externe)
         PaymentProvider provider = resolveProvider(orgId, countryCode, request);
         log.info("Resolved payment provider: {} for org {} country {}",
             provider.getProviderType(), orgId, countryCode);
 
-        // 3. Create transaction record with idempotency key
-        PaymentTransaction tx = createTransaction(orgId, provider.getProviderType(), request, idempotencyKey);
+        // 3. Persist PENDING (transaction courte — committée avant l'appel externe)
+        PaymentTransaction tx = paymentPersistence.createPending(
+            orgId, provider.getProviderType(), request, request.idempotencyKey());
 
-        // 4. Build provider request
+        // 4. Construit la requête provider
         Map<String, String> metadata = new HashMap<>();
         if (request.metadata() != null) metadata.putAll(request.metadata());
         metadata.put("orgId", String.valueOf(orgId));
@@ -100,33 +101,22 @@ public class PaymentOrchestrationService {
             tx.getTransactionRef(), metadata
         );
 
-        // 5. Call provider
+        // 5. Appel provider — HORS de toute transaction DB
         PaymentResult result;
         try {
             result = provider.createPayment(paymentRequest);
         } catch (Exception e) {
             log.error("Payment provider {} failed: {}", provider.getProviderType(), e.getMessage());
-            tx.setStatus(TransactionStatus.FAILED);
-            tx.setErrorMessage(e.getMessage());
-            transactionRepository.save(tx);
-            return new PaymentOrchestrationResult(tx,
+            PaymentTransaction failed = paymentPersistence.markInitiationFailed(
+                tx.getTransactionRef(), e.getMessage());
+            return new PaymentOrchestrationResult(failed,
                 PaymentResult.failure(e.getMessage()), provider.getProviderType());
         }
 
-        // 6. Update transaction
-        if (result.success()) {
-            tx.setProviderTxId(result.providerTxId());
-            tx.setStatus(TransactionStatus.PROCESSING);
-        } else {
-            tx.setStatus(TransactionStatus.FAILED);
-            tx.setErrorMessage(result.errorMessage());
-        }
-        tx = transactionRepository.save(tx);
-
-        // 7. Publish event
-        publishEvent(tx, "PAYMENT_INITIATED", orgId);
-
-        return new PaymentOrchestrationResult(tx, result, provider.getProviderType());
+        // 6. Persist résultat + outbox (transaction courte, atomique)
+        PaymentTransaction finalTx = paymentPersistence.finalizeInitiation(
+            tx.getTransactionRef(), result, orgId);
+        return new PaymentOrchestrationResult(finalTx, result, provider.getProviderType());
     }
 
     @SuppressWarnings("unused")
@@ -138,69 +128,40 @@ public class PaymentOrchestrationService {
     }
 
     /**
-     * Process a refund for an existing transaction.
+     * Traite un remboursement pour une transaction existante.
+     *
+     * <p>Séquence : validation ownership + persist refund PROCESSING (tx courte)
+     * → <strong>appel refund hors transaction</strong> → persist résultat +
+     * outbox (tx courte).</p>
      */
     @CircuitBreaker(name = "payment-orchestrator", fallbackMethod = "processRefundFallback")
     public PaymentOrchestrationResult processRefund(String transactionRef,
                                                       BigDecimal amount, String reason) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
-        PaymentTransaction originalTx = transactionRepository.findByTransactionRef(transactionRef)
-            .orElseThrow(() -> new RuntimeException("Transaction not found: " + transactionRef));
+        // 1. Ownership + création de la transaction de remboursement (tx courte)
+        PaymentPersistence.RefundInit init = paymentPersistence.createRefundPending(orgId, transactionRef, amount);
+        PaymentProvider provider = providerRegistry.get(init.providerType());
 
-        if (!originalTx.getOrganizationId().equals(orgId)) {
-            throw new RuntimeException("Transaction not found: " + transactionRef);
-        }
-
-        PaymentProvider provider = providerRegistry.get(originalTx.getProviderType());
-
-        PaymentTransaction refundTx = new PaymentTransaction();
-        refundTx.setOrganizationId(orgId);
-        refundTx.setTransactionRef("REF-" + UUID.randomUUID().toString().substring(0, 8));
-        refundTx.setProviderType(originalTx.getProviderType());
-        refundTx.setPaymentType(TransactionType.REFUND);
-        refundTx.setStatus(TransactionStatus.PROCESSING);
-        refundTx.setAmount(amount != null ? amount : originalTx.getAmount());
-        refundTx.setCurrency(originalTx.getCurrency());
-        refundTx.setSourceType(originalTx.getSourceType());
-        refundTx.setSourceId(originalTx.getSourceId());
-        refundTx = transactionRepository.save(refundTx);
-
+        // 2. Appel refund — HORS transaction. Contexte enrichi pour les providers
+        //    régionaux (PayTabs, Payzone) ; Stripe délègue à la signature historique.
         PaymentResult result;
         try {
-            // Construit le contexte enrichi pour les providers régionaux (PayTabs,
-            // Payzone) qui ont besoin de l'orgId + currency + transactionRef
-            // pour reconstruire la requête refund auprès de la passerelle. Pour
-            // Stripe, la default method de l'interface délègue à l'ancienne
-            // signature (rétro-compat).
-            var refundContext = new com.clenzy.payment.RefundContext(
-                orgId,
-                originalTx.getProviderTxId(),
-                originalTx.getTransactionRef(),
-                originalTx.getCurrency(),
-                originalTx.getAmount());
+            var refundContext = new RefundContext(orgId, init.originalProviderTxId(),
+                init.originalTransactionRef(), init.currency(), init.originalAmount());
             result = provider.refundPayment(refundContext,
-                amount != null ? amount : originalTx.getAmount(), reason);
+                amount != null ? amount : init.originalAmount(), reason);
         } catch (Exception e) {
-            refundTx.setStatus(TransactionStatus.FAILED);
-            refundTx.setErrorMessage(e.getMessage());
-            transactionRepository.save(refundTx);
-            return new PaymentOrchestrationResult(refundTx,
-                PaymentResult.failure(e.getMessage()), provider.getProviderType());
+            PaymentTransaction failed = paymentPersistence.markRefundFailed(
+                init.refundTransactionRef(), e.getMessage());
+            return new PaymentOrchestrationResult(failed,
+                PaymentResult.failure(e.getMessage()), init.providerType());
         }
 
-        if (result.success()) {
-            refundTx.setProviderTxId(result.providerTxId());
-            refundTx.setStatus(TransactionStatus.COMPLETED);
-        } else {
-            refundTx.setStatus(TransactionStatus.FAILED);
-            refundTx.setErrorMessage(result.errorMessage());
-        }
-        refundTx = transactionRepository.save(refundTx);
-
-        publishEvent(refundTx, "PAYMENT_REFUNDED", orgId);
-
-        return new PaymentOrchestrationResult(refundTx, result, provider.getProviderType());
+        // 3. Persist résultat + outbox (tx courte)
+        PaymentTransaction refundTx = paymentPersistence.finalizeRefund(
+            init.refundTransactionRef(), result, orgId);
+        return new PaymentOrchestrationResult(refundTx, result, init.providerType());
     }
 
     @SuppressWarnings("unused")
@@ -211,78 +172,64 @@ public class PaymentOrchestrationService {
             PaymentResult.failure("Service de remboursement temporairement indisponible."), null);
     }
 
-    /**
-     * Mark a transaction as completed (called from webhook).
-     * Idempotent: does nothing if already COMPLETED.
-     */
+    /** Marque une transaction COMPLETED (appelé depuis un webhook). Idempotent. */
     public PaymentTransaction completeTransaction(String transactionRef) {
-        PaymentTransaction tx = transactionRepository.findByTransactionRef(transactionRef)
-            .orElseThrow(() -> new RuntimeException("Transaction not found: " + transactionRef));
-
-        if (tx.getStatus() == TransactionStatus.COMPLETED) {
-            log.info("Transaction {} already completed, skipping", transactionRef);
-            return tx;
-        }
-
-        tx.setStatus(TransactionStatus.COMPLETED);
-        tx = transactionRepository.save(tx);
-        publishEvent(tx, "PAYMENT_COMPLETED", tx.getOrganizationId());
-        return tx;
+        return paymentPersistence.completeTransaction(transactionRef);
     }
 
-    /**
-     * Mark a transaction as failed (called from webhook on failure).
-     */
+    /** Marque une transaction FAILED (appelé depuis un webhook d'échec). */
     public PaymentTransaction failTransaction(String transactionRef, String errorMessage) {
-        PaymentTransaction tx = transactionRepository.findByTransactionRef(transactionRef)
-            .orElseThrow(() -> new RuntimeException("Transaction not found: " + transactionRef));
-        tx.setStatus(TransactionStatus.FAILED);
-        tx.setErrorMessage(errorMessage);
-        tx = transactionRepository.save(tx);
-        publishEvent(tx, "PAYMENT_FAILED", tx.getOrganizationId());
-        return tx;
+        return paymentPersistence.failTransaction(transactionRef, errorMessage);
     }
 
     /**
-     * Resout le provider a utiliser pour une transaction donnee.
+     * Résout le provider à utiliser pour une transaction donnée.
      *
-     * <h2>Ordre de priorite</h2>
+     * <h2>Ordre de priorité</h2>
      * <ol>
-     *   <li><strong>preferredProvider</strong> : si l'appelant a explicitement
-     *       impose un provider (ex: booking engine avec preference user),
-     *       on l'utilise sans poser de question.</li>
-     *   <li><strong>Currency match</strong> : pour une devise regionale forte
-     *       (SAR → PayTabs, MAD → CMI/Payzone), on prefere un provider
-     *       qui parle nativement cette devise SI il est active pour l'org.
-     *       Evite les frais de conversion forex inutiles.</li>
-     *   <li><strong>Country match</strong> : on retombe sur la liste des
-     *       providers enabled pour le pays de l'org (logique pre-existante).</li>
-     *   <li><strong>Fallback Stripe</strong> : derniere chance, accepte la
-     *       plupart des devises avec frais raisonnables.</li>
+     *   <li><strong>preferredProvider</strong> : préférence explicite de l'appelant.</li>
+     *   <li><strong>Currency match</strong> : devise régionale forte (SAR → PayTabs,
+     *       MAD → CMI/Payzone) si le provider est activé pour l'org.</li>
+     *   <li><strong>Country match</strong> : premier provider activé pour le pays.</li>
+     *   <li><strong>Fallback Stripe</strong>.</li>
      * </ol>
      *
-     * <h2>Multi-currency par org</h2>
-     * <p>Une org KSA peut accepter SAR (PayTabs) ET EUR (Stripe). Les deux
-     * configs peuvent etre {@code enabled=true} en parallele — la devise de
-     * la transaction tranche.</p>
+     * <p>Une org peut avoir plusieurs providers {@code enabled=true} en
+     * parallèle (ex. SAR via PayTabs ET EUR via Stripe) — la devise tranche.</p>
      */
     private PaymentProvider resolveProvider(Long orgId, String countryCode,
                                              PaymentOrchestrationRequest request) {
+        // Flux createPayment standard : capacité de base PAY (pas de filtrage).
+        return resolveProvider(orgId, countryCode, request, Set.of(PaymentCapability.PAY));
+    }
+
+    /**
+     * Résout le provider en tenant compte des <strong>capacités requises</strong>
+     * par le flux appelant.
+     *
+     * <p>{@link PaymentCapability#PAY} étant la base de tout provider, le
+     * filtrage capacitaire ne s'active que pour les capacités différenciantes
+     * (PREAUTH pour une caution, PAYOUT, CUSTOMER…). Le flux paiement standard
+     * conserve donc exactement la résolution historique (preferred → devise →
+     * pays → fallback Stripe).</p>
+     */
+    private PaymentProvider resolveProvider(Long orgId, String countryCode,
+                                             PaymentOrchestrationRequest request,
+                                             Set<PaymentCapability> required) {
         // 1. Preference explicite : court-circuit
         if (request.preferredProvider() != null) {
             return providerRegistry.get(request.preferredProvider());
         }
 
         List<PaymentMethodConfig> configs = configService.getEnabledProviders(orgId, countryCode);
+        boolean filterCapabilities = required.stream().anyMatch(c -> c != PaymentCapability.PAY);
 
-        // 2. Currency match : pour les devises regionales fortes, on resout via
-        //    la liste ordonnee des providers preferes (priorite decroissante)
-        //    et on prend le premier enabled pour l'org. Plus efficient en
-        //    frais Forex.
+        // 2. Currency match : provider régional préféré, s'il est activé ET capable
         List<PaymentProviderType> preferredOrder = preferredProvidersForCurrency(request.currency());
         for (PaymentProviderType preferred : preferredOrder) {
             for (PaymentMethodConfig cfg : configs) {
-                if (cfg.getProviderType() == preferred) {
+                if (cfg.getProviderType() == preferred
+                        && isCapable(preferred, required, filterCapabilities)) {
                     log.debug("Currency {} → {} (provider regional enabled pour org {})",
                         request.currency(), preferred, orgId);
                     return providerRegistry.get(preferred);
@@ -290,100 +237,53 @@ public class PaymentOrchestrationService {
             }
         }
 
-        // 3. Country match : premier provider enabled pour le pays de l'org
-        if (!configs.isEmpty()) {
-            return providerRegistry.get(configs.get(0).getProviderType());
+        // 3. Country match : premier provider enabled ET capable pour le pays de l'org
+        for (PaymentMethodConfig cfg : configs) {
+            if (isCapable(cfg.getProviderType(), required, filterCapabilities)) {
+                return providerRegistry.get(cfg.getProviderType());
+            }
         }
 
-        // 4. Fallback Stripe global
-        log.info("No enabled provider for org {} country {}, falling back to Stripe",
+        // 4. Fallback Stripe global (couvre toutes les capacités)
+        log.info("No enabled capable provider for org {} country {}, falling back to Stripe",
             orgId, countryCode);
         return providerRegistry.get(PaymentProviderType.STRIPE);
     }
 
     /**
-     * Mapping devise → liste ordonnee de providers regionaux preferes.
+     * Un provider est utilisable si le filtrage est inactif (flux PAY de base)
+     * ou s'il déclare toutes les capacités requises.
+     */
+    private boolean isCapable(PaymentProviderType type, Set<PaymentCapability> required,
+                               boolean filterCapabilities) {
+        if (!filterCapabilities) {
+            return true;
+        }
+        PaymentProvider provider = providerRegistry.get(type);
+        return required.stream().allMatch(provider::supports);
+    }
+
+    /**
+     * Mapping devise → liste ordonnée de providers régionaux préférés.
      *
-     * <p>L'ordre exprime la preference : on essaie le premier, s'il n'est
-     * pas enabled pour l'org on tente le suivant, etc. Pour les devises
-     * multi-pays (EUR, USD, GBP), liste vide = pas de preference forte →
-     * la logique pays-based prend le relais.</p>
-     *
-     * <h2>MAD (Maroc) : CMI > Payzone</h2>
-     * <p>CMI reste le standard bancaire officiel (confiance, gros volumes).
-     * Payzone est une alternative moderne (REST, onboarding rapide) — choisi
-     * en fallback si CMI n'est pas configure pour l'org.</p>
-     *
-     * <h2>SAR (KSA) : PayTabs uniquement</h2>
-     * <p>PayTabs est le leader regional, pas d'alternative crédible enabled
-     * dans Clenzy pour l'instant.</p>
-     *
-     * <p>Visibilite package-private pour testabilite directe sans monter
-     * tout le contexte Spring de l'orchestrateur.</p>
+     * <p>MAD (Maroc) : CMI &gt; Payzone. SAR (KSA) : PayTabs. Devises multi-pays
+     * (EUR, USD, GBP) : liste vide → logique pays-based.</p>
      */
     static List<PaymentProviderType> preferredProvidersForCurrency(String currency) {
         if (currency == null) return List.of();
         return switch (currency.toUpperCase()) {
             case "SAR" -> List.of(PaymentProviderType.PAYTABS);
             case "MAD" -> List.of(PaymentProviderType.CMI, PaymentProviderType.PAYZONE);
-            // AED / EGP supportés par PayTabs aussi, mais on n'impose pas l'ordre
-            // pour laisser le choix par-org. Ajouter ici si la règle se confirme
-            // côté business.
             default -> List.of();
         };
     }
 
     /**
-     * Ancienne signature pour rétro-compat avec les tests qui testent
-     * la résolution single-provider. À retirer quand les tests seront
-     * migrés vers la nouvelle signature.
-     *
      * @deprecated utiliser {@link #preferredProvidersForCurrency(String)}
      */
     @Deprecated
     static PaymentProviderType preferredProviderForCurrency(String currency) {
         List<PaymentProviderType> list = preferredProvidersForCurrency(currency);
         return list.isEmpty() ? null : list.get(0);
-    }
-
-    private PaymentTransaction createTransaction(Long orgId, PaymentProviderType providerType,
-                                                   PaymentOrchestrationRequest request,
-                                                   String idempotencyKey) {
-        PaymentTransaction tx = new PaymentTransaction();
-        tx.setOrganizationId(orgId);
-        tx.setTransactionRef("TX-" + UUID.randomUUID().toString().substring(0, 12));
-        tx.setProviderType(providerType);
-        tx.setPaymentType(TransactionType.CHECKOUT);
-        tx.setStatus(TransactionStatus.PENDING);
-        tx.setAmount(request.amount());
-        tx.setCurrency(request.currency());
-        tx.setSourceType(request.sourceType());
-        tx.setSourceId(request.sourceId());
-        tx.setIdempotencyKey(idempotencyKey);
-
-        if (request.metadata() != null) {
-            tx.setMetadata(new HashMap<>(request.metadata()));
-        }
-
-        return transactionRepository.save(tx);
-    }
-
-    private void publishEvent(PaymentTransaction tx, String eventType, Long orgId) {
-        try {
-            String payload = objectMapper.writeValueAsString(Map.of(
-                "transactionRef", tx.getTransactionRef(),
-                "providerType", tx.getProviderType().name(),
-                "status", tx.getStatus().name(),
-                "amount", tx.getAmount().toPlainString(),
-                "currency", tx.getCurrency(),
-                "sourceType", tx.getSourceType() != null ? tx.getSourceType() : "",
-                "sourceId", tx.getSourceId() != null ? tx.getSourceId() : 0
-            ));
-            outboxPublisher.publish("PAYMENT", tx.getTransactionRef(),
-                eventType, KafkaConfig.TOPIC_PAYMENT_EVENTS,
-                tx.getTransactionRef(), payload, orgId);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to publish payment event: {}", e.getMessage());
-        }
     }
 }

@@ -64,6 +64,13 @@ public class PayzonePaymentProvider implements PaymentProvider {
     }
 
     @Override
+    public Set<PaymentCapability> getCapabilities() {
+        // PAY + REFUND uniquement : pas de payout sortant ni de card-on-file,
+        // capture = auto (pas de vraie pré-autorisation).
+        return Set.of(PaymentCapability.PAY, PaymentCapability.REFUND);
+    }
+
+    @Override
     public Set<String> getSupportedCountries() {
         return Set.of("MA");
     }
