@@ -306,6 +306,9 @@ class EscrowServiceTest {
             verify(outboxPublisher).publish(eq("ESCROW"), eq("42"), eq("ESCROW_RELEASED"),
                     anyString(), eq("555"), payload.capture(), eq(ORG_ID));
             assertThat(payload.getValue())
+                    // eventType DOIT être dans le payload : l'OutboxRelay ne transmet que
+                    // le payload, sinon le consumer ne route jamais ESCROW_RELEASED.
+                    .contains("\"eventType\":\"ESCROW_RELEASED\"")
                     .contains("\"escrowId\":42")
                     .contains("\"reservationId\":555")
                     .contains("\"amount\":\"99.99\"")
