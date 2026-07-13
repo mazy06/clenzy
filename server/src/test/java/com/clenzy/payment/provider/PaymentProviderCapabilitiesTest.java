@@ -47,10 +47,15 @@ class PaymentProviderCapabilitiesTest {
     }
 
     @Test
-    @DisplayName("CMI : PAY + REFUND seulement")
-    void cmiSupportsPayAndRefundOnly() {
+    @DisplayName("CMI : PAY seulement (refund = back-office manuel, pas d'API)")
+    void cmiSupportsPayOnly() {
         PaymentProvider cmi = new CmiPaymentProvider(null, null);
-        assertPayAndRefundOnly(cmi);
+        assertThat(cmi.getCapabilities()).containsExactly(PaymentCapability.PAY);
+        assertThat(cmi.supports(PaymentCapability.PAY)).isTrue();
+        // CMI ne rembourse pas via le port (refundPayment renvoie un échec) →
+        // REFUND ne doit PAS être déclarée (honnêteté des capacités).
+        assertThat(cmi.supports(PaymentCapability.REFUND)).isFalse();
+        assertThat(cmi.supports(PaymentCapability.PAYOUT)).isFalse();
     }
 
     @Test

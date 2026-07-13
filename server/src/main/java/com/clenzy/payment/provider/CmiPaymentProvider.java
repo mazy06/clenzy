@@ -61,9 +61,12 @@ public class CmiPaymentProvider implements PaymentProvider {
 
     @Override
     public Set<PaymentCapability> getCapabilities() {
-        // PAY + REFUND uniquement : pas de payout sortant ni de card-on-file,
-        // capture = auto (pas de vraie pré-autorisation).
-        return Set.of(PaymentCapability.PAY, PaymentCapability.REFUND);
+        // PAY uniquement : CMI n'expose PAS d'API de remboursement (les refunds se
+        // font manuellement via le back-office marchand — cf. refundPayment qui
+        // renvoie un échec). Déclarer REFUND serait mensonger (règle capacités =
+        // ne déclarer que ce qui est réellement supporté par le port). Pas de
+        // payout sortant ni de card-on-file ; capture = auto (pas de pré-autorisation).
+        return Set.of(PaymentCapability.PAY);
     }
 
     @Override
