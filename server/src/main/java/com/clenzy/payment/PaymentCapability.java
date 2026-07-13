@@ -1,0 +1,30 @@
+package com.clenzy.payment;
+
+/**
+ * Capacités qu'un {@link PaymentProvider} peut supporter.
+ *
+ * <p>Permet au resolver ({@code PaymentOrchestrationService}) de ne jamais
+ * router un flux vers un provider incapable de l'exécuter — remplace les
+ * {@code UnsupportedOperationException} par une déclaration explicite (ISP).</p>
+ *
+ * <p>{@link #PAY} est la capacité de base de <strong>tout</strong> provider
+ * de paiement ; le filtrage capacitaire ne s'active donc que pour les
+ * capacités différenciantes (PREAUTH, PAYOUT, CUSTOMER…).</p>
+ */
+public enum PaymentCapability {
+
+    /** Paiement / checkout one-shot. Base commune à tous les providers. */
+    PAY,
+
+    /** Pré-autorisation puis capture différée (caution / dépôt de garantie). */
+    PREAUTH,
+
+    /** Remboursement total ou partiel. */
+    REFUND,
+
+    /** Payout sortant initié via le provider (rare — voir {@code PayoutExecutor}). */
+    PAYOUT,
+
+    /** Profil client persistant / carte enregistrée (card-on-file). */
+    CUSTOMER
+}
