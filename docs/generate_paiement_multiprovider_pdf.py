@@ -26,7 +26,8 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer,
-                                Table, TableStyle, PageBreak, KeepTogether)
+                                Table, TableStyle, PageBreak, KeepTogether, Image,
+                                NextPageTemplate, HRFlowable)
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Polygon, Circle
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -34,68 +35,151 @@ OUT_DIR = os.path.join(os.path.dirname(BASE), "analyse-concurrentielle", "pdf")
 os.makedirs(OUT_DIR, exist_ok=True)
 OUT = os.path.join(OUT_DIR, "paiement-multi-fournisseurs-dossier.pdf")
 
-# ── Palette maison (identique aux autres livrables Baitly) ─────────────────────
+# ── Palette maison (reprend le design du PDF ADR « switch & parallèle ») ───────
 PRIMARY = colors.HexColor("#3E5A68")
 PRIMARY2 = colors.HexColor("#6B8A9A")
 ACCENT = colors.HexColor("#4A9B8E")
 WARN = colors.HexColor("#D4A574")
 DANGER = colors.HexColor("#C97A7A")
-INK = colors.HexColor("#1F2A30")
-MUTED = colors.HexColor("#5C6B73")
+INK = colors.HexColor("#26333B")
+MUTED = colors.HexColor("#6A7A82")
 LIGHT = colors.HexColor("#EEF2F4")
-LINE = colors.HexColor("#C9D4D9")
+LINE = colors.HexColor("#DDE4E8")
 GREEN = colors.HexColor("#4A9B8E")
 SKY = colors.HexColor("#7BA3C2")
+HEADER_BG = colors.HexColor("#EAF0F2")     # en-tête de tableau clair (façon ADR)
+CODE_BG = colors.HexColor("#EEF1F3")       # surlignage code inline
+GRAD0 = colors.HexColor("#5B7A8C")         # barre gradient couverture
+GRAD1 = colors.HexColor("#93B0C2")
+FAINT = colors.HexColor("#E3E9EC")         # motif constellation en filigrane
+
+LOGO = os.path.join(os.path.dirname(BASE), "client", "src", "assets", "Baitly_logo.png")
+
+# ── Police géométrique Avenir Next (repli Helvetica si absente) ────────────────
+FONT, FONT_MED, FONT_DEMI, FONT_BOLD = "Helvetica", "Helvetica", "Helvetica-Bold", "Helvetica-Bold"
+FONT_IT = "Helvetica-Oblique"
+try:
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfbase.pdfmetrics import registerFontFamily
+    _AV = "/System/Library/Fonts/Avenir Next.ttc"
+    if os.path.exists(_AV):
+        pdfmetrics.registerFont(TTFont("Avenir", _AV, subfontIndex=7))        # Regular
+        pdfmetrics.registerFont(TTFont("Avenir-Med", _AV, subfontIndex=5))    # Medium
+        pdfmetrics.registerFont(TTFont("Avenir-Demi", _AV, subfontIndex=2))   # Demi Bold
+        pdfmetrics.registerFont(TTFont("Avenir-Bold", _AV, subfontIndex=0))   # Bold
+        pdfmetrics.registerFont(TTFont("Avenir-It", _AV, subfontIndex=4))     # Italic
+        registerFontFamily("Avenir", normal="Avenir", bold="Avenir-Bold",
+                           italic="Avenir-It", boldItalic="Avenir-Bold")
+        FONT, FONT_MED, FONT_DEMI, FONT_BOLD, FONT_IT = \
+            "Avenir", "Avenir-Med", "Avenir-Demi", "Avenir-Bold", "Avenir-It"
+except Exception:
+    pass
 
 ss = getSampleStyleSheet()
-PART = ParagraphStyle("PART", parent=ss["Heading1"], fontName="Helvetica-Bold", fontSize=13,
+PART = ParagraphStyle("PART", parent=ss["Heading1"], fontName=FONT_BOLD, fontSize=13,
                       textColor=colors.white, leading=16, alignment=TA_LEFT)
-H1 = ParagraphStyle("H1", parent=ss["Heading1"], fontName="Helvetica-Bold", fontSize=15,
+H1 = ParagraphStyle("H1", parent=ss["Heading1"], fontName=FONT_DEMI, fontSize=15,
                     textColor=PRIMARY, spaceBefore=6, spaceAfter=7, leading=18)
-H2 = ParagraphStyle("H2", parent=ss["Heading2"], fontName="Helvetica-Bold", fontSize=11.5,
+H2 = ParagraphStyle("H2", parent=ss["Heading2"], fontName=FONT_DEMI, fontSize=11.5,
                     textColor=PRIMARY, spaceBefore=10, spaceAfter=4, leading=14)
-H3 = ParagraphStyle("H3", parent=ss["Heading3"], fontName="Helvetica-Bold", fontSize=10,
+H3 = ParagraphStyle("H3", parent=ss["Heading3"], fontName=FONT_DEMI, fontSize=10,
                     textColor=ACCENT, spaceBefore=7, spaceAfter=3, leading=12.5)
-BODY = ParagraphStyle("BODY", parent=ss["Normal"], fontName="Helvetica", fontSize=9,
-                      textColor=INK, leading=13, spaceAfter=5)
+BODY = ParagraphStyle("BODY", parent=ss["Normal"], fontName=FONT, fontSize=9.2,
+                      textColor=INK, leading=13.6, spaceAfter=5)
 BULLET = ParagraphStyle("BULLET", parent=BODY, leftIndent=5 * mm, bulletIndent=1.5 * mm,
                         spaceAfter=2.5)
 CAP = ParagraphStyle("CAP", parent=BODY, fontSize=7.6, textColor=MUTED, leading=9.5,
                      alignment=TA_CENTER, spaceBefore=1, spaceAfter=6)
 SMALL = ParagraphStyle("SMALL", parent=BODY, fontSize=7.6, textColor=MUTED, leading=9.6)
-CELL = ParagraphStyle("CELL", parent=BODY, fontSize=7.5, leading=9.3, spaceAfter=0)
-CELLB = ParagraphStyle("CELLB", parent=CELL, fontName="Helvetica-Bold")
+CELL = ParagraphStyle("CELL", parent=BODY, fontSize=7.6, leading=9.6, spaceAfter=0)
+CELLB = ParagraphStyle("CELLB", parent=CELL, fontName=FONT_DEMI)
 CELLW = ParagraphStyle("CELLW", parent=CELLB, textColor=colors.white)
-TIT = ParagraphStyle("TIT", parent=BODY, fontName="Helvetica-Bold", fontSize=24,
-                     textColor=PRIMARY, leading=28, alignment=TA_LEFT)
-SUB = ParagraphStyle("SUB", parent=BODY, fontSize=11.5, textColor=MUTED, leading=15)
+CELLH = ParagraphStyle("CELLH", parent=CELL, fontName=FONT_DEMI, textColor=PRIMARY)  # en-tête clair
+EYEBROW = ParagraphStyle("EYEBROW", parent=BODY, fontName=FONT_DEMI, fontSize=9,
+                         textColor=PRIMARY2, leading=12, spaceAfter=3)
+TIT = ParagraphStyle("TIT", parent=BODY, fontName=FONT_BOLD, fontSize=27,
+                     textColor=PRIMARY, leading=31, alignment=TA_LEFT)
+SUB = ParagraphStyle("SUB", parent=BODY, fontName=FONT, fontSize=11.5, textColor=MUTED, leading=16)
 
 USABLE_W = A4[0] - 36 * mm
 
 
-def on_page(canvas, doc):
+def _constellation(canvas, cx, cy, r, color, node_r=2.2, lw=0.7, center_scale=1.7):
+    """Motif Baitly : 8 nœuds en octogone + nœud central + arêtes (orchestration)."""
     canvas.saveState()
-    canvas.setFillColor(colors.white)
-    canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
-    canvas.setFillColor(PRIMARY)
-    canvas.rect(0, A4[1] - 6 * mm, A4[0], 6 * mm, fill=1, stroke=0)
+    canvas.setStrokeColor(color)
+    canvas.setFillColor(color)
+    canvas.setLineWidth(lw)
+    pts = []
+    for k in range(8):
+        a = math.pi / 2 - k * math.pi / 4
+        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    for (px, py) in pts:
+        canvas.line(cx, cy, px, py)
+    for (px, py) in pts:
+        canvas.circle(px, py, node_r, fill=1, stroke=0)
+    canvas.circle(cx, cy, node_r * center_scale, fill=1, stroke=0)
+    canvas.restoreState()
+
+
+def _footer(canvas, doc, total=None):
+    canvas.saveState()
+    _constellation(canvas, 19 * mm, 10.6 * mm, 2.6, colors.HexColor("#AEBEC6"),
+                   node_r=0.8, lw=0.4, center_scale=1.6)
     canvas.setFillColor(MUTED)
-    canvas.setFont("Helvetica", 7)
-    canvas.drawString(18 * mm, 10 * mm,
-                      "Baitly - Paiement multi-fournisseurs (switch & parallele) . 2026-07-14 . Confidentiel")
-    canvas.drawRightString(A4[0] - 18 * mm, 10 * mm, "p. %d" % doc.page)
+    canvas.setFont(FONT, 7)
+    canvas.drawString(23 * mm, 9.4 * mm,
+                      "Baitly · Paiement multi-fournisseurs (switch & parallèle) · 2026-07-14 · Confidentiel")
+    page = "p. %d" % doc.page if not total else "p. %d / %d" % (doc.page, total)
+    canvas.drawRightString(A4[0] - 18 * mm, 9.4 * mm, page)
     canvas.setStrokeColor(LINE)
     canvas.line(18 * mm, 13 * mm, A4[0] - 18 * mm, 13 * mm)
     canvas.restoreState()
 
 
+def on_content(canvas, doc):
+    canvas.saveState()
+    canvas.setFillColor(colors.white)
+    canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
+    # Filet d'accent fin en haut de page (façon ADR, pas de bandeau plein sombre).
+    canvas.setStrokeColor(ACCENT)
+    canvas.setLineWidth(2)
+    canvas.line(18 * mm, A4[1] - 12 * mm, 42 * mm, A4[1] - 12 * mm)
+    canvas.restoreState()
+    _footer(canvas, doc)
+
+
+def on_cover(canvas, doc):
+    canvas.saveState()
+    canvas.setFillColor(colors.white)
+    canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
+    # Barre gradient arrondie en haut.
+    x, w, h = 18 * mm, A4[0] - 36 * mm, 7 * mm
+    y = A4[1] - 24 * mm
+    canvas.saveState()
+    p = canvas.beginPath()
+    p.roundRect(x, y, w, h, h / 2)
+    canvas.clipPath(p, stroke=0, fill=0)
+    canvas.linearGradient(x, y, x + w, y, [GRAD0, GRAD1], extend=True)
+    canvas.restoreState()
+    # Motif constellation en filigrane, bas-droite (partiellement hors-page).
+    _constellation(canvas, A4[0] - 26 * mm, 32 * mm, 30 * mm, FAINT,
+                   node_r=5.5, lw=1.4, center_scale=1.7)
+    canvas.restoreState()
+    _footer(canvas, doc)
+
+
 def make_doc(path):
     doc = BaseDocTemplate(path, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
-                          topMargin=16 * mm, bottomMargin=16 * mm,
+                          topMargin=18 * mm, bottomMargin=16 * mm,
                           title="Baitly - Paiement multi-fournisseurs (switch & parallele) - Dossier complet",
                           author="Baitly")
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="main")
-    doc.addPageTemplates([PageTemplate(id="all", frames=[frame], onPage=on_page)])
+    doc.addPageTemplates([
+        PageTemplate(id="cover", frames=[frame], onPage=on_cover),
+        PageTemplate(id="content", frames=[frame], onPage=on_content),
+    ])
     return doc
 
 
@@ -104,21 +188,26 @@ def make_doc(path):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def table(data, widths, header=True, zebra=True, align_center_cols=(), fs=None):
+    # Style tableau façon ADR : en-tête CLAIR (gris-bleu) + texte foncé, bordures fines,
+    # zébrures douces, filet d'accent sous l'en-tête. Pas de bandeau sombre.
     t = Table(data, colWidths=widths, repeatRows=1 if header else 0)
     style = [
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 3.5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3.5),
-        ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE),
+        ("LINEAFTER", (0, 0), (-2, -1), 0.4, LINE),
+        ("BOX", (0, 0), (-1, -1), 0.5, LINE),
     ]
     if header:
-        style.append(("BACKGROUND", (0, 0), (-1, 0), PRIMARY))
+        style.append(("BACKGROUND", (0, 0), (-1, 0), HEADER_BG))
+        style.append(("LINEBELOW", (0, 0), (-1, 0), 1.1, ACCENT))
     if zebra:
         for i in range(1 if header else 0, len(data)):
             if i % 2 == (0 if header else 1):
-                style.append(("BACKGROUND", (0, i), (-1, i), LIGHT))
+                style.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#F6F8F9")))
     for c in align_center_cols:
         style.append(("ALIGN", (c, 0), (c, -1), "CENTER"))
     t.setStyle(TableStyle(style))
@@ -126,7 +215,7 @@ def table(data, widths, header=True, zebra=True, align_center_cols=(), fs=None):
 
 
 def hcells(*labels):
-    return [Paragraph(l, CELLW) for l in labels]
+    return [Paragraph(l, CELLH) for l in labels]
 
 
 def cells(*texts):
@@ -188,12 +277,12 @@ def part(txt="~"):
 
 def _box(d, x, y, w, h, title, subs=None, fill=LIGHT, stroke=PRIMARY2, tcolor=INK, fs=8, bold=True):
     d.add(Rect(x, y, w, h, fillColor=fill, strokeColor=stroke, strokeWidth=0.9, rx=3, ry=3))
-    fname = "Helvetica-Bold" if bold else "Helvetica"
+    fname = FONT_DEMI if bold else FONT
     d.add(String(x + w / 2, y + h - 11, title, fontName=fname, fontSize=fs,
                  fillColor=tcolor, textAnchor="middle"))
     if subs:
         for i, s in enumerate(subs):
-            d.add(String(x + w / 2, y + h - 20.5 - i * 8.3, s, fontName="Helvetica",
+            d.add(String(x + w / 2, y + h - 20.5 - i * 8.3, s, fontName=FONT,
                          fontSize=6.4, fillColor=MUTED, textAnchor="middle"))
 
 
@@ -211,13 +300,13 @@ def _arrow(d, x1, y1, x2, y2, color=PRIMARY2, label=None, dashed=False, w=0.9, l
                    strokeColor=color, strokeWidth=w))
     if label:
         mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-        d.add(String(mx, my + ldy, label, fontName="Helvetica", fontSize=6.2,
+        d.add(String(mx, my + ldy, label, fontName=FONT, fontSize=6.2,
                      fillColor=lcolor, textAnchor="middle"))
 
 
 def _pill(d, x, y, w, h, text, fill, tcolor=colors.white, fs=7.2):
     d.add(Rect(x, y, w, h, fillColor=fill, strokeColor=fill, rx=h / 2, ry=h / 2))
-    d.add(String(x + w / 2, y + h / 2 - 2.4, text, fontName="Helvetica-Bold", fontSize=fs,
+    d.add(String(x + w / 2, y + h / 2 - 2.4, text, fontName=FONT_DEMI, fontSize=fs,
                  fillColor=tcolor, textAnchor="middle"))
 
 
@@ -262,7 +351,7 @@ def diagram_ports():
         _arrow(d, bx + bw / 2, yports, bx + bw / 2, yad + len(items) * 8.5 - 1)
 
     d.add(String(0, 2, "Config par organisation (enabled / sandbox / cles chiffrees) : plusieurs fournisseurs actifs EN PARALLELE, la devise tranche.",
-                 fontName="Helvetica-Oblique", fontSize=6.8, fillColor=MUTED))
+                 fontName=FONT_IT, fontSize=6.8, fillColor=MUTED))
     return d
 
 
@@ -287,7 +376,7 @@ def diagram_orchestration():
     _arrow(d, W / 2, H - 34 * mm, W / 2, yf + 10 * mm)
     _arrow(d, W * 0.68, H - 34 * mm, W * 0.85, yf + 10 * mm)
     d.add(String(W / 2, yf - 6, "le client paie chez le fournisseur -> notification signee (webhook / IPN)",
-                 fontName="Helvetica-Oblique", fontSize=6.6, fillColor=MUTED, textAnchor="middle"))
+                 fontName=FONT_IT, fontSize=6.6, fillColor=MUTED, textAnchor="middle"))
     # reconciliation
     yr = H - 78 * mm
     _box(d, 0, yr, W * 0.30, 14 * mm, "Notification signee",
@@ -300,7 +389,7 @@ def diagram_orchestration():
     _arrow(d, W * 0.30, yr + 7 * mm, W * 0.35, yr + 7 * mm)
     _arrow(d, W * 0.65, yr + 7 * mm, W * 0.70, yr + 7 * mm)
     d.add(String(0, 2, "Le meme circuit de confirmation sert TOUS les fournisseurs : en ajouter un ne change ni les flux metier, ni la reconciliation.",
-                 fontName="Helvetica-Oblique", fontSize=6.8, fillColor=MUTED))
+                 fontName=FONT_IT, fontSize=6.8, fillColor=MUTED))
     return d
 
 
@@ -326,20 +415,20 @@ def diagram_sequence():
     y = top - 6 * mm
     step = 9.2 * mm
     msg(y, 0, 1, "clique payer"); y -= step
-    d.add(String(xs[1], y + 3, "recalcule le montant (serveur)", fontName="Helvetica-Oblique",
+    d.add(String(xs[1], y + 3, "recalcule le montant (serveur)", fontName=FONT_IT,
                  fontSize=6.2, fillColor=DANGER, textAnchor="middle")); y -= step * 0.55
     msg(y, 1, 2, "initiatePayment(montant serveur)"); y -= step
-    d.add(String(xs[2], y + 3, "resout le fournisseur + persist PENDING", fontName="Helvetica-Oblique",
+    d.add(String(xs[2], y + 3, "resout le fournisseur + persist PENDING", fontName=FONT_IT,
                  fontSize=6.2, fillColor=MUTED, textAnchor="middle")); y -= step * 0.55
     msg(y, 2, 3, "createPayment (HORS tx, cle idempotence)"); y -= step
     msg(y, 3, 2, "URL / clientSecret", dashed=True); y -= step
     msg(y, 2, 1, "session de paiement", dashed=True); y -= step
     msg(y, 1, 0, "redirige vers le PSP", dashed=True); y -= step
-    d.add(String(xs[3], y + 3, "le voyageur paie sur la page du PSP", fontName="Helvetica-Oblique",
+    d.add(String(xs[3], y + 3, "le voyageur paie sur la page du PSP", fontName=FONT_IT,
                  fontSize=6.2, fillColor=MUTED, textAnchor="middle")); y -= step * 0.6
     msg(y, 3, 4, "webhook SIGNE (succes)", color=ACCENT); y -= step
     d.add(String(xs[4], y + 3, "ledger COMPLETED -> event -> entite PAYE (idempotent)",
-                 fontName="Helvetica-Oblique", fontSize=6.2, fillColor=ACCENT, textAnchor="middle"))
+                 fontName=FONT_IT, fontSize=6.2, fillColor=ACCENT, textAnchor="middle"))
     return d
 
 
@@ -370,9 +459,9 @@ def diagram_states():
     _arrow(d, xs[1] + bw / 2 - 6, y, failed_cx, yb + 10 * mm, color=DANGER)
     _arrow(d, xs[1] + bw / 2 + 6, y, cancelled_cx, yb + 10 * mm, color=WARN)
     ymid = (y + yb + 10 * mm) / 2
-    d.add(String(failed_cx - 4, ymid, "échec / refus", fontName="Helvetica", fontSize=6.2,
+    d.add(String(failed_cx - 4, ymid, "échec / refus", fontName=FONT, fontSize=6.2,
                  fillColor=DANGER, textAnchor="end"))
-    d.add(String(cancelled_cx + 4, ymid, "expiré", fontName="Helvetica", fontSize=6.2,
+    d.add(String(cancelled_cx + 4, ymid, "expiré", fontName=FONT, fontSize=6.2,
                  fillColor=WARN, textAnchor="start"))
     return d
 
@@ -396,14 +485,14 @@ def diagram_resolution():
         yy = y - i * step
         c = GREEN if i == len(nodes) - 1 else PRIMARY2
         _box(d, xL, yy - 10 * mm, W * 0.52, 10 * mm, t, fill=LIGHT, stroke=c, fs=7.8)
-        d.add(String(xL + W * 0.54, yy - 6, s, fontName="Helvetica", fontSize=6.8,
+        d.add(String(xL + W * 0.54, yy - 6, s, fontName=FONT, fontSize=6.8,
                      fillColor=MUTED, textAnchor="start"))
         if i < len(nodes) - 1:
             ax = xL + W * 0.26
             _arrow(d, ax, yy - 10 * mm, ax, yy - step)
             # label « sinon » à DROITE de la flèche verticale (évite la pointe)
             d.add(String(ax + 6, (yy - 10 * mm + yy - step) / 2 - 2, "sinon",
-                         fontName="Helvetica", fontSize=6.2, fillColor=MUTED, textAnchor="start"))
+                         fontName=FONT, fontSize=6.2, fillColor=MUTED, textAnchor="start"))
     return d
 
 
@@ -424,7 +513,7 @@ def diagram_payout_sepa():
 
     # A — mise en place du mandat (une fois)
     d.add(String(4, H - 6 * mm, "A. Mise en place (une fois) — mandat SEPA",
-                 fontName="Helvetica-Bold", fontSize=8, fillColor=PRIMARY, textAnchor="start"))
+                 fontName=FONT_DEMI, fontSize=8, fillColor=PRIMARY, textAnchor="start"))
     yA = H - 24 * mm
     row3(yA,
          [("Proprietaire", ["IBAN + signature", "mandat SEPA"], colors.white, PRIMARY2),
@@ -434,7 +523,7 @@ def diagram_payout_sepa():
 
     # B — reversement mensuel (recurrent) : 4 boites bien espacees
     d.add(String(4, yA - 8 * mm, "B. Chaque mois — reversement automatique",
-                 fontName="Helvetica-Bold", fontSize=8, fillColor=PRIMARY, textAnchor="start"))
+                 fontName=FONT_DEMI, fontSize=8, fillColor=PRIMARY, textAnchor="start"))
     yB = yA - 30 * mm
     bw = W * 0.205
     xs = [0, W * 0.265, W * 0.53, W - bw]
@@ -451,7 +540,7 @@ def diagram_payout_sepa():
                color=colorsB[i], label=(lab or None), ldy=3)
 
     d.add(String(4, 2, "Le mandat SEPA evite de re-saisir l'IBAN chaque mois : virement recurrent declenche par Baitly, trace au ledger (rail SEPA / OpenBanking).",
-                 fontName="Helvetica-Oblique", fontSize=6.8, fillColor=MUTED))
+                 fontName=FONT_IT, fontSize=6.8, fillColor=MUTED))
     return d
 
 
@@ -464,19 +553,19 @@ def diagram_uml():
     def iface(x, y, w, name, methods):
         h = 30 + len(methods) * 7.5
         d.add(Rect(x, y - h, w, h, fillColor=colors.HexColor("#EAF0F2"), strokeColor=PRIMARY, strokeWidth=1))
-        d.add(String(x + w / 2, y - 8, "<<interface>>", fontName="Helvetica-Oblique", fontSize=6.2,
+        d.add(String(x + w / 2, y - 8, "<<interface>>", fontName=FONT_IT, fontSize=6.2,
                      fillColor=MUTED, textAnchor="middle"))
-        d.add(String(x + w / 2, y - 16, name, fontName="Helvetica-Bold", fontSize=7.6,
+        d.add(String(x + w / 2, y - 16, name, fontName=FONT_DEMI, fontSize=7.6,
                      fillColor=PRIMARY, textAnchor="middle"))
         d.add(Line(x, y - 19, x + w, y - 19, strokeColor=PRIMARY, strokeWidth=0.6))
         for i, m in enumerate(methods):
-            d.add(String(x + 4, y - 27 - i * 7.5, "+ " + m, fontName="Helvetica", fontSize=6.3,
+            d.add(String(x + 4, y - 27 - i * 7.5, "+ " + m, fontName=FONT, fontSize=6.3,
                          fillColor=INK, textAnchor="start"))
         return h
 
     def impl(x, y, w, name, c):
         d.add(Rect(x, y - 10, w, 10, fillColor=colors.white, strokeColor=c, strokeWidth=0.8, rx=2, ry=2))
-        d.add(String(x + w / 2, y - 7, name, fontName="Helvetica", fontSize=6.5,
+        d.add(String(x + w / 2, y - 7, name, fontName=FONT, fontSize=6.5,
                      fillColor=INK, textAnchor="middle"))
 
     colw = W * 0.31
@@ -512,7 +601,7 @@ def diagram_uml():
             impl(x, y_impl_top - i * impl_step, colw, m, c)
 
     d.add(String(0, 2, "Realisation (fleche pointillee) : chaque adaptateur implemente son port ; un registry resout l'implementation par capacite + devise + pays.",
-                 fontName="Helvetica-Oblique", fontSize=6.4, fillColor=MUTED))
+                 fontName=FONT_IT, fontSize=6.4, fillColor=MUTED))
     return d
 
 
@@ -526,13 +615,36 @@ def fig(drawing, caption):
 
 story = []
 
-# ── Couverture ────────────────────────────────────────────────────────────────
-story.append(Spacer(1, 24 * mm))
-story.append(Paragraph("Paiement multi-fournisseurs", TIT))
-story.append(Paragraph("switch &amp; parallèle", ParagraphStyle("t2", parent=TIT, textColor=ACCENT)))
-story.append(Spacer(1, 5 * mm))
-story.append(Paragraph("Dossier complet — décision d'architecture, système en fonctionnement, "
-                       "exigences &amp; démarchage des prestataires de paiement (PSP)", SUB))
+# ── Couverture (design ADR « switch & parallèle ») ────────────────────────────
+# Logo Baitly dessiné (mark 8 nœuds « orchestration » + wordmark). On n'utilise PAS
+# client/src/assets/Baitly_logo.png : cet asset contient encore l'ancien logo Clenzy.
+def baitly_logo():
+    w, h = 70 * mm, 17 * mm
+    d = Drawing(w, h)
+    cx, cy, r = 9 * mm, h / 2, 6.4 * mm
+    for k in range(8):
+        a = math.pi / 2 - k * math.pi / 4
+        px, py = cx + r * math.cos(a), cy + r * math.sin(a)
+        d.add(Line(cx, cy, px, py, strokeColor=PRIMARY2, strokeWidth=1.1))
+    for k in range(8):
+        a = math.pi / 2 - k * math.pi / 4
+        px, py = cx + r * math.cos(a), cy + r * math.sin(a)
+        d.add(Circle(px, py, 1.7, fillColor=PRIMARY, strokeColor=None))
+    d.add(Circle(cx, cy, 2.8, fillColor=PRIMARY, strokeColor=None))
+    d.add(String(cx + r + 5 * mm, cy - 7.5, "baitly", fontName=FONT_BOLD, fontSize=23, fillColor=PRIMARY))
+    return d
+
+story.append(Spacer(1, 22 * mm))
+story.append(baitly_logo())
+story.append(Spacer(1, 15 * mm))
+story.append(Paragraph("ARCHITECTURE&nbsp;&nbsp;·&nbsp;&nbsp;DOSSIER&nbsp;&nbsp;·&nbsp;&nbsp;CONFIDENTIEL", EYEBROW))
+story.append(Paragraph("Paiement <font color='#6B8A9A'>multi-fournisseurs</font>", TIT))
+story.append(Paragraph("switch &amp; parallèle", TIT))
+story.append(Spacer(1, 3 * mm))
+story.append(HRFlowable(width=22 * mm, thickness=2.4, color=ACCENT, spaceBefore=1, spaceAfter=5,
+                        hAlign="LEFT"))
+story.append(Paragraph("Décision d'architecture, système en fonctionnement, exigences &amp; démarchage "
+                       "des prestataires de paiement (PSP).", SUB))
 story.append(Spacer(1, 9 * mm))
 cover = table([
     hcells("Document", "Détail"),
@@ -540,17 +652,11 @@ cover = table([
                    "aux banques / PSP, et piloter leur démarchage + certification par pays."),
     cells("Fusionne", "ADR « paiement multi-fournisseurs (switch + parallèle) » + documentation système "
                       "technique &amp; métier + runbook de certification PSP + démarchage par pays."),
-    cells("Public", "Direction Baitly, équipes métier, partenaires bancaires, PSP candidats."),
     cells("Version", "2.0 — 14 juillet 2026 (architecture multi-fournisseurs achevée côté encaissement)."),
     cells("Confidentialité", "Document interne — diffusion externe uniquement sous NDA."),
 ], [30 * mm, USABLE_W - 30 * mm])
 story.append(cover)
-story.append(Spacer(1, 6 * mm))
-story.append(Paragraph("<b>Comment lire ce dossier.</b> La partie I fixe la décision d'architecture "
-                       "(le « pourquoi » et le « quoi »). La partie II montre le système en marche "
-                       "(schémas, séquence, états). La partie III est l'outil de terrain pour démarcher "
-                       "et certifier les PSP (exigences, plan par pays, grille). La partie IV regroupe "
-                       "les annexes (UML, glossaire).", BODY))
+story.append(NextPageTemplate("content"))
 story.append(PageBreak())
 
 # ── Sommaire ──────────────────────────────────────────────────────────────────
@@ -635,15 +741,15 @@ story.append(table([
     [Paragraph("<b>V5</b> Périphérie", CELL), Paragraph("Shop, upsells, crédits IA, mobile", CELL), Paragraph("Plus aucun Stripe direct hors adaptateurs", CELL), ok()],
     [Paragraph("<b>V6</b> Certification", CELL), Paragraph("Sandbox PayZone/CMI/PayTabs + E2E", CELL), Paragraph("Adaptateurs régionaux prouvés", CELL), Paragraph("code prêt<br/>sandbox §17", ParagraphStyle("w", parent=CELL, textColor=WARN, alignment=TA_CENTER))],
 ], [26 * mm, 52 * mm, 52 * mm, USABLE_W - 26 * mm - 104 * mm], align_center_cols=(3,)))
-story.append(Paragraph("<b>Méthode par vague</b> : tests de caractérisation → bascule derrière l'orchestration "
-                       "→ vérification E2E → suppression du code Stripe direct devenu mort (preuve avant "
+story.append(Paragraph("<b>Méthode par vague</b> : tests de caractérisation -> bascule derrière l'orchestration "
+                       "-> vérification E2E -> suppression du code Stripe direct devenu mort (preuve avant "
                        "suppression). Résultat : <b>plus aucun Session.create hors de la couche adaptateur</b>.", BODY))
 
 story.append(Paragraph("6. Invariants « money-safety » (préservés)", H1))
 for t in [
     "<b>Le serveur fixe le montant</b> — recalculé depuis l'entité métier ; le montant client n'est qu'un cross-check.",
-    "<b>Aucun appel HTTP externe dans une transaction DB</b> — tx courte (persist PENDING) → appel fournisseur hors tx (idempotent) → tx courte (persist résultat) ; effets externes post-commit.",
-    "<b>Idempotence de bout en bout</b> — clé d'idempotence à la création ; transitions de statut en UPDATE conditionnel (CAS) → pas de double-crédit sur re-livraison webhook.",
+    "<b>Aucun appel HTTP externe dans une transaction DB</b> — tx courte (persist PENDING) -> appel fournisseur hors tx (idempotent) -> tx courte (persist résultat) ; effets externes post-commit.",
+    "<b>Idempotence de bout en bout</b> — clé d'idempotence à la création ; transitions de statut en UPDATE conditionnel (CAS) -> pas de double-crédit sur re-livraison webhook.",
     "<b>Conversion monétaire sûre</b> — arrondi HALF_UP, jamais de troncature ; attention aux devises à 3 décimales / sans sous-unité (PSP régionaux).",
     "<b>Pas de catch(Exception) avaleur</b> — un échec produit un statut de réconciliation explicite + une alerte admin.",
     "<b>Webhooks signés</b> — signature vérifiée avant tout changement d'état ; secrets par organisation, chiffrés au repos.",
@@ -737,7 +843,7 @@ story.append(Paragraph("Trois niveaux : <font color='#C97A7A'><b>OBLIGATOIRE</b>
                        "<font color='#4A9B8E'><b>OPTIONNELLE</b></font> (différenciante, avec repli).", BODY))
 story.append(Paragraph("13.1 Obligatoires (éliminatoires)", H2))
 must = [
-    ("E1.1", "Création de paiement par API serveur-à-serveur (montant exact, devise, notre référence, URLs de retour → page hébergée)."),
+    ("E1.1", "Création de paiement par API serveur-à-serveur (montant exact, devise, notre référence, URLs de retour -> page hébergée)."),
     ("E1.2", "Référence marchande restituée telle quelle dans toutes les notifications et consultations (clé de réconciliation)."),
     ("E1.3", "Webhooks / IPN signés (signature vérifiable) avec re-livraison automatique et motifs d'échec distincts."),
     ("E1.4", "Remboursement total et partiel par API, avec référence de remboursement."),
@@ -944,7 +1050,7 @@ story.append(table([
     cells("<i>CMI</i>", "<i>Consortium bancaire</i>", "<i>Traitement technique (switch) — n'est plus l'acquéreur exclusif</i>"),
 ], [34 * mm, 40 * mm, USABLE_W - 34 * mm - 40 * mm]))
 story.append(Paragraph("<b>Ce qu'ils couvrent</b> : encaissement carte (acquiring), passerelle e-commerce, "
-                       "POS, règlement au compte (D+1 à D+3), 3-D Secure / PCI-DSS, tokenisation → "
+                       "POS, règlement au compte (D+1 à D+3), 3-D Secure / PCI-DSS, tokenisation -> "
                        "<b>récurrent émergent</b>.", BODY))
 story.append(Paragraph("<b>Ce qui manque encore</b> (à ce jour, non documenté chez ces acteurs) : "
                        "<b>payout-as-a-service</b> (verser des tiers par API), <b>pré-autorisation / caution</b>, "
@@ -966,7 +1072,7 @@ story.append(Paragraph("Aucun acteur marocain ne fait tout, mais <b>les briques 
                        "s'améliorent vite. Les ports de Baitly permettent de les <b>composer</b>.", BODY))
 story.append(table([
     hcells("Acteur", "Rôle dans la stack", "Capacités confirmées", "Effort d'intégration"),
-    cells("<b>Attijari Payment</b> (Attijariwafa)", "PORT ENTRANT (acquiring MAD)", "Chaîne complète émission→acquisition ; plugins + API simples ; 3DS ; reporting temps réel", "<b>Faible</b> : protocole type CMI (SHA-512 + Client ID/Store Key + callback) → réutilise notre adaptateur CMI"),
+    cells("<b>Attijari Payment</b> (Attijariwafa)", "PORT ENTRANT (acquiring MAD)", "Chaîne complète émission->acquisition ; plugins + API simples ; 3DS ; reporting temps réel", "<b>Faible</b> : protocole type CMI (SHA-512 + Client ID/Store Key + callback) -> réutilise notre adaptateur CMI"),
     cells("<b>CMI</b> (a absorbé Maroc Telecommerce)", "PORT ENTRANT + tokenisation", "Acquiring MAD ; <b>tokenisation</b> (card-on-file) ; <b>récurrent + paiement en N fois</b> ; mPOS ; PayPal/UnionPay", "Faible : adaptateur CMI déjà en place (à étendre : tokenisation/récurrent)"),
     cells("<b>PayZone</b>", "PORT ENTRANT + tokenisation", "Acquiring MAD ; tokenisation ; abonnement <b>partiel</b> ; liens de paiement", "Faible : adaptateur PayZone déjà en place"),
     cells("<b>Chari Pay</b> (ChariBaaS)", "PORT ABONNEMENT (récurrent)", "<b>API d'abonnement moderne</b> : REST + webhooks, retry auto, <b>dunning</b> (email/SMS), account updater, tokenisation PCI-DSS L1", "Moyen : nouvel adaptateur SubscriptionProvider"),
@@ -1006,8 +1112,8 @@ story.append(Paragraph("* effort côté Baitly une fois les accès obtenus (hors
 story.append(Paragraph("<b>Scénarios de certification</b> (à passer pour chaque PSP) :", H3))
 story.append(table([
     hcells("#", "Scénario", "Attendu"),
-    cells("C1", "Paiement accepté", "webhook signé → COMPLETED, entité PAYÉE"),
-    cells("C2", "Paiement refusé (carte de refus)", "webhook signé → FAILED, message exploitable"),
+    cells("C1", "Paiement accepté", "webhook signé -> COMPLETED, entité PAYÉE"),
+    cells("C2", "Paiement refusé (carte de refus)", "webhook signé -> FAILED, message exploitable"),
     cells("C3", "Montant exact au centime", "débité = montant du ledger (attention devises 3 déc.)"),
     cells("C4", "Devise correcte", "pas de conversion silencieuse"),
     cells("C5 / C6", "Signature valide / invalide", "traité / rejeté 401 sans modif"),
@@ -1037,7 +1143,7 @@ for r, crit in allreq:
 story.append(table(grid, [20 * mm, 46 * mm, 22 * mm, 9 * mm, 11 * mm, 9 * mm,
                           USABLE_W - 20 * mm - 46 * mm - 22 * mm - 29 * mm],
                    align_center_cols=(2, 3, 4, 5)))
-story.append(Paragraph("Toute E1.x à « Non » est éliminatoire en l'état → demander la feuille de route. "
+story.append(Paragraph("Toute E1.x à « Non » est éliminatoire en l'état -> demander la feuille de route. "
                        "Les E2.x/E3.x à « Non » n'excluent pas : le repli documenté s'applique et la "
                        "capacité pourra être activée sans re-développement.", BODY))
 
