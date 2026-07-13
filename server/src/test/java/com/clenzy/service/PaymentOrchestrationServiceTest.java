@@ -250,6 +250,31 @@ class PaymentOrchestrationServiceTest {
         }
 
         @Test
+        @DisplayName("shipping requirement routes past an incapable regional provider (capability, not pin)")
+        void whenShippingRequired_thenSkipsIncapableRegionalProvider() {
+            // MAD + PayZone activé pour l'org, MAIS le flux demande la collecte
+            // d'adresse (SHIPPING_ADDRESS) que PayZone ne déclare pas → fallback Stripe.
+            // C'est la capacité qui tranche, pas un preferredProvider épinglé.
+            PaymentOrchestrationRequest req = new PaymentOrchestrationRequest(
+                    BigDecimal.valueOf(100), "MAD", "HARDWARE_ORDER", 42L,
+                    "Matériel", "b@x.ma", null, "https://ok", "https://ko",
+                    Map.of(), null, false, null, false, List.of("MA", "FR"));
+            when(paymentPersistence.consumeIdempotentReplay(any())).thenReturn(Optional.empty());
+            PaymentMethodConfig payzoneCfg = new PaymentMethodConfig();
+            payzoneCfg.setProviderType(PaymentProviderType.PAYZONE);
+            when(configService.getEnabledProviders(ORG_ID, "FR")).thenReturn(List.of(payzoneCfg));
+            PaymentProvider payzoneProvider = org.mockito.Mockito.mock(PaymentProvider.class);
+            org.mockito.Mockito.lenient().when(payzoneProvider.supports(any()))
+                    .thenAnswer(inv -> inv.getArgument(0) != com.clenzy.payment.PaymentCapability.SHIPPING_ADDRESS);
+            when(providerRegistry.get(PaymentProviderType.PAYZONE)).thenReturn(payzoneProvider);
+            when(providerRegistry.get(PaymentProviderType.STRIPE)).thenReturn(stripeProvider);
+            stubProviderSuccess(stripeProvider, PaymentProviderType.STRIPE);
+
+            assertThat(service.initiatePayment(req).providerUsed()).isEqualTo(PaymentProviderType.STRIPE);
+            verify(payzoneProvider, never()).createPayment(any());
+        }
+
+        @Test
         @DisplayName("falls back to Stripe when no provider enabled")
         void whenNoneEnabled_thenStripe() {
             PaymentOrchestrationRequest req = buildRequest("EUR", null, null);

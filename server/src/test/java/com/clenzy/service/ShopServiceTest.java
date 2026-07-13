@@ -169,14 +169,15 @@ class ShopServiceTest {
             // Sauvé deux fois : commande PENDING, puis rattachement de la réf de session.
             verify(hardwareOrderRepository, times(2)).save(any(HardwareOrder.class));
 
-            // Provider épinglé Stripe + shipping + metadata via la requête d'orchestration.
+            // Pas d'épinglage provider : la collecte d'adresse s'exprime en capacité
+            // SHIPPING_ADDRESS (resolver capability-aware), pas en preferredProvider.
             ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
                     ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
             verify(orchestrationService).initiatePayment(reqCaptor.capture());
             PaymentOrchestrationRequest req = reqCaptor.getValue();
             assertThat(req.sourceType()).isEqualTo(ShopService.SOURCE_TYPE);
             assertThat(req.sourceId()).isEqualTo(42L);
-            assertThat(req.preferredProvider()).isEqualTo(PaymentProviderType.STRIPE);
+            assertThat(req.preferredProvider()).isNull();
             assertThat(req.shippingAddressCountries()).contains("FR", "MA");
             assertThat(req.metadata())
                     .containsEntry("type", "hardware_purchase")

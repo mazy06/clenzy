@@ -3,14 +3,11 @@ package com.clenzy.service;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.PaymentStatus;
-import com.clenzy.model.RequestStatus;
 import com.clenzy.model.Reservation;
-import com.clenzy.model.ServiceRequest;
 import com.clenzy.payment.StripeAmounts;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
-import com.clenzy.repository.ServiceRequestRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -36,7 +33,6 @@ public class StripeCheckoutSessionFactory {
 
     private final InterventionRepository interventionRepository;
     private final ReservationRepository reservationRepository;
-    private final ServiceRequestRepository serviceRequestRepository;
     private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
     private final StripeGateway stripeGateway;
 
@@ -51,12 +47,10 @@ public class StripeCheckoutSessionFactory {
 
     public StripeCheckoutSessionFactory(InterventionRepository interventionRepository,
                                         ReservationRepository reservationRepository,
-                                        ServiceRequestRepository serviceRequestRepository,
                                         com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard,
                                         StripeGateway stripeGateway) {
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
-        this.serviceRequestRepository = serviceRequestRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.stripeGateway = stripeGateway;
     }
@@ -177,82 +171,8 @@ public class StripeCheckoutSessionFactory {
         builder.setPaymentIntentData(piData.build());
     }
 
-    /**
-     * Cree une session Stripe EMBEDDED pour un upsell guest (clientSecret cote livret).
-     * Chargee sur le compte plateforme comme les reservations ; la repartition part
-     * hote / part plateforme est creditee au ledger a la confirmation du paiement
-     * (cf. UpsellService.markPaidBySession via le webhook checkout.session.completed).
-     */
-    public Session createUpsellCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
-                                               String title, String customerEmail) throws StripeException {
-        String cur = (currencyCode != null && !currencyCode.isBlank()) ? currencyCode : currency;
-
-        SessionCreateParams params = baseCheckoutParams(
-                true, cur, StripeAmounts.toMinorUnits(amount), title, null, customerEmail)
-            .putMetadata("type", "upsell")
-            .putMetadata("upsell_order_id", upsellOrderId.toString())
-            .build();
-
-        return stripeGateway.createSession(params);
-    }
-
-    /**
-     * Variante HOSTED (redirection) d'un upsell — pour le booking engine (SDK vanilla, pas de Stripe.js
-     * embedded). Même métadonnées que la version embedded → même confirmation webhook
-     * ({@code UpsellService.markPaidBySession}). {@code successUrl} déjà validé par l'appelant
-     * (anti open-redirect) ; null = {@code stripe.success-url} par défaut.
-     */
-    public Session createUpsellHostedCheckoutSession(Long upsellOrderId, BigDecimal amount, String currencyCode,
-                                                     String title, String customerEmail, String successUrl) throws StripeException {
-        String cur = (currencyCode != null && !currencyCode.isBlank()) ? currencyCode : currency;
-
-        SessionCreateParams params = baseCheckoutParams(
-                false, cur, StripeAmounts.toMinorUnits(amount), title, null, customerEmail, successUrl)
-            .putMetadata("type", "upsell")
-            .putMetadata("upsell_order_id", upsellOrderId.toString())
-            .build();
-
-        return stripeGateway.createSession(params);
-    }
-
-    /**
-     * Variante unique HOSTED/EMBEDDED pour les demandes de service (T-SOLID-4).
-     *
-     * <p>La SR doit etre en AWAITING_PAYMENT (verifie par
-     * {@link #loadPayableServiceRequest}) — son statut n'est donc pas modifie
-     * ici, seuls le sessionId et le paymentStatus le sont. Le fallback herite
-     * « V97 not applied » (T-BP-03) a ete supprime : la contrainte CHECK
-     * incluant AWAITING_PAYMENT est en place de longue date (Liquibase), le
-     * fallback ecrasait le statut avec PENDING en contradiction avec son propre
-     * message, et son re-save s'executait dans une transaction deja marquee
-     * rollback-only (inoperant).</p>
-     */
-    public Session createServiceRequestSession(Long serviceRequestId, String customerEmail,
-                                               boolean embedded) throws StripeException {
-        ServiceRequest sr = loadPayableServiceRequest(serviceRequestId);
-
-        SessionCreateParams params = baseCheckoutParams(
-                embedded,
-                currency,
-                StripeAmounts.toMinorUnits(sr.getEstimatedCost()),
-                "Demande de service: " + sr.getTitle(),
-                sr.getDescription() != null ? sr.getDescription() : "Paiement pour la demande de service",
-                customerEmail)
-            .putMetadata("type", "service_request")
-            .putMetadata("service_request_id", serviceRequestId.toString())
-            .build();
-
-        Session session = stripeGateway.createSession(params);
-
-        sr.setStripeSessionId(session.getId());
-        sr.setPaymentStatus(PaymentStatus.PROCESSING);
-        serviceRequestRepository.save(sr);
-
-        log.info("Stripe {} session created for SR {}: sessionId={}",
-            embedded ? "embedded" : "checkout", serviceRequestId, session.getId());
-
-        return session;
-    }
+    // Les méthodes createUpsell* / createServiceRequestSession ont été supprimées
+    // (Vague 5) : ces flux passent par PaymentOrchestrationService. Preuve par grep.
 
     /**
      * Socle commun des sessions Checkout (T-SOLID-4) : mode HOSTED (redirection
@@ -357,20 +277,4 @@ public class StripeCheckoutSessionFactory {
      * statut AWAITING_PAYMENT (assignee, en attente de paiement) et montant
      * serveur strictement positif.
      */
-    private ServiceRequest loadPayableServiceRequest(Long serviceRequestId) {
-        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
-            .orElseThrow(() -> new NotFoundException("Demande de service non trouvee: " + serviceRequestId));
-
-        if (sr.getStatus() != RequestStatus.AWAITING_PAYMENT) {
-            throw new IllegalStateException(
-                "La demande de service doit etre en statut AWAITING_PAYMENT pour proceder au paiement. "
-                + "Statut actuel: " + sr.getStatus());
-        }
-
-        BigDecimal amount = sr.getEstimatedCost();
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Montant invalide pour la demande de service: " + amount);
-        }
-        return sr;
-    }
 }

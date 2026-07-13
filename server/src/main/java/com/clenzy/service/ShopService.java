@@ -6,7 +6,6 @@ import com.clenzy.dto.ShopCheckoutRequest;
 import com.clenzy.model.HardwareCatalog;
 import com.clenzy.model.HardwareOrder;
 import com.clenzy.model.OrderStatus;
-import com.clenzy.model.PaymentProviderType;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.HardwareOrderRepository;
 import com.clenzy.tenant.TenantContext;
@@ -71,10 +70,13 @@ public class ShopService {
      * Crée une session de paiement (orchestrée) pour un achat de matériel IoT.
      * Les prix sont résolus côté serveur depuis HardwareCatalog (jamais depuis le frontend).
      *
-     * <p>Provider épinglé Stripe : la collecte d'adresse de livraison + sa relecture à
-     * la complétion ({@code completeOrder} via {@code retrieveSession}) sont Stripe-spécifiques.
+     * <p>La collecte d'adresse de livraison est exprimée en <strong>capacité</strong>
+     * ({@code SHIPPING_ADDRESS}) : le resolver route vers un provider capable (Stripe
+     * aujourd'hui, tout PSP qui déclarera la capacité demain — aucun épinglage en dur).
      * Le montant est facturé en une ligne unique (le détail par SKU reste dans
-     * {@code order.itemsJson}). Complétion inchangée via le webhook {@code type=hardware_purchase}.</p>
+     * {@code order.itemsJson}). Complétion inchangée via le webhook {@code type=hardware_purchase}
+     * (relecture du shipping via {@code retrieveSession}, Stripe-spécifique tant qu'un
+     * seul provider déclare la capacité).</p>
      *
      * <p>NOT_SUPPORTED (règle #2) : appel provider hors transaction ; création commande +
      * rattachement session en transactions courtes.</p>
@@ -135,7 +137,7 @@ public class ShopService {
             order.getId(),
             "Materiel IoT — " + itemCount + " article(s)",
             customerEmail,
-            PaymentProviderType.STRIPE,           // épinglé : shipping Stripe-spécifique
+            null,                                  // résolu par capacité SHIPPING_ADDRESS (pas d'épinglage)
             successUrl,
             cancelUrl,
             metadata,

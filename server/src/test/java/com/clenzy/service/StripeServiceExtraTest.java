@@ -70,7 +70,7 @@ class StripeServiceExtraTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(1L);
         StripeCheckoutSessionFactory checkoutSessionFactory = new StripeCheckoutSessionFactory(
-            interventionRepository, reservationRepository, serviceRequestRepository,
+            interventionRepository, reservationRepository,
             new com.clenzy.service.access.OrganizationAccessGuard(tenantContext), stripeGateway);
         StripePaymentConfirmationService paymentConfirmationService = new StripePaymentConfirmationService(
             interventionRepository, reservationRepository, serviceRequestRepository,
