@@ -25,6 +25,8 @@ import com.clenzy.service.email.BookingConfirmationEmailService;
 import com.clenzy.service.voucher.VoucherApplyResult;
 import com.clenzy.service.voucher.VoucherEngine;
 import com.clenzy.service.voucher.VoucherValidationResult;
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.stripe.model.checkout.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +95,9 @@ public class PublicBookingService {
     private final GuestService guestService;
     private final TouristTaxService touristTaxService;
     private final StripeService stripeService;
+    private final com.clenzy.service.PaymentOrchestrationService orchestrationService;
+    /** Transactions courtes pour dé-transactionaliser le checkout (appel orchestrateur HORS tx, règle money-safety #2). */
+    private final org.springframework.transaction.support.TransactionTemplate writeTx;
     private final GuestReviewRepository guestReviewRepository;
     private final VoucherEngine voucherEngine;
     private final NotificationService notificationService;
@@ -133,7 +138,9 @@ public class PublicBookingService {
             BookingDisplayCurrencyService displayCurrencyService,
             com.clenzy.service.UpsellService upsellService,
             BookingFraudScoringService fraudScoringService,
-            BookingMockDataProvider mockDataProvider) {
+            BookingMockDataProvider mockDataProvider,
+            com.clenzy.service.PaymentOrchestrationService orchestrationService,
+            org.springframework.transaction.PlatformTransactionManager transactionManager) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -158,6 +165,8 @@ public class PublicBookingService {
         this.upsellService = upsellService;
         this.fraudScoringService = fraudScoringService;
         this.mockDataProvider = mockDataProvider;
+        this.orchestrationService = orchestrationService;
+        this.writeTx = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
     }
 
     /** {@code true} si le booking engine du ctx est en mode démo (données mock). */
@@ -984,19 +993,79 @@ public class PublicBookingService {
      * être résolu par l'appelant via {@code ClientIpResolver} (jamais {@code X-Forwarded-For.split(",")[0]}).
      * {@code null} = pas de signal de vélocité IP (le scoring reste cohérent).
      */
-    @Transactional
+    // Pas de @Transactional : le checkout est dé-transactionalisé (l'appel orchestrateur, qui fait
+    // un HTTP externe et gère ses propres transactions courtes, DOIT être hors tx — règle money-safety
+    // #2). Les phases DB s'exécutent dans des transactions courtes via writeTx.
+    @org.springframework.transaction.annotation.Transactional(
+        propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public BookingCheckoutResponseDto checkout(OrgContext ctx, BookingCheckoutRequestDto req, String clientIp) {
         if (isMock(ctx)) {
-            // Mode démo : checkout SIMULÉ — aucun appel Stripe, aucune session réelle créée.
+            // Mode démo : checkout SIMULÉ — aucun appel provider, aucune session réelle créée.
             return mockDataProvider.checkout(req);
         }
-        Long orgId = ctx.orgId();
+        final Long orgId = ctx.orgId();
 
-        // Guard: si collectPaymentOnBooking=false, pas de checkout Stripe
+        // Guard: si collectPaymentOnBooking=false, pas de checkout en ligne
         if (!ctx.config().isCollectPaymentOnBooking()) {
             throw new IllegalStateException("Le paiement en ligne n'est pas active pour cette configuration");
         }
 
+        // Phase 1 (tx courte) : chargement, validations, crédit fidélité (intention persistée),
+        // scoring de risque (peut lever/annoter) et capture des données. On sort de la transaction
+        // AVANT l'appel provider (règle money-safety #2 : jamais d'HTTP externe en tx — et
+        // l'orchestrateur a besoin d'être hors tx pour ses propres transactions courtes).
+        CheckoutPrep prep = writeTx.execute(s -> prepareCheckout(ctx, req, clientIp, orgId));
+
+        // Phase 2 (HORS tx) : session de paiement via l'orchestrateur multi-provider (Stripe / PayZone
+        // / CMI selon org + devise). Réconciliation PAID portée par le consumer PAYMENT_COMPLETED
+        // (sourceType RESERVATION), pas par le webhook direct.
+        java.util.Map<String, String> metadata = new java.util.LinkedHashMap<>();
+        metadata.put("reservation_id", String.valueOf(prep.reservationId()));
+        if (prep.radarMetadata() != null) {
+            metadata.putAll(prep.radarMetadata());
+        }
+        PaymentOrchestrationRequest request = new PaymentOrchestrationRequest(
+            prep.chargeAmount(),                                    // Z3-SEC-01 : montant serveur (total - crédit)
+            prep.currency(),
+            com.clenzy.service.ReservationPaymentService.SOURCE_TYPE, // "RESERVATION" → consumer + garde webhook
+            prep.reservationId(),
+            "Reservation " + prep.propertyName(),
+            prep.guestEmail(),
+            null,                                                   // preferredProvider : résolu par l'orchestrateur
+            prep.successUrl(),                                      // retour template-driven (déjà validé)
+            null,                                                   // cancelUrl : défaut provider
+            metadata,
+            "BOOKING-CHECKOUT-" + prep.reservationId(),             // idempotence par réservation
+            false,                                                  // embedded : non (hébergé, redirection)
+            prep.expiresAtEpochSeconds(),                           // ~35 min
+            false);                                                 // saveCard : non
+
+        PaymentOrchestrationResult result = orchestrationService.initiatePayment(orgId, prep.countryCode(), request);
+        if (!result.isSuccess()) {
+            String err = result.paymentResult() != null ? result.paymentResult().errorMessage() : "erreur inconnue";
+            log.error("Booking Engine checkout : echec orchestration pour reservation {} : {}",
+                prep.confirmationCode(), err);
+            throw new RuntimeException("Erreur lors de la creation du paiement");
+        }
+
+        // Phase 3 (tx courte) : rattacher la référence provider pour la réconciliation
+        // (confirmReservationPayment retrouve la résa par stripeSessionId = providerTxId).
+        final String providerTxId = result.paymentResult().providerTxId();
+        writeTx.executeWithoutResult(s -> attachProviderSession(prep.reservationId(), providerTxId));
+
+        log.info("Booking Engine: session paiement {} creee pour reservation {} (provider {})",
+            providerTxId, prep.confirmationCode(), result.providerUsed());
+        return new BookingCheckoutResponseDto(result.paymentResult().redirectUrl(), providerTxId);
+    }
+
+    /** Données du checkout capturées en transaction courte, consommées hors tx par l'orchestrateur. */
+    private record CheckoutPrep(Long reservationId, String confirmationCode, BigDecimal chargeAmount,
+                                String currency, String countryCode, String guestEmail, String propertyName,
+                                String successUrl, Long expiresAtEpochSeconds,
+                                java.util.Map<String, String> radarMetadata) {}
+
+    /** Phase 1 du checkout (transaction courte) : charge, valide, applique crédit + scoring, capture les données. */
+    private CheckoutPrep prepareCheckout(OrgContext ctx, BookingCheckoutRequestDto req, String clientIp, Long orgId) {
         Reservation reservation = reservationRepository
             .findByConfirmationCodeAndOrganizationId(req.reservationCode(), orgId)
             .orElseThrow(() -> new IllegalArgumentException("Reservation introuvable : " + req.reservationCode()));
@@ -1006,16 +1075,14 @@ public class PublicBookingService {
         if (!"pending".equalsIgnoreCase(status) && !"confirmed".equalsIgnoreCase(status)) {
             throw new IllegalStateException("La reservation n'est pas en attente de paiement (statut: " + status + ")");
         }
-
         if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
             throw new IllegalStateException("La reservation est deja payee");
         }
 
-        // Crédit fidélité (2.8) : on STOCKE l'intention (creditApplied) + on réduit le montant Stripe.
-        // La DÉDUCTION effective a lieu à la confirmation du paiement (finalizeBookingPayment) → un
-        // abandon ne consomme jamais le crédit. Borné aux réservations à paiement complet (hors acompte) ;
-        // on laisse toujours >= MIN_STRIPE à payer (le flux payé standard déclenche facture/notifs +
-        // la déduction). [Couverture totale sans aucun paiement = à câbler ultérieurement.]
+        // Crédit fidélité (2.8) : on STOCKE l'intention (creditApplied) + on réduit le montant. La
+        // DÉDUCTION effective a lieu à la confirmation du paiement → un abandon ne consomme jamais le
+        // crédit. Borné aux réservations à paiement complet (hors acompte) ; on laisse toujours
+        // >= MIN_STRIPE à payer.
         String creditEmail = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
         BigDecimal totalPrice = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO;
         if (ctx.config().getDepositPercent() == null && reservation.getCreditApplied() == null && creditEmail != null) {
@@ -1029,47 +1096,36 @@ public class PublicBookingService {
         BigDecimal creditApplied = reservation.getCreditApplied() != null ? reservation.getCreditApplied() : BigDecimal.ZERO;
         BigDecimal chargeAmount = totalPrice.subtract(creditApplied);
 
-        // P2 — scoring de risque/fraude AVANT la création de session (donc avant le seul appel externe).
-        // Le montant scoré est le total RECALCULÉ SERVEUR (reservation.totalPrice), jamais un montant
-        // client. La décision graduée est appliquée par assessCheckoutRisk (advisory par défaut → no-op).
+        // P2 — scoring de risque/fraude AVANT la création de session. Le montant scoré est le total
+        // RECALCULÉ SERVEUR, jamais un montant client. Décision graduée (advisory par défaut → no-op).
         RiskDecision riskDecision = assessCheckoutRisk(reservation, clientIp);
 
-        try {
-            String propertyName = reservation.getProperty() != null
-                ? reservation.getProperty().getName() : "Reservation";
-            String guestEmail = reservation.getGuest() != null
-                ? reservation.getGuest().getEmail() : null;
+        String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "Reservation";
+        String countryCode = reservation.getProperty() != null ? reservation.getProperty().getCountryCode() : null;
+        String guestEmail = reservation.getGuest() != null ? reservation.getGuest().getEmail() : null;
+        String currency = reservation.getCurrency() != null ? reservation.getCurrency() : "EUR";
 
-            // Retour Stripe template-driven (B3) : success_url = page confirmation du SITE de l'org,
-            // STRICTEMENT validee (HTTPS + host autorise) ; sinon null → success_url par defaut.
-            String successUrl = resolveCheckoutSuccessUrl(
-                ctx.config(), req.returnUrl(), reservation.getConfirmationCode());
+        // Retour template-driven (B3) : success_url = page confirmation du SITE de l'org, STRICTEMENT
+        // validée (HTTPS + host autorisé) ; sinon null → success_url par défaut du provider.
+        String successUrl = resolveCheckoutSuccessUrl(ctx.config(), req.returnUrl(), reservation.getConfirmationCode());
 
-            // expires_at ~35 min : la session devient inutilisable peu apres
-            // l'expiration du hold de 30 min (reliquat revue A3).
-            Session session = stripeService.createReservationCheckoutSession(
-                reservation.getId(),
-                chargeAmount,
-                guestEmail,
-                reservation.getGuestName(),
-                propertyName,
-                java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES),
-                successUrl,
-                riskDecision.radarMetadata()
-            );
+        // expires_at ~35 min : la session devient inutilisable peu après l'expiration du hold de 30 min.
+        long expiresAt = java.time.Instant.now()
+            .plus(java.time.Duration.ofMinutes(CHECKOUT_SESSION_LIFETIME_MINUTES)).getEpochSecond();
 
-            reservation.setStripeSessionId(session.getId());
-            reservationRepository.save(reservation);
+        return new CheckoutPrep(reservation.getId(), reservation.getConfirmationCode(), chargeAmount,
+            currency, countryCode, guestEmail, propertyName, successUrl, expiresAt, riskDecision.radarMetadata());
+    }
 
-            log.info("Booking Engine: Stripe session {} creee pour reservation {}",
-                session.getId(), reservation.getConfirmationCode());
-
-            return new BookingCheckoutResponseDto(session.getUrl(), session.getId());
-        } catch (Exception e) {
-            log.error("Erreur Stripe checkout pour reservation {}: {}",
-                reservation.getConfirmationCode(), e.getMessage(), e);
-            throw new RuntimeException("Erreur lors de la creation du paiement", e);
+    /** Phase 3 du checkout (transaction courte) : rattache la référence provider à la réservation. */
+    private void attachProviderSession(Long reservationId, String providerTxId) {
+        if (providerTxId == null) {
+            return;
         }
+        reservationRepository.findById(reservationId).ifPresent(r -> {
+            r.setStripeSessionId(providerTxId);
+            reservationRepository.save(r);
+        });
     }
 
     /**

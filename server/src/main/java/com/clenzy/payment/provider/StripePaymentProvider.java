@@ -108,8 +108,22 @@ public class StripePaymentProvider implements PaymentProvider {
                 builder.setShippingAddressCollection(shipping.build());
             }
 
-            if (request.metadata() != null) {
+            if (request.metadata() != null && !request.metadata().isEmpty()) {
                 builder.putAllMetadata(request.metadata());
+                // Miroir sur le PaymentIntent : les métadonnées de session ne se propagent
+                // PAS automatiquement à la charge/PI. On les recopie pour (a) Stripe Radar
+                // (règles lues sur le PaymentIntent, ex. scoring de fraude du booking engine)
+                // et (b) la traçabilité sur la charge.
+                builder.setPaymentIntentData(
+                    com.stripe.param.checkout.SessionCreateParams.PaymentIntentData.builder()
+                        .putAllMetadata(request.metadata())
+                        .build());
+            }
+
+            // Expiration de la session (ex. ~35 min pour le checkout booking engine) —
+            // null = défaut Stripe (24h).
+            if (request.expiresAtEpochSeconds() != null) {
+                builder.setExpiresAt(request.expiresAtEpochSeconds());
             }
 
             com.stripe.model.checkout.Session session = com.stripe.model.checkout.Session.create(
