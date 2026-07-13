@@ -1,278 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Genere le DOSSIER COMPLET « Paiement multi-fournisseurs — switch & parallele ».
+"""Génère le dossier « Paiement multi-fournisseurs — switch & parallèle ».
 
-Fusionne :
-  - l'ADR « Architecture de paiement multi-fournisseurs (switch + parallele) »
-    (server/docs/ADR-paiement-multi-provider.md),
-  - la doc systeme technique + metier
-    (server/docs/PAIEMENT-SYSTEME-MULTI-FOURNISSEURS.md),
-  - le runbook de certification
-    (server/docs/PAIEMENT-CERTIFICATION-PSP-RUNBOOK.md),
-et ajoute : le demarchage des PSP par pays, un plan de certification sandbox par
-PSP, et l'exigence de mandat SEPA / virement bancaire pour les payouts mensuels.
-
-Public : direction Baitly, equipes metier, partenaires bancaires & PSP candidats.
-Riche en schemas, tableaux et UML pour une comprehension visuelle rapide.
+Style : importe le THÈME PDF Baitly partagé (docs/baitly_pdf_theme.py) — palette,
+police Avenir, couverture, tableaux, footer, motif constellation. Ce fichier ne
+contient que le CONTENU propre au document (diagrammes + sections).
 
 Usage : python3 docs/generate_paiement_multiprovider_pdf.py
 Sortie : analyse-concurrentielle/pdf/paiement-multi-fournisseurs-dossier.pdf
 """
 import os
-import math
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer,
-                                Table, TableStyle, PageBreak, KeepTogether, Image,
-                                NextPageTemplate, HRFlowable)
-from reportlab.graphics.shapes import Drawing, Rect, String, Line, Polygon, Circle
+from baitly_pdf_theme import *  # noqa: F401,F403 - theme PDF Baitly partage
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(os.path.dirname(BASE), "analyse-concurrentielle", "pdf")
 os.makedirs(OUT_DIR, exist_ok=True)
 OUT = os.path.join(OUT_DIR, "paiement-multi-fournisseurs-dossier.pdf")
 
-# ── Palette maison (reprend le design du PDF ADR « switch & parallèle ») ───────
-PRIMARY = colors.HexColor("#3E5A68")
-PRIMARY2 = colors.HexColor("#6B8A9A")
-ACCENT = colors.HexColor("#4A9B8E")
-WARN = colors.HexColor("#D4A574")
-DANGER = colors.HexColor("#C97A7A")
-INK = colors.HexColor("#26333B")
-MUTED = colors.HexColor("#6A7A82")
-LIGHT = colors.HexColor("#EEF2F4")
-LINE = colors.HexColor("#DDE4E8")
-GREEN = colors.HexColor("#4A9B8E")
-SKY = colors.HexColor("#7BA3C2")
-HEADER_BG = colors.HexColor("#EAF0F2")     # en-tête de tableau clair (façon ADR)
-CODE_BG = colors.HexColor("#EEF1F3")       # surlignage code inline
-GRAD0 = colors.HexColor("#5B7A8C")         # barre gradient couverture
-GRAD1 = colors.HexColor("#93B0C2")
-FAINT = colors.HexColor("#E3E9EC")         # motif constellation en filigrane
-
-LOGO = os.path.join(os.path.dirname(BASE), "client", "src", "assets", "Baitly_logo.png")
-
-# ── Police géométrique Avenir Next (repli Helvetica si absente) ────────────────
-FONT, FONT_MED, FONT_DEMI, FONT_BOLD = "Helvetica", "Helvetica", "Helvetica-Bold", "Helvetica-Bold"
-FONT_IT = "Helvetica-Oblique"
-try:
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.pdfbase.pdfmetrics import registerFontFamily
-    _AV = "/System/Library/Fonts/Avenir Next.ttc"
-    if os.path.exists(_AV):
-        pdfmetrics.registerFont(TTFont("Avenir", _AV, subfontIndex=7))        # Regular
-        pdfmetrics.registerFont(TTFont("Avenir-Med", _AV, subfontIndex=5))    # Medium
-        pdfmetrics.registerFont(TTFont("Avenir-Demi", _AV, subfontIndex=2))   # Demi Bold
-        pdfmetrics.registerFont(TTFont("Avenir-Bold", _AV, subfontIndex=0))   # Bold
-        pdfmetrics.registerFont(TTFont("Avenir-It", _AV, subfontIndex=4))     # Italic
-        registerFontFamily("Avenir", normal="Avenir", bold="Avenir-Bold",
-                           italic="Avenir-It", boldItalic="Avenir-Bold")
-        FONT, FONT_MED, FONT_DEMI, FONT_BOLD, FONT_IT = \
-            "Avenir", "Avenir-Med", "Avenir-Demi", "Avenir-Bold", "Avenir-It"
-except Exception:
-    pass
-
-ss = getSampleStyleSheet()
-PART = ParagraphStyle("PART", parent=ss["Heading1"], fontName=FONT_BOLD, fontSize=13,
-                      textColor=colors.white, leading=16, alignment=TA_LEFT)
-H1 = ParagraphStyle("H1", parent=ss["Heading1"], fontName=FONT_DEMI, fontSize=15,
-                    textColor=PRIMARY, spaceBefore=6, spaceAfter=7, leading=18)
-H2 = ParagraphStyle("H2", parent=ss["Heading2"], fontName=FONT_DEMI, fontSize=11.5,
-                    textColor=PRIMARY, spaceBefore=10, spaceAfter=4, leading=14)
-H3 = ParagraphStyle("H3", parent=ss["Heading3"], fontName=FONT_DEMI, fontSize=10,
-                    textColor=ACCENT, spaceBefore=7, spaceAfter=3, leading=12.5)
-BODY = ParagraphStyle("BODY", parent=ss["Normal"], fontName=FONT, fontSize=9.2,
-                      textColor=INK, leading=13.6, spaceAfter=5)
-BULLET = ParagraphStyle("BULLET", parent=BODY, leftIndent=5 * mm, bulletIndent=1.5 * mm,
-                        spaceAfter=2.5)
-CAP = ParagraphStyle("CAP", parent=BODY, fontSize=7.6, textColor=MUTED, leading=9.5,
-                     alignment=TA_CENTER, spaceBefore=1, spaceAfter=6)
-SMALL = ParagraphStyle("SMALL", parent=BODY, fontSize=7.6, textColor=MUTED, leading=9.6)
-CELL = ParagraphStyle("CELL", parent=BODY, fontSize=7.6, leading=9.6, spaceAfter=0)
-CELLB = ParagraphStyle("CELLB", parent=CELL, fontName=FONT_DEMI)
-CELLW = ParagraphStyle("CELLW", parent=CELLB, textColor=colors.white)
-CELLH = ParagraphStyle("CELLH", parent=CELL, fontName=FONT_DEMI, textColor=PRIMARY)  # en-tête clair
-EYEBROW = ParagraphStyle("EYEBROW", parent=BODY, fontName=FONT_DEMI, fontSize=9,
-                         textColor=PRIMARY2, leading=12, spaceAfter=3)
-TIT = ParagraphStyle("TIT", parent=BODY, fontName=FONT_BOLD, fontSize=27,
-                     textColor=PRIMARY, leading=31, alignment=TA_LEFT)
-SUB = ParagraphStyle("SUB", parent=BODY, fontName=FONT, fontSize=11.5, textColor=MUTED, leading=16)
-
-USABLE_W = A4[0] - 36 * mm
-
-
-def _constellation(canvas, cx, cy, r, color, node_r=2.2, lw=0.7, center_scale=1.7):
-    """Motif Baitly : 8 nœuds en octogone + nœud central + arêtes (orchestration)."""
-    canvas.saveState()
-    canvas.setStrokeColor(color)
-    canvas.setFillColor(color)
-    canvas.setLineWidth(lw)
-    pts = []
-    for k in range(8):
-        a = math.pi / 2 - k * math.pi / 4
-        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
-    for (px, py) in pts:
-        canvas.line(cx, cy, px, py)
-    for (px, py) in pts:
-        canvas.circle(px, py, node_r, fill=1, stroke=0)
-    canvas.circle(cx, cy, node_r * center_scale, fill=1, stroke=0)
-    canvas.restoreState()
-
-
-def _footer(canvas, doc, total=None):
-    canvas.saveState()
-    _constellation(canvas, 19 * mm, 10.6 * mm, 2.6, colors.HexColor("#AEBEC6"),
-                   node_r=0.8, lw=0.4, center_scale=1.6)
-    canvas.setFillColor(MUTED)
-    canvas.setFont(FONT, 7)
-    canvas.drawString(23 * mm, 9.4 * mm,
-                      "Baitly · Paiement multi-fournisseurs (switch & parallèle) · 2026-07-14 · Confidentiel")
-    page = "p. %d" % doc.page if not total else "p. %d / %d" % (doc.page, total)
-    canvas.drawRightString(A4[0] - 18 * mm, 9.4 * mm, page)
-    canvas.setStrokeColor(LINE)
-    canvas.line(18 * mm, 13 * mm, A4[0] - 18 * mm, 13 * mm)
-    canvas.restoreState()
-
-
-def on_content(canvas, doc):
-    canvas.saveState()
-    canvas.setFillColor(colors.white)
-    canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
-    # Filet d'accent fin en haut de page (façon ADR, pas de bandeau plein sombre).
-    canvas.setStrokeColor(ACCENT)
-    canvas.setLineWidth(2)
-    canvas.line(18 * mm, A4[1] - 12 * mm, 42 * mm, A4[1] - 12 * mm)
-    canvas.restoreState()
-    _footer(canvas, doc)
-
-
-def on_cover(canvas, doc):
-    canvas.saveState()
-    canvas.setFillColor(colors.white)
-    canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
-    # Barre gradient arrondie en haut.
-    x, w, h = 18 * mm, A4[0] - 36 * mm, 7 * mm
-    y = A4[1] - 24 * mm
-    canvas.saveState()
-    p = canvas.beginPath()
-    p.roundRect(x, y, w, h, h / 2)
-    canvas.clipPath(p, stroke=0, fill=0)
-    canvas.linearGradient(x, y, x + w, y, [GRAD0, GRAD1], extend=True)
-    canvas.restoreState()
-    # Motif constellation en filigrane, bas-droite (partiellement hors-page).
-    _constellation(canvas, A4[0] - 26 * mm, 32 * mm, 30 * mm, FAINT,
-                   node_r=5.5, lw=1.4, center_scale=1.7)
-    canvas.restoreState()
-    _footer(canvas, doc)
-
-
-def make_doc(path):
-    doc = BaseDocTemplate(path, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
-                          topMargin=18 * mm, bottomMargin=16 * mm,
-                          title="Baitly - Paiement multi-fournisseurs (switch & parallele) - Dossier complet",
-                          author="Baitly")
-    frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="main")
-    doc.addPageTemplates([
-        PageTemplate(id="cover", frames=[frame], onPage=on_cover),
-        PageTemplate(id="content", frames=[frame], onPage=on_content),
-    ])
-    return doc
-
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Helpers texte / tableaux
-# ══════════════════════════════════════════════════════════════════════════════
-
-def table(data, widths, header=True, zebra=True, align_center_cols=(), fs=None):
-    # Style tableau façon ADR : en-tête CLAIR (gris-bleu) + texte foncé, bordures fines,
-    # zébrures douces, filet d'accent sous l'en-tête. Pas de bandeau sombre.
-    t = Table(data, colWidths=widths, repeatRows=1 if header else 0)
-    style = [
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 5),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE),
-        ("LINEAFTER", (0, 0), (-2, -1), 0.4, LINE),
-        ("BOX", (0, 0), (-1, -1), 0.5, LINE),
-    ]
-    if header:
-        style.append(("BACKGROUND", (0, 0), (-1, 0), HEADER_BG))
-        style.append(("LINEBELOW", (0, 0), (-1, 0), 1.1, ACCENT))
-    if zebra:
-        for i in range(1 if header else 0, len(data)):
-            if i % 2 == (0 if header else 1):
-                style.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#F6F8F9")))
-    for c in align_center_cols:
-        style.append(("ALIGN", (c, 0), (c, -1), "CENTER"))
-    t.setStyle(TableStyle(style))
-    return t
-
-
-def hcells(*labels):
-    return [Paragraph(l, CELLH) for l in labels]
-
-
-def cells(*texts):
-    return [Paragraph(t, CELL) for t in texts]
-
-
-def crit_cell(level):
-    color = {"OBLIGATOIRE": DANGER, "IMPORTANTE": WARN, "OPTIONNELLE": ACCENT}[level]
-    return Paragraph(level, ParagraphStyle("crit", parent=CELLB, textColor=color))
-
-
-def part_banner(num, title):
-    """Bandeau de partie pleine largeur."""
-    t = Table([[Paragraph(f"PARTIE {num}", ParagraphStyle("pn", parent=PART, fontSize=9, textColor=colors.HexColor("#BcCdd4"))),
-                Paragraph(title, PART)]],
-              colWidths=[26 * mm, USABLE_W - 26 * mm])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), PRIMARY),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-        ("LEFTPADDING", (0, 0), (0, 0), 8),
-    ]))
-    return t
-
-
-def ok(txt="fait"):
-    return Paragraph(txt, ParagraphStyle("ok", parent=CELLB, textColor=GREEN, alignment=TA_CENTER))
-
-
-# Marqueurs de matrice sûrs pour Helvetica (pas d'emoji : ils s'affichent en carrés noirs).
-_YES = ParagraphStyle("yes", parent=CELLB, textColor=GREEN, alignment=TA_CENTER, fontSize=9)
-_NO = ParagraphStyle("no", parent=CELL, textColor=colors.HexColor("#B9C4CA"), alignment=TA_CENTER)
-_SOON = ParagraphStyle("soon", parent=CELL, textColor=WARN, alignment=TA_CENTER, fontSize=6.6)
-
-
-def yes():
-    return Paragraph("&bull;", _YES)
-
-
-def no():
-    return Paragraph("&mdash;", _NO)
-
-
-def soon(txt="prévu"):
-    return Paragraph(txt, _SOON)
-
-
-_PART = ParagraphStyle("part", parent=CELLB, textColor=WARN, alignment=TA_CENTER)
-
-
-def part(txt="~"):
-    return Paragraph(txt, _PART)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Primitives de dessin vectoriel
+# Primitives de dessin propres aux diagrammes de CE document
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _box(d, x, y, w, h, title, subs=None, fill=LIGHT, stroke=PRIMARY2, tcolor=INK, fs=8, bold=True):
@@ -605,59 +352,27 @@ def diagram_uml():
     return d
 
 
-def fig(drawing, caption):
-    return KeepTogether([drawing, Paragraph(caption, CAP)])
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Contenu
 # ══════════════════════════════════════════════════════════════════════════════
 
 story = []
 
-# ── Couverture (design ADR « switch & parallèle ») ────────────────────────────
-# Logo Baitly dessiné (mark 8 nœuds « orchestration » + wordmark). On n'utilise PAS
-# client/src/assets/Baitly_logo.png : cet asset contient encore l'ancien logo Clenzy.
-def baitly_logo():
-    w, h = 70 * mm, 17 * mm
-    d = Drawing(w, h)
-    cx, cy, r = 9 * mm, h / 2, 6.4 * mm
-    for k in range(8):
-        a = math.pi / 2 - k * math.pi / 4
-        px, py = cx + r * math.cos(a), cy + r * math.sin(a)
-        d.add(Line(cx, cy, px, py, strokeColor=PRIMARY2, strokeWidth=1.1))
-    for k in range(8):
-        a = math.pi / 2 - k * math.pi / 4
-        px, py = cx + r * math.cos(a), cy + r * math.sin(a)
-        d.add(Circle(px, py, 1.7, fillColor=PRIMARY, strokeColor=None))
-    d.add(Circle(cx, cy, 2.8, fillColor=PRIMARY, strokeColor=None))
-    d.add(String(cx + r + 5 * mm, cy - 7.5, "baitly", fontName=FONT_BOLD, fontSize=23, fillColor=PRIMARY))
-    return d
-
-story.append(Spacer(1, 22 * mm))
-story.append(baitly_logo())
-story.append(Spacer(1, 15 * mm))
-story.append(Paragraph("ARCHITECTURE&nbsp;&nbsp;·&nbsp;&nbsp;DOSSIER&nbsp;&nbsp;·&nbsp;&nbsp;CONFIDENTIEL", EYEBROW))
-story.append(Paragraph("Paiement <font color='#6B8A9A'>multi-fournisseurs</font>", TIT))
-story.append(Paragraph("switch &amp; parallèle", TIT))
-story.append(Spacer(1, 3 * mm))
-story.append(HRFlowable(width=22 * mm, thickness=2.4, color=ACCENT, spaceBefore=1, spaceAfter=5,
-                        hAlign="LEFT"))
-story.append(Paragraph("Décision d'architecture, système en fonctionnement, exigences &amp; démarchage "
-                       "des prestataires de paiement (PSP).", SUB))
-story.append(Spacer(1, 9 * mm))
-cover = table([
-    hcells("Document", "Détail"),
-    cells("Objet", "Comprendre l'architecture de paiement multi-fournisseurs de Baitly, la présenter "
-                   "aux banques / PSP, et piloter leur démarchage + certification par pays."),
-    cells("Fusionne", "ADR « paiement multi-fournisseurs (switch + parallèle) » + documentation système "
-                      "technique &amp; métier + runbook de certification PSP + démarchage par pays."),
-    cells("Version", "2.0 — 14 juillet 2026 (architecture multi-fournisseurs achevée côté encaissement)."),
-    cells("Confidentialité", "Document interne — diffusion externe uniquement sous NDA."),
-], [30 * mm, USABLE_W - 30 * mm])
-story.append(cover)
-story.append(NextPageTemplate("content"))
-story.append(PageBreak())
+# ── Couverture (via le thème Baitly) ──────────────────────────────────────────
+build_cover(
+    story,
+    eyebrow="ARCHITECTURE&nbsp;&nbsp;·&nbsp;&nbsp;DOSSIER&nbsp;&nbsp;·&nbsp;&nbsp;CONFIDENTIEL",
+    title_lines=["Paiement <font color='#6B8A9A'>multi-fournisseurs</font>", "switch &amp; parallèle"],
+    subtitle="Décision d'architecture, système en fonctionnement, exigences &amp; démarchage "
+             "des prestataires de paiement (PSP).",
+    meta_rows=[
+        ("Objet", "Comprendre l'architecture de paiement multi-fournisseurs de Baitly, la présenter "
+                  "aux banques / PSP, et piloter leur démarchage + certification par pays."),
+        ("Fusionne", "ADR « paiement multi-fournisseurs (switch + parallèle) » + documentation système "
+                     "technique &amp; métier + runbook de certification PSP + démarchage par pays."),
+        ("Version", "2.0 — 14 juillet 2026 (architecture multi-fournisseurs achevée côté encaissement)."),
+        ("Confidentialité", "Document interne — diffusion externe uniquement sous NDA."),
+    ])
 
 # ── Sommaire ──────────────────────────────────────────────────────────────────
 story.append(Paragraph("Sommaire", H1))
@@ -1195,5 +910,6 @@ story.append(Paragraph("Document généré depuis les sources internes Baitly (A
                        "Fusionne et remplace les PDF « ADR switch & parallèle » et « système de paiement "
                        "multi-fournisseurs ». Générateur : docs/generate_paiement_multiprovider_pdf.py.", SMALL))
 
-make_doc(OUT).build(story)
+make_doc(OUT, title="Baitly - Paiement multi-fournisseurs (switch & parallele)",
+         footer_label="Baitly \u00b7 Paiement multi-fournisseurs (switch & parall\u00e8le) \u00b7 2026-07-14 \u00b7 Confidentiel").build(story)
 print("OK ->", OUT)
