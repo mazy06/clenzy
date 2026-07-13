@@ -23,6 +23,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
+import com.clenzy.payment.PaymentResult;
+import com.clenzy.model.PaymentProviderType;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -56,6 +61,8 @@ class PublicBookingServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private BookingServiceOptionsService serviceOptionsService;
     @Mock private com.clenzy.booking.security.BookingFraudScoringService fraudScoringService;
+    @Mock private com.clenzy.service.PaymentOrchestrationService orchestrationService;
+    @Mock private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private PublicBookingService service;
 
@@ -79,7 +86,26 @@ class PublicBookingServiceTest {
                 org.mockito.Mockito.mock(com.clenzy.booking.service.BookingDisplayCurrencyService.class),
                 org.mockito.Mockito.mock(com.clenzy.service.UpsellService.class),
                 fraudScoringService,
-                new BookingMockDataProvider());
+                new BookingMockDataProvider(),
+                orchestrationService,
+                transactionManager);
+        // writeTx.execute(...) exécute le callback via ce mock (checkout dé-transactionalisé).
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
+    }
+
+    /** Stub orchestrateur : succès Stripe (providerTxId cs_test + redirectUrl). */
+    private void stubOrchestratorSuccess() {
+        when(orchestrationService.initiatePayment(anyLong(), any(), any(PaymentOrchestrationRequest.class)))
+                .thenReturn(new PaymentOrchestrationResult(null,
+                        PaymentResult.success("cs_test", "https://pay/checkout/cs_test"),
+                        PaymentProviderType.STRIPE));
+    }
+
+    /** Capture la requête d'orchestration du checkout (vérif successUrl / metadata). */
+    private PaymentOrchestrationRequest captureCheckoutRequest() {
+        ArgumentCaptor<PaymentOrchestrationRequest> cap = ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+        verify(orchestrationService).initiatePayment(anyLong(), any(), cap.capture());
+        return cap.getValue();
     }
 
     // ───────────────────── helpers ──────────────────────────────────────────────
@@ -769,21 +795,16 @@ class PublicBookingServiceTest {
             r.setProperty(buildProperty());
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.of(r));
+            when(reservationRepository.findById(50L)).thenReturn(Optional.of(r));
 
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_test");
-            when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
-            // Reliquat A3 : le flux /reserve+/checkout pose une duree de vie (~35 min). B3 : surcharge
-            // success_url explicite (null ici car returnUrl absent → success_url par defaut). P2 : 8-arg
-            // avec riskMetadata (null car scoring désactivé par défaut sur le mock).
-            when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    eq(java.time.Duration.ofMinutes(35)), isNull(), isNull()))
-                    .thenReturn(session);
+            // Checkout multi-provider : session via l'orchestrateur (providerTxId = cs_test).
+            stubOrchestratorSuccess();
 
             BookingCheckoutResponseDto resp = service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null));
 
             assertThat(resp.sessionId()).isEqualTo("cs_test");
             assertThat(resp.checkoutUrl()).contains("cs_test");
+            // Phase 3 : la référence provider est rattachée à la réservation (réconciliation).
             verify(reservationRepository).save(r);
             assertThat(r.getStripeSessionId()).isEqualTo("cs_test");
         }
@@ -799,8 +820,8 @@ class PublicBookingServiceTest {
             r.setProperty(buildProperty());
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.of(r));
-            when(stripeService.createReservationCheckoutSession(any(), any(), any(), any(), any(), any(), any(), any()))
-                    .thenThrow(new RuntimeException("boom"));
+            when(orchestrationService.initiatePayment(anyLong(), any(), any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(new PaymentOrchestrationResult(null, PaymentResult.failure("boom"), null));
 
             assertThatThrownBy(() -> service.checkout(buildCtx(), new BookingCheckoutRequestDto("CODE", null)))
                     .isInstanceOf(RuntimeException.class);
@@ -820,12 +841,7 @@ class PublicBookingServiceTest {
             r.setProperty(buildProperty());
             when(reservationRepository.findByConfirmationCodeAndOrganizationId("CODE", ORG_ID))
                     .thenReturn(Optional.of(r));
-
-            Session session = mock(Session.class);
-            when(session.getId()).thenReturn("cs_test");
-            when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
-            when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), any(), any())).thenReturn(session);
+            stubOrchestratorSuccess();
 
             BookingEngineConfig cfg = buildConfig(true);
             cfg.setAllowedOrigins(allowedOrigins);
@@ -839,8 +855,7 @@ class PublicBookingServiceTest {
 
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci"));
 
-            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), eq("https://book.acme.com/merci?reservation=CODE"), any());
+            assertThat(captureCheckoutRequest().successUrl()).isEqualTo("https://book.acme.com/merci?reservation=CODE");
         }
 
         @Test
@@ -850,8 +865,7 @@ class PublicBookingServiceTest {
 
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci?lang=fr"));
 
-            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), eq("https://book.acme.com/merci?lang=fr&reservation=CODE"), any());
+            assertThat(captureCheckoutRequest().successUrl()).isEqualTo("https://book.acme.com/merci?lang=fr&reservation=CODE");
         }
 
         @Test
@@ -861,8 +875,7 @@ class PublicBookingServiceTest {
 
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://evil.example.com/steal"));
 
-            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), isNull(), any());
+            assertThat(captureCheckoutRequest().successUrl()).isNull();
         }
 
         @Test
@@ -872,8 +885,7 @@ class PublicBookingServiceTest {
 
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "http://book.acme.com/merci"));
 
-            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), isNull(), any());
+            assertThat(captureCheckoutRequest().successUrl()).isNull();
         }
 
         @Test
@@ -883,8 +895,7 @@ class PublicBookingServiceTest {
 
             service.checkout(ctx, new BookingCheckoutRequestDto("CODE", "https://book.acme.com/merci"));
 
-            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), isNull(), any());
+            assertThat(captureCheckoutRequest().successUrl()).isNull();
         }
     }
 
@@ -908,13 +919,8 @@ class PublicBookingServiceTest {
             return r;
         }
 
-        private Session stubStripeSession() throws StripeException {
-            Session session = mock(Session.class);
-            lenient().when(session.getId()).thenReturn("cs_test");
-            lenient().when(session.getUrl()).thenReturn("https://stripe/checkout/cs_test");
-            when(stripeService.createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), any(), any())).thenReturn(session);
-            return session;
+        private void stubStripeSession() {
+            stubOrchestratorSuccess();
         }
 
         @Test
@@ -947,11 +953,9 @@ class PublicBookingServiceTest {
 
             assertThat(resp.sessionId()).isEqualTo("cs_test");
             assertThat(r.getNotes()).isNull();
-            // Radar metadata (score/level) passée en 8e argument.
-            ArgumentCaptor<java.util.Map<String, String>> md = ArgumentCaptor.forClass(java.util.Map.class);
-            verify(stripeService).createReservationCheckoutSession(eq(50L), any(), any(), any(), any(),
-                    any(), any(), md.capture());
-            assertThat(md.getValue()).containsEntry("risk_level", "LOW").containsEntry("risk_score", "0");
+            // Radar metadata (score/level) transmise dans la metadata de la requête d'orchestration.
+            assertThat(captureCheckoutRequest().metadata())
+                    .containsEntry("risk_level", "LOW").containsEntry("risk_score", "0");
         }
 
         @Test
@@ -1010,9 +1014,8 @@ class PublicBookingServiceTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("vérification");
 
-            // Aucune session Stripe créée pour un checkout refusé.
-            verify(stripeService, never()).createReservationCheckoutSession(any(), any(), any(), any(), any(),
-                    any(), any(), any());
+            // Aucune session de paiement créée pour un checkout refusé (échec AVANT l'orchestrateur).
+            verify(orchestrationService, never()).initiatePayment(anyLong(), any(), any());
         }
 
         @Test
