@@ -23,12 +23,14 @@ class PeripheralPaymentReconciliationServiceTest {
 
     @Mock private PaymentTransactionRepository transactionRepository;
     @Mock private AiCreditGrantService aiCreditGrantService;
+    @Mock private StripePaymentConfirmationService paymentConfirmationService;
 
     private PeripheralPaymentReconciliationService service;
 
     @BeforeEach
     void setUp() {
-        service = new PeripheralPaymentReconciliationService(transactionRepository, aiCreditGrantService);
+        service = new PeripheralPaymentReconciliationService(transactionRepository, aiCreditGrantService,
+                paymentConfirmationService);
     }
 
     private PaymentTransaction tx(String ref, Long sourceId, String providerTxId, Map<String, Object> metadata) {
@@ -77,5 +79,25 @@ class PeripheralPaymentReconciliationServiceTest {
         service.reconcileAiCreditTopUp("TX-3");
 
         verify(aiCreditGrantService, never()).grantTopUp(anyLong(), anyLong(), anyString());
+    }
+
+    @Test
+    void serviceRequest_confirmsByProviderSession() {
+        when(transactionRepository.findByTransactionRef("TX-SR"))
+                .thenReturn(Optional.of(tx("TX-SR", 5L, "cs_sr", Map.of())));
+
+        service.reconcileServiceRequest("TX-SR");
+
+        verify(paymentConfirmationService).confirmServiceRequestPayment("cs_sr");
+    }
+
+    @Test
+    void serviceRequest_missingProviderTxId_noConfirmation() {
+        when(transactionRepository.findByTransactionRef("TX-SR2"))
+                .thenReturn(Optional.of(tx("TX-SR2", 5L, null, Map.of())));
+
+        service.reconcileServiceRequest("TX-SR2");
+
+        verify(paymentConfirmationService, never()).confirmServiceRequestPayment(anyString());
     }
 }

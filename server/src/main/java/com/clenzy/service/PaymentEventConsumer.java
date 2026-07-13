@@ -132,6 +132,9 @@ public class PaymentEventConsumer {
         } else if (com.clenzy.service.ai.AiCreditPurchaseService.SOURCE_TYPE.equals(sourceType)) {
             log.info("PAYMENT_COMPLETED crédits IA : tx={} → dotation crédits", transactionRef);
             peripheralPaymentReconciliationService.reconcileAiCreditTopUp(transactionRef);
+        } else if (ServiceRequestPaymentService.SOURCE_TYPE.equals(sourceType)) {
+            log.info("PAYMENT_COMPLETED demande de service : tx={} → confirmation SR", transactionRef);
+            peripheralPaymentReconciliationService.reconcileServiceRequest(transactionRef);
         } else {
             log.debug("PAYMENT_COMPLETED tx={} sourceType={} — aucune reconciliation dediee dans ce consumer",
                     transactionRef, sourceType);

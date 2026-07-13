@@ -28,11 +28,14 @@ public class PeripheralPaymentReconciliationService {
 
     private final PaymentTransactionRepository transactionRepository;
     private final AiCreditGrantService aiCreditGrantService;
+    private final StripePaymentConfirmationService paymentConfirmationService;
 
     public PeripheralPaymentReconciliationService(PaymentTransactionRepository transactionRepository,
-                                                  AiCreditGrantService aiCreditGrantService) {
+                                                  AiCreditGrantService aiCreditGrantService,
+                                                  StripePaymentConfirmationService paymentConfirmationService) {
         this.transactionRepository = transactionRepository;
         this.aiCreditGrantService = aiCreditGrantService;
+        this.paymentConfirmationService = paymentConfirmationService;
     }
 
     /**
@@ -63,6 +66,27 @@ public class PeripheralPaymentReconciliationService {
         }
         aiCreditGrantService.grantTopUp(orgId, millicredits, providerTxId);
         log.info("Reconciliation crédits IA OK : tx={} org={} millicredits={}", transactionRef, orgId, millicredits);
+    }
+
+    /**
+     * Confirme le paiement d'une demande de service (PROCESSING → PAID + création de
+     * l'intervention + ledger). Idempotent. La SR est retrouvée par la réf de session
+     * provider stockée à la création ({@code stripeSessionId} = {@code providerTxId}).
+     */
+    @Transactional
+    public void reconcileServiceRequest(String transactionRef) {
+        PaymentTransaction tx = requireTx(transactionRef, "demande de service");
+        if (tx == null) {
+            return;
+        }
+        String providerTxId = tx.getProviderTxId();
+        if (providerTxId == null || providerTxId.isBlank()) {
+            log.error("Reconciliation demande de service : providerTxId absent sur tx {} — "
+                    + "reconciliation impossible, verification manuelle requise", transactionRef);
+            return;
+        }
+        paymentConfirmationService.confirmServiceRequestPayment(providerTxId);
+        log.info("Reconciliation demande de service OK : tx={} providerSession={}", transactionRef, providerTxId);
     }
 
     private PaymentTransaction requireTx(String transactionRef, String flux) {
