@@ -195,9 +195,12 @@ def _arrow(d, x1, y1, x2, y2, color=PRIMARY2, label=None, dashed=False, w=0.9, l
     if dashed:
         ln.strokeDashArray = [3, 2]
     d.add(ln)
+    # Pointe : deux barbes qui repartent EN ARRIÈRE depuis la tête (x2,y2), avec un
+    # petit écart angulaire (~0,42 rad). Un écart trop grand inverse la pointe.
     ang = math.atan2(y2 - y1, x2 - x1)
-    for da in (2.5, -2.5):
-        d.add(Line(x2, y2, x2 - 5.5 * math.cos(ang + da), y2 - 5.5 * math.sin(ang + da),
+    head, spread = 6.0, 0.42
+    for s in (spread, -spread):
+        d.add(Line(x2, y2, x2 - head * math.cos(ang + s), y2 - head * math.sin(ang + s),
                    strokeColor=color, strokeWidth=w))
     if label:
         mx, my = (x1 + x2) / 2, (y1 + y2) / 2
@@ -217,8 +220,9 @@ def diagram_ports():
     W, H = USABLE_W, 108 * mm
     d = Drawing(W, H)
     cx = W / 2
-    # Coeur : orchestrateur
-    _box(d, cx - 46, H - 46 * mm, 92, 30 * mm, "Orchestrateur de paiement",
+    # Coeur : orchestrateur (boite large pour ne pas rogner les sous-lignes)
+    yorch = H - 40 * mm
+    _box(d, cx - 98, yorch, 196, 24 * mm, "Orchestrateur de paiement",
          ["resolution du fournisseur", "ledger PaymentTransaction", "idempotence . transactions courtes"],
          fill=colors.HexColor("#DDE7EB"), stroke=PRIMARY, fs=8.5)
     # Flux metier au-dessus
@@ -235,9 +239,9 @@ def diagram_ports():
          fill=LIGHT, stroke=ACCENT, fs=8)
     _box(d, W - bw, yports, bw, 26 * mm, "PORT SORTANT", ["PayoutExecutor", "+ capabilities"],
          fill=LIGHT, stroke=ACCENT, fs=8)
-    _arrow(d, cx - 30, H - 46 * mm, W * 0.15, yports + 26 * mm)
-    _arrow(d, cx, H - 46 * mm, cx, yports + 26 * mm)
-    _arrow(d, cx + 30, H - 46 * mm, W * 0.85, yports + 26 * mm)
+    _arrow(d, cx - 30, yorch, W * 0.15, yports + 26 * mm)
+    _arrow(d, cx, yorch, cx, yports + 26 * mm)
+    _arrow(d, cx + 30, yorch, W * 0.85, yports + 26 * mm)
 
     # Adaptateurs sous chaque port
     yad = H - 100 * mm
@@ -350,12 +354,19 @@ def diagram_states():
     _arrow(d, xs[0] + bw, y + bh / 2, xs[1], y + bh / 2, label="init")
     _arrow(d, xs[1] + bw, y + bh / 2, xs[2], y + bh / 2, label="webhook OK")
     _arrow(d, xs[2] + bw, y + bh / 2, xs[3], y + bh / 2, color=SKY, label="refund")
-    # États d'échec sous PROCESSING
-    yb = y - 16 * mm
+    # États d'échec sous PROCESSING (arrivée au centre-haut de chaque boîte)
+    yb = y - 18 * mm
+    failed_cx = xs[1] - bw / 2 - 6 + bw / 2
+    cancelled_cx = xs[1] + bw / 2 + 6 + bw / 2
     _box(d, xs[1] - bw / 2 - 6, yb, bw, 10 * mm, "FAILED", fill=colors.white, stroke=DANGER, fs=7.6)
     _box(d, xs[1] + bw / 2 + 6, yb, bw, 10 * mm, "CANCELLED", fill=colors.white, stroke=WARN, fs=7.6)
-    _arrow(d, xs[1] + bw / 2 - 8, y, xs[1] - 6, yb + 10 * mm, color=DANGER, label="échec/refus", lcolor=DANGER, ldy=0)
-    _arrow(d, xs[1] + bw / 2 + 8, y, xs[1] + bw + 6, yb + 10 * mm, color=WARN, label="expire", lcolor=WARN, ldy=0)
+    _arrow(d, xs[1] + bw / 2 - 6, y, failed_cx, yb + 10 * mm, color=DANGER)
+    _arrow(d, xs[1] + bw / 2 + 6, y, cancelled_cx, yb + 10 * mm, color=WARN)
+    ymid = (y + yb + 10 * mm) / 2
+    d.add(String(failed_cx - 4, ymid, "échec / refus", fontName="Helvetica", fontSize=6.2,
+                 fillColor=DANGER, textAnchor="end"))
+    d.add(String(cancelled_cx + 4, ymid, "expiré", fontName="Helvetica", fontSize=6.2,
+                 fillColor=WARN, textAnchor="start"))
     return d
 
 
@@ -381,7 +392,11 @@ def diagram_resolution():
         d.add(String(xL + W * 0.54, yy - 6, s, fontName="Helvetica", fontSize=6.8,
                      fillColor=MUTED, textAnchor="start"))
         if i < len(nodes) - 1:
-            _arrow(d, xL + W * 0.26, yy - 10 * mm, xL + W * 0.26, yy - step, label="sinon", ldy=1)
+            ax = xL + W * 0.26
+            _arrow(d, ax, yy - 10 * mm, ax, yy - step)
+            # label « sinon » à DROITE de la flèche verticale (évite la pointe)
+            d.add(String(ax + 6, (yy - 10 * mm + yy - step) / 2 - 2, "sinon",
+                         fontName="Helvetica", fontSize=6.2, fillColor=MUTED, textAnchor="start"))
     return d
 
 
@@ -390,26 +405,44 @@ def diagram_resolution():
 def diagram_payout_sepa():
     W, H = USABLE_W, 74 * mm
     d = Drawing(W, H)
-    # Setup mandat (une fois)
+
+    def row3(y, boxes, labels):
+        bw = W * 0.27
+        xs = [0, W * 0.365, W - bw]
+        for (x, (t, subs, fill, stroke)) in zip(xs, boxes):
+            _box(d, x, y, bw, 12 * mm, t, subs, fill=fill, stroke=stroke, fs=7.4)
+        for i, lab in enumerate(labels):
+            x1, x2 = xs[i] + bw, xs[i + 1]
+            _arrow(d, x1, y + 6 * mm, x2, y + 6 * mm, label=lab, ldy=3)
+
+    # A — mise en place du mandat (une fois)
     d.add(String(4, H - 6 * mm, "A. Mise en place (une fois) — mandat SEPA",
                  fontName="Helvetica-Bold", fontSize=8, fillColor=PRIMARY, textAnchor="start"))
     yA = H - 24 * mm
-    _box(d, 4, yA, W * 0.30, 12 * mm, "Proprietaire", ["IBAN + signature", "mandat SEPA"], fill=colors.white, stroke=PRIMARY2, fs=7.4)
-    _box(d, W * 0.37, yA, W * 0.28, 12 * mm, "Baitly / PSP", ["enregistre le", "mandat (UMR)"], fill=LIGHT, stroke=PRIMARY, fs=7.4)
-    _box(d, W * 0.70, yA, W * 0.30, 12 * mm, "Banque", ["mandat actif", "(recurrent)"], fill=colors.white, stroke=GREEN, fs=7.4)
-    _arrow(d, W * 0.34, yA + 6 * mm, W * 0.37, yA + 6 * mm, label="signe")
-    _arrow(d, W * 0.65, yA + 6 * mm, W * 0.70, yA + 6 * mm, label="depose")
-    # Payout mensuel (recurrent)
+    row3(yA,
+         [("Proprietaire", ["IBAN + signature", "mandat SEPA"], colors.white, PRIMARY2),
+          ("Baitly / PSP", ["enregistre le", "mandat (UMR)"], LIGHT, PRIMARY),
+          ("Banque", ["mandat actif", "(recurrent)"], colors.white, GREEN)],
+         ["signe", "depose"])
+
+    # B — reversement mensuel (recurrent) : 4 boites bien espacees
     d.add(String(4, yA - 8 * mm, "B. Chaque mois — reversement automatique",
                  fontName="Helvetica-Bold", fontSize=8, fillColor=PRIMARY, textAnchor="start"))
     yB = yA - 30 * mm
-    _box(d, 4, yB, W * 0.24, 12 * mm, "Ledger", ["solde net du", "proprietaire"], fill=colors.white, stroke=PRIMARY2, fs=7.4)
-    _box(d, W * 0.30, yB, W * 0.26, 12 * mm, "PayoutExecutor", ["SEPA / virement", "(idempotent)"], fill=LIGHT, stroke=PRIMARY, fs=7.4)
-    _box(d, W * 0.62, yB, W * 0.16, 12 * mm, "PSP / Banque", None, fill=colors.white, stroke=GREEN, fs=7.4)
-    _box(d, W * 0.82, yB, W * 0.18, 12 * mm, "Compte proprio", None, fill=colors.white, stroke=PRIMARY2, fs=7.4)
-    _arrow(d, W * 0.28, yB + 6 * mm, W * 0.30, yB + 6 * mm)
-    _arrow(d, W * 0.56, yB + 6 * mm, W * 0.62, yB + 6 * mm, label="virement")
-    _arrow(d, W * 0.78, yB + 6 * mm, W * 0.82, yB + 6 * mm, color=GREEN)
+    bw = W * 0.205
+    xs = [0, W * 0.265, W * 0.53, W - bw]
+    boxesB = [("Ledger", ["solde net du", "proprietaire"], colors.white, PRIMARY2),
+              ("PayoutExecutor", ["SEPA / virement", "(idempotent)"], LIGHT, PRIMARY),
+              ("PSP / Banque", None, colors.white, GREEN),
+              ("Compte proprio", None, colors.white, PRIMARY2)]
+    for (x, (t, subs, fill, stroke)) in zip(xs, boxesB):
+        _box(d, x, yB, bw, 12 * mm, t, subs, fill=fill, stroke=stroke, fs=7.4)
+    labelsB = ["", "virement", ""]
+    colorsB = [PRIMARY2, PRIMARY2, GREEN]
+    for i, lab in enumerate(labelsB):
+        _arrow(d, xs[i] + bw, yB + 6 * mm, xs[i + 1], yB + 6 * mm,
+               color=colorsB[i], label=(lab or None), ldy=3)
+
     d.add(String(4, 2, "Le mandat SEPA evite de re-saisir l'IBAN chaque mois : virement recurrent declenche par Baitly, trace au ledger (rail SEPA / OpenBanking).",
                  fontName="Helvetica-Oblique", fontSize=6.8, fillColor=MUTED))
     return d
