@@ -27,19 +27,22 @@ public class PaymentEventConsumer {
     private final DeferredPaymentReconciliationService deferredPaymentReconciliationService;
     private final ReservationPaymentReconciliationService reservationPaymentReconciliationService;
     private final com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService;
+    private final PeripheralPaymentReconciliationService peripheralPaymentReconciliationService;
 
     public PaymentEventConsumer(SplitPaymentService splitPaymentService,
                                  EscrowHoldRepository escrowHoldRepository,
                                  ReservationRepository reservationRepository,
                                  DeferredPaymentReconciliationService deferredPaymentReconciliationService,
                                  ReservationPaymentReconciliationService reservationPaymentReconciliationService,
-                                 com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService) {
+                                 com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService,
+                                 PeripheralPaymentReconciliationService peripheralPaymentReconciliationService) {
         this.splitPaymentService = splitPaymentService;
         this.escrowHoldRepository = escrowHoldRepository;
         this.reservationRepository = reservationRepository;
         this.deferredPaymentReconciliationService = deferredPaymentReconciliationService;
         this.reservationPaymentReconciliationService = reservationPaymentReconciliationService;
         this.bookingBalanceReconciliationService = bookingBalanceReconciliationService;
+        this.peripheralPaymentReconciliationService = peripheralPaymentReconciliationService;
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_PAYMENT_EVENTS, groupId = "clenzy-payment-consumer")
@@ -126,6 +129,9 @@ public class PaymentEventConsumer {
         } else if (com.clenzy.booking.service.BookingBalanceService.SOURCE_TYPE.equals(sourceType)) {
             log.info("PAYMENT_COMPLETED solde booking : tx={} → reconciliation solde", transactionRef);
             bookingBalanceReconciliationService.reconcile(transactionRef);
+        } else if (com.clenzy.service.ai.AiCreditPurchaseService.SOURCE_TYPE.equals(sourceType)) {
+            log.info("PAYMENT_COMPLETED crédits IA : tx={} → dotation crédits", transactionRef);
+            peripheralPaymentReconciliationService.reconcileAiCreditTopUp(transactionRef);
         } else {
             log.debug("PAYMENT_COMPLETED tx={} sourceType={} — aucune reconciliation dediee dans ce consumer",
                     transactionRef, sourceType);
