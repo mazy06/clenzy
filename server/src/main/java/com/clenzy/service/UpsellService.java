@@ -16,6 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -44,6 +48,9 @@ public class UpsellService {
     private static final Logger log = LoggerFactory.getLogger(UpsellService.class);
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
+    /** {@code sourceType} de la {@code PaymentTransaction} d'un achat d'upsell (livret ou booking). */
+    public static final String SOURCE_TYPE = "UPSELL";
+
     private final UpsellOfferRepository offerRepository;
     private final UpsellOrderRepository orderRepository;
     private final WelcomeGuideTokenRepository tokenRepository;
@@ -55,6 +62,9 @@ public class UpsellService {
     private final MonetizationConfigService monetizationConfigService;
     private final ManagementContractService managementContractService;
     private final Clock clock;
+    private final PaymentOrchestrationService orchestrationService;
+    /** Préparation commande + rattachement session en transactions courtes (appel provider hors tx). */
+    private final TransactionTemplate writeTx;
 
     public UpsellService(UpsellOfferRepository offerRepository,
                          UpsellOrderRepository orderRepository,
@@ -66,7 +76,9 @@ public class UpsellService {
                          LedgerService ledgerService,
                          MonetizationConfigService monetizationConfigService,
                          ManagementContractService managementContractService,
-                         Clock clock) {
+                         Clock clock,
+                         PaymentOrchestrationService orchestrationService,
+                         PlatformTransactionManager transactionManager) {
         this.offerRepository = offerRepository;
         this.orderRepository = orderRepository;
         this.tokenRepository = tokenRepository;
@@ -78,7 +90,13 @@ public class UpsellService {
         this.monetizationConfigService = monetizationConfigService;
         this.managementContractService = managementContractService;
         this.clock = clock;
+        this.orchestrationService = orchestrationService;
+        this.writeTx = new TransactionTemplate(transactionManager);
     }
+
+    /** Primitives d'une commande upsell préparée (extraites en tx pour l'appel provider hors tx). */
+    private record UpsellPrep(Long orderId, Long orgId, java.math.BigDecimal amount,
+                              String currency, String title, String guestEmail) {}
 
     // ─── Admin (hôte) ──────────────────────────────────────────────────────────
 
@@ -269,11 +287,22 @@ public class UpsellService {
     }
 
     /**
-     * Crée une commande PENDING + une session Stripe embedded. Renvoie le clientSecret.
+     * Crée une commande PENDING + une session de paiement EMBARQUÉE (orchestrée). Renvoie le clientSecret.
      * Échoue si le token est invalide / sans réservation ou l'offre inapplicable.
+     *
+     * <p>PAS de {@code @Transactional} au niveau méthode (règle #2) : la préparation
+     * (validation + commande) est en transaction courte, l'appel provider est HORS tx,
+     * puis la réf de session est rattachée en transaction courte.</p>
      */
-    @Transactional
     public UpsellCheckoutDto createCheckout(UUID token, Long offerId) {
+        UpsellPrep prep = writeTx.execute(status -> prepareLivretOrder(token, offerId));
+        PaymentOrchestrationResult result = initiateUpsellPayment(prep, true, null);
+        attachProviderSession(prep.orderId(), result.paymentResult().providerTxId());
+        return new UpsellCheckoutDto(result.paymentResult().clientSecret(), prep.orderId());
+    }
+
+    /** Validation + création de la commande livret (dans une transaction courte : lazy loads token/résa). */
+    private UpsellPrep prepareLivretOrder(UUID token, Long offerId) {
         WelcomeGuideToken tok = validToken(token)
             .orElseThrow(() -> new IllegalArgumentException("Lien invalide ou expiré"));
         // Réservation optionnelle : un livret sans réservation (lien « par défaut ») peut vendre des
@@ -297,17 +326,8 @@ public class UpsellService {
         order.setGuestEmail(reservation != null ? guestEmail(reservation) : null);
         order.setStatus(UpsellOrderStatus.PENDING);
         order = orderRepository.save(order);
-
-        try {
-            Session session = stripeService.createUpsellCheckoutSession(
-                order.getId(), offer.getPrice(), offer.getCurrency(), offer.getTitle(), order.getGuestEmail());
-            order.setStripeSessionId(session.getId());
-            orderRepository.save(order);
-            return new UpsellCheckoutDto(session.getClientSecret(), order.getId());
-        } catch (Exception e) {
-            log.error("Echec creation session Stripe upsell (order={}): {}", order.getId(), e.getMessage());
-            throw new RuntimeException("Paiement indisponible pour le moment", e);
-        }
+        return new UpsellPrep(order.getId(), order.getOrganizationId(), order.getAmount(),
+            order.getCurrency(), order.getTitle(), order.getGuestEmail());
     }
 
     /**
@@ -316,9 +336,19 @@ public class UpsellService {
      * La réservation (résolue par code + org en amont) lie la commande ; {@code successUrl} est déjà
      * validé (anti open-redirect) par l'appelant. Confirmation/répartition via le webhook habituel.
      */
-    @Transactional
     public com.clenzy.dto.UpsellBookingCheckoutDto createBookingCheckout(
             Long orgId, Reservation reservation, Long offerId, String successUrl) {
+        final Long reservationId = reservation.getId();
+        UpsellPrep prep = writeTx.execute(status -> prepareBookingOrder(orgId, reservationId, offerId));
+        PaymentOrchestrationResult result = initiateUpsellPayment(prep, false, successUrl);
+        attachProviderSession(prep.orderId(), result.paymentResult().providerTxId());
+        return new com.clenzy.dto.UpsellBookingCheckoutDto(result.paymentResult().redirectUrl(), prep.orderId());
+    }
+
+    /** Validation + création de la commande booking (dans une transaction courte : lazy loads résa/property). */
+    private UpsellPrep prepareBookingOrder(Long orgId, Long reservationId, Long offerId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new IllegalArgumentException("Réservation introuvable: " + reservationId));
         Long propertyId = reservation.getProperty() != null ? reservation.getProperty().getId() : null;
         UpsellOffer offer = offerRepository.findByIdAndOrganizationId(offerId, orgId)
             .filter(UpsellOffer::isActive)
@@ -336,17 +366,51 @@ public class UpsellService {
         order.setGuestEmail(guestEmail(reservation));
         order.setStatus(UpsellOrderStatus.PENDING);
         order = orderRepository.save(order);
+        return new UpsellPrep(order.getId(), order.getOrganizationId(), order.getAmount(),
+            order.getCurrency(), order.getTitle(), order.getGuestEmail());
+    }
 
-        try {
-            Session session = stripeService.createUpsellHostedCheckoutSession(
-                order.getId(), offer.getPrice(), offer.getCurrency(), offer.getTitle(), order.getGuestEmail(), successUrl);
-            order.setStripeSessionId(session.getId());
-            orderRepository.save(order);
-            return new com.clenzy.dto.UpsellBookingCheckoutDto(session.getUrl(), order.getId());
-        } catch (Exception e) {
-            log.error("Echec session Stripe upsell booking (order={}): {}", order.getId(), e.getMessage());
-            throw new RuntimeException("Paiement indisponible pour le moment", e);
+    /**
+     * Initie le paiement d'upsell via l'orchestrateur (multi-provider selon org + devise de l'offre).
+     * {@code embedded} → clientSecret (livret) ; sinon hébergé avec {@code successUrl} validé (booking).
+     * La réconciliation (PAID + split) est portée par le consumer {@code PAYMENT_COMPLETED}
+     * (sourceType {@code UPSELL}) → {@link #markPaidBySession}.
+     */
+    private PaymentOrchestrationResult initiateUpsellPayment(UpsellPrep prep, boolean embedded, String successUrl) {
+        PaymentOrchestrationRequest request = new PaymentOrchestrationRequest(
+            prep.amount(),                       // Z3-SEC-01 : montant serveur (prix de l'offre)
+            prep.currency(),
+            SOURCE_TYPE,
+            prep.orderId(),
+            prep.title(),
+            prep.guestEmail(),
+            null,                                 // preferredProvider
+            successUrl,                           // hébergé : URL déjà validée ; embedded : ignorée
+            null,                                 // cancelUrl : défaut provider
+            java.util.Map.of("type", "upsell", "upsell_order_id", String.valueOf(prep.orderId())),
+            "UPSELL-" + prep.orderId(),
+            embedded,
+            null,
+            false);
+        // Flux public (livret/booking) : org explicite, pas de dépendance au TenantContext.
+        PaymentOrchestrationResult result = orchestrationService.initiatePayment(prep.orgId(), null, request);
+        if (!result.isSuccess()) {
+            String err = result.paymentResult() != null ? result.paymentResult().errorMessage() : "erreur inconnue";
+            log.error("Echec orchestration upsell (order={}): {}", prep.orderId(), err);
+            throw new RuntimeException("Paiement indisponible pour le moment");
         }
+        return result;
+    }
+
+    /** Rattache la réf de session provider à la commande (transaction courte). */
+    private void attachProviderSession(Long orderId, String providerTxId) {
+        writeTx.executeWithoutResult(status -> {
+            UpsellOrder order = orderRepository.findById(orderId).orElse(null);
+            if (order != null) {
+                order.setStripeSessionId(providerTxId);
+                orderRepository.save(order);
+            }
+        });
     }
 
     /**

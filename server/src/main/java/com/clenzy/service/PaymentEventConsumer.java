@@ -135,6 +135,9 @@ public class PaymentEventConsumer {
         } else if (ServiceRequestPaymentService.SOURCE_TYPE.equals(sourceType)) {
             log.info("PAYMENT_COMPLETED demande de service : tx={} → confirmation SR", transactionRef);
             peripheralPaymentReconciliationService.reconcileServiceRequest(transactionRef);
+        } else if (UpsellService.SOURCE_TYPE.equals(sourceType)) {
+            log.info("PAYMENT_COMPLETED upsell : tx={} → confirmation commande upsell", transactionRef);
+            peripheralPaymentReconciliationService.reconcileUpsell(transactionRef);
         } else {
             log.debug("PAYMENT_COMPLETED tx={} sourceType={} — aucune reconciliation dediee dans ce consumer",
                     transactionRef, sourceType);

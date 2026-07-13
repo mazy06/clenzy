@@ -24,13 +24,14 @@ class PeripheralPaymentReconciliationServiceTest {
     @Mock private PaymentTransactionRepository transactionRepository;
     @Mock private AiCreditGrantService aiCreditGrantService;
     @Mock private StripePaymentConfirmationService paymentConfirmationService;
+    @Mock private UpsellService upsellService;
 
     private PeripheralPaymentReconciliationService service;
 
     @BeforeEach
     void setUp() {
         service = new PeripheralPaymentReconciliationService(transactionRepository, aiCreditGrantService,
-                paymentConfirmationService);
+                paymentConfirmationService, upsellService);
     }
 
     private PaymentTransaction tx(String ref, Long sourceId, String providerTxId, Map<String, Object> metadata) {
@@ -99,5 +100,25 @@ class PeripheralPaymentReconciliationServiceTest {
         service.reconcileServiceRequest("TX-SR2");
 
         verify(paymentConfirmationService, never()).confirmServiceRequestPayment(anyString());
+    }
+
+    @Test
+    void upsell_marksPaidByProviderSession() {
+        when(transactionRepository.findByTransactionRef("TX-UP"))
+                .thenReturn(Optional.of(tx("TX-UP", 9L, "cs_up", Map.of())));
+
+        service.reconcileUpsell("TX-UP");
+
+        verify(upsellService).markPaidBySession("cs_up");
+    }
+
+    @Test
+    void upsell_missingProviderTxId_noMarkPaid() {
+        when(transactionRepository.findByTransactionRef("TX-UP2"))
+                .thenReturn(Optional.of(tx("TX-UP2", 9L, null, Map.of())));
+
+        service.reconcileUpsell("TX-UP2");
+
+        verify(upsellService, never()).markPaidBySession(anyString());
     }
 }
