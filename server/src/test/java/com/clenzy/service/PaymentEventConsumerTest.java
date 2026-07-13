@@ -31,13 +31,15 @@ class PaymentEventConsumerTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private DeferredPaymentReconciliationService deferredPaymentReconciliationService;
     @Mock private ReservationPaymentReconciliationService reservationPaymentReconciliationService;
+    @Mock private com.clenzy.booking.service.BookingBalanceReconciliationService bookingBalanceReconciliationService;
 
     private PaymentEventConsumer consumer;
 
     @BeforeEach
     void setUp() {
         consumer = new PaymentEventConsumer(splitPaymentService, escrowHoldRepository, reservationRepository,
-                deferredPaymentReconciliationService, reservationPaymentReconciliationService);
+                deferredPaymentReconciliationService, reservationPaymentReconciliationService,
+                bookingBalanceReconciliationService);
     }
 
     private EscrowHold escrow() {
@@ -228,6 +230,18 @@ class PaymentEventConsumerTest {
         }
 
         @Test
+        void bookingBalanceSourceType_reconciles() {
+            Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
+                    "transactionRef", "TX-BAL",
+                    "sourceType", "BOOKING_BALANCE");
+
+            consumer.handlePaymentEvent(event);
+
+            verify(bookingBalanceReconciliationService).reconcile("TX-BAL");
+            verifyNoInteractions(deferredPaymentReconciliationService, reservationPaymentReconciliationService);
+        }
+
+        @Test
         void otherSourceType_isIgnored() {
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-789",
@@ -237,6 +251,7 @@ class PaymentEventConsumerTest {
 
             verifyNoInteractions(deferredPaymentReconciliationService,
                     reservationPaymentReconciliationService,
+                    bookingBalanceReconciliationService,
                     splitPaymentService, escrowHoldRepository, reservationRepository);
         }
 

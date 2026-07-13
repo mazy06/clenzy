@@ -22,7 +22,6 @@ import com.clenzy.service.SearchCacheInvalidator;
 import com.clenzy.service.SecurityDepositPaymentService;
 import com.clenzy.service.ServiceRequestService;
 import com.clenzy.util.StringUtils;
-import com.stripe.exception.StripeException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -292,12 +291,9 @@ public class SuggestionActionExecutor {
         if (code == null || code.isBlank()) {
             throw new IllegalStateException("Réservation " + reservationId + " sans code de confirmation");
         }
-        final String checkoutUrl;
-        try {
-            checkoutUrl = bookingBalanceService.createBalanceCheckoutUrl(orgId, code);
-        } catch (StripeException e) {
-            throw new IllegalStateException("Lien de paiement Stripe non généré : " + e.getMessage(), e);
-        }
+        // createBalanceCheckoutUrl lève IllegalStateException en cas d'échec orchestrateur
+        // (plus de StripeException checked depuis la migration Vague 2 vers l'orchestration).
+        final String checkoutUrl = bookingBalanceService.createBalanceCheckoutUrl(orgId, code);
         final String guest = reservation.getGuestName() != null && !reservation.getGuestName().isBlank()
                 ? reservation.getGuestName() : "Bonjour";
         final String body = "<p>" + StringUtils.escapeHtml(guest) + ",</p>"

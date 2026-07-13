@@ -64,9 +64,22 @@ public class PaymentOrchestrationService {
      */
     @CircuitBreaker(name = "payment-orchestrator", fallbackMethod = "initiatePaymentFallback")
     public PaymentOrchestrationResult initiatePayment(PaymentOrchestrationRequest request) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
-        String countryCode = tenantContext.getCountryCode();
+        return initiatePayment(tenantContext.getRequiredOrganizationId(),
+            tenantContext.getCountryCode(), request);
+    }
 
+    /**
+     * Variante à organisation/pays <strong>explicites</strong>, pour les flux qui
+     * n'ont pas de {@link TenantContext} positionné (booking engine public, agents,
+     * jobs). Le pays (nullable) affine la résolution du provider régional ; à défaut,
+     * la devise tranche puis fallback Stripe.
+     *
+     * <p>Même séquence money-safe que la variante tenant-scoped : appel provider
+     * <strong>hors transaction DB</strong>, écritures via {@link PaymentPersistence}.</p>
+     */
+    @CircuitBreaker(name = "payment-orchestrator", fallbackMethod = "initiatePaymentExplicitFallback")
+    public PaymentOrchestrationResult initiatePayment(Long orgId, String countryCode,
+                                                       PaymentOrchestrationRequest request) {
         // 1. Idempotence — court-circuit si une transaction non-FAILED existe déjà
         Optional<PaymentTransaction> replay = paymentPersistence.consumeIdempotentReplay(request.idempotencyKey());
         if (replay.isPresent()) {
@@ -122,6 +135,15 @@ public class PaymentOrchestrationService {
     @SuppressWarnings("unused")
     private PaymentOrchestrationResult initiatePaymentFallback(PaymentOrchestrationRequest request, Throwable t) {
         log.error("Payment orchestration circuit breaker open: {}", t.getMessage());
+        return new PaymentOrchestrationResult(null,
+            PaymentResult.failure("Service de paiement temporairement indisponible. Veuillez reessayer."),
+            null);
+    }
+
+    @SuppressWarnings("unused")
+    private PaymentOrchestrationResult initiatePaymentExplicitFallback(Long orgId, String countryCode,
+                                                                        PaymentOrchestrationRequest request, Throwable t) {
+        log.error("Payment orchestration circuit breaker open (org {}): {}", orgId, t.getMessage());
         return new PaymentOrchestrationResult(null,
             PaymentResult.failure("Service de paiement temporairement indisponible. Veuillez reessayer."),
             null);
