@@ -84,7 +84,7 @@ public class PayTabsPaymentProvider implements PaymentProvider {
     @CircuitBreaker(name = "paytabs-api")
     public PaymentResult createPayment(PaymentRequest request) {
         try {
-            Long orgId = readOrgId(request);
+            Long orgId = PaymentAdapterSupport.requireOrgId(request, "PayTabs");
             PayTabsCredentials creds = loadCredentials(orgId);
 
             String callbackUrl = creds.callbackUrl != null
@@ -211,20 +211,11 @@ public class PayTabsPaymentProvider implements PaymentProvider {
             String computedHex = HexFormat.of().formatHex(computed);
             // PayTabs envoie la signature en hex lowercase ; on compare en
             // ignorant la casse pour tolerer les variantes.
-            return constantTimeEquals(computedHex, signature.trim());
+            return WebhookSignatures.constantTimeEqualsIgnoreCase(computedHex, signature.trim());
         } catch (Exception e) {
             log.error("PayTabs webhook signature verification failed", e);
             return false;
         }
-    }
-
-    /** Lecture orgId depuis le metadata injecte par l'orchestrateur. */
-    private Long readOrgId(PaymentRequest request) {
-        if (request.metadata() == null || !request.metadata().containsKey("orgId")) {
-            throw new IllegalStateException(
-                "PayTabs createPayment called without orgId metadata — orchestrator must inject it");
-        }
-        return Long.parseLong(request.metadata().get("orgId"));
     }
 
     /** Charge la config PayTabs de l'organisation depuis la BDD. */
@@ -260,18 +251,6 @@ public class PayTabsPaymentProvider implements PaymentProvider {
             return s.toUpperCase();
         }
         return DEFAULT_REGION;
-    }
-
-    /** Comparaison en temps constant pour eviter timing attacks sur la signature. */
-    private static boolean constantTimeEquals(String a, String b) {
-        if (a.length() != b.length()) return false;
-        int diff = 0;
-        String ac = a.toLowerCase();
-        String bc = b.toLowerCase();
-        for (int i = 0; i < ac.length(); i++) {
-            diff |= ac.charAt(i) ^ bc.charAt(i);
-        }
-        return diff == 0;
     }
 
     /** Credentials hydrates depuis la BDD pour un appel. */

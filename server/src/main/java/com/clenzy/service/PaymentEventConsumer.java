@@ -138,6 +138,11 @@ public class PaymentEventConsumer {
         } else if (UpsellService.SOURCE_TYPE.equals(sourceType)) {
             log.info("PAYMENT_COMPLETED upsell : tx={} → confirmation commande upsell", transactionRef);
             peripheralPaymentReconciliationService.reconcileUpsell(transactionRef);
+        } else if (ConsumerReconciledSourceTypes.isReconciledByConsumer(sourceType)) {
+            // Incohérence : ce sourceType est déclaré « consumer-réconcilié » (source de
+            // vérité partagée) mais aucune branche ne le dispatche. Signaler plutôt qu'ignorer.
+            log.error("PAYMENT_COMPLETED tx={} sourceType={} déclaré consumer-réconcilié mais non dispatché — "
+                    + "incohérence à corriger (branche manquante)", transactionRef, sourceType);
         } else {
             log.debug("PAYMENT_COMPLETED tx={} sourceType={} — aucune reconciliation dediee dans ce consumer",
                     transactionRef, sourceType);
