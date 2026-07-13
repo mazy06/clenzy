@@ -30,13 +30,14 @@ class PaymentEventConsumerTest {
     @Mock private EscrowHoldRepository escrowHoldRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private DeferredPaymentReconciliationService deferredPaymentReconciliationService;
+    @Mock private ReservationPaymentReconciliationService reservationPaymentReconciliationService;
 
     private PaymentEventConsumer consumer;
 
     @BeforeEach
     void setUp() {
         consumer = new PaymentEventConsumer(splitPaymentService, escrowHoldRepository, reservationRepository,
-                deferredPaymentReconciliationService);
+                deferredPaymentReconciliationService, reservationPaymentReconciliationService);
     }
 
     private EscrowHold escrow() {
@@ -215,6 +216,18 @@ class PaymentEventConsumerTest {
         }
 
         @Test
+        void reservationSourceType_reconciles() {
+            Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
+                    "transactionRef", "TX-RES",
+                    "sourceType", "RESERVATION");
+
+            consumer.handlePaymentEvent(event);
+
+            verify(reservationPaymentReconciliationService).reconcile("TX-RES");
+            verifyNoInteractions(deferredPaymentReconciliationService);
+        }
+
+        @Test
         void otherSourceType_isIgnored() {
             Map<String, Object> event = Map.of("eventType", "PAYMENT_COMPLETED",
                     "transactionRef", "TX-789",
@@ -223,6 +236,7 @@ class PaymentEventConsumerTest {
             consumer.handlePaymentEvent(event);
 
             verifyNoInteractions(deferredPaymentReconciliationService,
+                    reservationPaymentReconciliationService,
                     splitPaymentService, escrowHoldRepository, reservationRepository);
         }
 

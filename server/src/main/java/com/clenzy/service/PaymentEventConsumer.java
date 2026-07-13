@@ -25,15 +25,18 @@ public class PaymentEventConsumer {
     private final EscrowHoldRepository escrowHoldRepository;
     private final ReservationRepository reservationRepository;
     private final DeferredPaymentReconciliationService deferredPaymentReconciliationService;
+    private final ReservationPaymentReconciliationService reservationPaymentReconciliationService;
 
     public PaymentEventConsumer(SplitPaymentService splitPaymentService,
                                  EscrowHoldRepository escrowHoldRepository,
                                  ReservationRepository reservationRepository,
-                                 DeferredPaymentReconciliationService deferredPaymentReconciliationService) {
+                                 DeferredPaymentReconciliationService deferredPaymentReconciliationService,
+                                 ReservationPaymentReconciliationService reservationPaymentReconciliationService) {
         this.splitPaymentService = splitPaymentService;
         this.escrowHoldRepository = escrowHoldRepository;
         this.reservationRepository = reservationRepository;
         this.deferredPaymentReconciliationService = deferredPaymentReconciliationService;
+        this.reservationPaymentReconciliationService = reservationPaymentReconciliationService;
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_PAYMENT_EVENTS, groupId = "clenzy-payment-consumer")
@@ -114,6 +117,9 @@ public class PaymentEventConsumer {
             log.info("PAYMENT_COMPLETED differe : tx={} sourceType={} → reconciliation interventions",
                     transactionRef, sourceType);
             deferredPaymentReconciliationService.reconcile(transactionRef);
+        } else if (ReservationPaymentService.SOURCE_TYPE.equals(sourceType)) {
+            log.info("PAYMENT_COMPLETED reservation : tx={} → reconciliation reservation", transactionRef);
+            reservationPaymentReconciliationService.reconcile(transactionRef);
         } else {
             log.debug("PAYMENT_COMPLETED tx={} sourceType={} — aucune reconciliation dediee dans ce consumer",
                     transactionRef, sourceType);
