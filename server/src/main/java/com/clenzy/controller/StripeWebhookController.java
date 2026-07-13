@@ -7,6 +7,7 @@ import com.clenzy.service.DeferredPaymentService;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
+import com.clenzy.service.ReservationPaymentService;
 import com.clenzy.service.ShopService;
 import com.clenzy.service.StripeConnectService;
 import com.clenzy.service.StripeService;
@@ -366,7 +367,9 @@ public class StripeWebhookController {
     private boolean isOrchestratedTotalPayment(Session session) {
         if (session.getMetadata() == null) return false;
         String sourceType = session.getMetadata().get("sourceType");
-        return sourceType != null && sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX);
+        if (sourceType == null) return false;
+        return sourceType.startsWith(DeferredPaymentService.SOURCE_TYPE_PREFIX)
+            || ReservationPaymentService.SOURCE_TYPE.equals(sourceType);
     }
 
     private void updatePaymentTransaction(Session session, boolean success) {

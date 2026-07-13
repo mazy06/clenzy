@@ -1,5 +1,7 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.model.MessageChannelType;
 import com.clenzy.model.MessageTemplate;
 import com.clenzy.model.MessageTemplateType;
@@ -35,9 +37,13 @@ public class ReservationPaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(ReservationPaymentService.class);
 
+    /** {@code sourceType} de la {@code PaymentTransaction} d'un paiement de réservation (reconnu par le consumer + le webhook). */
+    public static final String SOURCE_TYPE = "RESERVATION";
+
     private final ReservationRepository reservationRepository;
     private final StripeService stripeService;
     private final StripeGateway stripeGateway;
+    private final PaymentOrchestrationService orchestrationService;
     private final EmailService emailService;
     private final GuestMessagingService guestMessagingService;
     private final MessageTemplateRepository messageTemplateRepository;
@@ -46,6 +52,7 @@ public class ReservationPaymentService {
     public ReservationPaymentService(ReservationRepository reservationRepository,
                                      StripeService stripeService,
                                      StripeGateway stripeGateway,
+                                     PaymentOrchestrationService orchestrationService,
                                      EmailService emailService,
                                      GuestMessagingService guestMessagingService,
                                      MessageTemplateRepository messageTemplateRepository,
@@ -53,6 +60,7 @@ public class ReservationPaymentService {
         this.reservationRepository = reservationRepository;
         this.stripeService = stripeService;
         this.stripeGateway = stripeGateway;
+        this.orchestrationService = orchestrationService;
         this.emailService = emailService;
         this.guestMessagingService = guestMessagingService;
         this.messageTemplateRepository = messageTemplateRepository;
@@ -60,9 +68,9 @@ public class ReservationPaymentService {
     }
 
     /**
-     * Cree une session Stripe Checkout pour le montant de la reservation et
-     * envoie le lien par email au guest (template PAYMENT_LINK si configure,
-     * sinon email de repli). Met a jour le tracking sur la reservation.
+     * Cree une session de paiement (orchestrée multi-provider) pour le montant de
+     * la reservation et envoie le lien par email au guest (template PAYMENT_LINK si
+     * configure, sinon email de repli). Met a jour le tracking sur la reservation.
      *
      * @param reservation    reservation deja chargee (fetch-all) et dont l'acces a ete valide
      * @param requestedEmail adresse de destination optionnelle (repli : email du guest)
@@ -77,13 +85,34 @@ public class ReservationPaymentService {
             throw new IllegalArgumentException("Le montant de la reservation doit etre superieur a 0");
         }
 
-        try {
-            // Create Stripe checkout session for the reservation
-            Session session = stripeService.createReservationCheckoutSession(
-                    reservation.getId(), amount, email, reservation.getGuestName(),
-                    reservation.getProperty().getName());
+        String currency = reservation.getCurrency() != null ? reservation.getCurrency() : "EUR";
 
-            String paymentUrl = session.getUrl();
+        try {
+            // Session de paiement via l'orchestrateur multi-provider (Stripe / PayZone / CMI
+            // selon org + devise de la réservation). La réconciliation PAID est portée par
+            // le consumer PAYMENT_COMPLETED (sourceType RESERVATION), pas par le webhook direct.
+            PaymentOrchestrationResult orchResult = orchestrationService.initiatePayment(
+                    new PaymentOrchestrationRequest(
+                            amount,                               // Z3-SEC-01 : montant serveur (totalPrice de l'entité)
+                            currency,
+                            SOURCE_TYPE,
+                            reservation.getId(),
+                            "Paiement reservation " + reservation.getProperty().getName(),
+                            email,
+                            null,                                 // preferredProvider : résolu par l'orchestrateur
+                            null,                                 // successUrl : défauts provider
+                            null,                                 // cancelUrl : défauts provider
+                            Map.of("reservation_id", reservation.getId().toString()),
+                            "RESERVATION-" + reservation.getId()  // idempotence par réservation
+                    ));
+            if (!orchResult.isSuccess()) {
+                String err = orchResult.paymentResult() != null
+                        ? orchResult.paymentResult().errorMessage() : "erreur inconnue";
+                throw new RuntimeException("Echec de creation de la session de paiement: " + err);
+            }
+
+            String paymentUrl = orchResult.paymentResult().redirectUrl();
+            String providerSessionId = orchResult.paymentResult().providerTxId();
             Long orgId = tenantContext.getRequiredOrganizationId();
 
             // Try to use a PAYMENT_LINK messaging template if one is configured
@@ -93,7 +122,6 @@ public class ReservationPaymentService {
             if (!paymentTemplates.isEmpty()) {
                 // Use the first active PAYMENT_LINK template via GuestMessagingService
                 MessageTemplate template = paymentTemplates.get(0);
-                String currency = reservation.getCurrency() != null ? reservation.getCurrency() : "EUR";
                 String paymentButton = "<a href=\"" + paymentUrl
                         + "\" style=\"background-color: #6B8A9A; color: white; padding: 12px 30px; "
                         + "text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">"
@@ -121,7 +149,7 @@ public class ReservationPaymentService {
             // Update reservation tracking
             reservation.setPaymentLinkSentAt(LocalDateTime.now());
             reservation.setPaymentLinkEmail(email);
-            reservation.setStripeSessionId(session.getId());
+            reservation.setStripeSessionId(providerSessionId);
             reservationRepository.save(reservation);
 
             // Re-load with all relations

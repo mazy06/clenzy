@@ -1,12 +1,16 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.PaymentOrchestrationRequest;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.model.Guest;
 import com.clenzy.model.MessageChannelType;
 import com.clenzy.model.MessageTemplate;
 import com.clenzy.model.MessageTemplateType;
+import com.clenzy.model.PaymentProviderType;
 import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
+import com.clenzy.payment.PaymentResult;
 import com.clenzy.payment.StripeGateway;
 import com.clenzy.repository.MessageTemplateRepository;
 import com.clenzy.repository.ReservationRepository;
@@ -49,6 +53,7 @@ class ReservationPaymentServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private StripeService stripeService;
     @Mock private StripeGateway stripeGateway;
+    @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private EmailService emailService;
     @Mock private GuestMessagingService guestMessagingService;
     @Mock private MessageTemplateRepository messageTemplateRepository;
@@ -64,8 +69,13 @@ class ReservationPaymentServiceTest {
         tenantContext.setOrganizationId(ORG_ID);
 
         service = new ReservationPaymentService(reservationRepository, stripeService,
-                stripeGateway, emailService, guestMessagingService,
+                stripeGateway, orchestrationService, emailService, guestMessagingService,
                 messageTemplateRepository, tenantContext);
+    }
+
+    private PaymentOrchestrationResult orchSuccess(String providerTxId, String url) {
+        return new PaymentOrchestrationResult(null,
+                PaymentResult.success(providerTxId, url), PaymentProviderType.STRIPE);
     }
 
     private Reservation buildReservation() {
@@ -85,13 +95,6 @@ class ReservationPaymentServiceTest {
         return r;
     }
 
-    private Session buildSession(String id, String url) {
-        Session session = mock(Session.class);
-        when(session.getId()).thenReturn(id);
-        when(session.getUrl()).thenReturn(url);
-        return session;
-    }
-
     @Nested
     @DisplayName("sendPaymentLink")
     class SendPaymentLink {
@@ -103,7 +106,7 @@ class ReservationPaymentServiceTest {
             assertThatThrownBy(() -> service.sendPaymentLink(r, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Aucune adresse email");
-            verifyNoInteractions(stripeService);
+            verifyNoInteractions(orchestrationService);
         }
 
         @Test
@@ -114,7 +117,7 @@ class ReservationPaymentServiceTest {
             assertThatThrownBy(() -> service.sendPaymentLink(r, "x@y.z"))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("superieur a 0");
-            verifyNoInteractions(stripeService);
+            verifyNoInteractions(orchestrationService);
         }
 
         @Test
@@ -124,10 +127,8 @@ class ReservationPaymentServiceTest {
             guest.setEmail("guest@mail.com");
             r.setGuest(guest);
 
-            Session session = buildSession("sess_1", "https://stripe.test/pay");
-            when(stripeService.createReservationCheckoutSession(
-                    eq(10L), eq(new BigDecimal("150.00")), eq("guest@mail.com"), eq("Jean"), eq("Apt A")))
-                    .thenReturn(session);
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(orchSuccess("sess_1", "https://stripe.test/pay"));
             when(messageTemplateRepository.findByOrganizationIdAndTypeAndIsActiveTrue(
                     ORG_ID, MessageTemplateType.PAYMENT_LINK)).thenReturn(List.of());
             when(reservationRepository.findByIdFetchAll(10L)).thenReturn(Optional.of(r));
@@ -136,14 +137,18 @@ class ReservationPaymentServiceTest {
 
             verify(emailService).sendSimpleHtmlEmail(eq("guest@mail.com"), anyString(), anyString());
             assertThat(r.getPaymentLinkEmail()).isEqualTo("guest@mail.com");
+            // La devise du guest pilote la résolution provider.
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                    ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(reqCaptor.capture());
+            assertThat(reqCaptor.getValue().customerEmail()).isEqualTo("guest@mail.com");
         }
 
         @Test
         void whenTemplateConfigured_thenSendsViaMessagingChannel() throws Exception {
             Reservation r = buildReservation();
-            Session session = buildSession("sess_2", "https://stripe.test/pay2");
-            when(stripeService.createReservationCheckoutSession(
-                    any(), any(), anyString(), any(), any())).thenReturn(session);
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(orchSuccess("sess_2", "https://stripe.test/pay2"));
             MessageTemplate template = new MessageTemplate();
             when(messageTemplateRepository.findByOrganizationIdAndTypeAndIsActiveTrue(
                     ORG_ID, MessageTemplateType.PAYMENT_LINK)).thenReturn(List.of(template));
@@ -161,11 +166,10 @@ class ReservationPaymentServiceTest {
         }
 
         @Test
-        void whenSent_thenTracksSessionAndPersists() throws Exception {
+        void whenSent_thenRoutesThroughOrchestratorAndPersists() throws Exception {
             Reservation r = buildReservation();
-            Session session = buildSession("sess_3", "https://stripe.test/pay3");
-            when(stripeService.createReservationCheckoutSession(
-                    any(), any(), anyString(), any(), any())).thenReturn(session);
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(orchSuccess("sess_3", "https://stripe.test/pay3"));
             when(messageTemplateRepository.findByOrganizationIdAndTypeAndIsActiveTrue(
                     ORG_ID, MessageTemplateType.PAYMENT_LINK)).thenReturn(List.of());
             Reservation reloaded = buildReservation();
@@ -173,19 +177,32 @@ class ReservationPaymentServiceTest {
 
             Reservation result = service.sendPaymentLink(r, "to@mail.com");
 
+            // La réf de session provider est stockée pour la traçabilité + le fallback checkPaymentStatus.
             assertThat(r.getStripeSessionId()).isEqualTo("sess_3");
             assertThat(r.getPaymentLinkEmail()).isEqualTo("to@mail.com");
             assertThat(r.getPaymentLinkSentAt()).isNotNull();
             verify(reservationRepository).save(r);
             assertThat(result).isSameAs(reloaded);
+
+            // Vague 2 : montant serveur + sourceType RESERVATION + devise résa portés par la requête.
+            ArgumentCaptor<PaymentOrchestrationRequest> reqCaptor =
+                    ArgumentCaptor.forClass(PaymentOrchestrationRequest.class);
+            verify(orchestrationService).initiatePayment(reqCaptor.capture());
+            PaymentOrchestrationRequest request = reqCaptor.getValue();
+            assertThat(request.amount()).isEqualByComparingTo("150.00");
+            assertThat(request.currency()).isEqualTo("EUR");
+            assertThat(request.sourceType()).isEqualTo(ReservationPaymentService.SOURCE_TYPE);
+            assertThat(request.sourceId()).isEqualTo(10L);
+            assertThat(request.idempotencyKey()).isEqualTo("RESERVATION-10");
+            assertThat(request.metadata()).containsEntry("reservation_id", "10");
         }
 
         @Test
-        void whenStripeFails_thenWrapsInRuntimeException() throws Exception {
+        void whenOrchestratorFails_thenWrapsInRuntimeException() {
             Reservation r = buildReservation();
-            when(stripeService.createReservationCheckoutSession(
-                    any(), any(), anyString(), any(), any()))
-                    .thenThrow(new RuntimeException("stripe down"));
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(new PaymentOrchestrationResult(null,
+                            PaymentResult.failure("provider indisponible"), null));
 
             assertThatThrownBy(() -> service.sendPaymentLink(r, "to@mail.com"))
                     .isInstanceOf(RuntimeException.class)
