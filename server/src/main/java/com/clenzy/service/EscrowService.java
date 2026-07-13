@@ -175,7 +175,12 @@ public class EscrowService {
 
     private void publishEscrowEvent(EscrowHold hold, String eventType) {
         try {
+            // eventType DOIT figurer dans le payload : l'OutboxRelay ne publie QUE le
+            // payload sur Kafka (pas l'eventType de la ligne outbox). Sans ce champ, le
+            // PaymentEventConsumer (qui dispatche sur event.get("eventType")) ne routerait
+            // jamais ESCROW_RELEASED → le split à la libération d'escrow ne s'exécutait pas.
             String payload = objectMapper.writeValueAsString(Map.of(
+                "eventType", eventType,
                 "escrowId", hold.getId(),
                 "reservationId", hold.getReservationId() != null ? hold.getReservationId() : 0,
                 "amount", hold.getAmount().toPlainString(),
