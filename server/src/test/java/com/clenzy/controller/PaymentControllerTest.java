@@ -330,7 +330,7 @@ class PaymentControllerTest {
         }
 
         @Test
-        void whenSuccess_thenReturnsClientSecret() throws StripeException {
+        void whenSuccess_thenReturnsClientSecret() {
             PaymentSessionRequest request = sessionRequest(42L, new BigDecimal("50"));
             Intervention intervention = mock(Intervention.class);
             when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
@@ -339,11 +339,10 @@ class PaymentControllerTest {
             when(intervention.getId()).thenReturn(42L);
             when(interventionRepository.findById(42L)).thenReturn(Optional.of(intervention));
 
-            Session stripeSession = mock(Session.class);
-            when(stripeSession.getId()).thenReturn("cs_test_emb");
-            when(stripeSession.getClientSecret()).thenReturn("cs_test_emb_secret");
-            when(stripeService.createEmbeddedCheckoutSession(eq(42L), eq(new BigDecimal("50")), eq("user@test.com")))
-                    .thenReturn(stripeSession);
+            // Embedded routé via l'orchestrateur (capacité EMBEDDED_CHECKOUT → clientSecret).
+            PaymentResult embedded = PaymentResult.embedded("cs_test_emb", "cs_test_emb_secret");
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(new PaymentOrchestrationResult(null, embedded, PaymentProviderType.STRIPE));
 
             ResponseEntity<?> response = controller.createEmbeddedPaymentSession(request, jwt);
 
@@ -355,7 +354,7 @@ class PaymentControllerTest {
         }
 
         @Test
-        void whenStripeFails_then500() throws StripeException {
+        void whenOrchestratorFails_then500() {
             PaymentSessionRequest request = sessionRequest(42L, new BigDecimal("50"));
             Intervention intervention = mock(Intervention.class);
             when(intervention.getStatus()).thenReturn(InterventionStatus.AWAITING_PAYMENT);
@@ -363,8 +362,8 @@ class PaymentControllerTest {
             when(intervention.getEstimatedCost()).thenReturn(new BigDecimal("50"));
             when(interventionRepository.findById(42L)).thenReturn(Optional.of(intervention));
 
-            when(stripeService.createEmbeddedCheckoutSession(anyLong(), any(), anyString()))
-                    .thenThrow(new ApiException("Stripe down", null, "code", 500, null));
+            when(orchestrationService.initiatePayment(any(PaymentOrchestrationRequest.class)))
+                    .thenReturn(new PaymentOrchestrationResult(null, PaymentResult.failure("Provider down"), null));
 
             ResponseEntity<?> response = controller.createEmbeddedPaymentSession(request, jwt);
 

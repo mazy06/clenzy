@@ -12,7 +12,6 @@ import com.clenzy.model.PaymentStatus;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.tenant.TenantContext;
 import com.stripe.exception.StripeException;
-import com.stripe.model.checkout.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -147,16 +146,15 @@ public class InterventionPaymentService {
     }
 
     /**
-     * Cree une session Stripe Checkout en mode EMBEDDED (inline) et retourne
-     * le clientSecret pour le composant EmbeddedCheckout cote frontend.
+     * Cree une session de paiement EMBEDDED (inline) via l'orchestrateur et
+     * retourne le clientSecret pour le composant EmbeddedCheckout cote frontend.
      *
      * @throws PaymentValidationException statut bloquant, deja payee, email
      *         absent, montant indisponible ou incoherent (→ 400)
-     * @throws StripeException erreur Stripe (→ 500 cote controller)
+     * @throws PaymentProcessingException echec de l'orchestration (→ 500 cote controller)
      * @throws AccessDeniedException intervention d'une autre organisation (→ 403)
      */
-    public PaymentSessionResponse createEmbeddedPaymentSession(PaymentSessionRequest request, String customerEmail)
-            throws StripeException {
+    public PaymentSessionResponse createEmbeddedPaymentSession(PaymentSessionRequest request, String customerEmail) {
         // findById ne passe PAS par le filtre Hibernate organizationFilter → check explicite
         Intervention intervention = interventionRepository.findById(request.getInterventionId())
             .orElseThrow(() -> new RuntimeException("Intervention non trouvee"));
@@ -186,15 +184,40 @@ public class InterventionPaymentService {
             throw new PaymentValidationException("Le montant fourni ne correspond pas au montant de l'intervention");
         }
 
-        Session session = stripeService.createEmbeddedCheckoutSession(
-            request.getInterventionId(),
-            serverAmount,
-            customerEmail
-        );
+        // Route via l'orchestrateur en mode EMBEDDED (miroir de createPaymentSession) :
+        // l'embedded reste intrinsèquement Stripe (capacité EMBEDDED_CHECKOUT), mais le
+        // flux passe par le port et une entrée ledger PaymentTransaction est créée.
+        // Complétion INCHANGÉE : sourceType INTERVENTION n'est pas dans la garde webhook →
+        // le webhook legacy retrouve l'intervention par stripeSessionId (confirmPayment).
+        String currency = intervention.getCurrency() != null ? intervention.getCurrency() : "EUR";
+        PaymentOrchestrationRequest orchRequest = new PaymentOrchestrationRequest(
+            serverAmount, currency, "INTERVENTION", request.getInterventionId(),
+            "Paiement intervention #" + request.getInterventionId(), customerEmail,
+            null, null, null,
+            Map.of("interventionId", String.valueOf(request.getInterventionId())),
+            "INT-" + request.getInterventionId(),
+            true,   // embedded
+            null,   // expiresAtEpochSeconds — défaut provider
+            false); // saveCardForFutureUse
+
+        PaymentOrchestrationResult orchResult = orchestrationService.initiatePayment(orchRequest);
+
+        if (!orchResult.isSuccess()) {
+            String errMsg = orchResult.paymentResult() != null
+                ? orchResult.paymentResult().errorMessage() : "Erreur orchestration paiement";
+            throw new PaymentProcessingException("Erreur orchestration: " + errMsg);
+        }
+
+        String providerTxId = orchResult.paymentResult().providerTxId();
+        if (providerTxId != null) {
+            intervention.setStripeSessionId(providerTxId);
+        }
+        intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+        interventionRepository.save(intervention);
 
         PaymentSessionResponse response = new PaymentSessionResponse();
-        response.setSessionId(session.getId());
-        response.setClientSecret(session.getClientSecret());
+        response.setSessionId(providerTxId);
+        response.setClientSecret(orchResult.paymentResult().clientSecret());
         response.setInterventionId(intervention.getId());
         return response;
     }
