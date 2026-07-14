@@ -44,6 +44,13 @@ public class SiteSnapshotService {
     private final Object browserLock = new Object();
     private final Semaphore pageSemaphore = new Semaphore(3);
 
+    /** Fetch épinglé-IP pour les sous-ressources CSS (audit 2026-07 F3-01). */
+    private final PinnedSiteFetcher pinnedSiteFetcher;
+
+    public SiteSnapshotService(PinnedSiteFetcher pinnedSiteFetcher) {
+        this.pinnedSiteFetcher = pinnedSiteFetcher;
+    }
+
     /**
      * Lazy-init the browser singleton (thread-safe).
      */
@@ -128,10 +135,33 @@ public class SiteSnapshotService {
                     .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"));
             page = context.newPage();
 
+            // Garde SSRF (audit 2026-07 F3-01) : valider CHAQUE requête réseau du navigateur
+            // (page principale + redirections + sous-ressources). Une requête http(s) qui
+            // résout vers une IP interne / metadata cloud (ou un rebinding DNS post-validation)
+            // est AVORTÉE. Les schémas non-réseau (data:, blob:, about:) passent.
+            context.route("**", route -> {
+                String reqUrl = route.request().url();
+                String lower = reqUrl.toLowerCase();
+                if (lower.startsWith("http://") || lower.startsWith("https://")) {
+                    try {
+                        ICalUrlValidator.validateAndResolve(reqUrl);
+                    } catch (RuntimeException blocked) {
+                        log.debug("SSRF snapshot guard: requête bloquée vers {} ({})", reqUrl, blocked.getMessage());
+                        route.abort();
+                        return;
+                    }
+                }
+                route.resume();
+            });
+
             // Navigate — use LOAD first (faster than networkidle, always fires)
             page.navigate(url, new Page.NavigateOptions()
                     .setWaitUntil(com.microsoft.playwright.options.WaitUntilState.LOAD)
                     .setTimeout(timeoutMs));
+
+            // Défense en profondeur anti-redirect/rebinding : le DOM capturé ne doit pas
+            // provenir d'une cible interne atteinte via une redirection 3xx suivie par Chromium.
+            ICalUrlValidator.validateAndResolve(page.url());
 
             // Wait for SPA rendering: body must have meaningful content
             // SPAs populate <div id="root"> or <div id="app"> after JS executes
@@ -243,7 +273,6 @@ public class SiteSnapshotService {
     // ─── CSS Inlining ────────────────────────────────────────────────────
 
     private static final int MAX_STYLESHEETS = 10;
-    private static final int STYLESHEET_TIMEOUT_MS = 5_000;
     private static final int STYLESHEET_MAX_SIZE_KB = 500;
 
     private void inlineStylesheets(Document doc, String origin) {
@@ -260,13 +289,12 @@ public class SiteSnapshotService {
             if (href.isEmpty()) { link.remove(); continue; }
 
             try {
-                String cssText = Jsoup.connect(href)
-                        .userAgent("Mozilla/5.0 (compatible; ClenzyBot/1.0)")
-                        .timeout(STYLESHEET_TIMEOUT_MS)
-                        .maxBodySize(STYLESHEET_MAX_SIZE_KB * 1024)
-                        .ignoreContentType(true)
-                        .execute()
-                        .body();
+                // Audit 2026-07 F3-01 : fetch épinglé-IP (HTTPS/443, blocage RFC1918/metadata,
+                // pas de suivi de redirection) au lieu de Jsoup.connect qui re-résolvait le DNS
+                // (rebinding) et suivait des href attaquants vers des ressources internes.
+                PinnedSiteFetcher.FetchedResource res =
+                        pinnedSiteFetcher.fetch(href, STYLESHEET_MAX_SIZE_KB * 1024L);
+                String cssText = new String(res.body(), java.nio.charset.StandardCharsets.UTF_8);
 
                 cssText = rewriteCssUrls(cssText, href);
                 link.after("<style>/* inlined: " + extractHost(href) + " */\n" + cssText + "</style>");
