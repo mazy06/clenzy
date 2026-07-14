@@ -219,51 +219,85 @@ public class PaymentWebhookRouter {
      */
     @PostMapping(value = "/cmi", consumes = "application/x-www-form-urlencoded")
     public ResponseEntity<String> handleCmiWebhook(@RequestParam Map<String, String> params) {
+        return handleEst3DGateWebhook(params, PaymentProviderType.CMI, "CMI");
+    }
+
+    /**
+     * Attijari Payment webhook handler (POC).
+     *
+     * <p>Attijari partageant le protocole {@code est3Dgate} avec le CMI (meme
+     * plateforme Maroc Telecommerce), le callback a exactement le meme format
+     * ({@code application/x-www-form-urlencoded}, HASH dans le body,
+     * {@code ProcReturnCode=00}/{@code Response=Approved} pour succes). Le
+     * traitement est donc mutualise via {@link #handleEst3DGateWebhook} — seul
+     * change le {@link PaymentProviderType} servant a charger le store_key de
+     * l'org.</p>
+     */
+    @PostMapping(value = "/attijari", consumes = "application/x-www-form-urlencoded")
+    public ResponseEntity<String> handleAttijariWebhook(@RequestParam Map<String, String> params) {
+        return handleEst3DGateWebhook(params, PaymentProviderType.ATTIJARI, "Attijari");
+    }
+
+    /**
+     * Traitement mutualise des callbacks {@code est3Dgate} (CMI, Attijari,
+     * autres acquereurs Maroc Telecommerce).
+     *
+     * <ol>
+     *   <li>Exige {@code HASH} et {@code oid} (401/400 sinon).</li>
+     *   <li>Resout la transaction via {@code oid} → orgId.</li>
+     *   <li>Charge le store_key de l'org pour le {@code providerType} donne.</li>
+     *   <li>Verifie le hash SHA-512 ver3 (401 si invalide).</li>
+     *   <li>Route : {@code ProcReturnCode=="00" && Response=="Approved"} →
+     *       complete, sinon fail.</li>
+     * </ol>
+     */
+    private ResponseEntity<String> handleEst3DGateWebhook(Map<String, String> params,
+                                                          PaymentProviderType providerType,
+                                                          String label) {
         String hash = params.get("HASH");
         if (hash == null || hash.isBlank()) {
-            log.warn("CMI webhook received without HASH field — rejecting");
+            log.warn("{} webhook received without HASH field — rejecting", label);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing HASH");
         }
         String oid = params.get("oid");
         if (oid == null || oid.isBlank()) {
-            log.warn("CMI webhook received without oid (transaction ref) — rejecting");
+            log.warn("{} webhook received without oid (transaction ref) — rejecting", label);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing oid");
         }
 
         // 1. Resoudre la transaction → orgId pour charger le store_key adequat
         PaymentTransaction tx = paymentTransactionService.findByTransactionRef(oid).orElse(null);
         if (tx == null) {
-            log.warn("CMI webhook : transaction inconnue oid={}", oid);
+            log.warn("{} webhook : transaction inconnue oid={}", label, oid);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Unknown transaction");
         }
 
-        // 2. Charger la config CMI pour avoir le store_key
+        // 2. Charger la config du provider pour avoir le store_key
         PaymentMethodConfig config = configService.getOrCreateConfig(
-            tx.getOrganizationId(), PaymentProviderType.CMI);
+            tx.getOrganizationId(), providerType);
         String storeKey = configService.decryptApiSecret(config);
         if (storeKey == null || storeKey.isBlank()) {
-            log.error("CMI webhook : store_key absent pour org {}", tx.getOrganizationId());
+            log.error("{} webhook : store_key absent pour org {}", label, tx.getOrganizationId());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Store key missing");
         }
 
         // 3. Verification du hash SHA-512 ver3 sur les params bruts
         if (!cmiHashService.verifyHash(params, storeKey)) {
-            log.warn("CMI webhook : HASH invalide pour oid={}", oid);
+            log.warn("{} webhook : HASH invalide pour oid={}", label, oid);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid HASH");
         }
 
-        // 4. Routage selon le statut
-        // CMI : ProcReturnCode = "00" pour succes, autre code = echec
+        // 4. Routage selon le statut : ProcReturnCode="00" + Approved = succes
         String procReturnCode = params.get("ProcReturnCode");
         String response = params.get("Response");
         if ("00".equals(procReturnCode) && "Approved".equalsIgnoreCase(response)) {
             orchestrationService.completeTransaction(oid);
-            log.info("CMI webhook : transaction {} confirmee", oid);
+            log.info("{} webhook : transaction {} confirmee", label, oid);
         } else {
             String errorMessage = params.getOrDefault("ErrMsg",
-                "CMI " + procReturnCode + ": " + (response != null ? response : "rejected"));
+                label + " " + procReturnCode + ": " + (response != null ? response : "rejected"));
             orchestrationService.failTransaction(oid, errorMessage);
-            log.info("CMI webhook : transaction {} echouee ({}, {})", oid, procReturnCode, response);
+            log.info("{} webhook : transaction {} echouee ({}, {})", label, oid, procReturnCode, response);
         }
         return ResponseEntity.ok("OK");
     }

@@ -1,9 +1,10 @@
 package com.clenzy.controller;
 
 import com.clenzy.model.PaymentTransaction;
+import com.clenzy.payment.provider.AttijariPaymentProvider;
+import com.clenzy.payment.provider.AttijariPaymentProvider.AttijariCredentials;
 import com.clenzy.payment.provider.CmiHashService;
 import com.clenzy.payment.provider.CmiPaymentProvider;
-import com.clenzy.payment.provider.CmiPaymentProvider.CmiCredentials;
 import com.clenzy.payment.provider.Est3DGateHtml;
 import com.clenzy.service.PaymentTransactionService;
 import com.clenzy.util.StringUtils;
@@ -18,76 +19,66 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
- * Endpoint intermediaire pour la redirection vers le portail CMI Maroc.
+ * Endpoint intermediaire de redirection vers la passerelle Attijari Payment
+ * (Maroc Telecommerce {@code est3Dgate}).
  *
- * <h2>Pourquoi cet endpoint</h2>
- * <p>CMI exige un <strong>formulaire HTML POST signe</strong>, pas une URL
- * GET avec query params. Le contrat {@link com.clenzy.payment.PaymentResult}
- * ne retourne qu'une {@code redirectUrl} unique — pour preserver le pattern
- * Strategy commun a tous les providers, le {@link CmiPaymentProvider} renvoie
- * une URL vers ce controller, qui :</p>
- * <ol>
- *   <li>Resout la {@code PaymentTransaction} depuis le {@code txRef} du path</li>
- *   <li>Charge les credentials CMI de l'organisation</li>
- *   <li>Construit le Map de parametres CMI (clientid, amount, currency, oid, etc.)</li>
- *   <li>Calcule le hash SHA-512 ver3</li>
- *   <li>Rend un HTML minimaliste qui auto-submit le formulaire vers CMI</li>
- * </ol>
+ * <p>Miroir de {@link CmiRedirectController} : meme protocole {@code est3Dgate},
+ * mutualisant le rendu HTML via {@link Est3DGateHtml} et le hash via
+ * {@link CmiHashService}. Seuls changent le path
+ * ({@code /api/payments/attijari-redirect/&lt;txRef&gt;}), le libelle affiche et
+ * l'URL de passerelle.</p>
  *
  * <h2>Securite</h2>
- * <p>Endpoint public (pas d'auth) car le guest est redirige ici depuis le
- * Booking Engine apres avoir cliquer sur "Payer". La protection se fait par :
- * </p>
- * <ul>
- *   <li>L'URL contient le {@code transactionRef} (UUID, non guessable)</li>
- *   <li>Une transaction donnee ne peut etre payee qu'une fois (statut PENDING)</li>
- *   <li>Le hash CMI inclut le {@code clientid} secret marchand</li>
- * </ul>
+ * <p>Endpoint public (le guest est redirige ici depuis le Booking Engine). La
+ * protection repose sur : {@code transactionRef} non guessable (UUID), une
+ * transaction payable une seule fois (statut PENDING), et le {@code clientid}
+ * secret marchand inclus dans le hash. Note POC : comme pour le CMI, le path
+ * {@code /api/payments/attijari-redirect/**} devra etre whiteliste dans
+ * {@code SecurityConfigProd} au moment de la mise en service prod (les PSP
+ * regionaux ne sont pas encore actifs en prod).</p>
  */
 @RestController
 @RequestMapping("/api/payments")
-public class CmiRedirectController {
+public class AttijariRedirectController {
 
-    private static final Logger log = LoggerFactory.getLogger(CmiRedirectController.class);
+    private static final Logger log = LoggerFactory.getLogger(AttijariRedirectController.class);
 
     private final PaymentTransactionService paymentTransactionService;
-    private final CmiPaymentProvider cmiProvider;
+    private final AttijariPaymentProvider attijariProvider;
 
-    public CmiRedirectController(PaymentTransactionService paymentTransactionService,
-                                  CmiPaymentProvider cmiProvider) {
+    public AttijariRedirectController(PaymentTransactionService paymentTransactionService,
+                                       AttijariPaymentProvider attijariProvider) {
         this.paymentTransactionService = paymentTransactionService;
-        this.cmiProvider = cmiProvider;
+        this.attijariProvider = attijariProvider;
     }
 
-    @GetMapping(value = "/cmi-redirect/{transactionRef}", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> renderCmiRedirect(@PathVariable String transactionRef) {
+    @GetMapping(value = "/attijari-redirect/{transactionRef}", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> renderAttijariRedirect(@PathVariable String transactionRef) {
         PaymentTransaction tx = paymentTransactionService.findByTransactionRef(transactionRef).orElse(null);
         if (tx == null) {
-            log.warn("CMI redirect : transaction inconnue txRef={}", transactionRef);
+            log.warn("Attijari redirect : transaction inconnue txRef={}", transactionRef);
             return errorPage(HttpStatus.NOT_FOUND, "Transaction introuvable");
         }
-        if (!"CMI".equals(tx.getProviderType().name())) {
-            log.warn("CMI redirect : provider invalide pour txRef={} ({})",
+        if (!"ATTIJARI".equals(tx.getProviderType().name())) {
+            log.warn("Attijari redirect : provider invalide pour txRef={} ({})",
                 transactionRef, tx.getProviderType());
             return errorPage(HttpStatus.BAD_REQUEST, "Provider invalide");
         }
 
-        CmiCredentials creds;
+        AttijariCredentials creds;
         try {
-            creds = cmiProvider.loadCredentials(tx.getOrganizationId());
+            creds = attijariProvider.loadCredentials(tx.getOrganizationId());
         } catch (Exception e) {
-            log.error("CMI redirect : credentials missing for txRef={}", transactionRef, e);
+            log.error("Attijari redirect : credentials missing for txRef={}", transactionRef, e);
             return errorPage(HttpStatus.INTERNAL_SERVER_ERROR,
-                "Configuration CMI incomplète pour cette organisation");
+                "Configuration Attijari incomplète pour cette organisation");
         }
 
-        // Construit les params CMI dans l'ordre habituel (ordre n'impacte pas
-        // le hash car CmiHashService trie alphabetiquement, mais facilite le
-        // debug visuel dans la page rendue).
+        // Params est3Dgate (ordre indifferent : CmiHashService trie
+        // alphabetiquement avant de hasher — l'ordre ne sert qu'au debug visuel).
         Map<String, String> params = new LinkedHashMap<>();
         params.put("clientid", creds.clientId());
         params.put("amount", tx.getAmount().toPlainString());
@@ -104,14 +95,14 @@ public class CmiRedirectController {
         params.put("lang", "fr");
         params.put("shopurl", "https://app.clenzy.fr");
 
-        // Calcul du hash via le service dedie (SHA-512 ver3, Base64)
-        String hash = cmiProvider.hashService().computeHash(params, creds.storeKey());
+        // Hash SHA-512 ver3 via le service partage (identique CMI/Attijari).
+        String hash = attijariProvider.hashService().computeHash(params, creds.storeKey());
         params.put("HASH", hash);
 
-        String gatewayUrl = CmiPaymentProvider.resolveGatewayUrl(creds.sandbox());
-        String html = Est3DGateHtml.autoSubmitForm("CMI", gatewayUrl, params);
+        String gatewayUrl = AttijariPaymentProvider.resolveGatewayUrl(creds.sandbox());
+        String html = Est3DGateHtml.autoSubmitForm("Attijari Payment", gatewayUrl, params);
 
-        log.info("CMI redirect rendu pour txRef={} → {}", transactionRef, gatewayUrl);
+        log.info("Attijari redirect rendu pour txRef={} → {}", transactionRef, gatewayUrl);
         return ResponseEntity.ok()
             .contentType(MediaType.TEXT_HTML)
             .body(html);

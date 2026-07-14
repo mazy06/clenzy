@@ -59,12 +59,23 @@ class PaymentProviderCapabilitiesTest {
     }
 
     @Test
+    @DisplayName("Attijari : PAY seulement (POC — même périmètre que CMI, refund back-office)")
+    void attijariSupportsPayOnly() {
+        PaymentProvider attijari = new AttijariPaymentProvider(null, null);
+        assertThat(attijari.getCapabilities()).containsExactly(PaymentCapability.PAY);
+        assertThat(attijari.supports(PaymentCapability.PAY)).isTrue();
+        assertThat(attijari.supports(PaymentCapability.REFUND)).isFalse();
+        assertThat(attijari.supports(PaymentCapability.PAYOUT)).isFalse();
+    }
+
+    @Test
     @DisplayName("Tout provider supporte au minimum PAY")
     void everyProviderSupportsPay() {
         assertThat(new StripePaymentProvider().supports(PaymentCapability.PAY)).isTrue();
         assertThat(new PayzonePaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
         assertThat(new PayTabsPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
         assertThat(new CmiPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
+        assertThat(new AttijariPaymentProvider(null, null).supports(PaymentCapability.PAY)).isTrue();
     }
 
     private void assertPayAndRefundOnly(PaymentProvider provider) {
