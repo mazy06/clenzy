@@ -224,7 +224,11 @@ public class AuthSessionController {
      * Accessible meme sans auth valide (les cookies peuvent etre expires).
      */
     @DeleteMapping
-    public ResponseEntity<Map<String, String>> deleteSession(HttpServletResponse response) {
+    public ResponseEntity<Map<String, String>> deleteSession(HttpServletRequest request,
+                                                             HttpServletResponse response) {
+        // Audit 2026-07 F2-03 : révoquer la session Keycloak (best-effort) AVANT de purger
+        // les cookies, sinon un refresh token capturé survivrait au logout jusqu'à expiration.
+        authSessionService.logout(extractRefreshCookie(request));
         clearCookies(response);
         log.debug("Session cookies cleared");
         return ResponseEntity.ok(Map.of("status", "cleared"));

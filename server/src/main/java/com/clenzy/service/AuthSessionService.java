@@ -114,6 +114,35 @@ public class AuthSessionService {
     }
 
     /**
+     * Révoque la session Keycloak associée au {@code refreshToken} (audit 2026-07 F2-03).
+     * Sans cet appel, le logout ne faisait qu'effacer les cookies : un refresh token
+     * capturé restait valide jusqu'à expiration. <b>Best-effort</b> : un échec ne bloque
+     * jamais le logout local (purge des cookies côté controller).
+     */
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("client_id", clientId);
+        if (clientSecret != null && !clientSecret.isBlank()) {
+            form.add("client_secret", clientSecret);
+        }
+        form.add("refresh_token", refreshToken);
+
+        String logoutUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(form, headers);
+        try {
+            restTemplate.exchange(logoutUrl, HttpMethod.POST, request, Void.class);
+            log.debug("Session Keycloak révoquée au logout");
+        } catch (RuntimeException e) {
+            log.debug("Révocation Keycloak au logout échouée (non bloquant): {}", e.getMessage());
+        }
+    }
+
+    /**
      * Duree de vie restante (secondes) d'un JWT, lue depuis son claim {@code exp}.
      * Sert a caler le max-age d'un cookie sur l'expiration reelle du token
      * plutot que sur une constante figee (cause historique des deconnexions :

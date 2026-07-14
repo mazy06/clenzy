@@ -330,7 +330,8 @@ class AuthSessionControllerTest {
     @Test
     @DisplayName("deleteSession purge les 2 cookies (max-age=0)")
     void deleteSession_clearsBothCookies() {
-        ResponseEntity<Map<String, String>> result = controller.deleteSession(response);
+        ResponseEntity<Map<String, String>> result = controller.deleteSession(
+                request, response);
 
         ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
         verify(response, times(2)).addCookie(cookieCaptor.capture());
@@ -355,7 +356,7 @@ class AuthSessionControllerTest {
     void deleteSession_devProfile_noSecureOnClearCookie() {
         ReflectionTestUtils.setField(controller, "activeProfile", "dev");
 
-        controller.deleteSession(response);
+        controller.deleteSession(request, response);
 
         ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
         verify(response, times(2)).addCookie(cookieCaptor.capture());
