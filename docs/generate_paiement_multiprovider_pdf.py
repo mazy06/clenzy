@@ -870,8 +870,8 @@ grid = [hcells("Réf.", "Exigence", "Criticité", "Oui", "Part.", "Non", "Commen
 for r, crit in allreq:
     grid.append([Paragraph(f"<b>{r}</b>", CELL), Paragraph(labels.get(r, ""), CELL), crit_cell(crit),
                  Paragraph("", CELL), Paragraph("", CELL), Paragraph("", CELL), Paragraph("", CELL)])
-story.append(table(grid, [20 * mm, 46 * mm, 22 * mm, 9 * mm, 11 * mm, 9 * mm,
-                          USABLE_W - 20 * mm - 46 * mm - 22 * mm - 29 * mm],
+story.append(table(grid, [20 * mm, 44 * mm, 27 * mm, 9 * mm, 12 * mm, 11 * mm,
+                          USABLE_W - 20 * mm - 44 * mm - 27 * mm - 32 * mm],
                    align_center_cols=(2, 3, 4, 5)))
 story.append(Paragraph("Toute E1.x à « Non » est éliminatoire en l'état -> demander la feuille de route. "
                        "Les E2.x/E3.x à « Non » n'excluent pas : le repli documenté s'applique et la "
