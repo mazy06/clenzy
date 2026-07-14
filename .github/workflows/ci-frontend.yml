@@ -109,8 +109,7 @@ jobs:
 
       - name: NPM audit (high + critical)
         working-directory: client
-        run: npm audit --audit-level=high || true
-        continue-on-error: true
+        run: npm audit --audit-level=critical
 
   docker-push:
     name: Build & Push Docker Image
