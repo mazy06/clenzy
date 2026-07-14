@@ -46,7 +46,7 @@ __all__ = [
     "PRIMARY", "PRIMARY2", "ACCENT", "WARN", "DANGER", "INK", "MUTED", "LIGHT", "LINE",
     "GREEN", "SKY", "HEADER_BG", "CODE_BG", "GRAD0", "GRAD1", "FAINT",
     # polices
-    "FONT", "FONT_MED", "FONT_DEMI", "FONT_BOLD", "FONT_IT",
+    "FONT", "FONT_MED", "FONT_DEMI", "FONT_BOLD", "FONT_XBOLD", "FONT_IT", "WORDMARK",
     # styles
     "PART", "H1", "H2", "H3", "BODY", "BULLET", "CAP", "SMALL",
     "CELL", "CELLB", "CELLH", "EYEBROW", "TIT", "SUB", "USABLE_W",
@@ -79,24 +79,45 @@ GRAD0 = colors.HexColor("#5B7A8C")       # barre gradient couverture (début)
 GRAD1 = colors.HexColor("#93B0C2")       # barre gradient couverture (fin)
 FAINT = colors.HexColor("#D9E1E5")       # motif constellation en filigrane (couverture)
 
-# ── Police géométrique Avenir Next (repli Helvetica si absente) ────────────────
+# ── Polices Baitly : Plus Jakarta Sans (corps/titres) + Space Grotesk (wordmark) ──
+# Identiques au PDF ADR de référence et à l'app (client/index.html). TTF bundlées dans
+# docs/fonts/ (OFL). Repli : Avenir Next (macOS) puis Helvetica.
 FONT, FONT_MED, FONT_DEMI, FONT_BOLD = "Helvetica", "Helvetica", "Helvetica-Bold", "Helvetica-Bold"
+FONT_XBOLD = "Helvetica-Bold"     # titres de couverture (ExtraBold)
 FONT_IT = "Helvetica-Oblique"
+WORDMARK = "Helvetica-Bold"       # wordmark « baitly » (Space Grotesk)
+_FONTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 try:
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.pdfbase.pdfmetrics import registerFontFamily
-    _AV = "/System/Library/Fonts/Avenir Next.ttc"
-    if os.path.exists(_AV):
-        pdfmetrics.registerFont(TTFont("Avenir", _AV, subfontIndex=7))        # Regular
-        pdfmetrics.registerFont(TTFont("Avenir-Med", _AV, subfontIndex=5))    # Medium
-        pdfmetrics.registerFont(TTFont("Avenir-Demi", _AV, subfontIndex=2))   # Demi Bold
-        pdfmetrics.registerFont(TTFont("Avenir-Bold", _AV, subfontIndex=0))   # Bold
-        pdfmetrics.registerFont(TTFont("Avenir-It", _AV, subfontIndex=4))     # Italic
-        registerFontFamily("Avenir", normal="Avenir", bold="Avenir-Bold",
-                           italic="Avenir-It", boldItalic="Avenir-Bold")
-        FONT, FONT_MED, FONT_DEMI, FONT_BOLD, FONT_IT = \
-            "Avenir", "Avenir-Med", "Avenir-Demi", "Avenir-Bold", "Avenir-It"
+
+    def _reg(name, fname):
+        pdfmetrics.registerFont(TTFont(name, os.path.join(_FONTS_DIR, fname)))
+
+    if os.path.exists(os.path.join(_FONTS_DIR, "PlusJakartaSans_400Regular.ttf")):
+        _reg("Jakarta", "PlusJakartaSans_400Regular.ttf")
+        _reg("Jakarta-Med", "PlusJakartaSans_500Medium.ttf")
+        _reg("Jakarta-Demi", "PlusJakartaSans_600SemiBold.ttf")
+        _reg("Jakarta-Bold", "PlusJakartaSans_700Bold.ttf")
+        _reg("Jakarta-XBold", "PlusJakartaSans_800ExtraBold.ttf")
+        _reg("Grotesk", "SpaceGrotesk_600SemiBold.ttf")
+        registerFontFamily("Jakarta", normal="Jakarta", bold="Jakarta-Bold",
+                           italic="Jakarta", boldItalic="Jakarta-Bold")
+        FONT, FONT_MED, FONT_DEMI, FONT_BOLD = "Jakarta", "Jakarta-Med", "Jakarta-Demi", "Jakarta-Bold"
+        FONT_XBOLD, FONT_IT, WORDMARK = "Jakarta-XBold", "Jakarta", "Grotesk"
+    else:
+        _AV = "/System/Library/Fonts/Avenir Next.ttc"
+        if os.path.exists(_AV):
+            pdfmetrics.registerFont(TTFont("Avenir", _AV, subfontIndex=7))
+            pdfmetrics.registerFont(TTFont("Avenir-Med", _AV, subfontIndex=5))
+            pdfmetrics.registerFont(TTFont("Avenir-Demi", _AV, subfontIndex=2))
+            pdfmetrics.registerFont(TTFont("Avenir-Bold", _AV, subfontIndex=0))
+            pdfmetrics.registerFont(TTFont("Avenir-It", _AV, subfontIndex=4))
+            registerFontFamily("Avenir", normal="Avenir", bold="Avenir-Bold",
+                               italic="Avenir-It", boldItalic="Avenir-Bold")
+            FONT, FONT_MED, FONT_DEMI, FONT_BOLD = "Avenir", "Avenir-Med", "Avenir-Demi", "Avenir-Bold"
+            FONT_XBOLD, FONT_IT, WORDMARK = "Avenir-Bold", "Avenir-It", "Avenir-Bold"
 except Exception:
     pass
 
@@ -104,7 +125,7 @@ except Exception:
 _ss = getSampleStyleSheet()
 PART = ParagraphStyle("PART", parent=_ss["Heading1"], fontName=FONT_BOLD, fontSize=13,
                       textColor=colors.white, leading=16, alignment=TA_LEFT)
-H1 = ParagraphStyle("H1", parent=_ss["Heading1"], fontName=FONT_DEMI, fontSize=15,
+H1 = ParagraphStyle("H1", parent=_ss["Heading1"], fontName=FONT_BOLD, fontSize=15,
                     textColor=PRIMARY, spaceBefore=6, spaceAfter=7, leading=18)
 H2 = ParagraphStyle("H2", parent=_ss["Heading2"], fontName=FONT_DEMI, fontSize=11.5,
                     textColor=PRIMARY, spaceBefore=10, spaceAfter=4, leading=14)
@@ -122,7 +143,7 @@ CELLB = ParagraphStyle("CELLB", parent=CELL, fontName=FONT_DEMI)
 CELLH = ParagraphStyle("CELLH", parent=CELL, fontName=FONT_DEMI, textColor=PRIMARY)
 EYEBROW = ParagraphStyle("EYEBROW", parent=BODY, fontName=FONT_DEMI, fontSize=9,
                          textColor=PRIMARY2, leading=12, spaceAfter=3)
-TIT = ParagraphStyle("TIT", parent=BODY, fontName=FONT_BOLD, fontSize=27,
+TIT = ParagraphStyle("TIT", parent=BODY, fontName=FONT_XBOLD, fontSize=27,
                      textColor=PRIMARY, leading=31, alignment=TA_LEFT)
 SUB = ParagraphStyle("SUB", parent=BODY, fontName=FONT, fontSize=11.5, textColor=MUTED, leading=16)
 
@@ -314,7 +335,7 @@ def baitly_logo():
         px, py = cx + r * math.cos(a), cy + r * math.sin(a)
         d.add(Circle(px, py, 1.15, fillColor=PRIMARY, strokeColor=None))
     d.add(Circle(cx, cy, 2.0, fillColor=PRIMARY, strokeColor=None))
-    d.add(String(cx + r + 5 * mm, cy - 7.5, "baitly", fontName=FONT_BOLD, fontSize=23, fillColor=PRIMARY))
+    d.add(String(cx + r + 5 * mm, cy - 7.5, "baitly", fontName=WORDMARK, fontSize=24, fillColor=PRIMARY))
     return d
 
 

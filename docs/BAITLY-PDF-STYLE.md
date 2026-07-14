@@ -60,10 +60,12 @@ le `sys.path`, donc `from baitly_pdf_theme import *` fonctionne).
 
 ### Police
 
-**Avenir Next** (géométrique humaniste), avec **repli automatique Helvetica** si la police
-n'est pas installée (portabilité hors macOS). Exposée via `FONT`, `FONT_MED`, `FONT_DEMI`,
-`FONT_BOLD`, `FONT_IT`. Les styles (`H1`, `BODY`…) l'utilisent déjà — ne pas coder une
-police en dur.
+**Plus Jakarta Sans** (corps + titres) + **Space Grotesk** (wordmark « baitly »,
+display) — les **mêmes que l'app** (`client/index.html`) et que le PDF ADR de référence.
+TTF bundlées dans `docs/fonts/` (OFL). Repli automatique : Avenir Next (macOS) puis
+Helvetica. Exposées via `FONT`, `FONT_MED`, `FONT_DEMI`, `FONT_BOLD`, `FONT_XBOLD`
+(titres ExtraBold), `WORDMARK` (Space Grotesk), `FONT_IT`. Les styles (`H1`, `TIT`,
+`BODY`…) les utilisent déjà — ne jamais coder une police en dur.
 
 ### Logo & motif
 
