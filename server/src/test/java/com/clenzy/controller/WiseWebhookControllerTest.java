@@ -18,7 +18,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.Signature;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,15 +55,36 @@ class WiseWebhookControllerTest {
 
     private WiseWebhookController controller;
     private ObjectMapper objectMapper;
+    private PrivateKey testPrivateKey;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         objectMapper = new ObjectMapper();
         PayoutWebhookService payoutWebhookService =
             new PayoutWebhookService(payoutRepository, notifier, notificationService);
         controller = new WiseWebhookController(payoutWebhookService, objectMapper);
-        // Default: no public key configured (signature check disabled — degraded mode)
-        ReflectionTestUtils.setField(controller, "wisePublicKeyPem", "");
+
+        // Audit 2026-07 F4-01 : la vérification de signature est désormais FAIL-CLOSED
+        // (rejet 503 si clé absente). Les tests de traitement fournissent donc une vraie
+        // signature RSA valide : on génère une paire de clés et on configure la clé publique.
+        KeyPair keyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
+        this.testPrivateKey = keyPair.getPrivate();
+        String publicPem = "-----BEGIN PUBLIC KEY-----\n"
+            + Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded())
+            + "\n-----END PUBLIC KEY-----";
+        ReflectionTestUtils.setField(controller, "wisePublicKeyPem", publicPem);
+    }
+
+    /** Signe le payload avec la clé privée de test (SHA256withRSA, base64) — pendant de verifySignature. */
+    private String sign(String payload) {
+        try {
+            Signature sig = Signature.getInstance("SHA256withRSA");
+            sig.initSign(testPrivateKey);
+            sig.update(payload.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(sig.sign());
+        } catch (Exception e) {
+            throw new IllegalStateException("Signature de test impossible", e);
+        }
     }
 
     private OwnerPayout newPayout(Long id, Long orgId, PayoutStatus status) {
@@ -87,15 +114,12 @@ class WiseWebhookControllerTest {
     class SignatureConfig {
 
         @Test
-        @DisplayName("public key blank -> verification disabled, body processed")
-        void whenPublicKeyBlank_thenAccepts() {
-            String body = transferEvent(123456L, "outgoing_payment_sent");
-            when(payoutRepository.findFirstByPaymentReference("WISE:123456")).thenReturn(Optional.empty());
-
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
-
-            // 200 even without signature when not configured
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
+        @DisplayName("public key blank -> fail-closed 503 (audit F4-01)")
+        void whenPublicKeyBlank_thenRejects503() {
+            ReflectionTestUtils.setField(controller, "wisePublicKeyPem", "");
+            ResponseEntity<String> response = controller.handleTransferStateChange(
+                transferEvent(123456L, "outgoing_payment_sent"), null);
+            assertThat(response.getStatusCode().value()).isEqualTo(503);
         }
 
         @Test
@@ -140,7 +164,7 @@ class WiseWebhookControllerTest {
         @Test
         @DisplayName("malformed JSON -> 400")
         void whenMalformedJson_thenReturns400() {
-            ResponseEntity<String> response = controller.handleTransferStateChange("{ broken", null);
+            ResponseEntity<String> response = controller.handleTransferStateChange("{ broken", sign("{ broken"));
             assertThat(response.getStatusCode().value()).isEqualTo(400);
             assertThat(response.getBody()).isEqualTo("Invalid JSON");
         }
@@ -151,7 +175,7 @@ class WiseWebhookControllerTest {
             String body = """
                 {"event_type":"profiles#update","data":{"resource":{"id":1}}}
                 """;
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
+            ResponseEntity<String> response = controller.handleTransferStateChange(body, sign(body));
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(payoutRepository, never()).findFirstByPaymentReference(anyString());
         }
@@ -162,7 +186,7 @@ class WiseWebhookControllerTest {
             String body = """
                 {"event_type":"transfers#state-change"}
                 """;
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
+            ResponseEntity<String> response = controller.handleTransferStateChange(body, sign(body));
             assertThat(response.getStatusCode().value()).isEqualTo(400);
         }
 
@@ -172,7 +196,7 @@ class WiseWebhookControllerTest {
             String body = """
                 {"event_type":"transfers#state-change","data":{"current_state":"processing"}}
                 """;
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
+            ResponseEntity<String> response = controller.handleTransferStateChange(body, sign(body));
             assertThat(response.getStatusCode().value()).isEqualTo(400);
         }
     }
@@ -188,7 +212,7 @@ class WiseWebhookControllerTest {
             when(payoutRepository.findFirstByPaymentReference("WISE:999999"))
                 .thenReturn(Optional.empty());
 
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
+            ResponseEntity<String> response = controller.handleTransferStateChange(body, sign(body));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).isEqualTo("Unknown transfer");
@@ -210,7 +234,7 @@ class WiseWebhookControllerTest {
                 .thenReturn(1);
             when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
+            ResponseEntity<String> response = controller.handleTransferStateChange(body, sign(body));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(payoutRepository).markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class));
@@ -229,7 +253,7 @@ class WiseWebhookControllerTest {
                 .thenReturn(1);
             when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
-            controller.handleTransferStateChange(body, null);
+            controller.handleTransferStateChange(body, sign(body));
 
             verify(payoutRepository).markFailedIfNotPaid(
                 10L, PayoutStatus.FAILED, "Wise state: funds_refunded", PayoutStatus.PAID);
@@ -248,7 +272,7 @@ class WiseWebhookControllerTest {
                 .thenReturn(1);
             when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
-            controller.handleTransferStateChange(body, null);
+            controller.handleTransferStateChange(body, sign(body));
 
             verify(notifier).notifyFailure(any(), eq("Wise state: charged_back"));
         }
@@ -265,7 +289,7 @@ class WiseWebhookControllerTest {
                 .thenReturn(1);
             when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
-            controller.handleTransferStateChange(body, null);
+            controller.handleTransferStateChange(body, sign(body));
 
             verify(notifier).notifyFailure(any(), eq("Wise state: cancelled"));
         }
@@ -282,7 +306,7 @@ class WiseWebhookControllerTest {
                 .thenReturn(1);
             when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
-            controller.handleTransferStateChange(body, null);
+            controller.handleTransferStateChange(body, sign(body));
 
             verify(notifier).notifyFailure(any(), eq("Wise state: bounced_back"));
         }
@@ -295,7 +319,7 @@ class WiseWebhookControllerTest {
             when(payoutRepository.findFirstByPaymentReference("WISE:123456"))
                 .thenReturn(Optional.of(payout));
 
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
+            ResponseEntity<String> response = controller.handleTransferStateChange(body, sign(body));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PROCESSING);
@@ -317,7 +341,7 @@ class WiseWebhookControllerTest {
                 .thenReturn(1);
             when(payoutRepository.findById(10L)).thenReturn(Optional.of(payout));
 
-            controller.handleTransferStateChange(body, null);
+            controller.handleTransferStateChange(body, sign(body));
 
             verify(notifier).notifySuccess(payout);
         }
@@ -338,7 +362,7 @@ class WiseWebhookControllerTest {
             when(payoutRepository.markPaidIfNotAlreadyPaid(eq(10L), eq(PayoutStatus.PAID), any(Instant.class)))
                 .thenReturn(0);
 
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
+            ResponseEntity<String> response = controller.handleTransferStateChange(body, sign(body));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(payoutRepository, never()).save(any());
@@ -357,7 +381,7 @@ class WiseWebhookControllerTest {
                     10L, PayoutStatus.FAILED, "Wise state: funds_refunded", PayoutStatus.PAID))
                 .thenReturn(0);
 
-            ResponseEntity<String> response = controller.handleTransferStateChange(body, null);
+            ResponseEntity<String> response = controller.handleTransferStateChange(body, sign(body));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(payout.getStatus()).isEqualTo(PayoutStatus.PAID);

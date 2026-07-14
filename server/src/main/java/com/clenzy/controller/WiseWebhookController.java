@@ -71,18 +71,22 @@ public class WiseWebhookController {
             @RequestBody String payload,
             @RequestHeader(value = "X-Signature-SHA256", required = false) String signature) {
 
-        // 1. Verification de signature RSA-SHA256 (recommandée en prod)
-        if (wisePublicKeyPem != null && !wisePublicKeyPem.isBlank()) {
-            if (signature == null || signature.isBlank()) {
-                log.warn("Wise webhook : signature absente, rejet");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing signature");
-            }
-            if (!verifySignature(payload, signature)) {
-                log.warn("Wise webhook : signature invalide");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
-            }
-        } else {
-            log.warn("Wise webhook : vérification de signature désactivée (wise.public-key vide). À configurer en production.");
+        // 1. Verification de signature RSA-SHA256 — FAIL-CLOSED (audit 2026-07 F4-01,
+        // aligné sur GoCardlessWebhookController). Sans clé publique configurée, on
+        // REJETTE (503) au lieu d'accepter des payloads non signés qui pourraient forger
+        // l'état d'un payout (markPaid/markFailed).
+        if (wisePublicKeyPem == null || wisePublicKeyPem.isBlank()) {
+            log.error("Wise webhook : wise.public-key non configurée — rejet fail-closed");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Wise webhook signature verification not configured");
+        }
+        if (signature == null || signature.isBlank()) {
+            log.warn("Wise webhook : signature absente, rejet");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing signature");
+        }
+        if (!verifySignature(payload, signature)) {
+            log.warn("Wise webhook : signature invalide");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
         }
 
         // 2. Parser le payload
