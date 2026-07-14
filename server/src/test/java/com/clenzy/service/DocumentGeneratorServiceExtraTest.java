@@ -333,6 +333,9 @@ class DocumentGeneratorServiceExtraTest {
                 .build();
             g.setId(1L);
             g.setFileName("f.pdf");
+            // Audit 2026-07 F1-09 : scoping org — la génération appartient à l'org courante.
+            g.setOrganizationId(1L);
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(generationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(
                 ReferenceType.INTERVENTION, 50L)).thenReturn(List.of(g));
 

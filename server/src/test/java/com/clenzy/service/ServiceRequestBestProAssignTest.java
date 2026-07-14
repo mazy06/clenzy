@@ -59,6 +59,7 @@ class ServiceRequestBestProAssignTest {
     @Mock private com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
     @Mock private com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
     @Mock private com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
+    @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     private ServiceRequestService service;
     private ServiceRequest sr;
@@ -73,7 +74,8 @@ class ServiceRequestBestProAssignTest {
                 propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
                 assignmentEventRepository, workflowSettingsRepository,
                 cleaningPricingEngine, housekeeperScoreService,
-                supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate);
+                supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
+                organizationAccessGuard);
 
         property = new Property();
         property.setId(100L);

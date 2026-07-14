@@ -157,10 +157,13 @@ class ReservationControllerTest {
         @Test
         void whenExists_thenReturnsDto() {
             Reservation reservation = new Reservation();
+            com.clenzy.model.Property property = new com.clenzy.model.Property();
+            property.setId(1L);
+            reservation.setProperty(property);
             when(reservationService.getByIdFetchAll(1L)).thenReturn(reservation);
             when(reservationMapper.toDto(reservation)).thenReturn(sampleDto("confirmed"));
 
-            ResponseEntity<ReservationDto> response = controller.getById(1L);
+            ResponseEntity<ReservationDto> response = controller.getById(1L, createJwt());
             assertThat(response.getBody().propertyName()).isEqualTo("Apt A");
         }
 
@@ -169,7 +172,7 @@ class ReservationControllerTest {
             when(reservationService.getByIdFetchAll(1L))
                     .thenThrow(new NotFoundException("Reservation non trouvee: 1"));
 
-            assertThatThrownBy(() -> controller.getById(1L))
+            assertThatThrownBy(() -> controller.getById(1L, createJwt()))
                     .isInstanceOf(NotFoundException.class);
         }
     }
@@ -688,10 +691,13 @@ class ReservationControllerTest {
         void whenFound_thenDtoConverted() {
             Reservation r = new Reservation();
             r.setId(50L);
+            com.clenzy.model.Property property = new com.clenzy.model.Property();
+            property.setId(50L);
+            r.setProperty(property);
             when(reservationService.getByIdFetchAll(50L)).thenReturn(r);
             when(reservationMapper.toDto(r)).thenReturn(sampleDto("confirmed"));
 
-            ResponseEntity<ReservationDto> response = controller.getById(50L);
+            ResponseEntity<ReservationDto> response = controller.getById(50L, createJwt());
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().status()).isEqualTo("confirmed");
         }

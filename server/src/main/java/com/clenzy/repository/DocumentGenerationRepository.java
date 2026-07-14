@@ -45,6 +45,10 @@ public interface DocumentGenerationRepository extends JpaRepository<DocumentGene
 
     Page<DocumentGeneration> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    // Audit 2026-07 F1-02 : historique scopé à l'organisation (le filtre Hibernate
+    // est inerte en HTTP) — utilisé pour les rôles non platform-staff.
+    Page<DocumentGeneration> findByOrganizationIdOrderByCreatedAtDesc(Long organizationId, Pageable pageable);
+
     List<DocumentGeneration> findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(ReferenceType refType, Long refId);
 
     long countByStatus(DocumentGenerationStatus status);

@@ -128,8 +128,11 @@ public class ReservationController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Detail d'une reservation")
-    public ResponseEntity<ReservationDto> getById(@PathVariable Long id) {
+    public ResponseEntity<ReservationDto> getById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         Reservation reservation = reservationService.getByIdFetchAll(id);
+        // findById contourne le filtre org (audit 2026-07 F1-01) : valider l'ownership
+        // comme les autres endpoints (update/cancel/hideFromPlanning) de ce controller.
+        reservationService.validatePropertyAccess(reservation.getProperty().getId(), jwt.getSubject());
         return ResponseEntity.ok(reservationMapper.toDto(reservation));
     }
 

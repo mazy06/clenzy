@@ -85,6 +85,7 @@ public class ServiceRequestService {
     private final com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
     private final com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
     private final com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
+    private final com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
                                   UserRepository userRepository,
@@ -105,7 +106,8 @@ public class ServiceRequestService {
                                   com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService,
                                   @org.springframework.context.annotation.Lazy
                                   com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService,
-                                  com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate) {
+                                  com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate,
+                                  com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -124,6 +126,17 @@ public class ServiceRequestService {
         this.supervisionSuggestionService = supervisionSuggestionService;
         this.supervisionAutoApplyService = supervisionAutoApplyService;
         this.autoApplyGate = autoApplyGate;
+        this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    /**
+     * Garde d'ownership fail-closed (audit 2026-07 F1-05/06/07) : {@code findById}
+     * contourne le filtre org (inerte en HTTP) — toute demande chargée par id dans
+     * un flux utilisateur doit valider l'appartenance à l'organisation courante.
+     */
+    private void requireOwnedServiceRequest(ServiceRequest sr) {
+        organizationAccessGuard.requireSameOrganization(
+                sr.getOrganizationId(), "Demande hors de votre organisation");
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
@@ -156,6 +169,7 @@ public class ServiceRequestService {
     public ServiceRequestDto refuse(Long serviceRequestId) {
         ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        requireOwnedServiceRequest(sr);
 
         if (!RequestStatus.AWAITING_PAYMENT.equals(sr.getStatus()) && !RequestStatus.ASSIGNED.equals(sr.getStatus())) {
             throw new IllegalStateException("Seules les demandes assignees peuvent etre refusees. Statut actuel: " + sr.getStatus());
@@ -271,6 +285,7 @@ public class ServiceRequestService {
     public ServiceRequestDto manualAssign(Long serviceRequestId, Long assignedToId, String assignedToType) {
         ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
                 .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+        requireOwnedServiceRequest(sr);
 
         if (!RequestStatus.PENDING.equals(sr.getStatus()) && !RequestStatus.AWAITING_PAYMENT.equals(sr.getStatus()) && !RequestStatus.ASSIGNED.equals(sr.getStatus())) {
             throw new IllegalStateException("Seules les demandes en attente ou en attente de paiement peuvent etre (re)assignees manuellement. Statut actuel: " + sr.getStatus());
@@ -427,7 +442,10 @@ public class ServiceRequestService {
 
     @Transactional(readOnly = true)
     public ServiceRequestDto getById(Long id) {
-        return serviceRequestMapper.toDto(serviceRequestRepository.findById(id).orElseThrow(() -> new NotFoundException("Service request not found")));
+        ServiceRequest sr = serviceRequestRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Service request not found"));
+        requireOwnedServiceRequest(sr);
+        return serviceRequestMapper.toDto(sr);
     }
 
     @Transactional(readOnly = true)

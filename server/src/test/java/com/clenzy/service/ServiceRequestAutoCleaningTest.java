@@ -46,6 +46,7 @@ class ServiceRequestAutoCleaningTest {
     @Mock private com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
     @Mock private com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
     @Mock private com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
+    @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     private ServiceRequestService service;
 
@@ -66,7 +67,8 @@ class ServiceRequestAutoCleaningTest {
                 propertyTeamService, kafkaTemplate, new TenantContext(), serviceRequestMapper,
                 assignmentEventRepository, workflowSettingsRepository,
                 cleaningPricingEngine, housekeeperScoreService,
-                supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate);
+                supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
+                organizationAccessGuard);
 
         // Le moteur ménage est mocké : conseil 95 € (fourchette 80-110, 135 min).
         // lenient : certains tests s'arrêtent avant le calcul (skip idempotent).

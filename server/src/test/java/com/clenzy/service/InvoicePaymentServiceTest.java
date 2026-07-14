@@ -35,12 +35,13 @@ class InvoicePaymentServiceTest {
     @Mock private PaymentOrchestrationService paymentOrchestrationService;
     @Mock private InvoiceRepository invoiceRepository;
     @Mock private TenantContext tenantContext;
+    @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     private InvoicePaymentService service;
 
     @BeforeEach
     void setUp() {
-        service = new InvoicePaymentService(paymentOrchestrationService, invoiceRepository, tenantContext);
+        service = new InvoicePaymentService(paymentOrchestrationService, invoiceRepository, tenantContext, organizationAccessGuard);
     }
 
     private Invoice buildInvoice(Long id, InvoiceStatus status) {

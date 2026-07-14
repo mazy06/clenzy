@@ -52,6 +52,7 @@ class ServiceRequestServiceTest {
     @Mock private com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
     @Mock private com.clenzy.service.agent.supervision.SupervisionAutoApplyService supervisionAutoApplyService;
     @Mock private com.clenzy.service.agent.supervision.AutoApplyGate autoApplyGate;
+    @Mock private com.clenzy.service.access.OrganizationAccessGuard organizationAccessGuard;
 
     private TenantContext tenantContext;
     private ServiceRequestService service;
@@ -69,7 +70,8 @@ class ServiceRequestServiceTest {
                 propertyTeamService, kafkaTemplate, tenantContext, serviceRequestMapper,
                 assignmentEventRepository, workflowSettingsRepository,
                 cleaningPricingEngine, housekeeperScoreService,
-                supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate);
+                supervisionSuggestionService, supervisionAutoApplyService, autoApplyGate,
+                organizationAccessGuard);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
